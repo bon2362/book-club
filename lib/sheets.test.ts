@@ -1,15 +1,17 @@
 import { parseBookRow, filterBooks, Book } from './sheets'
 
+// Actual sheet columns: Name(0), Theme/Tags(1), Writer(2), Type(3), Size(4), Pages(5), Date(6), Link(7), Status(8), Why(9), Description(10)
+
 describe('parseBookRow', () => {
   it('парсит строку таблицы в объект книги', () => {
     const row = [
-      '1', 'Кредо либерала', '', 'левые идеи, неолиберализм',
+      'Кредо либерала', 'левые идеи, неолиберализм',
       'Paul Krugman', 'Book', 'L', '368', '1/1/2007',
-      'https://example.com', 'to read', 'Замятин посоветовал', 'Описание книги'
+      'https://example.com', 'Not started', 'Замятин посоветовал', 'Описание книги'
     ]
-    const book = parseBookRow(row)
+    const book = parseBookRow(row, 0)
     expect(book).toEqual({
-      id: '1', name: 'Кредо либерала',
+      id: '2', name: 'Кредо либерала',
       tags: ['левые идеи', 'неолиберализм'],
       author: 'Paul Krugman', type: 'Book', size: 'L',
       pages: '368', date: '1/1/2007', link: 'https://example.com',
@@ -18,8 +20,13 @@ describe('parseBookRow', () => {
   })
 
   it('возвращает null для строк с пустым названием', () => {
-    const row = ['10', 'Name', '', '', '', '', '', '', '', 'Link', '', '', 'Description']
-    expect(parseBookRow(row)).toBeNull()
+    const row = ['', 'Theme', 'Writer', 'Book', 'L', '368', '1/1/2007', 'Link', '', 'Why', 'Description']
+    expect(parseBookRow(row, 0)).toBeNull()
+  })
+
+  it('возвращает null для заголовочной строки', () => {
+    const row = ['Name', 'Theme', 'Writer', 'Type', 'Size', 'Pages', 'Date', 'Link', 'Status', 'Why', 'Description']
+    expect(parseBookRow(row, 0)).toBeNull()
   })
 })
 

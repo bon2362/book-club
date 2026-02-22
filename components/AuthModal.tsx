@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 
 interface Props {
@@ -9,23 +8,7 @@ interface Props {
 }
 
 export default function AuthModal({ isOpen, onClose }: Props) {
-  const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-
   if (!isOpen) return null
-
-  async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!email.trim()) return
-    setLoading(true)
-    try {
-      await signIn('resend', { email: email.trim(), redirect: false })
-      setSubmitted(true)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   function handleOverlayClick(e: React.MouseEvent<HTMLDivElement>) {
     if (e.target === e.currentTarget) {
@@ -117,28 +100,19 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           Войти в клуб
         </h2>
 
-        {/* Subtitle rule */}
-        <div
+        {/* Subtitle */}
+        <p
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
+            fontFamily: "'Georgia', serif",
+            fontStyle: 'italic',
+            fontSize: '0.8125rem',
+            color: '#8C7B6B',
+            letterSpacing: '0.02em',
             margin: '0.75rem 0 1.75rem 0',
           }}
         >
-          <span
-            style={{
-              fontFamily: "'Georgia', serif",
-              fontStyle: 'italic',
-              fontSize: '0.8125rem',
-              color: '#8C7B6B',
-              letterSpacing: '0.02em',
-            }}
-          >
-            выберите способ входа
-          </span>
-          <div style={{ flex: 1, height: '1px', background: '#E2D8CC' }} />
-        </div>
+          войдите, чтобы записаться на книги
+        </p>
 
         {/* Google sign-in button */}
         <button
@@ -159,7 +133,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             background: '#1A1714',
             color: '#F9F5EE',
             transition: 'background 0.18s, color 0.18s',
-            marginBottom: '1.5rem',
           }}
           onMouseEnter={e => {
             const btn = e.currentTarget as HTMLButtonElement
@@ -203,142 +176,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           </svg>
           Войти через Google
         </button>
-
-        {/* Ornamental divider */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.625rem',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <div style={{ flex: 1, height: '1px', background: '#E2D8CC' }} />
-          <span
-            style={{
-              fontFamily: "'Georgia', serif",
-              fontSize: '0.65rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color: '#B5451B',
-              opacity: 0.8,
-            }}
-          >
-            или по email
-          </span>
-          <div style={{ flex: 1, height: '1px', background: '#E2D8CC' }} />
-        </div>
-
-        {submitted ? (
-          /* Success state */
-          <div
-            style={{
-              borderLeft: '3px solid #2D6A4F',
-              paddingLeft: '1rem',
-              paddingTop: '0.5rem',
-              paddingBottom: '0.5rem',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: "'Georgia', serif",
-                fontStyle: 'italic',
-                fontSize: '0.9rem',
-                lineHeight: 1.6,
-                color: '#2D6A4F',
-                margin: 0,
-              }}
-            >
-              Проверьте почту — мы отправили вам ссылку для входа
-            </p>
-          </div>
-        ) : (
-          /* Email form */
-          <form onSubmit={handleEmailSubmit} noValidate>
-            <label
-              htmlFor="auth-email"
-              style={{
-                display: 'block',
-                fontFamily: "'Georgia', serif",
-                fontSize: '0.675rem',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: '#5C4A3A',
-                marginBottom: '0.4rem',
-              }}
-            >
-              Email
-            </label>
-            <input
-              id="auth-email"
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '0.625rem 0.75rem',
-                fontFamily: "'Georgia', serif",
-                fontSize: '0.9rem',
-                color: '#1A1714',
-                background: '#FDFAF5',
-                border: '1px solid #D4C4B0',
-                borderBottom: '2px solid #B5451B',
-                outline: 'none',
-                boxSizing: 'border-box',
-                marginBottom: '1rem',
-                transition: 'border-color 0.15s',
-              }}
-              onFocus={e => {
-                const inp = e.currentTarget as HTMLInputElement
-                inp.style.borderColor = '#B5451B'
-                inp.style.background = '#FFFFFF'
-              }}
-              onBlur={e => {
-                const inp = e.currentTarget as HTMLInputElement
-                inp.style.borderColor = '#D4C4B0'
-                inp.style.borderBottomColor = '#B5451B'
-                inp.style.background = '#FDFAF5'
-              }}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '0.7rem 1rem',
-                fontFamily: "'Playfair Display', 'Georgia', serif",
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                letterSpacing: '0.04em',
-                cursor: loading ? 'default' : 'pointer',
-                border: '2px solid #B5451B',
-                background: loading ? '#E2D8CC' : 'transparent',
-                color: loading ? '#8C7B6B' : '#B5451B',
-                transition: 'all 0.18s',
-              }}
-              onMouseEnter={e => {
-                if (!loading) {
-                  const btn = e.currentTarget as HTMLButtonElement
-                  btn.style.background = '#B5451B'
-                  btn.style.color = '#F9F5EE'
-                }
-              }}
-              onMouseLeave={e => {
-                if (!loading) {
-                  const btn = e.currentTarget as HTMLButtonElement
-                  btn.style.background = 'transparent'
-                  btn.style.color = '#B5451B'
-                }
-              }}
-            >
-              {loading ? 'Отправляем…' : 'Отправить ссылку'}
-            </button>
-          </form>
-        )}
       </div>
     </div>
   )

@@ -15,19 +15,18 @@ export interface Book {
 }
 
 // Column indexes (0-based):
-// Col 2 is empty, Col 10 is Status (filtered upstream, not stored in Book)
-// rowNum, Name, empty, tags, Writer, Type, Size, Pages, Date, Link, Status, Why, Description
+// Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Why, Description
 const COL = {
-  ID: 0, NAME: 1, TAGS: 3, AUTHOR: 4, TYPE: 5,
-  SIZE: 6, PAGES: 7, DATE: 8, LINK: 9, WHY: 11, DESC: 12
+  NAME: 0, TAGS: 1, AUTHOR: 2, TYPE: 3,
+  SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, WHY: 9, DESC: 10
 }
 
-export function parseBookRow(row: string[]): Book | null {
+export function parseBookRow(row: string[], rowIndex: number): Book | null {
   const name = row[COL.NAME]?.trim()
   if (!name || name === 'Name') return null
 
   return {
-    id: row[COL.ID] ?? '',
+    id: String(rowIndex + 2), // 1-based row number (skip header)
     name,
     tags: (row[COL.TAGS] ?? '').split(',').map(t => t.trim()).filter(Boolean),
     author: row[COL.AUTHOR] ?? '',
@@ -72,7 +71,7 @@ export async function fetchBooks(forceRefresh = false): Promise<Book[]> {
   })
 
   const rows = (response.data.values ?? []).slice(1) // skip header
-  const books = filterBooks(rows.map(parseBookRow).filter(Boolean) as Book[])
+  const books = filterBooks(rows.map((row, i) => parseBookRow(row, i)).filter(Boolean) as Book[])
 
   cache = { books, timestamp: Date.now() }
   return books
