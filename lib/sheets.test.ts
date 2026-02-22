@@ -1,4 +1,4 @@
-import { parseBookRow, filterBooks } from './sheets'
+import { parseBookRow, filterBooks, Book } from './sheets'
 
 describe('parseBookRow', () => {
   it('парсит строку таблицы в объект книги', () => {
@@ -29,7 +29,7 @@ describe('filterBooks', () => {
       { type: 'Book', name: 'A' },
       { type: 'Article', name: 'B' },
       { type: 'Course', name: 'C' },
-    ] as any[]
+    ] as Book[]
     expect(filterBooks(books)).toEqual([{ type: 'Book', name: 'A' }])
   })
 })
