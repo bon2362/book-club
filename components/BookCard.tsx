@@ -24,7 +24,7 @@ const SIZE_LABEL: Record<string, string> = {
 
 export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
-  const hasLink = book.link && book.link !== 'Link' && book.link !== ''
+  const hasLink = book.link && book.link !== 'Link'
   const sizeLabel = SIZE_LABEL[book.size] ?? book.size
 
   return (

@@ -42,6 +42,13 @@ describe('BookCard', () => {
 
   it('показывает ссылку если link не пустой и не "Link"', () => {
     render(<BookCard book={book} isSelected={false} onToggle={() => {}} />)
-    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://example.com')
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', 'https://example.com')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  it('не показывает ссылку если link равен "Link"', () => {
+    render(<BookCard book={{ ...book, link: 'Link' }} isSelected={false} onToggle={() => {}} />)
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })
