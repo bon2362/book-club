@@ -2,15 +2,15 @@ import Fuse from 'fuse.js'
 import { transliterate } from 'transliteration'
 import type { Book } from './sheets'
 
-function cyrToLat(text: string): string {
+function toTranslit(text: string): string {
   return transliterate(text)
 }
 
 function buildSearchIndex(books: Book[]) {
   const enriched = books.map(b => ({
     ...b,
-    authorTranslit: cyrToLat(b.author),
-    nameTranslit: cyrToLat(b.name),
+    authorTranslit: toTranslit(b.author),
+    nameTranslit: toTranslit(b.name),
   }))
 
   return new Fuse(enriched, {
@@ -24,12 +24,12 @@ export function searchBooks(books: Book[], query: string): Book[] {
   if (!query.trim()) return books
 
   const fuse = buildSearchIndex(books)
-  const queryTranslit = cyrToLat(query)
+  const queryTranslit = toTranslit(query)
 
-  const results = [
-    ...fuse.search(query),
-    ...fuse.search(queryTranslit),
-  ]
+  // Search both the original query and its transliterated form; skip duplicate if identical
+  const rawResults = fuse.search(query)
+  const translitResults = queryTranslit === query ? [] : fuse.search(queryTranslit)
+  const results = [...rawResults, ...translitResults]
 
   // Deduplicate by id, sort by score
   const seen = new Set<string>()
@@ -40,5 +40,6 @@ export function searchBooks(books: Book[], query: string): Book[] {
       seen.add(r.item.id)
       return true
     })
-    .map(r => books.find(b => b.id === r.item.id)!)
+    .map(r => books.find(b => b.id === r.item.id))
+    .filter((b): b is Book => b !== undefined)
 }
