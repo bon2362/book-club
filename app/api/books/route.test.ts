@@ -1,4 +1,6 @@
-// app/api/books/route.test.ts
+/**
+ * @jest-environment node
+ */
 import { GET } from './route'
 import * as sheets from '@/lib/sheets'
 
