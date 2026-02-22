@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import type { Book } from '@/lib/sheets'
 import type { UserSignup } from '@/lib/signups'
@@ -15,11 +15,12 @@ interface Props {
 }
 
 async function saveSelection(name: string, contacts: string, books: string[]) {
-  await fetch('/api/signup', {
+  const res = await fetch('/api/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, contacts, selectedBooks: books }),
   })
+  if (!res.ok) throw new Error(`Signup failed: ${res.status}`)
 }
 
 export default function BooksPage({ books, currentUser }: Props) {
@@ -33,10 +34,13 @@ export default function BooksPage({ books, currentUser }: Props) {
     currentUser?.selectedBooks ?? []
   )
   const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [showContactsForm, setShowContactsForm] = useState(
-    isLoggedIn && !currentUser
-  )
+  const [showContactsForm, setShowContactsForm] = useState(false)
   const [pendingBook, setPendingBook] = useState<Book | null>(null)
+
+  // Show contacts form when session loads and user has no profile yet
+  useEffect(() => {
+    if (isLoggedIn && !currentUser) setShowContactsForm(true)
+  }, [isLoggedIn, currentUser])
 
   // Collect unique tags and authors for filter dropdowns
   const allTags = useMemo(() => {
@@ -75,13 +79,13 @@ export default function BooksPage({ books, currentUser }: Props) {
       return
     }
     // Logged in and contacts filled — optimistic toggle
-    const next = selectedBooks.includes(book.name)
-      ? selectedBooks.filter(n => n !== book.name)
-      : [...selectedBooks, book.name]
+    const prev = selectedBooks
+    const next = prev.includes(book.name)
+      ? prev.filter(n => n !== book.name)
+      : [...prev, book.name]
     setSelectedBooks(next)
     saveSelection(currentUser.name, currentUser.contacts, next).catch(() => {
-      // Revert on failure
-      setSelectedBooks(selectedBooks)
+      setSelectedBooks(prev)
     })
   }
 
@@ -90,9 +94,14 @@ export default function BooksPage({ books, currentUser }: Props) {
       ? [...selectedBooks, pendingBook.name]
       : selectedBooks
     setSelectedBooks(next)
-    await saveSelection(name, contacts, next)
-    setShowContactsForm(false)
-    setPendingBook(null)
+    try {
+      await saveSelection(name, contacts, next)
+      setShowContactsForm(false)
+      setPendingBook(null)
+    } catch {
+      // Revert selection if save failed
+      setSelectedBooks(selectedBooks)
+    }
   }
 
   // Shared style tokens
@@ -426,7 +435,7 @@ export default function BooksPage({ books, currentUser }: Props) {
           >
             {filteredBooks.map(book => (
               <BookCard
-                key={book.id || book.name}
+                key={book.id}
                 book={book}
                 isSelected={selectedBooks.includes(book.name)}
                 onToggle={handleToggle}
