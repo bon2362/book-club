@@ -15,6 +15,7 @@ export interface Book {
 }
 
 // Column indexes (0-based):
+// Col 2 is empty, Col 10 is Status (filtered upstream, not stored in Book)
 // rowNum, Name, empty, tags, Writer, Type, Size, Pages, Date, Link, Status, Why, Description
 const COL = {
   ID: 0, NAME: 1, TAGS: 3, AUTHOR: 4, TYPE: 5,
@@ -53,7 +54,7 @@ function getAuth() {
   const credentials = JSON.parse(key)
   return new google.auth.GoogleAuth({
     credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   })
 }
 
