@@ -31,12 +31,15 @@ describe('parseBookRow', () => {
 })
 
 describe('filterBooks', () => {
-  it('оставляет только книги (Type=Book)', () => {
+  it('оставляет книги и статьи (Book и Article)', () => {
     const books = [
       { type: 'Book', name: 'A' },
       { type: 'Article', name: 'B' },
       { type: 'Course', name: 'C' },
     ] as Book[]
-    expect(filterBooks(books)).toEqual([{ type: 'Book', name: 'A' }])
+    expect(filterBooks(books)).toEqual([
+      { type: 'Book', name: 'A' },
+      { type: 'Article', name: 'B' },
+    ])
   })
 })

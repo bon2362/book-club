@@ -41,7 +41,7 @@ export function parseBookRow(row: string[], rowIndex: number): Book | null {
 }
 
 export function filterBooks(books: Book[]): Book[] {
-  return books.filter(b => b.type === 'Book')
+  return books.filter(b => b.type === 'Book' || b.type === 'Article')
 }
 
 // In-memory cache

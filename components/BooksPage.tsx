@@ -283,22 +283,29 @@ export default function BooksPage({ books, currentUser }: Props) {
           padding: '2rem 1.5rem 4rem',
         }}
       >
-        {/* Contacts form banner (logged in but no profile yet) */}
-        {showContactsForm && (
-          <div
+        {/* ── Club description banner ── */}
+        <div
+          style={{
+            marginBottom: '2rem',
+            paddingBottom: '2rem',
+            borderBottom: '1px solid #E2D8CC',
+          }}
+        >
+          <p
             style={{
-              marginBottom: '2.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
+              fontFamily: "'Georgia', serif",
+              fontSize: '0.875rem',
+              lineHeight: 1.7,
+              color: '#5C4A3A',
+              margin: 0,
+              maxWidth: '680px',
             }}
           >
-            <ContactsForm
-              initialName={session?.user?.name ?? ''}
-              onSave={handleContactsSave}
-            />
-          </div>
-        )}
+            Мы выбираем книги, которые хотели бы почитать вместе с другими людьми.
+            В Telegram я создаю чат для координации вокруг определённой книги —
+            и дальнейшая коммуникация происходит там. Сайт нужен только для выбора книг.
+          </p>
+        </div>
 
         {/* ── Search + Filters row ── */}
         <div
@@ -506,6 +513,51 @@ export default function BooksPage({ books, currentUser }: Props) {
         isOpen={authModalOpen}
         onClose={() => { setAuthModalOpen(false); setPendingBook(null) }}
       />
+
+      {/* ── Contacts popup ── */}
+      {showContactsForm && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) { setShowContactsForm(false); setPendingBook(null) } }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(26, 23, 20, 0.72)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+            {/* Close button */}
+            <button
+              onClick={() => { setShowContactsForm(false); setPendingBook(null) }}
+              aria-label="Закрыть"
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                zIndex: 1,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "'Georgia', serif",
+                fontSize: '1.125rem',
+                color: '#8C7B6B',
+                lineHeight: 1,
+                padding: '0.2rem 0.4rem',
+              }}
+            >
+              ✕
+            </button>
+            <ContactsForm
+              initialName={session?.user?.name ?? ''}
+              onSave={handleContactsSave}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
