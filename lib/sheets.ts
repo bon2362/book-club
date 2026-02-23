@@ -66,7 +66,7 @@ export async function fetchBooks(forceRefresh = false): Promise<Book[]> {
   const sheets = google.sheets({ version: 'v4', auth })
 
   const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: process.env.GOOGLE_SHEETS_ID!,
+    spreadsheetId: process.env.GOOGLE_SHEETS_ID!.trim(),
     range: 'to read!A:M',
   })
 
