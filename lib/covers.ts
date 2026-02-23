@@ -59,7 +59,7 @@ export function triggerMissingCovers(
   const missing = books.filter(b => !cachedIds.has(b.id))
   if (missing.length === 0) return
 
-  Promise.allSettled(
+  void Promise.allSettled(
     missing.map(b => fetchAndCacheCover(b.id, b.name, b.author))
-  ).catch(() => {})
+  )
 }
