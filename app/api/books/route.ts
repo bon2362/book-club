@@ -1,4 +1,6 @@
 // app/api/books/route.ts
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { fetchBooks } from '@/lib/sheets'
 
