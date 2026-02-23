@@ -121,7 +121,7 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
             letterSpacing: '0.02em',
           }}
         >
-          чтобы мы знали, как с вами связаться
+          Оставьте ваш телеграм, чтобы записаться на совместное чтение
         </span>
         <div style={{ flex: 1, height: '1px', background: '#E2D8CC' }} />
       </div>
@@ -145,40 +145,22 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
           />
         </div>
 
-        {/* Contacts field */}
+        {/* Telegram field */}
         <div style={{ marginBottom: '1.5rem' }}>
           <label htmlFor="contacts-info" style={fieldLabelStyle}>
-            Контакты <span style={{ color: '#B5451B' }}>*</span>
+            Telegram <span style={{ color: '#B5451B' }}>*</span>
           </label>
-          <textarea
+          <input
             id="contacts-info"
+            type="text"
             required
             value={contacts}
             onChange={e => setContacts(e.target.value)}
-            placeholder="Telegram @username, телефон, email — любой удобный способ"
-            rows={3}
-            style={{
-              ...inputBaseStyle,
-              padding: '0.625rem 0.75rem',
-              resize: 'vertical',
-              lineHeight: 1.55,
-            }}
+            placeholder="Укажите ваш Telegram. Впишите @username или ссылку вида t.me/..."
+            style={{ ...inputBaseStyle, padding: '0.625rem 0.75rem' }}
             onFocus={handleFocus}
             onBlur={handleBlur}
           />
-          {/* Hint */}
-          <p
-            style={{
-              fontFamily: "'Georgia', serif",
-              fontStyle: 'italic',
-              fontSize: '0.7rem',
-              color: '#8C7B6B',
-              margin: '0.35rem 0 0 0',
-              letterSpacing: '0.01em',
-            }}
-          >
-            Мы используем контакты только для организации встреч клуба
-          </p>
         </div>
 
         {/* Decorative rule before button */}

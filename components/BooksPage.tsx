@@ -26,6 +26,7 @@ async function saveSelection(name: string, contacts: string, books: string[]) {
 export default function BooksPage({ books, currentUser }: Props) {
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user?.email
+  const isAdmin = !!session?.user?.isAdmin
 
   const [query, setQuery] = useState('')
   const [filterTag, setFilterTag] = useState('')
@@ -36,11 +37,14 @@ export default function BooksPage({ books, currentUser }: Props) {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [showContactsForm, setShowContactsForm] = useState(false)
   const [pendingBook, setPendingBook] = useState<Book | null>(null)
+  // Track user profile saved in this session (currentUser prop won't update after first save)
+  const [savedUser, setSavedUser] = useState<{ name: string; contacts: string } | null>(null)
+  const effectiveUser = currentUser ?? savedUser
 
-  // Show contacts form when session loads and user has no profile yet
+  // Show contacts form when session loads and user has no profile yet (skip for admin)
   useEffect(() => {
-    if (isLoggedIn && !currentUser) setShowContactsForm(true)
-  }, [isLoggedIn, currentUser])
+    if (isLoggedIn && !currentUser && !savedUser && !isAdmin) setShowContactsForm(true)
+  }, [isLoggedIn, currentUser, savedUser, isAdmin])
 
   // Collect unique tags and authors for filter dropdowns
   const allTags = useMemo(() => {
@@ -73,18 +77,19 @@ export default function BooksPage({ books, currentUser }: Props) {
       setAuthModalOpen(true)
       return
     }
-    if (!currentUser) {
+    if (!effectiveUser && !isAdmin) {
       setPendingBook(book)
       setShowContactsForm(true)
       return
     }
+    if (!effectiveUser) return // admin without profile — shouldn't happen
     // Logged in and contacts filled — optimistic toggle
     const prev = selectedBooks
     const next = prev.includes(book.name)
       ? prev.filter(n => n !== book.name)
       : [...prev, book.name]
     setSelectedBooks(next)
-    saveSelection(currentUser.name, currentUser.contacts, next).catch(() => {
+    saveSelection(effectiveUser.name, effectiveUser.contacts, next).catch(() => {
       setSelectedBooks(prev)
     })
   }
@@ -96,6 +101,7 @@ export default function BooksPage({ books, currentUser }: Props) {
     setSelectedBooks(next)
     try {
       await saveSelection(name, contacts, next)
+      setSavedUser({ name, contacts })
       setShowContactsForm(false)
       setPendingBook(null)
     } catch {
@@ -178,31 +184,18 @@ export default function BooksPage({ books, currentUser }: Props) {
           }}
         >
           {/* Title */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-            <span
-              style={{
-                fontFamily: "'Playfair Display', 'Georgia', serif",
-                fontWeight: 700,
-                fontSize: '1.375rem',
-                letterSpacing: '-0.02em',
-                color: '#1A1714',
-                lineHeight: 1,
-              }}
-            >
-              Книжный клуб
-            </span>
-            <span
-              style={{
-                fontFamily: "'Georgia', serif",
-                fontStyle: 'italic',
-                fontSize: '0.8rem',
-                color: '#8C7B6B',
-                letterSpacing: '0.02em',
-              }}
-            >
-              читаем вместе
-            </span>
-          </div>
+          <span
+            style={{
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              fontWeight: 700,
+              fontSize: '1.375rem',
+              letterSpacing: '-0.02em',
+              color: '#1A1714',
+              lineHeight: 1,
+            }}
+          >
+            Долгое наступление
+          </span>
 
           {/* Auth button */}
           {isLoggedIn ? (
@@ -300,19 +293,6 @@ export default function BooksPage({ books, currentUser }: Props) {
               gap: '0.5rem',
             }}
           >
-            {/* Contextual note above the form */}
-            <p
-              style={{
-                fontFamily: "'Georgia', serif",
-                fontStyle: 'italic',
-                fontSize: '0.8125rem',
-                color: '#5C4A3A',
-                margin: '0 0 0.5rem 0',
-                letterSpacing: '0.01em',
-              }}
-            >
-              Вы вошли в аккаунт. Заполните данные, чтобы записаться на книги.
-            </p>
             <ContactsForm
               initialName={session?.user?.name ?? ''}
               onSave={handleContactsSave}

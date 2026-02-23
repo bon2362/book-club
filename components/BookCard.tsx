@@ -14,18 +14,9 @@ function extractYear(date: string): string {
   return parts[parts.length - 1] ?? date
 }
 
-// Size label mapping
-const SIZE_LABEL: Record<string, string> = {
-  S: 'Short',
-  M: 'Medium',
-  L: 'Long',
-  XL: 'Extra Long',
-}
-
 export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
   const hasLink = book.link && book.link !== 'Link'
-  const sizeLabel = SIZE_LABEL[book.size] ?? book.size
 
   return (
     <article
@@ -128,21 +119,6 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             }}
           >
             {book.pages} стр.
-          </span>
-        )}
-        {sizeLabel && (
-          <span
-            style={{
-              fontSize: '0.65rem',
-              fontFamily: "'Georgia', serif",
-              color: '#B5451B',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-              opacity: 0.8,
-            }}
-          >
-            {sizeLabel}
           </span>
         )}
         {hasLink && (
