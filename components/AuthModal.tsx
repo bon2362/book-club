@@ -150,7 +150,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             background: 'var(--text)',
             color: 'var(--bg)',
             transition: 'background 0.18s, color 0.18s',
-            marginBottom: '1.5rem',
+            marginBottom: '0.25rem',
           }}
           onMouseEnter={e => {
             const btn = e.currentTarget as HTMLButtonElement
@@ -173,16 +173,8 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           Войти через Google
         </button>
 
-        {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1.5rem' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-          <span style={{ fontFamily: "'Georgia', serif", fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: 'var(--accent)', opacity: 0.8 }}>
-            или по email
-          </span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-        </div>
-
-        {submitted ? (
+        {/* Email auth hidden until custom domain is configured in Resend */}
+        {false && (submitted ? (
           <div style={{ borderLeft: '3px solid var(--success)', paddingLeft: '1rem', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
             <p style={{ fontFamily: "'Georgia', serif", fontStyle: 'italic', fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--success)', margin: 0 }}>
               Проверьте почту — мы отправили вам ссылку для входа
@@ -214,7 +206,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
               {loading ? 'Отправляем…' : 'Отправить ссылку'}
             </button>
           </form>
-        )}
+        ))}
       </div>
     </div>
   )
