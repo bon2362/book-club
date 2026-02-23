@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react'
 import type { Book } from '@/lib/sheets'
 import type { UserSignup } from '@/lib/signups'
 import { searchBooks } from '@/lib/search'
+import { useTheme } from '@/lib/useTheme'
 import BookCard from '@/components/BookCard'
 import AuthModal from '@/components/AuthModal'
 import ContactsForm from '@/components/ContactsForm'
@@ -27,6 +28,7 @@ export default function BooksPage({ books, currentUser }: Props) {
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user?.email
   const isAdmin = !!session?.user?.isAdmin
+  const { theme, toggle: toggleTheme } = useTheme()
 
   const [query, setQuery] = useState('')
   const [filterTag, setFilterTag] = useState('')
@@ -116,22 +118,23 @@ export default function BooksPage({ books, currentUser }: Props) {
     fontSize: '0.625rem',
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    color: '#8C7B6B',
+    color: 'var(--text-muted)',
   }
 
+  const arrowColor = theme === 'dark' ? '%239E8E80' : '%238C7B6B'
   const selectStyle: React.CSSProperties = {
     fontFamily: "'Georgia', serif",
     fontSize: '0.8125rem',
-    color: '#1A1714',
-    background: '#F9F5EE',
-    border: '1px solid #D4C4B0',
-    borderBottom: '2px solid #B5451B',
+    color: 'var(--text)',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    borderBottom: '2px solid var(--accent)',
     padding: '0.45rem 2rem 0.45rem 0.65rem',
     outline: 'none',
     cursor: 'pointer',
     appearance: 'none' as const,
     WebkitAppearance: 'none' as const,
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238C7B6B'/%3E%3C/svg%3E")`,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='${arrowColor}'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'right 0.5rem center',
     backgroundSize: '8px',
@@ -141,10 +144,10 @@ export default function BooksPage({ books, currentUser }: Props) {
   const inputStyle: React.CSSProperties = {
     fontFamily: "'Georgia', serif",
     fontSize: '0.875rem',
-    color: '#1A1714',
-    background: '#FDFAF5',
-    border: '1px solid #D4C4B0',
-    borderBottom: '2px solid #B5451B',
+    color: 'var(--text)',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border)',
+    borderBottom: '2px solid var(--accent)',
     padding: '0.55rem 0.85rem',
     outline: 'none',
     width: '100%',
@@ -157,19 +160,19 @@ export default function BooksPage({ books, currentUser }: Props) {
     <div
       style={{
         minHeight: '100vh',
-        background: '#F9F5EE',
+        background: 'var(--bg)',
         fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif",
       }}
     >
       {/* ── Header ── */}
       <header
         style={{
-          borderBottom: '2px solid #1A1714',
-          background: '#F9F5EE',
+          borderBottom: '2px solid var(--text)',
+          background: 'var(--bg)',
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow: '0 2px 8px rgba(26,23,20,0.08)',
+          boxShadow: '0 2px 8px var(--shadow)',
         }}
       >
         <div
@@ -183,95 +186,164 @@ export default function BooksPage({ books, currentUser }: Props) {
             justifyContent: 'space-between',
           }}
         >
-          {/* Title */}
-          <span
-            style={{
-              fontFamily: "'Playfair Display', 'Georgia', serif",
-              fontWeight: 700,
-              fontSize: '1.375rem',
-              letterSpacing: '-0.02em',
-              color: '#1A1714',
-              lineHeight: 1,
-            }}
-          >
-            Долгое наступление
-          </span>
-
-          {/* Auth button */}
-          {isLoggedIn ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span
-                style={{
-                  fontFamily: "'Georgia', serif",
-                  fontStyle: 'italic',
-                  fontSize: '0.8125rem',
-                  color: '#5C4A3A',
-                  letterSpacing: '0.01em',
-                  maxWidth: '180px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {session.user?.name ?? session.user?.email}
-              </span>
-              <button
-                onClick={() => signOut()}
-                style={{
-                  fontFamily: "'Georgia', serif",
-                  fontSize: '0.675rem',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: '#B5451B',
-                  background: 'transparent',
-                  border: '1px solid #B5451B',
-                  padding: '0.35rem 0.75rem',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s, color 0.15s',
-                }}
-                onMouseEnter={e => {
-                  const btn = e.currentTarget as HTMLButtonElement
-                  btn.style.background = '#B5451B'
-                  btn.style.color = '#F9F5EE'
-                }}
-                onMouseLeave={e => {
-                  const btn = e.currentTarget as HTMLButtonElement
-                  btn.style.background = 'transparent'
-                  btn.style.color = '#B5451B'
-                }}
-              >
-                Выйти
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAuthModalOpen(true)}
+          {/* Title + subtitle */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+            <span
               style={{
                 fontFamily: "'Playfair Display', 'Georgia', serif",
-                fontWeight: 600,
-                fontSize: '0.8125rem',
-                letterSpacing: '0.03em',
-                color: '#F9F5EE',
-                background: '#B5451B',
-                border: '2px solid #B5451B',
-                padding: '0.45rem 1.1rem',
+                fontWeight: 700,
+                fontSize: '1.375rem',
+                letterSpacing: '-0.02em',
+                color: 'var(--text)',
+                lineHeight: 1,
+              }}
+            >
+              Долгое наступление
+            </span>
+            <span
+              style={{
+                fontFamily: "'Georgia', serif",
+                fontStyle: 'italic',
+                fontSize: '0.7rem',
+                letterSpacing: '0.06em',
+                color: 'var(--text-muted)',
+                lineHeight: 1,
+              }}
+            >
+              Книжный клуб
+            </span>
+          </div>
+
+          {/* Right side: theme toggle + auth */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+              title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
-                transition: 'background 0.15s, color 0.15s',
+                padding: '0.3rem 0.55rem',
+                fontSize: '0.9rem',
+                lineHeight: 1,
+                transition: 'border-color 0.15s, color 0.15s',
+                flexShrink: 0,
               }}
               onMouseEnter={e => {
                 const btn = e.currentTarget as HTMLButtonElement
-                btn.style.background = '#8C3415'
-                btn.style.borderColor = '#8C3415'
+                btn.style.borderColor = 'var(--accent)'
+                btn.style.color = 'var(--accent)'
               }}
               onMouseLeave={e => {
                 const btn = e.currentTarget as HTMLButtonElement
-                btn.style.background = '#B5451B'
-                btn.style.borderColor = '#B5451B'
+                btn.style.borderColor = 'var(--border)'
+                btn.style.color = 'var(--text-muted)'
               }}
             >
-              Войти
+              {theme === 'dark' ? '☀' : '☾'}
             </button>
-          )}
+
+            {/* Auth button */}
+            {isLoggedIn ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span
+                  style={{
+                    fontFamily: "'Georgia', serif",
+                    fontStyle: 'italic',
+                    fontSize: '0.8125rem',
+                    color: 'var(--text-secondary)',
+                    letterSpacing: '0.01em',
+                    maxWidth: '180px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {session.user?.name ?? session.user?.email}
+                </span>
+                {effectiveUser && (
+                  <button
+                    onClick={() => setShowContactsForm(true)}
+                    aria-label="Редактировать профиль"
+                    title="Редактировать профиль"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: "'Georgia', serif",
+                      fontSize: '0.85rem',
+                      color: 'var(--text-muted)',
+                      padding: '0.1rem 0.25rem',
+                      lineHeight: 1,
+                      transition: 'color 0.15s',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)' }}
+                  >
+                    ✎
+                  </button>
+                )}
+                <button
+                  onClick={() => signOut()}
+                  style={{
+                    fontFamily: "'Georgia', serif",
+                    fontSize: '0.675rem',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: 'var(--accent)',
+                    background: 'transparent',
+                    border: '1px solid var(--accent)',
+                    padding: '0.35rem 0.75rem',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    const btn = e.currentTarget as HTMLButtonElement
+                    btn.style.background = 'var(--accent)'
+                    btn.style.color = 'var(--bg)'
+                  }}
+                  onMouseLeave={e => {
+                    const btn = e.currentTarget as HTMLButtonElement
+                    btn.style.background = 'transparent'
+                    btn.style.color = 'var(--accent)'
+                  }}
+                >
+                  Выйти
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                style={{
+                  fontFamily: "'Playfair Display', 'Georgia', serif",
+                  fontWeight: 600,
+                  fontSize: '0.8125rem',
+                  letterSpacing: '0.03em',
+                  color: 'var(--bg)',
+                  background: 'var(--accent)',
+                  border: '2px solid var(--accent)',
+                  padding: '0.45rem 1.1rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={e => {
+                  const btn = e.currentTarget as HTMLButtonElement
+                  btn.style.background = 'var(--accent-hover)'
+                  btn.style.borderColor = 'var(--accent-hover)'
+                }}
+                onMouseLeave={e => {
+                  const btn = e.currentTarget as HTMLButtonElement
+                  btn.style.background = 'var(--accent)'
+                  btn.style.borderColor = 'var(--accent)'
+                }}
+              >
+                Войти
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -288,7 +360,7 @@ export default function BooksPage({ books, currentUser }: Props) {
           style={{
             marginBottom: '2rem',
             paddingBottom: '2rem',
-            borderBottom: '1px solid #E2D8CC',
+            borderBottom: '1px solid var(--border-subtle)',
           }}
         >
           <p
@@ -296,7 +368,7 @@ export default function BooksPage({ books, currentUser }: Props) {
               fontFamily: "'Georgia', serif",
               fontSize: '0.875rem',
               lineHeight: 1.7,
-              color: '#5C4A3A',
+              color: 'var(--text-secondary)',
               margin: 0,
               maxWidth: '680px',
             }}
@@ -316,7 +388,7 @@ export default function BooksPage({ books, currentUser }: Props) {
             gap: '1rem',
             marginBottom: '2rem',
             paddingBottom: '1.5rem',
-            borderBottom: '1px solid #E2D8CC',
+            borderBottom: '1px solid var(--border-subtle)',
           }}
         >
           {/* Search */}
@@ -336,14 +408,14 @@ export default function BooksPage({ books, currentUser }: Props) {
               style={inputStyle}
               onFocus={e => {
                 const inp = e.currentTarget
-                inp.style.background = '#FFFFFF'
-                inp.style.borderColor = '#B5451B'
+                inp.style.background = 'var(--bg-input-focus)'
+                inp.style.borderColor = 'var(--accent)'
               }}
               onBlur={e => {
                 const inp = e.currentTarget
-                inp.style.background = '#FDFAF5'
-                inp.style.borderColor = '#D4C4B0'
-                inp.style.borderBottomColor = '#B5451B'
+                inp.style.background = 'var(--bg-input)'
+                inp.style.borderColor = 'var(--border)'
+                inp.style.borderBottomColor = 'var(--accent)'
               }}
             />
           </div>
@@ -400,7 +472,7 @@ export default function BooksPage({ books, currentUser }: Props) {
               fontFamily: "'Georgia', serif",
               fontStyle: 'italic',
               fontSize: '0.8rem',
-              color: '#8C7B6B',
+              color: 'var(--text-muted)',
               letterSpacing: '0.01em',
               paddingBottom: '0.45rem',
               whiteSpace: 'nowrap',
@@ -435,7 +507,7 @@ export default function BooksPage({ books, currentUser }: Props) {
             style={{
               textAlign: 'center',
               padding: '5rem 2rem',
-              borderTop: '1px solid #E2D8CC',
+              borderTop: '1px solid var(--border-subtle)',
             }}
           >
             {/* Decorative ornament */}
@@ -444,7 +516,7 @@ export default function BooksPage({ books, currentUser }: Props) {
               style={{
                 fontFamily: "'Georgia', serif",
                 fontSize: '2rem',
-                color: '#D4C4B0',
+                color: 'var(--border)',
                 marginBottom: '1rem',
                 letterSpacing: '0.5em',
               }}
@@ -456,7 +528,7 @@ export default function BooksPage({ books, currentUser }: Props) {
                 fontFamily: "'Playfair Display', 'Georgia', serif",
                 fontWeight: 700,
                 fontSize: '1.25rem',
-                color: '#1A1714',
+                color: 'var(--text)',
                 margin: '0 0 0.5rem 0',
                 letterSpacing: '-0.01em',
               }}
@@ -468,7 +540,7 @@ export default function BooksPage({ books, currentUser }: Props) {
                 fontFamily: "'Georgia', serif",
                 fontStyle: 'italic',
                 fontSize: '0.875rem',
-                color: '#8C7B6B',
+                color: 'var(--text-muted)',
                 margin: 0,
               }}
             >
@@ -483,22 +555,22 @@ export default function BooksPage({ books, currentUser }: Props) {
                   fontSize: '0.75rem',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
-                  color: '#B5451B',
+                  color: 'var(--accent)',
                   background: 'transparent',
-                  border: '1px solid #B5451B',
+                  border: '1px solid var(--accent)',
                   padding: '0.45rem 1rem',
                   cursor: 'pointer',
                   transition: 'background 0.15s, color 0.15s',
                 }}
                 onMouseEnter={e => {
                   const btn = e.currentTarget as HTMLButtonElement
-                  btn.style.background = '#B5451B'
-                  btn.style.color = '#F9F5EE'
+                  btn.style.background = 'var(--accent)'
+                  btn.style.color = 'var(--bg)'
                 }}
                 onMouseLeave={e => {
                   const btn = e.currentTarget as HTMLButtonElement
                   btn.style.background = 'transparent'
-                  btn.style.color = '#B5451B'
+                  btn.style.color = 'var(--accent)'
                 }}
               >
                 Сбросить фильтры
@@ -544,7 +616,7 @@ export default function BooksPage({ books, currentUser }: Props) {
                 cursor: 'pointer',
                 fontFamily: "'Georgia', serif",
                 fontSize: '1.125rem',
-                color: '#8C7B6B',
+                color: 'var(--text-muted)',
                 lineHeight: 1,
                 padding: '0.2rem 0.4rem',
               }}
@@ -552,7 +624,8 @@ export default function BooksPage({ books, currentUser }: Props) {
               ✕
             </button>
             <ContactsForm
-              initialName={session?.user?.name ?? ''}
+              initialName={effectiveUser?.name ?? session?.user?.name ?? ''}
+              initialContacts={effectiveUser?.contacts ?? ''}
               onSave={handleContactsSave}
             />
           </div>

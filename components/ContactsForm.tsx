@@ -4,12 +4,13 @@ import { useState } from 'react'
 
 interface Props {
   initialName?: string
+  initialContacts?: string
   onSave: (name: string, contacts: string) => Promise<void>
 }
 
-export default function ContactsForm({ initialName = '', onSave }: Props) {
+export default function ContactsForm({ initialName = '', initialContacts = '', onSave }: Props) {
   const [name, setName] = useState(initialName)
-  const [contacts, setContacts] = useState('')
+  const [contacts, setContacts] = useState(initialContacts)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -29,7 +30,7 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
     fontSize: '0.675rem',
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    color: '#5C4A3A',
+    color: 'var(--text-secondary)',
     marginBottom: '0.4rem',
   }
 
@@ -38,33 +39,33 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
     width: '100%',
     fontFamily: "'Georgia', serif",
     fontSize: '0.9rem',
-    color: '#1A1714',
-    background: '#FDFAF5',
-    border: '1px solid #D4C4B0',
-    borderBottom: '2px solid #B5451B',
+    color: 'var(--text)',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border)',
+    borderBottom: '2px solid var(--accent)',
     outline: 'none',
     boxSizing: 'border-box',
-    transition: 'border-color 0.15s',
+    transition: 'border-color 0.15s, background 0.15s',
   }
 
   function handleFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    e.currentTarget.style.background = '#FFFFFF'
-    e.currentTarget.style.borderColor = '#B5451B'
+    e.currentTarget.style.background = 'var(--bg-input-focus)'
+    e.currentTarget.style.borderColor = 'var(--accent)'
   }
 
   function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    e.currentTarget.style.background = '#FDFAF5'
-    e.currentTarget.style.borderColor = '#D4C4B0'
-    e.currentTarget.style.borderBottomColor = '#B5451B'
+    e.currentTarget.style.background = 'var(--bg-input)'
+    e.currentTarget.style.borderColor = 'var(--border)'
+    e.currentTarget.style.borderBottomColor = 'var(--accent)'
   }
 
   return (
     <div
       style={{
         position: 'relative',
-        background: '#F9F5EE',
-        borderLeft: '4px solid #B5451B',
-        boxShadow: '4px 4px 0 #B5451B22, 0 1px 4px rgba(0,0,0,0.06)',
+        background: 'var(--bg)',
+        borderLeft: '4px solid var(--accent)',
+        boxShadow: '4px 4px 0 rgba(181,69,27,0.13), 0 1px 4px var(--shadow-card)',
         padding: '2rem 2rem 1.75rem',
         fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif",
         overflow: 'hidden',
@@ -83,7 +84,7 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
           height: 0,
           borderStyle: 'solid',
           borderWidth: '0 32px 32px 0',
-          borderColor: 'transparent #B5451B transparent transparent',
+          borderColor: 'transparent var(--accent) transparent transparent',
           opacity: 0.18,
         }}
       />
@@ -96,7 +97,7 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
           fontSize: '1.375rem',
           letterSpacing: '-0.02em',
           lineHeight: 1.2,
-          color: '#1A1714',
+          color: 'var(--text)',
           margin: '0 0 0.3rem 0',
         }}
       >
@@ -117,20 +118,20 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
             fontFamily: "'Georgia', serif",
             fontStyle: 'italic',
             fontSize: '0.8125rem',
-            color: '#8C7B6B',
+            color: 'var(--text-muted)',
             letterSpacing: '0.02em',
           }}
         >
           Оставьте ваш телеграм, чтобы записаться на совместное чтение
         </span>
-        <div style={{ flex: 1, height: '1px', background: '#E2D8CC' }} />
+        <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
         {/* Name field */}
         <div style={{ marginBottom: '1.25rem' }}>
           <label htmlFor="contacts-name" style={fieldLabelStyle}>
-            Имя <span style={{ color: '#B5451B' }}>*</span>
+            Имя <span style={{ color: 'var(--accent)' }}>*</span>
           </label>
           <input
             id="contacts-name"
@@ -148,7 +149,7 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
         {/* Telegram field */}
         <div style={{ marginBottom: '1.5rem' }}>
           <label htmlFor="contacts-info" style={fieldLabelStyle}>
-            Telegram <span style={{ color: '#B5451B' }}>*</span>
+            Telegram <span style={{ color: 'var(--accent)' }}>*</span>
           </label>
           <input
             id="contacts-info"
@@ -166,7 +167,7 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
         {/* Decorative rule before button */}
         <div
           style={{
-            borderTop: '1px solid #E2D8CC',
+            borderTop: '1px solid var(--border-subtle)',
             marginBottom: '1.25rem',
           }}
         />
@@ -184,24 +185,24 @@ export default function ContactsForm({ initialName = '', onSave }: Props) {
             fontSize: '0.9rem',
             letterSpacing: '0.04em',
             cursor: loading ? 'default' : 'pointer',
-            border: `2px solid ${loading ? '#D4C4B0' : '#2D6A4F'}`,
-            background: loading ? '#E2D8CC' : '#2D6A4F',
-            color: loading ? '#8C7B6B' : '#F9F5EE',
+            border: `2px solid ${loading ? 'var(--border)' : 'var(--success)'}`,
+            background: loading ? 'var(--border-subtle)' : 'var(--success)',
+            color: loading ? 'var(--text-muted)' : 'var(--bg)',
             transition: 'all 0.18s',
             textAlign: 'center',
           }}
           onMouseEnter={e => {
             if (!loading) {
               const btn = e.currentTarget as HTMLButtonElement
-              btn.style.background = '#1E4D39'
-              btn.style.borderColor = '#1E4D39'
+              btn.style.background = 'var(--success-hover)'
+              btn.style.borderColor = 'var(--success-hover)'
             }
           }}
           onMouseLeave={e => {
             if (!loading) {
               const btn = e.currentTarget as HTMLButtonElement
-              btn.style.background = '#2D6A4F'
-              btn.style.borderColor = '#2D6A4F'
+              btn.style.background = 'var(--success)'
+              btn.style.borderColor = 'var(--success)'
             }
           }}
         >

@@ -17,18 +17,18 @@ interface SyncResult {
   message: string
 }
 
-// Shared style tokens matching the project's parchment aesthetic
+// Shared style tokens — CSS variables that switch with the theme
 const COLORS = {
-  parchment: '#F9F5EE',
-  parchmentDark: '#EDE5D8',
-  nearBlack: '#1A1714',
-  terracotta: '#B5451B',
-  terracottaDark: '#8C3415',
-  forestGreen: '#2D6A4F',
-  mutedBrown: '#8C7B6B',
-  warmBrown: '#5C4A3A',
-  borderLight: '#E2D8CC',
-  borderMid: '#D4C4B0',
+  parchment: 'var(--bg)',
+  parchmentDark: 'var(--bg-elevated)',
+  nearBlack: 'var(--text)',
+  terracotta: 'var(--accent)',
+  terracottaDark: 'var(--accent-hover)',
+  forestGreen: 'var(--success)',
+  mutedBrown: 'var(--text-muted)',
+  warmBrown: 'var(--text-secondary)',
+  borderLight: 'var(--border-subtle)',
+  borderMid: 'var(--border)',
 }
 
 const serif = "'Playfair Display', 'Georgia', 'Times New Roman', serif"
@@ -419,7 +419,7 @@ function UserCard({ user }: { user: UserSignup }) {
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
                 color: COLORS.forestGreen,
-                background: '#EBF3EE',
+                background: 'var(--bg-tag-green)',
                 border: `1px solid ${COLORS.forestGreen}33`,
                 padding: '0.2rem 0.55rem',
               }}

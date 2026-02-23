@@ -18,15 +18,17 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
   const hasLink = book.link && book.link !== 'Link'
 
+  const accentColor = isSelected ? 'var(--success)' : 'var(--accent)'
+
   return (
     <article
       style={{
         fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif",
-        background: '#F9F5EE',
-        borderLeft: `4px solid ${isSelected ? '#2D6A4F' : '#B5451B'}`,
+        background: 'var(--bg)',
+        borderLeft: `4px solid ${accentColor}`,
         boxShadow: isSelected
-          ? '4px 4px 0 #2D6A4F22, 0 1px 4px rgba(0,0,0,0.08)'
-          : '4px 4px 0 #B5451B22, 0 1px 4px rgba(0,0,0,0.06)',
+          ? '4px 4px 0 rgba(45,106,79,0.13), 0 1px 4px var(--shadow-card)'
+          : '4px 4px 0 rgba(181,69,27,0.13), 0 1px 4px var(--shadow-card)',
         transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
         padding: '1.5rem 1.5rem 1.25rem 1.25rem',
         position: 'relative',
@@ -44,7 +46,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
           height: 0,
           borderStyle: 'solid',
           borderWidth: '0 28px 28px 0',
-          borderColor: `transparent ${isSelected ? '#2D6A4F' : '#B5451B'} transparent transparent`,
+          borderColor: `transparent ${accentColor} transparent transparent`,
           opacity: 0.18,
           transition: 'border-color 0.2s ease',
         }}
@@ -58,7 +60,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             fontWeight: 700,
             fontSize: '1.125rem',
             lineHeight: 1.3,
-            color: '#1A1714',
+            color: 'var(--text)',
             margin: 0,
             letterSpacing: '-0.01em',
           }}
@@ -70,7 +72,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             style={{
               fontFamily: "'Georgia', serif",
               fontSize: '0.7rem',
-              color: '#8C7B6B',
+              color: 'var(--text-muted)',
               letterSpacing: '0.06em',
               whiteSpace: 'nowrap',
               marginTop: '0.2rem',
@@ -88,7 +90,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
           fontFamily: "'Georgia', serif",
           fontStyle: 'italic',
           fontSize: '0.875rem',
-          color: '#5C4A3A',
+          color: 'var(--text-secondary)',
           margin: '0 0 0.75rem 0',
           letterSpacing: '0.01em',
         }}
@@ -96,15 +98,15 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
         {book.author}
       </p>
 
-      {/* Meta row: pages + size */}
+      {/* Meta row: pages + link */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '1rem',
           marginBottom: '0.875rem',
-          borderTop: '1px solid #E2D8CC',
-          borderBottom: '1px solid #E2D8CC',
+          borderTop: '1px solid var(--border-subtle)',
+          borderBottom: '1px solid var(--border-subtle)',
           padding: '0.4rem 0',
         }}
       >
@@ -113,7 +115,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             style={{
               fontSize: '0.7rem',
               fontFamily: "'Georgia', serif",
-              color: '#8C7B6B',
+              color: 'var(--text-muted)',
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
             }}
@@ -133,9 +135,9 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               fontFamily: "'Georgia', serif",
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              color: '#B5451B',
+              color: 'var(--accent)',
               textDecoration: 'none',
-              borderBottom: '1px solid #B5451B',
+              borderBottom: '1px solid var(--accent)',
               paddingBottom: '1px',
               opacity: 0.85,
               transition: 'opacity 0.15s',
@@ -153,7 +155,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             fontFamily: "'Georgia', serif",
             fontSize: '0.8125rem',
             lineHeight: 1.6,
-            color: '#3D3028',
+            color: 'var(--text-body)',
             margin: '0 0 0.875rem 0',
           }}
         >
@@ -172,10 +174,10 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
                 fontFamily: "'Georgia', serif",
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
-                color: '#5C4A3A',
-                background: '#EDE5D8',
+                color: 'var(--text-secondary)',
+                background: 'var(--bg-tag)',
                 padding: '0.2rem 0.5rem',
-                border: '1px solid #D4C4B0',
+                border: '1px solid var(--border)',
               }}
             >
               {tag}
@@ -196,9 +198,9 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
           fontWeight: 600,
           letterSpacing: '0.04em',
           cursor: 'pointer',
-          border: `2px solid ${isSelected ? '#2D6A4F' : '#B5451B'}`,
-          background: isSelected ? '#2D6A4F' : 'transparent',
-          color: isSelected ? '#F9F5EE' : '#B5451B',
+          border: `2px solid ${accentColor}`,
+          background: isSelected ? 'var(--success)' : 'transparent',
+          color: isSelected ? 'var(--bg)' : 'var(--accent)',
           transition: 'all 0.2s ease',
           textAlign: 'center',
         }}
