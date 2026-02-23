@@ -1,4 +1,11 @@
-import { getInitials } from '@/lib/covers'
+function getInitials(author: string): string {
+  return author
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase() ?? '')
+    .join('')
+}
 
 interface Props {
   coverUrl: string | null
