@@ -9,10 +9,10 @@ export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWi
   const books = await fetchBooks(forceRefresh)
   const coverMap = await getCoverUrls(books.map(b => b.id))
 
-  triggerMissingCovers(books, new Set(coverMap.keys()))
+  triggerMissingCovers(books, coverMap)
 
   return books.map(b => ({
     ...b,
-    coverUrl: coverMap.has(b.id) ? (coverMap.get(b.id) ?? null) : null,
+    coverUrl: coverMap.get(b.id) ?? null,
   }))
 }

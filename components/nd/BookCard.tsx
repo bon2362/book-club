@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import CoverImage from './CoverImage'
 
@@ -14,8 +15,12 @@ function extractYear(date: string): string {
   return parts[parts.length - 1] ?? date
 }
 
+const DESCRIPTION_CLAMP_THRESHOLD = 120
+
 export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
+  const [descExpanded, setDescExpanded] = useState(false)
+  const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
 
   return (
     <article
@@ -100,21 +105,43 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
 
       {/* Description */}
       {book.description && (
-        <p
-          style={{
-            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-            fontSize: '0.78rem',
-            lineHeight: 1.55,
-            color: '#666',
-            margin: '0.5rem 0.75rem 0',
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          {book.description}
-        </p>
+        <div style={{ margin: '0.5rem 0.75rem 0' }}>
+          <p
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.78rem',
+              lineHeight: 1.55,
+              color: '#666',
+              margin: 0,
+              ...(descExpanded ? {} : {
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }),
+            }}
+          >
+            {book.description}
+          </p>
+          {isLongDescription && (
+            <button
+              onClick={() => setDescExpanded(e => !e)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.25rem 0 0',
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#999',
+                cursor: 'pointer',
+              }}
+            >
+              {descExpanded ? 'Свернуть' : 'Читать далее'}
+            </button>
+          )}
+        </div>
       )}
 
       {/* Spacer */}

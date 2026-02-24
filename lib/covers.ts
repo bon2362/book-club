@@ -24,22 +24,29 @@ export async function fetchAndCacheCover(
   author: string
 ): Promise<string | null> {
   try {
-    const query = new URLSearchParams({ title, author, limit: '1' }).toString()
-    const res = await fetch(`https://openlibrary.org/search.json?${query}`)
+    const q = encodeURIComponent(`${title} ${author}`)
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`
+    )
     let coverUrl: string | null = null
 
     if (res.ok) {
-      const data = await res.json() as { docs?: Array<{ cover_i?: number }> }
-      const coverId = data.docs?.[0]?.cover_i
-      if (coverId) {
-        coverUrl = `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
+      const data = await res.json() as {
+        items?: Array<{ volumeInfo?: { imageLinks?: { thumbnail?: string } } }>
+      }
+      const raw = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail ?? null
+      if (raw) {
+        coverUrl = raw.replace('http://', 'https://').replace('&edge=curl', '')
       }
     }
 
     await db
       .insert(bookCovers)
       .values({ bookId, coverUrl })
-      .onConflictDoNothing()
+      .onConflictDoUpdate({
+        target: bookCovers.bookId,
+        set: { coverUrl, fetchedAt: new Date() },
+      })
 
     return coverUrl
   } catch {
@@ -51,15 +58,15 @@ export async function fetchAndCacheCover(
   }
 }
 
-// Fire-and-forget: trigger cover fetches for books with no DB record
+// Fire-and-forget: fetch covers for books missing from DB or cached as null
 export function triggerMissingCovers(
   books: Array<{ id: string; name: string; author: string }>,
-  cachedIds: Set<string>
+  coverMap: Map<string, string | null>
 ): void {
-  const missing = books.filter(b => !cachedIds.has(b.id))
-  if (missing.length === 0) return
+  const toFetch = books.filter(b => !coverMap.has(b.id) || coverMap.get(b.id) === null)
+  if (toFetch.length === 0) return
 
   void Promise.allSettled(
-    missing.map(b => fetchAndCacheCover(b.id, b.name, b.author))
+    toFetch.map(b => fetchAndCacheCover(b.id, b.name, b.author))
   )
 }

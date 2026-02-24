@@ -1,3 +1,7 @@
+'use client'
+
+import { useState } from 'react'
+
 function getInitials(author: string): string {
   return author
     .split(/\s+/)
@@ -14,12 +18,15 @@ interface Props {
 }
 
 export default function CoverImage({ coverUrl, title, author }: Props) {
-  if (coverUrl) {
+  const [imgError, setImgError] = useState(false)
+
+  if (coverUrl && !imgError) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={coverUrl}
         alt={`Обложка: ${title}`}
+        onError={() => setImgError(true)}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
     )
