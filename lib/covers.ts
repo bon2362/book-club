@@ -57,16 +57,3 @@ export async function fetchAndCacheCover(
     return null
   }
 }
-
-// Fire-and-forget: fetch covers for books missing from DB or cached as null
-export function triggerMissingCovers(
-  books: Array<{ id: string; name: string; author: string }>,
-  coverMap: Map<string, string | null>
-): void {
-  const toFetch = books.filter(b => !coverMap.has(b.id) || coverMap.get(b.id) === null)
-  if (toFetch.length === 0) return
-
-  void Promise.allSettled(
-    toFetch.map(b => fetchAndCacheCover(b.id, b.name, b.author))
-  )
-}
