@@ -12,10 +12,15 @@ export function getInitials(author: string): string {
     .join('')
 }
 
-export async function getCoverUrls(bookIds: string[]): Promise<Map<string, string | null>> {
+export interface CoverEntry {
+  coverUrl: string | null
+  fetchedAt: Date
+}
+
+export async function getCoverData(bookIds: string[]): Promise<Map<string, CoverEntry>> {
   if (bookIds.length === 0) return new Map()
   const rows = await db.select().from(bookCovers).where(inArray(bookCovers.bookId, bookIds))
-  return new Map(rows.map(r => [r.bookId, r.coverUrl]))
+  return new Map(rows.map(r => [r.bookId, { coverUrl: r.coverUrl, fetchedAt: r.fetchedAt }]))
 }
 
 export async function fetchAndCacheCover(
@@ -25,9 +30,11 @@ export async function fetchAndCacheCover(
 ): Promise<string | null> {
   try {
     const q = encodeURIComponent(`${title} ${author}`)
-    const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`
-    )
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY
+    const url = apiKey
+      ? `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&key=${apiKey}`
+      : `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`
+    const res = await fetch(url)
     let coverUrl: string | null = null
 
     if (res.ok) {

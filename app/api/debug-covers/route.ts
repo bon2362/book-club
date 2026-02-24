@@ -12,9 +12,11 @@ export async function GET() {
     testBooks.map(async ({ title, author }) => {
       try {
         const q = encodeURIComponent(`${title} ${author}`)
-        const res = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`
-        )
+        const apiKey = process.env.GOOGLE_BOOKS_API_KEY
+        const url = apiKey
+          ? `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&key=${apiKey}`
+          : `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`
+        const res = await fetch(url)
         const status = res.status
         if (!res.ok) return { title, status, error: `HTTP ${status}` }
 

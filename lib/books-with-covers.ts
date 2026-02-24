@@ -1,5 +1,5 @@
 import { fetchBooks } from '@/lib/sheets'
-import { getCoverUrls, fetchAndCacheCover } from '@/lib/covers'
+import { getCoverData, fetchAndCacheCover } from '@/lib/covers'
 
 export interface BookWithCover {
   id: string
@@ -16,15 +16,20 @@ export interface BookWithCover {
   coverUrl: string | null
 }
 
+// Don't retry failed cover fetches within this window
+const RETRY_NULL_AFTER_MS = 12 * 60 * 60 * 1000 // 12 hours
+
 export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWithCover[]> {
   const books = await fetchBooks(forceRefresh)
-  const coverMap = await getCoverUrls(books.map(b => b.id))
+  const coverData = await getCoverData(books.map(b => b.id))
 
-  // Fetch covers for books with no DB record or null cached cover — synchronously
-  // so the result is available on this page load (not the next one).
-  const booksNeedingFetch = books.filter(
-    b => !coverMap.has(b.id) || coverMap.get(b.id) === null
-  )
+  // Only fetch covers for books that were never attempted, or whose null result is older than 12h
+  const booksNeedingFetch = books.filter(b => {
+    const entry = coverData.get(b.id)
+    if (!entry) return true                         // never fetched
+    if (entry.coverUrl) return false                // already have a cover
+    return Date.now() - entry.fetchedAt.getTime() > RETRY_NULL_AFTER_MS
+  })
 
   if (booksNeedingFetch.length > 0) {
     const fetched = await Promise.allSettled(
@@ -33,13 +38,13 @@ export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWi
     booksNeedingFetch.forEach((b, i) => {
       const result = fetched[i]
       if (result?.status === 'fulfilled') {
-        coverMap.set(b.id, result.value)
+        coverData.set(b.id, { coverUrl: result.value, fetchedAt: new Date() })
       }
     })
   }
 
   return books.map(b => ({
     ...b,
-    coverUrl: coverMap.get(b.id) ?? null,
+    coverUrl: coverData.get(b.id)?.coverUrl ?? null,
   }))
 }
