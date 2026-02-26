@@ -10,7 +10,6 @@ export interface Book {
   pages: string
   date: string
   link: string
-  why: string
   description: string
   coverUrl: string | null
 }
@@ -19,7 +18,7 @@ export interface Book {
 // Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Why, Description, Cover
 const COL = {
   NAME: 0, TAGS: 1, AUTHOR: 2, TYPE: 3,
-  SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, WHY: 9, DESC: 10, COVER: 11
+  SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, DESC: 10, COVER: 11
 }
 
 export function parseBookRow(row: string[], rowIndex: number): Book | null {
@@ -36,7 +35,6 @@ export function parseBookRow(row: string[], rowIndex: number): Book | null {
     pages: row[COL.PAGES] ?? '',
     date: row[COL.DATE] ?? '',
     link: row[COL.LINK] ?? '',
-    why: row[COL.WHY] ?? '',
     description: row[COL.DESC] ?? '',
     coverUrl: row[COL.COVER]?.trim() || null,
   }

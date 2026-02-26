@@ -10,7 +10,6 @@ export interface BookWithCover {
   pages: string
   date: string
   link: string
-  why: string
   description: string
   coverUrl: string | null
 }
