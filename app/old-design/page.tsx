@@ -1,15 +1,13 @@
 import { auth } from '@/lib/auth'
-import { fetchBooksWithCovers } from '@/lib/books-with-covers'
+import { fetchBooks } from '@/lib/sheets'
 import { getAllSignups } from '@/lib/signups'
+import BooksPage from '@/components/BooksPage'
 import { SessionProvider } from 'next-auth/react'
-import BooksPage from '@/components/nd/BooksPage'
 
-export const dynamic = 'force-dynamic'
-
-export default async function Home() {
+export default async function OldDesignHome() {
   const [session, books, signups] = await Promise.all([
     auth(),
-    fetchBooksWithCovers(),
+    fetchBooks(),
     getAllSignups().catch(() => []),
   ])
 
