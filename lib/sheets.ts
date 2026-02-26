@@ -15,7 +15,7 @@ export interface Book {
 }
 
 // Column indexes (0-based):
-// Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Why, Description, Cover
+// Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Description, Cover
 const COL = {
   NAME: 0, TAGS: 1, AUTHOR: 2, TYPE: 3,
   SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, DESC: 10, COVER: 11
