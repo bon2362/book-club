@@ -79,6 +79,25 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       {/* Rule */}
       <div style={{ margin: '0.5rem 0.75rem 0', borderTop: '1px solid #111' }} />
 
+      {/* Reading badge */}
+      {isReading && (
+        <div style={{ padding: '0.5rem 0.75rem 0' }}>
+          <span
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.6rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: '#C0603A',
+              borderBottom: '1px solid #C0603A',
+              paddingBottom: '0.1rem',
+            }}
+          >
+            Сейчас читаем
+          </span>
+        </div>
+      )}
+
       {/* Title + Year */}
       <div style={{ padding: '0.5rem 0.75rem 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
         <h2
