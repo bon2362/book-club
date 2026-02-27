@@ -22,20 +22,50 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
   const [descExpanded, setDescExpanded] = useState(false)
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const isReading = book.status === 'reading'
+  const isRead = book.status === 'read'
 
   return (
     <article
       style={{
         display: 'flex',
         flexDirection: 'column',
-        border: isReading ? '2px solid #C0603A' : '1px solid #E5E5E5',
-        background: '#fff',
+        border: isReading ? '2px solid #C0603A' : isRead ? '1px solid #C8C8C8' : '1px solid #E5E5E5',
+        background: isRead ? '#F7F7F7' : '#fff',
         position: 'relative',
       }}
     >
       {/* Cover — 2:3 aspect ratio */}
       <div style={{ aspectRatio: '2/3', width: '100%', overflow: 'hidden', position: 'relative' }}>
-        <CoverImage coverUrl={book.coverUrl} title={book.name} author={book.author} />
+        <div style={{ opacity: isRead ? 0.45 : 1, height: '100%' }}>
+          <CoverImage coverUrl={book.coverUrl} title={book.name} author={book.author} />
+        </div>
+        {isRead && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(240,240,240,0.35)',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.6rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                color: '#555',
+                background: 'rgba(255,255,255,0.85)',
+                padding: '0.3rem 0.65rem',
+                border: '1px solid #C8C8C8',
+              }}
+            >
+              Прочитано
+            </span>
+          </div>
+        )}
         {isReading && (
           <div
             style={{
@@ -79,8 +109,8 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       {/* Rule */}
       <div style={{ margin: '0.5rem 0.75rem 0', borderTop: '1px solid #111' }} />
 
-      {/* Reading badge */}
-      {isReading && (
+      {/* Status badge */}
+      {(isReading || isRead) && (
         <div style={{ padding: '0.5rem 0.75rem 0' }}>
           <span
             style={{
@@ -88,12 +118,12 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               fontSize: '0.6rem',
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
-              color: '#C0603A',
-              borderBottom: '1px solid #C0603A',
+              color: isRead ? '#999' : '#C0603A',
+              borderBottom: `1px solid ${isRead ? '#C8C8C8' : '#C0603A'}`,
               paddingBottom: '0.1rem',
             }}
           >
-            Сейчас читаем
+            {isRead ? 'Прочитано' : 'Сейчас читаем'}
           </span>
         </div>
       )}
@@ -229,8 +259,9 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       {/* Toggle button */}
       <div style={{ padding: '0.75rem' }}>
         <button
-          onClick={() => onToggle(book)}
+          onClick={isRead ? undefined : () => onToggle(book)}
           aria-pressed={isSelected}
+          disabled={isRead}
           style={{
             display: 'block',
             width: '100%',
@@ -239,14 +270,15 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             fontSize: '0.7rem',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
-            cursor: 'pointer',
-            border: '1px solid #111',
-            background: isSelected ? '#111' : 'transparent',
-            color: isSelected ? '#fff' : '#111',
+            cursor: isRead ? 'default' : 'pointer',
+            border: '1px solid #C8C8C8',
+            background: isRead ? 'transparent' : isSelected ? '#111' : 'transparent',
+            color: isRead ? '#BBBBBB' : isSelected ? '#fff' : '#111',
+            borderColor: isRead ? '#C8C8C8' : '#111',
             transition: 'background 0.15s, color 0.15s',
           }}
         >
-          {isSelected ? '✓ Записан' : 'Хочу читать'}
+          {isRead ? 'Уже прочитана' : isSelected ? '✓ Записан' : 'Хочу читать'}
         </button>
       </div>
     </article>
