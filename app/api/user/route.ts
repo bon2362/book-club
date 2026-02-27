@@ -9,13 +9,13 @@ import { markSignupDeleted } from '@/lib/signups'
 
 export async function DELETE() {
   const session = await auth()
-  if (!session?.user?.email || !session?.user?.id) {
+  if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   await Promise.all([
     db.delete(users).where(eq(users.email, session.user.email)),
-    markSignupDeleted(session.user.id),
+    markSignupDeleted(session.user.email),
   ])
 
   return NextResponse.json({ ok: true })
