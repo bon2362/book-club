@@ -79,6 +79,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', o
         justifyContent: 'center',
         padding: '1rem',
       }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         style={{
@@ -87,8 +88,28 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', o
           maxWidth: '400px',
           padding: '2.5rem 2rem 2rem',
           border: '2px solid #111',
+          position: 'relative',
         }}
       >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Закрыть"
+          style={{
+            position: 'absolute',
+            top: '0.75rem',
+            right: '0.75rem',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '1.2rem',
+            lineHeight: 1,
+            color: '#999',
+            padding: '0.25rem',
+          }}
+        >
+          ×
+        </button>
         <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#999', margin: '0 0 0.75rem' }}>
           Книжный клуб
         </p>
