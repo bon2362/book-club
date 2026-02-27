@@ -7,9 +7,10 @@ interface Props {
   defaultContacts?: string
   onSave: (name: string, contacts: string) => Promise<void>
   onClose: () => void
+  onDelete?: () => Promise<void>
 }
 
-export default function ContactsForm({ defaultName = '', defaultContacts = '', onSave, onClose }: Props) {
+export default function ContactsForm({ defaultName = '', defaultContacts = '', onSave, onClose, onDelete }: Props) {
   const [name, setName] = useState(defaultName)
   const [contacts, setContacts] = useState(defaultContacts)
   const [loading, setLoading] = useState(false)
@@ -26,6 +27,17 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', o
     } catch {
       setError('Что-то пошло не так, попробуйте снова')
     } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) return
+    setLoading(true)
+    try {
+      await onDelete!()
+    } catch {
+      setError('Не удалось удалить аккаунт')
       setLoading(false)
     }
   }
@@ -138,6 +150,27 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', o
             {loading ? 'Сохраняем…' : 'Сохранить'}
           </button>
         </form>
+
+        {onDelete && defaultName && (
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={loading}
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.7rem',
+                color: '#999',
+                background: 'none',
+                border: 'none',
+                cursor: loading ? 'default' : 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Удалить аккаунт
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

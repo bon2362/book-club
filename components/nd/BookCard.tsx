@@ -21,19 +21,39 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
+  const isReading = book.status === 'reading'
 
   return (
     <article
       style={{
         display: 'flex',
         flexDirection: 'column',
-        border: '1px solid #E5E5E5',
+        border: isReading ? '2px solid #C0603A' : '1px solid #E5E5E5',
         background: '#fff',
+        position: 'relative',
       }}
     >
       {/* Cover — 2:3 aspect ratio */}
-      <div style={{ aspectRatio: '2/3', width: '100%', overflow: 'hidden' }}>
+      <div style={{ aspectRatio: '2/3', width: '100%', overflow: 'hidden', position: 'relative' }}>
         <CoverImage coverUrl={book.coverUrl} title={book.name} author={book.author} />
+        {isReading && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '0.5rem',
+              left: '0.5rem',
+              background: '#C0603A',
+              color: '#fff',
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.6rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              padding: '0.25rem 0.5rem',
+            }}
+          >
+            Сейчас читаем
+          </div>
+        )}
       </div>
 
       {/* Tags */}
@@ -102,6 +122,46 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       >
         {book.author}
       </p>
+
+      {/* Pages + Link */}
+      {(book.pages || book.link) && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            margin: '0.25rem 0.75rem 0',
+          }}
+        >
+          {book.pages && (
+            <span
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.7rem',
+                color: '#999',
+              }}
+            >
+              {book.pages} стр.
+            </span>
+          )}
+          {book.link && (
+            <a
+              href={book.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.7rem',
+                color: '#111',
+                textDecoration: 'none',
+                borderBottom: '1px solid #111',
+              }}
+            >
+              Читать
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Description */}
       {book.description && (

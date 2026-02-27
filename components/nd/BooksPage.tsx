@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { UserSignup } from '@/lib/signups'
 import { searchBooks } from '@/lib/search'
@@ -32,6 +32,7 @@ export default function BooksPage({ books, currentUser }: Props) {
   const [query, setQuery] = useState('')
   const [filterTag, setFilterTag] = useState('')
   const [filterAuthor, setFilterAuthor] = useState('')
+  const [showRead, setShowRead] = useState(false)
   const [selectedBooks, setSelectedBooks] = useState<string[]>(
     currentUser?.selectedBooks ?? []
   )
@@ -61,8 +62,11 @@ export default function BooksPage({ books, currentUser }: Props) {
     let result = searchBooks(books, query) as BookWithCover[]
     if (filterTag) result = result.filter(b => b.tags.includes(filterTag))
     if (filterAuthor) result = result.filter(b => b.author === filterAuthor)
+    if (!showRead) result = result.filter(b => b.status !== 'read')
     return result
-  }, [books, query, filterTag, filterAuthor])
+  }, [books, query, filterTag, filterAuthor, showRead])
+
+  const hasReadBooks = useMemo(() => books.some(b => b.status === 'read'), [books])
 
   function handleToggle(book: BookWithCover) {
     if (!isLoggedIn) {
@@ -96,6 +100,11 @@ export default function BooksPage({ books, currentUser }: Props) {
     }
   }
 
+  async function handleDeleteAccount() {
+    await fetch('/api/user', { method: 'DELETE' })
+    await signOut()
+  }
+
   const selectStyle: React.CSSProperties = {
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.75rem',
@@ -110,7 +119,7 @@ export default function BooksPage({ books, currentUser }: Props) {
 
   return (
     <>
-      <Header />
+      <Header onEditProfile={isLoggedIn ? () => setShowContactsForm(true) : undefined} />
 
       {/* Search + filters */}
       <div style={{ borderBottom: '1px solid #E5E5E5', background: '#fff' }}>
@@ -150,6 +159,23 @@ export default function BooksPage({ books, currentUser }: Props) {
             <option value="">Автор: все</option>
             {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
+          {hasReadBooks && (
+            <button
+              onClick={() => setShowRead(v => !v)}
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.75rem',
+                color: showRead ? '#fff' : '#111',
+                background: showRead ? '#111' : 'transparent',
+                border: '1px solid #111',
+                padding: '0.4rem 0.75rem',
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {showRead ? '✓ Прочитанные' : 'Показать прочитанные'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -188,6 +214,7 @@ export default function BooksPage({ books, currentUser }: Props) {
           defaultContacts={effectiveUser?.contacts}
           onSave={handleSaveContacts}
           onClose={() => { setShowContactsForm(false); setPendingBook(null) }}
+          onDelete={isLoggedIn ? handleDeleteAccount : undefined}
         />
       )}
     </>

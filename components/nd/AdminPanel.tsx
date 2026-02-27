@@ -13,6 +13,7 @@ interface BookEntry {
 interface Props {
   users: UserSignup[]
   byBook: BookEntry[]
+  statuses: Record<string, 'reading' | 'read'>
 }
 
 type View = 'users' | 'books'
@@ -36,10 +37,12 @@ const headCell: React.CSSProperties = {
   borderBottom: '2px solid #111',
 }
 
-export default function AdminPanel({ users, byBook }: Props) {
+export default function AdminPanel({ users, byBook, statuses: initialStatuses }: Props) {
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
+  const [statuses, setStatuses] = useState<Record<string, 'reading' | 'read'>>(initialStatuses)
+  const [statusLoading, setStatusLoading] = useState<string | null>(null)
 
   async function handleSync() {
     setSyncing(true)
@@ -51,6 +54,34 @@ export default function AdminPanel({ users, byBook }: Props) {
       setSyncMsg('Ошибка синхронизации')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  async function setBookStatus(bookId: string, status: 'reading' | 'read') {
+    setStatusLoading(bookId)
+    try {
+      await fetch('/api/admin/book-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId, status }),
+      })
+      setStatuses(prev => ({ ...prev, [bookId]: status }))
+    } finally {
+      setStatusLoading(null)
+    }
+  }
+
+  async function resetBookStatus(bookId: string) {
+    setStatusLoading(bookId)
+    try {
+      await fetch(`/api/admin/book-status?bookId=${encodeURIComponent(bookId)}`, { method: 'DELETE' })
+      setStatuses(prev => {
+        const next = { ...prev }
+        delete next[bookId]
+        return next
+      })
+    } finally {
+      setStatusLoading(null)
     }
   }
 
@@ -68,6 +99,22 @@ export default function AdminPanel({ users, byBook }: Props) {
     marginRight: '1.5rem',
   })
 
+  const btnStyle = (active: boolean, color: string): React.CSSProperties => ({
+    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+    fontSize: '0.65rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    padding: '0.2rem 0.5rem',
+    border: `1px solid ${color}`,
+    background: active ? color : 'transparent',
+    color: active ? '#fff' : color,
+    cursor: 'pointer',
+    marginRight: '0.375rem',
+  })
+
+  // We want all books, not just those with signups
+  // byBook only contains books with signups — we need all books
+  // We'll use a combined set: all byBook books + render status controls there
   return (
     <>
       <Header />
@@ -146,17 +193,49 @@ export default function AdminPanel({ users, byBook }: Props) {
                 <th style={headCell}>Автор</th>
                 <th style={{ ...headCell, textAlign: 'right' }}>Записались</th>
                 <th style={headCell}>Участники</th>
+                <th style={headCell}>Статус</th>
               </tr>
             </thead>
             <tbody>
-              {byBook.map(({ book, users: bookUsers }) => (
-                <tr key={book.id}>
-                  <td style={cell}>{book.name}</td>
-                  <td style={{ ...cell, color: '#666', fontStyle: 'italic' }}>{book.author}</td>
-                  <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{bookUsers.length}</td>
-                  <td style={{ ...cell, color: '#666' }}>{bookUsers.map(u => u.name).join(', ')}</td>
-                </tr>
-              ))}
+              {byBook.map(({ book, users: bookUsers }) => {
+                const currentStatus = statuses[book.id]
+                const isLoading = statusLoading === book.id
+                return (
+                  <tr key={book.id}>
+                    <td style={cell}>{book.name}</td>
+                    <td style={{ ...cell, color: '#666', fontStyle: 'italic' }}>{book.author}</td>
+                    <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{bookUsers.length}</td>
+                    <td style={{ ...cell, color: '#666' }}>{bookUsers.map(u => u.name).join(', ')}</td>
+                    <td style={cell}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                        <button
+                          disabled={isLoading}
+                          onClick={() => setBookStatus(book.id, 'reading')}
+                          style={btnStyle(currentStatus === 'reading', '#C0603A')}
+                        >
+                          Читаем
+                        </button>
+                        <button
+                          disabled={isLoading}
+                          onClick={() => setBookStatus(book.id, 'read')}
+                          style={btnStyle(currentStatus === 'read', '#666')}
+                        >
+                          Прочитано
+                        </button>
+                        {currentStatus && (
+                          <button
+                            disabled={isLoading}
+                            onClick={() => resetBookStatus(book.id)}
+                            style={btnStyle(false, '#999')}
+                          >
+                            Сброс
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}

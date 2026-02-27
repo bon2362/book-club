@@ -3,7 +3,11 @@
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 
-export default function Header() {
+interface Props {
+  onEditProfile?: () => void
+}
+
+export default function Header({ onEditProfile }: Props) {
   const { data: session } = useSession()
 
   return (
@@ -79,6 +83,25 @@ export default function Header() {
               >
                 {session.user.name ?? session.user.email}
               </span>
+              {onEditProfile && (
+                <button
+                  onClick={onEditProfile}
+                  style={{
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.65rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: '#111',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: '1px solid #111',
+                    cursor: 'pointer',
+                    padding: '0 0 1px',
+                  }}
+                >
+                  Профиль
+                </button>
+              )}
               <button
                 onClick={() => signOut()}
                 style={{
