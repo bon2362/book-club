@@ -5,14 +5,18 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { markSignupDeleted } from '@/lib/signups'
 
 export async function DELETE() {
   const session = await auth()
-  if (!session?.user?.email) {
+  if (!session?.user?.email || !session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  await db.delete(users).where(eq(users.email, session.user.email))
+  await Promise.all([
+    db.delete(users).where(eq(users.email, session.user.email)),
+    markSignupDeleted(session.user.id),
+  ])
 
   return NextResponse.json({ ok: true })
 }
