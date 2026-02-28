@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
@@ -10,6 +10,8 @@ declare global {
   }
 }
 
+const BOT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
+
 interface Props {
   isOpen: boolean
   onClose: () => void
@@ -17,27 +19,30 @@ interface Props {
 
 export default function AuthModal({ isOpen, onClose }: Props) {
   const router = useRouter()
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
+  // Set up the global Telegram callback (always kept up to date)
   useEffect(() => {
-    if (!isOpen) return
+    window.onTelegramAuth = async (user) => {
+      await signIn('telegram', { ...user, redirect: false })
+      router.refresh()
+      onCloseRef.current()
+    }
+  }, [router])
 
-    const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
-    if (!botName) return
+  // Load the Telegram widget script when the modal opens
+  useEffect(() => {
+    if (!isOpen || !BOT_NAME) return
 
     const container = document.getElementById('telegram-login-container')
     if (!container) return
 
     container.innerHTML = ''
 
-    window.onTelegramAuth = async (user) => {
-      await signIn('telegram', { ...user, redirect: false })
-      router.refresh()
-      onClose()
-    }
-
     const script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.setAttribute('data-telegram-login', botName)
+    script.setAttribute('data-telegram-login', BOT_NAME)
     script.setAttribute('data-size', 'medium')
     script.setAttribute('data-onauth', 'onTelegramAuth')
     script.setAttribute('data-request-access', 'write')
@@ -47,15 +52,13 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     return () => {
       container.innerHTML = ''
     }
-  }, [isOpen, onClose, router])
+  }, [isOpen])
 
   if (!isOpen) return null
 
   function handleOverlay(e: React.MouseEvent<HTMLDivElement>) {
     if (e.target === e.currentTarget) onClose()
   }
-
-  const hasTelegram = !!process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
 
   return (
     <div
@@ -171,27 +174,23 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           Войти через Google
         </button>
 
-        {hasTelegram && (
-          <>
-            <p
-              style={{
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.7rem',
-                color: '#999',
-                textAlign: 'center',
-                margin: '1rem 0',
-                letterSpacing: '0.05em',
-              }}
-            >
-              — или —
-            </p>
+        <p
+          style={{
+            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+            fontSize: '0.7rem',
+            color: '#999',
+            textAlign: 'center',
+            margin: '1rem 0',
+            letterSpacing: '0.05em',
+          }}
+        >
+          — или —
+        </p>
 
-            <div
-              id="telegram-login-container"
-              style={{ display: 'flex', justifyContent: 'center', minHeight: '36px' }}
-            />
-          </>
-        )}
+        <div
+          id="telegram-login-container"
+          style={{ display: 'flex', justifyContent: 'center', minHeight: '36px' }}
+        />
       </div>
     </div>
   )
