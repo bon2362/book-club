@@ -5,12 +5,13 @@ import { useState } from 'react'
 interface Props {
   defaultName?: string
   defaultContacts?: string
+  telegramLocked?: boolean
   onSave: (name: string, contacts: string) => Promise<void>
   onClose: () => void
   onDelete?: () => Promise<void>
 }
 
-export default function ContactsForm({ defaultName = '', defaultContacts = '', onSave, onClose, onDelete }: Props) {
+export default function ContactsForm({ defaultName = '', defaultContacts = '', telegramLocked = false, onSave, onClose, onDelete }: Props) {
   const [name, setName] = useState(defaultName)
   const [contacts, setContacts] = useState(defaultContacts)
   const [loading, setLoading] = useState(false)
@@ -139,10 +140,27 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', o
             id="nd-contacts"
             type="text"
             value={contacts}
-            onChange={e => setContacts(e.target.value)}
-            placeholder="@username"
-            style={inputStyle}
+            onChange={telegramLocked ? undefined : e => setContacts(e.target.value)}
+            readOnly={telegramLocked}
+            placeholder={telegramLocked ? '@username (привязан к аккаунту)' : '@username'}
+            style={{
+              ...inputStyle,
+              background: telegramLocked ? '#F5F5F5' : '#fff',
+              color: telegramLocked ? '#666' : '#111',
+              cursor: telegramLocked ? 'default' : 'text',
+            }}
           />
+          {telegramLocked && (
+            <p style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.7rem',
+              color: '#888',
+              marginTop: '-0.75rem',
+              marginBottom: '1rem',
+            }}>
+              Привязан к Telegram-аккаунту
+            </p>
+          )}
 
           {error && (
             <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#c00', marginBottom: '1rem' }}>

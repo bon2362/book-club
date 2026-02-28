@@ -1,6 +1,14 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
+
+declare global {
+  interface Window {
+    onTelegramAuth: (user: Record<string, string>) => void
+  }
+}
 
 interface Props {
   isOpen: boolean
@@ -8,11 +16,46 @@ interface Props {
 }
 
 export default function AuthModal({ isOpen, onClose }: Props) {
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
+    if (!botName) return
+
+    const container = document.getElementById('telegram-login-container')
+    if (!container) return
+
+    container.innerHTML = ''
+
+    window.onTelegramAuth = async (user) => {
+      await signIn('telegram', { ...user, redirect: false })
+      router.refresh()
+      onClose()
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://telegram.org/js/telegram-widget.js?22'
+    script.setAttribute('data-telegram-login', botName)
+    script.setAttribute('data-size', 'medium')
+    script.setAttribute('data-onauth', 'onTelegramAuth')
+    script.setAttribute('data-request-access', 'write')
+    script.async = true
+    container.appendChild(script)
+
+    return () => {
+      container.innerHTML = ''
+    }
+  }, [isOpen, onClose, router])
+
   if (!isOpen) return null
 
   function handleOverlay(e: React.MouseEvent<HTMLDivElement>) {
     if (e.target === e.currentTarget) onClose()
   }
+
+  const hasTelegram = !!process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
 
   return (
     <div
@@ -127,6 +170,28 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           </svg>
           Войти через Google
         </button>
+
+        {hasTelegram && (
+          <>
+            <p
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.7rem',
+                color: '#999',
+                textAlign: 'center',
+                margin: '1rem 0',
+                letterSpacing: '0.05em',
+              }}
+            >
+              — или —
+            </p>
+
+            <div
+              id="telegram-login-container"
+              style={{ display: 'flex', justifyContent: 'center', minHeight: '36px' }}
+            />
+          </>
+        )}
       </div>
     </div>
   )

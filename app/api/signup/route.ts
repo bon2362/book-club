@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { name, contacts, selectedBooks } = body
 
-  if (!name?.trim() || !contacts?.trim() || !Array.isArray(selectedBooks)) {
+  if (!name?.trim() || typeof contacts !== 'string' || !Array.isArray(selectedBooks)) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 

@@ -29,6 +29,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user?.email
   const isAdmin = !!session?.user?.isAdmin
+  const telegramUsername = session?.user?.telegramUsername ?? null
 
   const [query, setQuery] = useState('')
   const [filterTag, setFilterTag] = useState('')
@@ -233,7 +234,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       {showContactsForm && (
         <ContactsForm
           defaultName={effectiveUser?.name}
-          defaultContacts={effectiveUser?.contacts}
+          defaultContacts={effectiveUser?.contacts ?? (telegramUsername ? '@' + telegramUsername : undefined)}
+          telegramLocked={!!telegramUsername}
           onSave={handleSaveContacts}
           onClose={() => { setShowContactsForm(false); setPendingBook(null) }}
           onDelete={isLoggedIn ? handleDeleteAccount : undefined}
