@@ -123,13 +123,14 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
                   alignItems: 'center',
                   gap: '0.25rem',
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.65rem',
+                  fontSize: '0.6rem',
+                  lineHeight: '1',
                   color: '#999',
                   cursor: 'default',
                   userSelect: 'none',
                 }}
               >
-                <svg width="9" height="11" viewBox="0 0 9 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <svg viewBox="0 0 9 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ height: '0.6rem', width: 'auto', flexShrink: 0 }}>
                   <circle cx="4.5" cy="3" r="2.5" fill="#BBBBBB" />
                   <path d="M0.5 10.5C0.5 7.5 2.2 6.5 4.5 6.5C6.8 6.5 8.5 7.5 8.5 10.5" stroke="#BBBBBB" strokeWidth="1" strokeLinecap="round" fill="none" />
                 </svg>
