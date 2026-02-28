@@ -96,9 +96,9 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
         )}
       </div>
 
-      {/* Tags */}
-      {book.tags.length > 0 && (
-        <div style={{ padding: '0.75rem 0.75rem 0', display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+      {/* Tags + signup count */}
+      {(book.tags.length > 0 || !!book.signupCount) && (
+        <div style={{ padding: '0.75rem 0.75rem 0', display: 'flex', flexWrap: 'wrap', gap: '0.375rem', alignItems: 'center' }}>
           {book.tags.map(tag => (
             <span
               key={tag}
@@ -113,42 +113,47 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               {tag}
             </span>
           ))}
-        </div>
-      )}
-
-      {/* Signup count */}
-      {!!book.signupCount && (
-        <div style={{ padding: '0.375rem 0.75rem 0', position: 'relative', display: 'inline-block' }}>
-          <span
-            onMouseEnter={() => setSignupTooltip(true)}
-            onMouseLeave={() => setSignupTooltip(false)}
-            style={{
-              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-              fontSize: '0.65rem',
-              color: '#999',
-              cursor: 'default',
-              userSelect: 'none',
-            }}
-          >
-            👥 {book.signupCount}
-          </span>
-          {signupTooltip && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 'calc(100% + 4px)',
-                left: 0,
-                background: '#111',
-                color: '#fff',
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.65rem',
-                padding: '0.25rem 0.5rem',
-                whiteSpace: 'nowrap',
-                pointerEvents: 'none',
-                zIndex: 10,
-              }}
-            >
-              {formatSignupCount(book.signupCount)}
+          {!!book.signupCount && (
+            <div style={{ marginLeft: 'auto', position: 'relative', flexShrink: 0 }}>
+              <span
+                onMouseEnter={() => setSignupTooltip(true)}
+                onMouseLeave={() => setSignupTooltip(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.65rem',
+                  color: '#999',
+                  cursor: 'default',
+                  userSelect: 'none',
+                }}
+              >
+                <svg width="9" height="11" viewBox="0 0 9 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="4.5" cy="3" r="2.5" fill="#BBBBBB" />
+                  <path d="M0.5 10.5C0.5 7.5 2.2 6.5 4.5 6.5C6.8 6.5 8.5 7.5 8.5 10.5" stroke="#BBBBBB" strokeWidth="1" strokeLinecap="round" fill="none" />
+                </svg>
+                {book.signupCount}
+              </span>
+              {signupTooltip && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 'calc(100% + 4px)',
+                    right: 0,
+                    background: '#111',
+                    color: '#fff',
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.65rem',
+                    padding: '0.25rem 0.5rem',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                  }}
+                >
+                  {formatSignupCount(book.signupCount)}
+                </div>
+              )}
             </div>
           )}
         </div>
