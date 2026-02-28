@@ -2,18 +2,19 @@ import { auth } from '@/lib/auth'
 import { fetchBooksWithCovers } from '@/lib/books-with-covers'
 import { getAllSignups } from '@/lib/signups'
 import { db } from '@/lib/db'
-import { bookStatuses } from '@/lib/db/schema'
+import { bookStatuses, tagDescriptions } from '@/lib/db/schema'
 import { SessionProvider } from 'next-auth/react'
 import BooksPage from '@/components/nd/BooksPage'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  const [session, books, signups, statuses] = await Promise.all([
+  const [session, books, signups, statuses, tagDescs] = await Promise.all([
     auth(),
     fetchBooksWithCovers(),
     getAllSignups().catch(() => []),
     db.select().from(bookStatuses).catch(() => []),
+    db.select().from(tagDescriptions).catch(() => []),
   ])
 
   const statusMap = new Map(statuses.map(s => [s.bookId, s.status as 'reading' | 'read']))
@@ -35,9 +36,11 @@ export default async function Home() {
     ? signups.find(s => s.email === session.user!.email) ?? null
     : null
 
+  const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
+
   return (
     <SessionProvider>
-      <BooksPage books={booksWithStatus} currentUser={currentUser} />
+      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} />
     </SessionProvider>
   )
 }

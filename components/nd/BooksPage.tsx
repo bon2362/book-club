@@ -13,6 +13,7 @@ import ContactsForm from './ContactsForm'
 interface Props {
   books: BookWithCover[]
   currentUser: UserSignup | null
+  tagDescriptions: Record<string, string>
 }
 
 async function saveSelection(name: string, contacts: string, books: string[]) {
@@ -24,7 +25,7 @@ async function saveSelection(name: string, contacts: string, books: string[]) {
   if (!res.ok) throw new Error(`Signup failed: ${res.status}`)
 }
 
-export default function BooksPage({ books, currentUser }: Props) {
+export default function BooksPage({ books, currentUser, tagDescriptions }: Props) {
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user?.email
   const isAdmin = !!session?.user?.isAdmin
@@ -178,6 +179,27 @@ export default function BooksPage({ books, currentUser }: Props) {
           )}
         </div>
       </div>
+
+      {/* Tag description */}
+      {filterTag && tagDescriptions[filterTag] && (
+        <div style={{ borderBottom: '1px solid #E5E5E5' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem 1.5rem' }}>
+            <p
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.8rem',
+                lineHeight: 1.65,
+                color: '#555',
+                margin: 0,
+                borderLeft: '2px solid #111',
+                paddingLeft: '1rem',
+              }}
+            >
+              {tagDescriptions[filterTag]}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Grid */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem' }}>

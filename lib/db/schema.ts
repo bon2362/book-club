@@ -50,3 +50,8 @@ export const bookStatuses = pgTable('book_statuses', {
   bookId: text('book_id').primaryKey(),
   status: text('status').notNull(), // 'reading' | 'read'
 })
+
+export const tagDescriptions = pgTable('tag_descriptions', {
+  tag: text('tag').primaryKey(),
+  description: text('description').notNull(),
+})

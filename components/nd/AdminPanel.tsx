@@ -14,9 +14,11 @@ interface Props {
   users: UserSignup[]
   byBook: BookEntry[]
   statuses: Record<string, 'reading' | 'read'>
+  allTags: string[]
+  tagDescriptions: Record<string, string>
 }
 
-type View = 'users' | 'books'
+type View = 'users' | 'books' | 'tags'
 
 const cell: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -37,12 +39,19 @@ const headCell: React.CSSProperties = {
   borderBottom: '2px solid #111',
 }
 
-export default function AdminPanel({ users, byBook, statuses: initialStatuses }: Props) {
+export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions }: Props) {
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [statuses, setStatuses] = useState<Record<string, 'reading' | 'read'>>(initialStatuses)
   const [statusLoading, setStatusLoading] = useState<string | null>(null)
+  const [tagDescEdits, setTagDescEdits] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    for (const tag of allTags) initial[tag] = initialTagDescriptions[tag] ?? ''
+    return initial
+  })
+  const [tagSaving, setTagSaving] = useState<string | null>(null)
+  const [tagSavedSet, setTagSavedSet] = useState<Set<string>>(new Set())
 
   async function handleSync() {
     setSyncing(true)
@@ -82,6 +91,21 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses }:
       })
     } finally {
       setStatusLoading(null)
+    }
+  }
+
+  async function saveTagDescription(tag: string) {
+    setTagSaving(tag)
+    try {
+      await fetch('/api/admin/tag-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag, description: tagDescEdits[tag] ?? '' }),
+      })
+      setTagSavedSet(prev => new Set(prev).add(tag))
+      setTimeout(() => setTagSavedSet(prev => { const next = new Set(prev); next.delete(tag); return next }), 2000)
+    } finally {
+      setTagSaving(null)
     }
   }
 
@@ -158,6 +182,9 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses }:
           <button style={tabStyle(view === 'books')} onClick={() => setView('books')}>
             По книгам ({byBook.length})
           </button>
+          <button style={tabStyle(view === 'tags')} onClick={() => setView('tags')}>
+            Теги ({allTags.length})
+          </button>
         </div>
 
         {/* Users table */}
@@ -182,6 +209,77 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses }:
               ))}
             </tbody>
           </table>
+        )}
+
+        {/* Tags editor */}
+        {view === 'tags' && (
+          <div style={{ maxWidth: '640px' }}>
+            {allTags.map(tag => {
+              const isSaving = tagSaving === tag
+              const isSaved = tagSavedSet.has(tag)
+              return (
+                <div key={tag} style={{ marginBottom: '1.5rem' }}>
+                  <div
+                    style={{
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.65rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      color: '#666',
+                      marginBottom: '0.4rem',
+                    }}
+                  >
+                    {tag}
+                  </div>
+                  <textarea
+                    value={tagDescEdits[tag] ?? ''}
+                    onChange={e => setTagDescEdits(prev => ({ ...prev, [tag]: e.target.value }))}
+                    rows={4}
+                    placeholder="Описание не задано"
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.8rem',
+                      lineHeight: 1.55,
+                      color: '#111',
+                      border: '1px solid #E5E5E5',
+                      borderBottom: '2px solid #111',
+                      padding: '0.5rem 0.75rem',
+                      resize: 'vertical',
+                      outline: 'none',
+                      background: '#fff',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.4rem' }}>
+                    <button
+                      onClick={() => saveTagDescription(tag)}
+                      disabled={isSaving}
+                      style={{
+                        fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                        fontSize: '0.65rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        padding: '0.3rem 0.75rem',
+                        border: '1px solid #111',
+                        background: isSaving ? '#E5E5E5' : 'transparent',
+                        color: isSaving ? '#999' : '#111',
+                        cursor: isSaving ? 'default' : 'pointer',
+                      }}
+                    >
+                      {isSaving ? 'Сохранение…' : 'Сохранить'}
+                    </button>
+                    {isSaved && (
+                      <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: '#666' }}>
+                        Сохранено
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         )}
 
         {/* Books table */}
