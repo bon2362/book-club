@@ -114,7 +114,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             </span>
           ))}
           {!!book.signupCount && (
-            <div style={{ marginLeft: 'auto', position: 'relative', flexShrink: 0 }}>
+            <div style={{ marginLeft: 'auto', position: 'relative', flexShrink: 0, fontSize: '0.6rem' }}>
               <span
                 onMouseEnter={() => setSignupTooltip(true)}
                 onMouseLeave={() => setSignupTooltip(false)}
