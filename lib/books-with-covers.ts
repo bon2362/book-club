@@ -13,6 +13,7 @@ export interface BookWithCover {
   description: string
   coverUrl: string | null
   status?: 'reading' | 'read' | null
+  signupCount?: number
 }
 
 export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWithCover[]> {

@@ -15,11 +15,21 @@ function extractYear(date: string): string {
   return parts[parts.length - 1] ?? date
 }
 
+function formatSignupCount(n: number): string {
+  const lastTwo = n % 100
+  const lastOne = n % 10
+  if (lastTwo >= 11 && lastTwo <= 19) return `${n} человек записались`
+  if (lastOne === 1) return `${n} человек записался`
+  if (lastOne >= 2 && lastOne <= 4) return `${n} человека записались`
+  return `${n} человек записались`
+}
+
 const DESCRIPTION_CLAMP_THRESHOLD = 120
 
 export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
+  const [signupTooltip, setSignupTooltip] = useState(false)
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const isReading = book.status === 'reading'
   const isRead = book.status === 'read'
@@ -103,6 +113,44 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               {tag}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Signup count */}
+      {!!book.signupCount && (
+        <div style={{ padding: '0.375rem 0.75rem 0', position: 'relative', display: 'inline-block' }}>
+          <span
+            onMouseEnter={() => setSignupTooltip(true)}
+            onMouseLeave={() => setSignupTooltip(false)}
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.65rem',
+              color: '#999',
+              cursor: 'default',
+              userSelect: 'none',
+            }}
+          >
+            👥 {book.signupCount}
+          </span>
+          {signupTooltip && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 'calc(100% + 4px)',
+                left: 0,
+                background: '#111',
+                color: '#fff',
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.65rem',
+                padding: '0.25rem 0.5rem',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                zIndex: 10,
+              }}
+            >
+              {formatSignupCount(book.signupCount)}
+            </div>
+          )}
         </div>
       )}
 

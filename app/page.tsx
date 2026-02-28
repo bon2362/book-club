@@ -17,7 +17,19 @@ export default async function Home() {
   ])
 
   const statusMap = new Map(statuses.map(s => [s.bookId, s.status as 'reading' | 'read']))
-  const booksWithStatus = books.map(b => ({ ...b, status: statusMap.get(b.id) ?? null }))
+
+  const signupCountByName = new Map<string, number>()
+  for (const signup of signups) {
+    for (const bookName of signup.selectedBooks) {
+      signupCountByName.set(bookName, (signupCountByName.get(bookName) ?? 0) + 1)
+    }
+  }
+
+  const booksWithStatus = books.map(b => ({
+    ...b,
+    status: statusMap.get(b.id) ?? null,
+    signupCount: signupCountByName.get(b.name) ?? 0,
+  }))
 
   const currentUser = session?.user?.email
     ? signups.find(s => s.email === session.user!.email) ?? null
