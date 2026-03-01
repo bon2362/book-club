@@ -173,23 +173,8 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           Войти через Google
         </button>
 
-        <p
-          style={{
-            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-            fontSize: '0.7rem',
-            color: '#999',
-            textAlign: 'center',
-            margin: '1rem 0',
-            letterSpacing: '0.05em',
-          }}
-        >
-          — или —
-        </p>
-
-        <div
-          id="telegram-login-container"
-          style={{ display: 'flex', justifyContent: 'center', minHeight: '36px' }}
-        />
+        {/* Telegram login hidden until OAuth delivery issue is resolved */}
+        <div id="telegram-login-container" style={{ display: 'none' }} />
       </div>
     </div>
   )
