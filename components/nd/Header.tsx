@@ -5,9 +5,10 @@ import Link from 'next/link'
 
 interface Props {
   onEditProfile?: () => void
+  onSignIn?: () => void
 }
 
-export default function Header({ onEditProfile }: Props) {
+export default function Header({ onEditProfile, onSignIn }: Props) {
   const { data: session } = useSession()
 
   return (
@@ -122,9 +123,7 @@ export default function Header({ onEditProfile }: Props) {
             </>
           ) : (
             <button
-              onClick={() => {
-                void import('next-auth/react').then(m => m.signIn('google'))
-              }}
+              onClick={onSignIn}
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.65rem',

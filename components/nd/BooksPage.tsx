@@ -121,7 +121,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
 
   return (
     <>
-      <Header onEditProfile={isLoggedIn ? () => setShowContactsForm(true) : undefined} />
+      <Header
+        onEditProfile={isLoggedIn ? () => setShowContactsForm(true) : undefined}
+        onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
+      />
 
       {/* Search + filters */}
       <div style={{ borderBottom: '1px solid #E5E5E5', background: '#fff' }}>
