@@ -11,7 +11,6 @@ declare global {
 }
 
 const BOT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
-console.log('[TG Widget] module loaded, BOT_NAME:', BOT_NAME)
 
 interface Props {
   isOpen: boolean
@@ -26,9 +25,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   // Set up the global Telegram callback (always kept up to date)
   useEffect(() => {
     window.onTelegramAuth = async (user) => {
-      console.log('[TG Widget] onTelegramAuth called with user:', JSON.stringify(user))
-      const result = await signIn('telegram', { ...user, redirect: false })
-      console.log('[TG Widget] signIn result:', JSON.stringify(result))
+      await signIn('telegram', { ...user, redirect: false })
       router.refresh()
       onCloseRef.current()
     }
@@ -36,7 +33,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
   // Load the Telegram widget script when the modal opens
   useEffect(() => {
-    console.log('[TG Widget] modal open effect, isOpen:', isOpen, 'BOT_NAME:', BOT_NAME, 'origin:', window.location.origin)
     if (!isOpen || !BOT_NAME) return
 
     const container = document.getElementById('telegram-login-container')
@@ -50,10 +46,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     script.setAttribute('data-size', 'medium')
     script.setAttribute('data-onauth', 'onTelegramAuth')
     script.async = true
-    script.onload = () => console.log('[TG Widget] widget script loaded successfully')
-    script.onerror = (e) => console.error('[TG Widget] widget script FAILED to load:', e)
     container.appendChild(script)
-    console.log('[TG Widget] script appended with data-telegram-login:', BOT_NAME)
 
     return () => {
       container.innerHTML = ''
