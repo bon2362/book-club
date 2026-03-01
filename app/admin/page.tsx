@@ -39,7 +39,7 @@ export default async function AdminPage() {
   const commitMsg = process.env.VERCEL_GIT_COMMIT_MESSAGE ?? null
   const buildTime = process.env.BUILD_TIME
     ? new Date(process.env.BUILD_TIME).toLocaleString('ru-RU', {
-        timeZone: 'Europe/Moscow',
+        timeZone: 'Europe/Berlin',
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
       })
@@ -61,7 +61,7 @@ export default async function AdminPage() {
         gap: '0.4rem 1rem',
         alignItems: 'center',
       }}>
-        {buildTime && <span>Деплой: <b style={{ color: '#555' }}>{buildTime} МСК</b></span>}
+        {buildTime && <span>Деплой: <b style={{ color: '#555' }}>{buildTime} CET</b></span>}
         {shortSha && (
           <span>Коммит:{' '}
             <a
