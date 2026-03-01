@@ -49,7 +49,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     script.setAttribute('data-telegram-login', BOT_NAME)
     script.setAttribute('data-size', 'medium')
     script.setAttribute('data-onauth', 'onTelegramAuth')
-    script.setAttribute('data-request-access', 'write')
     script.async = true
     script.onload = () => console.log('[TG Widget] widget script loaded successfully')
     script.onerror = (e) => console.error('[TG Widget] widget script FAILED to load:', e)
