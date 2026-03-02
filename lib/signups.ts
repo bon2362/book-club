@@ -73,6 +73,27 @@ export async function markSignupDeleted(userId: string): Promise<void> {
   })
 }
 
+export async function markSignupDeletedByAdmin(userId: string): Promise<void> {
+  const sheets = getSheets()
+  const sheetId = process.env.GOOGLE_SHEETS_ID!
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: SIGNUPS_RANGE,
+  })
+  const rows = response.data.values ?? []
+  const rowIndex = rows.findIndex(r => r[1] === userId)
+  if (rowIndex === -1) return
+
+  const sheetRow = rowIndex + 1
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `signups!G${sheetRow}:H${sheetRow}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [['TO DELETE', 'yes']] },
+  })
+}
+
 export async function removeBookFromSignup(userId: string, bookName: string): Promise<void> {
   const sheets = getSheets()
   const sheetId = process.env.GOOGLE_SHEETS_ID!

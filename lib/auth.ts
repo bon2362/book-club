@@ -4,6 +4,8 @@ import Resend from 'next-auth/providers/resend'
 import Credentials from 'next-auth/providers/credentials'
 import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { db } from '@/lib/db'
+import { users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { createHash, createHmac, timingSafeEqual } from 'crypto'
 
 function verifyTelegramHash(data: Record<string, string>): boolean {
@@ -54,6 +56,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.isAdmin = user.email === process.env.ADMIN_EMAIL
         token.telegramUsername = user.telegramUsername ?? token.telegramUsername
+      } else if (token.email) {
+        const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, token.email)).limit(1)
+        if (existing.length === 0) return null
       }
       return token
     },

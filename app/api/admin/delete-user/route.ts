@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { markSignupDeleted } from '@/lib/signups'
+import { markSignupDeletedByAdmin } from '@/lib/signups'
 
 export async function DELETE(req: NextRequest) {
   const session = await auth()
@@ -20,7 +20,7 @@ export async function DELETE(req: NextRequest) {
 
   await Promise.all([
     db.delete(users).where(eq(users.email, userId)),
-    markSignupDeleted(userId),
+    markSignupDeletedByAdmin(userId),
   ])
 
   return NextResponse.json({ ok: true })
