@@ -89,11 +89,6 @@ export async function removeBookFromSignup(userId: string, bookName: string): Pr
   const books: string[] = JSON.parse(row[5] ?? '[]')
   const updated = books.filter(b => b !== bookName)
 
-  if (updated.length === 0) {
-    await markSignupDeleted(userId)
-    return
-  }
-
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
     range: `signups!F${rowIndex + 1}`,

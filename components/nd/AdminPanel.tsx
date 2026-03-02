@@ -64,9 +64,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
       })
       if (!res.ok) return
       setLocalUsers(prev =>
-        prev
-          .map(u => u.userId === userId ? { ...u, selectedBooks: u.selectedBooks.filter(b => b !== bookName) } : u)
-          .filter(u => u.selectedBooks.length > 0)
+        prev.map(u => u.userId === userId ? { ...u, selectedBooks: u.selectedBooks.filter(b => b !== bookName) } : u)
       )
     } catch {
       // silently ignore
