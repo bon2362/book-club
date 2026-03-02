@@ -40,6 +40,7 @@ const headCell: React.CSSProperties = {
 }
 
 export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions }: Props) {
+  const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
@@ -52,6 +53,25 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   })
   const [tagSaving, setTagSaving] = useState<string | null>(null)
   const [tagSavedSet, setTagSavedSet] = useState<Set<string>>(new Set())
+
+  async function handleRemoveBook(userId: string, bookName: string) {
+    if (!window.confirm(`Снять пользователя с книги «${bookName}»?`)) return
+    try {
+      const res = await fetch('/api/admin/remove-book', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, bookName }),
+      })
+      if (!res.ok) return
+      setLocalUsers(prev =>
+        prev
+          .map(u => u.userId === userId ? { ...u, selectedBooks: u.selectedBooks.filter(b => b !== bookName) } : u)
+          .filter(u => u.selectedBooks.length > 0)
+      )
+    } catch {
+      // silently ignore
+    }
+  }
 
   async function handleSync() {
     setSyncing(true)
@@ -177,7 +197,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
         {/* Tabs */}
         <div style={{ borderBottom: '1px solid #E5E5E5', marginBottom: '1.5rem' }}>
           <button style={tabStyle(view === 'users')} onClick={() => setView('users')}>
-            Участники ({users.length})
+            Участники ({localUsers.length})
           </button>
           <button style={tabStyle(view === 'books')} onClick={() => setView('books')}>
             По книгам ({byBook.length})
@@ -199,12 +219,27 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
               </tr>
             </thead>
             <tbody>
-              {users.map(u => (
+              {localUsers.map(u => (
                 <tr key={u.userId}>
                   <td style={cell}>{u.name}</td>
                   <td style={cell}>{u.contacts}</td>
                   <td style={{ ...cell, color: '#666' }}>{u.email}</td>
-                  <td style={cell}>{u.selectedBooks.join(', ')}</td>
+                  <td style={cell}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      {u.selectedBooks.map(book => (
+                        <span key={book} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#F5F5F5', padding: '0.15rem 0.4rem', fontSize: '0.75rem' }}>
+                          {book}
+                          <button
+                            onClick={() => handleRemoveBook(u.userId, book)}
+                            title="Снять с книги"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', lineHeight: 1, padding: '0 0.1rem' }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
