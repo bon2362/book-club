@@ -54,8 +54,8 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   const [tagSaving, setTagSaving] = useState<string | null>(null)
   const [tagSavedSet, setTagSavedSet] = useState<Set<string>>(new Set())
 
-  async function handleRemoveBook(userId: string, bookName: string) {
-    if (!window.confirm(`Снять пользователя с книги «${bookName}»?`)) return
+  async function handleRemoveBook(userId: string, bookName: string, userName: string) {
+    if (!window.confirm(`Снять ${userName} с книги «${bookName}»?`)) return
     try {
       const res = await fetch('/api/admin/remove-book', {
         method: 'DELETE',
@@ -228,7 +228,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                         <span key={book} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#F5F5F5', padding: '0.15rem 0.4rem', fontSize: '0.75rem' }}>
                           {book}
                           <button
-                            onClick={() => handleRemoveBook(u.userId, book)}
+                            onClick={() => handleRemoveBook(u.userId, book, u.name)}
                             title="Снять с книги"
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', lineHeight: 1, padding: '0 0.1rem' }}
                           >
