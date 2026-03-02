@@ -54,6 +54,21 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   const [tagSaving, setTagSaving] = useState<string | null>(null)
   const [tagSavedSet, setTagSavedSet] = useState<Set<string>>(new Set())
 
+  async function handleDeleteUser(userId: string, userName: string) {
+    if (!window.confirm(`Удалить пользователя ${userName}? Это действие необратимо.`)) return
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (!res.ok) return
+      setLocalUsers(prev => prev.filter(u => u.userId !== userId))
+    } catch {
+      // silently ignore
+    }
+  }
+
   async function handleRemoveBook(userId: string, bookName: string, userName: string) {
     if (!window.confirm(`Снять ${userName} с книги «${bookName}»?`)) return
     try {
@@ -214,6 +229,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                 <th style={headCell}>Telegram</th>
                 <th style={headCell}>Email</th>
                 <th style={headCell}>Книги</th>
+                <th style={headCell}></th>
               </tr>
             </thead>
             <tbody>
@@ -237,6 +253,15 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                         </span>
                       ))}
                     </div>
+                  </td>
+                  <td style={{ ...cell, textAlign: 'right' }}>
+                    <button
+                      onClick={() => handleDeleteUser(u.userId, u.name)}
+                      title="Удалить пользователя"
+                      style={{ background: 'none', border: '1px solid #E5E5E5', cursor: 'pointer', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                    >
+                      Удалить
+                    </button>
                   </td>
                 </tr>
               ))}
