@@ -7,6 +7,60 @@ import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createHash, createHmac, timingSafeEqual } from 'crypto'
+import { Resend as ResendClient } from 'resend'
+
+const FROM = 'Долгое наступление <noreply@slowreading.club>'
+
+async function sendMagicLinkEmail(email: string, url: string) {
+  const client = new ResendClient(process.env.RESEND_API_KEY!)
+  const html = `<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F5F5F0;font-family:system-ui,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F0;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border:1px solid #E5E5E5;border-top:3px solid #111;">
+        <tr><td style="padding:36px 36px 0">
+          <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Книжный клуб</p>
+          <h1 style="margin:0 0 24px;font-family:Georgia,serif;font-size:26px;font-weight:700;color:#111;letter-spacing:-0.02em;">Долгое наступление</h1>
+          <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;">
+            Вы запросили ссылку для входа в книжный клуб. Нажмите кнопку ниже — она действует <strong>24 часа</strong>.
+          </p>
+          <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+            <tr><td style="background:#111;">
+              <a href="${url}" style="display:inline-block;padding:14px 32px;font-size:13px;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:0.1em;color:#fff;text-decoration:none;">
+                Войти в клуб
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 8px;font-size:13px;color:#999;line-height:1.5;">
+            Если кнопка не работает, скопируйте и вставьте эту ссылку в браузер:
+          </p>
+          <p style="margin:0 0 32px;font-size:12px;word-break:break-all;">
+            <a href="${url}" style="color:#555;text-decoration:none;border-bottom:1px solid #ccc;">${url}</a>
+          </p>
+        </td></tr>
+        <tr><td style="padding:20px 36px;border-top:1px solid #E5E5E5;">
+          <p style="margin:0;font-size:12px;color:#bbb;line-height:1.5;">
+            Если вы не запрашивали этот email — просто проигнорируйте его.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+
+  const text = `Долгое наступление — книжный клуб\n\nВойти в клуб: ${url}\n\nСсылка действует 24 часа. Если вы не запрашивали этот email — просто проигнорируйте его.`
+
+  await client.emails.send({
+    from: FROM,
+    to: email,
+    subject: 'Ссылка для входа в книжный клуб',
+    html,
+    text,
+  })
+}
 
 function verifyTelegramHash(data: Record<string, string>): boolean {
   if (!process.env.TELEGRAM_BOT_TOKEN) return false
@@ -31,7 +85,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     Resend({
       apiKey: process.env.RESEND_API_KEY!,
-      from: 'Долгое наступление <noreply@slowreading.club>',
+      from: FROM,
+      sendVerificationRequest: async ({ identifier, url }) => {
+        await sendMagicLinkEmail(identifier, url)
+      },
     }),
     Credentials({
       id: 'telegram',
