@@ -7,6 +7,7 @@ import type { UserSignup } from '@/lib/signups'
 import { searchBooks } from '@/lib/search'
 import Header from './Header'
 import BookCard from './BookCard'
+import BookRow from './BookRow'
 import AuthModal from './AuthModal'
 import ContactsForm from './ContactsForm'
 
@@ -32,16 +33,24 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const telegramUsername = session?.user?.telegramUsername ?? null
 
   const [showAbout, setShowAbout] = useState(true)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   useEffect(() => {
     if (document.cookie.split(';').some(c => c.trim() === 'about_closed=1')) {
       setShowAbout(false)
     }
+    const saved = localStorage.getItem('book_view_mode')
+    if (saved === 'grid' || saved === 'list') setViewMode(saved)
   }, [])
 
   function handleCloseAbout() {
     document.cookie = 'about_closed=1; max-age=31536000; path=/'
     setShowAbout(false)
+  }
+
+  function handleSetViewMode(mode: 'grid' | 'list') {
+    setViewMode(mode)
+    localStorage.setItem('book_view_mode', mode)
   }
 
   const [query, setQuery] = useState('')
@@ -212,6 +221,33 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
               {showRead ? '✓ Прочитанные' : 'Показать прочитанные'}
             </button>
           )}
+
+          {/* View toggle */}
+          <div style={{ display: 'flex', gap: '0.25rem', marginLeft: 'auto' }}>
+            <button
+              onClick={() => handleSetViewMode('grid')}
+              title="Сетка"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: viewMode === 'grid' ? '#111' : '#C8C8C8', display: 'flex' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="1" y="1" width="6" height="6" rx="0.5" />
+                <rect x="9" y="1" width="6" height="6" rx="0.5" />
+                <rect x="1" y="9" width="6" height="6" rx="0.5" />
+                <rect x="9" y="9" width="6" height="6" rx="0.5" />
+              </svg>
+            </button>
+            <button
+              onClick={() => handleSetViewMode('list')}
+              title="Таблица"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: viewMode === 'list' ? '#111' : '#C8C8C8', display: 'flex' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="1" y="2" width="14" height="2" rx="0.5" />
+                <rect x="1" y="7" width="14" height="2" rx="0.5" />
+                <rect x="1" y="12" width="14" height="2" rx="0.5" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -236,29 +272,26 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         </div>
       )}
 
-      {/* Grid */}
+      {/* Books */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem' }}>
         {filteredBooks.length === 0 ? (
           <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: '#999', textAlign: 'center', padding: '3rem 0' }}>
             Ничего не найдено
           </p>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: '1.5rem',
-            }}
-          >
+        ) : viewMode === 'grid' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
             {filteredBooks.map(book => (
-              <BookCard
-                key={book.id}
-                book={book}
-                isSelected={selectedBooks.includes(book.name)}
-                onToggle={handleToggle}
-              />
+              <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.name)} onToggle={handleToggle} />
             ))}
           </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '2px solid #111' }}>
+            <tbody>
+              {filteredBooks.map(book => (
+                <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.name)} onToggle={handleToggle} />
+              ))}
+            </tbody>
+          </table>
         )}
       </main>
 
