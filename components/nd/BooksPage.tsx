@@ -31,6 +31,19 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const isAdmin = !!session?.user?.isAdmin
   const telegramUsername = session?.user?.telegramUsername ?? null
 
+  const [showAbout, setShowAbout] = useState(true)
+
+  useEffect(() => {
+    if (document.cookie.split(';').some(c => c.trim() === 'about_closed=1')) {
+      setShowAbout(false)
+    }
+  }, [])
+
+  function handleCloseAbout() {
+    document.cookie = 'about_closed=1; max-age=31536000; path=/'
+    setShowAbout(false)
+  }
+
   const [query, setQuery] = useState('')
   const [filterTag, setFilterTag] = useState('')
   const [filterAuthor, setFilterAuthor] = useState('')
@@ -127,13 +140,22 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       />
 
       {/* About */}
-      <div style={{ borderBottom: '1px solid #E5E5E5' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.25rem 1.5rem' }}>
-          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', lineHeight: 1.65, color: '#555', margin: 0 }}>
-            Я, Евгений, приглашаю вместе читать и обсуждать книги. Если вам что-то приглянулось из списка, записывайтесь — я свяжусь через Telegram, и согласуем формат.
-          </p>
+      {showAbout && (
+        <div style={{ borderBottom: '1px solid #E5E5E5' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', lineHeight: 1.65, color: '#555', margin: 0, flex: 1 }}>
+              Я, Евгений, приглашаю вместе читать и обсуждать книги. Если вам что-то приглянулось из списка, записывайтесь — я свяжусь через Telegram, и согласуем формат.
+            </p>
+            <button
+              onClick={handleCloseAbout}
+              title="Скрыть"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', fontSize: '1.1rem', lineHeight: 1, padding: '0.25rem', flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search + filters */}
       <div style={{ borderBottom: '1px solid #E5E5E5', background: '#fff' }}>
