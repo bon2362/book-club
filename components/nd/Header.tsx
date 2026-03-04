@@ -31,7 +31,7 @@ export default function Header({ onEditProfile, onSignIn }: Props) {
         }}
       >
         {/* Left: label */}
-        <div style={{ flex: 1 }}>
+        <div className="nd-header-label" style={{ flex: 1 }}>
           <span
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -71,7 +71,9 @@ export default function Header({ onEditProfile, onSignIn }: Props) {
         >
           {session?.user ? (
             <>
+              {/* Desktop: имя + кнопка профиля */}
               <span
+                className="nd-header-username"
                 style={{
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                   fontSize: '0.7rem',
@@ -86,6 +88,7 @@ export default function Header({ onEditProfile, onSignIn }: Props) {
               </span>
               {onEditProfile && (
                 <button
+                  className="nd-header-profile-btn"
                   onClick={onEditProfile}
                   style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -101,6 +104,31 @@ export default function Header({ onEditProfile, onSignIn }: Props) {
                   }}
                 >
                   Профиль
+                </button>
+              )}
+              {/* Mobile: аватар-кружок с инициалом */}
+              {onEditProfile && (
+                <button
+                  className="nd-header-avatar"
+                  onClick={onEditProfile}
+                  title="Профиль"
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: '#111',
+                    color: '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {(session.user.name ?? session.user.email ?? '?')[0].toUpperCase()}
                 </button>
               )}
               <button

@@ -55,6 +55,20 @@
   --shadow-card:     rgba(0, 0, 0, 0.2);
 }
 
+/* ── Header mobile ────────────────────────────────────────────────────────── */
+
+.nd-header-label   { }
+.nd-header-username { }
+.nd-header-profile-btn { }
+.nd-header-avatar  { display: none; }
+
+@media (max-width: 540px) {
+  .nd-header-label       { display: none; }
+  .nd-header-username    { display: none; }
+  .nd-header-profile-btn { display: none; }
+  .nd-header-avatar      { display: flex; }
+}
+
 /* ── Base reset ───────────────────────────────────────────────────────────── */
 
 *, *::before, *::after {
