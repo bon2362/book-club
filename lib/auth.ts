@@ -31,7 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     Resend({
       apiKey: process.env.RESEND_API_KEY!,
-      from: 'Долгое наступление <noreply@resend.dev>',
+      from: 'Долгое наступление <noreply@slowreading.club>',
     }),
     Credentials({
       id: 'telegram',
