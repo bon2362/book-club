@@ -2,6 +2,16 @@
 
 ## Идеи для развития
 
+### 17. Переезд на домен slowreading.club
+
+Домен куплен на Namecheap, верифицирован в Resend. Осталось:
+
+- [ ] Vercel: Settings → Domains → добавить `slowreading.club`
+- [ ] Namecheap: Advanced DNS → добавить запись от Vercel (CNAME или A)
+- [ ] Google Cloud Console: добавить `https://slowreading.club` в Authorized JavaScript origins и `https://slowreading.club/api/auth/callback/google` в Authorized redirect URIs
+- [ ] Vercel: ENV `NEXTAUTH_URL` → `https://slowreading.club`
+- [ ] Обновить `.devcontainer/init-firewall.sh` — добавить `slowreading.club` в allowlist (сделает Claude)
+
 ### 4. Вход через Telegram
 Добавить авторизацию через Telegram (Telegram Login Widget) как альтернативу Google OAuth и email magic link. Если пользователь вошёл через Telegram — не запрашивать Telegram-контакт отдельно, а подставлять его автоматически из данных авторизации и блокировать поле в ContactsForm.
 **Статус:** не работает — Telegram не доставляет код авторизации в приложение. Виджет и конфигурация бота корректны, проблема на стороне Telegram OAuth. Оставлено до выяснения.
