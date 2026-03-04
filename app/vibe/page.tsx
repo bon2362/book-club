@@ -14,6 +14,7 @@ export default async function VibePage() {
       })
     : null
   return (
+    <>
     <div
       style={{
         minHeight: '100vh',
@@ -188,6 +189,7 @@ export default async function VibePage() {
       )}
       {commitMsg && <span style={{ color: '#777' }}>{commitMsg}</span>}
     </footer>
+    </>
   )
 }
 
