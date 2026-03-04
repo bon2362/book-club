@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
@@ -21,6 +21,21 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   const router = useRouter()
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+
+  const [email, setEmail] = useState('')
+  const [magicState, setMagicState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
+
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim()) return
+    setMagicState('loading')
+    try {
+      const res = await signIn('resend', { email: email.trim(), redirect: false })
+      setMagicState(res?.error ? 'error' : 'sent')
+    } catch {
+      setMagicState('error')
+    }
+  }
 
   // Set up the global Telegram callback (always kept up to date)
   useEffect(() => {
@@ -172,6 +187,67 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           </svg>
           Войти через Google
         </button>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0' }}>
+          <div style={{ flex: 1, height: 1, background: '#E5E5E5' }} />
+          <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb' }}>или</span>
+          <div style={{ flex: 1, height: 1, background: '#E5E5E5' }} />
+        </div>
+
+        {/* Magic link */}
+        {magicState === 'sent' ? (
+          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#555', lineHeight: 1.55, margin: 0, textAlign: 'center' }}>
+            Проверьте почту — мы отправили ссылку для входа на <strong>{email}</strong>
+          </p>
+        ) : (
+          <form onSubmit={handleMagicLink} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="ваш@email.com"
+              required
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.8rem',
+                color: '#111',
+                background: '#fff',
+                border: '1px solid #E5E5E5',
+                borderBottom: '2px solid #111',
+                padding: '0.6rem 0.75rem',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            />
+            {magicState === 'error' && (
+              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: '#C0603A', margin: 0 }}>
+                Не удалось отправить письмо. Попробуйте ещё раз.
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={magicState === 'loading'}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.8rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                cursor: magicState === 'loading' ? 'default' : 'pointer',
+                border: '1px solid #111',
+                background: 'transparent',
+                color: magicState === 'loading' ? '#999' : '#111',
+                borderColor: magicState === 'loading' ? '#C8C8C8' : '#111',
+                transition: 'color 0.15s, border-color 0.15s',
+              }}
+            >
+              {magicState === 'loading' ? 'Отправляем…' : 'Получить ссылку на почту'}
+            </button>
+          </form>
+        )}
 
         {/* Telegram login hidden until OAuth delivery issue is resolved */}
         <div id="telegram-login-container" style={{ display: 'none' }} />
