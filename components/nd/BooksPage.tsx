@@ -223,31 +223,26 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           )}
 
           {/* View toggle */}
-          <div style={{ display: 'flex', gap: '0.25rem', marginLeft: 'auto' }}>
-            <button
-              onClick={() => handleSetViewMode('grid')}
-              title="Сетка"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: viewMode === 'grid' ? '#111' : '#C8C8C8', display: 'flex' }}
-            >
+          <button
+            onClick={() => handleSetViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            title={viewMode === 'grid' ? 'Переключить в таблицу' : 'Переключить в сетку'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: '#111', display: 'flex', marginLeft: 'auto' }}
+          >
+            {viewMode === 'grid' ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="1" y="2" width="14" height="2" rx="0.5" />
+                <rect x="1" y="7" width="14" height="2" rx="0.5" />
+                <rect x="1" y="12" width="14" height="2" rx="0.5" />
+              </svg>
+            ) : (
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <rect x="1" y="1" width="6" height="6" rx="0.5" />
                 <rect x="9" y="1" width="6" height="6" rx="0.5" />
                 <rect x="1" y="9" width="6" height="6" rx="0.5" />
                 <rect x="9" y="9" width="6" height="6" rx="0.5" />
               </svg>
-            </button>
-            <button
-              onClick={() => handleSetViewMode('list')}
-              title="Таблица"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: viewMode === 'list' ? '#111' : '#C8C8C8', display: 'flex' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="1" y="2" width="14" height="2" rx="0.5" />
-                <rect x="1" y="7" width="14" height="2" rx="0.5" />
-                <rect x="1" y="12" width="14" height="2" rx="0.5" />
-              </svg>
-            </button>
-          </div>
+            )}
+          </button>
         </div>
       </div>
 
