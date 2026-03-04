@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { UserSignup } from '@/lib/signups'
@@ -34,6 +34,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
 
   const [showAbout, setShowAbout] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const lastScrollY = useRef(0)
 
   useEffect(() => {
     if (document.cookie.split(';').some(c => c.trim() === 'about_closed=1')) {
@@ -41,6 +43,18 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
     }
     const saved = localStorage.getItem('book_view_mode')
     if (saved === 'grid' || saved === 'list') setViewMode(saved)
+  }, [])
+
+  useEffect(() => {
+    function handleScroll() {
+      const y = window.scrollY
+      const scrollingUp = y < lastScrollY.current
+      const farEnough = y > window.innerHeight * 2
+      setShowScrollTop(scrollingUp && farEnough)
+      lastScrollY.current = y
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   function handleCloseAbout() {
@@ -289,6 +303,38 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           </table>
         )}
       </main>
+
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Наверх"
+          style={{
+            display: 'none',
+            position: 'fixed',
+            bottom: '1.5rem',
+            right: '1.5rem',
+            width: '2.75rem',
+            height: '2.75rem',
+            borderRadius: '50%',
+            background: '#111',
+            color: '#fff',
+            border: 'none',
+            fontSize: '1.25rem',
+            cursor: 'pointer',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+            zIndex: 999,
+          }}
+          // показываем только на мобильных через className
+          className="scroll-top-btn"
+        >
+          ↑
+        </button>
+      )}
+      <style>{`
+        @media (max-width: 768px) {
+          .scroll-top-btn { display: flex !important; align-items: center; justify-content: center; }
+        }
+      `}</style>
 
       {authModalOpen && (
         <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
