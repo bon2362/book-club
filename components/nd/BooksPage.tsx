@@ -126,6 +126,15 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
       />
 
+      {/* About */}
+      <div style={{ borderBottom: '1px solid #E5E5E5' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.25rem 1.5rem' }}>
+          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', lineHeight: 1.65, color: '#555', margin: 0 }}>
+            Я, Евгений, приглашаю вместе читать и обсуждать книги. Если вам что-то приглянулось из списка, записывайтесь — я свяжусь через Telegram, и согласуем формат.
+          </p>
+        </div>
+      </div>
+
       {/* Search + filters */}
       <div style={{ borderBottom: '1px solid #E5E5E5', background: '#fff' }}>
         <div
