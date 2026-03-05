@@ -118,7 +118,12 @@ export async function removeBookFromSignup(userId: string, bookName: string): Pr
   })
 }
 
-export async function upsertSignup(data: Omit<UserSignup, 'timestamp'>): Promise<void> {
+export interface UpsertResult {
+  isNew: boolean
+  addedBooks: string[]
+}
+
+export async function upsertSignup(data: Omit<UserSignup, 'timestamp'>): Promise<UpsertResult> {
   const sheets = getSheets()
   const sheetId = process.env.GOOGLE_SHEETS_ID!
 
@@ -139,7 +144,10 @@ export async function upsertSignup(data: Omit<UserSignup, 'timestamp'>): Promise
       valueInputOption: 'RAW',
       requestBody: { values: [newRow] },
     })
+    return { isNew: true, addedBooks: data.selectedBooks }
   } else {
+    const prevBooks: string[] = JSON.parse(rows[rowIndex][5] ?? '[]')
+    const addedBooks = data.selectedBooks.filter(b => !prevBooks.includes(b))
     // Preserve original timestamp
     newRow[0] = rows[rowIndex][0]
     await sheets.spreadsheets.values.update({
@@ -148,5 +156,6 @@ export async function upsertSignup(data: Omit<UserSignup, 'timestamp'>): Promise
       valueInputOption: 'RAW',
       requestBody: { values: [newRow] },
     })
+    return { isNew: false, addedBooks }
   }
 }
