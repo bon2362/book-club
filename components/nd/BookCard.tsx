@@ -270,12 +270,14 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       {book.description && (
         <div style={{ margin: '0.5rem 0.75rem 0' }}>
           <p
+            onClick={isLongDescription ? () => setDescExpanded(e => !e) : undefined}
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.78rem',
               lineHeight: 1.55,
               color: '#666',
               margin: 0,
+              cursor: isLongDescription ? 'pointer' : 'default',
               ...(descExpanded ? {} : {
                 display: '-webkit-box',
                 WebkitLineClamp: 3,
