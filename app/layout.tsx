@@ -23,11 +23,13 @@ export const metadata: Metadata = {
     siteName: "Долгое наступление",
     locale: "ru_RU",
     type: "website",
+    images: [{ url: "/api/og", width: 1200, height: 630 }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Долгое наступление",
     description: "Книжный клуб — записывайтесь на совместное чтение и обсуждение книг",
+    images: ["/api/og"],
   },
 };
 
