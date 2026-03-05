@@ -15,7 +15,20 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Долгое наступление",
-  description: "Книжный клуб",
+  description: "Книжный клуб — записывайтесь на совместное чтение и обсуждение книг",
+  openGraph: {
+    title: "Долгое наступление",
+    description: "Книжный клуб — записывайтесь на совместное чтение и обсуждение книг",
+    url: "https://book-club-slow-rising.vercel.app",
+    siteName: "Долгое наступление",
+    locale: "ru_RU",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Долгое наступление",
+    description: "Книжный клуб — записывайтесь на совместное чтение и обсуждение книг",
+  },
 };
 
 export default function RootLayout({
