@@ -5,12 +5,19 @@ import { GET } from './route'
 import * as sheets from '@/lib/sheets'
 
 jest.mock('@/lib/sheets')
+jest.mock('@/lib/db', () => ({
+  db: {
+    select: jest.fn().mockReturnValue({
+      from: jest.fn().mockResolvedValue([]),
+    }),
+  },
+}))
 
 describe('GET /api/books', () => {
   it('возвращает список книг с кодом 200', async () => {
     const mockBooks = [
       { id: '1', name: 'Test Book', type: 'Book', tags: ['test'], author: 'Author',
-        size: 'M', pages: '200', date: '2024', link: '', why: '', description: '', coverUrl: null }
+        size: 'M', pages: '200', date: '2024', link: '', description: '', coverUrl: null }
     ]
     jest.spyOn(sheets, 'fetchBooks').mockResolvedValue(mockBooks)
 

@@ -29,6 +29,8 @@ jobs:
 
       - name: Test
         run: npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@dummy/dummy
 
       - name: Build
         run: npm run build
