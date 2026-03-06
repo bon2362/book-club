@@ -27,29 +27,29 @@ function makeRequest(body: object) {
 
 describe('DELETE /api/admin/delete-user', () => {
   it('возвращает 403 без сессии', async () => {
-    jest.spyOn(authModule, 'auth').mockResolvedValue(null as any)
+    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue(null as any)
 
     const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
     expect(res.status).toBe(403)
   })
 
   it('возвращает 403 без isAdmin', async () => {
-    jest.spyOn(authModule, 'auth').mockResolvedValue({ user: { email: 'user@test.com', isAdmin: false } } as any)
+    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'user@test.com', isAdmin: false } } as any)
 
     const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
     expect(res.status).toBe(403)
   })
 
   it('возвращает 400 при отсутствии userId', async () => {
-    jest.spyOn(authModule, 'auth').mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } } as any)
+    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } } as any)
 
     const res = await DELETE(makeRequest({}))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 200 и удаляет пользователя из DB и Sheets', async () => {
-    jest.spyOn(authModule, 'auth').mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } } as any)
-    jest.spyOn(signups, 'markSignupDeletedByAdmin').mockResolvedValue(undefined)
+    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } } as any)
+    (jest.spyOn(signups, 'markSignupDeletedByAdmin') as any).mockResolvedValue(undefined)
 
     const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
     const data = await res.json()
