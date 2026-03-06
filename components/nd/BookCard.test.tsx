@@ -21,7 +21,6 @@ const book: BookWithCover = {
   link: '',
   type: 'Book',
   size: '',
-  why: '',
   coverUrl: null,
 }
 
