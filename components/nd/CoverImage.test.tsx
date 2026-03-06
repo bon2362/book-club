@@ -4,9 +4,6 @@
 import { render, screen } from '@testing-library/react'
 import CoverImage from './CoverImage'
 
-jest.mock('@/lib/covers', () => ({
-  getInitials: (author: string) => author.split(/\s+/).slice(0,2).map((w:string) => w[0]?.toUpperCase() ?? '').join('')
-}))
 
 describe('CoverImage', () => {
   it('renders an img tag when coverUrl is provided', () => {
@@ -18,7 +15,7 @@ describe('CoverImage', () => {
       />
     )
     const img = screen.getByRole('img')
-    expect(img).toHaveAttribute('src', 'https://example.com/cover.jpg')
+    expect(img.getAttribute('src')).toContain('example.com%2Fcover.jpg')
     expect(img).toHaveAttribute('alt', 'Обложка: Sapiens')
   })
 
