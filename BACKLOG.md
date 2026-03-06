@@ -13,8 +13,8 @@
 - [ ] Обновить `.devcontainer/init-firewall.sh` — добавить `slowreading.club` в allowlist (сделает Claude)
 
 
-### 21. Оптимизация изображений обложек
-Обложки загружаются через обычный `<img>`. Заменить на Next.js компонент `<Image>` для автоматического сжатия, конвертации в WebP, lazy loading и предотвращения layout shift. Потребует добавить домены обложек в `next.config.mjs` в `images.remotePatterns`.
+### 21. Оптимизация изображений обложек ✓
+`CoverImage.tsx` переведён на `<Image fill>` из `next/image` с `sizes` для адаптивных брейкпоинтов. В `next.config.mjs` добавлен `images.remotePatterns` с `hostname: '**'` (обложки приходят с произвольных хостов из Google Sheets).
 
 ### 22. Кнопка переключения тёмной темы
 Тёмный режим работает через `prefers-color-scheme`, но пользователь не может переключить его вручную. Добавить кнопку в хедер (иконка солнца/луны), сохранять выбор в `localStorage`.

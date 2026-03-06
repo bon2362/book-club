@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 
 function getInitials(author: string): string {
   return author
@@ -22,12 +23,13 @@ export default function CoverImage({ coverUrl, title, author }: Props) {
 
   if (coverUrl && !imgError) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={coverUrl}
         alt={`Обложка: ${title}`}
+        fill
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
+        style={{ objectFit: 'cover' }}
         onError={() => setImgError(true)}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
     )
   }
