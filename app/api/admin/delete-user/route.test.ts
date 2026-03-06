@@ -1,7 +1,6 @@
 /**
  * @jest-environment node
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server'
 import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
@@ -17,6 +16,9 @@ jest.mock('@/lib/db', () => ({
   },
 }))
 
+const mockAuth = authModule.auth as jest.Mock
+const mockMarkDeleted = signups.markSignupDeletedByAdmin as jest.Mock
+
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/admin/delete-user', {
     method: 'DELETE',
@@ -27,29 +29,29 @@ function makeRequest(body: object) {
 
 describe('DELETE /api/admin/delete-user', () => {
   it('возвращает 403 без сессии', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue(null as any)
+    mockAuth.mockResolvedValue(null)
 
     const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
     expect(res.status).toBe(403)
   })
 
   it('возвращает 403 без isAdmin', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'user@test.com', isAdmin: false } } as any)
+    mockAuth.mockResolvedValue({ user: { email: 'user@test.com', isAdmin: false } })
 
     const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
     expect(res.status).toBe(403)
   })
 
   it('возвращает 400 при отсутствии userId', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } } as any)
+    mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
 
     const res = await DELETE(makeRequest({}))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 200 и удаляет пользователя из DB и Sheets', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } } as any)
-    (jest.spyOn(signups, 'markSignupDeletedByAdmin') as any).mockResolvedValue(undefined)
+    mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
+    mockMarkDeleted.mockResolvedValue(undefined)
 
     const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
     const data = await res.json()

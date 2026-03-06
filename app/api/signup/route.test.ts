@@ -1,7 +1,6 @@
 /**
  * @jest-environment node
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server'
 import { POST } from './route'
 import * as authModule from '@/lib/auth'
@@ -15,6 +14,9 @@ jest.mock('resend', () => ({
   })),
 }))
 
+const mockAuth = authModule.auth as jest.Mock
+const mockUpsertSignup = signups.upsertSignup as jest.Mock
+
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/signup', {
     method: 'POST',
@@ -25,43 +27,43 @@ function makeRequest(body: object) {
 
 describe('POST /api/signup', () => {
   it('возвращает 401 без сессии', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue(null as any)
+    mockAuth.mockResolvedValue(null)
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBooks: [] }))
     expect(res.status).toBe(401)
   })
 
   it('возвращает 400 при пустом name', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'test@test.com' } } as any)
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
 
     const res = await POST(makeRequest({ name: '   ', contacts: 'tg', selectedBooks: [] }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 400 при некорректном contacts (не строка)', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'test@test.com' } } as any)
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 123, selectedBooks: [] }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 400 при отсутствии selectedBooks', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'test@test.com' } } as any)
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 'tg' }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 400 если selectedBooks не массив', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'test@test.com' } } as any)
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBooks: 'Book A' }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 200 при успешной записи', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'test@test.com' } } as any)
-    (jest.spyOn(signups, 'upsertSignup') as any).mockResolvedValue({ isNew: true, addedBooks: ['Book A'] })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: true, addedBooks: ['Book A'] })
 
     const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBooks: ['Book A'] }))
     const data = await res.json()
@@ -78,8 +80,8 @@ describe('POST /api/signup', () => {
   })
 
   it('обрезает пробелы в name и contacts', async () => {
-    (jest.spyOn(authModule, 'auth') as any).mockResolvedValue({ user: { email: 'test@test.com' } } as any)
-    (jest.spyOn(signups, 'upsertSignup') as any).mockResolvedValue({ isNew: false, addedBooks: [] })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
 
     await POST(makeRequest({ name: '  Test User  ', contacts: '  @test  ', selectedBooks: [] }))
 
