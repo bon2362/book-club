@@ -79,6 +79,8 @@ for domain in \
     "book-club-slow-rising.vercel.app" \
     "vercel.com" \
     "api.vercel.com" \
+    "elfsight.com" \
+    "api.telegram.org" \
     "update.code.visualstudio.com"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}' | sort -u)
