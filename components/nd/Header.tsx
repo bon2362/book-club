@@ -47,7 +47,7 @@ export default function Header({ onEditProfile, onSignIn }: Props) {
 
         {/* Center: title */}
         <Link
-          href="/new-design"
+          href="/"
           style={{
             fontFamily: 'var(--nd-serif), Georgia, serif',
             fontSize: '1.25rem',
