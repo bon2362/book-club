@@ -16,31 +16,31 @@ test.afterEach(async ({ page }) => {
   })
 })
 
-test('пользователь может записаться на книгу', async ({ page }) => {
+test('новый пользователь заполняет профиль и записывается на книгу', async ({ page }) => {
   await page.goto('/')
 
-  // Закрываем блок "О клубе" если он появился (может перекрывать кнопки книг)
+  // При первом входе автоматически открывается форма профиля (ContactsForm)
+  await expect(page.getByLabel(/имя/i)).toBeVisible()
+
+  // Заполняем профиль
+  await page.getByLabel(/имя/i).fill(TEST_NAME)
+  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
+  await page.getByRole('button', { name: /сохранить/i }).click()
+
+  // Форма профиля закрылась
+  await expect(page.getByLabel(/имя/i)).not.toBeVisible()
+
+  // Закрываем блок "О клубе" если мешает
   const closeAbout = page.getByTitle('Скрыть')
-  if (await closeAbout.isVisible({ timeout: 2000 }).catch(() => false)) {
+  if (await closeAbout.isVisible({ timeout: 1000 }).catch(() => false)) {
     await closeAbout.click()
   }
 
-  // Кликаем на первую доступную кнопку "Хочу читать"
+  // Теперь можно записаться на книгу
   const toggleBtn = page.getByRole('button', { name: /хочу читать/i }).first()
   await expect(toggleBtn).toBeVisible()
   await toggleBtn.click()
 
-  // Должна появиться форма с полями имя и контакт
-  await expect(page.getByLabel(/имя/i)).toBeVisible()
-
-  // Заполняем форму
-  await page.getByLabel(/имя/i).fill(TEST_NAME)
-  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
-
-  // Отправляем
-  await page.getByRole('button', { name: /сохранить/i }).click()
-
-  // Форма должна закрыться, книга выбрана (кнопка изменилась)
-  await expect(page.getByLabel(/имя/i)).not.toBeVisible()
+  // Кнопка должна смениться на "Записан"
   await expect(page.getByRole('button', { name: /записан/i }).first()).toBeVisible()
 })
