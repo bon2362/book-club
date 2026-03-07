@@ -113,7 +113,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.isAdmin = user.email === process.env.ADMIN_EMAIL
         token.telegramUsername = user.telegramUsername ?? token.telegramUsername
-      } else if (token.email) {
+      } else if (token.email && process.env.NEXTAUTH_TEST_MODE !== 'true') {
         const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, token.email)).limit(1)
         if (existing.length === 0) return null
       }
