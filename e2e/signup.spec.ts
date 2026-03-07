@@ -4,14 +4,14 @@ const TEST_EMAIL = 'e2e-signup@test.invalid'
 const TEST_NAME = 'E2E Signup User'
 const TEST_CONTACT = '@e2e_test_user'
 
-test.beforeEach(async ({ request }) => {
-  await request.post('/api/test/session', {
+test.beforeEach(async ({ page }) => {
+  await page.request.post('/api/test/session', {
     data: { email: TEST_EMAIL, name: TEST_NAME },
   })
 })
 
-test.afterEach(async ({ request }) => {
-  await request.delete('/api/test/session', {
+test.afterEach(async ({ page }) => {
+  await page.request.delete('/api/test/session', {
     data: { email: TEST_EMAIL },
   })
 })
