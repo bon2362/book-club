@@ -17,6 +17,8 @@ test.afterEach(async ({ page }) => {
 })
 
 test('пользователь может записаться на книгу', async ({ page }) => {
+  // Отключаем "О клубе" блок чтобы он не перекрывал кнопки
+  await page.context().addCookies([{ name: 'about_closed', value: '1', url: 'http://localhost:3000' }])
   await page.goto('/')
 
   // Кликаем на первую доступную кнопку "Хочу читать"
