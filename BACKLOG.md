@@ -18,6 +18,22 @@
 
 ### Процессы разработки
 
+#### 36. Монтирование ~/.claude из хоста в devcontainer
+Сейчас при каждом Rebuild Container Claude теряет память (сессии, auto-memory в `~/.claude/projects/`), потому что папка живёт внутри контейнера. Исправить: добавить mounts в `.devcontainer/devcontainer.json`:
+
+```json
+"mounts": [
+  "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind",
+  "source=${localEnv:HOME}/.claude.json,target=/home/node/.claude.json,type=bind"
+]
+```
+
+После этого `~/.claude` живёт на хосте — rebuild не стирает контекст, память и настройки Claude сохраняются между перезапусками.
+
+---
+
+### Процессы разработки (продолжение)
+
 #### 27. .prettierrc в репозитории
 Prettier настроен только через VSCode (`devcontainer.json`). Добавить `.prettierrc` в корень репо — чтобы форматирование было одинаковым у всех участников и в CI независимо от редактора.
 
