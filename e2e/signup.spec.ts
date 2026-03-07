@@ -17,9 +17,13 @@ test.afterEach(async ({ page }) => {
 })
 
 test('пользователь может записаться на книгу', async ({ page }) => {
-  // Отключаем "О клубе" блок чтобы он не перекрывал кнопки
-  await page.context().addCookies([{ name: 'about_closed', value: '1', url: 'http://localhost:3000' }])
   await page.goto('/')
+
+  // Закрываем блок "О клубе" если он появился (может перекрывать кнопки книг)
+  const closeAbout = page.getByTitle('Скрыть')
+  if (await closeAbout.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await closeAbout.click()
+  }
 
   // Кликаем на первую доступную кнопку "Хочу читать"
   const toggleBtn = page.getByRole('button', { name: /хочу читать/i }).first()
