@@ -124,6 +124,10 @@ export interface UpsertResult {
 }
 
 export async function upsertSignup(data: Omit<UserSignup, 'timestamp'>): Promise<UpsertResult> {
+  if (process.env.NEXTAUTH_TEST_MODE === 'true') {
+    return { isNew: true, addedBooks: data.selectedBooks }
+  }
+
   const sheets = getSheets()
   const sheetId = process.env.GOOGLE_SHEETS_ID!
 

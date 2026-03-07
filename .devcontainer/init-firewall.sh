@@ -73,6 +73,7 @@ for domain in \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
     "googleapis.com" \
+    "oauth2.googleapis.com" \
     "fonts.googleapis.com" \
     "fonts.gstatic.com" \
     "ep-fragrant-cherry-aluk81ou-pooler.c-3.eu-central-1.aws.neon.tech" \

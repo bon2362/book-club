@@ -57,7 +57,25 @@ function getAuth() {
   })
 }
 
+const TEST_BOOKS: Book[] = [
+  {
+    id: '2',
+    name: 'Тестовая книга',
+    tags: ['тест'],
+    author: 'Автор Тестов',
+    type: 'Book',
+    size: 'Средняя',
+    pages: '300',
+    date: '2024',
+    link: '',
+    description: 'Описание тестовой книги для E2E тестов.',
+    coverUrl: null,
+  },
+]
+
 export async function fetchBooks(forceRefresh = false): Promise<Book[]> {
+  if (process.env.NEXTAUTH_TEST_MODE === 'true') return TEST_BOOKS
+
   if (!forceRefresh && cache && Date.now() - cache.timestamp < CACHE_TTL) {
     return cache.books
   }

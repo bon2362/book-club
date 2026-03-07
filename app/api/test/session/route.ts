@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const token = await encode({
     token: { sub: `test:${email}`, email, name },
-    secret: process.env.AUTH_SECRET!,
+    secret: (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET)!,
     salt: 'authjs.session-token',
   })
 
