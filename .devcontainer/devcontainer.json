@@ -43,6 +43,6 @@
       "onAutoForward": "openBrowser"
     }
   },
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && (tok=$(grep '^GH_TOKEN=' /workspace/.env.local 2>/dev/null | cut -d= -f2-); [ -n \"$tok\" ] && echo \"export GH_TOKEN=$tok\" > /home/node/.ghenv; grep -q '.ghenv' /home/node/.zshrc 2>/dev/null || echo '[ -f ~/.ghenv ] && source ~/.ghenv' >> /home/node/.zshrc) || true",
   "waitFor": "postStartCommand"
 }

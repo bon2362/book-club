@@ -27,6 +27,41 @@ function makeRequest(body: object) {
   })
 }
 
+describe('DELETE /api/admin/delete-user — security', () => {
+  it('[SEC] возвращает 403 при isAdmin=undefined', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'user@test.com' } })
+    const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+    expect(res.status).toBe(403)
+    expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
+  })
+
+  it('[SEC] возвращает 403 при isAdmin=null', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'user@test.com', isAdmin: null } })
+    const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+    expect(res.status).toBe(403)
+    expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
+  })
+
+  it('[SEC] не-админ не может удалить чужой аккаунт', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'attacker@test.com', isAdmin: false } })
+    const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+    expect(res.status).toBe(403)
+    expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
+  })
+
+  it('[SEC] NEXTAUTH_TEST_MODE не обходит проверку isAdmin', async () => {
+    const original = process.env.NEXTAUTH_TEST_MODE
+    process.env.NEXTAUTH_TEST_MODE = 'true'
+    try {
+      mockAuth.mockResolvedValue({ user: { email: 'attacker@test.com', isAdmin: false } })
+      const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+      expect(res.status).toBe(403)
+    } finally {
+      process.env.NEXTAUTH_TEST_MODE = original
+    }
+  })
+})
+
 describe('DELETE /api/admin/delete-user', () => {
   it('возвращает 403 без сессии', async () => {
     mockAuth.mockResolvedValue(null)

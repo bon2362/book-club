@@ -53,4 +53,63 @@ describe('nd/BookCard', () => {
     expect(screen.getByText('история')).toBeInTheDocument()
     expect(screen.getByText('наука')).toBeInTheDocument()
   })
+
+  it('показывает "Уже прочитана" и кнопка disabled при status="read"', () => {
+    const readBook = { ...book, status: 'read' as const }
+    render(<BookCard book={readBook} isSelected={false} onToggle={() => {}} />)
+    const btn = screen.getByRole('button', { name: /уже прочитана/i })
+    expect(btn).toBeDisabled()
+  })
+
+  it('не вызывает onToggle при клике на disabled кнопку (status="read")', () => {
+    const onToggle = jest.fn()
+    const readBook = { ...book, status: 'read' as const }
+    render(<BookCard book={readBook} isSelected={false} onToggle={onToggle} />)
+    fireEvent.click(screen.getByRole('button', { name: /уже прочитана/i }))
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('показывает бейдж "Сейчас читаем" при status="reading"', () => {
+    const readingBook = { ...book, status: 'reading' as const }
+    render(<BookCard book={readingBook} isSelected={false} onToggle={() => {}} />)
+    expect(screen.getAllByText('Сейчас читаем').length).toBeGreaterThan(0)
+  })
+
+  it('показывает кнопку "Читать далее" для описания длиннее 120 символов', () => {
+    const longBook = { ...book, description: 'А'.repeat(121) }
+    render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
+    expect(screen.getByRole('button', { name: /читать далее/i })).toBeInTheDocument()
+  })
+
+  it('разворачивает и сворачивает описание кнопкой', () => {
+    const longBook = { ...book, description: 'А'.repeat(121) }
+    render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /читать далее/i }))
+    expect(screen.getByRole('button', { name: /свернуть/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /свернуть/i }))
+    expect(screen.getByRole('button', { name: /читать далее/i })).toBeInTheDocument()
+  })
+
+  it('не показывает кнопку "Читать далее" для короткого описания (≤120 символов)', () => {
+    render(<BookCard book={book} isSelected={false} onToggle={() => {}} />)
+    expect(screen.queryByRole('button', { name: /читать далее/i })).not.toBeInTheDocument()
+  })
+
+  it('не показывает блок описания при пустой description', () => {
+    const noDescBook = { ...book, description: '' }
+    render(<BookCard book={noDescBook} isSelected={false} onToggle={() => {}} />)
+    expect(screen.queryByRole('button', { name: /читать далее/i })).not.toBeInTheDocument()
+  })
+
+  it('отображает signupCount когда задан', () => {
+    const bookWithCount = { ...book, signupCount: 5 }
+    render(<BookCard book={bookWithCount} isSelected={false} onToggle={() => {}} />)
+    expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('извлекает год из даты формата M/D/YYYY', () => {
+    render(<BookCard book={book} isSelected={false} onToggle={() => {}} />)
+    // book.date = '1/1/2011' → должен отображаться '2011'
+    expect(screen.getByText('2011')).toBeInTheDocument()
+  })
 })

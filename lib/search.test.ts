@@ -30,4 +30,40 @@ describe('searchBooks', () => {
   it('возвращает все книги при пустом запросе', () => {
     expect(searchBooks(books, '')).toHaveLength(books.length)
   })
+
+  it('возвращает все книги при запросе из пробелов', () => {
+    expect(searchBooks(books, '   ')).toHaveLength(books.length)
+  })
+
+  it('возвращает пустой массив при запросе, который ничему не соответствует', () => {
+    const result = searchBooks(books, 'xyznomatch999абвгдежзийк')
+    expect(result).toHaveLength(0)
+  })
+
+  it('ищет по названию латиницей', () => {
+    const result = searchBooks(books, 'Democratic')
+    expect(result.length).toBeGreaterThan(0)
+    expect(result[0].name).toBe('Democratic Theory')
+  })
+
+  it('дедублицирует результаты — нет дубликатов по id', () => {
+    const result = searchBooks(books, 'Krugman')
+    const ids = result.map(b => b.id)
+    expect(ids.length).toBe(new Set(ids).size)
+  })
+
+  it('ищет автора кириллицей (Юдин → Yudin)', () => {
+    const result = searchBooks(books, 'Юдин')
+    expect(result.length).toBeGreaterThan(0)
+    expect(result[0].author).toContain('Yudin')
+  })
+
+  it('запрос со специальными символами не вызывает ошибку', () => {
+    expect(() => searchBooks(books, '!@#$%^&*()')).not.toThrow()
+  })
+
+  it('результаты содержат оригинальные объекты из входного массива', () => {
+    const result = searchBooks(books, 'Кредо')
+    result.forEach(b => expect(books).toContain(b))
+  })
 })

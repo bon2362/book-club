@@ -2,13 +2,15 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
+import SubmitBookButton from './SubmitBookButton'
 
 interface Props {
   onEditProfile?: () => void
   onSignIn?: () => void
+  onSubmitBook?: () => void
 }
 
-export default function Header({ onEditProfile, onSignIn }: Props) {
+export default function Header({ onEditProfile, onSignIn, onSubmitBook }: Props) {
   const { data: session } = useSession()
 
   return (
@@ -69,6 +71,7 @@ export default function Header({ onEditProfile, onSignIn }: Props) {
             gap: '1rem',
           }}
         >
+          {onSubmitBook && <SubmitBookButton onClick={onSubmitBook} />}
           {session?.user ? (
             <>
               {/* Desktop: имя + кнопка профиля */}

@@ -4,9 +4,14 @@ const nextConfig = {
     BUILD_TIME: new Date().toISOString(),
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
         hostname: '**',
       },
     ],

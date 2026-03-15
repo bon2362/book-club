@@ -1,5 +1,5 @@
 import {
-  pgTable, text, timestamp, integer, primaryKey,
+  pgTable, text, timestamp, integer, primaryKey, index,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -55,3 +55,43 @@ export const tagDescriptions = pgTable('tag_descriptions', {
   tag: text('tag').primaryKey(),
   description: text('description').notNull(),
 })
+
+export const bookSuggestions = pgTable('book_suggestions', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  author: text('author').notNull(),
+  tags: text('tags').notNull().default(''),
+  type: text('type').notNull().default('Book'),
+  size: text('size').notNull().default(''),
+  pages: text('pages').notNull().default(''),
+  date: text('date').notNull().default(''),
+  link: text('link').notNull().default(''),
+  coverUrl: text('cover_url'),
+  description: text('description').notNull().default(''),
+  reason: text('reason').notNull(),
+  submitterEmail: text('submitter_email').notNull(),
+  submitterName: text('submitter_name'),
+  status: text('status').notNull().default('pending'),
+  rejectionReason: text('rejection_reason'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+})
+
+export const bookSubmissions = pgTable('book_submissions', {
+  id:            text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId:        text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title:         text('title').notNull(),
+  topic:         text('topic'),
+  author:        text('author').notNull(),
+  pages:         integer('pages'),
+  publishedDate: text('published_date'),
+  textUrl:       text('text_url'),
+  description:   text('description'),
+  coverUrl:      text('cover_url'),
+  whyRead:       text('why_read').notNull(),
+  status:        text('status').notNull().default('pending'),
+  createdAt:     timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt:     timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('book_submissions_status_idx').on(t.status),
+}))

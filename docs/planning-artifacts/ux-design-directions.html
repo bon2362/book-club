@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UX Design Directions — book-club</title>
+<style>
+  :root {
+    --bg:             #F9F5EE;
+    --bg-elevated:    #EDE5D8;
+    --bg-input:       #FDFAF5;
+    --bg-input-focus: #FFFFFF;
+    --bg-tag-green:   #EBF3EE;
+    --text:           #1A1714;
+    --text-secondary: #5C4A3A;
+    --text-muted:     #8C7B6B;
+    --text-body:      #3D3028;
+    --accent:         #B5451B;
+    --accent-hover:   #8C3415;
+    --success:        #2D6A4F;
+    --border:         #D4C4B0;
+    --border-subtle:  #E2D8CC;
+    --shadow:         rgba(26,23,20,.08);
+    --shadow-card:    rgba(26,23,20,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #E8E0D4; color: var(--text); }
+
+  /* Nav */
+  .nav { background: var(--bg); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; position: sticky; top: 0; z-index: 100; }
+  .nav h1 { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-right: 8px; }
+  .nav a { font-size: 13px; padding: 6px 12px; border-radius: 6px; background: var(--bg-elevated); color: var(--text-secondary); text-decoration: none; border: 1px solid var(--border); cursor: pointer; }
+  .nav a:hover, .nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Sections */
+  .section { padding: 32px 24px; max-width: 1100px; margin: 0 auto; }
+  .section-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .section-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+  .direction { display: none; }
+  .direction.active { display: block; }
+
+  /* ── Shared UI primitives ── */
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px var(--shadow-card); }
+  .btn-accent { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-accent:hover { background: var(--accent-hover); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); border-radius: 7px; padding: 9px 17px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .field-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 5px; }
+  .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 7px; background: var(--bg-input); font-size: 14px; color: var(--text); }
+  .input:focus { outline: none; border-color: var(--accent); background: var(--bg-input-focus); }
+  .input.error { border-color: var(--accent); }
+  .error-msg { font-size: 12px; color: var(--accent); margin-top: 3px; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; background: var(--bg-elevated); color: var(--text-secondary); font-size: 12px; }
+  .tag-required { background: #FEF0EB; color: var(--accent); }
+  .success-box { background: var(--bg-tag-green); border: 1px solid #A8D5B8; border-radius: 8px; padding: 14px 18px; color: var(--success); font-size: 14px; font-weight: 500; }
+
+  /* Grid layout mock */
+  .catalog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .book-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-height: 140px; }
+  .book-card .book-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .book-card .book-author { font-size: 12px; color: var(--text-muted); }
+
+  /* Header mock */
+  .header-mock { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .header-mock .site-name { font-weight: 700; font-size: 16px; }
+  .header-mock .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  /* Modal overlay */
+  .modal-overlay { background: rgba(26,23,20,.45); border-radius: 10px; padding: 32px; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--bg); border-radius: 12px; padding: 28px; width: 100%; max-width: 480px; box-shadow: 0 8px 32px rgba(26,23,20,.18); }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .modal-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+  .form-fields { display: flex; flex-direction: column; gap: 14px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .divider { border: none; border-top: 1px solid var(--border-subtle); margin: 4px 0; }
+  .optional-label { font-size: 12px; color: var(--text-muted); text-align: center; margin: 2px 0 4px; }
+
+  /* Drawer */
+  .drawer-layout { display: grid; grid-template-columns: 1fr 380px; gap: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); min-height: 420px; }
+  .drawer-main { background: var(--bg); padding: 20px; }
+  .drawer-panel { background: var(--bg-elevated); padding: 24px; border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: 14px; }
+  .drawer-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+
+  /* Admin */
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .admin-table th { text-align: left; padding: 8px 12px; background: var(--bg-elevated); color: var(--text-secondary); font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .admin-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .status-pending { background: #FEF0EB; color: var(--accent); }
+  .status-approved { background: var(--bg-tag-green); color: var(--success); }
+  .status-rejected { background: var(--bg-elevated); color: var(--text-muted); }
+  .admin-actions { display: flex; gap: 6px; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 5px; cursor: pointer; font-weight: 500; border: none; }
+  .btn-approve { background: var(--success); color: #fff; }
+  .btn-reject { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
+
+  /* Pseudo-card variants */
+  .pseudo-card-dashed { border: 2px dashed var(--border); border-radius: 10px; padding: 16px; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
+  .pseudo-card-dashed:hover { border-color: var(--accent); background: #FEF8F5; }
+  .pseudo-card-filled { background: var(--accent); border-radius: 10px; padding: 16px; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; color: #fff; }
+  .pseudo-card-subtle { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
+  .pseudo-card-subtle:hover { border-color: var(--accent); }
+
+  .icon { font-size: 24px; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .compare-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+
+  .note { background: var(--bg-elevated); border-left: 3px solid var(--accent); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: var(--text-secondary); margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <h1>Design Directions — book-club</h1>
+  <a class="active" onclick="show(1,this)">1. Псевдо-карточка</a>
+  <a onclick="show(2,this)">2. Форма: Modal</a>
+  <a onclick="show(3,this)">3. Форма: Drawer</a>
+  <a onclick="show(4,this)">4. Success State</a>
+  <a onclick="show(5,this)">5. Валидация</a>
+  <a onclick="show(6,this)">6. Хедер</a>
+  <a onclick="show(7,this)">7. Admin UI</a>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- DIRECTION 1: Pseudo-card variants             -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="direction active" id="d1">
+<div class="section">
+  <div class="section-title">Направление 1 — Псевдо-карточка в сетке</div>
+  <div class="section-desc">Три варианта первого элемента в сетке каталога. Стоит первой, видна без прокрутки.</div>
+
+  <div class="compare-grid" style="margin-bottom:32px">
+    <div>
+      <div class="compare-label">A — Dashed border (нейтральная)</div>
+      <div class="catalog-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="pseudo-card-dashed">
+          <div class="icon">📚</div>
+          <div style="font-weight:600;font-size:14px">Предложить книгу</div>
+          <div style="font-size:12px;color:var(--text-muted)">Поделитесь тем, что стоит прочитать</div>
+          <div style="margin-top:4px;font-size:12px;color:var(--accent);font-weight:600">→ Предложить</div>
+        </div>
+        <div class="book-card">
+          <div style="width:100%;height:60px;background:var(--bg-elevated);border-radius:6px;margin-bottom:10px"></div>
+          <div class="book-title">Мастер и Маргарита</div>
+          <div class="book-author">Михаил Булгаков</div>
+        </div>
+      </div>
+      <div class="note">Ненавязчиво. Хорошо для каталога где главное — книги.</div>
+    </div>
+
+    <div>
+      <div class="compare-label">B — Filled accent (яркая)</div>
+      <div class="catalog-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="pseudo-card-filled">
+          <div class="icon" style="filter:brightness(2)">✍️</div>
+          <div style="font-weight:700;font-size:14px">Предложить книгу</div>
+          <div style="font-size:12px;opacity:.85">Расскажите что стоит прочитать</div>
+          <div style="margin-top:6px;background:rgba(255,255,255,.2);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600">Предложить →</div>
+        </div>
+        <div class="book-card">
+          <div style="width:100%;height:60px;background:var(--bg-elevated);border-radius:6px;margin-bottom:10px"></div>
+          <div class="book-title">Мастер и Маргарита</div>
+          <div class="book-author">Михаил Булгаков</div>
+        </div>
+      </div>
+      <div class="note">Очень заметна. Акцент сразу на фиче, но может конкурировать с книгами.</div>
+    </div>
+  </div>
+
+  <div style="max-width:340px">
+    <div class="compare-label">C — Subtle elevated (мягкая)</div>
+    <div class="catalog-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="pseudo-card-subtle">
+        <div class="icon">＋</div>
+        <div style="font-weight:600;font-size:13px;color:var(--text-secondary)">Предложить книгу</div>
+        <div style="font-size:11px;color:var(--text-muted)">для участников клуба</div>
+      </div>
+      <div class="book-card">
+        <div style="width:100%;height:60px;background:var(--bg-elevated);border-radius:6px;margin-bottom:10px"></div>
+        <div class="book-title">Мастер и Маргарита</div>
+        <div class="book-author">Михаил Булгаков</div>
+      </div>
+    </div>
+    <div class="note">Компактная, не кричит. Подходит если аудитория уже знает о фиче.</div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- DIRECTION 2: Modal form                       -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="direction" id="d2">
+<div class="section">
+  <div class="section-title">Направление 2 — Форма в модальном окне</div>
+  <div class="section-desc">Modal поверх каталога. Три обязательных поля вверху, необязательные ниже разделителя.</div>
+
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-title">Предложить книгу</div>
+      <div class="modal-subtitle">Обязательные поля отмечены звёздочкой</div>
+
+      <div class="form-fields">
+        <!-- Required block -->
+        <div>
+          <label class="field-label">Название * <span class="tag tag-required">обязательное</span></label>
+          <input class="input" type="text" placeholder="Название на русском (если есть перевод)">
+        </div>
+        <div>
+          <label class="field-label">Писатель *</label>
+          <input class="input" type="text" placeholder="Имя на языке оригинала">
+        </div>
+        <div>
+          <label class="field-label">Почему стоит прочитать? *</label>
+          <textarea class="input" rows="3" placeholder="Ваша личная рекомендация…" style="resize:vertical"></textarea>
+        </div>
+
+        <hr class="divider">
+        <div class="optional-label">Необязательные поля</div>
+
+        <div>
+          <label class="field-label">Тема</label>
+          <select class="input"><option value="">Выберите тему…</option><option>Классика</option><option>Современная проза</option><option>История</option></select>
+        </div>
+        <div class="form-row">
+          <div>
+            <label class="field-label">Число страниц</label>
+            <input class="input" type="number" placeholder="350">
+          </div>
+          <div>
+            <label class="field-label">Год издания</label>
+            <input class="input" type="text" placeholder="2023">
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Ссылка на текст</label>
+          <input class="input" type="url" placeholder="https://…">
+        </div>
+        <div>
+          <label class="field-label">Описание</label>
+          <textarea class="input" rows="2" placeholder="Краткое описание книги…" style="resize:vertical"></textarea>
+        </div>
+        <div>
+          <label class="field-label">Ссылка на обложку</label>
+          <input class="input" type="url" placeholder="https://…">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+        <button class="btn-outline">Отмена</button>
+        <button class="btn-accent">Отправить заявку</button>
+      </div>
+    </div>
+  </div>
+  <div class="note">Обязательные поля сгруппированы вверху, необязательные отделены разделителем — снижает страх длинной формы.</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- DIRECTION 3: Drawer form                      -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="direction" id="d3">
+<div class="section">
+  <div class="section-title">Направление 3 — Форма в боковой панели (Drawer)</div>
+  <div class="section-desc">Каталог остаётся виден слева, форма выезжает справа. Альтернатива modal для десктопа.</div>
+
+  <div class="drawer-layout">
+    <div class="drawer-main">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Каталог (затемнён)</div>
+      <div style="opacity:.35">
+        <div class="catalog-grid">
+          <div class="book-card"><div style="width:100%;height:50px;background:var(--bg-elevated);border-radius:6px;margin-bottom:8px"></div><div class="book-title">Мастер и Маргарита</div></div>
+          <div class="book-card"><div style="width:100%;height:50px;background:var(--bg-elevated);border-radius:6px;margin-bottom:8px"></div><div class="book-title">Преступление и наказание</div></div>
+          <div class="book-card"><div style="width:100%;height:50px;background:var(--bg-elevated);border-radius:6px;margin-bottom:8px"></div><div class="book-title">Война и мир</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-panel">
+      <div>
+        <div class="drawer-title">Предложить книгу</div>
+        <div style="font-size:12px;color:var(--text-muted)">* — обязательные поля</div>
+      </div>
+      <div>
+        <label class="field-label">Название *</label>
+        <input class="input" type="text" placeholder="На русском, если есть перевод">
+      </div>
+      <div>
+        <label class="field-label">Писатель *</label>
+        <input class="input" type="text" placeholder="Имя на языке оригинала">
+      </div>
+      <div>
+        <label class="field-label">Почему стоит прочитать? *</label>
+        <textarea class="input" rows="3" placeholder="Ваша рекомендация…" style="resize:none"></textarea>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);text-align:center">+ 6 необязательных полей ↓</div>
+      <button class="btn-accent" style="width:100%;margin-top:auto">Отправить заявку</button>
+    </div>
+  </div>
+  <div class="note">Drawer хорош на десктопе — контекст каталога не теряется. На мобильном drawer превращается в bottom-sheet или полноэкранный modal.</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- DIRECTION 4: Success state                    -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="direction" id="d4">
+<div class="section">
+  <div class="section-title">Направление 4 — Success State после отправки</div>
+  <div class="section-desc">Два варианта подтверждения. После отправки форма заменяется состоянием успеха.</div>
+
+  <div class="compare-grid">
+    <div>
+      <div class="compare-label">A — Inline в модальном окне</div>
+      <div class="modal-overlay">
+        <div class="modal" style="text-align:center">
+          <div style="font-size:48px;margin-bottom:16px">✅</div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:8px">Заявка принята!</div>
+          <div style="font-size:14px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6">
+            Мы рассмотрим её в ближайшее время.<br>
+            Вы получите email когда статус изменится.
+          </div>
+          <button class="btn-outline">Вернуться к каталогу</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="compare-label">B — Toast / баннер сверху</div>
+      <div style="position:relative;background:var(--bg);border-radius:10px;padding:16px;border:1px solid var(--border);min-height:240px">
+        <div style="position:absolute;top:12px;left:0;right:0;display:flex;justify-content:center;z-index:10">
+          <div class="success-box" style="display:flex;gap:10px;align-items:center;max-width:400px">
+            <span>✅</span>
+            <div>
+              <div style="font-weight:600">Заявка принята!</div>
+              <div style="font-size:12px;color:var(--success);opacity:.8">Уведомление придёт на email при смене статуса</div>
+            </div>
+          </div>
+        </div>
+        <div style="opacity:.3;margin-top:60px">
+          <div class="catalog-grid">
+            <div class="book-card" style="height:80px"></div>
+            <div class="book-card" style="height:80px"></div>
+            <div class="book-card" style="height:80px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Вариант A создаёт финальную точку — пользователь точно понимает что всё завершено. Вариант B менее навязчив, позволяет сразу вернуться к каталогу.</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- DIRECTION 5: Validation states                -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="direction" id="d5">
+<div class="section">
+  <div class="section-title">Направление 5 — Валидация и состояния полей</div>
+  <div class="section-desc">Inline валидация при потере фокуса, loading state кнопки, состояние фокуса.</div>
+
+  <div class="modal-overlay">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-title" style="margin-bottom:16px">Состояния полей</div>
+      <div class="form-fields">
+        <div>
+          <label class="field-label">Название * — нормальное</label>
+          <input class="input" type="text" placeholder="Введите название…">
+        </div>
+        <div>
+          <label class="field-label">Писатель * — в фокусе</label>
+          <input class="input" type="text" value="Михаил" style="border-color:var(--accent);background:var(--bg-input-focus)">
+        </div>
+        <div>
+          <label class="field-label">Почему стоит прочитать? * — ошибка</label>
+          <textarea class="input error" rows="2" placeholder="Обязательное поле" style="border-color:var(--accent)"></textarea>
+          <div class="error-msg">⚠ Это поле обязательно</div>
+        </div>
+        <div>
+          <label class="field-label">Тема — заполнено</label>
+          <select class="input" style="border-color:#A8D5B8"><option>Классика</option></select>
+          <div style="font-size:12px;color:var(--success);margin-top:3px">✓ Выбрано</div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn-accent" style="flex:1">Отправить заявку</button>
+          <button class="btn-accent" style="flex:1;opacity:.7;cursor:not-allowed">⏳ Отправка…</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);text-align:center">
+          Слева — активная кнопка, справа — loading state
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Валидация срабатывает при потере фокуса (onBlur), не при каждом нажатии клавиши. Loading state блокирует кнопку повторной отправки.</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- DIRECTION 6: Header button variants           -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="direction" id="d6">
+<div class="section">
+  <div class="section-title">Направление 6 — Кнопка в хедере</div>
+  <div class="section-desc">Три варианта кнопки "Предложить книгу" в навигации.</div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;max-width:700px">
+    <div>
+      <div class="compare-label">A — Accent filled</div>
+      <div class="header-mock">
+        <div class="site-name">Долгое наступление</div>
+        <div class="header-actions">
+          <span style="font-size:13px;color:var(--text-secondary)">Каталог</span>
+          <button class="btn-accent" style="font-size:13px;padding:7px 14px">＋ Предложить книгу</button>
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--bg-elevated);border:1px solid var(--border)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="compare-label">B — Outline</div>
+      <div class="header-mock">
+        <div class="site-name">Долгое наступление</div>
+        <div class="header-actions">
+          <span style="font-size:13px;color:var(--text-secondary)">Каталог</span>
+          <button class="btn-outline" style="font-size:13px;padding:6px 13px">Предложить книгу</button>
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--bg-elevated);border:1px solid var(--border)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="compare-label">C — Ghost / текстовая ссылка</div>
+      <div class="header-mock">
+        <div class="site-name">Долгое наступление</div>
+        <div class="header-actions">
+          <span style="font-size:13px;color:var(--text-secondary)">Каталог</span>
+          <span style="font-size:13px;color:var(--accent);cursor:pointer;font-weight:500">＋ Предложить книгу</span>
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--bg-elevated);border:1px solid var(--border)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Вариант A — максимальная заметность. B — заметна, но не доминирует. C — минималистично, вписывается в атмосферу клуба.</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- DIRECTION 7: Admin UI                         -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="direction" id="d7">
+<div class="section">
+  <div class="section-title">Направление 7 — Admin UI: список заявок</div>
+  <div class="section-desc">Секция "Заявки" в существующей admin-панели. Таблица с inline-действиями.</div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">Заявки на книги</div>
+        <div style="font-size:13px;color:var(--text-muted)">3 заявки · 2 ожидают решения</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="tag">Все</span>
+        <span class="tag" style="background:#FEF0EB;color:var(--accent)">Ожидают (2)</span>
+        <span class="tag" style="background:var(--bg-tag-green);color:var(--success)">Одобрено (1)</span>
+      </div>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Название</th>
+          <th>Автор</th>
+          <th>Предложил</th>
+          <th>Статус</th>
+          <th>Дата</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Клуб убийств по четвергам</strong><br><span style="font-size:11px;color:var(--text-muted)">Детектив · 382 стр.</span></td>
+          <td>Richard Osman</td>
+          <td><span style="font-size:12px">masha@example.com</span></td>
+          <td><span class="status-badge status-pending">Ожидает</span></td>
+          <td style="font-size:12px;color:var(--text-muted)">15 мар</td>
+          <td>
+            <div class="admin-actions">
+              <button class="btn-sm btn-approve">✓ Одобрить</button>
+              <button class="btn-sm btn-reject">✗ Отклонить</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Три товарища</strong></td>
+          <td>Erich Maria Remarque</td>
+          <td><span style="font-size:12px">igor@example.com</span></td>
+          <td><span class="status-badge status-approved">Одобрено</span></td>
+          <td style="font-size:12px;color:var(--text-muted)">12 мар</td>
+          <td>
+            <div class="admin-actions">
+              <button class="btn-sm btn-reject">✗ Отклонить</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Мастер и Маргарита</strong><br><span style="font-size:11px;color:var(--text-muted)">Дубликат</span></td>
+          <td>Михаил Булгаков</td>
+          <td><span style="font-size:12px">petya@example.com</span></td>
+          <td><span class="status-badge status-pending">Ожидает</span></td>
+          <td style="font-size:12px;color:var(--text-muted)">10 мар</td>
+          <td>
+            <div class="admin-actions">
+              <button class="btn-sm btn-approve">✓ Одобрить</button>
+              <button class="btn-sm btn-reject">✗ Отклонить</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">Фильтры по статусу вверху. Inline approve/reject без перехода на отдельную страницу. Кнопки меняются в зависимости от текущего статуса.</div>
+</div>
+</div>
+
+<script>
+function show(n, el) {
+  document.querySelectorAll('.direction').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('d'+n).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

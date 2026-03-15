@@ -1,9 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import type { UserSignup } from '@/lib/signups'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import Header from './Header'
+
+interface Submission {
+  id: string
+  userId: string
+  userEmail: string | null
+  title: string
+  author: string
+  topic: string | null
+  pages: number | null
+  publishedDate: string | null
+  textUrl: string | null
+  description: string | null
+  coverUrl: string | null
+  whyRead: string
+  status: string
+  createdAt: string
+  updatedAt: string
+}
 
 interface BookEntry {
   book: BookWithCover
@@ -18,7 +36,8 @@ interface Props {
   tagDescriptions: Record<string, string>
 }
 
-type View = 'users' | 'books' | 'tags'
+type View = 'users' | 'books' | 'tags' | 'submissions'
+type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 
 const cell: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -39,6 +58,31 @@ const headCell: React.CSSProperties = {
   borderBottom: '2px solid #111',
 }
 
+const fieldLabel: React.CSSProperties = {
+  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+  fontSize: '0.65rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: '#666',
+  marginBottom: '0.25rem',
+}
+
+const fieldInput: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+  fontSize: '0.8rem',
+  color: '#111',
+  borderTop: '1px solid #E5E5E5',
+  borderRight: '1px solid #E5E5E5',
+  borderLeft: '1px solid #E5E5E5',
+  borderBottom: '2px solid #111',
+  padding: '0.35rem 0.5rem',
+  outline: 'none',
+  background: '#fff',
+  boxSizing: 'border-box',
+}
+
 export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions }: Props) {
   const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
   const [view, setView] = useState<View>('users')
@@ -53,6 +97,23 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   })
   const [tagSaving, setTagSaving] = useState<string | null>(null)
   const [tagSavedSet, setTagSavedSet] = useState<Set<string>>(new Set())
+
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [submissionsLoaded, setSubmissionsLoaded] = useState(false)
+  const [submissionFilter, setSubmissionFilter] = useState<SubmissionFilter>('pending')
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null)
+  const [submissionEdits, setSubmissionEdits] = useState<Record<string, Partial<Submission>>>({})
+  const [submissionActionLoading, setSubmissionActionLoading] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (view === 'submissions' && !submissionsLoaded) {
+      fetch('/api/admin/submissions')
+        .then(r => r.json())
+        .then(d => { if (d.success) setSubmissions(d.data) })
+        .catch(() => {})
+        .finally(() => setSubmissionsLoaded(true))
+    }
+  }, [view, submissionsLoaded])
 
   async function handleDeleteUser(userId: string, userName: string) {
     if (!window.confirm(`Удалить пользователя ${userName}? Это действие необратимо.`)) return
@@ -142,6 +203,48 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
     }
   }
 
+  function updateSubmissionEdit(id: string, field: keyof Submission, value: unknown) {
+    setSubmissionEdits(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  }
+
+  async function handleSaveSubmissionEdits(id: string) {
+    const edits = submissionEdits[id]
+    if (!edits || Object.keys(edits).length === 0) return
+    setSubmissionActionLoading(id)
+    try {
+      const res = await fetch(`/api/admin/submissions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(edits),
+      })
+      if (res.ok) {
+        const d = await res.json()
+        setSubmissions(prev => prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s))
+        setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+      }
+    } catch { /* silently ignore */ }
+    finally { setSubmissionActionLoading(null) }
+  }
+
+  async function handleSubmissionAction(id: string, status: 'approved' | 'rejected') {
+    setSubmissionActionLoading(id)
+    try {
+      const edits = submissionEdits[id] ?? {}
+      const res = await fetch(`/api/admin/submissions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...edits, status }),
+      })
+      if (res.ok) {
+        const d = await res.json()
+        setSubmissions(prev => prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s))
+        setSelectedSubmissionId(null)
+        setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+      }
+    } catch { /* silently ignore */ }
+    finally { setSubmissionActionLoading(null) }
+  }
+
   const tabStyle = (active: boolean): React.CSSProperties => ({
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.7rem',
@@ -168,6 +271,37 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
     cursor: 'pointer',
     marginRight: '0.375rem',
   })
+
+  const actionBtnStyle = (color: string, disabled: boolean): React.CSSProperties => ({
+    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+    fontSize: '0.65rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    padding: '0.3rem 0.75rem',
+    border: `1px solid ${disabled ? '#E5E5E5' : color}`,
+    background: 'transparent',
+    color: disabled ? '#999' : color,
+    cursor: disabled ? 'default' : 'pointer',
+  })
+
+  const filterBtnStyle = (active: boolean): React.CSSProperties => ({
+    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+    fontSize: '0.65rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    padding: '0.2rem 0.5rem',
+    border: '1px solid #999',
+    background: active ? '#111' : 'transparent',
+    color: active ? '#fff' : '#666',
+    cursor: 'pointer',
+  })
+
+  const filteredSubmissions = submissionFilter === 'all'
+    ? submissions
+    : submissions.filter(s => s.status === submissionFilter)
+
+  const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
+  const submissionStatusColor: Record<string, string> = { pending: '#C0603A', approved: '#2E7D32', rejected: '#999' }
 
   // We want all books, not just those with signups
   // byBook only contains books with signups — we need all books
@@ -217,6 +351,9 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
           </button>
           <button style={tabStyle(view === 'tags')} onClick={() => setView('tags')}>
             Теги ({allTags.length})
+          </button>
+          <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
+            Заявки ({submissions.length})
           </button>
         </div>
 
@@ -394,6 +531,167 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
               })}
             </tbody>
           </table>
+        )}
+        {/* Submissions */}
+        {view === 'submissions' && (
+          <div>
+            {/* Filter */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+              {(['all', 'pending', 'approved', 'rejected'] as const).map(f => {
+                const count = f === 'all' ? submissions.length : submissions.filter(s => s.status === f).length
+                const labels = { all: 'Все', pending: 'Ожидают', approved: 'Одобренные', rejected: 'Отклонённые' }
+                return (
+                  <button key={f} onClick={() => setSubmissionFilter(f)} style={filterBtnStyle(submissionFilter === f)}>
+                    {labels[f]} ({count})
+                  </button>
+                )
+              })}
+            </div>
+
+            {!submissionsLoaded && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#666' }}>Загрузка…</p>}
+
+            {submissionsLoaded && filteredSubmissions.length === 0 && (
+              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#666' }}>Нет заявок</p>
+            )}
+
+            {submissionsLoaded && filteredSubmissions.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={headCell}>Книга</th>
+                    <th style={headCell}>Автор</th>
+                    <th style={headCell}>Email</th>
+                    <th style={headCell}>Статус</th>
+                    <th style={headCell}>Дата</th>
+                    <th style={headCell}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSubmissions.map(sub => {
+                    const isSelected = selectedSubmissionId === sub.id
+                    const edits = submissionEdits[sub.id] ?? {}
+                    const isActing = submissionActionLoading === sub.id
+                    const hasEdits = Object.keys(edits).length > 0
+                    const statusColor = submissionStatusColor[sub.status] ?? '#111'
+                    const statusLabel = submissionStatusLabel[sub.status] ?? sub.status
+
+                    return (
+                      <Fragment key={sub.id}>
+                        <tr
+                          onClick={() => setSelectedSubmissionId(isSelected ? null : sub.id)}
+                          style={{ cursor: 'pointer', background: isSelected ? '#FAFAFA' : 'transparent' }}
+                        >
+                          <td style={cell}>{sub.title}</td>
+                          <td style={{ ...cell, fontStyle: 'italic', color: '#666' }}>{sub.author}</td>
+                          <td style={{ ...cell, color: '#666' }}>{sub.userEmail ?? '—'}</td>
+                          <td style={cell}>
+                            <span style={{ color: statusColor, fontWeight: sub.status === 'pending' ? 700 : 400 }}>
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td style={{ ...cell, color: '#999' }}>
+                            {new Date(sub.createdAt).toLocaleDateString('ru-RU')}
+                          </td>
+                          <td style={{ ...cell, textAlign: 'right', color: '#999' }}>
+                            {isSelected ? '▲' : '▼'}
+                          </td>
+                        </tr>
+                        {isSelected && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '1rem 0.75rem 1.25rem', background: '#FAFAFA', borderBottom: '2px solid #111' }}>
+                              <div style={{ display: 'grid', gap: '0.75rem', maxWidth: '720px' }}>
+                                <div>
+                                  <div style={fieldLabel}>Email автора</div>
+                                  <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#666' }}>
+                                    {sub.userEmail ?? '—'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Название</div>
+                                  <input
+                                    value={edits.title ?? sub.title}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'title', e.target.value)}
+                                    style={fieldInput}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Автор</div>
+                                  <input
+                                    value={edits.author ?? sub.author}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'author', e.target.value)}
+                                    style={fieldInput}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Почему стоит прочитать?</div>
+                                  <textarea
+                                    value={edits.whyRead ?? sub.whyRead}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'whyRead', e.target.value)}
+                                    rows={3}
+                                    style={{ ...fieldInput, resize: 'vertical' }}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Тема</div>
+                                  <input
+                                    value={edits.topic ?? sub.topic ?? ''}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'topic', e.target.value)}
+                                    style={fieldInput}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Описание</div>
+                                  <textarea
+                                    value={edits.description ?? sub.description ?? ''}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'description', e.target.value)}
+                                    rows={3}
+                                    style={{ ...fieldInput, resize: 'vertical' }}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Ссылка на текст</div>
+                                  <input
+                                    value={edits.textUrl ?? sub.textUrl ?? ''}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'textUrl', e.target.value)}
+                                    style={fieldInput}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                                  {hasEdits && (
+                                    <button
+                                      onClick={() => handleSaveSubmissionEdits(sub.id)}
+                                      disabled={isActing}
+                                      style={actionBtnStyle('#111', isActing)}
+                                    >
+                                      {isActing ? 'Сохранение…' : 'Сохранить'}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleSubmissionAction(sub.id, 'approved')}
+                                    disabled={isActing || sub.status === 'approved'}
+                                    style={actionBtnStyle('#2E7D32', isActing || sub.status === 'approved')}
+                                  >
+                                    Одобрить
+                                  </button>
+                                  <button
+                                    onClick={() => handleSubmissionAction(sub.id, 'rejected')}
+                                    disabled={isActing || sub.status === 'rejected'}
+                                    style={actionBtnStyle('#C0603A', isActing || sub.status === 'rejected')}
+                                  >
+                                    Отклонить
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         )}
       </main>
     </>

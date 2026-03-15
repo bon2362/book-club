@@ -36,4 +36,37 @@ describe('buildSignupRow', () => {
     const row = buildSignupRow({ userId: 'u1', name: 'A', email: 'a@a.com', contacts: 'x', selectedBooks: [] })
     expect(new Date(row[0]).toISOString()).toBe(row[0])
   })
+
+  it('возвращает ровно 6 элементов', () => {
+    const row = buildSignupRow({ userId: 'u1', name: 'A', email: 'a@a.com', contacts: 'x', selectedBooks: [] })
+    expect(row).toHaveLength(6)
+  })
+
+  it('сериализует пустой массив книг в строку "[]"', () => {
+    const row = buildSignupRow({ userId: 'u1', name: 'A', email: 'a@a.com', contacts: 'x', selectedBooks: [] })
+    expect(row[5]).toBe('[]')
+  })
+
+  it('сериализует несколько книг в JSON-массив', () => {
+    const row = buildSignupRow({ userId: 'u1', name: 'A', email: 'a@a.com', contacts: 'x', selectedBooks: ['Книга 1', 'Книга 2'] })
+    expect(JSON.parse(row[5])).toEqual(['Книга 1', 'Книга 2'])
+  })
+})
+
+describe('parseSignupRow — краевые случаи', () => {
+  it('обрабатывает короткую строку с отсутствующими полями', () => {
+    const row = ['2024-01-01']
+    const result = parseSignupRow(row)
+    expect(result.userId).toBe('')
+    expect(result.name).toBe('')
+    expect(result.email).toBe('')
+    expect(result.contacts).toBe('')
+    expect(result.selectedBooks).toEqual([])
+  })
+
+  it('обрабатывает пустую строку', () => {
+    const result = parseSignupRow([])
+    expect(result.timestamp).toBe('')
+    expect(result.selectedBooks).toEqual([])
+  })
 })

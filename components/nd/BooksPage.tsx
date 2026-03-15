@@ -10,6 +10,8 @@ import BookCard from './BookCard'
 import BookRow from './BookRow'
 import AuthModal from './AuthModal'
 import ContactsForm from './ContactsForm'
+import SubmitBookForm from './SubmitBookForm'
+import SubmitBookCard from './SubmitBookCard'
 
 interface Props {
   books: BookWithCover[]
@@ -76,6 +78,24 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   )
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [showContactsForm, setShowContactsForm] = useState(false)
+  const [submitFormOpen, setSubmitFormOpen] = useState(false)
+  const [submitIntent, setSubmitIntent] = useState(false)
+
+  useEffect(() => {
+    if (isLoggedIn && submitIntent) {
+      setSubmitFormOpen(true)
+      setSubmitIntent(false)
+    }
+  }, [isLoggedIn, submitIntent])
+
+  function handleSubmitBookClick() {
+    if (isLoggedIn) {
+      setSubmitFormOpen(true)
+    } else {
+      setSubmitIntent(true)
+      setAuthModalOpen(true)
+    }
+  }
   const [pendingBook, setPendingBook] = useState<BookWithCover | null>(null)
   const [savedUser, setSavedUser] = useState<{ name: string; contacts: string } | null>(null)
   const effectiveUser = currentUser ?? savedUser
@@ -160,6 +180,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       <Header
         onEditProfile={isLoggedIn ? () => setShowContactsForm(true) : undefined}
         onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
+        onSubmitBook={handleSubmitBookClick}
       />
 
       {/* About */}
@@ -289,6 +310,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           </p>
         ) : viewMode === 'grid' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
+            <SubmitBookCard onClick={handleSubmitBookClick} />
             {filteredBooks.map(book => (
               <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.name)} onToggle={handleToggle} />
             ))}
@@ -338,6 +360,9 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
 
       {authModalOpen && (
         <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      )}
+      {submitFormOpen && (
+        <SubmitBookForm isOpen={submitFormOpen} onClose={() => setSubmitFormOpen(false)} topics={allTags} />
       )}
       {showContactsForm && (
         <ContactsForm
