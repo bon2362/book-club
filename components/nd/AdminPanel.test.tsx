@@ -57,7 +57,10 @@ const mockSubmissions = [
 ]
 
 beforeEach(() => {
-  global.fetch = jest.fn()
+  global.fetch = jest.fn().mockResolvedValue({
+    json: () => Promise.resolve({ success: true, data: [] }),
+    ok: true,
+  })
 })
 
 afterEach(() => {
