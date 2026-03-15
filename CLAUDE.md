@@ -24,6 +24,14 @@
 ## Правила работы с кодом
 - Перед удалением/переименованием поля из интерфейса/типа — сначала искать все его вхождения в проекте (Grep), чтобы не пропустить дублирующие интерфейсы в других файлах
 
+## E2E-тесты (Playwright)
+- **Dev server запускать только через Playwright** (`npm run playwright test`), не вручную — иначе `NEXTAUTH_TEST_MODE=true` не будет выставлен и `/api/test/session` вернёт 403
+- `reuseExistingServer: true` в playwright.config.ts — если сервер уже запущен, Playwright его переиспользует (без нужных env vars)
+- **`waitForLoadState('networkidle')`** — надёжный способ дождаться React-гидрации в Next.js перед взаимодействием с client-side компонентами
+- **ContactsForm** автоматически открывается для залогиненных пользователей без профиля (`isLoggedIn && !currentUser && !savedUser`) — нужно закрывать в тестах перед кликами
+- Все модальные компоненты должны иметь `role="dialog"` и обработчик Escape — иначе тесты не смогут их найти и закрыть
+- `session.user.id` нужно явно устанавливать в `session` callback (`session.user.id = token.sub`) — без этого API-эндпоинты с `auth()` вернут 401
+
 ## Архитектура обложек
 - Обложки берутся напрямую из **колонки L Google Sheets** (`coverUrl` = `row[11]`)
 - `lib/covers.ts` удалён (был Google Books API + DB cache — убран из-за 429 rate limits)

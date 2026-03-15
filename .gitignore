@@ -38,3 +38,7 @@ next-env.d.ts
 # Playwright
 /playwright-report/
 /test-results/
+/.playwright/
+
+# BMAD framework (reinstallable tooling)
+/_bmad/

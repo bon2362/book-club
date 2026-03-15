@@ -83,6 +83,7 @@ for domain in \
     "elfsight.com" \
     "api.telegram.org" \
     "playwright.download.prss.microsoft.com" \
+    "cdn.playwright.dev\
     "update.code.visualstudio.com"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}' | sort -u)
