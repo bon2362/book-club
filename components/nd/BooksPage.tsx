@@ -241,6 +241,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       {/* Search + filters */}
       <div style={{ borderBottom: '1px solid #E5E5E5', background: '#fff' }}>
         <div
+          className="filters-bar"
           style={{
             maxWidth: '1200px',
             margin: '0 auto',
@@ -251,8 +252,9 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           }}
         >
           {/* Row 1: поиск + переключатель вида */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div className="filters-row1" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <input
+              className="filters-search"
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -270,6 +272,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
               }}
             />
             <button
+              className="filters-view-toggle"
               onClick={() => handleSetViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               title={viewMode === 'grid' ? 'Переключить в таблицу' : 'Переключить в сетку'}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: '#111', display: 'flex', flexShrink: 0 }}
@@ -292,12 +295,12 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           </div>
 
           {/* Row 2: два селекта по 50% */}
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
+          <div className="filters-row2" style={{ display: 'flex', gap: '0.5rem' }}>
+            <select className="filters-select-tag" value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
               <option value="">Тема: все</option>
               {allTags.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <select value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
+            <select className="filters-select-author" value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
               <option value="">Автор: все</option>
               {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
@@ -305,7 +308,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
 
           {/* Row 3: чипсы-тогглы — только если хоть один виден */}
           {(hasNewBooks || (isLoggedIn && selectedBooks.length > 0) || hasReadBooks) && (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div className="filters-chips" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {hasNewBooks && (
                 <button onClick={() => setShowNew(v => !v)} style={chipStyle(showNew)}>
                   {showNew ? '✓ Новинки' : 'Новинки'}
@@ -423,6 +426,26 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       <style>{`
         @media (max-width: 768px) {
           .scroll-top-btn { display: flex !important; align-items: center; justify-content: center; }
+        }
+
+        @media (min-width: 769px) {
+          /* Одна строка: [поиск] [тема] [автор] [чипсы] [вид] */
+          .filters-bar {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+          }
+          /* Убираем обёртки — дочерние элементы становятся прямыми flex-детьми */
+          .filters-row1,
+          .filters-row2 {
+            display: contents;
+          }
+          /* Порядок и размеры */
+          .filters-search       { order: 1; flex: 2 1 0; min-width: 0; }
+          .filters-select-tag   { order: 2; flex: 1 1 0; min-width: 0; }
+          .filters-select-author{ order: 3; flex: 1 1 0; min-width: 0; }
+          .filters-chips        { order: 4; flex-shrink: 0; flex-wrap: nowrap; }
+          .filters-view-toggle  { order: 5; flex-shrink: 0; margin-left: 0.25rem; }
         }
       `}</style>
 
