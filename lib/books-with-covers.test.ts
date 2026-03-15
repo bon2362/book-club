@@ -59,19 +59,22 @@ describe('fetchBooksWithCovers', () => {
   it('сохраняет coverUrl из данных sheets', async () => {
     mockFetchBooks.mockResolvedValue(sampleBooks)
     const result = await fetchBooksWithCovers()
-    expect(result[0].coverUrl).toBe('https://covers.example.com/krugman.jpg')
+    // После reverse() книга с id=2 (Krugman) идёт последней
+    expect(result[1].coverUrl).toBe('https://covers.example.com/krugman.jpg')
   })
 
   it('сохраняет null coverUrl когда обложки нет', async () => {
     mockFetchBooks.mockResolvedValue(sampleBooks)
     const result = await fetchBooksWithCovers()
-    expect(result[1].coverUrl).toBeNull()
+    // После reverse() книга с id=3 (Reinert) идёт первой
+    expect(result[0].coverUrl).toBeNull()
   })
 
   it('сохраняет все поля книги', async () => {
     mockFetchBooks.mockResolvedValue(sampleBooks)
     const result = await fetchBooksWithCovers()
-    const book = result[0]
+    // После reverse() книга с id=2 (Krugman) идёт последней
+    const book = result[1]
     expect(book.id).toBe('2')
     expect(book.name).toBe('Кредо либерала')
     expect(book.author).toBe('Paul Krugman')
@@ -105,7 +108,8 @@ describe('fetchBooksWithCovers', () => {
   it('возвращает новые объекты, не ссылки на оригиналы', async () => {
     mockFetchBooks.mockResolvedValue(sampleBooks)
     const result = await fetchBooksWithCovers()
-    expect(result[0]).not.toBe(sampleBooks[0])
-    expect(result[0]).toMatchObject(sampleBooks[0])
+    // После reverse() result[0] = sampleBooks[1] (Reinert), result[1] = sampleBooks[0] (Krugman)
+    expect(result[0]).not.toBe(sampleBooks[1])
+    expect(result[0]).toMatchObject(sampleBooks[1])
   })
 })

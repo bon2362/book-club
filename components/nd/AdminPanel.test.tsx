@@ -5,6 +5,12 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import AdminPanel from './AdminPanel'
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 jest.mock('./Header', () => ({
   __esModule: true,
   default: () => <div data-testid="header" />,

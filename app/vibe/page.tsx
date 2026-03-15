@@ -74,7 +74,7 @@ export default async function VibePage() {
         </p>
         <div style={{ marginTop: '1.25rem' }}>
           <a
-            href="https://slowreading.club"
+            href="https://www.slowreading.club"
             style={{
               fontFamily: "'Georgia', serif",
               fontSize: '0.8125rem',
