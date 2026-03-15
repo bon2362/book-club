@@ -1,0 +1,68 @@
+117-f1f0722679bdc789.js:1 Error: No database connection string was provided to `neon()`. Perhaps an environment variable has not been set?
+    at neon (107-c8ed9f28467e172b.js:29:1257)
+    at 1310 (page-c9ead3e63a680501.js:1:1895)
+    at d (webpack-f855052f9119ab46.js:1:151)
+    at M (117-f1f0722679bdc789.js:2:15116)
+    at m (117-f1f0722679bdc789.js:2:13678)
+    at iZ (fd9d1056-253d8695cd74475a.js:1:117498)
+    at ia (fd9d1056-253d8695cd74475a.js:1:95162)
+    at fd9d1056-253d8695cd74475a.js:1:91088
+    at fd9d1056-253d8695cd74475a.js:1:91095
+    at oZ (fd9d1056-253d8695cd74475a.js:1:91200)
+push.2304.window.console.error @ 117-f1f0722679bdc789.js:1
+l_ @ fd9d1056-253d8695cd74475a.js:1
+n.callback @ fd9d1056-253d8695cd74475a.js:1
+nB @ fd9d1056-253d8695cd74475a.js:1
+nV @ fd9d1056-253d8695cd74475a.js:1
+aq @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+a9 @ fd9d1056-253d8695cd74475a.js:1
+aY @ fd9d1056-253d8695cd74475a.js:1
+(anonymous) @ fd9d1056-253d8695cd74475a.js:1
+is @ fd9d1056-253d8695cd74475a.js:1
+o1 @ fd9d1056-253d8695cd74475a.js:1
+oZ @ fd9d1056-253d8695cd74475a.js:1
+M @ 117-f1f0722679bdc789.js:1
+fd9d1056-253d8695cd74475a.js:1 Uncaught Error: Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at iZ (fd9d1056-253d8695cd74475a.js:1:118349)
+    at ia (fd9d1056-253d8695cd74475a.js:1:95162)
+    at fd9d1056-253d8695cd74475a.js:1:94984
+    at il (fd9d1056-253d8695cd74475a.js:1:94991)
+    at oJ (fd9d1056-253d8695cd74475a.js:1:92347)
+    at oZ (fd9d1056-253d8695cd74475a.js:1:91766)
+    at MessagePort.M (117-f1f0722679bdc789.js:1:84770)
+iZ @ fd9d1056-253d8695cd74475a.js:1
+ia @ fd9d1056-253d8695cd74475a.js:1
+(anonymous) @ fd9d1056-253d8695cd74475a.js:1
+il @ fd9d1056-253d8695cd74475a.js:1
+oJ @ fd9d1056-253d8695cd74475a.js:1
+oZ @ fd9d1056-253d8695cd74475a.js:1
+M @ 117-f1f0722679bdc789.js:1
+107-c8ed9f28467e172b.js:29 Uncaught (in promise) Error: No database connection string was provided to `neon()`. Perhaps an environment variable has not been set?
+    at neon (107-c8ed9f28467e172b.js:29:1257)
+    at 1310 (page-c9ead3e63a680501.js:1:1895)
+    at d (webpack-f855052f9119ab46.js:1:151)
+neon @ 107-c8ed9f28467e172b.js:29
+1310 @ page-c9ead3e63a680501.js:1
+d @ webpack-f855052f9119ab46.js:1
+Promise.then
+8045 @ page-c9ead3e63a680501.js:1
+d @ webpack-f855052f9119ab46.js:1
+(anonymous) @ page-c9ead3e63a680501.js:1
+d.O @ webpack-f855052f9119ab46.js:1
+c @ webpack-f855052f9119ab46.js:1
+(anonymous) @ 107-c8ed9f28467e172b.js:1

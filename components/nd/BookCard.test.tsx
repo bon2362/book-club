@@ -22,6 +22,8 @@ const book: BookWithCover = {
   type: 'Book',
   size: '',
   coverUrl: null,
+  whyRead: null,
+  isNew: false,
 }
 
 describe('nd/BookCard', () => {
@@ -54,19 +56,19 @@ describe('nd/BookCard', () => {
     expect(screen.getByText('наука')).toBeInTheDocument()
   })
 
-  it('показывает "Уже прочитана" и кнопка disabled при status="read"', () => {
+  it('кнопка активна и позволяет записаться при status="read"', () => {
     const readBook = { ...book, status: 'read' as const }
     render(<BookCard book={readBook} isSelected={false} onToggle={() => {}} />)
-    const btn = screen.getByRole('button', { name: /уже прочитана/i })
-    expect(btn).toBeDisabled()
+    const btn = screen.getByRole('button', { name: /хочу читать/i })
+    expect(btn).not.toBeDisabled()
   })
 
-  it('не вызывает onToggle при клике на disabled кнопку (status="read")', () => {
+  it('вызывает onToggle при клике на кнопку для прочитанной книги', () => {
     const onToggle = jest.fn()
     const readBook = { ...book, status: 'read' as const }
     render(<BookCard book={readBook} isSelected={false} onToggle={onToggle} />)
-    fireEvent.click(screen.getByRole('button', { name: /уже прочитана/i }))
-    expect(onToggle).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /хочу читать/i }))
+    expect(onToggle).toHaveBeenCalledWith(readBook)
   })
 
   it('показывает бейдж "Сейчас читаем" при status="reading"', () => {

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Прототип: Новые книги — admin-панель</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #F5F5F5;
+    padding: 2rem;
+    color: #111;
+    max-width: 720px;
+  }
+
+  h1 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .note { font-size: 0.78rem; color: #888; margin-bottom: 2rem; line-height: 1.5; }
+
+  h2 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin: 2rem 0 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #E5E5E5;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #E5E5E5;
+  }
+
+  th {
+    padding: 0.6rem 1rem;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #111;
+  }
+
+  td {
+    padding: 0.65rem 1rem;
+    font-size: 0.82rem;
+    border-bottom: 1px solid #F0F0F0;
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFAFA; }
+
+  .badge-new {
+    display: inline-block;
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: #C0603A;
+    color: #fff;
+    padding: 0.2rem 0.45rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .source {
+    font-size: 0.65rem;
+    color: #BBB;
+    margin-top: 0.1rem;
+  }
+
+  /* toggle */
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: #D0D0D0;
+    cursor: pointer;
+    transition: 0.2s;
+    border-radius: 20px;
+  }
+  .slider::before {
+    content: '';
+    position: absolute;
+    height: 14px; width: 14px;
+    left: 3px; bottom: 3px;
+    background: #fff;
+    transition: 0.2s;
+    border-radius: 50%;
+  }
+  input:checked + .slider { background: #C0603A; }
+  input:checked + .slider::before { transform: translateX(16px); }
+
+  /* catalog preview */
+  .preview-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-top: 0.5rem;
+  }
+
+  .preview-label {
+    font-size: 0.7rem;
+    color: #888;
+    margin-bottom: 0.4rem;
+  }
+
+  .card {
+    width: 150px;
+    border: 1px solid #E5E5E5;
+    background: #fff;
+    position: relative;
+    padding: 0.6rem;
+  }
+
+  .card-cover {
+    background: #D8D3C8;
+    height: 70px;
+    margin-bottom: 0.5rem;
+    position: relative;
+  }
+
+  .card-badge {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    background: #C0603A;
+    color: #fff;
+    font-size: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .card-title { font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
+  .card-author { font-size: 0.7rem; color: #888; font-style: italic; margin-top: 0.15rem; }
+
+  .table-row-preview {
+    border: 1px solid #E5E5E5;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    min-width: 340px;
+  }
+
+  .filter-btn {
+    font-size: 0.75rem;
+    border: 1px solid #111;
+    padding: 0.4rem 0.75rem;
+    background: #111;
+    color: #fff;
+    cursor: pointer;
+    font-family: system-ui, sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<h1>Ярлык «Новая» — управление</h1>
+<p class="note">
+  Для книг из Google Sheets — только ручная пометка.<br>
+  Для книг из заявок — автоматически первые 30 дней, если не переопределено вручную.
+</p>
+
+<h2>Все книги</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Книга</th>
+      <th style="width:100px; text-align:center;">Новая</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- Sheets: вручную включена -->
+    <tr>
+      <td>
+        Капитализм в XXI веке
+        <span class="badge-new">Новая</span>
+        <div class="source">Google Sheets</div>
+      </td>
+      <td style="text-align:center;">
+        <label class="toggle">
+          <input type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </td>
+    </tr>
+
+    <!-- Sheets: не помечена -->
+    <tr>
+      <td>
+        Искусство войны
+        <div class="source">Google Sheets</div>
+      </td>
+      <td style="text-align:center;">
+        <label class="toggle">
+          <input type="checkbox">
+          <span class="slider"></span>
+        </label>
+      </td>
+    </tr>
+
+    <!-- Заявка: автоматически новая (14 дней), без ручного флага -->
+    <tr>
+      <td>
+        Думай медленно, решай быстро
+        <span class="badge-new">Новая</span>
+        <div class="source">Заявка · авто, 14 дней</div>
+      </td>
+      <td style="text-align:center;">
+        <label class="toggle">
+          <input type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </td>
+    </tr>
+
+    <!-- Заявка: авто-срок истёк -->
+    <tr>
+      <td>
+        Сапиенс
+        <div class="source">Заявка · авто, истёк</div>
+      </td>
+      <td style="text-align:center;">
+        <label class="toggle">
+          <input type="checkbox">
+          <span class="slider"></span>
+        </label>
+      </td>
+    </tr>
+
+  </tbody>
+</table>
+
+<h2>Как выглядит в каталоге</h2>
+
+<div class="preview-row">
+  <div>
+    <div class="preview-label">Карточка</div>
+    <div class="card">
+      <div class="card-cover">
+        <span class="card-badge">Новая</span>
+      </div>
+      <div class="card-title">Капитализм в XXI веке</div>
+      <div class="card-author">Томас Пикетти</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="preview-label">Строка таблицы</div>
+    <div class="table-row-preview">
+      <div>
+        <span style="font-size:0.9rem;font-weight:700;">Капитализм в XXI веке</span>
+        <span class="badge-new">Новая</span>
+        <div style="font-size:0.75rem;color:#888;font-style:italic;margin-top:0.1rem;">Томас Пикетти</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="preview-label">Фильтр</div>
+    <button class="filter-btn">✓ Новинки</button>
+  </div>
+</div>
+
+</body>
+</html>

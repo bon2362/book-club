@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Прототип: «Почему стоит прочитать» — карточка книги</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #F2F0EB;
+    padding: 2rem;
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  /* ---- card ---- */
+  article {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #E5E5E5;
+    background: #fff;
+    width: 240px;
+  }
+
+  .cover {
+    aspect-ratio: 2/3;
+    width: 100%;
+    background: #D8D3C8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #999;
+  }
+
+  .tags {
+    padding: 0.75rem 0.75rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .tag {
+    font-family: system-ui, sans-serif;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #999;
+  }
+
+  .rule { margin: 0.5rem 0.75rem 0; border-top: 1px solid #111; }
+
+  .title {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.25;
+    color: #111;
+    padding: 0.5rem 0.75rem 0;
+    letter-spacing: -0.01em;
+  }
+
+  .author {
+    font-style: italic;
+    font-size: 0.8rem;
+    color: #666;
+    padding: 0.25rem 0.75rem 0;
+  }
+
+  .description-block { margin: 0.5rem 0.75rem 0; }
+
+  .description {
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: #666;
+    cursor: pointer;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .description.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+
+  .expand-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem 0 0;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #999;
+    cursor: pointer;
+  }
+
+  /* ---- quote block ---- */
+  .why-read {
+    margin: 0.75rem 0 0;
+    padding: 0.6rem 0.75rem;
+    border-left: 2px solid #C0603A;
+    background: #FDF6F3;
+  }
+
+  .why-read-label {
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #C0603A;
+    margin-bottom: 0.3rem;
+  }
+
+  .why-read-text {
+    font-style: italic;
+    font-size: 0.76rem;
+    line-height: 1.55;
+    color: #555;
+  }
+
+  /* spacer */
+  .spacer { flex: 1; }
+
+  .btn-wrap { padding: 0.75rem; }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border: 1px solid #111;
+    background: transparent;
+    color: #111;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  /* ---- label ---- */
+  h3 {
+    font-family: system-ui, sans-serif;
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .col { display: flex; flex-direction: column; gap: 0.5rem; }
+</style>
+</head>
+<body>
+
+<div class="col">
+  <h3>Без «Почему» (текущее состояние)</h3>
+  <article>
+    <div class="cover">📖</div>
+    <div class="tags"><span class="tag">Экономика</span></div>
+    <div class="rule"></div>
+    <div class="title">Капитализм в XXI веке</div>
+    <p class="author">Томас Пикетти</p>
+    <div class="description-block">
+      <p class="description">Масштабное исследование динамики капитала и неравенства за последние 300 лет. Автор собирает данные из 20 стран.</p>
+      <button class="expand-btn">Читать далее</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-wrap"><button class="btn">Хочу читать</button></div>
+  </article>
+</div>
+
+<div class="col">
+  <h3>С «Почему» — раскрыто</h3>
+  <article>
+    <div class="cover">📖</div>
+    <div class="tags"><span class="tag">Экономика</span></div>
+    <div class="rule"></div>
+    <div class="title">Капитализм в XXI веке</div>
+    <p class="author">Томас Пикетти</p>
+    <div class="description-block">
+      <p class="description expanded">Масштабное исследование динамики капитала и неравенства за последние 300 лет. Автор собирает данные из 20 стран и приходит к выводу, что без вмешательства государства неравенство будет только расти.</p>
+      <button class="expand-btn">Свернуть</button>
+
+      <!-- quote block appears inside expanded area -->
+      <div class="why-read">
+        <div class="why-read-label">Почему стоит прочитать</div>
+        <p class="why-read-text">Книга даёт язык для разговора о неравенстве — до неё было сложно объяснить, почему богатые богатеют быстрее. После прочтения многие экономические новости воспринимаешь совсем иначе.</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-wrap"><button class="btn">Хочу читать</button></div>
+  </article>
+</div>
+
+<div class="col">
+  <h3>С «Почему» — короткое описание</h3>
+  <article>
+    <div class="cover">📖</div>
+    <div class="tags"><span class="tag">Экономика</span></div>
+    <div class="rule"></div>
+    <div class="title">Короткая книга</div>
+    <p class="author">Автор Авторов</p>
+    <div class="description-block">
+      <p class="description expanded">Краткое описание.</p>
+
+      <!-- if description is short — only why-read triggers the block -->
+      <div class="why-read">
+        <div class="why-read-label">Почему стоит прочитать</div>
+        <p class="why-read-text">Редкий пример нон-фикшна, который читается как детектив. Невозможно оторваться.</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-wrap"><button class="btn">Хочу читать</button></div>
+  </article>
+</div>
+
+</body>
+</html>

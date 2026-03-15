@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit 2>&1)",
+      "Bash(curl -s \"https://book-club-slow-rising.vercel.app/api/books\" | python3 -c \"\nimport sys, json\ndata = json.load\\(sys.stdin\\)\nbooks = data.get\\('books', []\\)\nprint\\(f'Total: {len\\(books\\)}'\\)\nfor b in books:\n    if 'патри' in b.get\\('name',''\\).lower\\(\\) or 'Патри' in b.get\\('name',''\\):\n        print\\(f'FOUND: {b[\\\\\"name\\\\\"]} | coverUrl: {b.get\\(\\\\\"coverUrl\\\\\"\\)!r}'\\)\n# Show first 3 books to see structure\nprint\\('\\\\\\\\nFirst 3 books:'\\)\nfor b in books[:3]:\n    print\\(f'  {b[\\\\\"name\\\\\"]} | coverUrl: {b.get\\(\\\\\"coverUrl\\\\\"\\)!r}'\\)\n\")",
+      "Bash(curl -s \"https://book-club-slow-rising.vercel.app/api/books\" | python3 -c \"\nimport sys, json\ndata = json.load\\(sys.stdin\\)\nbooks = data.get\\('books', []\\)\nprint\\('Total:', len\\(books\\)\\)\nfor b in books:\n    name = b.get\\('name',''\\)\n    cover = b.get\\('coverUrl'\\)\n    if cover:\n        print\\('HAS COVER:', name, '|', cover\\)\n    if 'атри' in name:\n        print\\('PATRIOT:', name, '| cover:', cover\\)\n\")",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" \"https://book-club-slow-rising.vercel.app/api/books\" | tail -20)",
+      "WebFetch(domain:docs.bmad-method.org)",
+      "Bash(grep -E [0-9]+-[0-9]+-)",
+      "Bash(find /workspace -name *-story*.md -o -name story-*.md)",
+      "Bash(ls /workspace/{output_folder}/implementation-artifacts/)",
+      "Bash(find \"/workspace/{output_folder}/implementation-artifacts\" -type f)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(ls /workspace/.env*)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_qb8koWX0LmZO@ep-fragrant-cherry-aluk81ou-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" npx drizzle-kit push)",
+      "Bash(npx jest:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git rm:*)",
+      "Bash(gh run:*)",
+      "Bash(gh workflow:*)",
+      "Bash(node -e \"const s = ''Описание тестовой книги для E2E тестов. Эта книга содержит достаточно длинное описание, чтобы проверить функцию разворачивания текста в карточке книги на главной странице.''; console.log\\(s.length\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://book-club-slow-rising.vercel.app/api/submissions -X POST -H \"Content-Type: application/json\" -d '{\"\"title\"\":\"\"test\"\",\"\"author\"\":\"\"test\"\",\"\"whyRead\"\":\"\"test\"\"}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''scripts'''',{}\\), indent=2\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\(''''tokens'''',{}\\).keys\\(\\)\\)[:1]\\)\")",
+      "Bash(npx playwright:*)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-test npx playwright install chromium)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/workspace/.playwright npx playwright install chromium)",
+      "Bash(sudo npx playwright install-deps chromium 2>&1 | tail -5)",
+      "Bash(apt-get install -y libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libdbus-1-3 libcups2 libxkbcommon0 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 2>&1 | tail -10)",
+      "Bash(dpkg -l libnspr4 libnss3 2>/dev/null | head -10; ldconfig -p | grep -E \"libnss|libnspr\" | head -5)",
+      "Bash(cat /workspace/.github/workflows/*.yml 2>/dev/null | grep -A 20 \"playwright\\\\|install-deps\" | head -50)",
+      "Read(//home/node/.cache/ms-playwright/**)",
+      "Bash(/home/node/.cache/ms-playwright/chromium_headless_shell-1208/chrome-linux/headless_shell --version 2>&1 | head -3)",
+      "Read(//etc/sudoers.d/**)",
+      "Read(//etc/**)",
+      "Bash(apt-get install -y --no-install-recommends libnspr4 libnss3 libatk1.0-0 libdbus-1-3 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libasound2 2>&1 | tail -5)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash(git push*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/workspace/.claude/hooks/post-git-push-ci.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

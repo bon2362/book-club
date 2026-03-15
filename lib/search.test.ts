@@ -3,11 +3,11 @@ import type { Book } from './sheets'
 
 const books: Book[] = [
   { id: '1', name: 'Кредо либерала', author: 'Paul Krugman', tags: ['неолиберализм'],
-    type: 'Book', size: 'L', pages: '368', date: '2007', link: '', description: '', coverUrl: null },
+    type: 'Book', size: 'L', pages: '368', date: '2007', link: '', description: '', coverUrl: null, whyForClub: null },
   { id: '2', name: 'Как богатые страны стали богатыми', author: 'Erik S. Reinert', tags: ['модернизация'],
-    type: 'Book', size: 'L', pages: '384', date: '2021', link: '', description: '', coverUrl: null },
+    type: 'Book', size: 'L', pages: '384', date: '2021', link: '', description: '', coverUrl: null, whyForClub: null },
   { id: '3', name: 'Democratic Theory', author: 'Grigoriy Yudin', tags: ['демократия'],
-    type: 'Book', size: 'M', pages: '200', date: '2022', link: '', description: '', coverUrl: null },
+    type: 'Book', size: 'M', pages: '200', date: '2022', link: '', description: '', coverUrl: null, whyForClub: null },
 ]
 
 describe('searchBooks', () => {

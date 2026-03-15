@@ -87,6 +87,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const [filterTag, setFilterTag] = useState('')
   const [filterAuthor, setFilterAuthor] = useState('')
   const [showRead, setShowRead] = useState(false)
+  const [showMyBooks, setShowMyBooks] = useState(false)
+  const [showNew, setShowNew] = useState(false)
   const [selectedBooks, setSelectedBooks] = useState<string[]>(
     currentUser?.selectedBooks ?? []
   )
@@ -94,6 +96,14 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const [showContactsForm, setShowContactsForm] = useState(false)
   const [submitFormOpen, setSubmitFormOpen] = useState(false)
   const [submitIntent, setSubmitIntent] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('submitIntent') === '1'
+    if (stored) {
+      localStorage.removeItem('submitIntent')
+      setSubmitIntent(true)
+    }
+  }, [])
 
   useEffect(() => {
     if (isLoggedIn && submitIntent) {
@@ -106,6 +116,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
     if (isLoggedIn) {
       setSubmitFormOpen(true)
     } else {
+      localStorage.setItem('submitIntent', '1')
       setSubmitIntent(true)
       setAuthModalOpen(true)
     }
@@ -126,19 +137,28 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
 
   const allAuthors = useMemo(() => {
     const s = new Set<string>()
-    books.forEach(b => { if (b.author) s.add(b.author) })
+    books.forEach(b => {
+      if (!b.author) return
+      b.author.split(/,|( и )|&/).forEach(part => {
+        const name = part?.trim()
+        if (name) s.add(name)
+      })
+    })
     return Array.from(s).sort()
   }, [books])
 
   const filteredBooks = useMemo(() => {
-    let result = searchBooks(books, query) as BookWithCover[]
+    let result = searchBooks(books, query)
     if (filterTag) result = result.filter(b => b.tags.includes(filterTag))
-    if (filterAuthor) result = result.filter(b => b.author === filterAuthor)
+    if (filterAuthor) result = result.filter(b => b.author.split(/,|( и )|&/).map(p => p?.trim()).includes(filterAuthor))
     if (!showRead) result = result.filter(b => b.status !== 'read')
+    if (showMyBooks) result = result.filter(b => selectedBooks.includes(b.name))
+    if (showNew) result = result.filter(b => b.isNew)
     return result
-  }, [books, query, filterTag, filterAuthor, showRead])
+  }, [books, query, filterTag, filterAuthor, showRead, showMyBooks, showNew, selectedBooks])
 
   const hasReadBooks = useMemo(() => books.some(b => b.status === 'read'), [books])
+  const hasNewBooks = useMemo(() => books.some(b => b.isNew), [books])
 
   function handleToggle(book: BookWithCover) {
     if (!isLoggedIn) {
@@ -241,6 +261,40 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
             <option value="">Автор: все</option>
             {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
+          {hasNewBooks && (
+            <button
+              onClick={() => setShowNew(v => !v)}
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.75rem',
+                color: showNew ? '#fff' : '#111',
+                background: showNew ? '#111' : 'transparent',
+                border: '1px solid #111',
+                padding: '0.4rem 0.75rem',
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {showNew ? '✓ Новинки' : 'Новинки'}
+            </button>
+          )}
+          {isLoggedIn && selectedBooks.length > 0 && (
+            <button
+              onClick={() => setShowMyBooks(v => !v)}
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.75rem',
+                color: showMyBooks ? '#fff' : '#111',
+                background: showMyBooks ? '#111' : 'transparent',
+                border: '1px solid #111',
+                padding: '0.4rem 0.75rem',
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
+            </button>
+          )}
           {hasReadBooks && (
             <button
               onClick={() => setShowRead(v => !v)}
@@ -320,6 +374,25 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '2px solid #111' }}>
             <tbody>
+              <tr style={{ borderBottom: '1px solid #E5E5E5' }}>
+                <td colSpan={6} style={{ padding: '0.6rem 0.75rem' }}>
+                  <button
+                    onClick={handleSubmitBookClick}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.75rem',
+                      color: '#999',
+                      cursor: 'pointer',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    + Предложить книгу
+                  </button>
+                </td>
+              </tr>
               {filteredBooks.map(book => (
                 <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.name)} onToggle={handleToggle} />
               ))}
@@ -364,7 +437,13 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       )}
       {submitFormOpen && (
-        <SubmitBookForm isOpen={submitFormOpen} onClose={() => setSubmitFormOpen(false)} topics={allTags} />
+        <SubmitBookForm
+          isOpen={submitFormOpen}
+          onClose={() => setSubmitFormOpen(false)}
+          topics={allTags}
+          initialTopic={filterTag || undefined}
+          initialAuthor={filterAuthor || undefined}
+        />
       )}
       {showContactsForm && (
         <ContactsForm

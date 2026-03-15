@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Directions — About/Positioning Component</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f0f0f0; color: #111; }
+
+  /* Direction labels */
+  .direction-label {
+    max-width: 1200px; margin: 2.5rem auto 0; padding: 0 1.5rem;
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #999;
+  }
+  .direction-desc {
+    max-width: 1200px; margin: 0.25rem auto 0; padding: 0 1.5rem;
+    font-size: 0.8rem; color: #aaa; margin-bottom: 0.75rem;
+  }
+
+  /* Fake page chrome */
+  .page-chrome {
+    background: #fff;
+    border: 1px solid #ddd;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  /* Shared header */
+  .site-header {
+    border-bottom: 1px solid #E5E5E5;
+    padding: 0.75rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .site-logo { font-family: 'Playfair Display', serif; font-size: 1rem; color: #111; }
+  .site-nav { display: flex; gap: 1.25rem; align-items: center; }
+  .site-nav a {
+    font-size: 0.8rem; color: #555; text-decoration: none; cursor: pointer;
+  }
+  .site-nav a:hover { color: #111; }
+  .site-nav .nav-highlight { color: #333; font-weight: 500; }
+
+  /* Shared search bar below */
+  .search-bar {
+    border-bottom: 1px solid #E5E5E5;
+    padding: 0.75rem 1.5rem;
+    display: flex; gap: 0.75rem; align-items: center;
+    background: #fff;
+  }
+  .search-input {
+    flex: 1; border: 1px solid #E5E5E5; border-radius: 4px;
+    padding: 0.4rem 0.75rem; font-size: 0.8rem; color: #555;
+    font-family: 'Inter', sans-serif; outline: none; background: #fafafa;
+  }
+  .filter-pill {
+    border: 1px solid #E5E5E5; border-radius: 20px;
+    padding: 0.3rem 0.75rem; font-size: 0.75rem; color: #555;
+    background: #fff; cursor: pointer; white-space: nowrap;
+  }
+
+  /* Book grid preview */
+  .book-grid-preview {
+    padding: 1.25rem 1.5rem;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+  }
+  .book-card-preview {
+    border: 1px solid #E5E5E5; border-radius: 4px; padding: 0.75rem;
+    background: #fafafa;
+  }
+  .book-cover { width: 100%; aspect-ratio: 2/3; background: #E5E5E5; border-radius: 2px; margin-bottom: 0.5rem; }
+  .book-title { font-size: 0.7rem; font-weight: 500; color: #333; margin-bottom: 0.2rem; }
+  .book-author { font-size: 0.65rem; color: #999; }
+
+  /* ===================== DIRECTION A: Integrated ===================== */
+  .dir-a-about {
+    border-bottom: 1px solid #E5E5E5;
+    background: #fff;
+  }
+  .dir-a-l1 {
+    max-width: 1200px; margin: 0 auto;
+    padding: 1.1rem 1.5rem;
+    display: flex; align-items: flex-start; gap: 1rem;
+  }
+  .dir-a-l1 p {
+    font-size: 0.875rem; line-height: 1.65; color: #555;
+    flex: 1; margin: 0;
+  }
+  .dir-a-l1 p strong { color: #333; font-weight: 500; }
+  .dir-a-expand-btn {
+    font-size: 0.8rem; color: #888; background: none; border: none;
+    cursor: pointer; white-space: nowrap; padding: 0.2rem 0;
+    font-family: 'Inter', sans-serif; flex-shrink: 0;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .dir-a-expand-btn:hover { color: #333; }
+  .dir-a-close {
+    background: none; border: none; cursor: pointer; color: #bbb;
+    font-size: 1.1rem; line-height: 1; padding: 0.25rem; flex-shrink: 0;
+  }
+  .dir-a-accordion {
+    display: none; border-top: 1px solid #E5E5E5;
+  }
+  .dir-a-accordion.open { display: block; }
+  .dir-a-accordion-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 1rem;
+  }
+  .dir-a-section { border-bottom: 1px solid #f0f0f0; }
+  .dir-a-section:last-child { border-bottom: none; }
+  .dir-a-q {
+    width: 100%; background: none; border: none; cursor: pointer;
+    text-align: left; padding: 0.875rem 0;
+    font-family: 'Playfair Display', serif; font-size: 0.95rem; color: #333;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .dir-a-q:hover { color: #111; }
+  .dir-a-q .arrow { font-size: 0.7rem; color: #bbb; transition: transform 0.2s; }
+  .dir-a-q.active { color: #111; }
+  .dir-a-q.active .arrow { transform: rotate(180deg); color: #555; }
+  .dir-a-answer {
+    display: none; padding: 0 0 1rem; font-size: 0.85rem;
+    line-height: 1.7; color: #555;
+  }
+  .dir-a-answer.open { display: block; }
+  .dir-a-answer p { margin-bottom: 0.5rem; }
+  .dir-a-answer p:last-child { margin-bottom: 0; }
+
+  /* ===================== DIRECTION B: Sectioned ===================== */
+  .dir-b-about {
+    border-bottom: 1px solid #E5E5E5;
+    background: #f9f9f9;
+  }
+  .dir-b-inner {
+    max-width: 1200px; margin: 0 auto; padding: 1.25rem 1.5rem;
+  }
+  .dir-b-l1-row {
+    display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 0;
+  }
+  .dir-b-l1-text {
+    flex: 1; font-size: 0.875rem; line-height: 1.65; color: #555; margin: 0;
+  }
+  .dir-b-l1-text strong { color: #333; }
+  .dir-b-actions { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+  .dir-b-more-btn {
+    font-size: 0.75rem; color: #555; background: none; border: 1px solid #ddd;
+    border-radius: 20px; padding: 0.25rem 0.75rem; cursor: pointer;
+    font-family: 'Inter', sans-serif; white-space: nowrap;
+  }
+  .dir-b-more-btn:hover { border-color: #aaa; color: #333; }
+  .dir-b-close {
+    background: none; border: none; cursor: pointer; color: #bbb;
+    font-size: 1.1rem; line-height: 1; padding: 0.1rem;
+  }
+  .dir-b-accordion { display: none; margin-top: 0.75rem; border-top: 1px solid #e0e0e0; }
+  .dir-b-accordion.open { display: block; }
+  .dir-b-section { border-bottom: 1px solid #e8e8e8; }
+  .dir-b-section:last-child { border-bottom: none; }
+  .dir-b-q {
+    width: 100%; background: none; border: none; cursor: pointer;
+    text-align: left; padding: 0.9rem 0;
+    font-family: 'Playfair Display', serif; font-size: 1rem; color: #333;
+    display: flex; justify-content: space-between; align-items: center;
+    font-weight: 400;
+  }
+  .dir-b-q:hover { color: #111; }
+  .dir-b-indicator {
+    width: 16px; height: 16px; border-radius: 50%; border: 1px solid #ddd;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: #bbb; flex-shrink: 0; transition: all 0.15s;
+  }
+  .dir-b-q.active .dir-b-indicator { background: #333; border-color: #333; color: #fff; }
+  .dir-b-answer {
+    display: none; padding: 0 0 1rem; font-size: 0.85rem;
+    line-height: 1.7; color: #555;
+  }
+  .dir-b-answer.open { display: block; }
+  .dir-b-answer p { margin-bottom: 0.5rem; }
+  .dir-b-answer p:last-child { margin-bottom: 0; }
+
+  /* ===================== DIRECTION C: Editorial ===================== */
+  .dir-c-about {
+    border-bottom: 1px solid #E5E5E5;
+    background: #fff;
+    border-left: 3px solid #ccc;
+    cursor: pointer;
+    transition: background 0.15s, border-left-color 0.15s;
+  }
+  .dir-c-about:hover {
+    background: #fafafa;
+    border-left-color: #999;
+  }
+  .dir-c-about.expanded {
+    background: #fafafa;
+    border-left-color: #888;
+    cursor: default;
+  }
+  .dir-c-inner {
+    max-width: 1200px; margin: 0 auto; padding: 1.1rem 1.5rem;
+  }
+  .dir-c-eyebrow {
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #bbb; margin-bottom: 0.4rem;
+  }
+  .dir-c-l1-row { display: flex; align-items: flex-start; gap: 1rem; }
+  .dir-c-l1-text {
+    flex: 1; font-size: 0.875rem; line-height: 1.65; color: #555; margin: 0;
+  }
+  .dir-c-l1-text strong { color: #333; }
+  .dir-c-btns { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+  .dir-c-more-btn {
+    font-size: 0.75rem; color: #555; background: none; border: none;
+    cursor: pointer; font-family: 'Inter', sans-serif; padding: 0;
+    text-decoration: none; display: flex; align-items: center; gap: 0.25rem;
+  }
+  .dir-c-more-btn:hover { color: #111; }
+  .dir-c-close {
+    background: none; border: none; cursor: pointer; color: #ccc;
+    font-size: 1rem; line-height: 1; padding: 0.1rem;
+  }
+  .dir-c-accordion { display: none; margin-top: 0.75rem; }
+  .dir-c-accordion.open { display: block; }
+  .dir-c-section { display: flex; gap: 1.5rem; padding: 0.75rem 0; border-top: 1px solid #f0f0f0; }
+  .dir-c-num {
+    font-size: 0.7rem; color: #ccc; font-family: 'Playfair Display', serif;
+    padding-top: 0.05rem; flex-shrink: 0; width: 1rem; text-align: right;
+  }
+  .dir-c-content { flex: 1; }
+  .dir-c-q {
+    width: 100%; background: none; border: none; cursor: pointer;
+    text-align: left; padding: 0;
+    font-family: 'Playfair Display', serif; font-size: 0.95rem; color: #444;
+    display: flex; justify-content: space-between; align-items: center;
+    line-height: 1.3;
+  }
+  .dir-c-q:hover { color: #111; }
+  .dir-c-q .c-arrow { font-size: 0.65rem; color: #ccc; margin-left: 0.5rem; transition: transform 0.15s; flex-shrink: 0; }
+  .dir-c-q.active { color: #111; }
+  .dir-c-q.active .c-arrow { transform: rotate(180deg); }
+  .dir-c-answer {
+    display: none; padding-top: 0.5rem; font-size: 0.83rem;
+    line-height: 1.7; color: #555;
+  }
+  .dir-c-answer.open { display: block; }
+  .dir-c-answer p { margin-bottom: 0.4rem; }
+  .dir-c-answer p:last-child { margin-bottom: 0; }
+
+  /* Comparison nav */
+  .comparison-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #222; color: #fff; padding: 0.6rem 1.5rem;
+    display: flex; gap: 1.5rem; align-items: center;
+    font-size: 0.75rem;
+  }
+  .comparison-nav span { color: #888; }
+  .comparison-nav a { color: #ccc; text-decoration: none; }
+  .comparison-nav a:hover { color: #fff; }
+
+  @media (max-width: 640px) {
+    .book-grid-preview { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="comparison-nav">
+  <span>Варианты дизайна:</span>
+  <a href="#dir-a">A — Интегрированный</a>
+  <a href="#dir-b">B — Выделенный блок</a>
+  <a href="#dir-c">C — Редакционный</a>
+</div>
+
+<!-- ============ DIRECTION A ============ -->
+<div class="direction-label" id="dir-a">Вариант A — Интегрированный</div>
+<div class="direction-desc">Максимально вписан в страницу. Текст-ссылка «подробнее» раскрывает аккордеон. Никакого отдельного фона.</div>
+<div class="page-chrome">
+
+  <div class="site-header">
+    <div class="site-logo">Долгое наступление</div>
+    <div class="site-nav">
+      <a class="nav-highlight" onclick="toggleAboutA()">Что это?</a>
+      <a>Войти</a>
+      <a>Предложить книгу</a>
+    </div>
+  </div>
+
+  <div class="dir-a-about" id="about-a">
+    <div class="dir-a-l1">
+      <p>Собираю небольшие читательские группы — по <strong>3–4 человека</strong>, раз в неделю по видеосвязи, о книгах по демократии. Выбирайте, что хотите прочитать — я найду вам компанию.</p>
+      <button class="dir-a-expand-btn" onclick="toggleAccordionA()">подробнее ↓</button>
+      <button class="dir-a-close" onclick="closeAboutA()" title="Скрыть">×</button>
+    </div>
+    <div class="dir-a-accordion" id="accordion-a">
+      <div class="dir-a-accordion-inner">
+        <div class="dir-a-section">
+          <button class="dir-a-q" onclick="toggleSectionA(this)">
+            Что это такое? <span class="arrow">▼</span>
+          </button>
+          <div class="dir-a-answer">
+            <p>Сервис для формирования читательских кругов. Вместе читаем книги по демократии и встречаемся раз в неделю, чтобы поделиться впечатлениями.</p>
+            <p>Когда набирается 3–4 человека, желающих прочитать одну книгу, — я собираю вас в Telegram-группу.</p>
+          </div>
+        </div>
+        <div class="dir-a-section">
+          <button class="dir-a-q" onclick="toggleSectionA(this)">
+            Как это устроено? <span class="arrow">▼</span>
+          </button>
+          <div class="dir-a-answer">
+            <p>Отмечаете книги, которые хотите прочитать. На пересечении интересов я определяю группу из 3–4 человек и создаю общий чат.</p>
+            <p>Группа выбирает ведущего, каждый читает в своём темпе, встречаетесь раз в неделю на ~30 минут по видеосвязи.</p>
+          </div>
+        </div>
+        <div class="dir-a-section">
+          <button class="dir-a-q" onclick="toggleSectionA(this)">
+            Для кого это? <span class="arrow">▼</span>
+          </button>
+          <div class="dir-a-answer">
+            <p>Для тех, кому совместное чтение помогает в изучении демократии: помогает поддерживать темп, повышает мотивацию из-за вовлечённости единомышленников.</p>
+            <p>Важное условие: готовность созваниваться с включёнными камерами.</p>
+          </div>
+        </div>
+        <div class="dir-a-section">
+          <button class="dir-a-q" onclick="toggleSectionA(this)">
+            Почему именно демократия? <span class="arrow">▼</span>
+          </button>
+          <div class="dir-a-answer">
+            <p>Мы не можем дать определение демократии — поэтому и читаем. Нам интересен сам процесс выяснения, что она означает в теории и на практике. У этого процесса заведомо нет конца.</p>
+            <p>Предложенные книги проходят предмодерацию на соответствие идее проекта.</p>
+          </div>
+        </div>
+        <div class="dir-a-section">
+          <button class="dir-a-q" onclick="toggleSectionA(this)">
+            Чем это не является? <span class="arrow">▼</span>
+          </button>
+          <div class="dir-a-answer">
+            <p>Это не дискуссионный клуб — мы встречаемся не для дебатов. Нам окей остаться при своём мнении после обсуждения.</p>
+            <p>Мы осознаём, что данный формат представляет собой информационный пузырь. Для другого есть другие форматы.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input class="search-input" placeholder="Поиск книг..." readonly>
+    <span class="filter-pill">Все</span>
+    <span class="filter-pill">Читаю</span>
+    <span class="filter-pill">Хочу прочитать</span>
+  </div>
+  <div class="book-grid-preview">
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Истоки тоталитаризма</div><div class="book-author">Ханна Арендт</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Демократия и её критики</div><div class="book-author">Роберт Даль</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Открытое общество</div><div class="book-author">Карл Поппер</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Конец истории</div><div class="book-author">Фукуяма</div></div>
+  </div>
+</div>
+
+<!-- ============ DIRECTION B ============ -->
+<div class="direction-label" id="dir-b">Вариант B — Выделенный блок</div>
+<div class="direction-desc">Чуть тёплый фон #f9f9f9. Кнопка «Подробнее» с рамкой. Индикатор открытости — кружок. Максимально аккуратно.</div>
+<div class="page-chrome">
+
+  <div class="site-header">
+    <div class="site-logo">Долгое наступление</div>
+    <div class="site-nav">
+      <a class="nav-highlight" onclick="toggleAboutB()">Что это?</a>
+      <a>Войти</a>
+      <a>Предложить книгу</a>
+    </div>
+  </div>
+
+  <div class="dir-b-about" id="about-b">
+    <div class="dir-b-inner">
+      <div class="dir-b-l1-row">
+        <p class="dir-b-l1-text">Собираю небольшие читательские группы — по <strong>3–4 человека</strong>, раз в неделю по видеосвязи, о книгах по демократии. Выбирайте, что хотите прочитать — я найду вам компанию.</p>
+        <div class="dir-b-actions">
+          <button class="dir-b-more-btn" onclick="toggleAccordionB()">Подробнее</button>
+          <button class="dir-b-close" onclick="closeAboutB()" title="Скрыть">×</button>
+        </div>
+      </div>
+      <div class="dir-b-accordion" id="accordion-b">
+        <div class="dir-b-section">
+          <button class="dir-b-q" onclick="toggleSectionB(this)">
+            Что это такое?
+            <div class="dir-b-indicator">▼</div>
+          </button>
+          <div class="dir-b-answer">
+            <p>Сервис для формирования читательских кругов. Вместе читаем книги по демократии и встречаемся раз в неделю, чтобы поделиться впечатлениями.</p>
+            <p>Когда набирается 3–4 человека, желающих прочитать одну книгу, — я собираю вас в Telegram-группу.</p>
+          </div>
+        </div>
+        <div class="dir-b-section">
+          <button class="dir-b-q" onclick="toggleSectionB(this)">
+            Как это устроено?
+            <div class="dir-b-indicator">▼</div>
+          </button>
+          <div class="dir-b-answer">
+            <p>Отмечаете книги, которые хотите прочитать. На пересечении интересов я определяю группу из 3–4 человек и создаю общий чат.</p>
+            <p>Группа выбирает ведущего, каждый читает в своём темпе, встречаетесь раз в неделю на ~30 минут по видеосвязи.</p>
+          </div>
+        </div>
+        <div class="dir-b-section">
+          <button class="dir-b-q" onclick="toggleSectionB(this)">
+            Для кого это?
+            <div class="dir-b-indicator">▼</div>
+          </button>
+          <div class="dir-b-answer">
+            <p>Для тех, кому совместное чтение помогает в изучении демократии: помогает поддерживать темп, повышает мотивацию из-за вовлечённости единомышленников.</p>
+            <p>Важное условие: готовность созваниваться с включёнными камерами.</p>
+          </div>
+        </div>
+        <div class="dir-b-section">
+          <button class="dir-b-q" onclick="toggleSectionB(this)">
+            Почему именно демократия?
+            <div class="dir-b-indicator">▼</div>
+          </button>
+          <div class="dir-b-answer">
+            <p>Мы не можем дать определение демократии — поэтому и читаем. Нам интересен сам процесс выяснения, что она означает в теории и на практике.</p>
+            <p>Предложенные книги проходят предмодерацию на соответствие идее проекта.</p>
+          </div>
+        </div>
+        <div class="dir-b-section">
+          <button class="dir-b-q" onclick="toggleSectionB(this)">
+            Чем это не является?
+            <div class="dir-b-indicator">▼</div>
+          </button>
+          <div class="dir-b-answer">
+            <p>Это не дискуссионный клуб — мы встречаемся не для дебатов. Нам окей остаться при своём мнении после обсуждения.</p>
+            <p>Мы осознаём, что данный формат представляет собой информационный пузырь. Для другого есть другие форматы.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input class="search-input" placeholder="Поиск книг..." readonly>
+    <span class="filter-pill">Все</span>
+    <span class="filter-pill">Читаю</span>
+    <span class="filter-pill">Хочу прочитать</span>
+  </div>
+  <div class="book-grid-preview">
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Истоки тоталитаризма</div><div class="book-author">Ханна Арендт</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Демократия и её критики</div><div class="book-author">Роберт Даль</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Открытое общество</div><div class="book-author">Карл Поппер</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Конец истории</div><div class="book-author">Фукуяма</div></div>
+  </div>
+</div>
+
+<!-- ============ DIRECTION C ============ -->
+<div class="direction-label" id="dir-c">Вариант C — Редакционный</div>
+<div class="direction-desc">Левый акцентный бордер. Нумерованные вопросы. Минималистичная стрелка. Ощущение журнального материала.</div>
+<div class="page-chrome" style="margin-bottom: 3rem;">
+
+  <div class="site-header">
+    <div class="site-logo">Долгое наступление</div>
+    <div class="site-nav">
+      <a class="nav-highlight" onclick="toggleAboutC()">Что это?</a>
+      <a>Войти</a>
+      <a>Предложить книгу</a>
+    </div>
+  </div>
+
+  <div class="dir-c-about" id="about-c" onclick="handleAboutCClick(event)">
+    <div class="dir-c-inner">
+      <div class="dir-c-eyebrow">О клубе</div>
+      <div class="dir-c-l1-row">
+        <p class="dir-c-l1-text">Собираю небольшие читательские группы — по <strong>3–4 человека</strong>, раз в неделю по видеосвязи, о книгах по демократии. Выбирайте, что хотите прочитать — я найду вам компанию.</p>
+        <div class="dir-c-btns">
+          <button class="dir-c-more-btn" onclick="toggleAccordionC(); event.stopPropagation()">Подробнее <span>↓</span></button>
+          <button class="dir-c-close" onclick="closeAboutC(); event.stopPropagation()">×</button>
+        </div>
+      </div>
+      <div class="dir-c-accordion" id="accordion-c">
+        <div class="dir-c-section">
+          <div class="dir-c-num">1</div>
+          <div class="dir-c-content">
+            <button class="dir-c-q" onclick="toggleSectionC(this)">
+              Что это такое? <span class="c-arrow">▼</span>
+            </button>
+            <div class="dir-c-answer">
+              <p>Сервис для формирования читательских кругов. Вместе читаем книги по демократии и встречаемся раз в неделю, чтобы поделиться впечатлениями.</p>
+              <p>Когда набирается 3–4 человека, желающих прочитать одну книгу, — я собираю вас в Telegram-группу.</p>
+            </div>
+          </div>
+        </div>
+        <div class="dir-c-section">
+          <div class="dir-c-num">2</div>
+          <div class="dir-c-content">
+            <button class="dir-c-q" onclick="toggleSectionC(this)">
+              Как это устроено? <span class="c-arrow">▼</span>
+            </button>
+            <div class="dir-c-answer">
+              <p>Отмечаете книги, которые хотите прочитать. На пересечении интересов я определяю группу из 3–4 человек и создаю общий чат.</p>
+              <p>Группа выбирает ведущего, встречаетесь раз в неделю на ~30 минут по видеосвязи.</p>
+            </div>
+          </div>
+        </div>
+        <div class="dir-c-section">
+          <div class="dir-c-num">3</div>
+          <div class="dir-c-content">
+            <button class="dir-c-q" onclick="toggleSectionC(this)">
+              Для кого это? <span class="c-arrow">▼</span>
+            </button>
+            <div class="dir-c-answer">
+              <p>Для тех, кому совместное чтение помогает в изучении демократии. Важное условие: готовность созваниваться с включёнными камерами.</p>
+            </div>
+          </div>
+        </div>
+        <div class="dir-c-section">
+          <div class="dir-c-num">4</div>
+          <div class="dir-c-content">
+            <button class="dir-c-q" onclick="toggleSectionC(this)">
+              Почему именно демократия? <span class="c-arrow">▼</span>
+            </button>
+            <div class="dir-c-answer">
+              <p>Мы не можем дать определение демократии — поэтому и читаем. Нам интересен сам процесс выяснения, что она означает в теории и на практике.</p>
+            </div>
+          </div>
+        </div>
+        <div class="dir-c-section">
+          <div class="dir-c-num">5</div>
+          <div class="dir-c-content">
+            <button class="dir-c-q" onclick="toggleSectionC(this)">
+              Чем это не является? <span class="c-arrow">▼</span>
+            </button>
+            <div class="dir-c-answer">
+              <p>Это не дискуссионный клуб — мы встречаемся не для дебатов. Мы осознаём, что данный формат — информационный пузырь. Для другого есть другие форматы.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input class="search-input" placeholder="Поиск книг..." readonly>
+    <span class="filter-pill">Все</span>
+    <span class="filter-pill">Читаю</span>
+    <span class="filter-pill">Хочу прочитать</span>
+  </div>
+  <div class="book-grid-preview">
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Истоки тоталитаризма</div><div class="book-author">Ханна Арендт</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Демократия и её критики</div><div class="book-author">Роберт Даль</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Открытое общество</div><div class="book-author">Карл Поппер</div></div>
+    <div class="book-card-preview"><div class="book-cover"></div><div class="book-title">Конец истории</div><div class="book-author">Фукуяма</div></div>
+  </div>
+</div>
+
+<script>
+// Direction A
+function toggleAccordionA() {
+  const acc = document.getElementById('accordion-a');
+  acc.classList.toggle('open');
+}
+function closeAboutA() {
+  document.getElementById('about-a').style.display = 'none';
+}
+function toggleAboutA() {
+  const el = document.getElementById('about-a');
+  el.style.display = el.style.display === 'none' ? '' : '';
+  document.getElementById('accordion-a').classList.add('open');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function toggleSectionA(btn) {
+  const section = btn.parentElement;
+  const answer = section.querySelector('.dir-a-answer');
+  const isOpen = answer.classList.contains('open');
+  // close all
+  document.querySelectorAll('#accordion-a .dir-a-answer').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('#accordion-a .dir-a-q').forEach(q => q.classList.remove('active'));
+  if (!isOpen) {
+    answer.classList.add('open');
+    btn.classList.add('active');
+  }
+}
+
+// Direction B
+function toggleAccordionB() {
+  const acc = document.getElementById('accordion-b');
+  acc.classList.toggle('open');
+}
+function closeAboutB() {
+  document.getElementById('about-b').style.display = 'none';
+}
+function toggleAboutB() {
+  const el = document.getElementById('about-b');
+  el.style.display = '';
+  document.getElementById('accordion-b').classList.add('open');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function toggleSectionB(btn) {
+  const section = btn.parentElement;
+  const answer = section.querySelector('.dir-b-answer');
+  const isOpen = answer.classList.contains('open');
+  document.querySelectorAll('#accordion-b .dir-b-answer').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('#accordion-b .dir-b-q').forEach(q => q.classList.remove('active'));
+  if (!isOpen) {
+    answer.classList.add('open');
+    btn.classList.add('active');
+  }
+}
+
+// Direction C
+function toggleAccordionC() {
+  const acc = document.getElementById('accordion-c');
+  const about = document.getElementById('about-c');
+  const isOpen = acc.classList.contains('open');
+  acc.classList.toggle('open');
+  about.classList.toggle('expanded', !isOpen);
+}
+function handleAboutCClick(event) {
+  // Only trigger if clicking on the L1 area (not accordion contents)
+  const acc = document.getElementById('accordion-c');
+  if (acc.contains(event.target)) return;
+  const isOpen = acc.classList.contains('open');
+  if (!isOpen) toggleAccordionC();
+}
+function closeAboutC() {
+  document.getElementById('about-c').style.display = 'none';
+}
+function toggleAboutC() {
+  const el = document.getElementById('about-c');
+  el.style.display = '';
+  document.getElementById('accordion-c').classList.add('open');
+  el.classList.add('expanded');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function toggleSectionC(btn) {
+  const content = btn.parentElement;
+  const answer = content.querySelector('.dir-c-answer');
+  const isOpen = answer.classList.contains('open');
+  document.querySelectorAll('#accordion-c .dir-c-answer').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('#accordion-c .dir-c-q').forEach(q => q.classList.remove('active'));
+  if (!isOpen) {
+    answer.classList.add('open');
+    btn.classList.add('active');
+  }
+}
+</script>
+</body>
+</html>

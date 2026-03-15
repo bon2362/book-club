@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Прототип: Предложить книгу — Долгое наступление</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --border-focus: #6b7280;
+    --text: #1a1a1a;
+    --text-muted: #6b7280;
+    --accent: #2d2d2d;
+    --accent-hover: #444;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --warning-bg: #fef9c3;
+    --warning-border: #fde047;
+    --pending-bg: #fef3c7;
+    --pending-text: #92400e;
+    --approved-bg: #dcfce7;
+    --approved-text: #14532d;
+    --rejected-bg: #fee2e2;
+    --rejected-text: #7f1d1d;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    height: 56px;
+  }
+  nav .logo {
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-decoration: none;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  nav .nav-links {
+    display: flex;
+    gap: 0.25rem;
+    flex: 1;
+  }
+  nav a.tab {
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+  nav a.tab:hover { background: #f3f4f6; color: var(--text); }
+  nav a.tab.active { background: #f3f4f6; color: var(--text); font-weight: 500; }
+  nav .user-pill {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* PAGE LAYOUT */
+  .page { max-width: 680px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+  .page-wide { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.5; }
+
+  /* FORM */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+  }
+  .field { margin-bottom: 1.25rem; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--text);
+  }
+  label .hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 0.4rem;
+  }
+  input[type="text"], input[type="url"], textarea, select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--border-focus); }
+  textarea { resize: vertical; min-height: 90px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, opacity 0.15s;
+    text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: #f3f4f6; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #15803d; }
+  .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+
+  .form-actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
+
+  /* NOTICE BOX */
+  .notice {
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+  }
+  .notice.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+  .notice.warning { background: var(--warning-bg); border: 1px solid var(--warning-border); color: #713f12; }
+
+  /* SUCCESS STATE */
+  .success-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .success-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .success-state h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+  .success-state p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* MY SUBMISSIONS */
+  .submission-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .submission-meta { flex: 1; min-width: 0; }
+  .submission-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem; }
+  .submission-author { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+  .submission-comment { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
+
+  /* STATUS BADGES */
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-pending { background: var(--pending-bg); color: var(--pending-text); }
+  .badge-approved { background: var(--approved-bg); color: var(--approved-text); }
+  .badge-rejected { background: var(--rejected-bg); color: var(--rejected-text); }
+
+  /* ADMIN VIEW */
+  .admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .admin-filters {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 0.35rem 0.85rem;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filter-btn:hover:not(.active) { background: #f3f4f6; }
+
+  .admin-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .admin-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .admin-card-body {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-card-body strong { color: var(--text); font-weight: 600; }
+  .admin-card-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+  .admin-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  .admin-reject-input {
+    flex: 1;
+    min-width: 180px;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    outline: none;
+  }
+  .admin-reject-input:focus { border-color: var(--border-focus); }
+
+  /* REJECTED/APPROVED STATE in admin */
+  .admin-card.done { opacity: 0.6; }
+  .admin-card.done .admin-actions { display: none; }
+  .decision-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  /* TABS */
+  .section-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+  .section-tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s;
+  }
+  .section-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .section-tab:hover:not(.active) { color: var(--text); }
+
+  .count-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fee2e2;
+    color: #7f1d1d;
+    border-radius: 99px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0 0.45rem;
+    height: 1.15rem;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  .spreadsheet-note {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    color: #14532d;
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 600px) {
+    .field-row { grid-template-columns: 1fr; }
+    .admin-card-head { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="#" onclick="showView('user-form')">Долгое наступление</a>
+  <div class="nav-links">
+    <a class="tab" onclick="showView('user-form')">Каталог</a>
+    <a class="tab active" id="tab-suggest" onclick="showView('user-form')">Предложить книгу</a>
+    <a class="tab" onclick="showView('my-submissions')">Мои предложения</a>
+    <a class="tab" onclick="showView('admin')">⚙ Модерация</a>
+  </div>
+  <span class="user-pill">user@example.com</span>
+</nav>
+
+
+<!-- ====== VIEW: USER FORM ====== -->
+<div class="view active" id="view-user-form">
+  <div class="page">
+    <h1>Предложить книгу</h1>
+    <p class="subtitle">
+      Хотите добавить книгу в список для обсуждения?<br>
+      Заполните форму — я рассмотрю заявку и добавлю книгу в каталог.
+    </p>
+
+    <div class="notice info">
+      📋 Книги проходят модерацию перед публикацией. Обычно это занимает пару дней.
+    </div>
+
+    <div class="form-card" id="form-card">
+      <div class="field-row">
+        <div class="field">
+          <label>Название <span class="hint">*</span></label>
+          <input type="text" placeholder="Мастер и Маргарита" id="input-title">
+        </div>
+        <div class="field">
+          <label>Автор <span class="hint">*</span></label>
+          <input type="text" placeholder="Михаил Булгаков" id="input-author">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Год издания <span class="hint">необязательно</span></label>
+          <input type="text" placeholder="1967">
+        </div>
+        <div class="field">
+          <label>Жанр / тег <span class="hint">необязательно</span></label>
+          <input type="text" placeholder="роман, магический реализм">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Обложка <span class="hint">ссылка на изображение, необязательно</span></label>
+        <input type="url" placeholder="https://..." id="input-cover">
+      </div>
+
+      <div class="field">
+        <label>Почему стоит прочитать? <span class="hint">*</span></label>
+        <textarea placeholder="Расскажите коротко, почему эта книга подходит для клуба..." id="input-reason"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="submitForm()">Отправить заявку</button>
+        <button class="btn btn-outline" onclick="clearForm()">Очистить</button>
+      </div>
+    </div>
+
+    <div id="form-success" style="display:none;">
+      <div class="success-state">
+        <div class="success-icon">✅</div>
+        <h2>Заявка отправлена!</h2>
+        <p>Я рассмотрю её в ближайшее время. Статус можно отследить в разделе «Мои предложения».</p>
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center;">
+          <button class="btn btn-outline" onclick="resetForm()">Предложить ещё одну</button>
+          <button class="btn btn-primary" onclick="showView('my-submissions')">Мои предложения →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====== VIEW: MY SUBMISSIONS ====== -->
+<div class="view" id="view-my-submissions">
+  <div class="page">
+    <h1>Мои предложения</h1>
+    <p class="subtitle">История ваших заявок и их текущий статус.</p>
+
+    <div class="submission-item">
+      <div class="submission-meta">
+        <div class="submission-title">Мастер и Маргарита</div>
+        <div class="submission-author">Михаил Булгаков, 1967</div>
+        <div class="submission-comment">«Классика, которая отлично зайдёт для клуба»</div>
+        <div style="margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted);">Отправлено 12 марта 2026</div>
+      </div>
+      <span class="badge badge-pending">На рассмотрении</span>
+    </div>
+
+    <div class="submission-item">
+      <div class="submission-meta">
+        <div class="submission-title">Сто лет одиночества</div>
+        <div class="submission-author">Габриэль Гарсиа Маркес, 1967</div>
+        <div class="submission-comment">«Магический реализм, мировая классика»</div>
+        <div style="margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted);">Отправлено 5 февраля 2026 · Одобрено 8 февраля 2026</div>
+      </div>
+      <span class="badge badge-approved">Добавлено ✓</span>
+    </div>
+
+    <div class="submission-item">
+      <div class="submission-meta">
+        <div class="submission-title">50 оттенков серого</div>
+        <div class="submission-author">Э. Л. Джеймс</div>
+        <div class="submission-comment">«Хит, почему нет»</div>
+        <div style="margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted);">Отправлено 1 января 2026 · Отклонено 3 января 2026</div>
+        <div style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--danger);">Причина: не соответствует формату клуба</div>
+      </div>
+      <span class="badge badge-rejected">Отклонено</span>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+      <button class="btn btn-primary" onclick="showView('user-form')">+ Предложить ещё</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====== VIEW: ADMIN MODERATION ====== -->
+<div class="view" id="view-admin">
+  <div class="page-wide">
+    <div class="admin-header">
+      <div>
+        <h1>Модерация заявок</h1>
+        <p class="subtitle" style="margin-bottom:0;">Предложенные пользователями книги</p>
+      </div>
+      <div class="admin-filters">
+        <button class="filter-btn active" onclick="setFilter(this,'all')">Все <span class="count-chip">3</span></button>
+        <button class="filter-btn" onclick="setFilter(this,'pending')">На рассмотрении <span class="count-chip">1</span></button>
+        <button class="filter-btn" onclick="setFilter(this,'approved')">Одобрены</button>
+        <button class="filter-btn" onclick="setFilter(this,'rejected')">Отклонены</button>
+      </div>
+    </div>
+
+    <div class="spreadsheet-note">
+      📊 Все заявки сохраняются на лист <strong>«Предложения»</strong> в Google Sheets.
+      Одобрение переносит книгу на основной лист автоматически.
+    </div>
+
+    <div style="margin-top: 1.25rem;">
+
+      <!-- PENDING CARD -->
+      <div class="admin-card" id="admin-card-1" data-status="pending">
+        <div class="admin-card-head">
+          <div>
+            <div style="font-weight:700; font-size: 1rem;">Мастер и Маргарита</div>
+            <div style="color: var(--text-muted); font-size:0.875rem;">Михаил Булгаков · 1967</div>
+          </div>
+          <span class="badge badge-pending">На рассмотрении</span>
+        </div>
+        <div class="admin-card-body">
+          <div><strong>Почему стоит прочитать:</strong> Классика русской литературы, которая отлично зайдёт для клуба. Многоуровневый текст — есть что обсуждать.</div>
+          <div style="margin-top:0.5rem;"><strong>Обложка:</strong> <a href="#" style="color: #2563eb; font-size:0.85rem;">ссылка</a></div>
+        </div>
+        <div class="admin-card-meta">
+          Предложил: <strong>ivan@example.com</strong> · 12 марта 2026
+        </div>
+        <div class="admin-actions">
+          <button class="btn btn-success btn-sm" onclick="approve(1)">✓ Одобрить и добавить в каталог</button>
+          <input class="admin-reject-input" placeholder="Причина отклонения (необязательно)..." id="reject-reason-1">
+          <button class="btn btn-danger btn-sm" onclick="reject(1)">✕ Отклонить</button>
+        </div>
+      </div>
+
+      <!-- APPROVED CARD -->
+      <div class="admin-card done" id="admin-card-2" data-status="approved">
+        <div class="admin-card-head">
+          <div>
+            <div style="font-weight:700; font-size: 1rem;">Сто лет одиночества</div>
+            <div style="color: var(--text-muted); font-size:0.875rem;">Габриэль Гарсиа Маркес · 1967</div>
+          </div>
+          <span class="badge badge-approved">Добавлено ✓</span>
+        </div>
+        <div class="admin-card-body">
+          <div><strong>Почему стоит прочитать:</strong> Магический реализм, мировая классика. Один из важнейших романов XX века.</div>
+        </div>
+        <div class="admin-card-meta">
+          Предложил: <strong>maria@example.com</strong> · 5 февраля 2026 · Одобрено 8 февраля 2026
+        </div>
+        <div class="decision-note">Книга добавлена на основной лист Google Sheets.</div>
+      </div>
+
+      <!-- REJECTED CARD -->
+      <div class="admin-card done" id="admin-card-3" data-status="rejected">
+        <div class="admin-card-head">
+          <div>
+            <div style="font-weight:700; font-size: 1rem;">50 оттенков серого</div>
+            <div style="color: var(--text-muted); font-size:0.875rem;">Э. Л. Джеймс</div>
+          </div>
+          <span class="badge badge-rejected">Отклонено</span>
+        </div>
+        <div class="admin-card-body">
+          <div><strong>Почему стоит прочитать:</strong> Хит, почему нет.</div>
+        </div>
+        <div class="admin-card-meta">
+          Предложил: <strong>anon@example.com</strong> · 1 января 2026 · Отклонено 3 января 2026
+        </div>
+        <div class="decision-note">Причина: не соответствует формату клуба.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<script>
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    // Update nav tabs
+    document.querySelectorAll('nav a.tab').forEach(t => t.classList.remove('active'));
+    const map = { 'user-form': 1, 'my-submissions': 2, 'admin': 3 };
+    const tabs = document.querySelectorAll('nav a.tab');
+    if (name === 'user-form') tabs[1].classList.add('active');
+    if (name === 'my-submissions') tabs[2].classList.add('active');
+    if (name === 'admin') tabs[3].classList.add('active');
+  }
+
+  function submitForm() {
+    const title = document.getElementById('input-title').value.trim();
+    const author = document.getElementById('input-author').value.trim();
+    const reason = document.getElementById('input-reason').value.trim();
+    if (!title || !author || !reason) {
+      alert('Пожалуйста, заполните обязательные поля: название, автор и причина.');
+      return;
+    }
+    document.getElementById('form-card').style.display = 'none';
+    document.getElementById('form-success').style.display = 'block';
+  }
+
+  function clearForm() {
+    document.getElementById('input-title').value = '';
+    document.getElementById('input-author').value = '';
+    document.getElementById('input-cover').value = '';
+    document.getElementById('input-reason').value = '';
+  }
+
+  function resetForm() {
+    clearForm();
+    document.getElementById('form-card').style.display = 'block';
+    document.getElementById('form-success').style.display = 'none';
+  }
+
+  function approve(id) {
+    const card = document.getElementById('admin-card-' + id);
+    card.querySelector('.badge').className = 'badge badge-approved';
+    card.querySelector('.badge').textContent = 'Добавлено ✓';
+    card.classList.add('done');
+    const note = document.createElement('div');
+    note.className = 'decision-note';
+    note.textContent = 'Книга добавлена на основной лист Google Sheets.';
+    card.appendChild(note);
+    card.dataset.status = 'approved';
+  }
+
+  function reject(id) {
+    const card = document.getElementById('admin-card-' + id);
+    const reason = document.getElementById('reject-reason-' + id).value.trim();
+    card.querySelector('.badge').className = 'badge badge-rejected';
+    card.querySelector('.badge').textContent = 'Отклонено';
+    card.classList.add('done');
+    const note = document.createElement('div');
+    note.className = 'decision-note';
+    note.textContent = reason ? 'Причина: ' + reason + '.' : 'Отклонено без указания причины.';
+    card.appendChild(note);
+    card.dataset.status = 'rejected';
+  }
+
+  function setFilter(btn, filter) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.admin-card').forEach(card => {
+      if (filter === 'all' || card.dataset.status === filter) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+</script>
+</body>
+</html>

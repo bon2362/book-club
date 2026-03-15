@@ -1,12 +1,13 @@
 import Fuse from 'fuse.js'
 import { transliterate } from 'transliteration'
-import type { Book } from './sheets'
+
+type Searchable = { id: string; name: string; author: string }
 
 function toTranslit(text: string): string {
   return transliterate(text)
 }
 
-function buildSearchIndex(books: Book[]) {
+function buildSearchIndex<T extends Searchable>(books: T[]) {
   const enriched = books.map(b => ({
     ...b,
     authorTranslit: toTranslit(b.author),
@@ -20,7 +21,7 @@ function buildSearchIndex(books: Book[]) {
   })
 }
 
-export function searchBooks(books: Book[], query: string): Book[] {
+export function searchBooks<T extends Searchable>(books: T[], query: string): T[] {
   if (!query.trim()) return books
 
   const fuse = buildSearchIndex(books)
@@ -41,5 +42,5 @@ export function searchBooks(books: Book[], query: string): Book[] {
       return true
     })
     .map(r => books.find(b => b.id === r.item.id))
-    .filter((b): b is Book => b !== undefined)
+    .filter((b): b is T => b !== undefined)
 }

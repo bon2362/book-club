@@ -3,6 +3,18 @@ import * as sheets from '@/lib/sheets'
 import type { Book } from './sheets'
 
 jest.mock('@/lib/sheets')
+jest.mock('@/lib/db', () => ({
+  db: {
+    select: jest.fn().mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue([]),
+        catch: jest.fn().mockResolvedValue([]),
+        then: jest.fn().mockImplementation((cb: (v: unknown[]) => unknown) => Promise.resolve(cb([]))),
+      }),
+      catch: jest.fn().mockResolvedValue([]),
+    }),
+  },
+}))
 
 const mockFetchBooks = sheets.fetchBooks as jest.MockedFunction<typeof sheets.fetchBooks>
 
@@ -19,6 +31,7 @@ const sampleBooks: Book[] = [
     link: 'https://example.com',
     description: 'Описание книги',
     coverUrl: 'https://covers.example.com/krugman.jpg',
+    whyForClub: null,
   },
   {
     id: '3',
@@ -32,6 +45,7 @@ const sampleBooks: Book[] = [
     link: '',
     description: '',
     coverUrl: null,
+    whyForClub: null,
   },
 ]
 
@@ -92,6 +106,6 @@ describe('fetchBooksWithCovers', () => {
     mockFetchBooks.mockResolvedValue(sampleBooks)
     const result = await fetchBooksWithCovers()
     expect(result[0]).not.toBe(sampleBooks[0])
-    expect(result[0]).toEqual(sampleBooks[0])
+    expect(result[0]).toMatchObject(sampleBooks[0])
   })
 })

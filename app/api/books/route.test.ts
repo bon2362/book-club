@@ -24,7 +24,7 @@ function makeChainable(data: unknown[] = []) {
 
 const mockSheetsBook = {
   id: '1', name: 'Test Book', type: 'Book', tags: ['test'], author: 'Author',
-  size: 'M', pages: '200', date: '2024', link: '', description: '', coverUrl: null,
+  size: 'M', pages: '200', date: '2024', link: '', description: '', coverUrl: null, whyForClub: null,
 }
 
 const mockApprovedSubmission = {

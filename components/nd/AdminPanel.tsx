@@ -35,9 +35,11 @@ interface Props {
   statuses: Record<string, 'reading' | 'read'>
   allTags: string[]
   tagDescriptions: Record<string, string>
+  books: BookWithCover[]
+  newFlags: Record<string, boolean>
 }
 
-type View = 'users' | 'books' | 'tags' | 'submissions'
+type View = 'users' | 'books' | 'tags' | 'submissions' | 'new'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 
 const cell: React.CSSProperties = {
@@ -84,7 +86,7 @@ const fieldInput: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions }: Props) {
+export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions, books, newFlags: initialNewFlags }: Props) {
   const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)
@@ -98,6 +100,9 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   })
   const [tagSaving, setTagSaving] = useState<string | null>(null)
   const [tagSavedSet, setTagSavedSet] = useState<Set<string>>(new Set())
+
+  const [newFlags, setNewFlags] = useState<Record<string, boolean>>(initialNewFlags)
+  const [newFlagLoading, setNewFlagLoading] = useState<string | null>(null)
 
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [submissionsLoaded, setSubmissionsLoaded] = useState(false)
@@ -224,6 +229,21 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
       }
     } catch { /* silently ignore */ }
     finally { setSubmissionActionLoading(null) }
+  }
+
+  async function handleToggleNew(bookId: string, currentIsNew: boolean) {
+    setNewFlagLoading(bookId)
+    try {
+      const next = !currentIsNew
+      await fetch('/api/admin/book-new-flag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId, isNew: next }),
+      })
+      setNewFlags(prev => ({ ...prev, [bookId]: next }))
+    } finally {
+      setNewFlagLoading(null)
+    }
   }
 
   async function handleDeleteSubmission(id: string) {
@@ -368,6 +388,9 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
           </button>
           <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
             Заявки ({submissions.length})
+          </button>
+          <button style={tabStyle(view === 'new')} onClick={() => setView('new')}>
+            Новинки ({Object.values(newFlags).filter(Boolean).length})
           </button>
         </div>
 
@@ -745,6 +768,58 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                 </tbody>
               </table>
             )}
+          </div>
+        )}
+        {/* New books */}
+        {view === 'new' && (
+          <div>
+            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.78rem', color: '#888', marginBottom: '1.25rem', lineHeight: 1.55 }}>
+              Для книг из Google Sheets — только ручная пометка. Для книг из заявок — автоматически первые 30 дней, если не переопределено.
+            </p>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={headCell}>Книга</th>
+                  <th style={headCell}>Источник</th>
+                  <th style={{ ...headCell, textAlign: 'center', width: '100px' }}>Новая</th>
+                </tr>
+              </thead>
+              <tbody>
+                {books.map(book => {
+                  const isNew = newFlags[book.id] ?? book.isNew
+                  const isLoading = newFlagLoading === book.id
+                  const isSubmission = !book.id.match(/^\d+$/)
+                  return (
+                    <tr key={book.id}>
+                      <td style={cell}>{book.name}</td>
+                      <td style={{ ...cell, color: '#999', fontSize: '0.72rem' }}>
+                        {isSubmission ? 'Заявка' : 'Google Sheets'}
+                      </td>
+                      <td style={{ ...cell, textAlign: 'center' }}>
+                        <button
+                          disabled={isLoading}
+                          onClick={() => handleToggleNew(book.id, isNew)}
+                          style={{
+                            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                            fontSize: '0.65rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            padding: '0.2rem 0.6rem',
+                            border: `1px solid ${isNew ? '#C0603A' : '#E5E5E5'}`,
+                            background: isNew ? '#C0603A' : 'transparent',
+                            color: isNew ? '#fff' : '#999',
+                            cursor: isLoading ? 'default' : 'pointer',
+                            transition: 'background 0.15s, color 0.15s',
+                          }}
+                        >
+                          {isNew ? 'Новая' : '—'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </main>

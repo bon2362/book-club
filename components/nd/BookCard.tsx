@@ -31,6 +31,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
   const [descExpanded, setDescExpanded] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
+  const hasExpandable = isLongDescription || !!book.whyRead
   const isReading = book.status === 'reading'
   const isRead = book.status === 'read'
 
@@ -92,6 +93,24 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             }}
           >
             Сейчас читаем
+          </div>
+        )}
+        {book.isNew && !isReading && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '0.5rem',
+              right: '0.5rem',
+              background: '#C0603A',
+              color: '#fff',
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.55rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              padding: '0.2rem 0.45rem',
+            }}
+          >
+            Новая
           </div>
         )}
       </div>
@@ -266,29 +285,31 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
         </div>
       )}
 
-      {/* Description */}
-      {book.description && (
+      {/* Description + Why Read */}
+      {(book.description || book.whyRead) && (
         <div style={{ margin: '0.5rem 0.75rem 0' }}>
-          <p
-            onClick={isLongDescription ? () => setDescExpanded(e => !e) : undefined}
-            style={{
-              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-              fontSize: '0.78rem',
-              lineHeight: 1.55,
-              color: '#666',
-              margin: 0,
-              cursor: isLongDescription ? 'pointer' : 'default',
-              ...(descExpanded ? {} : {
-                display: '-webkit-box',
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }),
-            }}
-          >
-            {book.description}
-          </p>
-          {isLongDescription && (
+          {book.description && (
+            <p
+              onClick={hasExpandable ? () => setDescExpanded(e => !e) : undefined}
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.78rem',
+                lineHeight: 1.55,
+                color: '#666',
+                margin: 0,
+                cursor: hasExpandable ? 'pointer' : 'default',
+                ...(descExpanded ? {} : {
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }),
+              }}
+            >
+              {book.description}
+            </p>
+          )}
+          {hasExpandable && (
             <button
               onClick={() => setDescExpanded(e => !e)}
               style={{
@@ -306,6 +327,42 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               {descExpanded ? 'Свернуть' : 'Читать далее'}
             </button>
           )}
+          {descExpanded && book.whyRead && (
+            <div
+              style={{
+                marginTop: '0.75rem',
+                paddingLeft: '0.75rem',
+                borderLeft: '2px solid #C0603A',
+                background: '#FDF6F3',
+                padding: '0.6rem 0.75rem',
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.55rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: '#C0603A',
+                  margin: '0 0 0.3rem',
+                }}
+              >
+                Почему стоит прочитать
+              </p>
+              <p
+                style={{
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontStyle: 'italic',
+                  fontSize: '0.76rem',
+                  lineHeight: 1.55,
+                  color: '#555',
+                  margin: 0,
+                }}
+              >
+                {book.whyRead}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -315,9 +372,8 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       {/* Toggle button */}
       <div style={{ padding: '0.75rem' }}>
         <button
-          onClick={isRead ? undefined : () => onToggle(book)}
+          onClick={() => onToggle(book)}
           aria-pressed={isSelected}
-          disabled={isRead}
           style={{
             display: 'block',
             width: '100%',
@@ -326,15 +382,14 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             fontSize: '0.7rem',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
-            cursor: isRead ? 'default' : 'pointer',
-            border: '1px solid #C8C8C8',
-            background: isRead ? 'transparent' : isSelected ? '#111' : 'transparent',
-            color: isRead ? '#BBBBBB' : isSelected ? '#fff' : '#111',
-            borderColor: isRead ? '#C8C8C8' : '#111',
+            cursor: 'pointer',
+            border: '1px solid #111',
+            background: isSelected ? '#111' : 'transparent',
+            color: isSelected ? '#fff' : '#111',
             transition: 'background 0.15s, color 0.15s',
           }}
         >
-          {isRead ? 'Уже прочитана' : isSelected ? '✓ Записан' : 'Хочу читать'}
+          {isSelected ? '✓ Записан' : 'Хочу читать'}
         </button>
       </div>
     </article>

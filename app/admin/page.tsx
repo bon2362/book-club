@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { getAllSignups } from '@/lib/signups'
 import { fetchBooksWithCovers } from '@/lib/books-with-covers'
 import { db } from '@/lib/db'
-import { bookStatuses, tagDescriptions } from '@/lib/db/schema'
+import { bookStatuses, tagDescriptions, bookNewFlags } from '@/lib/db/schema'
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminStatusBar from '@/components/nd/AdminStatusBar'
 import { SessionProvider } from 'next-auth/react'
@@ -14,11 +14,12 @@ export default async function AdminPage() {
   const session = await auth()
   if (!session?.user?.isAdmin) redirect('/')
 
-  const [signups, books, statuses, tagDescs] = await Promise.all([
+  const [signups, books, statuses, tagDescs, newFlags] = await Promise.all([
     getAllSignups(),
     fetchBooksWithCovers(),
     db.select().from(bookStatuses).catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
+    db.select().from(bookNewFlags).catch(() => []),
   ])
 
   const statusMap = Object.fromEntries(
@@ -27,6 +28,7 @@ export default async function AdminPage() {
 
   const allTags = Array.from(new Set(books.flatMap(b => b.tags))).sort()
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
+  const newFlagsMap = Object.fromEntries(newFlags.map(f => [f.bookId, f.isNew]))
 
   const byBook = books
     .map(book => ({
@@ -49,7 +51,7 @@ export default async function AdminPage() {
   return (
     <>
       <SessionProvider>
-        <AdminPanel users={signups} byBook={byBook} statuses={statusMap} allTags={allTags} tagDescriptions={tagDescMap} />
+        <AdminPanel users={signups} byBook={byBook} statuses={statusMap} allTags={allTags} tagDescriptions={tagDescMap} books={books} newFlags={newFlagsMap} />
       </SessionProvider>
       <footer style={{
         borderTop: '1px solid #E5E5E5',

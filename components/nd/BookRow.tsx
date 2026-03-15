@@ -55,6 +55,11 @@ export default function BookRow({ book, isSelected, onToggle }: Props) {
           <span style={{ fontFamily: serif, fontWeight: 700, fontSize: '0.95rem', color: '#111', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
             {book.name}
           </span>
+          {book.isNew && (
+            <span style={{ fontFamily: sans, fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.12em', background: '#C0603A', color: '#fff', padding: '0.15rem 0.4rem', flexShrink: 0 }}>
+              Новая
+            </span>
+          )}
           {year && (
             <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#bbb', flexShrink: 0 }}>
               {year}
@@ -125,25 +130,23 @@ export default function BookRow({ book, isSelected, onToggle }: Props) {
       {/* Button */}
       <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', textAlign: 'right' }}>
         <button
-          onClick={isRead ? undefined : () => onToggle(book)}
+          onClick={() => onToggle(book)}
           aria-pressed={isSelected}
-          disabled={isRead}
           style={{
             padding: '0.3rem 0.75rem',
             fontFamily: sans,
             fontSize: '0.65rem',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
-            cursor: isRead ? 'default' : 'pointer',
-            border: '1px solid',
-            background: isRead ? 'transparent' : isSelected ? '#111' : 'transparent',
-            color: isRead ? '#C8C8C8' : isSelected ? '#fff' : '#111',
-            borderColor: isRead ? '#C8C8C8' : '#111',
+            cursor: 'pointer',
+            border: '1px solid #111',
+            background: isSelected ? '#111' : 'transparent',
+            color: isSelected ? '#fff' : '#111',
             whiteSpace: 'nowrap',
             transition: 'background 0.15s, color 0.15s',
           }}
         >
-          {isRead ? 'Прочитана' : isSelected ? '✓ Записан' : 'Хочу читать'}
+          {isSelected ? '✓ Записан' : 'Хочу читать'}
         </button>
       </td>
     </tr>

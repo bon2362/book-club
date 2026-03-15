@@ -12,13 +12,14 @@ export interface Book {
   link: string
   description: string
   coverUrl: string | null
+  whyForClub: string | null
 }
 
 // Column indexes (0-based):
-// Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Description, Cover
+// Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Description, Cover, WhyForClub
 const COL = {
   NAME: 0, TAGS: 1, AUTHOR: 2, TYPE: 3,
-  SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, DESC: 10, COVER: 11
+  SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, DESC: 10, COVER: 11, WHY_FOR_CLUB: 12
 }
 
 export function parseBookRow(row: string[], rowIndex: number): Book | null {
@@ -37,6 +38,7 @@ export function parseBookRow(row: string[], rowIndex: number): Book | null {
     link: row[COL.LINK] ?? '',
     description: row[COL.DESC] ?? '',
     coverUrl: row[COL.COVER]?.trim() || null,
+    whyForClub: row[COL.WHY_FOR_CLUB]?.trim() || null,
   }
 }
 
@@ -70,6 +72,7 @@ const TEST_BOOKS: Book[] = [
     link: '',
     description: 'Описание тестовой книги для E2E тестов. Эта книга содержит достаточно длинное описание, чтобы проверить функцию разворачивания текста в карточке книги на главной странице.',
     coverUrl: null,
+    whyForClub: null,
   },
 ]
 

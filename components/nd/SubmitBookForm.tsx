@@ -6,6 +6,8 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   topics: string[]
+  initialTopic?: string
+  initialAuthor?: string
 }
 
 type FormStatus = 'idle' | 'submitting' | 'success' | 'error'
@@ -50,7 +52,7 @@ const errorTextStyle: React.CSSProperties = {
   marginTop: '0.25rem',
 }
 
-export default function SubmitBookForm({ isOpen, onClose, topics }: Props) {
+export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, initialAuthor }: Props) {
   const [status, setStatus] = useState<FormStatus>('idle')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -78,7 +80,7 @@ export default function SubmitBookForm({ isOpen, onClose, topics }: Props) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, handleClose])
 
-  // Reset form when closed
+  // Reset form when closed / pre-fill when opened
   useEffect(() => {
     if (!isOpen) {
       setStatus('idle')
@@ -92,8 +94,11 @@ export default function SubmitBookForm({ isOpen, onClose, topics }: Props) {
       setDescription('')
       setCoverUrl('')
       setWhyRead('')
+    } else {
+      if (initialTopic) setTopic(initialTopic)
+      if (initialAuthor) setAuthor(initialAuthor)
     }
-  }, [isOpen])
+  }, [isOpen, initialTopic, initialAuthor])
 
   function validateField(name: string, value: string) {
     if (['title', 'author', 'whyRead'].includes(name) && !value.trim()) {
@@ -167,10 +172,10 @@ export default function SubmitBookForm({ isOpen, onClose, topics }: Props) {
           background: '#fff',
           width: '100%',
           maxWidth: '480px',
-          padding: '2rem',
           border: '2px solid #111',
           maxHeight: '90vh',
-          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* Close button */}
@@ -194,15 +199,17 @@ export default function SubmitBookForm({ isOpen, onClose, topics }: Props) {
           ✕
         </button>
 
-        <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#999', margin: '0 0 0.5rem' }}>
-          Читательские круги
-        </p>
-        <h2 id="submit-book-title" style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: '#111', margin: '0 0 1.5rem', letterSpacing: '-0.02em' }}>
-          Предложить книгу
-        </h2>
+        <div style={{ padding: '2rem 2rem 1.5rem', borderBottom: '1px solid #E5E5E5' }}>
+          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#999', margin: '0 0 0.5rem' }}>
+            Читательские круги
+          </p>
+          <h2 id="submit-book-title" style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: '#111', margin: 0, letterSpacing: '-0.02em' }}>
+            Предложить книгу
+          </h2>
+        </div>
 
         {status === 'success' ? (
-          <div style={{ padding: '1.5rem 0', textAlign: 'center' }}>
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
             <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '1rem', color: '#2D6A4F', fontWeight: 600, margin: '0 0 0.5rem' }}>
               Заявка принята!
             </p>
@@ -229,162 +236,167 @@ export default function SubmitBookForm({ isOpen, onClose, topics }: Props) {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} noValidate>
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: '#999', margin: '0 0 1.25rem' }}>
-              * — обязательные поля
-            </p>
-
-            {/* Required fields */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
-              <div>
-                <label htmlFor="sb-title" style={labelStyle}>Название *</label>
-                <input
-                  id="sb-title"
-                  type="text"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  onBlur={e => validateField('title', e.target.value)}
-                  placeholder="Название книги"
-                  style={errors.title ? inputErrorStyle : inputStyle}
-                />
-                {errors.title && <p style={errorTextStyle}>{errors.title}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="sb-author" style={labelStyle}>Писатель *</label>
-                <input
-                  id="sb-author"
-                  type="text"
-                  value={author}
-                  onChange={e => setAuthor(e.target.value)}
-                  onBlur={e => validateField('author', e.target.value)}
-                  placeholder="Автор книги"
-                  style={errors.author ? inputErrorStyle : inputStyle}
-                />
-                {errors.author && <p style={errorTextStyle}>{errors.author}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="sb-why-read" style={labelStyle}>Почему стоит прочитать *</label>
-                <textarea
-                  id="sb-why-read"
-                  value={whyRead}
-                  onChange={e => setWhyRead(e.target.value)}
-                  onBlur={e => validateField('whyRead', e.target.value)}
-                  placeholder="Чем вас зацепила эта книга?"
-                  rows={3}
-                  style={{ ...(errors.whyRead ? inputErrorStyle : inputStyle), resize: 'vertical' }}
-                />
-                {errors.whyRead && <p style={errorTextStyle}>{errors.whyRead}</p>}
-              </div>
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid #E5E5E5', margin: '0 0 1.25rem' }} />
-
-            {/* Optional fields */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <label htmlFor="sb-topic" style={labelStyle}>Тема</label>
-                <select
-                  id="sb-topic"
-                  value={topic}
-                  onChange={e => setTopic(e.target.value)}
-                  style={{ ...inputStyle, cursor: 'pointer' }}
-                >
-                  <option value="">— выберите тему —</option>
-                  {topics.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="sb-pages" style={labelStyle}>Число страниц</label>
-                <input
-                  id="sb-pages"
-                  type="number"
-                  inputMode="numeric"
-                  value={pages}
-                  onChange={e => setPages(e.target.value)}
-                  placeholder="300"
-                  min={1}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="sb-published-date" style={labelStyle}>Дата издания</label>
-                <input
-                  id="sb-published-date"
-                  type="text"
-                  value={publishedDate}
-                  onChange={e => setPublishedDate(e.target.value)}
-                  placeholder="2020 или 2020-05"
-                  style={inputStyle}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="sb-text-url" style={labelStyle}>Ссылка на текст</label>
-                <input
-                  id="sb-text-url"
-                  type="url"
-                  value={textUrl}
-                  onChange={e => setTextUrl(e.target.value)}
-                  placeholder="https://..."
-                  style={inputStyle}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="sb-description" style={labelStyle}>Описание</label>
-                <textarea
-                  id="sb-description"
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Краткое описание книги"
-                  rows={2}
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="sb-cover-url" style={labelStyle}>Ссылка на обложку</label>
-                <input
-                  id="sb-cover-url"
-                  type="url"
-                  value={coverUrl}
-                  onChange={e => setCoverUrl(e.target.value)}
-                  placeholder="https://..."
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-
-            {status === 'error' && (
-              <p style={{ ...errorTextStyle, marginBottom: '0.75rem' }}>
-                Не удалось отправить заявку. Попробуйте ещё раз.
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+            {/* Scrollable area */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 2rem 1rem' }}>
+              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: '#999', margin: '0 0 1.25rem' }}>
+                * — обязательные поля
               </p>
-            )}
 
-            <button
-              type="submit"
-              disabled={status === 'submitting'}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.8rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                cursor: status === 'submitting' ? 'default' : 'pointer',
-                border: '1px solid #111',
-                background: status === 'submitting' ? 'transparent' : '#111',
-                color: status === 'submitting' ? '#999' : '#fff',
-                borderColor: status === 'submitting' ? '#C8C8C8' : '#111',
-                transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-              }}
-            >
-              {status === 'submitting' ? 'Отправляем…' : 'Отправить заявку'}
-            </button>
+              {/* Required fields */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label htmlFor="sb-title" style={labelStyle}>Название *</label>
+                  <input
+                    id="sb-title"
+                    type="text"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    onBlur={e => validateField('title', e.target.value)}
+                    placeholder="Название книги"
+                    style={errors.title ? inputErrorStyle : inputStyle}
+                  />
+                  {errors.title && <p style={errorTextStyle}>{errors.title}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="sb-author" style={labelStyle}>Писатель *</label>
+                  <input
+                    id="sb-author"
+                    type="text"
+                    value={author}
+                    onChange={e => setAuthor(e.target.value)}
+                    onBlur={e => validateField('author', e.target.value)}
+                    placeholder="Автор книги"
+                    style={errors.author ? inputErrorStyle : inputStyle}
+                  />
+                  {errors.author && <p style={errorTextStyle}>{errors.author}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="sb-why-read" style={labelStyle}>Почему стоит прочитать *</label>
+                  <textarea
+                    id="sb-why-read"
+                    value={whyRead}
+                    onChange={e => setWhyRead(e.target.value)}
+                    onBlur={e => validateField('whyRead', e.target.value)}
+                    placeholder="Чем вас зацепила эта книга?"
+                    rows={3}
+                    style={{ ...(errors.whyRead ? inputErrorStyle : inputStyle), resize: 'vertical' }}
+                  />
+                  {errors.whyRead && <p style={errorTextStyle}>{errors.whyRead}</p>}
+                </div>
+              </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid #E5E5E5', margin: '0 0 1.25rem' }} />
+
+              {/* Optional fields */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label htmlFor="sb-topic" style={labelStyle}>Тема</label>
+                  <select
+                    id="sb-topic"
+                    value={topic}
+                    onChange={e => setTopic(e.target.value)}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  >
+                    <option value="">— выберите тему —</option>
+                    {topics.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="sb-pages" style={labelStyle}>Число страниц</label>
+                  <input
+                    id="sb-pages"
+                    type="number"
+                    inputMode="numeric"
+                    value={pages}
+                    onChange={e => setPages(e.target.value)}
+                    placeholder="300"
+                    min={1}
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="sb-published-date" style={labelStyle}>Дата издания</label>
+                  <input
+                    id="sb-published-date"
+                    type="text"
+                    value={publishedDate}
+                    onChange={e => setPublishedDate(e.target.value)}
+                    placeholder="2020 или 2020-05"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="sb-text-url" style={labelStyle}>Ссылка на текст</label>
+                  <input
+                    id="sb-text-url"
+                    type="url"
+                    value={textUrl}
+                    onChange={e => setTextUrl(e.target.value)}
+                    placeholder="https://..."
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="sb-description" style={labelStyle}>Описание</label>
+                  <textarea
+                    id="sb-description"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Краткое описание книги"
+                    rows={2}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="sb-cover-url" style={labelStyle}>Ссылка на обложку</label>
+                  <input
+                    id="sb-cover-url"
+                    type="url"
+                    value={coverUrl}
+                    onChange={e => setCoverUrl(e.target.value)}
+                    placeholder="https://..."
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky submit area */}
+            <div style={{ padding: '1rem 2rem', borderTop: '1px solid #E5E5E5', background: '#fff' }}>
+              {status === 'error' && (
+                <p style={{ ...errorTextStyle, marginBottom: '0.75rem' }}>
+                  Не удалось отправить заявку. Попробуйте ещё раз.
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={status === 'submitting'}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  cursor: status === 'submitting' ? 'default' : 'pointer',
+                  border: '1px solid #111',
+                  background: status === 'submitting' ? 'transparent' : '#111',
+                  color: status === 'submitting' ? '#999' : '#fff',
+                  borderColor: status === 'submitting' ? '#C8C8C8' : '#111',
+                  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                }}
+              >
+                {status === 'submitting' ? 'Отправляем…' : 'Отправить заявку'}
+              </button>
+            </div>
           </form>
         )}
       </div>

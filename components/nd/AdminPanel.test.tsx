@@ -17,6 +17,8 @@ const defaultProps = {
   statuses: {},
   allTags: [],
   tagDescriptions: {},
+  books: [],
+  newFlags: {},
 }
 
 const mockSubmissions = [

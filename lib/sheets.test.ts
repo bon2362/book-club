@@ -15,7 +15,7 @@ describe('parseBookRow', () => {
       tags: ['левые идеи', 'неолиберализм'],
       author: 'Paul Krugman', type: 'Book', size: 'L',
       pages: '368', date: '1/1/2007', link: 'https://example.com',
-      description: 'Описание книги', coverUrl: null,
+      description: 'Описание книги', coverUrl: null, whyForClub: null,
     })
   })
 

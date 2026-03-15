@@ -1,5 +1,5 @@
 import {
-  pgTable, text, timestamp, integer, primaryKey, index,
+  pgTable, text, timestamp, integer, boolean, primaryKey, index,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -74,6 +74,12 @@ export const bookSuggestions = pgTable('book_suggestions', {
   status: text('status').notNull().default('pending'),
   rejectionReason: text('rejection_reason'),
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+})
+
+export const bookNewFlags = pgTable('book_new_flags', {
+  bookId:    text('book_id').primaryKey(),
+  isNew:     boolean('is_new').notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 })
 
