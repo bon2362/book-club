@@ -39,7 +39,7 @@ interface Props {
   newFlags: Record<string, boolean>
 }
 
-type View = 'users' | 'books' | 'tags' | 'submissions' | 'new'
+type View = 'users' | 'books' | 'tags' | 'submissions'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 
 const cell: React.CSSProperties = {
@@ -389,9 +389,6 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
           <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
             Заявки ({submissions.length})
           </button>
-          <button style={tabStyle(view === 'new')} onClick={() => setView('new')}>
-            Новинки ({Object.values(newFlags).filter(Boolean).length})
-          </button>
         </div>
 
         {/* Users table */}
@@ -524,29 +521,38 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                 <th style={{ ...headCell, textAlign: 'right' }}>Записались</th>
                 <th style={headCell}>Участники</th>
                 <th style={headCell}>Статус</th>
+                <th style={{ ...headCell, textAlign: 'center', width: '80px' }}>Новая</th>
               </tr>
             </thead>
             <tbody>
               {byBook.map(({ book, users: bookUsers }) => {
                 const currentStatus = statuses[book.id]
-                const isLoading = statusLoading === book.id
+                const isStatusLoading = statusLoading === book.id
+                const isSubmission = !book.id.match(/^\d+$/)
+                const isNew = newFlags[book.id] ?? book.isNew
+                const isFlagLoading = newFlagLoading === book.id
                 return (
                   <tr key={book.id}>
-                    <td style={cell}>{book.name}</td>
+                    <td style={cell}>
+                      <div>{book.name}</div>
+                      <div style={{ fontSize: '0.65rem', color: '#999', marginTop: '0.15rem' }}>
+                        {isSubmission ? 'Заявка' : 'Google Sheets'}
+                      </div>
+                    </td>
                     <td style={{ ...cell, color: '#666', fontStyle: 'italic' }}>{book.author}</td>
                     <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{bookUsers.length}</td>
                     <td style={{ ...cell, color: '#666' }}>{bookUsers.map(u => u.name).join(', ')}</td>
                     <td style={cell}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                         <button
-                          disabled={isLoading}
+                          disabled={isStatusLoading}
                           onClick={() => setBookStatus(book.id, 'reading')}
                           style={btnStyle(currentStatus === 'reading', '#C0603A')}
                         >
                           Читаем
                         </button>
                         <button
-                          disabled={isLoading}
+                          disabled={isStatusLoading}
                           onClick={() => setBookStatus(book.id, 'read')}
                           style={btnStyle(currentStatus === 'read', '#666')}
                         >
@@ -554,7 +560,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                         </button>
                         {currentStatus && (
                           <button
-                            disabled={isLoading}
+                            disabled={isStatusLoading}
                             onClick={() => resetBookStatus(book.id)}
                             style={btnStyle(false, '#999')}
                           >
@@ -562,6 +568,26 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                           </button>
                         )}
                       </div>
+                    </td>
+                    <td style={{ ...cell, textAlign: 'center' }}>
+                      <button
+                        disabled={isFlagLoading}
+                        onClick={() => handleToggleNew(book.id, isNew)}
+                        style={{
+                          fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                          fontSize: '0.65rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          padding: '0.2rem 0.6rem',
+                          border: `1px solid ${isNew ? '#C0603A' : '#E5E5E5'}`,
+                          background: isNew ? '#C0603A' : 'transparent',
+                          color: isNew ? '#fff' : '#999',
+                          cursor: isFlagLoading ? 'default' : 'pointer',
+                          transition: 'background 0.15s, color 0.15s',
+                        }}
+                      >
+                        {isNew ? 'Новая' : '—'}
+                      </button>
                     </td>
                   </tr>
                 )
@@ -768,58 +794,6 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                 </tbody>
               </table>
             )}
-          </div>
-        )}
-        {/* New books */}
-        {view === 'new' && (
-          <div>
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.78rem', color: '#888', marginBottom: '1.25rem', lineHeight: 1.55 }}>
-              Для книг из Google Sheets — только ручная пометка. Для книг из заявок — автоматически первые 30 дней, если не переопределено.
-            </p>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={headCell}>Книга</th>
-                  <th style={headCell}>Источник</th>
-                  <th style={{ ...headCell, textAlign: 'center', width: '100px' }}>Новая</th>
-                </tr>
-              </thead>
-              <tbody>
-                {books.map(book => {
-                  const isNew = newFlags[book.id] ?? book.isNew
-                  const isLoading = newFlagLoading === book.id
-                  const isSubmission = !book.id.match(/^\d+$/)
-                  return (
-                    <tr key={book.id}>
-                      <td style={cell}>{book.name}</td>
-                      <td style={{ ...cell, color: '#999', fontSize: '0.72rem' }}>
-                        {isSubmission ? 'Заявка' : 'Google Sheets'}
-                      </td>
-                      <td style={{ ...cell, textAlign: 'center' }}>
-                        <button
-                          disabled={isLoading}
-                          onClick={() => handleToggleNew(book.id, isNew)}
-                          style={{
-                            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                            fontSize: '0.65rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.06em',
-                            padding: '0.2rem 0.6rem',
-                            border: `1px solid ${isNew ? '#C0603A' : '#E5E5E5'}`,
-                            background: isNew ? '#C0603A' : 'transparent',
-                            color: isNew ? '#fff' : '#999',
-                            cursor: isLoading ? 'default' : 'pointer',
-                            transition: 'background 0.15s, color 0.15s',
-                          }}
-                        >
-                          {isNew ? 'Новая' : '—'}
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
           </div>
         )}
       </main>

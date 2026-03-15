@@ -31,7 +31,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
   const [descExpanded, setDescExpanded] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
-  const hasExpandable = isLongDescription || !!book.whyRead
+  const hasExpandable = isLongDescription
   const isReading = book.status === 'reading'
   const isRead = book.status === 'read'
 
@@ -327,7 +327,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               {descExpanded ? 'Свернуть' : 'Читать далее'}
             </button>
           )}
-          {descExpanded && book.whyRead && (
+          {(!isLongDescription || descExpanded) && book.whyRead && (
             <div
               style={{
                 marginTop: '0.75rem',

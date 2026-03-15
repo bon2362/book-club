@@ -46,6 +46,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
     if (localStorage.getItem('aboutDismissed') === 'true') setAboutVisible(false)
     const saved = localStorage.getItem('book_view_mode')
     if (saved === 'grid' || saved === 'list') setViewMode(saved)
+    if (localStorage.getItem('show_read') === 'true') setShowRead(true)
   }, [])
 
   useEffect(() => {
@@ -297,7 +298,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           )}
           {hasReadBooks && (
             <button
-              onClick={() => setShowRead(v => !v)}
+              onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.75rem',
@@ -374,17 +375,18 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '2px solid #111' }}>
             <tbody>
-              <tr style={{ borderBottom: '1px solid #E5E5E5' }}>
-                <td colSpan={6} style={{ padding: '0.6rem 0.75rem' }}>
+              <tr style={{ borderBottom: '2px solid #111', background: '#FAFAF8' }}>
+                <td colSpan={6} style={{ padding: '0.75rem 0.75rem' }}>
                   <button
                     onClick={handleSubmitBookClick}
                     style={{
-                      background: 'none',
+                      background: '#111',
                       border: 'none',
-                      padding: 0,
+                      borderRadius: '2px',
+                      padding: '0.4rem 0.85rem',
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                       fontSize: '0.75rem',
-                      color: '#999',
+                      color: '#fff',
                       cursor: 'pointer',
                       letterSpacing: '0.04em',
                     }}
