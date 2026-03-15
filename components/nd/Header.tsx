@@ -88,42 +88,34 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             gap: '1rem',
           }}
         >
-          {onSubmitBook && <SubmitBookButton onClick={onSubmitBook} />}
+          {onSubmitBook && (
+            <span className="nd-header-submit">
+              <SubmitBookButton onClick={onSubmitBook} />
+            </span>
+          )}
           {session?.user ? (
             <>
-              {/* Desktop: имя + кнопка профиля */}
-              <span
-                className="nd-header-username"
-                style={{
-                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.7rem',
-                  color: '#666',
-                  maxWidth: '140px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {session.user.name ?? session.user.email}
-              </span>
+              {/* Desktop: имя (кликабельное) */}
               {onEditProfile && (
                 <button
                   className="nd-header-profile-btn"
                   onClick={onEditProfile}
                   style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.65rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: '#111',
+                    fontSize: '0.7rem',
+                    color: '#666',
                     background: 'none',
                     border: 'none',
-                    borderBottom: '1px solid #111',
+                    borderBottom: '1px solid #bbb',
                     cursor: 'pointer',
                     padding: '0 0 1px',
+                    maxWidth: '140px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  Профиль
+                  {session.user.name ?? session.user.email}
                 </button>
               )}
               {/* Mobile: аватар-кружок с инициалом */}
@@ -153,20 +145,23 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
               )}
               <button
                 onClick={() => signOut()}
+                title="Выйти"
                 style={{
-                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.65rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: '#111',
                   background: 'none',
                   border: 'none',
-                  borderBottom: '1px solid #111',
                   cursor: 'pointer',
-                  padding: '0 0 1px',
+                  padding: '2px',
+                  color: '#111',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
                 }}
               >
-                Выйти
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
               </button>
             </>
           ) : (
