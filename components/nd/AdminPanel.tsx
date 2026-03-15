@@ -106,14 +106,12 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   const [submissionActionLoading, setSubmissionActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    if (view === 'submissions' && !submissionsLoaded) {
-      fetch('/api/admin/submissions')
-        .then(r => r.json())
-        .then(d => { if (d.success) setSubmissions(d.data) })
-        .catch(() => {})
-        .finally(() => setSubmissionsLoaded(true))
-    }
-  }, [view, submissionsLoaded])
+    fetch('/api/admin/submissions')
+      .then(r => r.json())
+      .then(d => { if (d.success) setSubmissions(d.data) })
+      .catch(() => {})
+      .finally(() => setSubmissionsLoaded(true))
+  }, [])
 
   async function handleDeleteUser(userId: string, userName: string) {
     if (!window.confirm(`Удалить пользователя ${userName}? Это действие необратимо.`)) return
