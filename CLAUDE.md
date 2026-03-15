@@ -2,7 +2,7 @@
 
 ## Проект
 "Долгое наступление" — сайт книжного клуба.
-- **Live:** https://slowreading.club (резерв: https://book-club-slow-rising.vercel.app)
+- **Live:** https://www.slowreading.club (резерв: https://book-club-slow-rising.vercel.app)
 - **Стек:** Next.js 14, NextAuth v5, Neon Postgres + Drizzle ORM, Google Sheets, Resend, Vercel
 - **Repo:** github.com/bon2362/book-club
 
@@ -20,9 +20,14 @@
 - Exit code 7 от curl = заблокировано firewall (не сетевая ошибка)
 - После ребилда контейнера: Vercel-токен в auth.json сбрасывается, использовать `--token` флаг
 - Firewall резолвит IP доменов при старте — Vercel CDN может отдавать с других IP (curl на vercel.app может не работать из контейнера)
+- `GH_TOKEN` берётся из `/workspace/.env.local` — если `gh` не работает: `export GH_TOKEN=$(grep GH_TOKEN /workspace/.env.local | cut -d= -f2)`
 
 ## Правила работы с кодом
 - Перед удалением/переименованием поля из интерфейса/типа — сначала искать все его вхождения в проекте (Grep), чтобы не пропустить дублирующие интерфейсы в других файлах
+
+## Unit-тесты (Jest)
+- Компоненты с `useRouter` требуют мока: `jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))`
+- Тесты на порядок книг: `fetchBooksWithCovers` делает `.reverse()` — `result[0]` это последняя книга из sheets, не первая
 
 ## E2E-тесты (Playwright)
 - **Dev server запускать только через Playwright** (`npm run playwright test`), не вручную — иначе `NEXTAUTH_TEST_MODE=true` не будет выставлен и `/api/test/session` вернёт 403
