@@ -42,6 +42,9 @@ jobs:
           AUTH_SECRET: 'e2e-test-secret-only-used-for-signing-test-sessions'
           NEXTAUTH_TEST_MODE: 'true'
           NEXTAUTH_URL: 'http://localhost:3000'
+          GOOGLE_SHEETS_PRIVATE_KEY: ${{ secrets.GOOGLE_SHEETS_PRIVATE_KEY }}
+          GOOGLE_SHEETS_CLIENT_EMAIL: ${{ secrets.GOOGLE_SHEETS_CLIENT_EMAIL }}
+          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
 
       - name: Build
         run: npm run build
