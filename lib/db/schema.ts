@@ -88,9 +88,10 @@ export const bookSubmissions = pgTable('book_submissions', {
   textUrl:       text('text_url'),
   description:   text('description'),
   coverUrl:      text('cover_url'),
-  whyRead:       text('why_read').notNull(),
-  status:        text('status').notNull().default('pending'),
-  createdAt:     timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  whyRead:          text('why_read').notNull(),
+  status:           text('status').notNull().default('pending'),
+  rejectionReason:  text('rejection_reason'),
+  createdAt:        timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   updatedAt:     timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   statusIdx: index('book_submissions_status_idx').on(t.status),

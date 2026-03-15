@@ -19,6 +19,7 @@ interface Submission {
   coverUrl: string | null
   whyRead: string
   status: string
+  rejectionReason: string | null
   createdAt: string
   updatedAt: string
 }
@@ -652,6 +653,16 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                                     value={edits.textUrl ?? sub.textUrl ?? ''}
                                     onChange={e => updateSubmissionEdit(sub.id, 'textUrl', e.target.value)}
                                     style={fieldInput}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Причина отказа (отправится пользователю в письме)</div>
+                                  <textarea
+                                    value={edits.rejectionReason ?? sub.rejectionReason ?? ''}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'rejectionReason', e.target.value || null)}
+                                    rows={2}
+                                    placeholder="Необязательно"
+                                    style={{ ...fieldInput, resize: 'vertical' }}
                                   />
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>

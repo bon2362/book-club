@@ -1,0 +1,1 @@
+ALTER TABLE "book_submissions" ADD COLUMN "rejection_reason" text;

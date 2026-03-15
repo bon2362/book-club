@@ -21,7 +21,7 @@ export async function PATCH(
 
   const { id } = params
   const body = await req.json()
-  const { status, title, author, whyRead, topic, pages, publishedDate, textUrl, description, coverUrl } = body
+  const { status, title, author, whyRead, topic, pages, publishedDate, textUrl, description, coverUrl, rejectionReason } = body
 
   const updates: Record<string, unknown> = { updatedAt: new Date() }
   if (status !== undefined) updates.status = status
@@ -34,6 +34,7 @@ export async function PATCH(
   if (textUrl !== undefined) updates.textUrl = textUrl
   if (description !== undefined) updates.description = description
   if (coverUrl !== undefined) updates.coverUrl = coverUrl
+  if (rejectionReason !== undefined) updates.rejectionReason = rejectionReason
 
   const updated = await db
     .update(bookSubmissions)
@@ -57,7 +58,7 @@ export async function PATCH(
     if (userRow?.email) {
       const template = status === 'approved'
         ? approvedEmail(submission.title)
-        : rejectedEmail(submission.title)
+        : rejectedEmail(submission.title, submission.rejectionReason)
       try {
         const resend = new Resend(process.env.RESEND_API_KEY!)
         await resend.emails.send({ from: FROM, to: userRow.email, ...template })

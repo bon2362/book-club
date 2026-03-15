@@ -36,16 +36,21 @@ ${WRAPPER_CLOSE}`,
   }
 }
 
-export function rejectedEmail(bookTitle: string): { subject: string; html: string } {
+export function rejectedEmail(bookTitle: string, rejectionReason?: string | null): { subject: string; html: string } {
+  const reasonBlock = rejectionReason
+    ? `<p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;">
+            Причина: ${rejectionReason}
+          </p>`
+    : `<p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;">
+            Спасибо, что предложили её клубу.
+          </p>`
   return {
     subject: `Статус вашей заявки на книгу обновлён`,
     html: `${WRAPPER_OPEN}
           <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#444;">
             Ваша заявка на книгу <strong>«${bookTitle}»</strong> не была одобрена.
           </p>
-          <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;">
-            Спасибо, что предложили её клубу.
-          </p>
+          ${reasonBlock}
 ${WRAPPER_CLOSE}`,
   }
 }
