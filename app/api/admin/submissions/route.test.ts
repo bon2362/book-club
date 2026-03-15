@@ -1,7 +1,6 @@
 /**
  * @jest-environment node
  */
-import { NextRequest } from 'next/server'
 import { GET } from './route'
 import * as authModule from '@/lib/auth'
 
@@ -22,9 +21,6 @@ jest.mock('@/lib/db', () => ({
 
 const mockAuth = authModule.auth as jest.Mock
 
-function makeRequest() {
-  return new NextRequest('http://localhost/api/admin/submissions', { method: 'GET' })
-}
 
 describe('GET /api/admin/submissions', () => {
   it('возвращает 403 без сессии', async () => {

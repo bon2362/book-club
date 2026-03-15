@@ -8,6 +8,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'crypto'
 
 function computeTelegramHash(data: Record<string, string>, botToken: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { hash: _omit, ...rest } = data
   const dataCheckString = Object.keys(rest).sort().map(k => `${k}=${rest[k]}`).join('\n')
   const secret = createHash('sha256').update(botToken).digest()
