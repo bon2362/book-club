@@ -121,6 +121,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
+        if (token.sub) session.user.id = token.sub
         session.user.isAdmin = token.isAdmin as boolean | undefined
         session.user.telegramUsername = token.telegramUsername
       }

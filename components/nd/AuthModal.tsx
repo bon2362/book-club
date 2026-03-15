@@ -37,6 +37,13 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     }
   }
 
+  // Close on Escape
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   // Set up the global Telegram callback (always kept up to date)
   useEffect(() => {
     window.onTelegramAuth = async (user) => {
@@ -76,6 +83,9 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Войти в клуб"
       onClick={handleOverlay}
       style={{
         position: 'fixed',
@@ -86,6 +96,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
+        outline: 'none',
       }}
     >
       <div
