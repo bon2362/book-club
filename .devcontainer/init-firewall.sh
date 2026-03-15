@@ -77,6 +77,7 @@ for domain in \
     "fonts.googleapis.com" \
     "fonts.gstatic.com" \
     "ep-fragrant-cherry-aluk81ou-pooler.c-3.eu-central-1.aws.neon.tech" \
+    "slowreading.club" \
     "book-club-slow-rising.vercel.app" \
     "vercel.com" \
     "api.vercel.com" \

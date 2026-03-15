@@ -2,7 +2,7 @@
 
 ## Проект
 "Долгое наступление" — сайт книжного клуба.
-- **Live:** https://book-club-slow-rising.vercel.app
+- **Live:** https://slowreading.club (резерв: https://book-club-slow-rising.vercel.app)
 - **Стек:** Next.js 14, NextAuth v5, Neon Postgres + Drizzle ORM, Google Sheets, Resend, Vercel
 - **Repo:** github.com/bon2362/book-club
 
@@ -15,7 +15,7 @@
 
 ## Devcontainer: firewall и ограничения
 - Firewall настроен в `.devcontainer/init-firewall.sh` — блокирует всё кроме allowlist
-- Разрешены: GitHub, npmjs.org, api.anthropic.com, googleapis.com, book-club-slow-rising.vercel.app, vercel.com, api.vercel.com
+- Разрешены: GitHub, npmjs.org, api.anthropic.com, googleapis.com, slowreading.club, book-club-slow-rising.vercel.app, vercel.com, api.vercel.com
 - Чтобы добавить новый сервис: отредактировать `init-firewall.sh`, затем Rebuild Container (Ctrl+Shift+P)
 - Exit code 7 от curl = заблокировано firewall (не сетевая ошибка)
 - После ребилда контейнера: Vercel-токен в auth.json сбрасывается, использовать `--token` флаг

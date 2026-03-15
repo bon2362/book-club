@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Долгое наступление",
     description: "Читательские круги — записывайтесь на совместное чтение и обсуждение книг",
-    url: "https://book-club-slow-rising.vercel.app",
+    url: "https://slowreading.club",
     siteName: "Долгое наступление",
     locale: "ru_RU",
     type: "website",
