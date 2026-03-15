@@ -105,6 +105,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null)
   const [submissionEdits, setSubmissionEdits] = useState<Record<string, Partial<Submission>>>({})
   const [submissionActionLoading, setSubmissionActionLoading] = useState<string | null>(null)
+  const [submissionDeleteConfirm, setSubmissionDeleteConfirm] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/submissions')
@@ -219,6 +220,20 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
       if (res.ok) {
         const d = await res.json()
         setSubmissions(prev => prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s))
+        setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+      }
+    } catch { /* silently ignore */ }
+    finally { setSubmissionActionLoading(null) }
+  }
+
+  async function handleDeleteSubmission(id: string) {
+    setSubmissionActionLoading(id)
+    try {
+      const res = await fetch(`/api/admin/submissions/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setSubmissions(prev => prev.filter(s => s.id !== id))
+        setSelectedSubmissionId(null)
+        setSubmissionDeleteConfirm(null)
         setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
       }
     } catch { /* silently ignore */ }
@@ -665,7 +680,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                                     style={{ ...fieldInput, resize: 'vertical' }}
                                   />
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem', alignItems: 'center' }}>
                                   {hasEdits && (
                                     <button
                                       onClick={() => handleSaveSubmissionEdits(sub.id)}
@@ -689,6 +704,36 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                                   >
                                     Отклонить
                                   </button>
+                                  <span style={{ flex: 1 }} />
+                                  {submissionDeleteConfirm === sub.id ? (
+                                    <>
+                                      <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: '#C0603A' }}>
+                                        Удалить навсегда?
+                                      </span>
+                                      <button
+                                        onClick={() => handleDeleteSubmission(sub.id)}
+                                        disabled={isActing}
+                                        style={actionBtnStyle('#C0603A', isActing)}
+                                      >
+                                        {isActing ? 'Удаление…' : 'Да, удалить'}
+                                      </button>
+                                      <button
+                                        onClick={() => setSubmissionDeleteConfirm(null)}
+                                        disabled={isActing}
+                                        style={actionBtnStyle('#999', isActing)}
+                                      >
+                                        Отмена
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={e => { e.stopPropagation(); setSubmissionDeleteConfirm(sub.id) }}
+                                      disabled={isActing}
+                                      style={actionBtnStyle('#999', isActing)}
+                                    >
+                                      Удалить
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </td>

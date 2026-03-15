@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { NextRequest } from 'next/server'
-import { PATCH } from './route'
+import { PATCH, DELETE } from './route'
 import * as authModule from '@/lib/auth'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
@@ -21,6 +21,7 @@ jest.mock('@/lib/email-templates/submission-status', () => ({
 
 const mockUpdate = jest.fn()
 const mockSelect = jest.fn()
+const mockDelete = jest.fn()
 
 jest.mock('@/lib/db', () => ({
   db: {
@@ -36,6 +37,11 @@ jest.mock('@/lib/db', () => ({
         where: () => ({
           limit: mockSelect,
         }),
+      }),
+    }),
+    delete: () => ({
+      where: () => ({
+        returning: mockDelete,
       }),
     }),
   },
@@ -121,6 +127,40 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
   it('возвращает 404 если заявка не найдена', async () => {
     mockUpdate.mockResolvedValue([])
     const res = await PATCH(makeRequest('missing', { status: 'approved' }), { params: { id: 'missing' } })
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('DELETE /api/admin/submissions/[id]', () => {
+  function makeDeleteRequest(id: string) {
+    return new NextRequest(`http://localhost/api/admin/submissions/${id}`, { method: 'DELETE' })
+  }
+
+  it('возвращает 403 без сессии', async () => {
+    mockAuth.mockResolvedValue(null)
+    const res = await DELETE(makeDeleteRequest('sub-1'), { params: { id: 'sub-1' } })
+    expect(res.status).toBe(403)
+  })
+
+  it('возвращает 403 для не-админа', async () => {
+    mockAuth.mockResolvedValue({ user: { isAdmin: false } })
+    const res = await DELETE(makeDeleteRequest('sub-1'), { params: { id: 'sub-1' } })
+    expect(res.status).toBe(403)
+  })
+
+  it('удаляет заявку и возвращает 200', async () => {
+    mockAuth.mockResolvedValue({ user: { isAdmin: true } })
+    mockDelete.mockResolvedValue([{ id: 'sub-1' }])
+    const res = await DELETE(makeDeleteRequest('sub-1'), { params: { id: 'sub-1' } })
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.success).toBe(true)
+  })
+
+  it('возвращает 404 если заявка не найдена', async () => {
+    mockAuth.mockResolvedValue({ user: { isAdmin: true } })
+    mockDelete.mockResolvedValue([])
+    const res = await DELETE(makeDeleteRequest('missing'), { params: { id: 'missing' } })
     expect(res.status).toBe(404)
   })
 })

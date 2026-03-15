@@ -8,6 +8,28 @@ import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
 
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await auth()
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id } = params
+  const deleted = await db
+    .delete(bookSubmissions)
+    .where(eq(bookSubmissions.id, id))
+    .returning()
+
+  if (deleted.length === 0) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  return NextResponse.json({ success: true })
+}
+
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
 export async function PATCH(
