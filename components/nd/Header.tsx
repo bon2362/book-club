@@ -8,9 +8,10 @@ interface Props {
   onEditProfile?: () => void
   onSignIn?: () => void
   onSubmitBook?: () => void
+  onWhatIsThis?: () => void
 }
 
-export default function Header({ onEditProfile, onSignIn, onSubmitBook }: Props) {
+export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIsThis }: Props) {
   const { data: session } = useSession()
 
   return (
@@ -32,8 +33,8 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook }: Props)
           alignItems: 'center',
         }}
       >
-        {/* Left: label */}
-        <div className="nd-header-label" style={{ flex: 1 }}>
+        {/* Left: label + "Что это?" */}
+        <div className="nd-header-label" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -45,6 +46,22 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook }: Props)
           >
             Книжный клуб
           </span>
+          {onWhatIsThis && (
+            <button
+              onClick={onWhatIsThis}
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.8rem',
+                color: '#555',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              Что это?
+            </button>
+          )}
         </div>
 
         {/* Center: title */}

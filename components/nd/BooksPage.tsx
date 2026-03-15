@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { useSession, signOut } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { UserSignup } from '@/lib/signups'
@@ -12,6 +13,7 @@ import AuthModal from './AuthModal'
 import ContactsForm from './ContactsForm'
 import SubmitBookForm from './SubmitBookForm'
 import SubmitBookCard from './SubmitBookCard'
+import AboutBlock, { type AboutBlockHandle } from './AboutBlock'
 
 interface Props {
   books: BookWithCover[]
@@ -34,15 +36,14 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const isAdmin = !!session?.user?.isAdmin
   const telegramUsername = session?.user?.telegramUsername ?? null
 
-  const [showAbout, setShowAbout] = useState(true)
+  const [aboutVisible, setAboutVisible] = useState(true)
+  const aboutRef = useRef<AboutBlockHandle>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showScrollTop, setShowScrollTop] = useState(false)
   const lastScrollY = useRef(0)
 
   useEffect(() => {
-    if (document.cookie.split(';').some(c => c.trim() === 'about_closed=1')) {
-      setShowAbout(false)
-    }
+    if (localStorage.getItem('aboutDismissed') === 'true') setAboutVisible(false)
     const saved = localStorage.getItem('book_view_mode')
     if (saved === 'grid' || saved === 'list') setViewMode(saved)
   }, [])
@@ -60,8 +61,21 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   }, [])
 
   function handleCloseAbout() {
-    document.cookie = 'about_closed=1; max-age=31536000; path=/'
-    setShowAbout(false)
+    localStorage.setItem('aboutDismissed', 'true')
+    setAboutVisible(false)
+  }
+
+  function handleWhatIsThis() {
+    if (aboutVisible) {
+      // Block already visible — just scroll to it, don't re-open accordion
+      aboutRef.current?.scrollIntoView()
+      return
+    }
+    localStorage.removeItem('aboutDismissed')
+    // flushSync ensures React commits the render before we call imperative methods
+    flushSync(() => { setAboutVisible(true) })
+    aboutRef.current?.openAccordion()
+    aboutRef.current?.scrollIntoView()
   }
 
   function handleSetViewMode(mode: 'grid' | 'list') {
@@ -181,24 +195,12 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         onEditProfile={isLoggedIn ? () => setShowContactsForm(true) : undefined}
         onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
         onSubmitBook={handleSubmitBookClick}
+        onWhatIsThis={handleWhatIsThis}
       />
 
       {/* About */}
-      {showAbout && (
-        <div style={{ borderBottom: '1px solid #E5E5E5' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', lineHeight: 1.65, color: '#555', margin: 0, flex: 1 }}>
-              Приглашаю вместе читать и обсуждать книги. Если вам что-то приглянулось из списка, записывайтесь — я свяжусь через Telegram, и согласуем формат.
-            </p>
-            <button
-              onClick={handleCloseAbout}
-              title="Скрыть"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', fontSize: '1.1rem', lineHeight: 1, padding: '0.25rem', flexShrink: 0 }}
-            >
-              ×
-            </button>
-          </div>
-        </div>
+      {aboutVisible && (
+        <AboutBlock ref={aboutRef} onClose={handleCloseAbout} />
       )}
 
       {/* Search + filters */}
