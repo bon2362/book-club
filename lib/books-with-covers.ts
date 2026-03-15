@@ -33,28 +33,31 @@ export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWi
   const flagMap = new Map(newFlags.map(f => [f.bookId, f.isNew]))
   const cutoff = new Date(Date.now() - NEW_BOOK_DAYS * 24 * 60 * 60 * 1000)
 
-  const submissionBooks: BookWithCover[] = approvedSubmissions.map(s => {
-    const explicitFlag = flagMap.get(s.id)
-    const isNew = explicitFlag !== undefined ? explicitFlag : s.createdAt > cutoff
-    return {
-      id: s.id,
-      name: s.title,
-      tags: s.topic ? [s.topic] : [],
-      author: s.author,
-      type: 'Book',
-      size: '',
-      pages: s.pages != null ? String(s.pages) : '',
-      date: s.publishedDate ?? '',
-      link: s.textUrl ?? '',
-      description: s.description ?? '',
-      coverUrl: s.coverUrl ?? null,
-      whyRead: s.whyRead ?? null,
-      isNew,
-    }
-  })
+  const submissionBooks: BookWithCover[] = approvedSubmissions
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .map(s => {
+      const explicitFlag = flagMap.get(s.id)
+      const isNew = explicitFlag !== undefined ? explicitFlag : s.createdAt > cutoff
+      return {
+        id: s.id,
+        name: s.title,
+        tags: s.topic ? [s.topic] : [],
+        author: s.author,
+        type: 'Book',
+        size: '',
+        pages: s.pages != null ? String(s.pages) : '',
+        date: s.publishedDate ?? '',
+        link: s.textUrl ?? '',
+        description: s.description ?? '',
+        coverUrl: s.coverUrl ?? null,
+        whyRead: s.whyRead ?? null,
+        isNew,
+      }
+    })
 
-  return [
-    ...books.map(b => ({ ...b, whyRead: b.whyForClub ?? null, isNew: flagMap.get(b.id) ?? false })),
-    ...submissionBooks,
-  ]
+  const sheetsBooks = books
+    .map(b => ({ ...b, whyRead: b.whyForClub ?? null, isNew: flagMap.get(b.id) ?? false }))
+    .reverse()
+
+  return [...submissionBooks, ...sheetsBooks]
 }
