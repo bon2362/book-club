@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { invalidateCache, fetchBooks } from '@/lib/sheets'
 
@@ -10,5 +11,6 @@ export async function POST() {
 
   invalidateCache()
   const books = await fetchBooks(true)
+  revalidatePath('/')
   return NextResponse.json({ ok: true, count: books.length })
 }

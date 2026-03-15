@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Fragment } from 'react'
+import { useRouter } from 'next/navigation'
 import type { UserSignup } from '@/lib/signups'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import Header from './Header'
@@ -86,6 +87,7 @@ const fieldInput: React.CSSProperties = {
 }
 
 export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions, newFlags: initialNewFlags }: Props) {
+  const router = useRouter()
   const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)
@@ -157,6 +159,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
     try {
       const res = await fetch('/api/sync', { method: 'POST' })
       setSyncMsg(res.ok ? 'Синхронизировано' : 'Ошибка синхронизации')
+      if (res.ok) router.refresh()
     } catch {
       setSyncMsg('Ошибка синхронизации')
     } finally {
