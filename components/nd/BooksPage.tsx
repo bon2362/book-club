@@ -230,111 +230,121 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           style={{
             maxWidth: '1200px',
             margin: '0 auto',
-            padding: '0.75rem 1.5rem',
+            padding: '0.6rem 1.5rem',
             display: 'flex',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: '0.5rem',
           }}
         >
-          <input
-            type="search"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Поиск по названию или автору…"
-            style={{
-              flex: '1 1 220px',
-              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-              fontSize: '0.8rem',
-              color: '#111',
-              background: '#fff',
-              border: '1px solid #E5E5E5',
-              borderBottom: '2px solid #111',
-              padding: '0.4rem 0.6rem',
-              outline: 'none',
-            }}
-          />
-          <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={selectStyle}>
-            <option value="">Тема: все</option>
-            {allTags.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={selectStyle}>
-            <option value="">Автор: все</option>
-            {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-          {hasNewBooks && (
-            <button
-              onClick={() => setShowNew(v => !v)}
+          {/* Row 1: search + view toggle */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Поиск по названию или автору…"
               style={{
+                flex: 1,
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.75rem',
-                color: showNew ? '#fff' : '#111',
-                background: showNew ? '#111' : 'transparent',
-                border: '1px solid #111',
-                padding: '0.4rem 0.75rem',
-                cursor: 'pointer',
-                transition: 'background 0.15s, color 0.15s',
+                fontSize: '0.8rem',
+                color: '#111',
+                background: '#fff',
+                border: '1px solid #E5E5E5',
+                borderBottom: '2px solid #111',
+                padding: '0.4rem 0.6rem',
+                outline: 'none',
               }}
-            >
-              {showNew ? '✓ Новинки' : 'Новинки'}
-            </button>
-          )}
-          {isLoggedIn && selectedBooks.length > 0 && (
+            />
             <button
-              onClick={() => setShowMyBooks(v => !v)}
-              style={{
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.75rem',
-                color: showMyBooks ? '#fff' : '#111',
-                background: showMyBooks ? '#111' : 'transparent',
-                border: '1px solid #111',
-                padding: '0.4rem 0.75rem',
-                cursor: 'pointer',
-                transition: 'background 0.15s, color 0.15s',
-              }}
+              onClick={() => handleSetViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              title={viewMode === 'grid' ? 'Переключить в таблицу' : 'Переключить в сетку'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: '#111', display: 'flex', flexShrink: 0 }}
             >
-              {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
+              {viewMode === 'grid' ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="1" y="2" width="14" height="2" rx="0.5" />
+                  <rect x="1" y="7" width="14" height="2" rx="0.5" />
+                  <rect x="1" y="12" width="14" height="2" rx="0.5" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="1" y="1" width="6" height="6" rx="0.5" />
+                  <rect x="9" y="1" width="6" height="6" rx="0.5" />
+                  <rect x="1" y="9" width="6" height="6" rx="0.5" />
+                  <rect x="9" y="9" width="6" height="6" rx="0.5" />
+                </svg>
+              )}
             </button>
-          )}
-          {hasReadBooks && (
-            <button
-              onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
-              style={{
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.75rem',
-                color: showRead ? '#fff' : '#111',
-                background: showRead ? '#111' : 'transparent',
-                border: '1px solid #111',
-                padding: '0.4rem 0.75rem',
-                cursor: 'pointer',
-                transition: 'background 0.15s, color 0.15s',
-              }}
-            >
-              {showRead ? '✓ Прочитанные' : 'Показать прочитанные'}
-            </button>
-          )}
+          </div>
 
-          {/* View toggle */}
-          <button
-            onClick={() => handleSetViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            title={viewMode === 'grid' ? 'Переключить в таблицу' : 'Переключить в сетку'}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: '#111', display: 'flex', marginLeft: 'auto' }}
-          >
-            {viewMode === 'grid' ? (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="1" y="2" width="14" height="2" rx="0.5" />
-                <rect x="1" y="7" width="14" height="2" rx="0.5" />
-                <rect x="1" y="12" width="14" height="2" rx="0.5" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="1" y="1" width="6" height="6" rx="0.5" />
-                <rect x="9" y="1" width="6" height="6" rx="0.5" />
-                <rect x="1" y="9" width="6" height="6" rx="0.5" />
-                <rect x="9" y="9" width="6" height="6" rx="0.5" />
-              </svg>
+          {/* Row 2: filters — scrollable on mobile */}
+          <div className="filter-chips">
+            <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={selectStyle}>
+              <option value="">Тема: все</option>
+              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={selectStyle}>
+              <option value="">Автор: все</option>
+              {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+            {hasNewBooks && (
+              <button
+                onClick={() => setShowNew(v => !v)}
+                style={{
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.75rem',
+                  color: showNew ? '#fff' : '#111',
+                  background: showNew ? '#111' : 'transparent',
+                  border: '1px solid #111',
+                  padding: '0.4rem 0.75rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, color 0.15s',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {showNew ? '✓ Новинки' : 'Новинки'}
+              </button>
             )}
-          </button>
+            {isLoggedIn && selectedBooks.length > 0 && (
+              <button
+                onClick={() => setShowMyBooks(v => !v)}
+                style={{
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.75rem',
+                  color: showMyBooks ? '#fff' : '#111',
+                  background: showMyBooks ? '#111' : 'transparent',
+                  border: '1px solid #111',
+                  padding: '0.4rem 0.75rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, color 0.15s',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
+              </button>
+            )}
+            {hasReadBooks && (
+              <button
+                onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
+                style={{
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.75rem',
+                  color: showRead ? '#fff' : '#111',
+                  background: showRead ? '#111' : 'transparent',
+                  border: '1px solid #111',
+                  padding: '0.4rem 0.75rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, color 0.15s',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                {showRead ? '✓ Прочитанные' : 'Прочитанные'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -432,6 +442,22 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       <style>{`
         @media (max-width: 768px) {
           .scroll-top-btn { display: flex !important; align-items: center; justify-content: center; }
+        }
+        .filter-chips {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        @media (max-width: 640px) {
+          .filter-chips {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 2px;
+          }
+          .filter-chips::-webkit-scrollbar { display: none; }
         }
       `}</style>
 
