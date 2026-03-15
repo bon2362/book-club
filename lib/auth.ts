@@ -21,10 +21,10 @@ async function sendMagicLinkEmail(email: string, url: string) {
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border:1px solid #E5E5E5;border-top:3px solid #111;">
         <tr><td style="padding:36px 36px 0">
-          <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Книжный клуб</p>
+          <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Читательские круги</p>
           <h1 style="margin:0 0 24px;font-family:Georgia,serif;font-size:26px;font-weight:700;color:#111;letter-spacing:-0.02em;">Долгое наступление</h1>
           <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;">
-            Вы запросили ссылку для входа в книжный клуб. Нажмите кнопку ниже — она действует <strong>24 часа</strong>.
+            Вы запросили ссылку для входа в читательские круги. Нажмите кнопку ниже — она действует <strong>24 часа</strong>.
           </p>
           <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
             <tr><td style="background:#111;">
@@ -51,12 +51,12 @@ async function sendMagicLinkEmail(email: string, url: string) {
 </body>
 </html>`
 
-  const text = `Долгое наступление — книжный клуб\n\nВойти в клуб: ${url}\n\nСсылка действует 24 часа. Если вы не запрашивали этот email — просто проигнорируйте его.`
+  const text = `Долгое наступление — читательские круги\n\nВойти: ${url}\n\nСсылка действует 24 часа. Если вы не запрашивали этот email — просто проигнорируйте его.`
 
   await client.emails.send({
     from: FROM,
     to: email,
-    subject: 'Ссылка для входа в книжный клуб',
+    subject: 'Ссылка для входа в читательские круги',
     html,
     text,
   })

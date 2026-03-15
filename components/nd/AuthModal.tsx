@@ -140,7 +140,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             margin: '0 0 0.75rem',
           }}
         >
-          Книжный клуб
+          Читательские круги
         </p>
 
         <h2

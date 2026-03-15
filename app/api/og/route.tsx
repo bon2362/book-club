@@ -41,7 +41,7 @@ export async function GET() {
             marginBottom: '24px',
           }}
         >
-          Книжный клуб
+          Читательские круги
         </div>
 
         {/* Title */}

@@ -195,7 +195,7 @@ export default function SubmitBookForm({ isOpen, onClose, topics }: Props) {
         </button>
 
         <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#999', margin: '0 0 0.5rem' }}>
-          Книжный клуб
+          Читательские круги
         </p>
         <h2 id="submit-book-title" style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: '#111', margin: '0 0 1.5rem', letterSpacing: '-0.02em' }}>
           Предложить книгу
