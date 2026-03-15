@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: 'Долгое наступление',
-  description: 'Книжный клуб',
+  description: 'Читательские круги',
 }
 
 export default function NewDesignLayout({ children }: { children: React.ReactNode }) {

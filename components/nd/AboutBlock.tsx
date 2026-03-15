@@ -207,7 +207,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
       <div
         ref={domRef}
         role="region"
-        aria-label="О клубе"
+        aria-label="Читательские круги"
         onClick={handleBlockClick}
         onKeyDown={(e) => { if (!isAccordionOpen && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setIsAccordionOpen(true) } }}
         onMouseEnter={() => setIsHovered(true)}
@@ -241,7 +241,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             }}
           >
-            О клубе
+            Читательские круги
           </div>
 
           {/* L1 row */}

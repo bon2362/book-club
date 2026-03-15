@@ -44,7 +44,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
               color: '#999',
             }}
           >
-            Книжный клуб
+            Читательские круги
           </span>
           {onWhatIsThis && (
             <button

@@ -24,8 +24,8 @@ beforeEach(() => {
 describe('nd/AboutBlock', () => {
   it('renders the block with L1 text and eyebrow', () => {
     render(<AboutBlock onClose={() => {}} />)
-    expect(screen.getByRole('region', { name: 'О клубе' })).toBeInTheDocument()
-    expect(screen.getByText('О клубе')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Читательские круги' })).toBeInTheDocument()
+    expect(screen.getByText('Читательские круги')).toBeInTheDocument()
     expect(screen.getByText(/Собираю небольшие читательские группы/)).toBeInTheDocument()
   })
 
@@ -37,7 +37,7 @@ describe('nd/AboutBlock', () => {
   it('clicking the L1 block area opens the accordion', () => {
     render(<AboutBlock onClose={() => {}} />)
     // Click on the region itself (not a button inside it)
-    const region = screen.getByRole('region', { name: 'О клубе' })
+    const region = screen.getByRole('region', { name: 'Читательские круги' })
     fireEvent.click(region)
     expect(screen.getByText('Что это такое?')).toBeInTheDocument()
   })
@@ -129,7 +129,7 @@ describe('nd/AboutBlock', () => {
 
   it('Enter key on L1 block opens accordion when closed', () => {
     render(<AboutBlock onClose={() => {}} />)
-    const region = screen.getByRole('region', { name: 'О клубе' })
+    const region = screen.getByRole('region', { name: 'Читательские круги' })
     fireEvent.keyDown(region, { key: 'Enter' })
     expect(screen.getByText('Что это такое?')).toBeInTheDocument()
   })
