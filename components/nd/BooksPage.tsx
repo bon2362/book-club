@@ -198,6 +198,20 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
     await signOut()
   }
 
+  function chipStyle(active: boolean): React.CSSProperties {
+    return {
+      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+      fontSize: '0.75rem',
+      color: active ? '#fff' : '#111',
+      background: active ? '#111' : 'transparent',
+      border: '1px solid #111',
+      padding: '0.4rem 0.65rem',
+      cursor: 'pointer',
+      transition: 'background 0.15s, color 0.15s',
+      whiteSpace: 'nowrap' as const,
+    }
+  }
+
   const selectStyle: React.CSSProperties = {
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.75rem',
@@ -236,7 +250,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
             gap: '0.5rem',
           }}
         >
-          {/* Row 1: search + view toggle */}
+          {/* Row 1: поиск + переключатель вида */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <input
               type="search"
@@ -277,74 +291,41 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
             </button>
           </div>
 
-          {/* Row 2: filters — scrollable on mobile */}
-          <div className="filter-chips">
-            <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={selectStyle}>
+          {/* Row 2: два селекта по 50% */}
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
               <option value="">Тема: все</option>
               {allTags.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <select value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={selectStyle}>
+            <select value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
               <option value="">Автор: все</option>
               {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
-            {hasNewBooks && (
-              <button
-                onClick={() => setShowNew(v => !v)}
-                style={{
-                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.75rem',
-                  color: showNew ? '#fff' : '#111',
-                  background: showNew ? '#111' : 'transparent',
-                  border: '1px solid #111',
-                  padding: '0.4rem 0.75rem',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s, color 0.15s',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {showNew ? '✓ Новинки' : 'Новинки'}
-              </button>
-            )}
-            {isLoggedIn && selectedBooks.length > 0 && (
-              <button
-                onClick={() => setShowMyBooks(v => !v)}
-                style={{
-                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.75rem',
-                  color: showMyBooks ? '#fff' : '#111',
-                  background: showMyBooks ? '#111' : 'transparent',
-                  border: '1px solid #111',
-                  padding: '0.4rem 0.75rem',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s, color 0.15s',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
-              </button>
-            )}
-            {hasReadBooks && (
-              <button
-                onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
-                style={{
-                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.75rem',
-                  color: showRead ? '#fff' : '#111',
-                  background: showRead ? '#111' : 'transparent',
-                  border: '1px solid #111',
-                  padding: '0.4rem 0.75rem',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s, color 0.15s',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {showRead ? '✓ Прочитанные' : 'Прочитанные'}
-              </button>
-            )}
           </div>
+
+          {/* Row 3: чипсы-тогглы — только если хоть один виден */}
+          {(hasNewBooks || (isLoggedIn && selectedBooks.length > 0) || hasReadBooks) && (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {hasNewBooks && (
+                <button onClick={() => setShowNew(v => !v)} style={chipStyle(showNew)}>
+                  {showNew ? '✓ Новинки' : 'Новинки'}
+                </button>
+              )}
+              {isLoggedIn && selectedBooks.length > 0 && (
+                <button onClick={() => setShowMyBooks(v => !v)} style={chipStyle(showMyBooks)}>
+                  {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
+                </button>
+              )}
+              {hasReadBooks && (
+                <button
+                  onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
+                  style={chipStyle(showRead)}
+                >
+                  {showRead ? '✓ Прочитанные' : 'Прочитанные'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -442,22 +423,6 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       <style>{`
         @media (max-width: 768px) {
           .scroll-top-btn { display: flex !important; align-items: center; justify-content: center; }
-        }
-        .filter-chips {
-          display: flex;
-          gap: 0.5rem;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-        @media (max-width: 640px) {
-          .filter-chips {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 2px;
-          }
-          .filter-chips::-webkit-scrollbar { display: none; }
         }
       `}</style>
 
