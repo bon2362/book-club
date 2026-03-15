@@ -57,7 +57,7 @@
 
 /* ── Header mobile ────────────────────────────────────────────────────────── */
 
-.nd-header-label   { }
+.nd-header-label   { display: flex; }
 .nd-header-profile-btn { }
 .nd-header-submit  { }
 .nd-header-avatar  { display: none; }
