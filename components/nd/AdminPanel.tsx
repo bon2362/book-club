@@ -35,7 +35,6 @@ interface Props {
   statuses: Record<string, 'reading' | 'read'>
   allTags: string[]
   tagDescriptions: Record<string, string>
-  books: BookWithCover[]
   newFlags: Record<string, boolean>
 }
 
@@ -86,7 +85,7 @@ const fieldInput: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions, books, newFlags: initialNewFlags }: Props) {
+export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions, newFlags: initialNewFlags }: Props) {
   const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)

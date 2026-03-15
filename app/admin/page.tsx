@@ -51,7 +51,7 @@ export default async function AdminPage() {
   return (
     <>
       <SessionProvider>
-        <AdminPanel users={signups} byBook={byBook} statuses={statusMap} allTags={allTags} tagDescriptions={tagDescMap} books={books} newFlags={newFlagsMap} />
+        <AdminPanel users={signups} byBook={byBook} statuses={statusMap} allTags={allTags} tagDescriptions={tagDescMap} newFlags={newFlagsMap} />
       </SessionProvider>
       <footer style={{
         borderTop: '1px solid #E5E5E5',
