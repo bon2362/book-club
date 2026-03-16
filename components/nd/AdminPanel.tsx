@@ -37,6 +37,7 @@ interface Props {
   allTags: string[]
   tagDescriptions: Record<string, string>
   newFlags: Record<string, boolean>
+  userLanguages?: Record<string, string[]>
 }
 
 type View = 'users' | 'books' | 'tags' | 'submissions'
@@ -86,7 +87,7 @@ const fieldInput: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions, newFlags: initialNewFlags }: Props) {
+export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions, newFlags: initialNewFlags, userLanguages = {} }: Props) {
   const router = useRouter()
   const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
   const [view, setView] = useState<View>('users')
@@ -401,6 +402,7 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                 <th style={headCell}>Имя</th>
                 <th style={headCell}>Telegram</th>
                 <th style={headCell}>Email</th>
+                <th style={headCell}>Языки</th>
                 <th style={headCell}>Книги</th>
                 <th style={headCell}></th>
               </tr>
@@ -411,6 +413,9 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
                   <td style={cell}>{u.name}</td>
                   <td style={cell}>{u.contacts}</td>
                   <td style={{ ...cell, color: '#666' }}>{u.email}</td>
+                  <td style={{ ...cell, color: '#666' }}>
+                    {(userLanguages[u.userId] ?? []).join(', ') || <span style={{ color: '#ccc' }}>—</span>}
+                  </td>
                   <td style={cell}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                       {u.selectedBooks.map(book => (

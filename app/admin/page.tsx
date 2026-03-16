@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { getAllSignups } from '@/lib/signups'
 import { fetchBooksWithCovers } from '@/lib/books-with-covers'
 import { db } from '@/lib/db'
-import { bookStatuses, tagDescriptions, bookNewFlags } from '@/lib/db/schema'
+import { bookStatuses, tagDescriptions, bookNewFlags, users } from '@/lib/db/schema'
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminStatusBar from '@/components/nd/AdminStatusBar'
 import { SessionProvider } from 'next-auth/react'
@@ -14,13 +14,21 @@ export default async function AdminPage() {
   const session = await auth()
   if (!session?.user?.isAdmin) redirect('/')
 
-  const [signups, books, statuses, tagDescs, newFlags] = await Promise.all([
+  const [signups, books, statuses, tagDescs, newFlags, languageRows] = await Promise.all([
     getAllSignups(),
     fetchBooksWithCovers(),
     db.select().from(bookStatuses).catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
     db.select().from(bookNewFlags).catch(() => []),
+    db.select({ id: users.id, languages: users.languages }).from(users).catch(() => []),
   ])
+
+  const userLanguagesMap: Record<string, string[]> = {}
+  for (const row of languageRows) {
+    if (row.languages) {
+      try { userLanguagesMap[row.id] = JSON.parse(row.languages) } catch { /* skip */ }
+    }
+  }
 
   const statusMap = Object.fromEntries(
     statuses.map(s => [s.bookId, s.status as 'reading' | 'read'])
@@ -51,7 +59,7 @@ export default async function AdminPage() {
   return (
     <>
       <SessionProvider>
-        <AdminPanel users={signups} byBook={byBook} statuses={statusMap} allTags={allTags} tagDescriptions={tagDescMap} newFlags={newFlagsMap} />
+        <AdminPanel users={signups} byBook={byBook} statuses={statusMap} allTags={allTags} tagDescriptions={tagDescMap} newFlags={newFlagsMap} userLanguages={userLanguagesMap} />
       </SessionProvider>
       <footer style={{
         borderTop: '1px solid #E5E5E5',
