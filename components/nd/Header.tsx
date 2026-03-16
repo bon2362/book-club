@@ -84,7 +84,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             flex: 1,
             display: 'flex',
             justifyContent: 'flex-end',
-            alignItems: 'center',
+            alignItems: 'baseline',
             gap: '1rem',
           }}
         >
