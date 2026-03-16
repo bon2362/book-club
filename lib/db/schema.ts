@@ -9,6 +9,7 @@ export const users = pgTable('user', {
   emailVerified: timestamp('emailVerified', { mode: 'date' }),
   image: text('image'),
   languages: text('languages'),
+  prioritiesSet: boolean('priorities_set').notNull().default(false),
 })
 
 export const accounts = pgTable('account', {
@@ -102,4 +103,13 @@ export const bookSubmissions = pgTable('book_submissions', {
   updatedAt:     timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   statusIdx: index('book_submissions_status_idx').on(t.status),
+}))
+
+export const bookPriorities = pgTable('book_priorities', {
+  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookName:  text('book_name').notNull(),
+  rank:      integer('rank').notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.bookName] }),
 }))
