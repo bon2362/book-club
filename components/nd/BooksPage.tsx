@@ -201,6 +201,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   }
 
   async function handleToggleByName(bookName: string): Promise<void> {
+    const original = selectedBooks
     const next = selectedBooks.includes(bookName)
       ? selectedBooks.filter(n => n !== bookName)
       : [...selectedBooks, bookName]
@@ -208,7 +209,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
     try {
       await saveSelection(effectiveUser!.name, effectiveUser!.contacts, next)
     } catch (err) {
-      setSelectedBooks(selectedBooks) // rollback
+      setSelectedBooks(original) // rollback to snapshot taken before optimistic update
       throw err
     }
   }

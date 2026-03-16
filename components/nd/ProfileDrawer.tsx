@@ -73,7 +73,7 @@ export default function ProfileDrawer({
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [submissionsLoaded, setSubmissionsLoaded] = useState(false)
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null)
-  const [withdrawError, setWithdrawError] = useState<string | null>(null) // stores submission ID of failed withdrawal
+  const [withdrawFailedId, setWithdrawFailedId] = useState<string | null>(null) // stores submission ID of failed withdrawal
 
   // ── Profile form ──
   const effectiveUser = currentUser ?? savedUser
@@ -89,6 +89,7 @@ export default function ProfileDrawer({
   const [languagesLoaded, setLanguagesLoaded] = useState(false)
   const [showExtraLanguages, setShowExtraLanguages] = useState(false)
   const langDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Toast ──
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -103,6 +104,13 @@ export default function ProfileDrawer({
   useEffect(() => {
     return () => {
       if (langDebounceRef.current) clearTimeout(langDebounceRef.current)
+    }
+  }, [])
+
+  // Cleanup saveSuccess timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveSuccessTimerRef.current) clearTimeout(saveSuccessTimerRef.current)
     }
   }, [])
 
@@ -205,13 +213,13 @@ export default function ProfileDrawer({
       setWithdrawingId(null)
       return
     }
-    setWithdrawError(null)
+    setWithdrawFailedId(null)
     try {
       const res = await fetch(`/api/submissions/${sub.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed')
       setSubmissions(prev => prev.filter(s => s.id !== sub.id))
     } catch {
-      setWithdrawError(sub.id)
+      setWithdrawFailedId(sub.id)
     } finally {
       setWithdrawingId(null)
     }
@@ -227,7 +235,8 @@ export default function ProfileDrawer({
     try {
       await onSaveContacts(name.trim(), contacts.trim())
       setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 2000)
+      if (saveSuccessTimerRef.current) clearTimeout(saveSuccessTimerRef.current)
+      saveSuccessTimerRef.current = setTimeout(() => setSaveSuccess(false), 2000)
     } catch {
       setSaveError('Что-то пошло не так')
     } finally {
@@ -261,7 +270,11 @@ export default function ProfileDrawer({
 
   async function handleDeleteAccount() {
     if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) return
-    await onDeleteAccount()
+    try {
+      await onDeleteAccount()
+    } catch {
+      setToast({ message: 'Не удалось удалить аккаунт', type: 'error' })
+    }
   }
 
   const displayName = session?.user?.name ?? session?.user?.email ?? ''
@@ -586,7 +599,7 @@ export default function ProfileDrawer({
                           >
                             {withdrawingId === sub.id ? 'Отзываем…' : 'Отозвать'}
                           </button>
-                          {withdrawError === sub.id && (
+                          {withdrawFailedId === sub.id && (
                             <span style={{
                               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                               fontSize: '0.65rem',
