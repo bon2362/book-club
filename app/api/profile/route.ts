@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-export async function GET() {
+export async function GET(_req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -31,7 +31,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { languages } = await req.json() as { languages: string[] }
+  let languages: string[]
+  try {
+    const body = await req.json() as { languages: unknown }
+    if (!Array.isArray(body.languages) || !body.languages.every(x => typeof x === 'string')) {
+      return NextResponse.json({ error: 'Invalid languages' }, { status: 400 })
+    }
+    languages = body.languages
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
 
   const updated = await db
     .update(users)
@@ -39,6 +48,10 @@ export async function PATCH(req: NextRequest) {
     .where(eq(users.id, session.user.id))
     .returning({ languages: users.languages })
 
-  const saved = updated[0]?.languages
+  if (updated.length === 0) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  }
+
+  const saved = updated[0].languages
   return NextResponse.json({ languages: saved ? JSON.parse(saved) as string[] : languages })
 }
