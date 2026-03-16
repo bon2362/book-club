@@ -177,7 +177,10 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
   }))
 
   function handleBlockClick() {
-    if (!isAccordionOpen) {
+    if (isAccordionOpen) {
+      setIsAccordionOpen(false)
+      setOpenSection(null)
+    } else {
       setIsAccordionOpen(true)
     }
   }
@@ -319,7 +322,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
 
           {/* Accordion */}
           {isAccordionOpen && (
-            <div style={{ marginTop: '0.75rem' }}>
+            <div style={{ marginTop: '0.75rem' }} onClick={e => e.stopPropagation()}>
               {SECTIONS.map((section, idx) => (
                 <AccordionSection
                   key={idx}

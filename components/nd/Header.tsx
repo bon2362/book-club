@@ -34,7 +34,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
         }}
       >
         {/* Left: label + "Что это?" */}
-        <div className="nd-header-label" style={{ flex: 1, alignItems: 'center', gap: '1rem' }}>
+        <div className="nd-header-label" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
