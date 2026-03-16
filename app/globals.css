@@ -80,3 +80,9 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
+
+.tooltip-wrap:hover .tooltip-text {
+  opacity: 1 !important;
+}

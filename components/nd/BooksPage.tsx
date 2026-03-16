@@ -152,7 +152,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
     let result = searchBooks(books, query)
     if (filterTag) result = result.filter(b => b.tags.includes(filterTag))
     if (filterAuthor) result = result.filter(b => b.author.split(/,|( и )|&/).map(p => p?.trim()).includes(filterAuthor))
-    if (!showRead) result = result.filter(b => b.status !== 'read')
+    result = result.filter(b => showRead ? b.status === 'read' : b.status !== 'read')
     if (showMyBooks) result = result.filter(b => selectedBooks.includes(b.name))
     if (showNew) result = result.filter(b => b.isNew)
     return result
@@ -312,9 +312,28 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
                   </button>
                 )}
                 {isLoggedIn && selectedBooks.length > 0 && (
-                  <button onClick={() => setShowMyBooks(v => !v)} style={chipStyle(showMyBooks)}>
-                    {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
-                  </button>
+                  <div style={{ position: 'relative', display: 'inline-block' }} className="tooltip-wrap">
+                    <button onClick={() => setShowMyBooks(v => !v)} style={chipStyle(showMyBooks)}>
+                      {showMyBooks ? '✓ Записался' : 'Записался'}
+                    </button>
+                    <span className="tooltip-text" style={{
+                      position: 'absolute',
+                      bottom: 'calc(100% + 6px)',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: '#222',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      opacity: 0,
+                      transition: 'opacity 0.15s',
+                    }}>
+                      Книги, на которые вы записались
+                    </span>
+                  </div>
                 )}
                 {hasReadBooks && (
                   <button
