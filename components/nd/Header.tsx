@@ -9,9 +9,10 @@ interface Props {
   onSignIn?: () => void
   onSubmitBook?: () => void
   onWhatIsThis?: () => void
+  isAdmin?: boolean
 }
 
-export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIsThis }: Props) {
+export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIsThis, isAdmin }: Props) {
   const { data: session } = useSession()
 
   return (
@@ -88,6 +89,25 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             gap: '1rem',
           }}
         >
+          {isAdmin && (
+            <Link
+              href="/new-design/admin"
+              className="nd-header-admin-link"
+              style={{
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.65rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: '#888',
+                textDecoration: 'none',
+                borderBottom: '1px solid #ccc',
+                padding: '0 0 1px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Админ
+            </Link>
+          )}
           {onSubmitBook && (
             <span className="nd-header-submit">
               <SubmitBookButton onClick={onSubmitBook} />

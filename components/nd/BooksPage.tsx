@@ -247,6 +247,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
         onSubmitBook={handleSubmitBookClick}
         onWhatIsThis={handleWhatIsThis}
+        isAdmin={isAdmin}
       />
 
       {/* About */}
