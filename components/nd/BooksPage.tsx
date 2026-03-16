@@ -11,6 +11,7 @@ import BookCard from './BookCard'
 import BookRow from './BookRow'
 import AuthModal from './AuthModal'
 import ContactsForm from './ContactsForm'
+import ProfileDrawer from './ProfileDrawer'
 import SubmitBookForm from './SubmitBookForm'
 import SubmitBookCard from './SubmitBookCard'
 import AboutBlock, { type AboutBlockHandle } from './AboutBlock'
@@ -95,6 +96,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   )
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [showContactsForm, setShowContactsForm] = useState(false)
+  const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
   const [submitFormOpen, setSubmitFormOpen] = useState(false)
   const [submitIntent, setSubmitIntent] = useState(false)
 
@@ -227,7 +229,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   return (
     <>
       <Header
-        onEditProfile={isLoggedIn ? () => setShowContactsForm(true) : undefined}
+        onEditProfile={isLoggedIn ? () => setProfileDrawerOpen(true) : undefined}
         onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
         onSubmitBook={handleSubmitBookClick}
         onWhatIsThis={handleWhatIsThis}
@@ -475,6 +477,17 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           onDelete={isLoggedIn ? handleDeleteAccount : undefined}
         />
       )}
+      <ProfileDrawer
+        isOpen={profileDrawerOpen}
+        onClose={() => setProfileDrawerOpen(false)}
+        selectedBooks={selectedBooks}
+        books={books}
+        currentUser={currentUser}
+        savedUser={savedUser}
+        telegramLocked={!!telegramUsername}
+        onSaveContacts={handleSaveContacts}
+        onDeleteAccount={handleDeleteAccount}
+      />
     </>
   )
 }

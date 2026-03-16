@@ -4,6 +4,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { bookSubmissions } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
+
+export async function GET() {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const submissions = await db
+    .select()
+    .from(bookSubmissions)
+    .where(eq(bookSubmissions.userId, session.user.id))
+    .orderBy(desc(bookSubmissions.createdAt))
+
+  return NextResponse.json({ submissions })
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth()
