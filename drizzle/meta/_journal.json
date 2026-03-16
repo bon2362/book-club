@@ -29,6 +29,13 @@
       "when": 1773667120318,
       "tag": "0003_gray_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773910000000,
+      "tag": "0004_uneven_grandmaster",
+      "breakpoints": true
     }
   ]
 }
