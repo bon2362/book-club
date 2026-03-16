@@ -22,6 +22,13 @@
       "when": 1773900000000,
       "tag": "0002_book_new_flags",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773667120318,
+      "tag": "0003_gray_jubilee",
+      "breakpoints": true
     }
   ]
 }
