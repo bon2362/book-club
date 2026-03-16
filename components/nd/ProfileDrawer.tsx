@@ -311,6 +311,7 @@ export default function ProfileDrawer({
         role="dialog"
         aria-label="Личный кабинет"
         aria-modal="true"
+        aria-hidden={!isOpen}
         style={{
           position: 'fixed',
           top: 0,
