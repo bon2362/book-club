@@ -34,7 +34,6 @@ const mockAuth = authModule.auth as jest.Mock
 describe('GET /api/profile — auth', () => {
   it('возвращает 401 без сессии', async () => {
     mockAuth.mockResolvedValue(null)
-    const req = new NextRequest('http://localhost/api/profile')
     const res = await GET()
     expect(res.status).toBe(401)
   })
@@ -44,7 +43,6 @@ describe('GET /api/profile — happy path', () => {
   it('возвращает null для нового пользователя (колонка null)', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
     mockSelectResult.mockResolvedValue([{ languages: null }])
-    const req = new NextRequest('http://localhost/api/profile')
     const res = await GET()
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -54,7 +52,6 @@ describe('GET /api/profile — happy path', () => {
   it('возвращает null если пользователь не найден в таблице', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
     mockSelectResult.mockResolvedValue([])
-    const req = new NextRequest('http://localhost/api/profile')
     const res = await GET()
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -64,7 +61,6 @@ describe('GET /api/profile — happy path', () => {
   it('возвращает распарсенный массив языков', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
     mockSelectResult.mockResolvedValue([{ languages: '["ru","en"]' }])
-    const req = new NextRequest('http://localhost/api/profile')
     const res = await GET()
     expect(res.status).toBe(200)
     const data = await res.json()
