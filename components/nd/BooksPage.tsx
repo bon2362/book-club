@@ -294,41 +294,39 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
             </button>
           </div>
 
-          {/* Row 2: два селекта по 50% */}
-          <div className="filters-row2" style={{ display: 'flex', gap: '0.5rem' }}>
-            <select className="filters-select-tag" value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
+          {/* Row 2: два селекта + чипсы (на мобиле чипсы переносятся вниз) */}
+          <div className="filters-row2" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <select className="filters-select-tag" value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: '130px' }}>
               <option value="">Тема: все</option>
               {allTags.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <select className="filters-select-author" value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: 0 }}>
+            <select className="filters-select-author" value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: '130px' }}>
               <option value="">Автор: все</option>
               {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
+            {(hasNewBooks || (isLoggedIn && selectedBooks.length > 0) || hasReadBooks) && (
+              <>
+                {hasNewBooks && (
+                  <button onClick={() => setShowNew(v => !v)} style={chipStyle(showNew)}>
+                    {showNew ? '✓ Новинки' : 'Новинки'}
+                  </button>
+                )}
+                {isLoggedIn && selectedBooks.length > 0 && (
+                  <button onClick={() => setShowMyBooks(v => !v)} style={chipStyle(showMyBooks)}>
+                    {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
+                  </button>
+                )}
+                {hasReadBooks && (
+                  <button
+                    onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
+                    style={chipStyle(showRead)}
+                  >
+                    {showRead ? '✓ Прочитанные' : 'Прочитанные'}
+                  </button>
+                )}
+              </>
+            )}
           </div>
-
-          {/* Row 3: чипсы-тогглы — только если хоть один виден */}
-          {(hasNewBooks || (isLoggedIn && selectedBooks.length > 0) || hasReadBooks) && (
-            <div className="filters-chips" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {hasNewBooks && (
-                <button onClick={() => setShowNew(v => !v)} style={chipStyle(showNew)}>
-                  {showNew ? '✓ Новинки' : 'Новинки'}
-                </button>
-              )}
-              {isLoggedIn && selectedBooks.length > 0 && (
-                <button onClick={() => setShowMyBooks(v => !v)} style={chipStyle(showMyBooks)}>
-                  {showMyBooks ? '✓ Мои книги' : 'Мои книги'}
-                </button>
-              )}
-              {hasReadBooks && (
-                <button
-                  onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
-                  style={chipStyle(showRead)}
-                >
-                  {showRead ? '✓ Прочитанные' : 'Прочитанные'}
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -429,23 +427,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         }
 
         @media (min-width: 769px) {
-          /* Одна строка: [поиск] [тема] [автор] [чипсы] [вид] */
-          .filters-bar {
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 0.5rem !important;
-          }
-          /* Убираем обёртки — дочерние элементы становятся прямыми flex-детьми */
-          .filters-row1,
-          .filters-row2 {
-            display: contents;
-          }
-          /* Порядок и размеры */
-          .filters-search       { order: 1; flex: 2 1 0; min-width: 0; }
-          .filters-select-tag   { order: 2; flex: 1 1 0; min-width: 0; }
-          .filters-select-author{ order: 3; flex: 1 1 0; min-width: 0; }
-          .filters-chips        { order: 4; flex-shrink: 0; flex-wrap: nowrap; }
-          .filters-view-toggle  { order: 5; flex-shrink: 0; margin-left: 0.25rem; }
+          /* Десктоп: селекты компактные, чипсы inline на той же строке */
+          .filters-row2 { flex-wrap: nowrap; }
+          .filters-select-tag,
+          .filters-select-author { flex: 0 0 auto; width: 180px; }
         }
       `}</style>
 
