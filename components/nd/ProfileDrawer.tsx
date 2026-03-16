@@ -764,7 +764,9 @@ export default function ProfileDrawer({
                       onToggle={handleLanguageToggle}
                     />
                   ))}
-                  {showExtraLanguages && LANGUAGES_EXTRA.map(lang => (
+                  {LANGUAGES_EXTRA.filter(lang =>
+                    showExtraLanguages || (languages ?? []).includes(lang.code)
+                  ).map(lang => (
                     <LangButton
                       key={lang.code}
                       lang={lang}
