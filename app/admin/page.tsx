@@ -20,13 +20,13 @@ export default async function AdminPage() {
     db.select().from(bookStatuses).catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
     db.select().from(bookNewFlags).catch(() => []),
-    db.select({ id: users.id, languages: users.languages }).from(users).catch(() => []),
+    db.select({ email: users.email, languages: users.languages }).from(users).catch(() => []),
   ])
 
   const userLanguagesMap: Record<string, string[]> = {}
   for (const row of languageRows) {
-    if (row.languages) {
-      try { userLanguagesMap[row.id] = JSON.parse(row.languages) } catch { /* skip */ }
+    if (row.languages && row.email) {
+      try { userLanguagesMap[row.email] = JSON.parse(row.languages) } catch { /* skip */ }
     }
   }
 
