@@ -7,20 +7,14 @@ import * as authModule from '@/lib/auth'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 
-const mockSelect = jest.fn()
 const mockDelete = jest.fn()
 
 jest.mock('@/lib/db', () => ({
   db: {
-    select: () => ({
-      from: () => ({
-        where: () => ({
-          limit: mockSelect,
-        }),
-      }),
-    }),
     delete: () => ({
-      where: mockDelete,
+      where: () => ({
+        returning: mockDelete,
+      }),
     }),
   },
 }))
@@ -48,7 +42,7 @@ describe('DELETE /api/submissions/[id] — auth', () => {
 describe('DELETE /api/submissions/[id] — ownership', () => {
   it('возвращает 404 если заявка не найдена или принадлежит другому пользователю', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    mockSelect.mockResolvedValue([])
+    mockDelete.mockResolvedValue([])
     const res = await DELETE(makeRequest('sub-1'), { params: { id: 'sub-1' } })
     expect(res.status).toBe(404)
   })
@@ -57,11 +51,10 @@ describe('DELETE /api/submissions/[id] — ownership', () => {
 describe('DELETE /api/submissions/[id] — happy path', () => {
   it('удаляет заявку и возвращает 200', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    mockSelect.mockResolvedValue([{ id: 'sub-1', userId: 'user-1', status: 'pending' }])
-    mockDelete.mockResolvedValue(undefined)
+    mockDelete.mockResolvedValue([{ id: 'sub-1', userId: 'user-1', status: 'pending' }])
     const res = await DELETE(makeRequest('sub-1'), { params: { id: 'sub-1' } })
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data.ok).toBe(true)
+    expect(data.success).toBe(true)
   })
 })

@@ -15,17 +15,14 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const rows = await db
-    .select()
-    .from(bookSubmissions)
+  const deleted = await db
+    .delete(bookSubmissions)
     .where(and(eq(bookSubmissions.id, params.id), eq(bookSubmissions.userId, session.user.id)))
-    .limit(1)
+    .returning()
 
-  if (!rows.length) {
+  if (deleted.length === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  await db.delete(bookSubmissions).where(eq(bookSubmissions.id, params.id))
-
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ success: true })
 }
