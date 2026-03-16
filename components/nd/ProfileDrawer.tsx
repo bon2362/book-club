@@ -281,6 +281,7 @@ export default function ProfileDrawer({
   }
 
   const displayName = session?.user?.name ?? session?.user?.email ?? ''
+  const profileUnchanged = name.trim() === (effectiveUser?.name ?? '') && contacts.trim() === (effectiveUser?.contacts ?? '')
 
   // ─────────────────────────────────────────────
   // Shared styles
@@ -719,7 +720,7 @@ export default function ProfileDrawer({
                   )}
                   <button
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || profileUnchanged}
                     style={{
                       width: '100%',
                       padding: '0.65rem 1rem',
@@ -727,10 +728,10 @@ export default function ProfileDrawer({
                       fontSize: '0.65rem',
                       textTransform: 'uppercase',
                       letterSpacing: '0.1em',
-                      background: saving ? '#E5E5E5' : saveSuccess ? '#2A6E2A' : '#111',
-                      color: saving ? '#999' : '#fff',
-                      border: '1px solid #111',
-                      cursor: saving ? 'default' : 'pointer',
+                      background: saving ? '#E5E5E5' : saveSuccess ? '#2A6E2A' : profileUnchanged ? '#E5E5E5' : '#111',
+                      color: (saving || profileUnchanged) ? '#999' : '#fff',
+                      border: `1px solid ${profileUnchanged ? '#ccc' : '#111'}`,
+                      cursor: (saving || profileUnchanged) ? 'default' : 'pointer',
                       transition: 'background 0.15s, color 0.15s',
                     }}
                   >
