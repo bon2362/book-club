@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { UserSignup } from '@/lib/signups'
@@ -24,6 +24,7 @@ interface Props {
   telegramLocked?: boolean
   onSaveContacts: (name: string, contacts: string) => Promise<void>
   onDeleteAccount: () => Promise<void>
+  onToggleBook: (bookName: string) => Promise<void>
 }
 
 type Tab = 'signup' | 'submitted' | 'profile'
@@ -33,6 +34,25 @@ const STATUS_LABELS: Record<string, string> = {
   approved: 'Одобрена',
   rejected: 'Отклонена',
 }
+
+// All languages available for selection
+const LANGUAGES_PRIMARY = [
+  { code: 'ru', label: 'На русском' },
+  { code: 'en', label: 'In English' },
+]
+const LANGUAGES_EXTRA = [
+  { code: 'de', label: 'Auf Deutsch' },
+  { code: 'fr', label: 'En français' },
+  { code: 'es', label: 'En español' },
+  { code: 'it', label: 'In italiano' },
+  { code: 'pt', label: 'Português' },
+  { code: 'ja', label: '日本語' },
+  { code: 'zh', label: '中文' },
+  { code: 'pl', label: 'Polski' },
+  { code: 'nl', label: 'Nederlands' },
+  { code: 'sv', label: 'Svenska' },
+  { code: 'tr', label: 'Türkçe' },
+]
 
 export default function ProfileDrawer({
   isOpen,
@@ -44,12 +64,18 @@ export default function ProfileDrawer({
   telegramLocked,
   onSaveContacts,
   onDeleteAccount,
+  onToggleBook,
 }: Props) {
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState<Tab>('signup')
+
+  // ── Submissions (Предложил:а tab) ──
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [submissionsLoaded, setSubmissionsLoaded] = useState(false)
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null)
+  const [withdrawError, setWithdrawError] = useState<string | null>(null) // stores submission ID of failed withdrawal
 
+  // ── Profile form ──
   const effectiveUser = currentUser ?? savedUser
   const [name, setName] = useState(effectiveUser?.name ?? '')
   const [contacts, setContacts] = useState(effectiveUser?.contacts ?? '')
@@ -57,6 +83,34 @@ export default function ProfileDrawer({
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
 
+  // ── Language preferences ──
+  const [languages, setLanguages] = useState<string[] | null>(null) // null = not loaded yet
+  const [languagesNeverSaved, setLanguagesNeverSaved] = useState(false)
+  const [languagesLoaded, setLanguagesLoaded] = useState(false)
+  const [showExtraLanguages, setShowExtraLanguages] = useState(false)
+  const langDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Toast ──
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  // Cleanup lang debounce timer on unmount to prevent state update after unmount
+  useEffect(() => {
+    return () => {
+      if (langDebounceRef.current) clearTimeout(langDebounceRef.current)
+    }
+  }, [])
+
+  // ── Book toggle state (optimistic) ──
+  // Tracks locally-toggled books within this drawer session
+  const [localUnsubscribed, setLocalUnsubscribed] = useState<Set<string>>(new Set())
+
+  // ── Sync profile form when user data changes ──
   useEffect(() => {
     if (effectiveUser) {
       setName(effectiveUser.name)
@@ -65,6 +119,7 @@ export default function ProfileDrawer({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUser?.name, effectiveUser?.contacts])
 
+  // ── Load submissions on tab activation ──
   useEffect(() => {
     if (isOpen && activeTab === 'submitted' && !submissionsLoaded) {
       fetch('/api/submissions')
@@ -77,6 +132,26 @@ export default function ProfileDrawer({
     }
   }, [isOpen, activeTab, submissionsLoaded])
 
+  // ── Load language preferences on Profile tab activation ──
+  useEffect(() => {
+    if (isOpen && activeTab === 'profile' && !languagesLoaded) {
+      fetch('/api/profile')
+        .then(r => r.json())
+        .then(data => {
+          if (data.languages === null) {
+            setLanguages([])
+            setLanguagesNeverSaved(true)
+          } else {
+            setLanguages(data.languages)
+            setLanguagesNeverSaved(false)
+          }
+          setLanguagesLoaded(true)
+        })
+        .catch(console.error)
+    }
+  }, [isOpen, activeTab, languagesLoaded])
+
+  // ── Keyboard + scroll lock ──
   useEffect(() => {
     if (!isOpen) return
     function handleKeyDown(e: KeyboardEvent) {
@@ -87,16 +162,59 @@ export default function ProfileDrawer({
   }, [isOpen, onClose])
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
+  // ── Записал:ась tab data ──
   const signedUpBooks = books.filter(b => selectedBooks.includes(b.name))
 
+  // ── Unsubscribe / re-subscribe ──
+  async function handleToggle(bookName: string) {
+    const wasUnsubscribed = localUnsubscribed.has(bookName)
+    // Optimistic update
+    setLocalUnsubscribed(prev => {
+      const next = new Set(prev)
+      if (wasUnsubscribed) next.delete(bookName)
+      else next.add(bookName)
+      return next
+    })
+    try {
+      await onToggleBook(bookName)
+      const msg = wasUnsubscribed
+        ? `Вы успешно записал:ись на «${bookName}»`
+        : `Вы успешно отписал:ись от «${bookName}»`
+      setToast({ message: msg, type: 'success' })
+    } catch {
+      // Rollback local state
+      setLocalUnsubscribed(prev => {
+        const next = new Set(prev)
+        if (wasUnsubscribed) next.add(bookName)
+        else next.delete(bookName)
+        return next
+      })
+      const msg = wasUnsubscribed ? 'Не удалось записаться' : 'Не удалось отписаться'
+      setToast({ message: msg, type: 'error' })
+    }
+  }
+
+  // ── Withdraw submission ──
+  async function handleWithdraw(sub: Submission) {
+    if (!window.confirm(`Отозвать предложение «${sub.title}»?`)) return
+    setWithdrawingId(sub.id)
+    setWithdrawError(null)
+    try {
+      const res = await fetch(`/api/submissions/${sub.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed')
+      setSubmissions(prev => prev.filter(s => s.id !== sub.id))
+    } catch {
+      setWithdrawError(sub.id)
+    } finally {
+      setWithdrawingId(null)
+    }
+  }
+
+  // ── Save contacts (Profile tab) ──
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
@@ -114,12 +232,48 @@ export default function ProfileDrawer({
     }
   }
 
+  // ── Language toggle ──
+  function handleLanguageToggle(code: string) {
+    if (!languagesLoaded) return
+    const current = languages ?? []
+    const next = current.includes(code)
+      ? current.filter(c => c !== code)
+      : [...current, code]
+    setLanguages(next)
+    setLanguagesNeverSaved(false)
+    // Debounced auto-save
+    if (langDebounceRef.current) clearTimeout(langDebounceRef.current)
+    langDebounceRef.current = setTimeout(async () => {
+      try {
+        await fetch('/api/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ languages: next }),
+        })
+      } catch {
+        setToast({ message: 'Не удалось сохранить языки', type: 'error' })
+      }
+    }, 500)
+  }
+
   async function handleDeleteAccount() {
     if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) return
     await onDeleteAccount()
   }
 
   const displayName = session?.user?.name ?? session?.user?.email ?? ''
+
+  // ─────────────────────────────────────────────
+  // Shared styles
+  // ─────────────────────────────────────────────
+  const sectionLabel: React.CSSProperties = {
+    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+    fontSize: '0.55rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
+    color: '#999',
+    marginBottom: '0.9rem',
+  }
 
   return (
     <>
@@ -157,7 +311,7 @@ export default function ProfileDrawer({
           transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        {/* Header */}
+        {/* Drawer Header */}
         <div style={{
           padding: '1.25rem 1.5rem 1rem',
           borderBottom: '1px solid #E5E5E5',
@@ -186,27 +340,6 @@ export default function ProfileDrawer({
             }}>
               {displayName}
             </div>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              marginTop: '0.5rem',
-              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-              fontSize: '0.6rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              color: '#666',
-              border: '1px solid #E5E5E5',
-              padding: '0.25rem 0.5rem',
-            }}>
-              <svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ flexShrink: 0 }}>
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              Вошли через Google
-            </div>
           </div>
           <button
             onClick={onClose}
@@ -229,13 +362,13 @@ export default function ProfileDrawer({
         </div>
 
         {/* Tabs */}
-        <div style={{
-          display: 'flex',
-          borderBottom: '1px solid #E5E5E5',
-          flexShrink: 0,
-        }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid #E5E5E5', flexShrink: 0 }}>
           {(['signup', 'submitted', 'profile'] as Tab[]).map(tab => {
-            const labels: Record<Tab, string> = { signup: 'Записался', submitted: 'Предложил', profile: 'Профиль' }
+            const labels: Record<Tab, string> = {
+              signup: 'Записал:ась',
+              submitted: 'Предложил:а',
+              profile: 'Профиль',
+            }
             return (
               <button
                 key={tab}
@@ -265,19 +398,10 @@ export default function ProfileDrawer({
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
 
-          {/* Tab: Записался */}
+          {/* ── Tab: Записал:ась ── */}
           {activeTab === 'signup' && (
             <div style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={{
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.55rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                color: '#999',
-                marginBottom: '0.9rem',
-              }}>
-                Книги, на которые вы записались
-              </div>
+              <div style={sectionLabel}>Книги, на которые вы записал:ись</div>
               {signedUpBooks.length === 0 ? (
                 <p style={{
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -287,66 +411,98 @@ export default function ProfileDrawer({
                   textAlign: 'center',
                   padding: '1rem 0',
                 }}>
-                  Вы ещё не записались ни на одну книгу
+                  Вы ещё не записал:ись ни на одну книгу
                 </p>
               ) : (
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                  {signedUpBooks.map(book => (
-                    <li key={book.id} style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.6rem',
-                      padding: '0.55rem 0',
-                      borderBottom: '1px solid #F0F0F0',
-                    }}>
-                      <div style={{
-                        width: '5px',
-                        height: '5px',
-                        borderRadius: '50%',
-                        background: '#111',
-                        flexShrink: 0,
-                        marginTop: '0.4rem',
-                      }} />
-                      <div>
+                  {signedUpBooks.map(book => {
+                    const isUnsubscribed = localUnsubscribed.has(book.name)
+                    return (
+                      <li key={book.id} style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.6rem',
+                        padding: '0.55rem 0',
+                        borderBottom: '1px solid #F0F0F0',
+                      }}>
                         <div style={{
-                          fontFamily: 'var(--nd-serif), Georgia, serif',
-                          fontSize: '0.85rem',
-                          color: '#111',
-                          lineHeight: 1.4,
-                        }}>
-                          {book.name}
-                        </div>
-                        {book.author && (
+                          width: '5px',
+                          height: '5px',
+                          borderRadius: '50%',
+                          background: isUnsubscribed ? '#ddd' : '#111',
+                          flexShrink: 0,
+                          marginTop: '0.4rem',
+                        }} />
+                        <div style={{ flex: 1 }}>
                           <div style={{
-                            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                            fontSize: '0.7rem',
-                            color: '#999',
-                            marginTop: '0.1rem',
+                            fontFamily: 'var(--nd-serif), Georgia, serif',
+                            fontSize: '0.85rem',
+                            color: isUnsubscribed ? '#bbb' : '#111',
+                            lineHeight: 1.4,
+                            textDecoration: isUnsubscribed ? 'line-through' : 'none',
                           }}>
-                            {book.author}
+                            {book.name}
                           </div>
+                          {book.author && (
+                            <div style={{
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.7rem',
+                              color: isUnsubscribed ? '#ccc' : '#999',
+                              marginTop: '0.1rem',
+                            }}>
+                              {isUnsubscribed ? 'отписал:ась' : book.author}
+                            </div>
+                          )}
+                        </div>
+                        {isUnsubscribed ? (
+                          <button
+                            onClick={() => handleToggle(book.name)}
+                            style={{
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.7rem',
+                              color: '#999',
+                              background: 'none',
+                              border: '1px solid #ddd',
+                              cursor: 'pointer',
+                              padding: '2px 7px',
+                              flexShrink: 0,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            ↩ вернуть
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleToggle(book.name)}
+                            aria-label={`Отписаться от ${book.name}`}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: '#ccc',
+                              fontSize: '1.1rem',
+                              lineHeight: 1,
+                              padding: '0 2px',
+                              flexShrink: 0,
+                              marginTop: '1px',
+                              transition: 'color 0.15s',
+                            }}
+                          >
+                            ×
+                          </button>
                         )}
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </div>
           )}
 
-          {/* Tab: Предложил */}
+          {/* ── Tab: Предложил:а ── */}
           {activeTab === 'submitted' && (
             <div style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={{
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.55rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                color: '#999',
-                marginBottom: '0.9rem',
-              }}>
-                Ваши предложения
-              </div>
+              <div style={sectionLabel}>Ваши предложения</div>
               {!submissionsLoaded ? (
                 <p style={{
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -367,7 +523,7 @@ export default function ProfileDrawer({
                   textAlign: 'center',
                   padding: '1rem 0',
                 }}>
-                  Вы ещё не предлагали книги
+                  Вы ещё не предлагал:и книги
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -409,6 +565,36 @@ export default function ProfileDrawer({
                           {sub.rejectionReason}
                         </div>
                       )}
+                      {sub.status === 'pending' && (
+                        <div style={{ marginTop: '0.6rem' }}>
+                          <button
+                            onClick={() => handleWithdraw(sub)}
+                            disabled={withdrawingId === sub.id}
+                            style={{
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.65rem',
+                              color: withdrawingId === sub.id ? '#ccc' : '#bbb',
+                              background: 'none',
+                              border: 'none',
+                              cursor: withdrawingId === sub.id ? 'default' : 'pointer',
+                              padding: 0,
+                              textDecoration: 'underline',
+                            }}
+                          >
+                            {withdrawingId === sub.id ? 'Отзываем…' : 'Отозвать'}
+                          </button>
+                          {withdrawError === sub.id && (
+                            <span style={{
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.65rem',
+                              color: '#c00',
+                              marginLeft: '0.5rem',
+                            }}>
+                              Не удалось отозвать
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -416,136 +602,226 @@ export default function ProfileDrawer({
             </div>
           )}
 
-          {/* Tab: Профиль */}
+          {/* ── Tab: Профиль ── */}
           {activeTab === 'profile' && (
             <div style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={{
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.55rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                color: '#999',
-                marginBottom: '0.9rem',
-              }}>
-                Контактные данные
-              </div>
-              <form onSubmit={handleSaveProfile} noValidate>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label
-                    htmlFor="pd-name"
-                    style={{
-                      display: 'block',
+
+              {/* Google account block */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={sectionLabel}>Google-аккаунт</div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem',
+                  border: '1px solid #E5E5E5',
+                  gap: '0.75rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <svg viewBox="0 0 24 24" fill="none" width="14" height="14" style={{ flexShrink: 0 }}>
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.55rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                      color: '#666',
-                      marginBottom: '0.35rem',
-                    }}
-                  >
-                    Имя
-                  </label>
-                  <input
-                    id="pd-name"
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.55rem 0.7rem',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.85rem',
-                      color: '#111',
-                      background: '#fff',
-                      border: '1px solid #E5E5E5',
-                      borderBottom: '2px solid #111',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label
-                    htmlFor="pd-telegram"
-                    style={{
-                      display: 'block',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.55rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                      color: '#666',
-                      marginBottom: '0.35rem',
-                    }}
-                  >
-                    Telegram
-                  </label>
-                  <input
-                    id="pd-telegram"
-                    type="text"
-                    value={contacts}
-                    onChange={telegramLocked ? undefined : e => setContacts(e.target.value)}
-                    readOnly={telegramLocked}
-                    placeholder={telegramLocked ? '@username (привязан к аккаунту)' : '@username'}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.55rem 0.7rem',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.85rem',
-                      color: telegramLocked ? '#666' : '#111',
-                      background: telegramLocked ? '#F5F5F5' : '#fff',
-                      border: '1px solid #E5E5E5',
-                      borderBottom: telegramLocked ? '2px solid #ccc' : '2px solid #111',
-                      outline: 'none',
-                      cursor: telegramLocked ? 'default' : 'text',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <div style={{
-                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.62rem',
-                    color: '#aaa',
-                    marginTop: '0.3rem',
-                    fontStyle: 'italic',
-                  }}>
-                    Организатор свяжется с вами для записи в группу
+                      fontSize: '0.8rem',
+                      color: '#555',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {session?.user?.email}
+                    </span>
                   </div>
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    style={{
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.65rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      background: '#111',
+                      color: '#fff',
+                      border: '1px solid #111',
+                      padding: '0.35rem 0.75rem',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Выйти
+                  </button>
                 </div>
-                {saveError && (
+              </div>
+
+              {/* Contacts form */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={sectionLabel}>Контактные данные</div>
+                <form onSubmit={handleSaveProfile} noValidate>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label htmlFor="pd-name" style={{
+                      display: 'block',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.55rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      color: '#666',
+                      marginBottom: '0.35rem',
+                    }}>
+                      Имя
+                    </label>
+                    <input
+                      id="pd-name"
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      required
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.55rem 0.7rem',
+                        fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                        fontSize: '0.85rem',
+                        color: '#111',
+                        background: '#fff',
+                        border: '1px solid #E5E5E5',
+                        borderBottom: '2px solid #111',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label htmlFor="pd-telegram" style={{
+                      display: 'block',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.55rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      color: '#666',
+                      marginBottom: '0.35rem',
+                    }}>
+                      Telegram
+                    </label>
+                    <input
+                      id="pd-telegram"
+                      type="text"
+                      value={contacts}
+                      onChange={telegramLocked ? undefined : e => setContacts(e.target.value)}
+                      readOnly={telegramLocked}
+                      placeholder={telegramLocked ? '@username (привязан к аккаунту)' : '@username'}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.55rem 0.7rem',
+                        fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                        fontSize: '0.85rem',
+                        color: telegramLocked ? '#666' : '#111',
+                        background: telegramLocked ? '#F5F5F5' : '#fff',
+                        border: '1px solid #E5E5E5',
+                        borderBottom: telegramLocked ? '2px solid #ccc' : '2px solid #111',
+                        outline: 'none',
+                        cursor: telegramLocked ? 'default' : 'text',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <div style={{
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.62rem',
+                      color: '#aaa',
+                      marginTop: '0.3rem',
+                      fontStyle: 'italic',
+                    }}>
+                      Организатор свяжется с вами для записи в группу
+                    </div>
+                  </div>
+                  {saveError && (
+                    <p style={{
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.8rem',
+                      color: '#c00',
+                      marginBottom: '1rem',
+                    }}>
+                      {saveError}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 1rem',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.65rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      background: saving ? '#E5E5E5' : saveSuccess ? '#2A6E2A' : '#111',
+                      color: saving ? '#999' : '#fff',
+                      border: '1px solid #111',
+                      cursor: saving ? 'default' : 'pointer',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                  >
+                    {saving ? 'Сохраняем…' : saveSuccess ? 'Сохранено ✓' : 'Сохранить'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Language preferences */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={sectionLabel}>Языки чтения</div>
+                {languagesNeverSaved && languagesLoaded && (
                   <p style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.8rem',
-                    color: '#c00',
-                    marginBottom: '1rem',
+                    fontSize: '0.72rem',
+                    color: '#aaa',
+                    fontStyle: 'italic',
+                    marginBottom: '0.75rem',
                   }}>
-                    {saveError}
+                    Выберите языки, на которых готовы читать
                   </p>
                 )}
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem 1rem',
-                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.65rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    background: saving ? '#E5E5E5' : saveSuccess ? '#2A6E2A' : '#111',
-                    color: saving ? '#999' : '#fff',
-                    border: '1px solid #111',
-                    cursor: saving ? 'default' : 'pointer',
-                    transition: 'background 0.15s, color 0.15s',
-                  }}
-                >
-                  {saving ? 'Сохраняем…' : saveSuccess ? 'Сохранено ✓' : 'Сохранить'}
-                </button>
-              </form>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  {LANGUAGES_PRIMARY.map(lang => (
+                    <LangButton
+                      key={lang.code}
+                      lang={lang}
+                      active={(languages ?? []).includes(lang.code)}
+                      disabled={!languagesLoaded}
+                      onToggle={handleLanguageToggle}
+                    />
+                  ))}
+                  {showExtraLanguages && LANGUAGES_EXTRA.map(lang => (
+                    <LangButton
+                      key={lang.code}
+                      lang={lang}
+                      active={(languages ?? []).includes(lang.code)}
+                      disabled={!languagesLoaded}
+                      onToggle={handleLanguageToggle}
+                    />
+                  ))}
+                  <button
+                    onClick={() => setShowExtraLanguages(v => !v)}
+                    style={{
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.72rem',
+                      color: '#999',
+                      background: 'none',
+                      border: '1px dashed #ccc',
+                      padding: '0.3rem 0.65rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {showExtraLanguages ? 'скрыть' : '+ ещё'}
+                  </button>
+                </div>
+              </div>
 
+              {/* Delete account */}
               {effectiveUser && (
-                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
                   <button
                     type="button"
                     onClick={handleDeleteAccount}
@@ -566,34 +842,61 @@ export default function ProfileDrawer({
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: '1rem 1.5rem',
-          borderTop: '1px solid #E5E5E5',
-          flexShrink: 0,
-        }}>
-          <button
-            onClick={() => signOut()}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-              fontSize: '0.65rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: '#bbb',
-              cursor: 'pointer',
-              padding: 0,
-              textDecoration: 'underline',
-              transition: 'color 0.15s',
-            }}
-          >
-            Выйти из аккаунта
-          </button>
-        </div>
+        {/* No footer — sign-out moved to Profile tab */}
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '1.5rem',
+          right: '1.5rem',
+          zIndex: 9999,
+          background: toast.type === 'error' ? '#c00' : '#111',
+          color: '#fff',
+          fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+          fontSize: '0.8rem',
+          padding: '0.65rem 1rem',
+          maxWidth: '300px',
+          lineHeight: 1.4,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+        }}>
+          {toast.message}
+        </div>
+      )}
     </>
+  )
+}
+
+function LangButton({
+  lang,
+  active,
+  disabled,
+  onToggle,
+}: {
+  lang: { code: string; label: string }
+  active: boolean
+  disabled: boolean
+  onToggle: (code: string) => void
+}) {
+  return (
+    <button
+      onClick={() => onToggle(lang.code)}
+      disabled={disabled}
+      style={{
+        fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+        fontSize: '0.72rem',
+        padding: '0.3rem 0.65rem',
+        background: disabled ? '#f5f5f5' : active ? '#111' : '#fff',
+        color: disabled ? '#ccc' : active ? '#fff' : '#111',
+        border: `1px solid ${disabled ? '#e5e5e5' : active ? '#111' : '#E5E5E5'}`,
+        cursor: disabled ? 'default' : 'pointer',
+        transition: 'background 0.15s, color 0.15s',
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      {lang.label}
+    </button>
   )
 }
 

@@ -200,6 +200,19 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
     await signOut()
   }
 
+  async function handleToggleByName(bookName: string): Promise<void> {
+    const next = selectedBooks.includes(bookName)
+      ? selectedBooks.filter(n => n !== bookName)
+      : [...selectedBooks, bookName]
+    setSelectedBooks(next)
+    try {
+      await saveSelection(effectiveUser!.name, effectiveUser!.contacts, next)
+    } catch (err) {
+      setSelectedBooks(selectedBooks) // rollback
+      throw err
+    }
+  }
+
   function chipStyle(active: boolean): React.CSSProperties {
     return {
       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -487,6 +500,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         telegramLocked={!!telegramUsername}
         onSaveContacts={handleSaveContacts}
         onDeleteAccount={handleDeleteAccount}
+        onToggleBook={handleToggleByName}
       />
     </>
   )
