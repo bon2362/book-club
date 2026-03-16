@@ -1,0 +1,149 @@
+<h2>Ранжированное голосование — дизайн интерфейса</h2>
+<p class="subtitle">Два экрана: пользователь расставляет приоритеты · администратор видит итог</p>
+
+<div class="split" style="gap: 32px; align-items: flex-start;">
+
+  <!-- USER VIEW -->
+  <div style="flex: 1;">
+    <div class="label" style="margin-bottom: 12px;">Личный кабинет → вкладка «Записал:ась»</div>
+    <div class="mockup">
+      <div class="mockup-header">Профиль · Записал:ась · Предложил:а</div>
+      <div class="mockup-body" style="padding: 0;">
+        <div style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; font-size: 12px; color: #6b7280;">
+          Перетащи книги, чтобы расставить по интересу. Сверху — самые желанные.
+        </div>
+
+        <!-- Book list with drag handles and rank numbers -->
+        <div style="padding: 8px 0;">
+
+          <div style="display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; background: #fff8f0;">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: #f97316; color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px;">1</span>
+            <span style="color: #9ca3af; font-size: 16px; margin-right: 10px; cursor: grab;">⠿</span>
+            <span style="flex: 1; font-size: 14px; font-weight: 500;">Мастер и Маргарита</span>
+            <span style="font-size: 11px; color: #9ca3af;">Булгаков</span>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; background: #fff;">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: #fb923c; color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px;">2</span>
+            <span style="color: #9ca3af; font-size: 16px; margin-right: 10px; cursor: grab;">⠿</span>
+            <span style="flex: 1; font-size: 14px; font-weight: 500;">Преступление и наказание</span>
+            <span style="font-size: 11px; color: #9ca3af;">Достоевский</span>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; background: #fff;">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: #fdba74; color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px;">3</span>
+            <span style="color: #9ca3af; font-size: 16px; margin-right: 10px; cursor: grab;">⠿</span>
+            <span style="flex: 1; font-size: 14px; font-weight: 500;">Анна Каренина</span>
+            <span style="font-size: 11px; color: #9ca3af;">Толстой</span>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; background: #fff;">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: #e5e7eb; color: #6b7280; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px;">4</span>
+            <span style="color: #9ca3af; font-size: 16px; margin-right: 10px; cursor: grab;">⠿</span>
+            <span style="flex: 1; font-size: 14px; color: #6b7280;">Война и мир</span>
+            <span style="font-size: 11px; color: #9ca3af;">Толстой</span>
+          </div>
+
+          <div style="display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; background: #fff;">
+            <span style="width: 24px; height: 24px; border-radius: 50%; background: #e5e7eb; color: #6b7280; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px;">5</span>
+            <span style="color: #9ca3af; font-size: 16px; margin-right: 10px; cursor: grab;">⠿</span>
+            <span style="flex: 1; font-size: 14px; color: #6b7280;">Идиот</span>
+            <span style="font-size: 11px; color: #9ca3af;">Достоевский</span>
+          </div>
+
+          <div style="padding: 8px 16px; color: #9ca3af; font-size: 12px; text-align: center;">
+            ещё 4 книги ↓
+          </div>
+        </div>
+
+        <div style="padding: 12px 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; display: flex; justify-content: space-between; align-items: center;">
+          <span>Сохраняется автоматически</span>
+          <span style="color: #22c55e; font-size: 11px;">✓ Сохранено</span>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Топ-3 выделены оранжевым · остальные серые · drag-handle ⠿ слева</p>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div style="flex: 1;">
+    <div class="label" style="margin-bottom: 12px;">Админ-панель → вкладка «Участники» → книга</div>
+    <div class="mockup">
+      <div class="mockup-header">← Назад к книгам · Мастер и Маргарита · 8 записавшихся</div>
+      <div class="mockup-body" style="padding: 0;">
+        <div style="padding: 10px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
+          Список отсортирован по приоритету — кто хочет читать эту книгу сильнее всего
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #f9fafb;">
+              <th style="padding: 8px 12px; text-align: left; color: #6b7280; font-weight: 500; border-bottom: 1px solid #e5e7eb;">Приоритет</th>
+              <th style="padding: 8px 12px; text-align: left; color: #6b7280; font-weight: 500; border-bottom: 1px solid #e5e7eb;">Участник</th>
+              <th style="padding: 8px 12px; text-align: left; color: #6b7280; font-weight: 500; border-bottom: 1px solid #e5e7eb;">Контакт</th>
+              <th style="padding: 8px 12px; text-align: left; color: #6b7280; font-weight: 500; border-bottom: 1px solid #e5e7eb;">Всего книг</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background: #fff8f0;">
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">
+                <span style="background: #f97316; color: white; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700;">№ 1</span>
+              </td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; font-weight: 500;">Иван Петров</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #6b7280;">@ivan_p</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #9ca3af;">3 книги</td>
+            </tr>
+            <tr style="background: #fff8f0;">
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">
+                <span style="background: #f97316; color: white; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700;">№ 1</span>
+              </td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; font-weight: 500;">Маша Иванова</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #6b7280;">@masha_iv</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #9ca3af;">7 книг</td>
+            </tr>
+            <tr>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">
+                <span style="background: #fb923c; color: white; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700;">№ 2</span>
+              </td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">Алексей Смирнов</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #6b7280;">@a_smirnov</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #9ca3af;">5 книг</td>
+            </tr>
+            <tr>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">
+                <span style="background: #fdba74; color: white; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700;">№ 3</span>
+              </td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">Ольга Кузнецова</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #6b7280;">@olga_k</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #9ca3af;">9 книг</td>
+            </tr>
+            <tr style="color: #9ca3af;">
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">
+                <span style="background: #e5e7eb; color: #6b7280; border-radius: 4px; padding: 2px 7px; font-size: 11px;">№ 5</span>
+              </td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">Пётр Николаев</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">@petr_n</td>
+              <td style="padding: 9px 12px; border-bottom: 1px solid #f3f4f6;">12 книг</td>
+            </tr>
+            <tr style="color: #c4c4c4;">
+              <td style="padding: 9px 12px; font-size: 11px; color: #9ca3af;" colspan="4">
+                + 3 участника не расставили приоритеты
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Оранжевый = высокий приоритет · серый = ниже · без ранга = не расставил:а</p>
+  </div>
+
+</div>
+
+<div style="margin-top: 24px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+  <h3 style="margin: 0 0 8px 0; font-size: 14px;">Открытые вопросы для обсуждения</h3>
+  <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #4b5563; line-height: 1.8;">
+    <li>Как показывать участников <strong>без расставленных приоритетов</strong>? (снизу таблицы, отдельный раздел?)</li>
+    <li>Нужно ли <strong>подсказывать</strong> пользователю расставить приоритеты? (badge, email, баннер в кабинете)</li>
+    <li>Где в админке лучше видеть приоритеты — в существующей таблице участников или отдельный вид «по книге»?</li>
+  </ul>
+</div>

@@ -1,0 +1,96 @@
+<h2>UI выбора языков чтения</h2>
+<p class="subtitle">Три вариации на твою идею с радиобаттонами и добавлением языков</p>
+
+<div class="cards" style="margin-top: 1.5rem;">
+
+  <!-- Option A: Radio + tag chips + dropdown -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="background: #fff; border: 1px solid #E5E5E5; max-width: 300px; margin: 0 auto; padding: 14px;">
+        <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 10px;">Языки чтения</div>
+        <!-- Chips row -->
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <div style="display: inline-flex; align-items: center; gap: 5px; border: 1px solid #111; background: #111; color: #fff; padding: 4px 10px; font-size: 9px;">
+            На русском
+            <span style="cursor:pointer; font-size: 11px; opacity: 0.7;">×</span>
+          </div>
+          <div style="display: inline-flex; align-items: center; gap: 5px; border: 1px solid #111; background: #fff; color: #111; padding: 4px 10px; font-size: 9px;">
+            In English
+            <span style="cursor:pointer; font-size: 11px; opacity: 0.5;">×</span>
+          </div>
+          <div style="display: inline-flex; align-items: center; gap: 5px; border: 1px solid #E5E5E5; background: #fff; color: #111; padding: 4px 10px; font-size: 9px;">
+            Deutsch
+            <span style="cursor:pointer; font-size: 11px; opacity: 0.5;">×</span>
+          </div>
+        </div>
+        <!-- Add dropdown -->
+        <select style="width: 100%; padding: 5px 7px; font-size: 9px; border: 1px solid #E5E5E5; border-bottom: 2px solid #111; background: #fff; color: #888;">
+          <option>+ Добавить язык…</option>
+          <option>Français</option>
+          <option>Español</option>
+          <option>Italiano</option>
+        </select>
+        <div style="font-size: 7px; color: #aaa; margin-top: 5px; font-style: italic;">«На русском» и «In English» добавлены по умолчанию</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>А — Чипсы + выпадающее меню</h3>
+      <p>Языки как теги, можно удалить. По умолчанию два языка уже добавлены. Компактно и гибко.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Two radio buttons + add section below -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="background: #fff; border: 1px solid #E5E5E5; max-width: 300px; margin: 0 auto; padding: 14px;">
+        <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 10px;">Языки чтения</div>
+        <!-- Two checkboxes -->
+        <label style="display: flex; align-items: center; gap: 7px; margin-bottom: 6px; cursor: pointer;">
+          <input type="checkbox" checked style="width: 12px; height: 12px; accent-color: #111;" readonly>
+          <span style="font-size: 10px; color: #111;">На русском</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 7px; margin-bottom: 10px; cursor: pointer;">
+          <input type="checkbox" style="width: 12px; height: 12px; accent-color: #111;" readonly>
+          <span style="font-size: 10px; color: #111;">In English</span>
+        </label>
+        <div style="height: 1px; background: #E5E5E5; margin-bottom: 8px;"></div>
+        <!-- Add more -->
+        <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 6px;">Ещё языки</div>
+        <select style="width: 100%; padding: 5px 7px; font-size: 9px; border: 1px solid #E5E5E5; border-bottom: 2px solid #111; background: #fff; color: #888;">
+          <option>+ Добавить язык…</option>
+          <option>Français</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Б — Чекбоксы + секция «ещё»</h3>
+      <p>Два фиксированных чекбокса, ниже — секция для дополнительных языков. Ближе к классической форме.</p>
+    </div>
+  </div>
+
+  <!-- Option C: All as checkboxes from dropdown, pre-checked two -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="background: #fff; border: 1px solid #E5E5E5; max-width: 300px; margin: 0 auto; padding: 14px;">
+        <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 10px;">Языки чтения</div>
+        <!-- Toggle buttons row -->
+        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
+          <button style="padding: 5px 10px; font-size: 9px; background: #111; color: #fff; border: 1px solid #111; cursor: pointer;">На русском</button>
+          <button style="padding: 5px 10px; font-size: 9px; background: #fff; color: #111; border: 1px solid #E5E5E5; cursor: pointer;">In English</button>
+          <button style="padding: 5px 10px; font-size: 9px; background: #fff; color: #111; border: 1px solid #E5E5E5; cursor: pointer;">Français</button>
+          <button style="padding: 5px 10px; font-size: 9px; background: #fff; color: #111; border: 1px solid #E5E5E5; cursor: pointer;">Deutsch</button>
+          <button style="padding: 5px 10px; font-size: 9px; background: #fff; color: #111; border: 1px solid #E5E5E5; cursor: pointer;">Español</button>
+          <button style="padding: 5px 10px; font-size: 9px; background: #fff; color: #111; border: 1px solid #E5E5E5; cursor: pointer;">Italiano</button>
+          <button style="padding: 5px 10px; font-size: 9px; background: #fff; color: #555; border: 1px dashed #999; cursor: pointer;">+ ещё…</button>
+        </div>
+        <div style="font-size: 7px; color: #aaa; font-style: italic;">Нажми чтобы выбрать/снять</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>В — Все языки как кнопки-тогглы</h3>
+      <p>Все доступные языки сразу видны как кнопки. Кликнул — включил/выключил. «+ ещё» открывает полный список.</p>
+    </div>
+  </div>
+
+</div>
+<p class="subtitle" style="margin-top: 1.5rem;">Кликни карточку или напиши в терминале.</p>

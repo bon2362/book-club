@@ -91,7 +91,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
         >
           {isAdmin && (
             <Link
-              href="/new-design/admin"
+              href="/admin"
               className="nd-header-admin-link"
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',

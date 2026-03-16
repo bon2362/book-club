@@ -127,7 +127,7 @@ book_submissions:
 **Существующий паттерн** — не меняется: `auth()` из `@/lib/auth`, `isAdmin` через JWT callback.
 
 **Auth state → UI state (React Context):**
-- Новый контекст `SubmitBookIntentContext` на уровне layout (`app/new-design/layout.tsx`)
+- Контекст `SubmitBookIntentContext` на уровне layout (`app/layout.tsx`)
 - При клике на псевдо-карточку/кнопку хедера незалогиненным: установить `pendingIntent = 'submit-book'` → открыть попап авторизации
 - После успешной авторизации: проверить `pendingIntent`, открыть форму заявки, сбросить intent
 
@@ -153,7 +153,7 @@ PATCH  /api/admin/submissions/[id]   — update status + fields (isAdmin require
 - `SubmitBookIntentContext.tsx` — контекст для auth intent
 
 **Admin:**
-- Новая секция "Заявки" в существующей admin-странице (`app/new-design/admin/`)
+- Секция "Заявки" в admin-странице (`app/admin/`)
 - Таблица заявок с inline-редактированием и кнопками approve/reject
 
 ### Infrastructure & Deployment
@@ -313,10 +313,10 @@ lib/
 ```
 lib/db/schema.ts                  ← добавить bookSubmissions table
 app/api/books/route.ts            ← добавить approved submissions к ответу
-app/new-design/layout.tsx         ← обернуть в SubmitBookIntentContext provider
-app/new-design/page.tsx           ← добавить SubmitBookCard как первый элемент сетки
+app/layout.tsx                    ← обернуть в SubmitBookIntentContext provider
+app/page.tsx                      ← добавить SubmitBookCard как первый элемент сетки
 components/nd/Header.tsx          ← добавить SubmitBookButton
-app/new-design/admin/page.tsx     ← добавить секцию "Заявки"
+app/admin/page.tsx                ← добавить секцию "Заявки"
 ```
 
 ### Architectural Boundaries
@@ -396,7 +396,7 @@ Click (unauthenticated)
 ### Gap Analysis Results
 
 **Важный Gap (не блокирующий):**
-Имя файла хедера и детали реализации существующего auth попапа неизвестны без чтения кода. При реализации — сначала найти эти компоненты в `components/nd/` и `app/new-design/layout.tsx`, чтобы корректно подключить `SubmitBookButton` и `SubmitBookIntentContext`.
+Компоненты находятся в `components/nd/`, layout в `app/layout.tsx`.
 
 ### Architecture Completeness Checklist
 

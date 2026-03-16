@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Прототип — Личный кабинет</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  :root {
+    --serif: 'Georgia', 'Times New Roman', serif;
+    --sans: 'Helvetica Neue', Arial, sans-serif;
+    --black: #111;
+    --mid: #666;
+    --light: #999;
+    --border: #E5E5E5;
+    --bg: #fff;
+    --drawer-width: 380px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: #F7F5F2;
+    min-height: 100vh;
+  }
+
+  /* ── FAKE PAGE BEHIND ── */
+  .fake-page {
+    min-height: 100vh;
+    padding: 0;
+    filter: blur(0px);
+    transition: filter 0.3s ease;
+  }
+  .fake-page.blurred { filter: blur(2px); }
+
+  header.fake-header {
+    border-bottom: 2px solid #111;
+    background: #fff;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .fake-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #999;
+  }
+  .fake-title {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    color: #111;
+    letter-spacing: -0.01em;
+  }
+  .open-btn {
+    font-family: var(--sans);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #111;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #111;
+    cursor: pointer;
+    padding: 0 0 1px;
+  }
+  .open-btn:hover { color: #555; border-color: #555; }
+
+  /* ── OVERLAY ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    z-index: 200;
+    transition: background 0.35s ease;
+    pointer-events: none;
+  }
+  .overlay.active {
+    background: rgba(0,0,0,0.35);
+    pointer-events: all;
+  }
+
+  /* ── DRAWER ── */
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: var(--drawer-width);
+    height: 100vh;
+    background: #fff;
+    border-left: 2px solid #111;
+    z-index: 300;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+
+  /* Drawer Header */
+  .drawer-header {
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid #E5E5E5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .drawer-eyebrow {
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #999;
+    margin-bottom: 0.3rem;
+  }
+  .drawer-name {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    color: #111;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    font-size: 1.3rem;
+    line-height: 1;
+    padding: 0.25rem;
+    flex-shrink: 0;
+    margin-top: -2px;
+    transition: color 0.15s;
+  }
+  .close-btn:hover { color: #111; }
+
+  /* Auth badge */
+  .auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #666;
+    border: 1px solid #E5E5E5;
+    padding: 0.25rem 0.5rem;
+  }
+  .auth-badge svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+  /* Drawer Body */
+  .drawer-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* Section */
+  .section {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #E5E5E5;
+  }
+  .section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #999;
+    margin-bottom: 0.9rem;
+  }
+
+  /* ── СЕКЦИЯ: ЗАПИСАЛСЯ ── */
+  .signup-list {
+    list-style: none;
+  }
+  .signup-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #F0F0F0;
+  }
+  .signup-item:last-child { border-bottom: none; }
+  .signup-bullet {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #111;
+    flex-shrink: 0;
+    margin-top: 0.4rem;
+  }
+  .signup-book {
+    font-family: var(--serif);
+    font-size: 0.85rem;
+    color: #111;
+    line-height: 1.4;
+  }
+  .signup-author {
+    font-size: 0.7rem;
+    color: #999;
+    margin-top: 0.1rem;
+  }
+
+  /* ── СЕКЦИЯ: ПРЕДЛОЖИЛ ── */
+  .submission-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .submission-card {
+    border: 1px solid #E5E5E5;
+    border-left: 3px solid #111;
+    padding: 0.75rem;
+  }
+  .submission-title {
+    font-family: var(--serif);
+    font-size: 0.875rem;
+    color: #111;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  .submission-author {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 0.15rem;
+    margin-bottom: 0.5rem;
+  }
+  .status-badge {
+    display: inline-block;
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.4rem;
+    border: 1px solid;
+  }
+  .status-pending {
+    color: #996600;
+    border-color: #DDCC88;
+    background: #FDFAF0;
+  }
+  .status-approved {
+    color: #2A6E2A;
+    border-color: #AADDAA;
+    background: #F2FAF2;
+  }
+  .status-rejected {
+    color: #881111;
+    border-color: #DDAAAA;
+    background: #FDF2F2;
+  }
+  .rejection-note {
+    font-size: 0.68rem;
+    color: #999;
+    margin-top: 0.4rem;
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* ── СЕКЦИЯ: КОНТАКТЫ (форма) ── */
+  .field-group {
+    margin-bottom: 1rem;
+  }
+  .field-label {
+    display: block;
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #666;
+    margin-bottom: 0.35rem;
+  }
+  .field-input {
+    display: block;
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    color: #111;
+    background: #fff;
+    border: 1px solid #E5E5E5;
+    border-bottom: 2px solid #111;
+    outline: none;
+  }
+  .field-input:focus {
+    border-color: #111;
+    border-bottom-width: 2px;
+  }
+  .field-input.locked {
+    background: #F5F5F5;
+    color: #999;
+    border-bottom-color: #ccc;
+    cursor: default;
+  }
+  .field-hint {
+    font-size: 0.62rem;
+    color: #aaa;
+    margin-top: 0.3rem;
+    font-style: italic;
+  }
+
+  .save-btn {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    font-family: var(--sans);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: #111;
+    color: #fff;
+    border: 1px solid #111;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .save-btn:hover { background: #fff; color: #111; }
+
+  /* ── FOOTER ── */
+  .drawer-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #E5E5E5;
+    flex-shrink: 0;
+  }
+  .signout-btn {
+    background: none;
+    border: none;
+    font-family: var(--sans);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #bbb;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    transition: color 0.15s;
+  }
+  .signout-btn:hover { color: #111; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    font-size: 0.78rem;
+    color: #bbb;
+    font-style: italic;
+    text-align: center;
+    padding: 1rem 0;
+  }
+
+  /* ── TABS (для десктопа) ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #E5E5E5;
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1;
+    padding: 0.75rem 0.5rem;
+    font-family: var(--sans);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #999;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    text-align: center;
+  }
+  .tab.active {
+    color: #111;
+    border-bottom-color: #111;
+  }
+  .tab:hover:not(.active) { color: #555; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Fake page content */
+  .fake-content {
+    padding: 3rem 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .fake-book {
+    border-bottom: 1px solid #E5E5E5;
+    padding: 1.5rem 0;
+    display: flex;
+    gap: 1rem;
+  }
+  .fake-cover {
+    width: 60px;
+    height: 84px;
+    background: #E5E5E5;
+    flex-shrink: 0;
+  }
+  .fake-book-title { font-family: var(--serif); font-size: 1rem; color: #111; margin-bottom: 0.3rem; }
+  .fake-book-author { font-size: 0.75rem; color: #666; }
+</style>
+</head>
+<body>
+
+<!-- FAKE PAGE -->
+<div class="fake-page" id="fakePage">
+  <header class="fake-header">
+    <span class="fake-label">Читательские круги</span>
+    <span class="fake-title">Долгое наступление</span>
+    <button class="open-btn" onclick="openDrawer()">Анна К.</button>
+  </header>
+  <div class="fake-content">
+    <div class="fake-book">
+      <div class="fake-cover"></div>
+      <div>
+        <div class="fake-book-title">Сто лет одиночества</div>
+        <div class="fake-book-author">Габриэль Гарсиа Маркес</div>
+      </div>
+    </div>
+    <div class="fake-book">
+      <div class="fake-cover"></div>
+      <div>
+        <div class="fake-book-title">Мастер и Маргарита</div>
+        <div class="fake-book-author">Михаил Булгаков</div>
+      </div>
+    </div>
+    <div class="fake-book">
+      <div class="fake-cover"></div>
+      <div>
+        <div class="fake-book-title">Замок</div>
+        <div class="fake-book-author">Франц Кафка</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer" role="dialog" aria-label="Личный кабинет">
+
+  <!-- Drawer Header -->
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-eyebrow">Личный кабинет</div>
+      <div class="drawer-name">Анна Котова</div>
+      <div class="auth-badge">
+        <!-- Google icon -->
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Вошли через Google
+      </div>
+    </div>
+    <button class="close-btn" onclick="closeDrawer()" aria-label="Закрыть">×</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('signup', this)">Записался</button>
+    <button class="tab" onclick="switchTab('submitted', this)">Предложил</button>
+    <button class="tab" onclick="switchTab('profile', this)">Профиль</button>
+  </div>
+
+  <!-- Drawer Body -->
+  <div class="drawer-body">
+
+    <!-- TAB: ЗАПИСАЛСЯ -->
+    <div class="tab-panel active" id="tab-signup">
+      <div class="section">
+        <div class="section-label">Книги, на которые вы записались</div>
+        <ul class="signup-list">
+          <li class="signup-item">
+            <div class="signup-bullet"></div>
+            <div>
+              <div class="signup-book">Сто лет одиночества</div>
+              <div class="signup-author">Габриэль Гарсиа Маркес</div>
+            </div>
+          </li>
+          <li class="signup-item">
+            <div class="signup-bullet"></div>
+            <div>
+              <div class="signup-book">Замок</div>
+              <div class="signup-author">Франц Кафка</div>
+            </div>
+          </li>
+          <li class="signup-item">
+            <div class="signup-bullet"></div>
+            <div>
+              <div class="signup-book">Анна Каренина</div>
+              <div class="signup-author">Лев Толстой</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- TAB: ПРЕДЛОЖИЛ -->
+    <div class="tab-panel" id="tab-submitted">
+      <div class="section">
+        <div class="section-label">Ваши предложения</div>
+        <div class="submission-list">
+
+          <div class="submission-card">
+            <div class="submission-title">Игра в бисер</div>
+            <div class="submission-author">Герман Гессе · 558 стр.</div>
+            <span class="status-badge status-approved">Одобрена</span>
+          </div>
+
+          <div class="submission-card">
+            <div class="submission-title">Процесс</div>
+            <div class="submission-author">Франц Кафка · 224 стр.</div>
+            <span class="status-badge status-pending">На рассмотрении</span>
+          </div>
+
+          <div class="submission-card">
+            <div class="submission-title">Степной волк</div>
+            <div class="submission-author">Герман Гессе · 248 стр.</div>
+            <span class="status-badge status-rejected">Отклонена</span>
+            <div class="rejection-note">Причина: слишком близко к «Игре в бисер» по теме, возможно в следующем сезоне.</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ПРОФИЛЬ -->
+    <div class="tab-panel" id="tab-profile">
+      <div class="section">
+        <div class="section-label">Контактные данные</div>
+        <div class="field-group">
+          <label class="field-label" for="p-name">Имя</label>
+          <input id="p-name" class="field-input" type="text" value="Анна Котова">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="p-telegram">Telegram</label>
+          <input id="p-telegram" class="field-input" type="text" value="@anna_kotova">
+          <div class="field-hint">Организатор свяжется с вами для записи в группу</div>
+        </div>
+        <button class="save-btn">Сохранить</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Drawer Footer -->
+  <div class="drawer-footer">
+    <button class="signout-btn">Выйти из аккаунта</button>
+  </div>
+
+</div>
+
+<script>
+  function openDrawer() {
+    document.getElementById('drawer').classList.add('open')
+    document.getElementById('overlay').classList.add('active')
+    document.getElementById('fakePage').classList.add('blurred')
+  }
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open')
+    document.getElementById('overlay').classList.remove('active')
+    document.getElementById('fakePage').classList.remove('blurred')
+  }
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'))
+    btn.classList.add('active')
+    document.getElementById('tab-' + name).classList.add('active')
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer() })
+</script>
+</body>
+</html>

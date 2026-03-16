@@ -60,7 +60,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **next.config.mjs** — изображения `unoptimized: true`, любой домен разрешён
   (wildcard `**`) — не менять без необходимости
 - **`BUILD_TIME`** доступен как `process.env.BUILD_TIME` — инжектируется в build time
-- **Layout** — единый root layout в `app/layout.tsx`, вложенный в `app/new-design/layout.tsx`
+- **Layout** — единый root layout в `app/layout.tsx`
 - **Компоненты nd/** — компоненты нового дизайна хранятся в `components/nd/`
 
 ### Testing Rules

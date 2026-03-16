@@ -1,0 +1,119 @@
+<h2>Кнопка отписки в списке книг</h2>
+<p class="subtitle">Как выглядит кнопка рядом с каждой книгой? Четыре варианта:</p>
+
+<div class="cards" style="margin-top: 1.5rem;">
+
+  <!-- Option A: Icon only (×) -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="background: #fff; border: 1px solid #E5E5E5; max-width: 300px; margin: 0 auto; padding: 12px 14px;">
+        <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.12em; color: #999; margin-bottom: 8px;">Книги, на которые вы записал:ись</div>
+        <!-- Book items -->
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #F0F0F0;">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: #111; flex-shrink: 0; margin-top: 5px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: #111; font-style: italic;">Сто лет одиночества</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">Г. Г. Маркес</div>
+          </div>
+          <button style="font-size: 14px; color: #ccc; background: none; border: none; cursor: pointer; line-height: 1; padding: 0 2px; flex-shrink: 0; margin-top: 1px;">×</button>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #F0F0F0;">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: #111; flex-shrink: 0; margin-top: 5px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: #111; font-style: italic;">Замок</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">Франц Кафка</div>
+          </div>
+          <button style="font-size: 14px; color: #ccc; background: none; border: none; cursor: pointer; line-height: 1; padding: 0 2px; flex-shrink: 0; margin-top: 1px;">×</button>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0;">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: #ddd; flex-shrink: 0; margin-top: 5px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: #bbb; font-style: italic; text-decoration: line-through;">Анна Каренина</div>
+            <div style="font-size: 9px; color: #ccc; margin-top: 2px;">отписал:ась</div>
+          </div>
+          <button style="font-size: 11px; color: #aaa; background: none; border: 1px solid #ddd; cursor: pointer; padding: 2px 6px; font-size: 8px;">↩ вернуть</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>А — Крестик ×</h3>
+      <p>Маленький × справа. После отписки строка остаётся зачёркнутой с кнопкой «↩ вернуть» — до перезагрузки страницы.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Text link "Отписаться" -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="background: #fff; border: 1px solid #E5E5E5; max-width: 300px; margin: 0 auto; padding: 12px 14px;">
+        <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.12em; color: #999; margin-bottom: 8px;">Книги, на которые вы записал:ись</div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #F0F0F0;">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: #111; flex-shrink: 0; margin-top: 5px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: #111; font-style: italic;">Сто лет одиночества</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">Г. Г. Маркес</div>
+          </div>
+          <button style="font-size: 8px; color: #bbb; background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; flex-shrink: 0; margin-top: 3px; white-space: nowrap;">отписаться</button>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #F0F0F0;">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: #111; flex-shrink: 0; margin-top: 5px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: #111; font-style: italic;">Замок</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">Франц Кафка</div>
+          </div>
+          <button style="font-size: 8px; color: #bbb; background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; flex-shrink: 0; margin-top: 3px; white-space: nowrap;">отписаться</button>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0;">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: #ddd; flex-shrink: 0; margin-top: 5px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; color: #bbb; font-style: italic; text-decoration: line-through;">Анна Каренина</div>
+          </div>
+          <button style="font-size: 8px; color: #aaa; background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; flex-shrink: 0; margin-top: 3px; white-space: nowrap;">записаться</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Б — Текстовая ссылка</h3>
+      <p>«отписаться» / «записаться» — тихо, не бросается в глаза, меняется после действия.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Checkbox/checkmark -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="background: #fff; border: 1px solid #E5E5E5; max-width: 300px; margin: 0 auto; padding: 12px 14px;">
+        <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.12em; color: #999; margin-bottom: 8px;">Книги, на которые вы записал:ись</div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #F0F0F0;">
+          <div style="width: 14px; height: 14px; border: 1px solid #111; background: #111; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; cursor: pointer;">
+            <span style="color: #fff; font-size: 9px; line-height: 1;">✓</span>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #111; font-style: italic;">Сто лет одиночества</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">Г. Г. Маркес</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid #F0F0F0;">
+          <div style="width: 14px; height: 14px; border: 1px solid #111; background: #111; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; cursor: pointer;">
+            <span style="color: #fff; font-size: 9px; line-height: 1;">✓</span>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: #111; font-style: italic;">Замок</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">Франц Кафка</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 7px 0;">
+          <div style="width: 14px; height: 14px; border: 1px solid #ccc; background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; cursor: pointer;"></div>
+          <div>
+            <div style="font-size: 11px; color: #bbb; font-style: italic; text-decoration: line-through;">Анна Каренина</div>
+            <div style="font-size: 9px; color: #ccc; margin-top: 2px;">отписал:ась</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>В — Чекбокс</h3>
+      <p>Вместо буллета — чекбокс ✓. Нажал — снял галочку = отписался. Привычная механика.</p>
+    </div>
+  </div>
+
+</div>
+<p class="subtitle" style="margin-top: 1.5rem;">Кликни карточку или напиши в терминале.</p>

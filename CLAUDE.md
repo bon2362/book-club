@@ -51,5 +51,4 @@
 - `lib/sheets.ts` — Google Sheets (каталог книг + coverUrl из колонки L)
 - `components/nd/CoverImage.tsx` — client component, onError fallback
 - `components/nd/BookCard.tsx` — expand/collapse описания
-- `app/new-design/page.tsx` — страница
 - `lib/db/schema.ts` — таблица book_covers (больше не используется для обложек)

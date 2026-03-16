@@ -442,7 +442,7 @@ TailwindCSS + CSS-переменные — полностью кастомный
 ### Implementation Roadmap
 
 **Phase 1 — Фундамент:**
-1. `SubmitBookIntentContext.tsx` + интеграция в `app/new-design/layout.tsx`
+1. `SubmitBookIntentContext.tsx` + интеграция в `app/layout.tsx`
 2. `SubmitBookCard.tsx` — псевдо-карточка в сетке
 
 **Phase 2 — Основной flow:**
@@ -450,7 +450,7 @@ TailwindCSS + CSS-переменные — полностью кастомный
 4. `SubmitBookButton.tsx` — кнопка в хедере
 
 **Phase 3 — Admin:**
-5. Секция "Заявки" в `app/new-design/admin/page.tsx`
+5. Секция "Заявки" в `app/admin/page.tsx`
 
 ## UX Consistency Patterns
 

@@ -1,0 +1,15 @@
+{"type":"server-started","port":58786,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:58786","screen_dir":"/workspace/.superpowers/brainstorm/42722-1773664536"}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/42722-1773664536/signout-placement.html"}
+{"source":"user-event","type":"click","text":"Личный кабинет\n            Анна Котова\n          \n          ×\n        \n        \n          Записал:ась\n          Предложил:а\n          Профиль\n        \n        \n        \n          Google-аккаунт\n          \n            anna@gmail.com\n            Выйти\n          \n          Контактные данные\n          \n          \n        \n      \n    \n    \n      В — На вкладке «Профиль»\n      Блок «Google-аккаунт» с email и кнопкой «Выйти» в начале вкладки. Логично: всё про аккаунт в одном месте.","choice":"c","id":null,"timestamp":1773664703775}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/42722-1773664536/waiting-1.html"}
+{"type":"screen-updated","file":"/workspace/.superpowers/brainstorm/42722-1773664536/waiting-1.html"}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/42722-1773664536/language-ui.html"}
+{"type":"screen-updated","file":"/workspace/.superpowers/brainstorm/42722-1773664536/language-ui.html"}
+{"source":"user-event","type":"click","text":"Языки чтения\n        \n        \n          На русском\n          In English\n          Français\n          Deutsch\n          Español\n          Italiano\n          + ещё…\n        \n        Нажми чтобы выбрать/снять\n      \n    \n    \n      В — Все языки как кнопки-тогглы\n      Все доступные языки сразу видны как кнопки. Кликнул — включил/выключил. «+ ещё» открывает полный список.","choice":"c","id":null,"timestamp":1773664910976}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/42722-1773664536/waiting-2.html"}
+{"type":"screen-updated","file":"/workspace/.superpowers/brainstorm/42722-1773664536/waiting-2.html"}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/42722-1773664536/toggle-button.html"}
+{"type":"screen-updated","file":"/workspace/.superpowers/brainstorm/42722-1773664536/toggle-button.html"}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/42722-1773664536/waiting-3.html"}
+{"type":"screen-updated","file":"/workspace/.superpowers/brainstorm/42722-1773664536/waiting-3.html"}
+{"type":"server-stopped","reason":"idle timeout"}

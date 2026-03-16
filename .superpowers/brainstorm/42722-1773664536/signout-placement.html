@@ -1,0 +1,100 @@
+<h2>Где разместить кнопку «Выйти»?</h2>
+<p class="subtitle">Сейчас она в footer drawer'а и не видна без прокрутки. Три варианта расположения:</p>
+
+<div class="cards" style="margin-top: 1.5rem;">
+
+  <!-- Option A: In header, next to close button -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="border: 2px solid #111; background: #fff; width: 100%; max-width: 320px; margin: 0 auto; font-size: 11px;">
+        <div style="padding: 12px 14px 10px; border-bottom: 1px solid #E5E5E5; display: flex; align-items: flex-start; justify-content: space-between;">
+          <div>
+            <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.15em; color: #999; margin-bottom: 4px;">Личный кабинет</div>
+            <div style="font-size: 14px; font-weight: 700; color: #111; letter-spacing: -0.02em;">Анна Котова</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+            <button style="font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb; background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0;">Выйти</button>
+            <span style="color: #999; font-size: 16px; line-height: 1; cursor: pointer;">×</span>
+          </div>
+        </div>
+        <div style="display: flex; border-bottom: 1px solid #E5E5E5;">
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; border-bottom: 2px solid #111; color: #111;">Записал:ась</div>
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; color: #999;">Предложил:а</div>
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; color: #999;">Профиль</div>
+        </div>
+        <div style="padding: 12px 14px; color: #999; font-size: 9px; font-style: italic; text-align: center;">содержимое вкладки…</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>А — В шапке, рядом с «×»</h3>
+      <p>«Выйти» как ссылка рядом с кнопкой закрытия. Всегда видна, не занимает место.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Under tabs as a strip -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="border: 2px solid #111; background: #fff; width: 100%; max-width: 320px; margin: 0 auto; font-size: 11px;">
+        <div style="padding: 12px 14px 10px; border-bottom: 1px solid #E5E5E5; display: flex; align-items: flex-start; justify-content: space-between;">
+          <div>
+            <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.15em; color: #999; margin-bottom: 4px;">Личный кабинет</div>
+            <div style="font-size: 14px; font-weight: 700; color: #111; letter-spacing: -0.02em;">Анна Котова</div>
+          </div>
+          <span style="color: #999; font-size: 16px; line-height: 1; cursor: pointer;">×</span>
+        </div>
+        <div style="display: flex; border-bottom: 1px solid #E5E5E5;">
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; border-bottom: 2px solid #111; color: #111;">Записал:ась</div>
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; color: #999;">Предложил:а</div>
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; color: #999;">Профиль</div>
+        </div>
+        <!-- Sign-out strip under tabs -->
+        <div style="padding: 6px 14px; background: #FAFAFA; border-bottom: 1px solid #E5E5E5; display: flex; justify-content: flex-end;">
+          <button style="font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb; background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0;">Выйти из аккаунта</button>
+        </div>
+        <div style="padding: 12px 14px; color: #999; font-size: 9px; font-style: italic; text-align: center;">содержимое вкладки…</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Б — Полоска под табами</h3>
+      <p>«Выйти» на постоянной полоске сразу под вкладками — видна всегда независимо от скролла.</p>
+    </div>
+  </div>
+
+  <!-- Option C: On Profile tab only, prominent -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f9f9f9; padding: 1rem; font-family: 'Helvetica Neue', sans-serif;">
+      <div style="border: 2px solid #111; background: #fff; width: 100%; max-width: 320px; margin: 0 auto; font-size: 11px;">
+        <div style="padding: 12px 14px 10px; border-bottom: 1px solid #E5E5E5; display: flex; align-items: flex-start; justify-content: space-between;">
+          <div>
+            <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.15em; color: #999; margin-bottom: 4px;">Личный кабинет</div>
+            <div style="font-size: 14px; font-weight: 700; color: #111; letter-spacing: -0.02em;">Анна Котова</div>
+          </div>
+          <span style="color: #999; font-size: 16px; line-height: 1; cursor: pointer;">×</span>
+        </div>
+        <div style="display: flex; border-bottom: 1px solid #E5E5E5;">
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; color: #999;">Записал:ась</div>
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; color: #999;">Предложил:а</div>
+          <div style="flex:1; padding: 8px 4px; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; border-bottom: 2px solid #111; color: #111;">Профиль</div>
+        </div>
+        <!-- Profile tab content with sign-out -->
+        <div style="padding: 12px 14px;">
+          <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 8px;">Google-аккаунт</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; border: 1px solid #E5E5E5; margin-bottom: 10px;">
+            <span style="font-size: 9px; color: #555;">anna@gmail.com</span>
+            <button style="font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; color: #fff; background: #111; border: none; padding: 4px 8px; cursor: pointer;">Выйти</button>
+          </div>
+          <div style="font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #999; margin-bottom: 6px;">Контактные данные</div>
+          <div style="background: #E5E5E5; height: 26px; margin-bottom: 6px;"></div>
+          <div style="background: #E5E5E5; height: 26px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>В — На вкладке «Профиль»</h3>
+      <p>Блок «Google-аккаунт» с email и кнопкой «Выйти» в начале вкладки. Логично: всё про аккаунт в одном месте.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top: 1.5rem;">Нажми на карточку в браузере или напиши ответ в терминале.</p>
