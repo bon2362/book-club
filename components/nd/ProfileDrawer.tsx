@@ -264,6 +264,7 @@ export default function ProfileDrawer({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ languages: next }),
         })
+        setToast({ message: 'Языки сохранены', type: 'success' })
       } catch {
         setToast({ message: 'Не удалось сохранить языки', type: 'error' })
       }
