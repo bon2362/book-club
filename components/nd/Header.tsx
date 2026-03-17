@@ -43,6 +43,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
               color: '#999',
+              lineHeight: 1,
             }}
           >
             Читательские круги
@@ -58,6 +59,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                 border: 'none',
                 cursor: 'pointer',
                 padding: 0,
+                lineHeight: 1,
               }}
             >
               Что это?
