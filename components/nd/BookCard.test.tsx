@@ -23,6 +23,7 @@ const book: BookWithCover = {
   size: '',
   coverUrl: null,
   whyRead: null,
+  recommendationLink: null,
   isNew: false,
 }
 

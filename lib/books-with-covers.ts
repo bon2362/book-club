@@ -18,6 +18,7 @@ export interface BookWithCover {
   description: string
   coverUrl: string | null
   whyRead: string | null
+  recommendationLink: string | null
   isNew: boolean
   status?: 'reading' | 'read' | null
   signupCount?: number
@@ -51,6 +52,7 @@ export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWi
         description: s.description ?? '',
         coverUrl: s.coverUrl ?? null,
         whyRead: s.whyRead ?? null,
+        recommendationLink: null,
         isNew,
       }
     })
