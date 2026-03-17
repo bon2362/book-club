@@ -244,7 +244,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             }}
           >
-            Читательские круги
+            Что это
           </div>
 
           {/* L1 row */}

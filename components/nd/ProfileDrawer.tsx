@@ -603,7 +603,7 @@ export default function ProfileDrawer({
               )}
 
               {/* Sortable list */}
-              <div style={{ flex: 1, overflowY: 'auto' }}>
+              <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '1rem' }}>
                 {priorityOrder.length === 0 && selectedBooks.length === 0 ? (
                   <div style={{ padding: '24px 16px', color: '#9ca3af', fontSize: 14, textAlign: 'center' }}>
                     Ты пока не записал:ась ни на одну книгу

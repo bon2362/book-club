@@ -246,7 +246,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         onEditProfile={isLoggedIn ? () => setProfileDrawerOpen(true) : undefined}
         onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
         onSubmitBook={handleSubmitBookClick}
-        onWhatIsThis={handleWhatIsThis}
+        onWhatIsThis={!aboutVisible ? handleWhatIsThis : undefined}
         isAdmin={isAdmin}
       />
 
