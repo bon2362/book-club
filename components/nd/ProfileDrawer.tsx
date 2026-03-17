@@ -4,6 +4,22 @@ import { useState, useEffect, useRef } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { UserSignup } from '@/lib/signups'
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface Submission {
   id: string
@@ -53,6 +69,83 @@ const LANGUAGES_EXTRA = [
   { code: 'sv', label: 'Svenska' },
   { code: 'tr', label: 'Türkçe' },
 ]
+
+function SortableBookItem({
+  id,
+  rank,
+  name,
+  author,
+  isUnsubscribed,
+  onToggle,
+}: {
+  id: string
+  rank: number
+  name: string
+  author: string
+  isUnsubscribed: boolean
+  onToggle: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 16px',
+    borderBottom: '1px solid #f3f4f6',
+    background: '#fff',
+    userSelect: 'none',
+  }
+
+  const rankColors = ['#f97316', '#fb923c', '#fdba74']
+  const rankBg = rank <= 3 ? rankColors[rank - 1] : '#e5e7eb'
+  const rankColor = rank <= 3 ? 'white' : '#6b7280'
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <span style={{
+        width: 24, height: 24, borderRadius: '50%',
+        background: isUnsubscribed ? '#e5e7eb' : rankBg,
+        color: isUnsubscribed ? '#9ca3af' : rankColor,
+        fontSize: 11, fontWeight: 700,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginRight: 10,
+      }}>
+        {rank}
+      </span>
+      <span
+        {...attributes}
+        {...listeners}
+        style={{ color: '#d1d5db', fontSize: 18, marginRight: 10, cursor: 'grab', lineHeight: 1, touchAction: 'none' }}
+        aria-label="Перетащить"
+      >
+        ⠿
+      </span>
+      <span style={{
+        flex: 1, fontSize: 14,
+        fontWeight: isUnsubscribed ? 'normal' : 500,
+        textDecoration: isUnsubscribed ? 'line-through' : 'none',
+        color: isUnsubscribed ? '#9ca3af' : '#111',
+      }}>
+        {name}
+      </span>
+      <span style={{ fontSize: 11, color: '#9ca3af', marginRight: 8 }}>{author}</span>
+      <button
+        onClick={onToggle}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: isUnsubscribed ? '#22c55e' : '#9ca3af',
+          fontSize: 13, padding: '0 4px',
+        }}
+        title={isUnsubscribed ? 'Вернуть' : 'Отписаться'}
+      >
+        {isUnsubscribed ? '↩' : '×'}
+      </button>
+    </div>
+  )
+}
 
 export default function ProfileDrawer({
   isOpen,
@@ -107,6 +200,12 @@ export default function ProfileDrawer({
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (prioritiesDebounceRef.current) clearTimeout(prioritiesDebounceRef.current)
+    }
+  }, [])
+
   // Cleanup saveSuccess timer on unmount
   useEffect(() => {
     return () => {
@@ -117,6 +216,13 @@ export default function ProfileDrawer({
   // ── Book toggle state (optimistic) ──
   // Tracks locally-toggled books within this drawer session
   const [localUnsubscribed, setLocalUnsubscribed] = useState<Set<string>>(new Set())
+
+  // ── Book priorities (Записал:ась tab) ──
+  const [priorityOrder, setPriorityOrder] = useState<string[]>([]) // book names in rank order
+  const [prioritiesLoaded, setPrioritiesLoaded] = useState(false)
+  const [prioritiesSet, setPrioritiesSet] = useState(false) // true = user has sorted at least once
+  const [prioritiesSaving, setPrioritiesSaving] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const prioritiesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Sync profile form when user data changes ──
   useEffect(() => {
@@ -139,6 +245,25 @@ export default function ProfileDrawer({
         .catch(console.error)
     }
   }, [isOpen, activeTab, submissionsLoaded])
+
+  // ── Load priorities on signup tab activation ──
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'signup' || prioritiesLoaded) return
+    fetch('/api/priorities')
+      .then(r => r.json())
+      .then((data: { bookName: string; rank: number }[]) => {
+        const rankedNames = data.map(d => d.bookName)
+        const unranked = selectedBooks.filter(b => !rankedNames.includes(b))
+        const merged = [...rankedNames.filter(b => selectedBooks.includes(b)), ...unranked]
+        setPriorityOrder(merged.length > 0 ? merged : [...selectedBooks])
+        setPrioritiesSet(data.length > 0)
+        setPrioritiesLoaded(true)
+      })
+      .catch(() => {
+        setPriorityOrder([...selectedBooks])
+        setPrioritiesLoaded(true)
+      })
+  }, [isOpen, activeTab, prioritiesLoaded, selectedBooks])
 
   // ── Load language preferences on Profile tab activation ──
   useEffect(() => {
@@ -206,6 +331,37 @@ export default function ProfileDrawer({
       const msg = wasUnsubscribed ? 'Не удалось записаться' : 'Не удалось отписаться'
       setToast({ message: msg, type: 'error' })
     }
+  }
+
+  function savePriorities(order: string[], unsubscribed: Set<string>) {
+    if (prioritiesDebounceRef.current) clearTimeout(prioritiesDebounceRef.current)
+    prioritiesDebounceRef.current = setTimeout(async () => {
+      const booksToSave = order.filter(b => !unsubscribed.has(b))
+      if (booksToSave.length === 0) return
+      setPrioritiesSaving('saving')
+      try {
+        await fetch('/api/priorities', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ books: booksToSave }),
+        })
+        setPrioritiesSet(true)
+        setPrioritiesSaving('saved')
+        setTimeout(() => setPrioritiesSaving('idle'), 2000)
+      } catch {
+        setPrioritiesSaving('idle')
+      }
+    }, 500)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = priorityOrder.indexOf(active.id as string)
+    const newIndex = priorityOrder.indexOf(over.id as string)
+    const newOrder = arrayMove(priorityOrder, oldIndex, newIndex)
+    setPriorityOrder(newOrder)
+    savePriorities(newOrder, localUnsubscribed)
   }
 
   // ── Withdraw submission ──
@@ -279,6 +435,13 @@ export default function ProfileDrawer({
       setToast({ message: 'Не удалось удалить аккаунт', type: 'error' })
     }
   }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
+  )
 
   const displayName = session?.user?.name ?? session?.user?.email ?? ''
   const profileUnchanged = name.trim() === (effectiveUser?.name ?? '') && contacts.trim() === (effectiveUser?.contacts ?? '')
@@ -421,101 +584,57 @@ export default function ProfileDrawer({
 
           {/* ── Tab: Записал:ась ── */}
           {activeTab === 'signup' && (
-            <div style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={sectionLabel}>Книги, на которые вы записал:ись</div>
-              {signedUpBooks.length === 0 ? (
-                <p style={{
-                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.78rem',
-                  color: '#bbb',
-                  fontStyle: 'italic',
-                  textAlign: 'center',
-                  padding: '1rem 0',
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Banner — shown until user has sorted at least once */}
+              {prioritiesLoaded && !prioritiesSet && selectedBooks.length > 0 && (
+                <div style={{
+                  padding: '10px 16px', background: '#fff7ed',
+                  borderBottom: '1px solid #fed7aa',
+                  fontSize: 12, color: '#9a3412', lineHeight: 1.5,
                 }}>
-                  Вы ещё не записал:ись ни на одну книгу
-                </p>
-              ) : (
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                  {signedUpBooks.map(book => {
-                    const isUnsubscribed = localUnsubscribed.has(book.name)
-                    return (
-                      <li key={book.id} style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '0.6rem',
-                        padding: '0.55rem 0',
-                        borderBottom: '1px solid #F0F0F0',
-                      }}>
-                        <div style={{
-                          width: '5px',
-                          height: '5px',
-                          borderRadius: '50%',
-                          background: isUnsubscribed ? '#ddd' : '#111',
-                          flexShrink: 0,
-                          marginTop: '0.4rem',
-                        }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{
-                            fontFamily: 'var(--nd-serif), Georgia, serif',
-                            fontSize: '0.85rem',
-                            color: isUnsubscribed ? '#bbb' : '#111',
-                            lineHeight: 1.4,
-                            textDecoration: isUnsubscribed ? 'line-through' : 'none',
-                          }}>
-                            {book.name}
-                          </div>
-                          {book.author && (
-                            <div style={{
-                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                              fontSize: '0.7rem',
-                              color: isUnsubscribed ? '#ccc' : '#999',
-                              marginTop: '0.1rem',
-                            }}>
-                              {isUnsubscribed ? 'отписал:ась' : book.author}
-                            </div>
-                          )}
-                        </div>
-                        {isUnsubscribed ? (
-                          <button
-                            onClick={() => handleToggle(book.name)}
-                            style={{
-                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                              fontSize: '0.7rem',
-                              color: '#999',
-                              background: 'none',
-                              border: '1px solid #ddd',
-                              cursor: 'pointer',
-                              padding: '2px 7px',
-                              flexShrink: 0,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            ↩ вернуть
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleToggle(book.name)}
-                            aria-label={`Отписаться от ${book.name}`}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: '#ccc',
-                              fontSize: '1.1rem',
-                              lineHeight: 1,
-                              padding: '0 2px',
-                              flexShrink: 0,
-                              marginTop: '1px',
-                              transition: 'color 0.15s',
-                            }}
-                          >
-                            ×
-                          </button>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
+                  <strong>Расставь книги по интересу:</strong> перетащи их так, чтобы сверху оказались те, которые хочется прочитать сильнее всего. Это поможет подобрать тебе подходящую группу.
+                </div>
+              )}
+
+              {/* Sortable list */}
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {priorityOrder.length === 0 && selectedBooks.length === 0 ? (
+                  <div style={{ padding: '24px 16px', color: '#9ca3af', fontSize: 14, textAlign: 'center' }}>
+                    Ты пока не записал:ась ни на одну книгу
+                  </div>
+                ) : (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={priorityOrder} strategy={verticalListSortingStrategy}>
+                      {priorityOrder.map((bookName, index) => {
+                        const book = books.find(b => b.name === bookName)
+                        if (!book) return null
+                        return (
+                          <SortableBookItem
+                            key={bookName}
+                            id={bookName}
+                            rank={index + 1}
+                            name={bookName}
+                            author={book.author}
+                            isUnsubscribed={localUnsubscribed.has(bookName)}
+                            onToggle={() => handleToggle(bookName)}
+                          />
+                        )
+                      })}
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
+
+              {/* Autosave indicator */}
+              {prioritiesLoaded && selectedBooks.length > 0 && (
+                <div style={{
+                  padding: '10px 16px', borderTop: '1px solid #e5e7eb',
+                  fontSize: 12, color: '#9ca3af',
+                  display: 'flex', justifyContent: 'flex-end',
+                }}>
+                  {prioritiesSaving === 'saving' && <span>Сохранение...</span>}
+                  {prioritiesSaving === 'saved' && <span style={{ color: '#22c55e' }}>✓ Сохранено</span>}
+                </div>
               )}
             </div>
           )}
