@@ -53,7 +53,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
               onClick={onWhatIsThis}
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.8rem',
+                fontSize: '0.6rem',
                 color: '#555',
                 background: 'none',
                 border: 'none',
