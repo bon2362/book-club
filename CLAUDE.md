@@ -24,6 +24,22 @@
 
 ## Правила работы с кодом
 - Перед удалением/переименованием поля из интерфейса/типа — сначала искать все его вхождения в проекте (Grep), чтобы не пропустить дублирующие интерфейсы в других файлах
+- **Перед каждым `git commit`:** убедиться что `npm run lint` и `npm run typecheck` проходят без ошибок. Husky запускает lint-staged автоматически, но лучше проверить заранее.
+- **Субагенты** перед коммитом обязаны запускать: `npm run lint && npm run typecheck && npm test`
+
+## Типичные lint-ошибки (учить на ошибках CI)
+- Неиспользуемые хелперы в тестах (`makeGet`, `makeRequest` и т.п.) ломают `no-unused-vars` — удалять вместе с вызовами
+- GET-хэндлеры без параметров: если роут не использует `req`, сигнатура `GET()` без аргументов, тест вызывает `GET()` без аргументов. Не добавлять `_req: NextRequest` если он не нужен — это сломает либо typecheck, либо lint
+- `_` префикс не спасает от lint если переменная реально нигде не используется
+
+## Hooks (автоматика при разработке)
+Настроены в `.claude/settings.local.json`:
+- **lint-on-edit** — ESLint после каждого Edit/Write `.ts/.tsx`
+- **typecheck-on-edit** — tsc после каждого Edit/Write `.ts/.tsx`
+- **post-git-push-ci** — ждёт результат GitHub Actions после `git push` (до 5 мин), выводит ошибки при падении
+- **block-env-local** — блокирует правку `.env.local`
+
+Husky pre-commit: запускает `lint-staged` (eslint + tsc на изменённых файлах) перед каждым коммитом.
 
 ## Unit-тесты (Jest)
 - Компоненты с `useRouter` требуют мока: `jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))`
@@ -51,4 +67,4 @@
 - `lib/sheets.ts` — Google Sheets (каталог книг + coverUrl из колонки L)
 - `components/nd/CoverImage.tsx` — client component, onError fallback
 - `components/nd/BookCard.tsx` — expand/collapse описания
-- `lib/db/schema.ts` — таблица book_covers (больше не используется для обложек)
+- `lib/db/schema.ts` — схема БД: users, accounts, sessions, bookPriorities и др. Таблица book_covers есть, но для обложек не используется (обложки из Google Sheets)
