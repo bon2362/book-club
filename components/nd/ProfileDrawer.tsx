@@ -316,8 +316,8 @@ export default function ProfileDrawer({
     try {
       await onToggleBook(bookName)
       const msg = wasUnsubscribed
-        ? `Вы успешно записал:ись на «${bookName}»`
-        : `Вы успешно отписал:ись от «${bookName}»`
+        ? `Вы успешно записались на «${bookName}»`
+        : `Вы успешно отписались от «${bookName}»`
       setToast({ message: msg, type: 'success' })
     } catch {
       // Rollback local state
