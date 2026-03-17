@@ -25,6 +25,17 @@ interface Submission {
   updatedAt: string
 }
 
+interface PriorityUser {
+  userId: string
+  name: string
+  contacts: string
+  email: string
+  selectedBooks: string[]
+  priority: number | null
+  totalBooks: number | null
+  prioritiesSet: boolean
+}
+
 interface BookEntry {
   book: BookWithCover
   users: UserSignup[]
@@ -106,6 +117,11 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
   const [newFlags, setNewFlags] = useState<Record<string, boolean>>(initialNewFlags)
   const [newFlagLoading, setNewFlagLoading] = useState<string | null>(null)
 
+  // ── Book filter + priorities (users tab) ──
+  const [bookFilter, setBookFilter] = useState<string>('')
+  const [priorityUsers, setPriorityUsers] = useState<PriorityUser[]>([])
+  const [priorityLoading, setPriorityLoading] = useState(false)
+
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [submissionsLoaded, setSubmissionsLoaded] = useState(false)
   const [submissionFilter, setSubmissionFilter] = useState<SubmissionFilter>('pending')
@@ -121,6 +137,19 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
       .catch(() => {})
       .finally(() => setSubmissionsLoaded(true))
   }, [])
+
+  useEffect(() => {
+    if (!bookFilter) {
+      setPriorityUsers([])
+      return
+    }
+    setPriorityLoading(true)
+    fetch(`/api/admin/priorities?book=${encodeURIComponent(bookFilter)}`)
+      .then(r => r.json())
+      .then(d => setPriorityUsers(d.users ?? []))
+      .catch(() => setPriorityUsers([]))
+      .finally(() => setPriorityLoading(false))
+  }, [bookFilter])
 
   async function handleDeleteUser(userId: string, userName: string) {
     if (!window.confirm(`Удалить пользователя ${userName}? Это действие необратимо.`)) return
@@ -396,55 +425,119 @@ export default function AdminPanel({ users, byBook, statuses: initialStatuses, a
 
         {/* Users table */}
         {view === 'users' && (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={headCell}>Имя</th>
-                <th style={headCell}>Telegram</th>
-                <th style={headCell}>Email</th>
-                <th style={headCell}>Языки</th>
-                <th style={headCell}>Книги</th>
-                <th style={headCell}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {localUsers.map(u => (
-                <tr key={u.userId}>
-                  <td style={cell}>{u.name}</td>
-                  <td style={cell}>{u.contacts}</td>
-                  <td style={{ ...cell, color: '#666' }}>{u.email}</td>
-                  <td style={{ ...cell, color: '#666' }}>
-                    {(userLanguages[u.userId] ?? []).join(', ') || <span style={{ color: '#ccc' }}>—</span>}
-                  </td>
-                  <td style={cell}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                      {u.selectedBooks.map(book => (
-                        <span key={book} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#F5F5F5', padding: '0.15rem 0.4rem', fontSize: '0.75rem' }}>
-                          {book}
-                          <button
-                            onClick={() => handleRemoveBook(u.userId, book, u.name)}
-                            title="Снять с книги"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', lineHeight: 1, padding: '0 0.1rem' }}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td style={{ ...cell, textAlign: 'right' }}>
-                    <button
-                      onClick={() => handleDeleteUser(u.userId, u.name)}
-                      title="Удалить пользователя"
-                      style={{ background: 'none', border: '1px solid #E5E5E5', cursor: 'pointer', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                    >
-                      Удалить
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div>
+            {/* Book filter */}
+            <div style={{ padding: '0.5rem 0', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <label style={{ ...fieldLabel, marginBottom: 0 }}>Фильтр по книге:</label>
+              <select
+                value={bookFilter}
+                onChange={e => setBookFilter(e.target.value)}
+                style={{ ...fieldInput, width: 'auto', minWidth: 200 }}
+              >
+                <option value="">— все участники —</option>
+                {Array.from(new Set(localUsers.flatMap(u => u.selectedBooks))).sort().map(book => (
+                  <option key={book} value={book}>{book}</option>
+                ))}
+              </select>
+              {bookFilter && (
+                <button onClick={() => setBookFilter('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.8rem' }}>
+                  × сбросить
+                </button>
+              )}
+            </div>
+
+            {priorityLoading ? (
+              <div style={{ padding: '1rem', color: '#9ca3af', fontSize: '0.8rem' }}>Загрузка приоритетов...</div>
+            ) : (
+              (() => {
+                const displayUsers = bookFilter ? priorityUsers : localUsers
+                return (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={headCell}>Имя</th>
+                        <th style={headCell}>Telegram</th>
+                        <th style={headCell}>Email</th>
+                        <th style={headCell}>Языки</th>
+                        <th style={headCell}>Книги</th>
+                        {bookFilter && <th style={headCell}>Приоритет</th>}
+                        <th style={headCell}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {displayUsers.map((u, idx) => {
+                        const pu = u as PriorityUser
+                        const isFirstWithout = bookFilter && !pu.prioritiesSet &&
+                          (idx === 0 || (displayUsers[idx - 1] as PriorityUser).prioritiesSet)
+                        const withoutCount = bookFilter ? priorityUsers.filter(x => !x.prioritiesSet).length : 0
+                        return (
+                          <Fragment key={u.userId}>
+                            {isFirstWithout && (
+                              <tr>
+                                <td colSpan={bookFilter ? 7 : 6} style={{ ...cell, background: '#f3f4f6', color: '#9ca3af', fontStyle: 'italic', fontSize: '0.75rem' }}>
+                                  Не расставили приоритеты ({withoutCount})
+                                </td>
+                              </tr>
+                            )}
+                            <tr style={bookFilter && !pu.prioritiesSet ? { color: '#9ca3af' } : {}}>
+                              <td style={cell}>{u.name}</td>
+                              <td style={cell}>{u.contacts}</td>
+                              <td style={{ ...cell, color: '#666' }}>{u.email}</td>
+                              <td style={{ ...cell, color: '#666' }}>
+                                {(userLanguages[u.userId] ?? []).join(', ') || <span style={{ color: '#ccc' }}>—</span>}
+                              </td>
+                              <td style={cell}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                  {u.selectedBooks.map(book => (
+                                    <span key={book} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#F5F5F5', padding: '0.15rem 0.4rem', fontSize: '0.75rem' }}>
+                                      {book}
+                                      <button
+                                        onClick={() => handleRemoveBook(u.userId, book, u.name)}
+                                        title="Снять с книги"
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', lineHeight: 1, padding: '0 0.1rem' }}
+                                      >
+                                        ×
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              {bookFilter && (
+                                <td style={cell}>
+                                  {!pu.prioritiesSet || pu.priority === null ? (
+                                    <span style={{ color: '#ccc' }}>—</span>
+                                  ) : (() => {
+                                    const rank = pu.priority!
+                                    const total = pu.totalBooks!
+                                    const bg = rank <= 2 ? '#f97316' : rank === 3 ? '#fdba74' : '#e5e7eb'
+                                    const color = rank <= 3 ? 'white' : '#6b7280'
+                                    return (
+                                      <span style={{ background: bg, color, borderRadius: 4, padding: '2px 7px', fontSize: 11, fontWeight: 700 }}>
+                                        №{rank} из {total}
+                                      </span>
+                                    )
+                                  })()}
+                                </td>
+                              )}
+                              <td style={{ ...cell, textAlign: 'right' }}>
+                                <button
+                                  onClick={() => handleDeleteUser(u.userId, u.name)}
+                                  title="Удалить пользователя"
+                                  style={{ background: 'none', border: '1px solid #E5E5E5', cursor: 'pointer', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                                >
+                                  Удалить
+                                </button>
+                              </td>
+                            </tr>
+                          </Fragment>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )
+              })()
+            )}
+          </div>
         )}
 
         {/* Tags editor */}
