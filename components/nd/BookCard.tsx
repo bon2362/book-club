@@ -295,7 +295,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       )}
 
       {/* Description + Why Read */}
-      {(book.description || book.whyRead) && (
+      {(book.description || book.whyRead || book.recommendationLink) && (
         <div style={{ margin: '0.5rem 0.75rem 0' }}>
           {book.description && (
             <p
