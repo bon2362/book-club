@@ -42,7 +42,7 @@ function makePut(body: object) {
 describe('GET /api/priorities', () => {
   it('возвращает 401 без сессии', async () => {
     mockAuth.mockResolvedValue(null)
-    const res = await GET(makeGet())
+    const res = await GET()
     expect(res.status).toBe(401)
   })
 
@@ -50,7 +50,7 @@ describe('GET /api/priorities', () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
     ;(db.select as jest.Mock).mockReturnValue(makeSelectMock([]))
 
-    const res = await GET(makeGet())
+    const res = await GET()
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -65,7 +65,7 @@ describe('GET /api/priorities', () => {
     ]
     ;(db.select as jest.Mock).mockReturnValue(makeSelectMock(rows))
 
-    const res = await GET(makeGet())
+    const res = await GET()
     const data = await res.json()
 
     expect(res.status).toBe(200)
