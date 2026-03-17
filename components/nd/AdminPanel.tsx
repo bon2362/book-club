@@ -770,7 +770,7 @@ export default function AdminPanel({
                                   />
                                 </div>
                                 <div>
-                                  <div style={fieldLabel}>Почему стоит прочитать?</div>
+                                  <div style={fieldLabel}>Почему предлагаю прочитать?</div>
                                   <textarea
                                     value={edits.whyRead ?? sub.whyRead}
                                     onChange={e => updateSubmissionEdit(sub.id, 'whyRead', e.target.value)}

@@ -32,7 +32,7 @@ describe('SubmitBookForm — рендер', () => {
     expect(screen.getByLabelText(/Ссылка на текст/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Описание/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Ссылка на обложку/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Почему стоит прочитать/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Почему предлагаю прочитать/i)).toBeInTheDocument()
   })
 
   it('рендерит темы в дропдауне', () => {
@@ -88,7 +88,7 @@ describe('SubmitBookForm — отправка', () => {
 
     fireEvent.change(screen.getByLabelText(/Название/i), { target: { value: 'Сапиенс' } })
     fireEvent.change(screen.getByLabelText(/Писатель/i), { target: { value: 'Харари' } })
-    fireEvent.change(screen.getByLabelText(/Почему стоит прочитать/i), { target: { value: 'Очень интересно' } })
+    fireEvent.change(screen.getByLabelText(/Почему предлагаю прочитать/i), { target: { value: 'Очень интересно' } })
 
     fireEvent.click(screen.getByRole('button', { name: /отправить заявку/i }))
 
@@ -110,7 +110,7 @@ describe('SubmitBookForm — отправка', () => {
 
     fireEvent.change(screen.getByLabelText(/Название/i), { target: { value: 'Сапиенс' } })
     fireEvent.change(screen.getByLabelText(/Писатель/i), { target: { value: 'Харари' } })
-    fireEvent.change(screen.getByLabelText(/Почему стоит прочитать/i), { target: { value: 'Очень интересно' } })
+    fireEvent.change(screen.getByLabelText(/Почему предлагаю прочитать/i), { target: { value: 'Очень интересно' } })
 
     fireEvent.click(screen.getByRole('button', { name: /отправить заявку/i }))
 
@@ -126,7 +126,7 @@ describe('SubmitBookForm — отправка', () => {
 
     fireEvent.change(screen.getByLabelText(/Название/i), { target: { value: 'Сапиенс' } })
     fireEvent.change(screen.getByLabelText(/Писатель/i), { target: { value: 'Харари' } })
-    fireEvent.change(screen.getByLabelText(/Почему стоит прочитать/i), { target: { value: 'Очень интересно' } })
+    fireEvent.change(screen.getByLabelText(/Почему предлагаю прочитать/i), { target: { value: 'Очень интересно' } })
 
     fireEvent.click(screen.getByRole('button', { name: /отправить заявку/i }))
 

@@ -139,7 +139,7 @@ describe('AdminPanel — Заявки таб', () => {
     await waitFor(() => screen.getByText('Сапиенс'))
 
     fireEvent.click(screen.getByText('Сапиенс'))
-    expect(screen.getByText('Почему стоит прочитать?', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Почему предлагаю прочитать?', { exact: false })).toBeInTheDocument()
     expect(screen.getAllByText('alice@test.com').length).toBeGreaterThan(0)
     expect(screen.getByText('Одобрить')).toBeInTheDocument()
     expect(screen.getByText('Отклонить')).toBeInTheDocument()

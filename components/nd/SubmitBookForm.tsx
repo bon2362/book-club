@@ -274,7 +274,7 @@ export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, 
                 </div>
 
                 <div>
-                  <label htmlFor="sb-why-read" style={labelStyle}>Почему стоит прочитать *</label>
+                  <label htmlFor="sb-why-read" style={labelStyle}>Почему предлагаю прочитать *</label>
                   <textarea
                     id="sb-why-read"
                     value={whyRead}

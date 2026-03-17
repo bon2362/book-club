@@ -347,7 +347,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
                   margin: '0 0 0.3rem',
                 }}
               >
-                Почему стоит прочитать
+                Почему предлагаю прочитать
               </p>
               <p
                 style={{
