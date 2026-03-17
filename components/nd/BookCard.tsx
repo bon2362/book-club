@@ -26,6 +26,15 @@ function formatSignupCount(n: number): string {
 
 const DESCRIPTION_CLAMP_THRESHOLD = 120
 
+function parseRecommendationLink(raw: string): { text: string; url: string } | null {
+  const idx = Math.max(raw.lastIndexOf('https://'), raw.lastIndexOf('http://'))
+  if (idx === -1) return null
+  const url = raw.slice(idx).trim()
+  const text = raw.slice(0, idx).trim()
+  if (!text) return null
+  return { text, url }
+}
+
 export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
@@ -363,6 +372,22 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               </p>
             </div>
           )}
+          {book.recommendationLink && (() => {
+            const parsed = parseRecommendationLink(book.recommendationLink)
+            if (!parsed) return null
+            return (
+              <p style={{ margin: '0.5rem 0 0', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: '#999' }}>
+                <a
+                  href={parsed.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#999', borderBottom: '1px solid #ccc', textDecoration: 'none' }}
+                >
+                  {parsed.text}
+                </a>
+              </p>
+            )
+          })()}
         </div>
       )}
 
