@@ -607,7 +607,7 @@ export default function AdminPanel({
                           const pgId = emailToPgIdMap[u.userId]
                           const userPriorities = pgId ? (bookPrioritiesMap[pgId] ?? []) : [] // uses original prop intentionally; По книгам is static server data
                           const entry = userPriorities.find(p => p.bookName === book.name)
-                          return { name: u.name, rank: entry?.rank ?? null }
+                          return { name: u.name, rank: entry?.rank ?? null, userId: u.userId }
                         })
                         withRanks.sort((a, b) => {
                           if (a.rank !== null && b.rank !== null) return a.rank - b.rank
@@ -615,8 +615,8 @@ export default function AdminPanel({
                           if (b.rank !== null) return 1
                           return 0
                         })
-                        return withRanks.map(({ name, rank }, i) => (
-                          <span key={name}>
+                        return withRanks.map(({ name, rank, userId }, i) => (
+                          <span key={userId}>
                             {i > 0 && ', '}
                             {name}
                             {rank !== null && (
