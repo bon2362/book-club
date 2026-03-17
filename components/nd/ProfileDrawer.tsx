@@ -265,6 +265,17 @@ export default function ProfileDrawer({
       })
   }, [isOpen, activeTab, prioritiesLoaded, selectedBooks])
 
+  // ── Append newly added books to priorityOrder ──
+  // Runs when selectedBooks changes after initial load. New books go to the end.
+  useEffect(() => {
+    if (!prioritiesLoaded) return
+    setPriorityOrder(prev => {
+      const added = selectedBooks.filter(b => !prev.includes(b))
+      if (added.length === 0) return prev
+      return [...prev, ...added]
+    })
+  }, [selectedBooks, prioritiesLoaded])
+
   // ── Load language preferences on Profile tab activation ──
   useEffect(() => {
     if (isOpen && activeTab === 'profile' && !languagesLoaded) {
