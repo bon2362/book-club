@@ -20,10 +20,10 @@ export interface Book {
 }
 
 // Column indexes (0-based):
-// Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Description, WhyForClub, RecommendationLink, Cover
+// Name, Theme(Tags), Writer(Author), Type, Size, Pages, Date, Link, Status, Description, WhyForClub, Cover, RecommendationLink
 const COL = {
   NAME: 0, TAGS: 1, AUTHOR: 2, TYPE: 3,
-  SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, DESC: 10, WHY_FOR_CLUB: 11, RECOMMENDATION_LINK: 12, COVER: 13
+  SIZE: 4, PAGES: 5, DATE: 6, LINK: 7, DESC: 10, WHY_FOR_CLUB: 11, COVER: 12, RECOMMENDATION_LINK: 13
 }
 
 export function parseBookRow(row: string[], rowIndex: number): Book | null {
