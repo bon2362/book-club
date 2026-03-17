@@ -24,6 +24,9 @@ const defaultProps = {
   allTags: [],
   tagDescriptions: {},
   newFlags: {},
+  bookPrioritiesMap: {},
+  prioritiesSetMap: {},
+  emailToPgIdMap: {},
 }
 
 const mockSubmissions = [

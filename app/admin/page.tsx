@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { getAllSignups } from '@/lib/signups'
 import { fetchBooksWithCovers } from '@/lib/books-with-covers'
 import { db } from '@/lib/db'
-import { bookStatuses, tagDescriptions, bookNewFlags, users } from '@/lib/db/schema'
+import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } from '@/lib/db/schema'
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminStatusBar from '@/components/nd/AdminStatusBar'
 import { SessionProvider } from 'next-auth/react'
@@ -14,20 +14,36 @@ export default async function AdminPage() {
   const session = await auth()
   if (!session?.user?.isAdmin) redirect('/')
 
-  const [signups, books, statuses, tagDescs, newFlags, languageRows] = await Promise.all([
+  const [signups, books, statuses, tagDescs, newFlags, languageRows, allPriorityRows] = await Promise.all([
     getAllSignups(),
     fetchBooksWithCovers(),
     db.select().from(bookStatuses).catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
     db.select().from(bookNewFlags).catch(() => []),
-    db.select({ email: users.email, languages: users.languages }).from(users).catch(() => []),
+    db.select({ id: users.id, email: users.email, languages: users.languages, prioritiesSet: users.prioritiesSet }).from(users).catch(() => []),
+    db.select({ userId: bookPriorities.userId, bookName: bookPriorities.bookName, rank: bookPriorities.rank }).from(bookPriorities).catch(() => []),
   ])
 
   const userLanguagesMap: Record<string, string[]> = {}
+  const emailToPgIdMap: Record<string, string> = {}
+  const prioritiesSetMap: Record<string, boolean> = {}
   for (const row of languageRows) {
+    if (row.email && row.id) {
+      emailToPgIdMap[row.email] = row.id
+      prioritiesSetMap[row.id] = row.prioritiesSet ?? false
+    }
     if (row.languages && row.email) {
       try { userLanguagesMap[row.email] = JSON.parse(row.languages) } catch { /* skip */ }
     }
+  }
+
+  const bookPrioritiesMap: Record<string, { bookName: string; rank: number }[]> = {}
+  for (const row of allPriorityRows) {
+    if (!bookPrioritiesMap[row.userId]) bookPrioritiesMap[row.userId] = []
+    bookPrioritiesMap[row.userId].push({ bookName: row.bookName, rank: row.rank })
+  }
+  for (const pgId of Object.keys(bookPrioritiesMap)) {
+    bookPrioritiesMap[pgId].sort((a, b) => a.rank - b.rank)
   }
 
   const statusMap = Object.fromEntries(
@@ -59,7 +75,18 @@ export default async function AdminPage() {
   return (
     <>
       <SessionProvider>
-        <AdminPanel users={signups} byBook={byBook} statuses={statusMap} allTags={allTags} tagDescriptions={tagDescMap} newFlags={newFlagsMap} userLanguages={userLanguagesMap} />
+        <AdminPanel
+          users={signups}
+          byBook={byBook}
+          statuses={statusMap}
+          allTags={allTags}
+          tagDescriptions={tagDescMap}
+          newFlags={newFlagsMap}
+          userLanguages={userLanguagesMap}
+          bookPrioritiesMap={bookPrioritiesMap}
+          prioritiesSetMap={prioritiesSetMap}
+          emailToPgIdMap={emailToPgIdMap}
+        />
       </SessionProvider>
       <footer style={{
         borderTop: '1px solid #E5E5E5',

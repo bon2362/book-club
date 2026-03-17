@@ -49,6 +49,9 @@ interface Props {
   tagDescriptions: Record<string, string>
   newFlags: Record<string, boolean>
   userLanguages?: Record<string, string[]>
+  bookPrioritiesMap: Record<string, { bookName: string; rank: number }[]>
+  prioritiesSetMap: Record<string, boolean>
+  emailToPgIdMap: Record<string, string>
 }
 
 type View = 'users' | 'books' | 'tags' | 'submissions'
@@ -98,9 +101,25 @@ const fieldInput: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-export default function AdminPanel({ users, byBook, statuses: initialStatuses, allTags, tagDescriptions: initialTagDescriptions, newFlags: initialNewFlags, userLanguages = {} }: Props) {
+export default function AdminPanel({
+  users,
+  byBook,
+  statuses: initialStatuses,
+  allTags,
+  tagDescriptions: initialTagDescriptions,
+  newFlags: initialNewFlags,
+  userLanguages = {},
+  bookPrioritiesMap,
+  prioritiesSetMap,
+  emailToPgIdMap,
+}: Props) {
   const router = useRouter()
   const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [localPrioritiesMap, setLocalPrioritiesMap] = useState<Record<string, { bookName: string; rank: number }[]>>(bookPrioritiesMap)
+  // prioritiesSetMap and emailToPgIdMap will be used in Tasks 3–4
+  void prioritiesSetMap
+  void emailToPgIdMap
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
