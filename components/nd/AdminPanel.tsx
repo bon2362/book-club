@@ -601,7 +601,31 @@ export default function AdminPanel({
                     </td>
                     <td style={{ ...cell, color: '#666', fontStyle: 'italic' }}>{book.author}</td>
                     <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{bookUsers.length}</td>
-                    <td style={{ ...cell, color: '#666' }}>{bookUsers.map(u => u.name).join(', ')}</td>
+                    <td style={{ ...cell, color: '#666' }}>
+                      {(() => {
+                        const withRanks = bookUsers.map(u => {
+                          const pgId = emailToPgIdMap[u.userId]
+                          const userPriorities = pgId ? (bookPrioritiesMap[pgId] ?? []) : [] // uses original prop intentionally; По книгам is static server data
+                          const entry = userPriorities.find(p => p.bookName === book.name)
+                          return { name: u.name, rank: entry?.rank ?? null }
+                        })
+                        withRanks.sort((a, b) => {
+                          if (a.rank !== null && b.rank !== null) return a.rank - b.rank
+                          if (a.rank !== null) return -1
+                          if (b.rank !== null) return 1
+                          return 0
+                        })
+                        return withRanks.map(({ name, rank }, i) => (
+                          <span key={name}>
+                            {i > 0 && ', '}
+                            {name}
+                            {rank !== null && (
+                              <span style={{ fontSize: '0.65rem', color: '#aaa' }}>(#{rank})</span>
+                            )}
+                          </span>
+                        ))
+                      })()}
+                    </td>
                     <td style={cell}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                         <button
