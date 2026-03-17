@@ -102,14 +102,6 @@ function AccordionSection({ number, question, isOpen, onToggle, children }: Acco
 
 const SECTIONS: { question: string; content: React.ReactNode }[] = [
   {
-    question: 'Что это?',
-    content: (
-      <p style={{ marginBottom: 0 }}>
-        Мы собираемся небольшими группами по 3-4 человека, чтобы раз в неделю созваниваться и обсуждать книги по демократии.
-      </p>
-    ),
-  },
-  {
     question: 'Как это устроено?',
     content: (
       <>
