@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import SubmitBookButton from './SubmitBookButton'
@@ -14,6 +15,7 @@ interface Props {
 
 export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIsThis, isAdmin }: Props) {
   const { data: session } = useSession()
+  const [whatIsThisHovered, setWhatIsThisHovered] = useState(false)
 
   return (
     <header
@@ -51,15 +53,20 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
           {onWhatIsThis && (
             <button
               onClick={onWhatIsThis}
+              onMouseEnter={() => setWhatIsThisHovered(true)}
+              onMouseLeave={() => setWhatIsThisHovered(false)}
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.6rem',
-                color: '#555',
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: whatIsThisHovered ? '#111' : '#999',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
                 padding: 0,
                 lineHeight: 1,
+                transition: 'color 0.15s',
               }}
             >
               Что это?
