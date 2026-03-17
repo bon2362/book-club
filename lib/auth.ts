@@ -109,10 +109,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.isAdmin = user.email === process.env.ADMIN_EMAIL
         token.telegramUsername = user.telegramUsername ?? token.telegramUsername
+        token.provider = account?.provider ?? token.provider
       } else if (token.email && process.env.NEXTAUTH_TEST_MODE !== 'true') {
         const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, token.email)).limit(1)
         if (existing.length === 0) return null
@@ -124,6 +125,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (token.sub) session.user.id = token.sub
         session.user.isAdmin = token.isAdmin as boolean | undefined
         session.user.telegramUsername = token.telegramUsername
+        session.user.provider = token.provider
       }
       return session
     },
