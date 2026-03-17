@@ -491,7 +491,7 @@ export default function ProfileDrawer({
           right: 0,
           width: '380px',
           maxWidth: '100vw',
-          height: '100vh',
+          height: '100dvh',
           background: '#fff',
           borderLeft: '2px solid #111',
           zIndex: 300,
