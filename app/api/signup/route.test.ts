@@ -13,6 +13,16 @@ jest.mock('resend', () => ({
     emails: { send: jest.fn().mockResolvedValue({}) },
   })),
 }))
+jest.mock('@/lib/db', () => ({
+  db: {
+    delete: jest.fn().mockReturnValue({
+      where: jest.fn().mockResolvedValue(undefined),
+    }),
+  },
+}))
+jest.mock('@/lib/db/schema', () => ({
+  bookPriorities: {},
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockUpsertSignup = signups.upsertSignup as jest.Mock
@@ -88,5 +98,15 @@ describe('POST /api/signup', () => {
     expect(signups.upsertSignup).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Test User', contacts: '@test' })
     )
+  })
+
+  it('удаляет приоритеты для книг, которых нет в новом списке', async () => {
+    const { db } = await import('@/lib/db')
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А'] }))
+
+    expect(db.delete).toHaveBeenCalled()
   })
 })
