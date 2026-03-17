@@ -25,7 +25,7 @@ describe('nd/AboutBlock', () => {
   it('renders the block with L1 text and eyebrow', () => {
     render(<AboutBlock onClose={() => {}} />)
     expect(screen.getByRole('region', { name: 'Читательские круги' })).toBeInTheDocument()
-    expect(screen.getByText('Читательские круги')).toBeInTheDocument()
+    expect(screen.getByText('Что это')).toBeInTheDocument()
     expect(screen.getByText(/Собираю небольшие читательские группы/)).toBeInTheDocument()
   })
 
