@@ -60,14 +60,7 @@ const LANGUAGES_EXTRA = [
   { code: 'de', label: 'Auf Deutsch' },
   { code: 'fr', label: 'En français' },
   { code: 'es', label: 'En español' },
-  { code: 'it', label: 'In italiano' },
   { code: 'pt', label: 'Português' },
-  { code: 'ja', label: '日本語' },
-  { code: 'zh', label: '中文' },
-  { code: 'pl', label: 'Polski' },
-  { code: 'nl', label: 'Nederlands' },
-  { code: 'sv', label: 'Svenska' },
-  { code: 'tr', label: 'Türkçe' },
 ]
 
 function SortableBookItem({
