@@ -348,7 +348,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
                       opacity: 0,
                       transition: 'opacity 0.15s',
                     }}>
-                      Книги, на которые вы записал:ись
+                      Книги, на которые вы записались
                     </span>
                   </div>
                 )}
