@@ -58,13 +58,14 @@
 /* ── Header mobile ────────────────────────────────────────────────────────── */
 
 .nd-header-label      { display: flex; }
+.nd-header-club-label { display: inline; }
 .nd-header-profile-btn { }
 .nd-header-submit     { }
 .nd-header-avatar     { display: none; }
 .nd-header-admin-link { display: inline; }
 
 @media (max-width: 540px) {
-  .nd-header-label       { display: none; }
+  .nd-header-club-label  { display: none; }
   .nd-header-profile-btn { display: none; }
   .nd-header-submit      { display: none; }
   .nd-header-avatar      { display: flex; }
