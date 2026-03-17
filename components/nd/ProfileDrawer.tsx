@@ -662,7 +662,7 @@ export default function ProfileDrawer({
                   textAlign: 'center',
                   padding: '1rem 0',
                 }}>
-                  Вы ещё не предлагал:и книги
+                  Ты ещё не предлагал:а книги
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

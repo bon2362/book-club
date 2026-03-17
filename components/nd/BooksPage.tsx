@@ -248,6 +248,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         onSubmitBook={handleSubmitBookClick}
         onWhatIsThis={!aboutVisible ? handleWhatIsThis : undefined}
         isAdmin={isAdmin}
+        displayName={effectiveUser?.name}
       />
 
       {/* About */}

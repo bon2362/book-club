@@ -11,9 +11,10 @@ interface Props {
   onSubmitBook?: () => void
   onWhatIsThis?: () => void
   isAdmin?: boolean
+  displayName?: string | null
 }
 
-export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIsThis, isAdmin }: Props) {
+export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIsThis, isAdmin, displayName }: Props) {
   const { data: session } = useSession()
   const [whatIsThisHovered, setWhatIsThisHovered] = useState(false)
 
@@ -145,7 +146,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {session.user.name ?? session.user.email}
+                  {displayName || (session.user.name ?? session.user.email)}
                 </button>
               )}
               {/* Mobile: аватар-кружок с инициалом */}
@@ -170,7 +171,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                     flexShrink: 0,
                   }}
                 >
-                  {(session.user.name ?? session.user.email ?? '?')[0].toUpperCase()}
+                  {(displayName || session.user.name || session.user.email || '?')[0].toUpperCase()}
                 </button>
               )}
             </>
