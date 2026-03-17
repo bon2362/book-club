@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { bookPriorities, users } from '@/lib/db/schema'
 import { eq, asc, and, notInArray, sql } from 'drizzle-orm'
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const session = await auth()
   if (!(session?.user as { id?: string } | undefined)?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

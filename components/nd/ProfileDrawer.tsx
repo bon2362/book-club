@@ -299,11 +299,6 @@ export default function ProfileDrawer({
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  // ── Записал:ась tab data ──
-  // Include books currently signed up OR locally unsubscribed this session
-  // (so unsubscribed books stay visible with strikethrough until page reload)
-  const signedUpBooks = books.filter(b => selectedBooks.includes(b.name) || localUnsubscribed.has(b.name))
-
   // ── Unsubscribe / re-subscribe ──
   async function handleToggle(bookName: string) {
     const wasUnsubscribed = localUnsubscribed.has(bookName)
