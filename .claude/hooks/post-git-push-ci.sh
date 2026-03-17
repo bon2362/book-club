@@ -8,6 +8,11 @@ if ! echo "$COMMAND" | grep -q "git push"; then
   exit 0
 fi
 
+# Load GH_TOKEN if not set
+if [ -z "$GH_TOKEN" ] && [ -f /workspace/.env.local ]; then
+  export GH_TOKEN=$(grep '^GH_TOKEN=' /workspace/.env.local | cut -d= -f2)
+fi
+
 # Get the SHA we just pushed
 PUSHED_SHA=$(git -C /workspace rev-parse HEAD 2>/dev/null)
 
