@@ -24,10 +24,15 @@
 
 ### Парсинг
 
-Regex: `/(https?:\/\/\S+)/`
-- Часть до URL (trim) → текст ссылки (`linkText`)
-- URL → `href`
-- Если ячейка пуста или не содержит URL → `recommendationLink: null`
+Формат строго: `"Текст ссылки https://url"` — URL всегда последний элемент, отделён пробелом.
+
+Helper `parseRecommendationLink(raw: string): { text: string; url: string } | null`:
+- Находим последний пробел перед `https://` или `http://` через `lastIndexOf`
+- Часть до этого пробела (trim) → `text`
+- Часть от `https://` до конца → `url`
+- Если URL не найден или `text` пуст → возвращает `null`
+
+`parseBookRow` сохраняет **сырую строку** в `recommendationLink` (аналогично `whyForClub`). Парсинг text/url выполняется в компоненте через helper.
 
 ## Изменения в коде
 
@@ -43,15 +48,17 @@ Regex: `/(https?:\/\/\S+)/`
 ### `lib/books-with-covers.ts`
 
 - Интерфейс `BookWithCover`: добавить `recommendationLink: string | null`
-- В маппинге `sheetsBooks`: пробросить `recommendationLink: b.recommendationLink ?? null`
-- В маппинге `submissionBooks`: добавить `recommendationLink: null`
+- В маппинге `sheetsBooks`: поле проброшено через spread `{ ...b, whyRead: ..., isNew: ... }` — `recommendationLink` попадёт автоматически т.к. поле есть в `Book`. Явно добавлять не нужно, тип должен совпадать.
+- В маппинге `submissionBooks`: явно добавить `recommendationLink: null`
 
 ### `components/nd/BookCard.tsx`
 
-- После блока `whyRead`, добавить рендер ссылки если `book.recommendationLink` задан
-- Парсинг: helper-функция `parseRecommendationLink(raw: string): { text: string; url: string } | null`
-- Отображение: строка под `whyRead`-блоком, стиль — мелкий шрифт (0.7rem), цвет `#999`, ссылка с `borderBottom: '1px solid #999'`, открывается в новой вкладке (`target="_blank" rel="noopener noreferrer"`)
-- Видна всегда (не зависит от `descExpanded`)
+- Helper `parseRecommendationLink` определяется **inline в `BookCard.tsx`** (логика чисто UI, не нужна нигде ещё)
+- После блока `whyRead`, рендерится ссылка **независимо от `descExpanded`** — отдельный JSX-блок за пределами условия `(!isLongDescription || descExpanded)`
+- Условие рендера: `book.recommendationLink && parseRecommendationLink(book.recommendationLink)`
+- Если `recommendationLink: null` или парсинг вернул `null` — блок не рендерится (нет пустого состояния)
+- Стиль: мелкий шрифт (0.7rem), цвет `#999`, ссылка с `borderBottom: '1px solid #ccc'`, открывается в новой вкладке (`target="_blank" rel="noopener noreferrer"`)
+- `BookWithCover.recommendationLink` хранит сырую строку `string | null` (парсинг в компоненте)
 
 ## Ограничения
 
@@ -61,5 +68,6 @@ Regex: `/(https?:\/\/\S+)/`
 
 ## Тестирование
 
-- Существующие E2E и unit тесты не ломаются (`TEST_BOOKS` получает `recommendationLink: null`)
-- Ручная проверка: добавить тестовую запись в колонку M Sheets, убедиться что ссылка отображается корректно
+- Существующие E2E и unit тесты не ломаются (`TEST_BOOKS` получает `recommendationLink: null`, никаких изменений в тестах не нужно)
+- Новые E2E тесты для этой фичи не пишем — охват ручным тестированием достаточен
+- Ручная проверка: добавить тестовую запись в колонку M Sheets, убедиться что ссылка отображается корректно под блоком «Почему предлагаю прочитать»
