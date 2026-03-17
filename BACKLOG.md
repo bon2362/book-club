@@ -79,6 +79,12 @@ Drag-and-drop расстановка приоритетов в личном ка
 
 Новые файлы: `app/api/priorities/route.ts`, `app/api/admin/priorities/route.ts`, `drizzle/0004_uneven_grandmaster.sql`. Изменены: `lib/db/schema.ts`, `app/api/signup/route.ts`, `components/nd/ProfileDrawer.tsx`, `components/nd/AdminPanel.tsx`.
 
+### 61. Отображение приоритетов в admin-панели
+
+Вкладка **Участники**: бейджи книг показывают приоритет пользователя — чёрный префикс `#1`, `#2`… для расставленных книг, серый `+` для книг добавленных после расстановки, серый `?` с подписью «Приоритеты не расставлены» для пользователей без приоритетов. Книги отсортированы по рангу. Фильтр по книге удалён (больше не нужен). Вкладка **По книгам**: рядом с именем каждого участника показывается его приоритет `(#N)`, отсортированы по рангу. При удалении книги у пользователя через `×` — приоритеты автоматически пересчитываются в БД (re-rank) и в UI без перезагрузки.
+
+Изменены: `app/api/admin/remove-book/route.ts`, `app/admin/page.tsx`, `components/nd/AdminPanel.tsx`.
+
 ### 56. Приём входящих писем на @slowreading.club
 
 Namecheap Email Forwarding: входящие на `hello@slowreading.club` пересылаются на личный Gmail (с `+`-суффиксом для фильтрации в отдельную папку). Отправка с `hello@slowreading.club` настроена через Gmail «Send mail as» + Resend SMTP (`smtp.resend.com`, логин `resend`, пароль — API-ключ).
