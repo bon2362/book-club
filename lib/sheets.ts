@@ -1,4 +1,7 @@
 import { google } from 'googleapis'
+import { unstable_cache } from 'next/cache'
+
+export const SHEETS_CACHE_TAG = 'sheets-books'
 
 export interface Book {
   id: string
@@ -46,10 +49,6 @@ export function filterBooks(books: Book[]): Book[] {
   return books.filter(b => b.type === 'Book' || b.type === 'Article')
 }
 
-// In-memory cache
-let cache: { books: Book[]; timestamp: number } | null = null
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
-
 function getAuth() {
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY!
   const credentials = JSON.parse(key)
@@ -76,13 +75,7 @@ const TEST_BOOKS: Book[] = [
   },
 ]
 
-export async function fetchBooks(forceRefresh = false): Promise<Book[]> {
-  if (process.env.NEXTAUTH_TEST_MODE === 'true') return TEST_BOOKS
-
-  if (!forceRefresh && cache && Date.now() - cache.timestamp < CACHE_TTL) {
-    return cache.books
-  }
-
+async function fetchBooksFromSheets(): Promise<Book[]> {
   const auth = getAuth()
   const sheets = google.sheets({ version: 'v4', auth })
 
@@ -92,12 +85,20 @@ export async function fetchBooks(forceRefresh = false): Promise<Book[]> {
   })
 
   const rows = (response.data.values ?? []).slice(1) // skip header
-  const books = filterBooks(rows.map((row, i) => parseBookRow(row, i)).filter(Boolean) as Book[])
-
-  cache = { books, timestamp: Date.now() }
-  return books
+  return filterBooks(rows.map((row, i) => parseBookRow(row, i)).filter(Boolean) as Book[])
 }
 
-export function invalidateCache() {
-  cache = null
+const fetchBooksWithCache = unstable_cache(
+  fetchBooksFromSheets,
+  ['sheets-books'],
+  { tags: [SHEETS_CACHE_TAG], revalidate: 600 },
+)
+
+export async function fetchBooks(forceRefresh = false): Promise<Book[]> {
+  if (process.env.NEXTAUTH_TEST_MODE === 'true') return TEST_BOOKS
+  if (forceRefresh) return fetchBooksFromSheets()
+  return fetchBooksWithCache()
 }
+
+// Kept for backward compatibility — invalidation now happens via revalidateTag(SHEETS_CACHE_TAG)
+export function invalidateCache() {}

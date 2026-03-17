@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
-import { invalidateCache, fetchBooks } from '@/lib/sheets'
+import { invalidateCache, fetchBooks, SHEETS_CACHE_TAG } from '@/lib/sheets'
 
 export async function POST() {
   const session = await auth()
@@ -10,7 +10,9 @@ export async function POST() {
   }
 
   invalidateCache()
+  revalidateTag(SHEETS_CACHE_TAG)
   const books = await fetchBooks(true)
   revalidatePath('/')
+  revalidatePath('/api/books')
   return NextResponse.json({ ok: true, count: books.length })
 }

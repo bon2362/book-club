@@ -5,7 +5,7 @@ import { POST } from './route'
 import * as authModule from '@/lib/auth'
 import * as sheets from '@/lib/sheets'
 
-jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
+jest.mock('next/cache', () => ({ revalidatePath: jest.fn(), revalidateTag: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/sheets', () => ({
   invalidateCache: jest.fn(),
