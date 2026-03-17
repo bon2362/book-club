@@ -6,7 +6,7 @@ const book: Book = {
   id: '1', name: 'Кредо либерала', tags: ['неолиберализм'],
   author: 'Paul Krugman', type: 'Book', size: 'L',
   pages: '368', date: '1/1/2007', link: 'https://example.com',
-  description: 'Хорошая книга о либеральной политике', coverUrl: null, whyForClub: null,
+  description: 'Хорошая книга о либеральной политике', coverUrl: null, whyForClub: null, recommendationLink: null,
 }
 
 describe('BookCard', () => {

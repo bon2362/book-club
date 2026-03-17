@@ -32,6 +32,7 @@ const sampleBooks: Book[] = [
     description: 'Описание книги',
     coverUrl: 'https://covers.example.com/krugman.jpg',
     whyForClub: null,
+    recommendationLink: null,
   },
   {
     id: '3',
@@ -46,6 +47,7 @@ const sampleBooks: Book[] = [
     description: '',
     coverUrl: null,
     whyForClub: null,
+    recommendationLink: null,
   },
 ]
 
