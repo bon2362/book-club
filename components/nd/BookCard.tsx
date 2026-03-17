@@ -306,6 +306,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
                 lineHeight: 1.55,
                 color: '#666',
                 margin: 0,
+                whiteSpace: 'pre-line',
                 cursor: hasExpandable ? 'pointer' : 'default',
                 ...(descExpanded ? {} : {
                   display: '-webkit-box',
@@ -366,6 +367,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
                   lineHeight: 1.55,
                   color: '#555',
                   margin: 0,
+                  whiteSpace: 'pre-line',
                 }}
               >
                 {book.whyRead}
