@@ -27,10 +27,6 @@ function makeSelectMock(rows: unknown[]) {
   return chain
 }
 
-function makeGet(url = 'http://localhost/api/priorities') {
-  return new NextRequest(url, { method: 'GET' })
-}
-
 function makePut(body: object) {
   return new NextRequest('http://localhost/api/priorities', {
     method: 'PUT',
