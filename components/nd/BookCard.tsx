@@ -377,6 +377,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             if (!parsed) return null
             return (
               <p style={{ margin: '0.5rem 0 0', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: '#999' }}>
+                {'Ещё рекомендации: '}
                 <a
                   href={parsed.url}
                   target="_blank"
