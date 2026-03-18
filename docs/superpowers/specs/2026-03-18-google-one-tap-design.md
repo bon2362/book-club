@@ -63,14 +63,24 @@ Credentials({
       return { id: existing[0].id, email, name: name ?? email }
     }
 
-    // 3. Create new user — use Google sub as a seed for a deterministic id,
-    //    or generate a UUID. Insert with emailVerified = now (Google has verified it).
+    // 3. Create new user + accounts entry
+    //    Insert with emailVerified = now (Google has verified it).
+    //    Also insert into accounts table with provider='google' and providerAccountId=sub
+    //    so that DrizzleAdapter can find the user if they later sign in via Google OAuth button.
+    //    Without this, Google OAuth would find the user by email but no linked account,
+    //    and NextAuth v5 would throw OAuthAccountNotLinked.
     const newId = crypto.randomUUID()
     await db.insert(users).values({
       id: newId,
       email,
       name: name ?? email,
       emailVerified: new Date(),
+    })
+    await db.insert(accounts).values({
+      userId: newId,
+      type: 'oidc',
+      provider: 'google',
+      providerAccountId: sub,
     })
     return { id: newId, email, name: name ?? email }
   }
@@ -81,6 +91,8 @@ Key points:
 - `id` in the return value is always the **DB row id** (UUID), not `sub`. This ensures `token.sub` in the JWT callback matches the real user id, keeping sessions consistent with users created via standard Google OAuth.
 - New users are inserted into the `users` table, so the existing JWT guard (`db.select by email → if empty return null`) will not invalidate the session on subsequent requests.
 - `emailVerified` is set to `new Date()` since Google has already verified the email.
+- For **new users only**: also inserts into `accounts` (`provider: 'google'`, `providerAccountId: sub`) to prevent `OAuthAccountNotLinked` error if the user later signs in via the regular Google OAuth button.
+- For **existing users**: no `accounts` insert — they either already have a `google` account entry (signed up via OAuth), or signed up via magic link (in which case the Google OAuth button would also require `allowDangerousEmailAccountLinking`, which is a separate pre-existing concern unrelated to One Tap).
 
 **`app/page.tsx`** — mount component for unauthenticated users:
 ```tsx
@@ -99,8 +111,8 @@ Key points:
 6. NextAuth routes to the new Credentials provider's `authorize()`
 7. `google-auth-library` verifies the JWT, extracts `sub`, `email`, `name`
 8. DB lookup by email:
-   - Found → return `{ id: existingUser.id, email, name }`
-   - Not found → insert new user with UUID, return `{ id: newId, email, name }`
+   - Found → return `{ id: existingUser.id, email, name }` (no accounts insert needed)
+   - Not found → insert new `users` row + `accounts` row (`provider: 'google'`, `providerAccountId: sub`), return `{ id: newId, email, name }`
 9. NextAuth creates JWT session with `token.sub = returned id`
 10. Component calls `router.refresh()` → page reloads with active session
 
@@ -135,7 +147,7 @@ Prefer option 1 if `@types/google-one-tap` is available on npm (check before imp
 ## Constraints & Notes
 
 - **No new runtime dependencies** — `google-auth-library` is already installed. Possibly add `@types/google-one-tap` as a dev dependency.
-- Credentials provider does not create `accounts` table entries via Drizzle adapter — consistent with existing Telegram provider behavior
+- For new users, both `users` and `accounts` rows are created manually (bypassing DrizzleAdapter) to prevent `OAuthAccountNotLinked` when the user later uses the Google OAuth button
 - If user dismisses One Tap, Google applies a cooldown automatically (browser-managed)
 - One Tap does not show if: user is already signed in, or no Google accounts found in browser
 - GSI prompt is rendered by Google — no custom styling needed or possible
