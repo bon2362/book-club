@@ -2,21 +2,22 @@
 
 Веб-приложение для книжного клуба: участники видят список книг, записываются на совместное чтение и оставляют контакты.
 
-**Live:** https://book-club-slow-rising.vercel.app
+**Live:** https://www.slowreading.club
 
 ## Стек
 
 - **Next.js 14** (App Router)
 - **NextAuth v5** — Google OAuth + email magic link
 - **Neon Postgres** + **Drizzle ORM** — хранение сессий и пользователей
-- **Google Sheets** — каталог книг (редактируется без деплоя)
+- **Google Sheets** — каталог книг + обложки (редактируется без деплоя)
 - **Resend** — отправка email
 - **Vercel** — хостинг
 
 ## Возможности
 
-- Просмотр каталога книг
+- Просмотр каталога книг с обложками
 - Запись на совместное чтение
+- Расстановка приоритетов книг (drag-and-drop)
 - Вход через Google или email (magic link, без пароля)
 - Профиль участника: имя + Telegram
 - Тёмная/светлая тема
@@ -46,5 +47,9 @@ npm run dev
 ## Тесты
 
 ```bash
+# Unit-тесты
 npm test
+
+# E2E-тесты (Playwright, поднимает dev-сервер автоматически)
+npm run test:e2e
 ```
