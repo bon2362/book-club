@@ -10,7 +10,7 @@ interface Props {
   userEmail?: string
 }
 
-type FormState = 'idle' | 'submitting' | 'needs-email-confirm' | 'success' | 'error'
+type FormStatus = 'idle' | 'submitting' | 'needs-email-confirm' | 'success' | 'error'
 
 const inputStyle: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -38,18 +38,15 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }: Props) {
-  const initialName = currentUser?.name ?? ''
-  const initialEmail = userEmail ?? ''
-
-  const [formState, setFormState] = useState<FormState>('idle')
+  const [status, setStatus] = useState<FormStatus>('idle')
   const [message, setMessage] = useState('')
-  const [name, setName] = useState(initialName)
-  const [email, setEmail] = useState(initialEmail)
+  const [name, setName] = useState(currentUser?.name ?? '')
+  const [email, setEmail] = useState(userEmail ?? '')
 
   const handleClose = useCallback(() => {
-    if (formState === 'submitting') return
+    if (status === 'submitting') return
     onClose()
-  }, [formState, onClose])
+  }, [status, onClose])
 
   useEffect(() => {
     if (!isOpen) return
@@ -63,7 +60,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
   // Reset form when closed; restore pre-fill when opened
   useEffect(() => {
     if (!isOpen) {
-      setFormState('idle')
+      setStatus('idle')
       setMessage('')
       setName(currentUser?.name ?? '')
       setEmail(userEmail ?? '')
@@ -71,7 +68,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
   }, [isOpen, currentUser, userEmail])
 
   async function doSend() {
-    setFormState('submitting')
+    setStatus('submitting')
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
@@ -83,9 +80,9 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
         }),
       })
       if (!res.ok) throw new Error('Failed')
-      setFormState('success')
+      setStatus('success')
     } catch {
-      setFormState('error')
+      setStatus('error')
     }
   }
 
@@ -94,8 +91,8 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
     if (!message.trim()) return
 
     if (!email.trim()) {
-      if (formState !== 'needs-email-confirm') {
-        setFormState('needs-email-confirm')
+      if (status !== 'needs-email-confirm') {
+        setStatus('needs-email-confirm')
         return
       }
       // second click on Отправить while in needs-email-confirm → do NOT send
@@ -107,8 +104,8 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
 
   function handleEmailChange(value: string) {
     setEmail(value)
-    if (formState === 'needs-email-confirm') {
-      setFormState('idle')
+    if (status === 'needs-email-confirm') {
+      setStatus('idle')
     }
   }
 
@@ -117,6 +114,8 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
   }
 
   if (!isOpen) return null
+
+  const isDisabled = !message.trim() || status === 'submitting'
 
   return (
     <div
@@ -150,7 +149,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
         {/* Close button */}
         <button
           onClick={handleClose}
-          aria-label="Выйти"
+          aria-label="Закрыть"
           style={{
             position: 'absolute',
             top: '1rem',
@@ -180,7 +179,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
           </h2>
         </div>
 
-        {formState === 'success' ? (
+        {status === 'success' ? (
           <div style={{ padding: '2rem', textAlign: 'center' }}>
             <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '1rem', color: '#2D6A4F', fontWeight: 600, margin: '0 0 0.5rem' }}>
               Спасибо!
@@ -251,14 +250,14 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
             </div>
 
             <div style={{ padding: '1rem 2rem', borderTop: '1px solid #E5E5E5', background: '#fff' }}>
-              {formState === 'error' && (
+              {status === 'error' && (
                 <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: '#C0603A', margin: '0 0 0.75rem' }}>
                   Не удалось отправить. Попробуйте ещё раз.
                 </p>
               )}
               <button
                 type="submit"
-                disabled={!message.trim() || formState === 'submitting'}
+                disabled={isDisabled}
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
@@ -266,17 +265,17 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
                   fontSize: '0.8rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
-                  cursor: (!message.trim() || formState === 'submitting') ? 'default' : 'pointer',
+                  cursor: isDisabled ? 'default' : 'pointer',
                   border: '1px solid #111',
-                  background: (!message.trim() || formState === 'submitting') ? 'transparent' : '#111',
-                  color: (!message.trim() || formState === 'submitting') ? '#999' : '#fff',
-                  borderColor: (!message.trim() || formState === 'submitting') ? '#C8C8C8' : '#111',
+                  background: isDisabled ? 'transparent' : '#111',
+                  color: isDisabled ? '#999' : '#fff',
+                  borderColor: isDisabled ? '#C8C8C8' : '#111',
                   transition: 'background 0.15s, color 0.15s, border-color 0.15s',
                 }}
               >
-                {formState === 'submitting' ? 'Отправляем…' : 'Отправить'}
+                {status === 'submitting' ? 'Отправляем…' : 'Отправить'}
               </button>
-              {formState === 'needs-email-confirm' && (
+              {status === 'needs-email-confirm' && (
                 <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: '#888', margin: '0.5rem 0 0', textAlign: 'center' }}>
                   Без email я не смогу ответить.{' '}
                   <button

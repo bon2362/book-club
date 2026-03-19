@@ -137,7 +137,7 @@ describe('FeedbackForm — отправка', () => {
     fireEvent.change(screen.getByLabelText(/сообщение/i), { target: { value: 'Привет' } })
     fireEvent.click(screen.getByRole('button', { name: /^отправить$/i }))
     await waitFor(() => expect(screen.getByText(/спасибо/i)).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /закрыть/i })).toBeInTheDocument()
+    expect(screen.getByText('Закрыть')).toBeInTheDocument()
   })
 
   it('показывает ошибку при неудачном запросе', async () => {
