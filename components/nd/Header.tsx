@@ -43,15 +43,10 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        overflow: 'hidden',
+        transform: isHidden ? 'translateY(-100%)' : 'translateY(0)',
+        transition: 'transform 0.25s ease',
       }}
     >
-      <div
-        style={{
-          transform: isHidden ? 'translateY(-100%)' : 'translateY(0)',
-          transition: 'transform 0.25s ease',
-        }}
-      >
       <div
         style={{
           maxWidth: '1200px',
@@ -219,7 +214,6 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             </button>
           )}
         </div>
-      </div>
       </div>
     </header>
   )
