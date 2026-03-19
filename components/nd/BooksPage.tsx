@@ -15,6 +15,7 @@ import ProfileDrawer from './ProfileDrawer'
 import SubmitBookForm from './SubmitBookForm'
 import SubmitBookCard from './SubmitBookCard'
 import AboutBlock, { type AboutBlockHandle } from './AboutBlock'
+import { useScrollHide } from '@/lib/scroll-hide-context'
 
 interface Props {
   books: BookWithCover[]
@@ -33,6 +34,7 @@ async function saveSelection(name: string, contacts: string, books: string[]) {
 
 export default function BooksPage({ books, currentUser, tagDescriptions }: Props) {
   const { data: session } = useSession()
+  const { isHidden } = useScrollHide()
   const isLoggedIn = !!session?.user?.email
   const isAdmin = !!session?.user?.isAdmin
   const telegramUsername = session?.user?.telegramUsername ?? null
@@ -257,7 +259,19 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       )}
 
       {/* Search + filters */}
-      <div style={{ borderBottom: '1px solid #E5E5E5', background: '#fff' }}>
+      <div
+        style={{
+          borderBottom: '1px solid #E5E5E5',
+          background: '#fff',
+          position: 'sticky',
+          top: 'var(--header-height, 57px)',
+          transform: isHidden
+            ? 'translateY(calc(-1 * var(--header-height, 57px)))'
+            : 'translateY(0)',
+          transition: 'transform 0.25s ease',
+          zIndex: 90,
+        }}
+      >
         <div
           className="filters-bar"
           style={{
