@@ -1,0 +1,6 @@
+{"type":"server-started","port":58639,"host":"0.0.0.0","url_host":"localhost","url":"http://localhost:58639","screen_dir":"/workspace/.superpowers/brainstorm/27268-1773744600"}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/27268-1773744600/badge-design.html"}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/27268-1773744600/bybook-design.html"}
+{"type":"screen-updated","file":"/workspace/.superpowers/brainstorm/27268-1773744600/bybook-design.html"}
+{"type":"screen-added","file":"/workspace/.superpowers/brainstorm/27268-1773744600/waiting-1.html"}
+{"type":"server-stopped","reason":"idle timeout"}

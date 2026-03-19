@@ -1,0 +1,161 @@
+<h2>Бейджи книг в колонке «Книги» (вкладка Участники)</h2>
+<p class="subtitle">Как показывать приоритет в каждом бейдже? Выбери вариант, который нравится больше всего.</p>
+
+<style>
+  .demo-table { width: 100%; border-collapse: collapse; margin: 1rem 0 2rem; font-family: system-ui, sans-serif; font-size: 0.85rem; }
+  .demo-table th { padding: 0.4rem 0.75rem; border-bottom: 2px solid #111; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #666; text-align: left; }
+  .demo-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #E5E5E5; vertical-align: top; }
+  .books { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
+  /* Variant A — numbered badge prefix */
+  .badge-a { display: inline-flex; align-items: center; gap: 0; background: #F5F5F5; font-size: 0.75rem; overflow: hidden; }
+  .badge-a .num { background: #111; color: #fff; padding: 0.15rem 0.35rem; font-weight: 700; font-size: 0.7rem; }
+  .badge-a .name { padding: 0.15rem 0.4rem; }
+  .badge-a .rm { color: #999; padding: 0.15rem 0.2rem; font-size: 0.85rem; cursor: pointer; }
+  .badge-a.no-rank .num { background: #E5E5E5; color: #aaa; }
+  .badge-a.new-book .num { background: #ddd; color: #aaa; font-style: italic; }
+  .no-priorities-a { font-size: 0.7rem; color: #aaa; font-style: italic; margin-bottom: 0.3rem; }
+
+  /* Variant B — small superscript-style number after name */
+  .badge-b { display: inline-flex; align-items: baseline; gap: 0.15rem; background: #F5F5F5; padding: 0.15rem 0.4rem; font-size: 0.75rem; }
+  .badge-b .name { }
+  .badge-b .num { font-size: 0.6rem; font-weight: 700; color: #888; background: none; vertical-align: super; }
+  .badge-b .rm { color: #bbb; font-size: 0.8rem; cursor: pointer; margin-left: 0.1rem; }
+  .badge-b.no-rank .num { color: #ccc; }
+  .no-priorities-b .badge-b { opacity: 0.5; }
+
+  /* Variant C — colored rank pill separate from book name */
+  .badge-c-wrap { display: inline-flex; align-items: center; gap: 0.2rem; }
+  .badge-c { background: #F5F5F5; padding: 0.15rem 0.4rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.2rem; }
+  .badge-c .rm { color: #bbb; font-size: 0.8rem; cursor: pointer; }
+  .rank-pill { font-size: 0.65rem; font-weight: 700; border-radius: 10px; padding: 0.1rem 0.4rem; }
+  .rank-1 { background: #f97316; color: white; }
+  .rank-2 { background: #fb923c; color: white; }
+  .rank-3 { background: #fdba74; color: white; }
+  .rank-n { background: #e5e7eb; color: #6b7280; }
+  .rank-new { background: #f3f4f6; color: #9ca3af; }
+
+  .user-row td:first-child { color: #666; font-style: italic; font-size: 0.75rem; white-space: nowrap; }
+  .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin: 1.5rem 0 0.5rem; }
+</style>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Числовой префикс в бейдже</h3>
+      <p>Чёрный блок с номером слева от названия книги. Без приоритетов — серый блок с «?»</p>
+      <table class="demo-table">
+        <thead><tr><th>Имя</th><th>Книги (сортировка по приоритету)</th></tr></thead>
+        <tbody>
+          <tr class="user-row">
+            <td>Алина С.</td>
+            <td>
+              <div class="books">
+                <span class="badge-a"><span class="num">1</span><span class="name">Война и мир</span><span class="rm">×</span></span>
+                <span class="badge-a"><span class="num">2</span><span class="name">Мастер и Маргарита</span><span class="rm">×</span></span>
+                <span class="badge-a"><span class="num">3</span><span class="name">Преступление</span><span class="rm">×</span></span>
+                <span class="badge-a new-book"><span class="num">+</span><span class="name">Идиот</span><span class="rm">×</span></span>
+              </div>
+              <div style="font-size:0.65rem;color:#aaa;margin-top:0.25rem;">«+» — добавлена после расстановки</div>
+            </td>
+          </tr>
+          <tr class="user-row">
+            <td>Борис К.<br><span style="color:#e5e7eb">—</span><br><span style="font-size:0.6rem;color:#aaa">(нет приоритетов)</span></td>
+            <td>
+              <div style="font-size:0.65rem;color:#aaa;font-style:italic;margin-bottom:0.3rem;">Приоритеты не расставлены</div>
+              <div class="books">
+                <span class="badge-a no-rank"><span class="num">?</span><span class="name">Война и мир</span><span class="rm">×</span></span>
+                <span class="badge-a no-rank"><span class="num">?</span><span class="name">Идиот</span><span class="rm">×</span></span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Надстрочный номер после названия</h3>
+      <p>Компактно: маленький серый номер в верхнем индексе. Без приоритетов — полупрозрачные бейджи + подпись</p>
+      <table class="demo-table">
+        <thead><tr><th>Имя</th><th>Книги</th></tr></thead>
+        <tbody>
+          <tr class="user-row">
+            <td>Алина С.</td>
+            <td>
+              <div class="books">
+                <span class="badge-b"><span class="name">Война и мир</span><span class="num">#1</span><span class="rm"> ×</span></span>
+                <span class="badge-b"><span class="name">Мастер и Маргарита</span><span class="num">#2</span><span class="rm"> ×</span></span>
+                <span class="badge-b"><span class="name">Преступление</span><span class="num">#3</span><span class="rm"> ×</span></span>
+                <span class="badge-b no-rank"><span class="name">Идиот</span><span class="num">new</span><span class="rm"> ×</span></span>
+              </div>
+            </td>
+          </tr>
+          <tr class="user-row">
+            <td>Борис К.</td>
+            <td>
+              <div class="no-priorities-b">
+                <div class="books">
+                  <span class="badge-b"><span class="name">Война и мир</span><span class="rm"> ×</span></span>
+                  <span class="badge-b"><span class="name">Идиот</span><span class="rm"> ×</span></span>
+                </div>
+              </div>
+              <div style="font-size:0.65rem;color:#aaa;margin-top:0.2rem;">↑ приоритеты не расставлены</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Цветная пилюля с рангом (как сейчас в фильтре)</h3>
+      <p>Цветной бейдж с рангом рядом с бейджем книги. Топ-1/2 — оранжевый, далее — серый. Без приоритетов — строка затушёвана</p>
+      <table class="demo-table">
+        <thead><tr><th>Имя</th><th>Книги</th></tr></thead>
+        <tbody>
+          <tr class="user-row">
+            <td>Алина С.</td>
+            <td>
+              <div class="books">
+                <span class="badge-c-wrap">
+                  <span class="rank-pill rank-1">#1</span>
+                  <span class="badge-c"><span>Война и мир</span><span class="rm">×</span></span>
+                </span>
+                <span class="badge-c-wrap">
+                  <span class="rank-pill rank-2">#2</span>
+                  <span class="badge-c"><span>Мастер и Маргарита</span><span class="rm">×</span></span>
+                </span>
+                <span class="badge-c-wrap">
+                  <span class="rank-pill rank-n">#3</span>
+                  <span class="badge-c"><span>Преступление</span><span class="rm">×</span></span>
+                </span>
+                <span class="badge-c-wrap">
+                  <span class="rank-pill rank-new">new</span>
+                  <span class="badge-c"><span>Идиот</span><span class="rm">×</span></span>
+                </span>
+              </div>
+            </td>
+          </tr>
+          <tr class="user-row" style="color:#9ca3af">
+            <td>Борис К.</td>
+            <td>
+              <div class="books">
+                <span class="badge-c" style="opacity:0.4"><span>Война и мир</span><span class="rm">×</span></span>
+                <span class="badge-c" style="opacity:0.4"><span>Идиот</span><span class="rm">×</span></span>
+              </div>
+              <div style="font-size:0.65rem;color:#aaa;margin-top:0.2rem;">приоритеты не расставлены</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

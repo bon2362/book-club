@@ -1,0 +1,85 @@
+<h2>Вкладка «По книгам» — колонка «Участники»</h2>
+<p class="subtitle">Как показывать приоритет рядом с именем участника?</p>
+
+<style>
+  .demo-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-family: system-ui, sans-serif; font-size: 0.82rem; }
+  .demo-table th { padding: 0.4rem 0.75rem; border-bottom: 2px solid #111; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #666; text-align: left; }
+  .demo-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #E5E5E5; vertical-align: top; color: #666; }
+  .demo-table td:first-child { color: #111; font-weight: 500; }
+  .demo-table td:nth-child(3) { font-weight: 700; text-align: right; }
+
+  .rank-chip { display: inline-block; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 3px; margin-right: 0.15rem; vertical-align: middle; }
+  .chip-top { background: #f97316; color: white; }
+  .chip-mid { background: #e5e7eb; color: #6b7280; }
+  .chip-no { background: #f3f4f6; color: #bbb; font-style: italic; }
+  .rank-plain { font-size: 0.65rem; color: #aaa; margin-right: 0.2rem; }
+  .rank-bold { font-size: 0.65rem; font-weight: 700; color: #888; }
+</style>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Маленький чип перед именем</h3>
+      <p>Цветной чип #1/#2 перед именем. Оранжевый для топ-1/2, серый далее. «—» если не расставил</p>
+      <table class="demo-table">
+        <thead><tr><th>Книга</th><th>Участники</th><th>Кол-во</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Война и мир</td>
+            <td>
+              <span class="rank-chip chip-top">#1</span>Алина С.,&nbsp;
+              <span class="rank-chip chip-top">#2</span>Мария В.,&nbsp;
+              <span class="rank-chip chip-mid">#4</span>Борис К.,&nbsp;
+              <span class="rank-chip chip-no">—</span>Иван П.
+            </td>
+            <td>4</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Номер в скобках после имени</h3>
+      <p>Имя, потом маленький серый «(#2)». Без приоритетов — имя без подписи</p>
+      <table class="demo-table">
+        <thead><tr><th>Книга</th><th>Участники</th><th>Кол-во</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Война и мир</td>
+            <td>
+              Алина С.<span class="rank-plain">(#1)</span>
+              Мария В.<span class="rank-plain">(#2)</span>
+              Борис К.<span class="rank-plain">(#4)</span>
+              Иван П.
+            </td>
+            <td>4</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Отдельные строки с рангом</h3>
+      <p>Каждый участник на своей строке, ранг в отдельной ячейке. Сортировка по среднему приоритету</p>
+      <table class="demo-table">
+        <thead><tr><th>Книга</th><th>Участник</th><th>#</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="4" style="border-right:1px solid #E5E5E5">Война и мир</td><td>Алина С.</td><td style="font-weight:700;color:#f97316">#1</td></tr>
+          <tr><td>Мария В.</td><td style="font-weight:700;color:#fb923c">#2</td></tr>
+          <tr><td>Борис К.</td><td style="font-weight:700;color:#6b7280">#4</td></tr>
+          <tr><td>Иван П.</td><td style="color:#bbb">—</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.7rem;color:#aaa;margin-top:0.5rem;">⚠️ Вариант C значительно удлиняет таблицу при многих книгах</p>
+    </div>
+  </div>
+
+</div>
