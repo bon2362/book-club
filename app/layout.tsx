@@ -22,6 +22,11 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  formatDetection: {
+    email: false,
+    telephone: false,
+    address: false,
+  },
   title: "Долгое наступление",
   description: "Читательские круги — записывайтесь на совместное чтение и обсуждение книг",
   openGraph: {
