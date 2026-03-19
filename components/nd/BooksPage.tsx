@@ -15,6 +15,8 @@ import ProfileDrawer from './ProfileDrawer'
 import SubmitBookForm from './SubmitBookForm'
 import SubmitBookCard from './SubmitBookCard'
 import AboutBlock, { type AboutBlockHandle } from './AboutBlock'
+import Footer from './Footer'
+import FeedbackForm from './FeedbackForm'
 import { useScrollHide } from '@/lib/scroll-hide-context'
 
 interface Props {
@@ -101,6 +103,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
   const [submitFormOpen, setSubmitFormOpen] = useState(false)
   const [submitIntent, setSubmitIntent] = useState(false)
+  const [feedbackFormOpen, setFeedbackFormOpen] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('submitIntent') === '1'
@@ -444,6 +447,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         )}
       </main>
 
+      <Footer onFeedback={() => setFeedbackFormOpen(true)} />
+
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -517,6 +522,14 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         onDeleteAccount={handleDeleteAccount}
         onToggleBook={handleToggleByName}
       />
+      {feedbackFormOpen && (
+        <FeedbackForm
+          isOpen={feedbackFormOpen}
+          onClose={() => setFeedbackFormOpen(false)}
+          currentUser={currentUser}
+          userEmail={session?.user?.email ?? undefined}
+        />
+      )}
     </>
   )
 }
