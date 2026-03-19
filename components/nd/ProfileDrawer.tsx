@@ -442,7 +442,7 @@ export default function ProfileDrawer({
     })
   )
 
-  const displayName = session?.user?.name ?? session?.user?.email ?? ''
+  const displayName = effectiveUser?.name?.trim() || session?.user?.name || session?.user?.email || ''
   const profileUnchanged = name.trim() === (effectiveUser?.name ?? '') && contacts.trim() === (effectiveUser?.contacts ?? '')
 
   // ─────────────────────────────────────────────
