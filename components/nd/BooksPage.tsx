@@ -265,7 +265,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           background: '#fff',
           position: 'sticky',
           top: 'var(--header-height, 57px)',
-          transform: isHidden ? 'translateY(-100%)' : 'translateY(0)',
+          transform: isHidden ? 'translateY(calc(-100% - var(--header-height, 57px)))' : 'translateY(0)',
           transition: 'transform 0.25s ease',
           zIndex: 90,
         }}
