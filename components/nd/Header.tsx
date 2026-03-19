@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import SubmitBookButton from './SubmitBookButton'
+import { useScrollHide } from '@/lib/scroll-hide-context'
 
 interface Props {
   onEditProfile?: () => void
@@ -17,17 +18,40 @@ interface Props {
 export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIsThis, isAdmin, displayName }: Props) {
   const { data: session } = useSession()
   const [whatIsThisHovered, setWhatIsThisHovered] = useState(false)
+  const { isHidden } = useScrollHide()
+  const headerRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const observer = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty(
+        '--header-height',
+        `${entry.contentRect.height}px`
+      )
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <header
+      ref={headerRef}
       style={{
         borderBottom: '2px solid #000',
         background: '#fff',
         position: 'sticky',
         top: 0,
         zIndex: 100,
+        overflow: 'hidden',
       }}
     >
+      <div
+        style={{
+          transform: isHidden ? 'translateY(-100%)' : 'translateY(0)',
+          transition: 'transform 0.25s ease',
+        }}
+      >
       <div
         style={{
           maxWidth: '1200px',
@@ -195,6 +219,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             </button>
           )}
         </div>
+      </div>
       </div>
     </header>
   )

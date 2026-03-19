@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
+import { ScrollHideProvider } from '@/lib/scroll-hide-context'
 import "./globals.css";
 
 const geistSans = localFont({
@@ -58,7 +59,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ScrollHideProvider>
+          {children}
+        </ScrollHideProvider>
         <Analytics />
       </body>
     </html>
