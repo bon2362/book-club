@@ -21,8 +21,12 @@ export default function DigestStatusWidget() {
   const [data, setData] = useState<DigestStatusData | null>(null)
 
   const fetchStatus = useCallback(async () => {
-    const res = await fetch('/api/admin/digest-status')
-    if (res.ok) setData(await res.json())
+    try {
+      const res = await fetch('/api/admin/digest-status')
+      if (res.ok) setData(await res.json())
+    } catch {
+      // silently ignore fetch errors — widget stays with last known state
+    }
   }, [])
 
   useEffect(() => {
