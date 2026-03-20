@@ -36,6 +36,13 @@
       "when": 1773910000000,
       "tag": "0004_uneven_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774008631111,
+      "tag": "0005_tearful_deathstrike",
+      "breakpoints": true
     }
   ]
 }

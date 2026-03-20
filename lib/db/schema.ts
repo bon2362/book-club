@@ -113,3 +113,17 @@ export const bookPriorities = pgTable('book_priorities', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.bookName] }),
 }))
+
+export const notificationQueue = pgTable('notification_queue', {
+  id:           text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userName:     text('user_name').notNull(),
+  userEmail:    text('user_email').notNull(),
+  contacts:     text('contacts').notNull(),
+  addedBooks:   text('added_books').notNull(), // JSON.stringify(string[]) — books added in this signup event
+  isNew:        boolean('is_new').notNull(),
+  createdAt:    timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  processingAt: timestamp('processing_at', { mode: 'date' }), // NULL = free; NOT NULL = claimed by cron
+  sentAt:       timestamp('sent_at', { mode: 'date' }),        // NULL = unsent; NOT NULL = sent
+}, (t) => ({
+  sentAtIdx: index('notification_queue_sent_at_idx').on(t.sentAt),
+}))
