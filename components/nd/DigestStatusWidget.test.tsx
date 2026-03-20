@@ -40,7 +40,7 @@ describe('DigestStatusWidget', () => {
     render(<DigestStatusWidget />)
     await act(async () => {})
     expect(screen.getByText(/готово/i)).toBeInTheDocument()
-    expect(screen.getByText(/3/)).toBeInTheDocument()
+    expect(screen.getByText(/3 запланированы/i)).toBeInTheDocument()
   })
 
   it('показывает минуты до отправки при status:cooling', async () => {

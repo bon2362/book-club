@@ -11,7 +11,10 @@ function minutesUntil(isoDate: string): number {
   return Math.max(0, Math.ceil((new Date(isoDate).getTime() - Date.now()) / 60_000))
 }
 
-const SPAN_STYLE: React.CSSProperties = {
+const WIDGET_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+  fontSize: '0.7rem',
+  color: '#999',
   display: 'flex',
   alignItems: 'center',
   gap: '0.3rem',
@@ -48,15 +51,15 @@ export default function DigestStatusWidget() {
 
   let label: string
   if (data.status === 'empty') {
-    label = 'Дайджест: очередь пуста'
+    label = 'Отправка писем: очередь пуста'
   } else if (data.status === 'ready') {
-    label = `Дайджест: готово · ${data.count} зап.`
+    label = `Отправка писем: готово · ${data.count} запланированы`
   } else {
-    label = `Дайджест: ожидание · ${data.count} зап. · отправка через ${minutesUntil(data.sendAt)} мин`
+    label = `Отправка писем: ожидание · ${data.count} запланированы · отправка через ${minutesUntil(data.sendAt)} мин`
   }
 
   return (
-    <span style={SPAN_STYLE}>
+    <span style={WIDGET_STYLE}>
       {dot}
       <span>{label}</span>
     </span>

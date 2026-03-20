@@ -221,6 +221,10 @@ Vercel, Namecheap DNS, Google OAuth и `NEXTAUTH_URL` настроены. Дом
 
 Кнопка «Удалить» в раскрытой строке заявки на вкладке «Заявки» admin-панели. Inline-подтверждение «Удалить навсегда? / Да, удалить / Отмена». `DELETE /api/admin/submissions/[id]` удаляет запись из `book_submissions`. Книги из Google Sheets администратор убирает вручную из таблицы.
 
+### 77. Виджет статуса дайджеста уведомлений в подвале admin-панели
+
+`/api/admin/digest-status` читает `notification_queue` (только неотправленные и незахваченные строки), вычисляет статус дебаунса (empty / ready / cooling). `DigestStatusWidget` — client component с polling каждые 60с, цветные точки, отображает количество запланированных писем и время до отправки. Вставлен под `AdminStatusBar` в подвале `/admin`.
+
 ### 55. Виджеты CI и деплоя в подвале admin-панели
 
 `/api/admin/status` параллельно запрашивает GitHub Actions API и Vercel API. `AdminStatusBar` — client component с polling каждые 60с, цветные точки статуса. Вставлен в подвал `/admin` под статичными данными из #12.
