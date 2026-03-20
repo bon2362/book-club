@@ -5,16 +5,13 @@ import { NextRequest } from 'next/server'
 import { POST } from './route'
 import * as authModule from '@/lib/auth'
 import * as signups from '@/lib/signups'
+import * as dbModule from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signups', () => ({ upsertSignup: jest.fn() }))
-jest.mock('resend', () => ({
-  Resend: jest.fn().mockImplementation(() => ({
-    emails: { send: jest.fn().mockResolvedValue({}) },
-  })),
-}))
 jest.mock('@/lib/db', () => ({
   db: {
+    insert: jest.fn().mockReturnValue({ values: jest.fn().mockReturnValue({ catch: jest.fn() }) }),
     delete: jest.fn().mockReturnValue({
       where: jest.fn().mockResolvedValue(undefined),
     }),
@@ -22,10 +19,12 @@ jest.mock('@/lib/db', () => ({
 }))
 jest.mock('@/lib/db/schema', () => ({
   bookPriorities: {},
+  notificationQueue: {},
 }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockUpsertSignup = signups.upsertSignup as jest.Mock
+const mockInsert = dbModule.db.insert as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/signup', {
@@ -108,5 +107,34 @@ describe('POST /api/signup', () => {
     await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А'] }))
 
     expect(db.delete).toHaveBeenCalled()
+  })
+
+  it('добавляет в очередь уведомлений при добавлении новых книг', async () => {
+    const mockValues = jest.fn().mockReturnValue({ catch: jest.fn() })
+    mockInsert.mockReturnValue({ values: mockValues })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: true, addedBooks: ['Книга А', 'Книга Б'] })
+
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А', 'Книга Б'] }))
+
+    expect(mockInsert).toHaveBeenCalled()
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userName: 'Test',
+        userEmail: 'test@test.com',
+        contacts: '@t',
+        addedBooks: JSON.stringify(['Книга А', 'Книга Б']),
+        isNew: true,
+      })
+    )
+  })
+
+  it('не добавляет в очередь если новых книг нет', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А'] }))
+
+    expect(mockInsert).not.toHaveBeenCalled()
   })
 })

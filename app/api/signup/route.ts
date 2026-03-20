@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { upsertSignup } from '@/lib/signups'
-import { Resend } from 'resend'
 import { db } from '@/lib/db'
-import { bookPriorities } from '@/lib/db/schema'
+import { bookPriorities, notificationQueue } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
@@ -50,22 +49,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Notify admin when books are added
-  const adminEmail = process.env.ADMIN_EMAIL
-  if (adminEmail && result.addedBooks.length > 0 && process.env.RESEND_API_KEY) {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    const subject = result.isNew
-      ? `Новая запись: ${name.trim()}`
-      : `Обновление записи: ${name.trim()}`
-    const bookList = result.addedBooks.map(b => `• ${b}`).join('\n')
-    const text = `${subject}\n\nКонтакт: ${contacts.trim()}\nEmail: ${session.user.email}\n\nДобавленные книги:\n${bookList}`
-
-    resend.emails.send({
-      from: 'Долгое наступление <noreply@slowreading.club>',
-      to: adminEmail,
-      subject,
-      text,
-    }).catch(console.error) // не блокируем ответ
+  // Enqueue notification for digest
+  if (result.addedBooks.length > 0) {
+    db.insert(notificationQueue).values({
+      userName: name.trim(),
+      userEmail: session.user.email,
+      contacts: contacts.trim(),
+      addedBooks: JSON.stringify(result.addedBooks),
+      isNew: result.isNew,
+    }).catch(console.error)
   }
 
   return NextResponse.json({ ok: true })
