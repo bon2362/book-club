@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } from '@/lib/db/schema'
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminStatusBar from '@/components/nd/AdminStatusBar'
+import DigestStatusWidget from '@/components/nd/DigestStatusWidget'
 import { SessionProvider } from 'next-auth/react'
 
 export const dynamic = 'force-dynamic'
@@ -120,6 +121,7 @@ export default async function AdminPage() {
           {commitMsg && <span style={{ color: '#777' }}>{commitMsg}</span>}
         </div>
         <AdminStatusBar />
+        <DigestStatusWidget />
       </footer>
     </>
   )
