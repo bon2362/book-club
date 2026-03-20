@@ -60,4 +60,11 @@ describe('DigestStatusWidget', () => {
     await act(async () => { jest.advanceTimersByTime(60_000) })
     expect(mockFetch).toHaveBeenCalledTimes(2)
   })
+
+  it('остаётся невидимым при ошибке fetch (non-ok ответ)', async () => {
+    mockFetch.mockResolvedValue({ ok: false })
+    const { container } = render(<DigestStatusWidget />)
+    await act(async () => {})
+    expect(container.firstChild).toBeNull()
+  })
 })
