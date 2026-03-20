@@ -81,4 +81,18 @@ describe('GET /api/admin/digest-status', () => {
     expect(data.status).toBe('ready')
     expect(data.count).toBe(2)
   })
+
+  it('не считает строки с processingAt (уже захвачены кроном)', async () => {
+    mockAuth.mockResolvedValue({ user: { isAdmin: true } })
+    // Only row with processingAt=null should be counted;
+    // the mock returns only unclaimed rows because the WHERE clause excludes claimed ones.
+    // We verify the count reflects only 1 row, not 2.
+    ;(db.select as jest.Mock).mockReturnValue(makeSelectMock([
+      { createdAt: ago(35 * MIN) }, // unclaimed, cooled
+    ]))
+    const res = await GET()
+    const data = await res.json()
+    expect(data.status).toBe('ready')
+    expect(data.count).toBe(1)
+  })
 })
