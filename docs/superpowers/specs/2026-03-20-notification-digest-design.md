@@ -6,11 +6,11 @@
 
 ## Подход
 
-**Очередь в Postgres + Vercel Cron с дебаунсом.**
+**Очередь в Postgres + GitHub Actions с дебаунсом.**
 
-Каждая новая запись на книгу сохраняется в таблицу-очередь `notification_queue`. Vercel Cron раз в 10 минут вызывает эндпоинт `/api/cron/digest`. Тот проверяет условие дебаунса и при необходимости шлёт один дайджест.
+Каждая новая запись на книгу сохраняется в таблицу-очередь `notification_queue`. GitHub Actions workflow (`digest.yml`) по расписанию `*/10 * * * *` вызывает эндпоинт `GET /api/cron/digest`. Тот проверяет условие дебаунса и при необходимости шлёт один дайджест.
 
-**Требование к Vercel-плану:** `*/10 * * * *` требует Pro-плана. Fallback для Hobby: `0 * * * *` (раз в час).
+**Почему GitHub Actions, а не Vercel Cron:** Vercel Hobby-план поддерживает только ежедневные cron-задачи. GitHub Actions не имеет такого ограничения и запускается каждые 10 минут бесплатно.
 
 ## БД: новая таблица
 
@@ -88,23 +88,36 @@ if (result.addedBooks.length > 0) {
 
 **Важно:** шаги 3 и 6 (сброс зависших строк) оперируют глобально — это намеренно. Шаги 6 (cooling), 9 и 10 оперируют только по `WHERE id IN (capturedIds)` — ID строк, возвращённых на шаге 4 — чтобы не затронуть строки, захваченные параллельным запуском.
 
-## Vercel Cron
+## GitHub Actions Workflow
 
-Новый файл `vercel.json` в корне проекта:
+Новый файл `.github/workflows/digest.yml`:
 
-```json
-{
-  "crons": [
-    { "path": "/api/cron/digest", "schedule": "*/10 * * * *" }
-  ]
-}
+```yaml
+name: Notification Digest
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # ручной запуск для тестирования
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call digest endpoint
+        run: |
+          curl -s -f -X GET https://www.slowreading.club/api/cron/digest \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP status: %{http_code}\n"
 ```
+
+`vercel.json` присутствует в репозитории, но не содержит cron-конфигурации (`{}`).
 
 ## Env-переменные
 
 | Переменная    | Где добавить                    | Назначение                                            |
 |---------------|---------------------------------|-------------------------------------------------------|
-| `CRON_SECRET` | Vercel Dashboard + `.env.local` | Авторизация cron-запроса; если не задан — всегда 401  |
+| `CRON_SECRET` | Vercel Dashboard + GitHub Secrets + `.env.local` | Авторизация cron-запроса; если не задан в Vercel — всегда 401  |
 
 `ADMIN_EMAIL` и `RESEND_API_KEY` уже существуют. CI (`ci.yml`) менять не нужно — в тестах `CRON_SECRET` задаётся локально.
 
@@ -165,7 +178,8 @@ jest.mock('@/lib/db', () => ({
 | `app/api/signup/route.test.ts` | Убрать мок Resend, добавить мок DB-insert |
 | `app/api/cron/digest/route.ts` | Новый cron-эндпоинт |
 | `app/api/cron/digest/route.test.ts` | Тесты эндпоинта |
-| `vercel.json` | Новый файл с расписанием cron |
+| `.github/workflows/digest.yml` | Новый workflow: запускает крон каждые 10 мин |
+| `vercel.json` | Пустой `{}` — cron убран (Hobby-план не поддерживает) |
 
 ## Не входит в задачу
 
