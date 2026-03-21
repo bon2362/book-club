@@ -42,3 +42,6 @@ next-env.d.ts
 
 # BMAD framework (reinstallable tooling)
 /_bmad/
+
+# Claude session marker (used by macOS sleep prevention)
+.claude-session-done

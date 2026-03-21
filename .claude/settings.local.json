@@ -53,6 +53,15 @@
             "command": "/workspace/.claude/hooks/block-env-local.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/workspace/.claude/hooks/block-secrets-in-issues.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -75,6 +84,16 @@
           {
             "type": "command",
             "command": "/workspace/.claude/hooks/lint-on-edit.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "touch /workspace/.claude-session-done"
           }
         ]
       }
