@@ -36,12 +36,11 @@ The official Anthropic Telegram MCP plugin (`claude-plugins-official`) runs a Bu
 
 > Note: The firewall resolves domains to IPs at container start via `dig`. GitHub CIDR ranges are fetched separately from the domain list — `objects.githubusercontent.com` may already be covered, but adding it explicitly is safe and explicit.
 
-**`Dockerfile`** — install Bun at build time (preferred over `postCreateCommand` because firewall is not yet active during `docker build`):
+**`Dockerfile`** — install Bun at build time as the `node` user (preferred over `postCreateCommand` because firewall is not yet active during `docker build`):
 ```dockerfile
+USER node
 RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:${PATH}"
-# or for node user:
-# RUN su node -c "curl -fsSL https://bun.sh/install | bash"
+ENV PATH="/home/node/.bun/bin:${PATH}"
 ```
 The Bun installer appends to `~/.zshrc` and `~/.bashrc` automatically — PATH is set for interactive shells. The `ENV PATH` line ensures it's also available in non-interactive shell contexts.
 
@@ -82,10 +81,12 @@ No `fswatch` required — launchd's built-in `WatchPaths` key watches the file n
 
 **In devcontainer — Claude Code `Stop` hook** (`.claude/settings.local.json`):
 
-`Stop` is a valid Claude Code lifecycle hook — it fires when the Claude Code session exits. Add alongside existing hooks:
+`Stop` is a valid Claude Code lifecycle hook — it fires when the Claude Code session exits. It lives at the same level as `PreToolUse`/`PostToolUse` in the `hooks` object. Add it to the existing structure in `.claude/settings.local.json`:
 ```json
 {
   "hooks": {
+    "PreToolUse": [ "...existing hooks..." ],
+    "PostToolUse": [ "...existing hooks..." ],
     "Stop": [
       {
         "type": "command",
@@ -95,6 +96,7 @@ No `fswatch` required — launchd's built-in `WatchPaths` key watches the file n
   }
 }
 ```
+Note: unlike `PreToolUse`/`PostToolUse`, `Stop` hooks do not use a `matcher` — they fire unconditionally on session end.
 
 The marker file `/workspace/.claude-session-done` lives in the bind-mounted workspace, visible from both the container (at `/workspace/.claude-session-done`) and macOS (at the project directory path on the host, e.g. `~/code/book-club/.claude-session-done`).
 
@@ -149,10 +151,11 @@ Replace `YOURNAME` and the project path with actual values.
 ### One-time macOS setup
 
 1. Install **Amphetamine** from App Store
-2. Create `~/scripts/amphetamine-release.sh` and `chmod +x ~/scripts/amphetamine-release.sh`
-3. Create the plist at `~/Library/LaunchAgents/com.user.claude-done-watcher.plist` with correct paths
-4. Load the agent: `launchctl load ~/Library/LaunchAgents/com.user.claude-done-watcher.plist`
-5. Verify: `launchctl list | grep claude-done`
+2. `mkdir -p ~/scripts`
+3. Create `~/scripts/amphetamine-release.sh` and `chmod +x ~/scripts/amphetamine-release.sh`
+4. Create the plist at `~/Library/LaunchAgents/com.user.claude-done-watcher.plist` with correct paths
+5. Load the agent: `launchctl load ~/Library/LaunchAgents/com.user.claude-done-watcher.plist`
+6. Verify: `launchctl list | grep claude-done`
 
 ### Out of scope
 
