@@ -41,12 +41,13 @@ function getSheets() {
 }
 
 const SIGNUPS_RANGE = 'signups!A:F'
+const SIGNUPS_RANGE_WITH_FLAGS = 'signups!A:H'
 
 export async function getAllSignups(): Promise<UserSignup[]> {
   const sheets = getSheets()
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.GOOGLE_SHEETS_ID!,
-    range: SIGNUPS_RANGE,
+    range: SIGNUPS_RANGE_WITH_FLAGS,
   })
   const rows = (response.data.values ?? []).slice(1) // skip header
   return rows.filter(r => r[6] !== 'TO DELETE').map(parseSignupRow)

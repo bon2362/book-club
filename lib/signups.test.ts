@@ -1,4 +1,83 @@
-import { parseSignupRow, buildSignupRow } from './signups'
+import { parseSignupRow, buildSignupRow, getAllSignups } from './signups'
+
+// ── getAllSignups ──────────────────────────────────────────────────────────────
+
+const mockGet = jest.fn()
+jest.mock('googleapis', () => ({
+  google: {
+    auth: { GoogleAuth: jest.fn() },
+    sheets: () => ({
+      spreadsheets: { values: { get: mockGet } },
+    }),
+  },
+}))
+
+// GOOGLE_SERVICE_ACCOUNT_KEY нужен для getSheets()
+process.env.GOOGLE_SERVICE_ACCOUNT_KEY = JSON.stringify({ type: 'service_account' })
+process.env.GOOGLE_SHEETS_ID = 'test-sheet-id'
+
+function makeRow(overrides: Record<number, string> = {}): string[] {
+  const base = ['2024-01-01', 'user@test.com', 'Иван', 'ivan@mail.ru', '@ivan', '[]', '', '']
+  return base.map((v, i) => overrides[i] ?? v)
+}
+
+describe('getAllSignups', () => {
+  it('возвращает строки без TO DELETE', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        values: [
+          ['timestamp', 'userId', 'name', 'email', 'contacts', 'books', 'DeleteByUser', 'DeleteByAdmin'],
+          makeRow(),
+          makeRow({ 1: 'other@test.com', 2: 'Пётр' }),
+        ],
+      },
+    })
+    const result = await getAllSignups()
+    expect(result).toHaveLength(2)
+  })
+
+  it('фильтрует строки помеченные TO DELETE пользователем', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        values: [
+          ['header'],
+          makeRow(),                          // обычный
+          makeRow({ 6: 'TO DELETE' }),        // удалён пользователем
+        ],
+      },
+    })
+    const result = await getAllSignups()
+    expect(result).toHaveLength(1)
+    expect(result[0].userId).toBe('user@test.com')
+  })
+
+  it('фильтрует строки помеченные TO DELETE администратором', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        values: [
+          ['header'],
+          makeRow({ 6: 'TO DELETE', 7: 'yes' }), // удалён админом
+          makeRow({ 1: 'keep@test.com' }),
+        ],
+      },
+    })
+    const result = await getAllSignups()
+    expect(result).toHaveLength(1)
+    expect(result[0].userId).toBe('keep@test.com')
+  })
+
+  it('возвращает пустой массив если нет строк', async () => {
+    mockGet.mockResolvedValue({ data: { values: [['header']] } })
+    const result = await getAllSignups()
+    expect(result).toHaveLength(0)
+  })
+
+  it('возвращает пустой массив если values null', async () => {
+    mockGet.mockResolvedValue({ data: { values: null } })
+    const result = await getAllSignups()
+    expect(result).toHaveLength(0)
+  })
+})
 
 describe('parseSignupRow', () => {
   it('парсит строку в объект пользователя', () => {
