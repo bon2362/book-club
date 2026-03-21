@@ -30,7 +30,7 @@ async function sendMagicLinkEmail(email: string, url: string) {
           <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
             <tr><td style="background:#111;">
               <a href="${url}" style="display:inline-block;padding:14px 32px;font-size:13px;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:0.1em;color:#fff;text-decoration:none;">
-                Войти в клуб
+                Войти в круг
               </a>
             </td></tr>
           </table>

@@ -74,7 +74,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Войти в клуб"
+      aria-label="Войти в круг"
       onClick={handleOverlay}
       style={{
         position: 'fixed',
@@ -142,7 +142,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             letterSpacing: '-0.02em',
           }}
         >
-          Войти в клуб
+          Войти в круг
         </h2>
 
         <p

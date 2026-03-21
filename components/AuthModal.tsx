@@ -114,7 +114,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             margin: '0 0 0.3rem 0',
           }}
         >
-          Войти в клуб
+          Войти в круг
         </h2>
 
         {/* Subtitle */}
