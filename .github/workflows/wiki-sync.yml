@@ -1,0 +1,52 @@
+name: Wiki Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/features/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Clone wiki repo
+        run: |
+          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/bon2362/book-club.wiki.git" wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy feature docs to wiki
+        run: |
+          cp docs/features/*.md wiki/
+
+      - name: Generate Home.md
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          cat > wiki/Home.md << EOF
+# Book Club — Feature Documentation
+
+> Auto-generated from \`docs/features/\`. To edit, modify files in \`docs/features/\` and push to \`main\`.
+
+## Features
+
+- [Authentication](auth) — Google OAuth, magic link, NextAuth v5
+- [Books Catalog](books-catalog) — Google Sheets, covers, BookCard
+- [Admin Panel](admin-panel) — moderation, priorities, stats
+- [Notifications](notifications) — digest queue, cron, Resend
+- [User Profile](user-profile) — drawer, tabs, priorities
+
+_Last updated: ${DATE}_
+EOF
+
+      - name: Commit and push wiki
+        run: |
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --staged --quiet || git commit -m "docs: sync from docs/features/ [skip ci]"
+          git push
