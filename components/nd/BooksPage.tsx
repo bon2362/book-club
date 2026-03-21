@@ -101,6 +101,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [showContactsForm, setShowContactsForm] = useState(false)
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
+  const [showPriorityHint, setShowPriorityHint] = useState(false)
   const [submitFormOpen, setSubmitFormOpen] = useState(false)
   const [submitIntent, setSubmitIntent] = useState(false)
   const [feedbackFormOpen, setFeedbackFormOpen] = useState(false)
@@ -174,6 +175,12 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const hasReadBooks = useMemo(() => books.some(b => b.status === 'read'), [books])
   const hasNewBooks = useMemo(() => books.some(b => b.isNew), [books])
 
+  useEffect(() => {
+    if (!showPriorityHint) return
+    const timer = setTimeout(() => setShowPriorityHint(false), 8000)
+    return () => clearTimeout(timer)
+  }, [showPriorityHint])
+
   function handleToggle(book: BookWithCover) {
     if (!isLoggedIn) {
       setPendingBook(book)
@@ -186,11 +193,18 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       return
     }
 
-    const next = selectedBooks.includes(book.name)
-      ? selectedBooks.filter(n => n !== book.name)
-      : [...selectedBooks, book.name]
+    const isAdding = !selectedBooks.includes(book.name)
+    const next = isAdding
+      ? [...selectedBooks, book.name]
+      : selectedBooks.filter(n => n !== book.name)
 
     setSelectedBooks(next)
+
+    if (isAdding && next.length === 2 && !localStorage.getItem('hint_priorities_seen')) {
+      localStorage.setItem('hint_priorities_seen', '1')
+      setShowPriorityHint(true)
+    }
+
     saveSelection(effectiveUser.name, effectiveUser.contacts, next).catch(console.error)
   }
 
@@ -535,6 +549,75 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
           currentUser={currentUser}
           userEmail={session?.user?.email ?? undefined}
         />
+      )}
+
+      {showPriorityHint && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: '1.5rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: '#fff',
+            border: '1px solid #111',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            padding: '0.85rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            maxWidth: 'calc(100vw - 2rem)',
+            width: 'max-content',
+          }}
+        >
+          <p
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.8rem',
+              color: '#111',
+              margin: 0,
+              lineHeight: 1.4,
+            }}
+          >
+            Кстати, в личном кабинете можно расставить книги по приоритету
+          </p>
+          <button
+            onClick={() => { setShowPriorityHint(false); setProfileDrawerOpen(true) }}
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: '#fff',
+              background: '#111',
+              border: 'none',
+              padding: '0.4rem 0.75rem',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            Открыть
+          </button>
+          <button
+            onClick={() => setShowPriorityHint(false)}
+            aria-label="Закрыть подсказку"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.9rem',
+              color: '#999',
+              padding: '0 0.15rem',
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+          >
+            ✕
+          </button>
+        </div>
       )}
     </>
   )
