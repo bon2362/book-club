@@ -43,6 +43,18 @@ jobs:
           ref: gh-pages
           path: gh-pages
 
+      - name: Build Google Service Account credentials
+        run: |
+          echo "GOOGLE_SERVICE_ACCOUNT_KEY=$(jq -nc \
+            --arg pk "$GOOGLE_SHEETS_PRIVATE_KEY" \
+            --arg ce "$GOOGLE_SHEETS_CLIENT_EMAIL" \
+            '{type:"service_account",private_key:$pk,client_email:$ce}')" >> $GITHUB_ENV
+          echo "GOOGLE_SHEETS_ID=$GOOGLE_SHEETS_SPREADSHEET_ID" >> $GITHUB_ENV
+        env:
+          GOOGLE_SHEETS_PRIVATE_KEY: ${{ secrets.GOOGLE_SHEETS_PRIVATE_KEY }}
+          GOOGLE_SHEETS_CLIENT_EMAIL: ${{ secrets.GOOGLE_SHEETS_CLIENT_EMAIL }}
+          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
+
       - name: E2E tests
         run: npm run test:e2e
         env:
@@ -50,9 +62,6 @@ jobs:
           AUTH_SECRET: 'e2e-test-secret-only-used-for-signing-test-sessions'
           NEXTAUTH_TEST_MODE: 'true'
           NEXTAUTH_URL: 'http://localhost:3000'
-          GOOGLE_SHEETS_PRIVATE_KEY: ${{ secrets.GOOGLE_SHEETS_PRIVATE_KEY }}
-          GOOGLE_SHEETS_CLIENT_EMAIL: ${{ secrets.GOOGLE_SHEETS_CLIENT_EMAIL }}
-          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
 
       - name: Install Allure CLI
         if: always()
