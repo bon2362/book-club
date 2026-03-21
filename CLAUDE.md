@@ -53,8 +53,8 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - Тесты на порядок книг: `fetchBooksWithCovers` делает `.reverse()` — `result[0]` это последняя книга из sheets, не первая
 
 ## E2E-тесты (Playwright)
-- **Dev server запускать только через Playwright** (`npm run playwright test`), не вручную — иначе `NEXTAUTH_TEST_MODE=true` не будет выставлен и `/api/test/session` вернёт 403
-- `reuseExistingServer: true` в playwright.config.ts — если сервер уже запущен, Playwright его переиспользует (без нужных env vars)
+- **Dev server для E2E**: запускать вручную с `NEXTAUTH_TEST_MODE=true npx next dev` перед тестами, тогда `reuseExistingServer: true` его переиспользует. Без этого флага `/api/test/session` вернёт 403.
+- **OOM в devcontainer**: держать запущенным только один dev server. Несколько параллельных процессов (Next.js + Chrome) при нехватке памяти вызывают OOM kill сервера.
 - **`waitForLoadState('networkidle')`** — надёжный способ дождаться React-гидрации в Next.js перед взаимодействием с client-side компонентами
 - **ContactsForm** автоматически открывается для залогиненных пользователей без профиля (`isLoggedIn && !currentUser && !savedUser`) — её оверлей перехватывает все клики, поэтому в тестах сначала заполняй форму, потом взаимодействуй с остальным UI
 - Все модальные компоненты должны иметь `role="dialog"` и обработчик Escape — иначе тесты не смогут их найти и закрыть
@@ -96,7 +96,7 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 Любой тест на "действие сохраняется" должен делать `page.reload()` после действия и проверять состояние заново. Это ловит класс багов "визуально работает, но не персистится после перезагрузки".
 
 ### Telegram auth
-При изменении auth/telegram цепочки — запускать E2E тест `e2e/telegram-auth.spec.ts` (использует `/api/test/telegram-login` mock endpoint).
+При изменении auth/telegram цепочки — запускать E2E тест `e2e/telegram-auth.spec.ts`. Тест использует `/api/test/session` с параметрами `telegramUsername` и `provider: 'telegram-preauth'` — никакого отдельного mock endpoint не нужно.
 
 Если неочевидно — **спросить пользователя** перед коммитом.
 
