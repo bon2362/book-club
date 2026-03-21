@@ -95,6 +95,13 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
+# Install Bun (required for Telegram MCP plugin)
+# Must run as USER node (set at line 72) — installs to /home/node/.bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/home/node/.bun/bin:${PATH}"
+
+# Add convenience alias for Claude with Telegram channel (baked into image)
+RUN echo "alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'" >> /home/node/.zshrc
 
 # Copy and set up firewall script
 COPY init-firewall.sh /usr/local/bin/
