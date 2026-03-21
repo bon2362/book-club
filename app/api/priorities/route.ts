@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { bookPriorities, users } from '@/lib/db/schema'
@@ -76,6 +77,8 @@ export async function PUT(req: NextRequest) {
     .update(users)
     .set({ prioritiesSet: true })
     .where(eq(users.id, userId))
+
+  revalidatePath('/admin')
 
   return NextResponse.json({ ok: true })
 }
