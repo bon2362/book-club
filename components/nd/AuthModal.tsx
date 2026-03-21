@@ -45,7 +45,12 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   // Set up the global Telegram callback (always kept up to date)
   useEffect(() => {
     window.onTelegramAuth = async (user) => {
-      await signIn('telegram', { ...user, redirect: false })
+      const result = await signIn('telegram', { ...user, redirect: false })
+      console.log('[telegram auth] result:', result)
+      if (result?.error) {
+        console.error('[telegram auth] error:', result.error)
+        return
+      }
       window.location.reload()
     }
   }, [])
