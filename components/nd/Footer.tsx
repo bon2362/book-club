@@ -19,7 +19,7 @@ export default function Footer({ onFeedback }: Props) {
           padding: '0.75rem 1.5rem',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: 'center',
         }}
       >
         <button
