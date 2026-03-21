@@ -1,0 +1,11 @@
+session status: 200
+session body: {"ok":true}
+API response status: 201
+API response body: {"success":true,"data":{"id":"1653ee78-84eb-4089-a8dd-0a4a1a288308","userId":"test:debug@test.com","title":"Тестовая книга debug","topic":null,"author":"Тестовый автор","pages":null,"publishedDate":null,"textUrl":null,"description":null,"coverUrl":null,"whyRead":"Потому что это диагностический тест","status":"pending","rejectionReason":null,"createdAt":"2026-03-21T23:38:37.503Z","updatedAt":"2026-03-21T23:38:37.503Z"}}
+Dialog text after submit: (dialog closed)
+All API responses: [
+  {
+    "status": 201,
+    "body": "{\"success\":true,\"data\":{\"id\":\"1653ee78-84eb-4089-a8dd-0a4a1a288308\",\"userId\":\"test:debug@test.com\",\"title\":\"Тестовая книга debug\",\"topic\":null,\"author\":\"Тестовый автор\",\"pages\":null,\"publishedDate\":null,\"textUrl\":null,\"description\":null,\"coverUrl\":null,\"whyRead\":\"Потому что это диагностический тест\",\"status\":\"pending\",\"rejectionReason\":null,\"createdAt\":\"2026-03-21T23:38:37.503Z\",\"updatedAt\":\"2026-03-21T23:38:37.503Z\"}}"
+  }
+]
