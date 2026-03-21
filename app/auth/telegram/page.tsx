@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
-export default function TelegramAuthPage() {
+function TelegramAuthInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -31,5 +31,13 @@ export default function TelegramAuthPage() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
       <p style={{ color: '#666', fontSize: 14 }}>Входим через Telegram…</p>
     </div>
+  )
+}
+
+export default function TelegramAuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <TelegramAuthInner />
+    </Suspense>
   )
 }
