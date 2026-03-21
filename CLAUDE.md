@@ -6,6 +6,13 @@
 - **Стек:** Next.js 14, NextAuth v5, Neon Postgres + Drizzle ORM, Google Sheets, Resend, Vercel
 - **Repo:** github.com/bon2362/book-club
 
+## Управление задачами
+- Задачи ведутся в **GitHub Issues**: https://github.com/bon2362/book-club/issues
+- Labels: `epic:*` (auth/ui/feature/infra/process), `priority:P1/P2/P3`, `size:XS/S/M/L`, `status:todo/in-progress/blocked`
+- Перед началом задачи из бэклога — использовать skill `github-tasks` для получения issue и перевода в `status:in-progress`
+- После выполнения — закрыть issue с комментарием о коммите
+- Скрипт первоначальной инициализации: `.claude/scripts/setup-github-issues.sh`
+
 ## Деплой
 - **Стандартный процесс: `git commit` + `git push` → Vercel автоматически деплоит и обновляет алиас** ✓
 - Vercel project живёт в team `bon2362-5067s-projects`, `projectId: "prj_ZwWgPCcLf8RyrxeMJDI5zCX08dEp"`
@@ -61,6 +68,9 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - `CoverImage.tsx` — client component, fallback на инициалы автора при `coverUrl=null`
 - `BookCard.tsx` — кнопка «Читать далее» / «Свернуть» для описаний > 120 символов
 - Чтобы обложки появились — нужно заполнить колонку L в Google Sheets вручную
+
+## Документация по фичам
+`docs/features/` — краткое описание реализации каждой области (auth, books-catalog, admin-panel, notifications, user-profile). Читай перед работой с соответствующим кодом.
 
 ## Ключевые файлы
 - `lib/books-with-covers.ts` — pass-through из sheets
