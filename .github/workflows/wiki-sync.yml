@@ -26,21 +26,21 @@ jobs:
       - name: Generate Home.md
         run: |
           DATE=$(date +%Y-%m-%d)
-          cat > wiki/Home.md << EOF
-# Book Club — Feature Documentation
-
-> Auto-generated from \`docs/features/\`. To edit, modify files in \`docs/features/\` and push to \`main\`.
-
-## Features
-
-- [Authentication](auth) — Google OAuth, magic link, NextAuth v5
-- [Books Catalog](books-catalog) — Google Sheets, covers, BookCard
-- [Admin Panel](admin-panel) — moderation, priorities, stats
-- [Notifications](notifications) — digest queue, cron, Resend
-- [User Profile](user-profile) — drawer, tabs, priorities
-
-_Last updated: ${DATE}_
-EOF
+          {
+            echo "# Book Club — Feature Documentation"
+            echo ""
+            echo "> Auto-generated from \`docs/features/\`. To edit, modify files in \`docs/features/\` and push to \`main\`."
+            echo ""
+            echo "## Features"
+            echo ""
+            echo "- [Authentication](auth) — Google OAuth, magic link, NextAuth v5"
+            echo "- [Books Catalog](books-catalog) — Google Sheets, covers, BookCard"
+            echo "- [Admin Panel](admin-panel) — moderation, priorities, stats"
+            echo "- [Notifications](notifications) — digest queue, cron, Resend"
+            echo "- [User Profile](user-profile) — drawer, tabs, priorities"
+            echo ""
+            echo "_Last updated: ${DATE}_"
+          } > wiki/Home.md
 
       - name: Commit and push wiki
         run: |
