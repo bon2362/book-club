@@ -42,8 +42,10 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  // Set up the global Telegram callback (always kept up to date)
+  // Load the Telegram widget script and set up callback when the modal opens
   useEffect(() => {
+    if (!isOpen || !BOT_NAME) return
+
     window.onTelegramAuth = async (user) => {
       const result = await signIn('telegram', { ...user, redirect: false })
       console.log('[telegram auth] result:', result)
@@ -53,11 +55,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
       }
       window.location.reload()
     }
-  }, [])
-
-  // Load the Telegram widget script when the modal opens
-  useEffect(() => {
-    if (!isOpen || !BOT_NAME) return
 
     const container = document.getElementById('telegram-login-container')
     if (!container) return
