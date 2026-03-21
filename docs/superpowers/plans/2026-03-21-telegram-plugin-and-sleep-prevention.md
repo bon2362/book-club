@@ -177,6 +177,8 @@ These steps are run in a macOS Terminal, **not** inside the devcontainer.
 
 ### Task 4: Create Amphetamine release script
 
+**Prerequisite:** Install [Amphetamine](https://apps.apple.com/app/amphetamine/id937984704) from the Mac App Store before continuing.
+
 - [ ] **Step 11: Create the scripts directory and release script**
 
 In a **macOS Terminal** (not devcontainer):
@@ -211,25 +213,23 @@ Expected: Amphetamine session ends (icon in menu bar changes back to non-active 
 
 ### Task 5: Create launchd watcher plist
 
-- [ ] **Step 13: Find your workspace path on macOS**
+- [ ] **Step 13: Set your repo path variable**
 
-The marker file will be at `<localWorkspaceFolder>/.claude-session-done`. Find your workspace path:
+In macOS Terminal, set the path to your local clone of the book-club repo:
 
 ```bash
-# The workspace folder is wherever you cloned the book-club repo on your Mac.
-# For example: ~/code/book-club
-# Confirm by checking that the workspace mounts correctly:
-ls ~/code/book-club/package.json  # or wherever your repo is
+REPO_PATH="$HOME/code/book-club"   # adjust if your repo is elsewhere
+ls "$REPO_PATH/package.json"       # verify the path is correct
 ```
 
-Note the full path — you'll need it in the next step.
+Expected: `package.json` listed. If not, update `REPO_PATH` to the correct path.
 
 - [ ] **Step 14: Create the launchd plist**
 
-Replace `/Users/YOURNAME/code/book-club` with your actual path:
+Run this in the same terminal session (uses `$REPO_PATH` and `$HOME` from Step 13):
 
 ```bash
-cat > ~/Library/LaunchAgents/com.user.claude-done-watcher.plist << 'EOF'
+cat > ~/Library/LaunchAgents/com.user.claude-done-watcher.plist << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -241,12 +241,12 @@ cat > ~/Library/LaunchAgents/com.user.claude-done-watcher.plist << 'EOF'
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/YOURNAME/scripts/amphetamine-release.sh</string>
+        <string>$HOME/scripts/amphetamine-release.sh</string>
     </array>
 
     <key>WatchPaths</key>
     <array>
-        <string>/Users/YOURNAME/code/book-club/.claude-session-done</string>
+        <string>$REPO_PATH/.claude-session-done</string>
     </array>
 
     <key>RunAtLoad</key>
@@ -254,22 +254,12 @@ cat > ~/Library/LaunchAgents/com.user.claude-done-watcher.plist << 'EOF'
 </dict>
 </plist>
 EOF
+
+# Verify both paths were substituted correctly (should show real paths, not placeholders):
+grep -E "scripts|book-club" ~/Library/LaunchAgents/com.user.claude-done-watcher.plist
 ```
 
-Then substitute the actual paths:
-
-```bash
-# Replace placeholders (adjust paths as needed):
-sed -i '' "s|/Users/YOURNAME/scripts|$HOME/scripts|g" \
-  ~/Library/LaunchAgents/com.user.claude-done-watcher.plist
-sed -i '' "s|/Users/YOURNAME/code/book-club|/path/to/your/repo|g" \
-  ~/Library/LaunchAgents/com.user.claude-done-watcher.plist
-
-# Verify the result:
-cat ~/Library/LaunchAgents/com.user.claude-done-watcher.plist
-```
-
-Check that both paths look correct before proceeding.
+Expected: both lines show actual absolute paths (no `YOURNAME` or `REPO_PATH` literals).
 
 - [ ] **Step 15: Load and verify the launchd agent**
 
@@ -283,9 +273,9 @@ Expected: the job appears in the list. The PID column will be `-` (not running) 
 - [ ] **Step 16: Test end-to-end**
 
 1. Start Amphetamine session manually (click menu bar icon)
-2. In a macOS Terminal, simulate what the Stop hook does:
+2. In a macOS Terminal, simulate what the Stop hook does (use the same `$REPO_PATH` from Step 13):
    ```bash
-   touch /path/to/your/repo/.claude-session-done
+   touch "$REPO_PATH/.claude-session-done"
    ```
 3. Wait 2-3 seconds
 4. Verify Amphetamine session ended automatically
@@ -321,7 +311,7 @@ Open Telegram on your phone/desktop and start a chat with **@BotFather**:
 
 - [ ] **Step 19: Install and configure the plugin**
 
-Inside a running Claude session (`claude`):
+Inside a running Claude session (`claude`). The `/plugin` command requires Claude Code with plugin support — verify with `/help` that `/plugin` appears in the command list if unsure.
 
 ```
 /plugin install telegram@claude-plugins-official
