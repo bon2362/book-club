@@ -90,6 +90,34 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 
 **Обязательно:** перед каждым `git commit` явно написать в ответе: _"E2E: нужен / не нужен — [причина]"_. Это видимый артефакт, который не даёт пропустить чеклист молча.
 
+## Telegram-авторизация: архитектура и уроки
+
+### Итоговая архитектура (правильная)
+1. Виджет с `data-auth-url="/api/auth/telegram/callback"` — Telegram редиректит с данными
+2. Route handler верифицирует HMAC, создаёт пользователя в БД, создаёт подписанный pre-auth токен
+3. Редирект на `/auth/telegram?uid=...&token=...&ts=...`
+4. Client страница вызывает `signIn('telegram-preauth', ...)` — провайдер валидирует токен, возвращает юзера
+
+### Чего НЕ делать (и почему)
+- **`data-onauth` (JS callback)** — Telegram вызывает callback через `eval()`, который браузеры блокируют. Всегда использовать `data-auth-url`.
+- **Отдельный `useEffect` для `window.onTelegramAuth`** — при условном рендере (`authModalOpen && <AuthModal>`) была потенциальная гонка. Если используется callback-подход — ставить callback в тот же эффект, что загружает скрипт.
+- **`router.refresh()` после auth** — не обновляет серверные компоненты (header остаётся "ВОЙТИ"). Нужен `window.location.reload()`.
+- **Server-side `signIn('credentials', ...)` в GET route handler** — в NextAuth v5 beta не работает надёжно. Использовать client-side `signIn` через промежуточную страницу.
+
+### Credentials провайдер + DrizzleAdapter
+`Credentials` провайдер **не создаёт пользователей в БД автоматически** — это делает только адаптер для OAuth (Google). JWT callback `if (existing.length === 0) return null` убивает сессию. Решение: `db.insert(users).onConflictDoUpdate(...)` внутри `authorize`.
+
+### ENV vars
+`NEXTAUTH_SECRET` (старое название) и `AUTH_SECRET` (NextAuth v5) — в этом проекте задан `NEXTAUTH_SECRET`. При ручном использовании секрета за пределами NextAuth: `process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET`.
+
+### Next.js 14: `useSearchParams()` требует `<Suspense>`
+Всегда оборачивать компонент с `useSearchParams()` в `<Suspense>` — иначе сборка падает при генерации статических страниц.
+
+### Требования Telegram Login Widget
+- Домен в BotFather должен совпадать **точно** с доменом сайта (с `www` или без — разные домены)
+- Бот **обязан иметь фото профиля** — без него виджет падает с "Bot domain invalid"
+- Виджет не работает без third-party cookies (incognito, Safari strict mode)
+
 ## Архитектура обложек
 - Обложки берутся напрямую из **колонки L Google Sheets** (`coverUrl` = `row[11]`)
 - `lib/covers.ts` удалён (был Google Books API + DB cache — убран из-за 429 rate limits)
