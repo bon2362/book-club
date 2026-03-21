@@ -12,6 +12,17 @@ const config: Config = {
     '^transliteration$': '<rootDir>/node_modules/transliteration/dist/node/src/node/index.js',
   },
   clearMocks: true,
+  collectCoverageFrom: [
+    'lib/**/*.ts',
+    '!lib/**/*.test.ts',
+    '!lib/db/migrations/**',
+  ],
+  coverageThreshold: {
+    global: {
+      lines: 80,
+      functions: 80,
+    },
+  },
 }
 
 export default createJestConfig(config)
