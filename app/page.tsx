@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { bookStatuses, tagDescriptions } from '@/lib/db/schema'
 import { SessionProvider } from 'next-auth/react'
 import BooksPage from '@/components/nd/BooksPage'
+import GoogleOneTap from '@/components/nd/GoogleOneTap'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +41,7 @@ export default async function Home() {
 
   return (
     <SessionProvider>
+      {!session && <GoogleOneTap />}
       <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} />
     </SessionProvider>
   )
