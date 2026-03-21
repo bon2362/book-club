@@ -1,20 +1,20 @@
-# Notifications (Digest)
+# Уведомления (Digest)
 
-## What it does
-When a user joins a book's reading list (signup), an email notification is queued for each existing member of that book. Every 10 minutes a cron job sends out pending notifications in batches. Members get a digest email listing new sign-ups with their contacts.
+## Что делает
+Когда пользователь записывается в список читателей книги (signup), каждому уже записавшемуся участнику этой книги ставится в очередь email-уведомление. Каждые 10 минут cron job отправляет накопившиеся уведомления пакетами. Участники получают digest-письмо со списком новых записавшихся и их контактами.
 
-## How it works
-- **Queue** — `notification_queue` table in Neon Postgres; one row per pending notification. Fields: `userName`, `userEmail`, `contacts`, `addedBooks` (JSON), `recipientEmail`, `recipientName`, `status` (`pending` | `sent` | `failed`), `createdAt`, `sentAt`
-- **Enqueue** — when a user signs up for a book, `POST /api/signup` inserts rows into `notification_queue` for all existing members of that book
-- **Cron trigger** — GitHub Actions `digest.yml` calls `GET /api/cron/digest` with `Authorization: Bearer $CRON_SECRET` every 10 minutes
-- **Processing** — `/api/cron/digest` fetches all `pending` rows, groups by `recipientEmail`, sends one email per recipient via Resend, marks rows as `sent`
-- **Email** — HTML template in `lib/email-templates/`; lists new members and their contacts
-- **DigestStatusWidget** — admin-only component showing queue size and last-sent timestamp
+## Как работает
+- **Очередь** — таблица `notification_queue` в Neon Postgres; одна строка на каждое ожидающее уведомление. Поля: `userName`, `userEmail`, `contacts`, `addedBooks` (JSON), `recipientEmail`, `recipientName`, `status` (`pending` | `sent` | `failed`), `createdAt`, `sentAt`
+- **Постановка в очередь** — при signup пользователя `POST /api/signup` вставляет строки в `notification_queue` для всех текущих участников этой книги
+- **Cron trigger** — GitHub Actions `digest.yml` вызывает `GET /api/cron/digest` с заголовком `Authorization: Bearer $CRON_SECRET` каждые 10 минут
+- **Обработка** — `/api/cron/digest` забирает все строки со статусом `pending`, группирует по `recipientEmail`, отправляет одно письмо на получателя через Resend, помечает строки как `sent`
+- **Email** — HTML-шаблон в `lib/email-templates/`; содержит список новых участников и их контакты
+- **DigestStatusWidget** — компонент только для админов, показывает размер очереди и время последней отправки
 
-## Key files
-- `lib/db/schema.ts` — `notificationQueue` table
-- `app/api/cron/digest/route.ts` — digest endpoint (processes queue, sends emails)
-- `app/api/signup/route.ts` — enqueues notifications on signup
-- `lib/email-templates/` — Resend HTML templates
-- `.github/workflows/digest.yml` — cron trigger (every 10 minutes)
-- `components/nd/DigestStatusWidget.tsx` — admin queue stats UI
+## Ключевые файлы
+- `lib/db/schema.ts` — таблица `notificationQueue`
+- `app/api/cron/digest/route.ts` — digest endpoint (обрабатывает очередь, отправляет письма)
+- `app/api/signup/route.ts` — ставит уведомления в очередь при signup
+- `lib/email-templates/` — HTML-шаблоны для Resend
+- `.github/workflows/digest.yml` — cron trigger (каждые 10 минут)
+- `components/nd/DigestStatusWidget.tsx` — UI статистики очереди для админов

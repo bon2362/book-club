@@ -1,17 +1,17 @@
-# Admin Panel
+# Панель администратора
 
-## What it does
-Lets admins manage club members and the books catalog. Tabs: "Участники" (members list with signups) and "Книги" (books with per-book member lists). Admins can delete members, change book statuses, set new/not-new flags, add/remove books, and sync data from Google Sheets.
+## Что делает
+Позволяет администраторам управлять участниками клуба и каталогом книг. Вкладки: «Участники» (список с записями) и «Книги» (книги со списком участников по каждой). Администраторы могут удалять участников, менять статусы книг, устанавливать флаги new/not-new, добавлять/удалять книги и синхронизировать данные из Google Sheets.
 
-## How it works
-- **Access control** — `session.user.isAdmin` checked server-side; non-admins receive 403 from all `/api/admin/*` routes
-- **Members tab** — shows all `UserSignup` records (from `lib/signups.ts`); admin can delete user via `DELETE /api/admin/delete-user`
-- **Books tab** — lists books from Google Sheets + DB statuses; per-book member list shows who signed up
-- **Book statuses** — `book_statuses` table stores `reading` | `read` status per book; updated via `PATCH /api/admin/book-status`
-- **New flags** — `book_new_flags` table; toggled via `PATCH /api/admin/book-new-flag`
-- **Tag descriptions** — `tag_descriptions` table; editable inline via `PATCH /api/admin/tag-description`
-- **Sheets sync** — `POST /api/sync` triggers re-fetch from Google Sheets; updates local DB state
-- **Priority display** — `AdminStatusBar` shows digest queue size and top priority books per user
+## Как работает
+- **Контроль доступа** — `session.user.isAdmin` проверяется на сервере; не-администраторы получают 403 от всех роутов `/api/admin/*`
+- **Вкладка «Участники»** — показывает все записи `UserSignup` (из `lib/signups.ts`); администратор может удалить пользователя через `DELETE /api/admin/delete-user`
+- **Вкладка «Книги»** — список книг из Google Sheets + статусы из БД; список участников по каждой книге показывает записавшихся
+- **Статусы книг** — таблица `book_statuses` хранит статус `reading` | `read` для каждой книги; обновляется через `PATCH /api/admin/book-status`
+- **Флаги new** — таблица `book_new_flags`; переключается через `PATCH /api/admin/book-new-flag`
+- **Описания тегов** — таблица `tag_descriptions`; редактируются inline через `PATCH /api/admin/tag-description`
+- **Синхронизация с Sheets** — `POST /api/sync` запускает повторный fetch из Google Sheets; обновляет локальное состояние в БД
+- **Отображение приоритетов** — `AdminStatusBar` показывает размер очереди digest и топ приоритетных книг по каждому пользователю
 
 ## Google Sheets — лист `signups`
 
@@ -28,9 +28,9 @@ Lets admins manage club members and the books catalog. Tabs: "Участники
 
 `getAllSignups()` читает диапазон `A:H` (важно — не `A:F`, иначе столбец G не попадает в ответ) и фильтрует строки где `r[6] === 'TO DELETE'` — скрывает мягко удалённых из всех списков.
 
-## Key files
-- `components/nd/AdminPanel.tsx` — main admin UI (tabs, member list, book list)
-- `components/nd/AdminStatusBar.tsx` — digest queue stats
-- `app/api/admin/` — all admin API routes (book-status, book-new-flag, delete-user, tag-description, priorities, submissions, etc.)
-- `lib/signups.ts` — `getAllSignups()`, `upsertSignup()`, `markSignupDeletedByAdmin()`, `UserSignup` type
-- `lib/db/schema.ts` — `bookStatuses`, `bookNewFlags`, `tagDescriptions`, `bookPriorities` tables
+## Ключевые файлы
+- `components/nd/AdminPanel.tsx` — основной UI администратора (вкладки, список участников, список книг)
+- `components/nd/AdminStatusBar.tsx` — статистика очереди digest
+- `app/api/admin/` — все API routes администратора (book-status, book-new-flag, delete-user, tag-description, priorities, submissions и др.)
+- `lib/signups.ts` — `getAllSignups()`, `upsertSignup()`, `markSignupDeletedByAdmin()`, тип `UserSignup`
+- `lib/db/schema.ts` — таблицы `bookStatuses`, `bookNewFlags`, `tagDescriptions`, `bookPriorities`
