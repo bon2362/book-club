@@ -100,6 +100,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
     Credentials({
+      id: 'telegram-preauth',
+      credentials: {},
+      async authorize(credentials) {
+        const { uid, token, ts } = credentials as { uid: string; token: string; ts: string }
+        if (!uid || !token || !ts) return null
+        // Verify HMAC and freshness (5 min window)
+        if (Date.now() / 1000 - parseInt(ts) > 300) return null
+        const secret = process.env.AUTH_SECRET
+        if (!secret) return null
+        const expected = createHmac('sha256', secret).update(`${uid}:${ts}`).digest('hex')
+        try {
+          if (!timingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'))) return null
+        } catch { return null }
+        const existing = await db.select().from(users).where(eq(users.id, uid)).limit(1)
+        if (existing.length === 0) return null
+        const user = existing[0]
+        return { id: user.id, email: user.email, name: user.name ?? '', telegramUsername: null }
+      },
+    }),
+    Credentials({
       id: 'telegram',
       credentials: {},
       async authorize(credentials) {
