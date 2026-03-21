@@ -548,6 +548,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
       {showPriorityHint && (
         <div
           role="status"
+          data-testid="priority-hint-toast"
           style={{
             position: 'fixed',
             bottom: '1.5rem',

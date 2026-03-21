@@ -24,6 +24,12 @@ export interface BookWithCover {
   signupCount?: number
 }
 
+const TEST_FIXTURE_BOOKS: BookWithCover[] = [
+  { id: '__test_book_1__', name: 'Тестовая книга 1', tags: [], author: 'Test Author A', type: 'Book', size: '', pages: '100', date: '2024', link: '', description: 'Книга для e2e-тестов', coverUrl: null, whyRead: null, recommendationLink: null, isNew: false },
+  { id: '__test_book_2__', name: 'Тестовая книга 2', tags: [], author: 'Test Author B', type: 'Book', size: '', pages: '200', date: '2024', link: '', description: 'Книга для e2e-тестов', coverUrl: null, whyRead: null, recommendationLink: null, isNew: false },
+  { id: '__test_book_3__', name: 'Тестовая книга 3', tags: [], author: 'Test Author C', type: 'Book', size: '', pages: '300', date: '2024', link: '', description: 'Книга для e2e-тестов', coverUrl: null, whyRead: null, recommendationLink: null, isNew: false },
+]
+
 export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWithCover[]> {
   const [books, approvedSubmissions, newFlags] = await Promise.all([
     fetchBooks(forceRefresh),
@@ -61,5 +67,6 @@ export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWi
     .map(b => ({ ...b, whyRead: b.whyForClub ?? null, isNew: flagMap.get(b.id) ?? false }))
     .reverse()
 
-  return [...submissionBooks, ...sheetsBooks]
+  const testBooks = process.env.NEXTAUTH_TEST_MODE === 'true' ? TEST_FIXTURE_BOOKS : []
+  return [...testBooks, ...submissionBooks, ...sheetsBooks]
 }
