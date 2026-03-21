@@ -5,7 +5,9 @@ export default defineConfig({
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: 'list',
+  reporter: process.env.CI
+    ? [['list'], ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: false }]]
+    : 'list',
   use: {
     baseURL: 'http://127.0.0.1:3000',
     trace: 'on-first-retry',
