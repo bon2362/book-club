@@ -108,7 +108,9 @@ Links use filenames without `.md` extension (GitHub Wiki requirement).
 
 ## 4. Enabling Wiki
 
-The workflow handles this automatically on first run via `PATCH /repos/bon2362/book-club` with `has_wiki: true`. No manual dashboard action required.
+The workflow attempts to enable Wiki via `PATCH /repos/bon2362/book-club` with `has_wiki: true`. However, the default `GITHUB_TOKEN` in GitHub Actions typically lacks `administration` scope, so this step may silently fail.
+
+**Practical approach:** Enable the Wiki manually once in GitHub repository Settings → General → Features → Wikis. After that, the workflow clone/push steps will work with standard `GITHUB_TOKEN` permissions. The PATCH step can remain in the workflow as a no-op idempotent call, or be removed.
 
 ---
 
