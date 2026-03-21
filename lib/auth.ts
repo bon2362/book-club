@@ -107,7 +107,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!uid || !token || !ts) return null
         // Verify HMAC and freshness (5 min window)
         if (Date.now() / 1000 - parseInt(ts) > 300) return null
-        const secret = process.env.AUTH_SECRET
+        const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
         if (!secret) return null
         const expected = createHmac('sha256', secret).update(`${uid}:${ts}`).digest('hex')
         try {

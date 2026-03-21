@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     .onConflictDoUpdate({ target: users.id, set: { name, image: photo_url || null } })
 
   const ts = String(Math.floor(Date.now() / 1000))
-  const secret = process.env.AUTH_SECRET!
+  const secret = (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)!
   const token = createHmac('sha256', secret).update(`${userId}:${ts}`).digest('hex')
 
   const url = new URL('/auth/telegram', origin)
