@@ -40,6 +40,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const isLoggedIn = !!session?.user?.email
   const isAdmin = !!session?.user?.isAdmin
   const telegramUsername = session?.user?.telegramUsername ?? null
+  const telegramName = session?.user?.name ?? null
 
   const [aboutVisible, setAboutVisible] = useState(true)
   const aboutRef = useRef<AboutBlockHandle>(null)
@@ -140,9 +141,18 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
         sessionStorage.removeItem('reloading_after_onetap')
         return
       }
-      setShowContactsForm(true)
+      if (telegramUsername) {
+        // Telegram users already provided name and username — auto-save without showing the form
+        const name = telegramName || telegramUsername
+        const contacts = '@' + telegramUsername
+        saveSelection(name, contacts, [])
+          .then(() => setSavedUser({ name, contacts }))
+          .catch(console.error)
+      } else {
+        setShowContactsForm(true)
+      }
     }
-  }, [isLoggedIn, currentUser, savedUser, isAdmin])
+  }, [isLoggedIn, currentUser, savedUser, isAdmin, telegramUsername, telegramName])
 
   const allTags = useMemo(() => {
     const s = new Set<string>()
