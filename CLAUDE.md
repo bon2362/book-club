@@ -60,6 +60,20 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - Все модальные компоненты должны иметь `role="dialog"` и обработчик Escape — иначе тесты не смогут их найти и закрыть
 - `session.user.id` нужно явно устанавливать в `session` callback (`session.user.id = token.sub`) — без этого API-эндпоинты с `auth()` вернут 401
 
+## UI Layout Tests (Playwright)
+
+Для задач, затрагивающих CSS-поведение (скрытие, позиционирование, анимации):
+- Добавить тест в `e2e/ui-states.spec.ts` с проверкой `boundingBox()` элемента в нужном стейте
+- Субагент не может коммитить UI-задачу без этого теста
+- Запуск: `npm run playwright test e2e/ui-states.spec.ts`
+
+**Субагенты перед коммитом UI-задач обязаны запускать:**
+`npm run lint && npm run typecheck && npm test && npm run playwright test e2e/ui-states.spec.ts`
+
+**Математическое доказательство CSS-формул:**
+Для transform/position расчётов — писать комментарий с выводом формулы:
+`final_pos = start_pos + transform` → проверить знак, что результат за границей экрана.
+
 ## Архитектура обложек
 - Обложки берутся напрямую из **колонки L Google Sheets** (`coverUrl` = `row[11]`)
 - `lib/covers.ts` удалён (был Google Books API + DB cache — убран из-за 429 rate limits)
