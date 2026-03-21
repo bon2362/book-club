@@ -95,18 +95,15 @@ function SortableBookItem({
   }
 
   const topEmojis = ['🏆', '🥈', '🥉']
-  const rankColors = ['#f97316', '#fb923c', '#fdba74']
   const isTop3 = prioritiesSet && rank <= 3 && !isUnsubscribed
-  const rankBg = isTop3 ? rankColors[rank - 1] : '#e5e7eb'
-  const rankColor = isTop3 ? 'white' : '#6b7280'
   const rankLabel = !prioritiesSet ? '—' : isTop3 ? topEmojis[rank - 1] : rank
 
   return (
     <div ref={setNodeRef} style={style}>
       <span style={{
         width: 24, height: 24, borderRadius: '50%',
-        background: isUnsubscribed ? '#e5e7eb' : rankBg,
-        color: isUnsubscribed ? '#9ca3af' : rankColor,
+        background: '#e5e7eb',
+        color: '#6b7280',
         fontSize: isTop3 ? 14 : 11, fontWeight: 700,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginRight: 10,
