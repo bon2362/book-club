@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
 declare global {
@@ -18,7 +17,6 @@ interface Props {
 }
 
 export default function AuthModal({ isOpen, onClose }: Props) {
-  const router = useRouter()
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
@@ -48,10 +46,9 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   useEffect(() => {
     window.onTelegramAuth = async (user) => {
       await signIn('telegram', { ...user, redirect: false })
-      router.refresh()
-      onCloseRef.current()
+      window.location.reload()
     }
-  }, [router])
+  }, [])
 
   // Load the Telegram widget script when the modal opens
   useEffect(() => {
