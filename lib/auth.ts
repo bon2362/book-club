@@ -105,11 +105,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         const data = credentials as Record<string, string>
         if (!verifyTelegramHash(data)) return null
-        const { id, first_name, last_name, username } = data
+        const { id, first_name, last_name, username, photo_url } = data
         const name = [first_name, last_name].filter(Boolean).join(' ') || username || String(id)
+        const email = `telegram:${id}@telegram.user`
+        const userId = `telegram:${id}`
+        await db.insert(users).values({ id: userId, email, name, image: photo_url || null }).onConflictDoUpdate({
+          target: users.id,
+          set: { name, image: photo_url || null },
+        })
         return {
-          id: `telegram:${id}`,
-          email: `telegram:${id}@telegram.user`,
+          id: userId,
+          email,
           name,
           telegramUsername: username || null,
         }
