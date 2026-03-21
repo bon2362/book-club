@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
   url.searchParams.set('uid', userId)
   url.searchParams.set('token', token)
   url.searchParams.set('ts', ts)
+  if (username) url.searchParams.set('username', username)
 
   return NextResponse.redirect(url)
 }

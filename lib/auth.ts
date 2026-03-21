@@ -103,7 +103,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       id: 'telegram-preauth',
       credentials: {},
       async authorize(credentials) {
-        const { uid, token, ts } = credentials as { uid: string; token: string; ts: string }
+        const { uid, token, ts, username } = credentials as { uid: string; token: string; ts: string; username?: string }
         if (!uid || !token || !ts) return null
         // Verify HMAC and freshness (5 min window)
         if (Date.now() / 1000 - parseInt(ts) > 300) return null
@@ -116,7 +116,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const existing = await db.select().from(users).where(eq(users.id, uid)).limit(1)
         if (existing.length === 0) return null
         const user = existing[0]
-        return { id: user.id, email: user.email, name: user.name ?? '', telegramUsername: null }
+        return { id: user.id, email: user.email, name: user.name ?? '', telegramUsername: username || null }
       },
     }),
     Credentials({
