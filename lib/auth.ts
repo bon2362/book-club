@@ -8,6 +8,7 @@ import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { createHash, createHmac, timingSafeEqual } from 'crypto'
 import { Resend as ResendClient } from 'resend'
+import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
@@ -88,6 +89,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       from: FROM,
       sendVerificationRequest: async ({ identifier, url }) => {
         await sendMagicLinkEmail(identifier, url)
+      },
+    }),
+    Credentials({
+      id: 'google-one-tap',
+      credentials: {},
+      async authorize(credentials) {
+        const { credential } = credentials as { credential: string }
+        return authorizeGoogleOneTap(credential)
       },
     }),
     Credentials({
