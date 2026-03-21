@@ -60,11 +60,9 @@ test.describe('AdminPanel — изменение статуса книги', () 
     // Кликаем "Читаем" в строке книги
     await bookRow.getByRole('button', { name: 'Читаем' }).click()
 
-    // Кнопка должна стать активной (визуальное подтверждение)
-    await expect(bookRow.getByRole('button', { name: 'Читаем' })).toBeVisible()
-
-    // Ждём сохранения
-    await page.waitForLoadState('networkidle')
+    // Ждём появления кнопки "Сброс" — она появляется только после того,
+    // как API-вызов завершился и React-стейт обновился (currentStatus установлен)
+    await expect(bookRow.getByRole('button', { name: 'Сброс' })).toBeVisible()
 
     // Ключевая проверка: перезагрузка → статус должен сохраниться
     await page.reload()
@@ -73,10 +71,9 @@ test.describe('AdminPanel — изменение статуса книги', () 
     // Переходим на вкладку "По книгам" снова
     await page.getByRole('button', { name: /по книгам/i }).click()
 
-    // Строка книги всё ещё видна со статусом "Читаем"
+    // Строка книги всё ещё видна, "Сброс" присутствует → статус сохранён в БД
     const bookRowAfterReload = page.locator('tr').filter({ hasText: TEST_BOOK_NAME })
     await expect(bookRowAfterReload).toBeVisible()
-    // Кнопка "Сброс" появляется только если есть активный статус
     await expect(bookRowAfterReload.getByRole('button', { name: 'Сброс' })).toBeVisible()
   })
 
