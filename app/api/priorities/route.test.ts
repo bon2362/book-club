@@ -6,6 +6,7 @@ import { GET, PUT } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
 
+jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
