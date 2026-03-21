@@ -13,6 +13,21 @@ Lets admins manage club members and the books catalog. Tabs: "Участники
 - **Sheets sync** — `POST /api/sync` triggers re-fetch from Google Sheets; updates local DB state
 - **Priority display** — `AdminStatusBar` shows digest queue size and top priority books per user
 
+## Google Sheets — лист `signups`
+
+| Колонка | Индекс | Содержимое |
+|---------|--------|------------|
+| A | 0 | Timestamp |
+| B | 1 | userId (email пользователя) |
+| C | 2 | name |
+| D | 3 | email |
+| E | 4 | contacts (Telegram) |
+| F | 5 | selectedBooks (JSON) |
+| G | 6 | DeleteByUser — `'TO DELETE'` если пользователь сам удалил аккаунт |
+| H | 7 | DeleteByAdmin — `'yes'` если удалён администратором |
+
+`getAllSignups()` фильтрует строки где `r[6] === 'TO DELETE'` — скрывает мягко удалённых из всех списков.
+
 ## Key files
 - `components/nd/AdminPanel.tsx` — main admin UI (tabs, member list, book list)
 - `components/nd/AdminStatusBar.tsx` — digest queue stats
