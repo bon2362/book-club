@@ -260,8 +260,8 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           </form>
         )}
 
-        {/* Telegram login hidden until OAuth delivery issue is resolved */}
-        <div id="telegram-login-container" style={{ display: 'none' }} />
+        <div style={{ textAlign: 'center', color: '#999', fontSize: 13, margin: '8px 0' }}>или</div>
+        <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center' }} />
       </div>
     </div>
   )
