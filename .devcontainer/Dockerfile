@@ -39,7 +39,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libxrandr2 \
   libgbm1 \
   libasound2 \
+  ffmpeg \
+  python3-pip \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install faster-whisper for Telegram voice message transcription
+RUN pip3 install --break-system-packages faster-whisper
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
@@ -99,6 +104,9 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 # Must run as USER node (set at line 72) — installs to /home/node/.bun
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/home/node/.bun/bin:${PATH}"
+
+# Pre-download Whisper tiny model during build (avoids runtime download blocked by firewall)
+RUN python3 -c "from faster_whisper import WhisperModel; WhisperModel('tiny', device='cpu', compute_type='int8')"
 
 # Add convenience alias for Claude with Telegram channel (baked into image)
 RUN echo "alias claude-tg='claude --channels plugin:telegram@claude-plugins-official'" >> /home/node/.zshrc
