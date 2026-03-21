@@ -66,6 +66,7 @@ const LANGUAGES_EXTRA = [
 function SortableBookItem({
   id,
   rank,
+  prioritiesSet,
   name,
   author,
   isUnsubscribed,
@@ -73,6 +74,7 @@ function SortableBookItem({
 }: {
   id: string
   rank: number
+  prioritiesSet: boolean
   name: string
   author: string
   isUnsubscribed: boolean
@@ -93,8 +95,8 @@ function SortableBookItem({
   }
 
   const rankColors = ['#f97316', '#fb923c', '#fdba74']
-  const rankBg = rank <= 3 ? rankColors[rank - 1] : '#e5e7eb'
-  const rankColor = rank <= 3 ? 'white' : '#6b7280'
+  const rankBg = prioritiesSet && rank <= 3 ? rankColors[rank - 1] : '#e5e7eb'
+  const rankColor = prioritiesSet && rank <= 3 ? 'white' : '#6b7280'
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -106,7 +108,7 @@ function SortableBookItem({
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginRight: 10,
       }}>
-        {rank}
+        {prioritiesSet ? rank : '—'}
       </span>
       <span
         {...attributes}
@@ -612,6 +614,7 @@ export default function ProfileDrawer({
                             key={bookName}
                             id={bookName}
                             rank={index + 1}
+                            prioritiesSet={prioritiesSet}
                             name={bookName}
                             author={book.author}
                             isUnsubscribed={localUnsubscribed.has(bookName)}
