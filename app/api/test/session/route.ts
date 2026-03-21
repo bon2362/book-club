@@ -14,13 +14,15 @@ function notAllowed() {
 export async function POST(req: NextRequest) {
   if (process.env.NEXTAUTH_TEST_MODE !== 'true') return notAllowed()
 
-  const { email, name, isAdmin } = await req.json() as { email: string; name: string; isAdmin?: boolean }
+  const { email, name, isAdmin, telegramUsername, provider } = await req.json() as {
+    email: string; name: string; isAdmin?: boolean; telegramUsername?: string; provider?: string
+  }
 
   await db.insert(users).values({ id: `test:${email}`, email, name, emailVerified: new Date() })
     .onConflictDoNothing()
 
   const token = await encode({
-    token: { sub: `test:${email}`, email, name, isAdmin: isAdmin ?? false },
+    token: { sub: `test:${email}`, email, name, isAdmin: isAdmin ?? false, telegramUsername: telegramUsername ?? null, provider: provider ?? null },
     secret: (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET)!,
     salt: 'authjs.session-token',
   })
