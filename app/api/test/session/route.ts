@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { encode } from '@auth/core/jwt'
 import { db } from '@/lib/db'
-import { users } from '@/lib/db/schema'
+import { users, notificationQueue } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 function notAllowed() {
@@ -36,6 +36,7 @@ export async function DELETE(req: NextRequest) {
   if (process.env.NEXTAUTH_TEST_MODE !== 'true') return notAllowed()
 
   const { email } = await req.json() as { email: string }
+  await db.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
   await db.delete(users).where(eq(users.email, email))
 
   const res = NextResponse.json({ ok: true })
