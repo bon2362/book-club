@@ -14,6 +14,7 @@ export default function GoogleOneTap() {
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
         callback: async ({ credential }: { credential: string }) => {
           await signIn('google-one-tap', { credential, redirect: false })
+          sessionStorage.setItem('reloading_after_onetap', '1')
           window.location.reload()
         },
       })

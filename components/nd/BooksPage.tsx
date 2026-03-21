@@ -134,7 +134,13 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const effectiveUser = currentUser ?? savedUser
 
   useEffect(() => {
-    if (isLoggedIn && !currentUser && !savedUser && !isAdmin) setShowContactsForm(true)
+    if (isLoggedIn && !currentUser && !savedUser && !isAdmin) {
+      if (sessionStorage.getItem('reloading_after_onetap')) {
+        sessionStorage.removeItem('reloading_after_onetap')
+        return
+      }
+      setShowContactsForm(true)
+    }
   }, [isLoggedIn, currentUser, savedUser, isAdmin])
 
   const allTags = useMemo(() => {
