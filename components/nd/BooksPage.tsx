@@ -175,12 +175,6 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
   const hasReadBooks = useMemo(() => books.some(b => b.status === 'read'), [books])
   const hasNewBooks = useMemo(() => books.some(b => b.isNew), [books])
 
-  useEffect(() => {
-    if (!showPriorityHint) return
-    const timer = setTimeout(() => setShowPriorityHint(false), 8000)
-    return () => clearTimeout(timer)
-  }, [showPriorityHint])
-
   function handleToggle(book: BookWithCover) {
     if (!isLoggedIn) {
       setPendingBook(book)
