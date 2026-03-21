@@ -49,7 +49,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
     range: SIGNUPS_RANGE,
   })
   const rows = (response.data.values ?? []).slice(1) // skip header
-  return rows.map(parseSignupRow)
+  return rows.filter(r => r[6] !== 'TO DELETE').map(parseSignupRow)
 }
 
 export async function markSignupDeleted(userId: string): Promise<void> {
