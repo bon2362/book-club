@@ -56,9 +56,12 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - **Dev server запускать только через Playwright** (`npm run playwright test`), не вручную — иначе `NEXTAUTH_TEST_MODE=true` не будет выставлен и `/api/test/session` вернёт 403
 - `reuseExistingServer: true` в playwright.config.ts — если сервер уже запущен, Playwright его переиспользует (без нужных env vars)
 - **`waitForLoadState('networkidle')`** — надёжный способ дождаться React-гидрации в Next.js перед взаимодействием с client-side компонентами
-- **ContactsForm** автоматически открывается для залогиненных пользователей без профиля (`isLoggedIn && !currentUser && !savedUser`) — нужно закрывать в тестах перед кликами
+- **ContactsForm** автоматически открывается для залогиненных пользователей без профиля (`isLoggedIn && !currentUser && !savedUser`) — её оверлей перехватывает все клики, поэтому в тестах сначала заполняй форму, потом взаимодействуй с остальным UI
 - Все модальные компоненты должны иметь `role="dialog"` и обработчик Escape — иначе тесты не смогут их найти и закрыть
 - `session.user.id` нужно явно устанавливать в `session` callback (`session.user.id = token.sub`) — без этого API-эндпоинты с `auth()` вернут 401
+- **Live locators и кнопки-тогглы**: после клика кнопка "Хочу читать" меняется на "Записан" — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика используй `.first()` снова (не `.nth(1)`), предварительно дождавшись появления "Записан"
+- **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для уникальной идентификации собственных тостов/статусов использовать `data-testid`
+- **Тестовые фикстуры книг**: в `NEXTAUTH_TEST_MODE` в Google Sheets может быть мало данных. Фикстурные книги добавлены в `lib/books-with-covers.ts` (`__test_book_1__` и др.) — они появляются только в тестовом окружении
 
 ## UI Layout Tests (Playwright)
 
