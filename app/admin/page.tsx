@@ -5,6 +5,7 @@ import { fetchBooksWithCovers } from '@/lib/books-with-covers'
 import { db } from '@/lib/db'
 import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } from '@/lib/db/schema'
 import AdminPanel from '@/components/nd/AdminPanel'
+import AdminRefresh from '@/components/nd/AdminRefresh'
 import AdminStatusBar from '@/components/nd/AdminStatusBar'
 import DigestStatusWidget from '@/components/nd/DigestStatusWidget'
 import { SessionProvider } from 'next-auth/react'
@@ -75,6 +76,7 @@ export default async function AdminPage() {
 
   return (
     <>
+      <AdminRefresh />
       <SessionProvider>
         <AdminPanel
           users={signups}
