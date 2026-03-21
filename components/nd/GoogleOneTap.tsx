@@ -1,12 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
 export default function GoogleOneTap() {
-  const router = useRouter()
-
   useEffect(() => {
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
@@ -17,7 +14,7 @@ export default function GoogleOneTap() {
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
         callback: async ({ credential }: { credential: string }) => {
           await signIn('google-one-tap', { credential, redirect: false })
-          router.refresh()
+          window.location.reload()
         },
       })
       window.google?.accounts.id.prompt()
@@ -28,7 +25,7 @@ export default function GoogleOneTap() {
       window.google?.accounts.id.cancel()
       document.body.removeChild(script)
     }
-  }, [router])
+  }, [])
 
   return null
 }
