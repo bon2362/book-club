@@ -46,16 +46,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   useEffect(() => {
     if (!isOpen || !BOT_NAME) return
 
-    window.onTelegramAuth = async (user) => {
-      const result = await signIn('telegram', { ...user, redirect: false })
-      console.log('[telegram auth] result:', result)
-      if (result?.error) {
-        console.error('[telegram auth] error:', result.error)
-        return
-      }
-      window.location.reload()
-    }
-
     const container = document.getElementById('telegram-login-container')
     if (!container) return
 
@@ -65,7 +55,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
     script.setAttribute('data-telegram-login', BOT_NAME)
     script.setAttribute('data-size', 'medium')
-    script.setAttribute('data-onauth', 'onTelegramAuth')
+    script.setAttribute('data-auth-url', `${window.location.origin}/api/auth/telegram/callback`)
     script.async = true
     container.appendChild(script)
 
