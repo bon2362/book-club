@@ -26,11 +26,11 @@ Lets admins manage club members and the books catalog. Tabs: "Участники
 | G | 6 | DeleteByUser — `'TO DELETE'` если пользователь сам удалил аккаунт |
 | H | 7 | DeleteByAdmin — `'yes'` если удалён администратором |
 
-`getAllSignups()` фильтрует строки где `r[6] === 'TO DELETE'` — скрывает мягко удалённых из всех списков.
+`getAllSignups()` читает диапазон `A:H` (важно — не `A:F`, иначе столбец G не попадает в ответ) и фильтрует строки где `r[6] === 'TO DELETE'` — скрывает мягко удалённых из всех списков.
 
 ## Key files
 - `components/nd/AdminPanel.tsx` — main admin UI (tabs, member list, book list)
 - `components/nd/AdminStatusBar.tsx` — digest queue stats
 - `app/api/admin/` — all admin API routes (book-status, book-new-flag, delete-user, tag-description, priorities, submissions, etc.)
-- `lib/signups.ts` — `fetchSignups()`, `UserSignup` type
+- `lib/signups.ts` — `getAllSignups()`, `upsertSignup()`, `markSignupDeletedByAdmin()`, `UserSignup` type
 - `lib/db/schema.ts` — `bookStatuses`, `bookNewFlags`, `tagDescriptions`, `bookPriorities` tables
