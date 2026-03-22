@@ -33,6 +33,7 @@ jobs:
         run: npm test -- --passWithNoTests
         env:
           DATABASE_URL: postgresql://dummy:dummy@dummy/dummy
+          SKIP_ENV_VALIDATION: 'true'
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
@@ -88,3 +89,4 @@ jobs:
           GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          SKIP_ENV_VALIDATION: 'true'
