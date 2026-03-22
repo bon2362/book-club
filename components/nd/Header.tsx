@@ -169,6 +169,32 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                   {displayName || (session.user.name ?? session.user.email)}
                 </button>
               )}
+              {/* Mobile: кнопка входа в админку */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  prefetch={false}
+                  className="nd-header-admin-btn"
+                  title="Админка"
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: '#555',
+                    color: '#fff',
+                    border: 'none',
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    textDecoration: 'none',
+                  }}
+                >
+                  А
+                </Link>
+              )}
               {/* Mobile: аватар-кружок с инициалом */}
               {onEditProfile && (
                 <button

@@ -63,6 +63,7 @@
 .nd-header-submit     { }
 .nd-header-avatar     { display: none; }
 .nd-header-admin-link { display: inline; }
+.nd-header-admin-btn  { display: none; }
 
 @media (max-width: 540px) {
   .nd-header-club-label  { display: none; }
@@ -70,6 +71,7 @@
   .nd-header-submit      { display: none; }
   .nd-header-avatar      { display: flex; }
   .nd-header-admin-link  { display: none; }
+  .nd-header-admin-btn   { display: flex; }
 }
 
 /* ── Base reset ───────────────────────────────────────────────────────────── */
