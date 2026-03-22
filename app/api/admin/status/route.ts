@@ -15,7 +15,7 @@ export async function GET() {
 
   const [ciResult, deployResult] = await Promise.allSettled([
     ghToken
-      ? fetch(`https://api.github.com/repos/${REPO}/actions/runs?per_page=1`, {
+      ? fetch(`https://api.github.com/repos/${REPO}/actions/runs?per_page=10`, {
           headers: {
             Authorization: `Bearer ${ghToken}`,
             Accept: 'application/vnd.github+json',
@@ -33,9 +33,14 @@ export async function GET() {
   ])
 
   const ci =
-    ciResult.status === 'fulfilled' && ciResult.value.workflow_runs?.[0]
+    ciResult.status === 'fulfilled' &&
+    ciResult.value.workflow_runs?.find(
+      (r: { head_branch: string }) => r.head_branch !== 'gh-pages'
+    )
       ? (() => {
-          const run = ciResult.value.workflow_runs[0]
+          const run = ciResult.value.workflow_runs.find(
+            (r: { head_branch: string }) => r.head_branch !== 'gh-pages'
+          )
           return {
             status: run.status as string,
             conclusion: run.conclusion as string | null,
