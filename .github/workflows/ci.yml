@@ -54,6 +54,7 @@ jobs:
           NEXTAUTH_URL: 'http://localhost:3000'
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          SKIP_ENV_VALIDATION: 'true'
 
       - name: Install Allure CLI
         if: always()
