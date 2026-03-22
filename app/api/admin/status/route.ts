@@ -25,7 +25,7 @@ export async function GET() {
       : Promise.reject(new Error('No GH_TOKEN')),
 
     vercelToken
-      ? fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&limit=1`, {
+      ? fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&limit=10`, {
           headers: { Authorization: `Bearer ${vercelToken}` },
           next: { revalidate: 0 },
         }).then(r => r.json())
@@ -54,9 +54,16 @@ export async function GET() {
       : null
 
   const deploy =
-    deployResult.status === 'fulfilled' && deployResult.value.deployments?.[0]
+    deployResult.status === 'fulfilled' &&
+    deployResult.value.deployments?.find(
+      (d: { meta?: { githubCommitRef?: string } }) =>
+        d.meta?.githubCommitRef !== 'gh-pages'
+    )
       ? (() => {
-          const d = deployResult.value.deployments[0]
+          const d = deployResult.value.deployments.find(
+            (d: { meta?: { githubCommitRef?: string } }) =>
+              d.meta?.githubCommitRef !== 'gh-pages'
+          )
           return {
             state: d.state as string,
             url: d.url as string,
