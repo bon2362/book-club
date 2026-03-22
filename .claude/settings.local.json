@@ -40,7 +40,9 @@
       "Bash(npx tsc:*)",
       "Bash(npx eslint:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(mkdir -p ~/.claude/channels/telegram/approved)",
+      "Bash(~/.claude/channels/telegram/approved/3616992)"
     ]
   },
   "hooks": {
