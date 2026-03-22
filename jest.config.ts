@@ -14,8 +14,16 @@ const config: Config = {
   clearMocks: true,
   collectCoverageFrom: [
     'lib/**/*.ts',
+    'app/api/**/*.ts',
     '!lib/**/*.test.ts',
+    '!app/api/**/*.test.ts',
     '!lib/db/migrations/**',
+    '!lib/db/schema.ts',
+    '!lib/db/index.ts',
+    '!lib/useTheme.ts',
+    '!app/api/test/**',
+    '!app/api/debug-covers/**',
+    '!app/api/auth/[...nextauth]/**',
   ],
   coverageThreshold: {
     global: {
