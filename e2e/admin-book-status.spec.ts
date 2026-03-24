@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-bookstatus-admin@test.invalid'
 const ADMIN_NAME = 'E2E Book Status Admin'
@@ -14,6 +15,8 @@ test.describe('AdminPanel — изменение статуса книги', () 
   test.setTimeout(120_000) // Google Sheets API может быть медленным
 
   test.beforeEach(async ({ page }) => {
+    await epic('Администрирование')
+    await feature('Статус книги')
     // 1. Создаём обычного пользователя, записавшегося на тестовую книгу
     //    Пишем напрямую в Google Sheets через /api/test/signup,
     //    т.к. /api/signup пропускает запись в Sheets в NEXTAUTH_TEST_MODE

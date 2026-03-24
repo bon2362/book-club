@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 // /admin перенаправляет на / если session.user.isAdmin !== true.
 // Тестовые сессии через /api/test/session не имеют isAdmin.
@@ -7,6 +8,11 @@ const TEST_EMAIL = 'e2e-admin-test@test.invalid'
 const TEST_NAME = 'E2E Admin Test User'
 
 test.describe('панель администратора — доступ', () => {
+  test.beforeEach(async () => {
+    await epic('Администрирование')
+    await feature('Панель управления')
+  })
+
   test.afterEach(async ({ page }) => {
     await page.request.delete('/api/test/session', {
       data: { email: TEST_EMAIL },

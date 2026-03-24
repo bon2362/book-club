@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-admin-delete-test@test.invalid'
 const ADMIN_NAME = 'E2E Admin'
@@ -10,6 +11,8 @@ test.describe('Удаление пользователя в админке', () 
   test.setTimeout(120_000) // Google Sheets API may be slow
 
   test.beforeEach(async ({ page }) => {
+    await epic('Администрирование')
+    await feature('Удаление пользователей')
     // 1. Создаём жертву в БД
     await page.request.post('/api/test/session', {
       data: { email: VICTIM_EMAIL, name: VICTIM_NAME },
