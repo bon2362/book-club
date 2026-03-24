@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 async function isFullyAboveViewport(page: import('@playwright/test').Page, selector: string) {
   const box = await page.locator(selector).boundingBox()
@@ -11,6 +12,11 @@ async function isFullyVisible(page: import('@playwright/test').Page, selector: s
   if (!box) return false
   return box.y >= 0 && box.y < page.viewportSize()!.height
 }
+
+test.beforeEach(async () => {
+  await epic('UI')
+  await feature('Состояния интерфейса')
+})
 
 test.describe('Header: hide on scroll down', () => {
   test('header visible at top of page', async ({ page }) => {

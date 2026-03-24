@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 const EMAIL = 'e2e-profile-test@test.invalid'
 const NAME = 'E2E Профиль'
@@ -8,6 +9,8 @@ test.describe('ProfileDrawer — редактирование профиля', (
   test.setTimeout(60_000)
 
   test.beforeEach(async ({ page }) => {
+    await epic('Профиль')
+    await feature('Редактирование профиля')
     // Создаём сессию с telegramUsername, чтобы ContactsForm не появилась
     // (Telegram-пользователи автоматически сохраняют профиль)
     await page.request.post('/api/test/session', {

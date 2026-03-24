@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 // localStorage key: 'book_view_mode', values: 'grid' | 'list'
 // Кнопка переключения: title меняется в зависимости от текущего вида
 
 test.describe('переключение вида отображения', () => {
   test.beforeEach(async ({ page }) => {
+    await epic('UI')
+    await feature('Режим просмотра')
     await page.goto('/')
     await page.evaluate(() => localStorage.removeItem('book_view_mode'))
     await page.goto('/')

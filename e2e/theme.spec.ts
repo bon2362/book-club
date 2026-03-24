@@ -1,10 +1,16 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 // Тема переключения в текущей версии не реализована в UI.
 // Тесты документируют текущее состояние и сработают как регрессия
 // при добавлении theme toggle.
 
 test.describe('тема (dark/light)', () => {
+  test.beforeEach(async () => {
+    await epic('UI')
+    await feature('Тема')
+  })
+
   test('на странице нет кнопки переключения темы', async ({ page }) => {
     await page.goto('/')
     const themeToggle = page.locator(
