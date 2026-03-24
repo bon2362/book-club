@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 const TG_EMAIL = 'e2e-telegram-test@test.invalid'
 const TG_NAME = 'E2E Telegram User'
@@ -6,6 +7,8 @@ const TG_USERNAME = 'e2e_tg_test'
 
 test.describe('Авторизация через Telegram', () => {
   test.beforeEach(async ({ page }) => {
+    await epic('Авторизация')
+    await feature('Telegram')
     await page.request.post('/api/test/session', {
       data: { email: TG_EMAIL, name: TG_NAME, telegramUsername: TG_USERNAME, provider: 'telegram-preauth' },
     })

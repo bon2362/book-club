@@ -1,8 +1,14 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-signup@test.invalid'
 const TEST_NAME = 'E2E Signup User'
 const TEST_CONTACT = '@e2e_test_user'
+
+test.beforeEach(async () => {
+  await epic('Авторизация')
+  await feature('Регистрация')
+})
 
 test.beforeEach(async ({ page }) => {
   await page.request.post('/api/test/session', {
