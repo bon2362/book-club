@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 // BookCard показывает кнопку «Читать далее» только когда description.length > 120.
 // Клик разворачивает описание и меняет кнопку на «Свернуть».
@@ -6,6 +7,8 @@ import { test, expect } from '@playwright/test'
 
 test.describe('карточка книги — разворачивание описания', () => {
   test.beforeEach(async ({ page }) => {
+    await epic('Каталог книг')
+    await feature('Карточка книги')
     await page.goto('/')
     await page.waitForSelector('article')
   })

@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-priority-hint@test.invalid'
 const TEST_NAME = 'E2E Priority Hint'
 const TEST_CONTACT = '@e2e_priority_hint'
 
 test.beforeEach(async ({ page }) => {
+  await epic('Каталог книг')
+  await feature('Приоритеты книг')
   await page.request.post('/api/test/session', {
     data: { email: TEST_EMAIL, name: TEST_NAME },
   })

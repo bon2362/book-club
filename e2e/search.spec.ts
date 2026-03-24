@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 test.describe('поиск по книгам', () => {
   test.beforeEach(async ({ page }) => {
+    await epic('Каталог книг')
+    await feature('Поиск')
     await page.goto('/')
     await page.waitForSelector('article, p:has-text("Ничего не найдено")')
   })

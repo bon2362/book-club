@@ -1,4 +1,5 @@
 import { type Page, test, expect } from '@playwright/test'
+import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-submit@test.invalid'
 const TEST_NAME = 'E2E Submit User'
@@ -13,6 +14,11 @@ async function waitAndCloseContactsForm(page: Page) {
     await expect(dialog).not.toBeVisible({ timeout: 5000 })
   }
 }
+
+test.beforeEach(async () => {
+  await epic('Каталог книг')
+  await feature('Предложить книгу')
+})
 
 test.afterEach(async ({ page }) => {
   await page.request.delete('/api/test/session', {
