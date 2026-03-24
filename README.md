@@ -2,6 +2,8 @@
 
 Веб-приложение для книжного клуба: участники видят список книг, записываются на совместное чтение и оставляют контакты.
 
+[![codecov](https://codecov.io/gh/bon2362/book-club/branch/main/graph/badge.svg)](https://codecov.io/gh/bon2362/book-club)
+
 **Live:** https://www.slowreading.club
 
 ## Стек

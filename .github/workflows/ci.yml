@@ -35,6 +35,15 @@ jobs:
           DATABASE_URL: postgresql://dummy:dummy@dummy/dummy
           SKIP_ENV_VALIDATION: 'true'
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
