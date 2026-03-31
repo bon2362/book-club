@@ -61,7 +61,6 @@ export default async function AdminPage() {
       book,
       users: signups.filter(s => s.selectedBooks.includes(book.name)),
     }))
-    .filter(b => b.users.length > 0)
 
   const sha = process.env.VERCEL_GIT_COMMIT_SHA
   const shortSha = sha ? sha.slice(0, 7) : null
