@@ -8,6 +8,7 @@ import AdminPanel from '@/components/nd/AdminPanel'
 import AdminRefresh from '@/components/nd/AdminRefresh'
 import AdminStatusBar from '@/components/nd/AdminStatusBar'
 import DigestStatusWidget from '@/components/nd/DigestStatusWidget'
+import AllureWidget from '@/components/nd/AllureWidget'
 import { SessionProvider } from 'next-auth/react'
 
 export const dynamic = 'force-dynamic'
@@ -123,6 +124,7 @@ export default async function AdminPage() {
         </div>
         <AdminStatusBar />
         <DigestStatusWidget />
+        <AllureWidget />
       </footer>
     </>
   )
