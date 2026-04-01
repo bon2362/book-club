@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Enqueue notification for digest
-  if (result.addedBooks.length > 0) {
+  // Enqueue notification for digest (skip in test mode — tests use the real DB)
+  if (result.addedBooks.length > 0 && process.env.NEXTAUTH_TEST_MODE !== 'true') {
     db.insert(notificationQueue).values({
       userName: name.trim(),
       userEmail: session.user.email,
