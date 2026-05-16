@@ -12,6 +12,9 @@ jest.mock('@/lib/signups', () => ({ upsertSignup: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
     insert: jest.fn().mockReturnValue({ values: jest.fn().mockReturnValue({ catch: jest.fn() }) }),
+    update: jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }),
+    }),
     delete: jest.fn().mockReturnValue({
       where: jest.fn().mockResolvedValue(undefined),
     }),
@@ -20,6 +23,7 @@ jest.mock('@/lib/db', () => ({
 jest.mock('@/lib/db/schema', () => ({
   bookPriorities: {},
   notificationQueue: {},
+  users: {},
 }))
 
 const mockAuth = authModule.auth as jest.Mock
@@ -71,7 +75,7 @@ describe('POST /api/signup', () => {
   })
 
   it('возвращает 200 при успешной записи', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
     mockUpsertSignup.mockResolvedValue({ isNew: true, addedBooks: ['Book A'] })
 
     const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBooks: ['Book A'] }))
@@ -89,7 +93,7 @@ describe('POST /api/signup', () => {
   })
 
   it('обрезает пробелы в name и contacts', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
     mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
 
     await POST(makeRequest({ name: '  Test User  ', contacts: '  @test  ', selectedBooks: [] }))
@@ -97,6 +101,20 @@ describe('POST /api/signup', () => {
     expect(signups.upsertSignup).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Test User', contacts: '@test' })
     )
+  })
+
+  it('пишет name и contacts в users', async () => {
+    const { db } = await import('@/lib/db')
+    const mockWhere = jest.fn().mockResolvedValue(undefined)
+    const mockSet = jest.fn().mockReturnValue({ where: mockWhere })
+    ;(db.update as jest.Mock).mockReturnValue({ set: mockSet })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+
+    await POST(makeRequest({ name: '  Latest Name  ', contacts: '  @latest  ', selectedBooks: [] }))
+
+    expect(db.update).toHaveBeenCalled()
+    expect(mockSet).toHaveBeenCalledWith({ name: 'Latest Name', contacts: '@latest' })
   })
 
   it('удаляет приоритеты для книг, которых нет в новом списке', async () => {

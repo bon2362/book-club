@@ -18,8 +18,23 @@ export async function POST(req: NextRequest) {
     email: string; name: string; isAdmin?: boolean; telegramUsername?: string; provider?: string
   }
 
-  await db.insert(users).values({ id: `test:${email}`, email, name, emailVerified: new Date() })
-    .onConflictDoNothing()
+  await db.insert(users).values({
+    id: `test:${email}`,
+    email,
+    name,
+    emailVerified: new Date(),
+    authProvider: provider ?? 'email',
+    telegramUsername: telegramUsername ?? null,
+    lastSignInAt: new Date(),
+  }).onConflictDoUpdate({
+    target: users.id,
+    set: {
+      name,
+      authProvider: provider ?? 'email',
+      telegramUsername: telegramUsername ?? null,
+      lastSignInAt: new Date(),
+    },
+  })
 
   const token = await encode({
     token: { sub: `test:${email}`, email, name, isAdmin: isAdmin ?? false, telegramUsername: telegramUsername ?? null, provider: provider ?? null },

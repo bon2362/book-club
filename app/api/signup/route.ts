@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { upsertSignup } from '@/lib/signups'
 import { db } from '@/lib/db'
-import { bookPriorities, notificationQueue } from '@/lib/db/schema'
+import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
@@ -18,6 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  const pgUserId = session.user.id
+  if (!pgUserId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const result = await upsertSignup({
     userId: session.user.email,
     name: name.trim(),
@@ -26,27 +31,29 @@ export async function POST(req: NextRequest) {
     selectedBooks,
   })
 
+  await db.update(users).set({
+    name: name.trim(),
+    contacts: contacts.trim(),
+  }).where(eq(users.id, pgUserId))
+
   // Clean up book_priorities for books no longer in selectedBooks.
   // Uses session.user.id (Postgres user UUID), not session.user.email (Sheets userId).
-  const pgUserId = (session.user as { id?: string }).id
-  if (pgUserId) {
-    if ((selectedBooks as string[]).length > 0) {
-      await db
-        .delete(bookPriorities)
-        .where(
-          and(
-            eq(bookPriorities.userId, pgUserId),
-            notInArray(bookPriorities.bookName, selectedBooks as string[])
-          )
+  if ((selectedBooks as string[]).length > 0) {
+    await db
+      .delete(bookPriorities)
+      .where(
+        and(
+          eq(bookPriorities.userId, pgUserId),
+          notInArray(bookPriorities.bookName, selectedBooks as string[])
         )
-        .catch(() => {}) // non-critical — don't fail the request
-    } else {
-      // All books removed — delete all priorities for this user
-      await db
-        .delete(bookPriorities)
-        .where(eq(bookPriorities.userId, pgUserId))
-        .catch(() => {})
-    }
+      )
+      .catch(() => {}) // non-critical — don't fail the request
+  } else {
+    // All books removed — delete all priorities for this user
+    await db
+      .delete(bookPriorities)
+      .where(eq(bookPriorities.userId, pgUserId))
+      .catch(() => {})
   }
 
   // Enqueue notification for digest (skip in test mode — tests use the real DB)

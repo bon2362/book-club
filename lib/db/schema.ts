@@ -8,6 +8,11 @@ export const users = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: timestamp('emailVerified', { mode: 'date' }),
   image: text('image'),
+  contacts: text('contacts'),
+  telegramUsername: text('telegram_username'),
+  // Allowed values: 'google' | 'email' | 'google-one-tap' | 'telegram' | 'telegram-preauth'
+  authProvider: text('auth_provider'),
+  lastSignInAt: timestamp('last_sign_in_at', { mode: 'date' }),
   languages: text('languages'),
   prioritiesSet: boolean('priorities_set').notNull().default(false),
 })
@@ -58,27 +63,6 @@ export const tagDescriptions = pgTable('tag_descriptions', {
   description: text('description').notNull(),
 })
 
-export const bookSuggestions = pgTable('book_suggestions', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  name: text('name').notNull(),
-  author: text('author').notNull(),
-  tags: text('tags').notNull().default(''),
-  type: text('type').notNull().default('Book'),
-  size: text('size').notNull().default(''),
-  pages: text('pages').notNull().default(''),
-  date: text('date').notNull().default(''),
-  link: text('link').notNull().default(''),
-  coverUrl: text('cover_url'),
-  description: text('description').notNull().default(''),
-  reason: text('reason').notNull(),
-  submitterEmail: text('submitter_email').notNull(),
-  submitterName: text('submitter_name'),
-  status: text('status').notNull().default('pending'),
-  rejectionReason: text('rejection_reason'),
-  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
-})
-
 export const bookNewFlags = pgTable('book_new_flags', {
   bookId:    text('book_id').primaryKey(),
   isNew:     boolean('is_new').notNull(),
@@ -113,6 +97,15 @@ export const bookPriorities = pgTable('book_priorities', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.bookName] }),
 }))
+
+export const feedback = pgTable('feedback', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+  name: text('name'),
+  email: text('email'),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+})
 
 export const introSections = pgTable('intro_sections', {
   id:          text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

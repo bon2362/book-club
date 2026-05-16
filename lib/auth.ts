@@ -12,6 +12,10 @@ import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
+function normalizeAuthProvider(provider: string) {
+  return provider === 'resend' ? 'email' : provider
+}
+
 async function sendMagicLinkEmail(email: string, url: string) {
   const client = new ResendClient(process.env.RESEND_API_KEY!)
   const html = `<!DOCTYPE html>
@@ -144,6 +148,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   callbacks: {
+    async signIn({ user, account }) {
+      const userId = user.id
+      if (userId && account?.provider) {
+        const provider = normalizeAuthProvider(account.provider)
+        await db.update(users).set({
+          authProvider: provider,
+          lastSignInAt: new Date(),
+          ...(user.telegramUsername ? { telegramUsername: user.telegramUsername } : {}),
+        }).where(eq(users.id, userId))
+      }
+      return true
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.isAdmin = user.email === process.env.ADMIN_EMAIL
