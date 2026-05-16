@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server'
 import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
 import * as signups from '@/lib/signups'
+import * as dbModule from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signups', () => ({ markSignupDeletedByAdmin: jest.fn() }))
@@ -18,6 +19,8 @@ jest.mock('@/lib/db', () => ({
 
 const mockAuth = authModule.auth as jest.Mock
 const mockMarkDeleted = signups.markSignupDeletedByAdmin as jest.Mock
+const mockDelete = dbModule.db.delete as jest.Mock
+const UUID = '123e4567-e89b-42d3-a456-426614174000'
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/admin/delete-user', {
@@ -30,21 +33,21 @@ function makeRequest(body: object) {
 describe('DELETE /api/admin/delete-user — security', () => {
   it('[SEC] возвращает 403 при isAdmin=undefined', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'user@test.com' } })
-    const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+    const res = await DELETE(makeRequest({ userId: UUID }))
     expect(res.status).toBe(403)
     expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
   })
 
   it('[SEC] возвращает 403 при isAdmin=null', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'user@test.com', isAdmin: null } })
-    const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+    const res = await DELETE(makeRequest({ userId: UUID }))
     expect(res.status).toBe(403)
     expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
   })
 
   it('[SEC] не-админ не может удалить чужой аккаунт', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'attacker@test.com', isAdmin: false } })
-    const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+    const res = await DELETE(makeRequest({ userId: UUID }))
     expect(res.status).toBe(403)
     expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
   })
@@ -54,7 +57,7 @@ describe('DELETE /api/admin/delete-user — security', () => {
     process.env.NEXTAUTH_TEST_MODE = 'true'
     try {
       mockAuth.mockResolvedValue({ user: { email: 'attacker@test.com', isAdmin: false } })
-      const res = await DELETE(makeRequest({ userId: 'victim@test.com' }))
+      const res = await DELETE(makeRequest({ userId: UUID }))
       expect(res.status).toBe(403)
     } finally {
       process.env.NEXTAUTH_TEST_MODE = original
@@ -66,7 +69,7 @@ describe('DELETE /api/admin/delete-user', () => {
   it('возвращает 403 без сессии', async () => {
     mockAuth.mockResolvedValue(null)
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
+    const res = await DELETE(makeRequest({ userId: UUID }))
     expect(res.status).toBe(403)
   })
 
@@ -84,15 +87,25 @@ describe('DELETE /api/admin/delete-user', () => {
     expect(res.status).toBe(400)
   })
 
+  it('возвращает 400 при email вместо UUID', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
+
+    const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
+
+    expect(res.status).toBe(400)
+    expect(mockDelete).not.toHaveBeenCalled()
+  })
+
   it('возвращает 200 и удаляет пользователя из DB и Sheets', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
     mockMarkDeleted.mockResolvedValue(undefined)
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
+    const res = await DELETE(makeRequest({ userId: UUID, signupUserId: 'user@test.com' }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
+    expect(mockDelete).toHaveBeenCalled()
     expect(signups.markSignupDeletedByAdmin).toHaveBeenCalledWith('user@test.com')
   })
 })

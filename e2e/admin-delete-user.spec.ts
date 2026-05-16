@@ -44,6 +44,9 @@ test.describe('Удаление пользователя в админке', () 
   })
 
   test('удалённый пользователь не появляется после перезагрузки страницы', async ({ page }) => {
+    const beforeDelete = await page.request.get(`/api/test/user?email=${encodeURIComponent(VICTIM_EMAIL)}`)
+    expect((await beforeDelete.json()).exists).toBe(true)
+
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
@@ -59,6 +62,12 @@ test.describe('Удаление пользователя в админке', () 
 
     // Жертва исчезла из таблицы (локальный стейт)
     await expect(page.getByText(VICTIM_NAME)).not.toBeVisible()
+
+    const afterDelete = await page.request.get(`/api/test/user?email=${encodeURIComponent(VICTIM_EMAIL)}`)
+    const afterDeleteData = await afterDelete.json()
+    expect(afterDeleteData.exists).toBe(false)
+    expect(afterDeleteData.accountCount).toBe(0)
+    expect(afterDeleteData.sessionCount).toBe(0)
 
     // Перезагружаем страницу — ключевая проверка: данные читаются заново из Sheets
     await page.reload()

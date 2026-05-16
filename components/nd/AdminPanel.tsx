@@ -138,16 +138,16 @@ export default function AdminPanel({
       .finally(() => setSubmissionsLoaded(true))
   }, [])
 
-  async function handleDeleteUser(userId: string, userName: string) {
+  async function handleDeleteUser(userId: string, signupUserId: string, userName: string) {
     if (!window.confirm(`Удалить пользователя ${userName}? Это действие необратимо.`)) return
     try {
       const res = await fetch('/api/admin/delete-user', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, signupUserId }),
       })
       if (!res.ok) return
-      setLocalUsers(prev => prev.filter(u => u.userId !== userId))
+      setLocalUsers(prev => prev.filter(u => u.userId !== signupUserId))
     } catch {
       // silently ignore
     }
@@ -491,9 +491,13 @@ export default function AdminPanel({
                       </td>
                       <td style={{ ...cell, textAlign: 'right' }}>
                         <button
-                          onClick={() => handleDeleteUser(u.userId, u.name)}
+                          onClick={() => {
+                            const pgId = emailToPgIdMap[u.userId]
+                            if (pgId) handleDeleteUser(pgId, u.userId, u.name)
+                          }}
+                          disabled={!pgId}
                           title="Удалить пользователя"
-                          style={{ background: 'none', border: '1px solid #E5E5E5', cursor: 'pointer', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                          style={{ background: 'none', border: '1px solid #E5E5E5', cursor: pgId ? 'pointer' : 'not-allowed', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: pgId ? 1 : 0.45 }}
                         >
                           Удалить
                         </button>

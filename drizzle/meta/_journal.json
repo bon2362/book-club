@@ -50,6 +50,13 @@
       "when": 1778927428621,
       "tag": "0006_intro_sections",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778953614093,
+      "tag": "0007_users_canonical_feedback",
+      "breakpoints": true
     }
   ]
 }

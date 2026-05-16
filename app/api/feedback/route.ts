@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { feedback } from '@/lib/db/schema'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -14,6 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY)
+  const session = await auth()
   const subject = name?.trim()
     ? `Обратная связь от ${name.trim()}`
     : 'Обратная связь'
@@ -25,6 +29,12 @@ export async function POST(req: NextRequest) {
       to: 'hello@slowreading.club',
       subject,
       text,
+    })
+    await db.insert(feedback).values({
+      userId: session?.user?.id ?? null,
+      name: name?.trim() || null,
+      email: email?.trim() || null,
+      message: message.trim(),
     })
     return NextResponse.json({ ok: true })
   } catch {

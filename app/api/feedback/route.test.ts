@@ -3,14 +3,27 @@
  */
 import { NextRequest } from 'next/server'
 import { POST } from './route'
+import * as authModule from '@/lib/auth'
+import * as dbModule from '@/lib/db'
 
 const mockSend = jest.fn()
+const mockValues = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
     emails: { send: mockSend },
   })),
 }))
+jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
+jest.mock('@/lib/db', () => ({
+  db: {
+    insert: jest.fn(),
+  },
+}))
+jest.mock('@/lib/db/schema', () => ({ feedback: {} }))
+
+const mockAuth = authModule.auth as jest.Mock
+const mockInsert = dbModule.db.insert as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/feedback', {
@@ -43,7 +56,9 @@ describe('POST /api/feedback — validation', () => {
 
 describe('POST /api/feedback — happy path', () => {
   beforeEach(() => {
+    mockInsert.mockReturnValue({ values: mockValues })
     mockSend.mockResolvedValue({ data: { id: 'msg-1' }, error: null })
+    mockAuth.mockResolvedValue(null)
     process.env.RESEND_API_KEY = 'test-key'
   })
 
@@ -94,6 +109,29 @@ describe('POST /api/feedback — happy path', () => {
     const call = mockSend.mock.calls[0][0]
     expect(call.text).toContain('не указано')
     expect(call.text).toContain('не указан')
+  })
+
+  it('записывает анонимный feedback в БД с userId=null', async () => {
+    await POST(makeRequest({ message: 'Текст', name: ' Иван ', email: ' ivan@test.com ' }))
+
+    expect(mockInsert).toHaveBeenCalled()
+    expect(mockValues).toHaveBeenCalledWith({
+      userId: null,
+      name: 'Иван',
+      email: 'ivan@test.com',
+      message: 'Текст',
+    })
+  })
+
+  it('записывает userId для залогиненного пользователя', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-uuid' } })
+
+    await POST(makeRequest({ message: 'Авторизованный фидбек' }))
+
+    expect(mockValues).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'user-uuid',
+      message: 'Авторизованный фидбек',
+    }))
   })
 })
 

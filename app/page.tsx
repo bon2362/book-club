@@ -2,7 +2,8 @@ import { auth } from '@/lib/auth'
 import { fetchBooksWithCovers } from '@/lib/books-with-covers'
 import { getAllSignups } from '@/lib/signups'
 import { db } from '@/lib/db'
-import { bookStatuses, tagDescriptions } from '@/lib/db/schema'
+import { bookStatuses, tagDescriptions, users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { SessionProvider } from 'next-auth/react'
 import BooksPage from '@/components/nd/BooksPage'
 import GoogleOneTap from '@/components/nd/GoogleOneTap'
@@ -40,9 +41,26 @@ export default async function Home() {
     signupCount: signupCountByName.get(b.name) ?? 0,
   }))
 
-  const currentUser = session?.user?.email
+  const sheetsUser = session?.user?.email
     ? signups.find(s => s.email === session.user!.email) ?? null
     : null
+  const dbUserRows = !sheetsUser && session?.user?.id
+    ? await db
+      .select({ name: users.name, email: users.email, contacts: users.contacts })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1)
+      .catch(() => [])
+    : []
+  const dbUser = dbUserRows[0]
+  const currentUser = sheetsUser ?? (dbUser?.contacts ? {
+    timestamp: '',
+    userId: dbUser.email,
+    name: dbUser.name ?? session?.user?.name ?? '',
+    email: dbUser.email,
+    contacts: dbUser.contacts,
+    selectedBooks: [],
+  } : null)
 
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
 

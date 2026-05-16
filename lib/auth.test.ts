@@ -17,7 +17,7 @@ jest.mock('@auth/drizzle-adapter', () => ({
 }))
 
 jest.mock('@/lib/db', () => ({
-  db: { select: jest.fn(), insert: jest.fn() },
+  db: { select: jest.fn(), insert: jest.fn(), update: jest.fn() },
 }))
 
 jest.mock('@/lib/auth.google-one-tap', () => ({
@@ -75,6 +75,7 @@ require('@/lib/auth')
 function getConfig() {
   return (NextAuth as NextAuthMock).__config as {
     callbacks: {
+      signIn: (args: Record<string, unknown>) => Promise<boolean>
       jwt: (args: Record<string, unknown>) => Promise<unknown>
       session: (args: Record<string, unknown>) => Promise<unknown>
     }
@@ -106,6 +107,15 @@ function mockDbInsert() {
     onConflictDoUpdate: jest.fn().mockResolvedValue(undefined),
   }
   ;(db.insert as jest.Mock).mockReturnValue(chain)
+  return chain
+}
+
+function mockDbUpdate() {
+  const chain = {
+    set: jest.fn().mockReturnThis(),
+    where: jest.fn().mockResolvedValue(undefined),
+  }
+  ;(db.update as jest.Mock).mockReturnValue(chain)
   return chain
 }
 
@@ -141,6 +151,68 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks()
+})
+
+// ── signIn callback ──────────────────────────────────────────────────────────
+
+describe('signIn callback', () => {
+  const signInCallback = () => getConfig().callbacks.signIn
+
+  it('пишет auth_provider и last_sign_in_at по provider из account', async () => {
+    const updateChain = mockDbUpdate()
+
+    const result = await signInCallback()({
+      user: { id: 'user-uuid', email: 'user@test.com' },
+      account: { provider: 'google' },
+    })
+
+    expect(result).toBe(true)
+    expect(db.update).toHaveBeenCalled()
+    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
+      authProvider: 'google',
+      lastSignInAt: expect.any(Date),
+    }))
+  })
+
+  it('пишет telegram_username если он пришёл из credentials user', async () => {
+    const updateChain = mockDbUpdate()
+
+    await signInCallback()({
+      user: { id: 'telegram:123', email: 'telegram:123@telegram.user', telegramUsername: 'ivan_tg' },
+      account: { provider: 'telegram-preauth' },
+    })
+
+    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
+      authProvider: 'telegram-preauth',
+      telegramUsername: 'ivan_tg',
+    }))
+  })
+
+  it('нормализует resend provider в email', async () => {
+    const updateChain = mockDbUpdate()
+
+    await signInCallback()({
+      user: { id: 'user-uuid', email: 'user@test.com' },
+      account: { provider: 'resend' },
+    })
+
+    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
+      authProvider: 'email',
+    }))
+  })
+
+  it('не перетирает telegram_username пустым значением', async () => {
+    const updateChain = mockDbUpdate()
+
+    await signInCallback()({
+      user: { id: 'user-uuid', email: 'user@test.com' },
+      account: { provider: 'email' },
+    })
+
+    expect(updateChain.set).toHaveBeenCalledWith(expect.not.objectContaining({
+      telegramUsername: expect.anything(),
+    }))
+  })
 })
 
 // ── jwt callback ──────────────────────────────────────────────────────────────
@@ -463,4 +535,3 @@ describe('telegram provider authorize + verifyTelegramHash', () => {
     )
   })
 })
-
