@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { UserSignup } from '@/lib/signups'
+import type { UserSignup } from '@/lib/signup-books'
 
 interface Props {
   isOpen: boolean

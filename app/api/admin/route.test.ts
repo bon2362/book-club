@@ -3,11 +3,11 @@
  */
 import { GET } from './route'
 import * as authModule from '@/lib/auth'
-import * as signupsModule from '@/lib/signups'
+import * as signupsModule from '@/lib/signup-books'
 import * as sheetsModule from '@/lib/sheets'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/signups', () => ({ getAllSignups: jest.fn() }))
+jest.mock('@/lib/signup-books', () => ({ getAllSignups: jest.fn() }))
 jest.mock('@/lib/sheets', () => ({ fetchBooks: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock

@@ -26,7 +26,6 @@ const defaultProps = {
   newFlags: {},
   bookPrioritiesMap: {},
   prioritiesSetMap: {},
-  emailToPgIdMap: {},
 }
 
 const mockSubmissions = [

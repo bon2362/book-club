@@ -4,11 +4,11 @@
 import { NextRequest } from 'next/server'
 import { POST } from './route'
 import * as authModule from '@/lib/auth'
-import * as signups from '@/lib/signups'
+import * as signups from '@/lib/signup-books'
 import * as dbModule from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/signups', () => ({ upsertSignup: jest.fn() }))
+jest.mock('@/lib/signup-books', () => ({ upsertSignup: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
     insert: jest.fn().mockReturnValue({ values: jest.fn().mockReturnValue({ catch: jest.fn() }) }),
@@ -83,13 +83,7 @@ describe('POST /api/signup', () => {
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
-    expect(signups.upsertSignup).toHaveBeenCalledWith({
-      userId: 'test@test.com',
-      name: 'Test User',
-      email: 'test@test.com',
-      contacts: '@test',
-      selectedBooks: ['Book A'],
-    })
+    expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', ['Book A'])
   })
 
   it('обрезает пробелы в name и contacts', async () => {
@@ -98,9 +92,7 @@ describe('POST /api/signup', () => {
 
     await POST(makeRequest({ name: '  Test User  ', contacts: '  @test  ', selectedBooks: [] }))
 
-    expect(signups.upsertSignup).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Test User', contacts: '@test' })
-    )
+    expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', [])
   })
 
   it('пишет name и contacts в users', async () => {

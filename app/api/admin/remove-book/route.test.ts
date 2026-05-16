@@ -4,11 +4,11 @@
 import { NextRequest } from 'next/server'
 import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
-import * as signups from '@/lib/signups'
+import * as signups from '@/lib/signup-books'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/signups', () => ({ removeBookFromSignup: jest.fn() }))
+jest.mock('@/lib/signup-books', () => ({ removeBookFromSignup: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
     select: jest.fn(),
@@ -29,7 +29,7 @@ function makeRequest(body: object) {
 }
 
 beforeEach(() => {
-  // Default: no DB user found → priority step is skipped
+  // Default: no priority row found → priority step is skipped
   const defaultChain = {
     from: jest.fn().mockReturnThis(),
     where: jest.fn().mockResolvedValue([]),
@@ -42,14 +42,14 @@ beforeEach(() => {
 describe('DELETE /api/admin/remove-book — security', () => {
   it('[SEC] возвращает 403 при isAdmin=undefined', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'user@test.com' } })
-    const res = await DELETE(makeRequest({ userId: 'user@test.com', bookName: 'Book A' }))
+    const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookName: 'Book A' }))
     expect(res.status).toBe(403)
     expect(signups.removeBookFromSignup).not.toHaveBeenCalled()
   })
 
   it('[SEC] возвращает 403 при isAdmin=null', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'user@test.com', isAdmin: null } })
-    const res = await DELETE(makeRequest({ userId: 'user@test.com', bookName: 'Book A' }))
+    const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookName: 'Book A' }))
     expect(res.status).toBe(403)
     expect(signups.removeBookFromSignup).not.toHaveBeenCalled()
   })
@@ -78,14 +78,14 @@ describe('DELETE /api/admin/remove-book', () => {
   it('возвращает 403 без сессии', async () => {
     mockAuth.mockResolvedValue(null)
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com', bookName: 'Book A' }))
+    const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookName: 'Book A' }))
     expect(res.status).toBe(403)
   })
 
   it('возвращает 403 без isAdmin', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'user@test.com', isAdmin: false } })
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com', bookName: 'Book A' }))
+    const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookName: 'Book A' }))
     expect(res.status).toBe(403)
   })
 
@@ -107,12 +107,12 @@ describe('DELETE /api/admin/remove-book', () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
     mockRemoveBook.mockResolvedValue(undefined)
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com', bookName: 'Book A' }))
+    const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookName: 'Book A' }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
-    expect(signups.removeBookFromSignup).toHaveBeenCalledWith('user@test.com', 'Book A')
+    expect(signups.removeBookFromSignup).toHaveBeenCalledWith('pg-user-1', 'Book A')
   })
 })
 
@@ -121,20 +121,11 @@ describe('DELETE /api/admin/remove-book — priority re-rank', () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
     mockRemoveBook.mockResolvedValue(undefined)
 
-    // db.select called twice:
-    // 1st: look up user by email → returns pgId
-    // 2nd: look up priority rank for this book → returns rank 2
-    const selectUserChain = {
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockResolvedValue([{ id: 'pg-user-1' }]),
-    }
     const selectPriorityChain = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockResolvedValue([{ rank: 2 }]),
     }
-    ;(db.select as jest.Mock)
-      .mockReturnValueOnce(selectUserChain)
-      .mockReturnValueOnce(selectPriorityChain)
+    ;(db.select as jest.Mock).mockReturnValueOnce(selectPriorityChain)
 
     const mockDeleteWhere = jest.fn().mockResolvedValue(undefined)
     ;(db.delete as jest.Mock).mockReturnValue({ where: mockDeleteWhere })
@@ -142,7 +133,7 @@ describe('DELETE /api/admin/remove-book — priority re-rank', () => {
     const mockUpdateWhere = jest.fn().mockResolvedValue(undefined)
     ;(db.update as jest.Mock).mockReturnValue({ set: jest.fn().mockReturnThis(), where: mockUpdateWhere })
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com', bookName: 'Book B' }))
+    const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookName: 'Book B' }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -157,31 +148,14 @@ describe('DELETE /api/admin/remove-book — priority re-rank', () => {
     expect(mockUpdateWhere).toHaveBeenCalledTimes(1)
   })
 
-  it('пропускает re-rank если пользователь не найден в БД', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
-    mockRemoveBook.mockResolvedValue(undefined)
-
-    // db.select returns empty (user not in DB)
-    const emptyChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
-    ;(db.select as jest.Mock).mockReturnValueOnce(emptyChain)
-
-    const res = await DELETE(makeRequest({ userId: 'unknown@test.com', bookName: 'Book A' }))
-    expect(res.status).toBe(200)
-    expect(db.delete).not.toHaveBeenCalled()
-    expect(db.update).not.toHaveBeenCalled()
-  })
-
   it('пропускает re-rank если нет записи приоритета для книги', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
     mockRemoveBook.mockResolvedValue(undefined)
 
-    const selectUserChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ id: 'pg-user-1' }]) }
     const selectNoPriorityChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
-    ;(db.select as jest.Mock)
-      .mockReturnValueOnce(selectUserChain)
-      .mockReturnValueOnce(selectNoPriorityChain)
+    ;(db.select as jest.Mock).mockReturnValueOnce(selectNoPriorityChain)
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com', bookName: 'Book A' }))
+    const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookName: 'Book A' }))
     expect(res.status).toBe(200)
     expect(db.delete).not.toHaveBeenCalled()
     expect(db.update).not.toHaveBeenCalled()

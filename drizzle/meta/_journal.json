@@ -57,6 +57,13 @@
       "when": 1778953614093,
       "tag": "0007_users_canonical_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778954685289,
+      "tag": "0008_signup_books",
+      "breakpoints": true
     }
   ]
 }

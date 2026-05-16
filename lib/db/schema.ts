@@ -98,6 +98,14 @@ export const bookPriorities = pgTable('book_priorities', {
   pk: primaryKey({ columns: [t.userId, t.bookName] }),
 }))
 
+export const signupBooks = pgTable('signup_books', {
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookName: text('book_name').notNull(),
+  signedAt: timestamp('signed_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.bookName] }),
+}))
+
 export const feedback = pgTable('feedback', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),

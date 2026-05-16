@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import type { Book } from '@/lib/sheets'
-import type { UserSignup } from '@/lib/signups'
+import type { UserSignup } from '@/lib/signup-books'
 import { searchBooks } from '@/lib/search'
 import { useTheme } from '@/lib/useTheme'
 import BookCard from '@/components/BookCard'

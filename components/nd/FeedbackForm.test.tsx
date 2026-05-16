@@ -3,7 +3,7 @@
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import FeedbackForm from './FeedbackForm'
-import type { UserSignup } from '@/lib/signups'
+import type { UserSignup } from '@/lib/signup-books'
 
 const mockUser: UserSignup = {
   userId: 'user-1',

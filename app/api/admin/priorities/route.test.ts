@@ -4,11 +4,11 @@
 import { NextRequest } from 'next/server'
 import { GET } from './route'
 import * as authModule from '@/lib/auth'
-import * as signupsModule from '@/lib/signups'
+import * as signupsModule from '@/lib/signup-books'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/signups', () => ({ getAllSignups: jest.fn() }))
+jest.mock('@/lib/signup-books', () => ({ getAllSignups: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: { select: jest.fn() },
 }))
@@ -39,22 +39,14 @@ describe('GET /api/admin/priorities', () => {
   it('возвращает участников с priority=null если не расставляли', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockGetAllSignups.mockResolvedValue([
-      { userId: 'a@a.com', name: 'Иван', email: 'a@a.com', contacts: '@ivan', selectedBooks: ['Книга А'], timestamp: '' },
+      { userId: 'user-1', name: 'Иван', email: 'a@a.com', contacts: '@ivan', selectedBooks: ['Книга А'], timestamp: '', prioritiesSet: false },
     ])
 
-    const mockSelectUsers = {
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockResolvedValue([
-        { id: 'user-1', email: 'a@a.com', prioritiesSet: false },
-      ]),
-    }
     const mockSelectPriorities = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockResolvedValue([]),
     }
-    ;(db.select as jest.Mock)
-      .mockReturnValueOnce(mockSelectUsers)
-      .mockReturnValueOnce(mockSelectPriorities)
+    ;(db.select as jest.Mock).mockReturnValueOnce(mockSelectPriorities)
 
     const res = await GET(makeGet('Книга А'))
     const data = await res.json()
@@ -67,7 +59,7 @@ describe('GET /api/admin/priorities', () => {
   it('возвращает пустой массив если нет записей на книгу', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockGetAllSignups.mockResolvedValue([
-      { userId: 'b@b.com', name: 'Мария', email: 'b@b.com', contacts: '@maria', selectedBooks: ['Книга Б'], timestamp: '' },
+      { userId: 'user-2', name: 'Мария', email: 'b@b.com', contacts: '@maria', selectedBooks: ['Книга Б'], timestamp: '' },
     ])
 
     const res = await GET(makeGet('Книга А'))
@@ -80,25 +72,17 @@ describe('GET /api/admin/priorities', () => {
   it('возвращает priority из bookPriorities если расставляли', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockGetAllSignups.mockResolvedValue([
-      { userId: 'c@c.com', name: 'Пётр', email: 'c@c.com', contacts: '@petr', selectedBooks: ['Книга А', 'Книга Б'], timestamp: '' },
+      { userId: 'user-pg-1', name: 'Пётр', email: 'c@c.com', contacts: '@petr', selectedBooks: ['Книга А', 'Книга Б'], timestamp: '', prioritiesSet: true },
     ])
 
     const updatedAt = new Date('2026-01-01T00:00:00Z')
-    const mockSelectUsers = {
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockResolvedValue([
-        { id: 'user-pg-1', email: 'c@c.com', prioritiesSet: true },
-      ]),
-    }
     const mockSelectPriorities = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockResolvedValue([
         { userId: 'user-pg-1', rank: 2, updatedAt },
       ]),
     }
-    ;(db.select as jest.Mock)
-      .mockReturnValueOnce(mockSelectUsers)
-      .mockReturnValueOnce(mockSelectPriorities)
+    ;(db.select as jest.Mock).mockReturnValueOnce(mockSelectPriorities)
 
     const res = await GET(makeGet('Книга А'))
     const data = await res.json()

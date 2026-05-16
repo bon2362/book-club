@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { UserSignup } from '@/lib/signups'
+import type { UserSignup } from '@/lib/signup-books'
 import type { Book } from '@/lib/sheets'
 
 interface Props {

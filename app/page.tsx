@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { fetchBooksWithCovers } from '@/lib/books-with-covers'
-import { getAllSignups } from '@/lib/signups'
+import { getAllSignups } from '@/lib/signup-books'
 import { db } from '@/lib/db'
 import { bookStatuses, tagDescriptions, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -41,10 +41,10 @@ export default async function Home() {
     signupCount: signupCountByName.get(b.name) ?? 0,
   }))
 
-  const sheetsUser = session?.user?.email
-    ? signups.find(s => s.email === session.user!.email) ?? null
+  const signupUser = session?.user?.id
+    ? signups.find(s => s.userId === session.user!.id) ?? null
     : null
-  const dbUserRows = !sheetsUser && session?.user?.id
+  const dbUserRows = !signupUser && session?.user?.id
     ? await db
       .select({ name: users.name, email: users.email, contacts: users.contacts })
       .from(users)
@@ -53,9 +53,9 @@ export default async function Home() {
       .catch(() => [])
     : []
   const dbUser = dbUserRows[0]
-  const currentUser = sheetsUser ?? (dbUser?.contacts ? {
+  const currentUser = signupUser ?? (dbUser?.contacts ? {
     timestamp: '',
-    userId: dbUser.email,
+    userId: session!.user!.id!,
     name: dbUser.name ?? session?.user?.name ?? '',
     email: dbUser.email,
     contacts: dbUser.contacts,
