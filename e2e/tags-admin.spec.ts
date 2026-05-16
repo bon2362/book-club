@@ -73,8 +73,8 @@ test.describe('Редактирование тега в админке', () => {
     await expect(tagBlock.getByText(/сохранено/i)).toBeVisible({ timeout: 8000 })
     console.log(`✅ Сохранено в admin panel`)
 
-    // ── Шаг 5: Открываем каталог книг ───────────────────────────────────
-    await page.goto('/books')
+    // ── Шаг 5: Открываем каталог книг (главная страница) ────────────────
+    await page.goto('/')
     await page.waitForLoadState('networkidle')
 
     // ── Шаг 6: Выбираем тег в фильтре ───────────────────────────────────
