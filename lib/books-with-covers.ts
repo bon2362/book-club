@@ -25,7 +25,7 @@ export interface BookWithCover {
 }
 
 const TEST_FIXTURE_BOOKS: BookWithCover[] = [
-  { id: '__test_book_1__', name: 'Тестовая книга 1', tags: [], author: 'Test Author A', type: 'Book', size: '', pages: '100', date: '2024', link: '', description: 'Книга для e2e-тестов', coverUrl: null, whyRead: null, recommendationLink: null, isNew: false },
+  { id: '__test_book_1__', name: 'Тестовая книга 1', tags: ['государство'], author: 'Test Author A', type: 'Book', size: '', pages: '100', date: '2024', link: '', description: 'Книга для e2e-тестов', coverUrl: null, whyRead: null, recommendationLink: null, isNew: false },
   { id: '__test_book_2__', name: 'Тестовая книга 2', tags: [], author: 'Test Author B', type: 'Book', size: '', pages: '200', date: '2024', link: '', description: 'Книга для e2e-тестов', coverUrl: null, whyRead: null, recommendationLink: null, isNew: false },
   { id: '__test_book_3__', name: 'Тестовая книга 3', tags: [], author: 'Test Author C', type: 'Book', size: '', pages: '300', date: '2024', link: '', description: 'Книга для e2e-тестов', coverUrl: null, whyRead: null, recommendationLink: null, isNew: false },
 ]
