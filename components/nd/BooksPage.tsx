@@ -105,9 +105,16 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const [showContactsForm, setShowContactsForm] = useState(false)
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
   const [showPriorityHint, setShowPriorityHint] = useState(false)
+  const [priorityHintPaused, setPriorityHintPaused] = useState(false)
   const [submitFormOpen, setSubmitFormOpen] = useState(false)
   const [submitIntent, setSubmitIntent] = useState(false)
   const [feedbackFormOpen, setFeedbackFormOpen] = useState(false)
+
+  useEffect(() => {
+    if (!showPriorityHint || priorityHintPaused) return
+    const t = setTimeout(() => setShowPriorityHint(false), 10000)
+    return () => clearTimeout(t)
+  }, [showPriorityHint, priorityHintPaused])
 
   useEffect(() => {
     const stored = localStorage.getItem('submitIntent') === '1'
@@ -561,6 +568,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         <div
           role="status"
           data-testid="priority-hint-toast"
+          onMouseEnter={() => setPriorityHintPaused(true)}
+          onMouseLeave={() => setPriorityHintPaused(false)}
           style={{
             position: 'fixed',
             bottom: '1.5rem',
@@ -576,8 +585,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             gap: '1rem',
             maxWidth: 'calc(100vw - 2rem)',
             width: 'max-content',
+            overflow: 'hidden',
           }}
         >
+          <style>{`@keyframes priorityHintCountdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }`}</style>
           <p
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -624,6 +635,21 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
           >
             ✕
           </button>
+          <span
+            aria-hidden
+            data-testid="priority-hint-progress"
+            style={{
+              position: 'absolute',
+              left: 0,
+              bottom: 0,
+              height: '2px',
+              width: '100%',
+              background: 'rgba(17,17,17,0.18)',
+              transformOrigin: 'left center',
+              animation: 'priorityHintCountdown 10s linear forwards',
+              animationPlayState: priorityHintPaused ? 'paused' : 'running',
+            }}
+          />
         </div>
       )}
     </>
