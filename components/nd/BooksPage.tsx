@@ -112,7 +112,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
 
   useEffect(() => {
     if (!showPriorityHint || priorityHintPaused) return
-    const t = setTimeout(() => setShowPriorityHint(false), 10000)
+    const t = setTimeout(() => setShowPriorityHint(false), 20000)
     return () => clearTimeout(t)
   }, [showPriorityHint, priorityHintPaused])
 
@@ -646,7 +646,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
               width: '100%',
               background: 'rgba(17,17,17,0.18)',
               transformOrigin: 'left center',
-              animation: 'priorityHintCountdown 10s linear forwards',
+              animation: 'priorityHintCountdown 20s linear forwards',
               animationPlayState: priorityHintPaused ? 'paused' : 'running',
             }}
           />
