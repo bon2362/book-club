@@ -46,6 +46,10 @@ next-env.d.ts
 # Claude session marker (used by macOS sleep prevention)
 .claude-session-done
 
+# Claude Code worktrees (created on demand, not part of repo state)
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+
 # Allure test results (generated in CI, not committed)
 /allure-results
 /allure-history
