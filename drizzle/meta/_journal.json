@@ -43,6 +43,13 @@
       "when": 1774008631111,
       "tag": "0005_tearful_deathstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778927428621,
+      "tag": "0006_intro_sections",
+      "breakpoints": true
     }
   ]
 }

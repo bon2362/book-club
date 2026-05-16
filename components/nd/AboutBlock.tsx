@@ -1,23 +1,36 @@
 'use client'
 
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
+import { bodyToParagraphs } from '@/lib/intro-format'
 
 export interface AboutBlockHandle {
   openAccordion: () => void
   scrollIntoView: () => void
 }
 
+export interface AboutBlockHeader {
+  title: string
+  body: string
+}
+
+export interface AboutBlockSection {
+  id: string
+  title: string
+  body: string
+}
+
 interface AccordionSectionProps {
   number: number
   question: string
+  body: string
   isOpen: boolean
   onToggle: () => void
-  children: React.ReactNode
 }
 
-function AccordionSection({ number, question, isOpen, onToggle, children }: AccordionSectionProps) {
+function AccordionSection({ number, question, body, isOpen, onToggle }: AccordionSectionProps) {
   const answerId = `about-section-answer-${number}`
   const buttonId = `about-section-btn-${number}`
+  const paragraphs = bodyToParagraphs(body)
 
   return (
     <div
@@ -93,72 +106,25 @@ function AccordionSection({ number, question, isOpen, onToggle, children }: Acco
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
           }}
         >
-          {children}
+          {paragraphs.map((p, idx) => (
+            <p key={idx} style={{ marginBottom: idx === paragraphs.length - 1 ? 0 : '0.4rem' }}>
+              {p}
+            </p>
+          ))}
         </div>
       </div>
     </div>
   )
 }
 
-const SECTIONS: { question: string; content: React.ReactNode }[] = [
-  {
-    question: 'Как это устроено?',
-    content: (
-      <>
-        <p style={{ marginBottom: '0.4rem' }}>
-          Отмечайте книги, которые хотите прочитать. На пересечении интересов определяется группа из 3-4 человек.
-        </p>
-        <p style={{ marginBottom: 0 }}>
-          Мы соберем вас в отдельный чат в Телеграм, где вы договоритесь о встречах — например, раз в неделю на ~30 минут по видеосвязи.
-        </p>
-      </>
-    ),
-  },
-  {
-    question: 'Для кого это?',
-    content: (
-      <>
-        <p style={{ marginBottom: '0.4rem' }}>
-          Для тех, кому совместное чтение помогает в изучении демократии.
-        </p>
-        <p style={{ marginBottom: 0 }}>
-          Мы созваниваемся с включенными камерами — это помогает вовлеченности.
-        </p>
-      </>
-    ),
-  },
-  {
-    question: 'Почему именно демократия?',
-    content: (
-      <>
-        <p style={{ marginBottom: '0.4rem' }}>
-          Нам интересна демократия и связанные с ней темы. Нам интересен сам процесс выяснения, что означает демократия в теории и на практике. У этого процесса заведомо нет конца.
-        </p>
-        <p style={{ marginBottom: '0.4rem' }}>
-          По текущему набору библиотеки можно заметить ассоциации демократии с прогрессивизмом, коллективным самоуправлением, народными движениями, свободой и равенством.
-        </p>
-        <p style={{ marginBottom: 0 }}>
-          Мы приветствуем изменения в библиотеку — предлагайте свои книги.
-        </p>
-      </>
-    ),
-  },
-  {
-    question: 'Чем это не является?',
-    content: (
-      <p style={{ marginBottom: 0 }}>
-        Это не дискуссионный клуб — мы встречаемся не для дебатов. Нам окей, если после обсуждения каждый остается при своем. Мы осознаём, что данный формат — информационный пузырь. Для переубеждения есть другие форматы.
-      </p>
-    ),
-  },
-]
-
 interface AboutBlockProps {
   onClose: () => void
+  header: AboutBlockHeader
+  sections: AboutBlockSection[]
 }
 
 const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutBlock(
-  { onClose },
+  { onClose, header, sections },
   ref
 ) {
   const [isAccordionOpen, setIsAccordionOpen] = useState(false)
@@ -204,6 +170,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
 
   const borderColor = isAccordionOpen ? '#888' : isHovered ? '#999' : '#ccc'
   const bgColor = isAccordionOpen || isHovered ? '#fafafa' : '#fff'
+  const leadParagraphs = bodyToParagraphs(header.body)
 
   return (
     <>
@@ -244,7 +211,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             }}
           >
-            Что это
+            {header.title}
           </div>
 
           {/* L1 row */}
@@ -256,18 +223,19 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
               gap: '1rem',
             }}
           >
-            <p
+            <div
               style={{
                 flex: 1,
                 fontSize: '0.875rem',
                 lineHeight: 1.65,
                 color: '#555',
-                margin: 0,
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               }}
             >
-              Мы собираемся небольшими группами по 3-4 человека, чтобы раз в неделю созваниваться и обсуждать книги по демократии.
-            </p>
+              {leadParagraphs.map((p, idx) => (
+                <p key={idx} style={{ margin: idx === 0 ? 0 : '0.4rem 0 0 0' }}>{p}</p>
+              ))}
+            </div>
             <div
               style={{
                 display: 'flex',
@@ -320,16 +288,15 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
           {/* Accordion */}
           {isAccordionOpen && (
             <div style={{ marginTop: '0.75rem' }} onClick={e => e.stopPropagation()}>
-              {SECTIONS.map((section, idx) => (
+              {sections.map((section, idx) => (
                 <AccordionSection
-                  key={idx}
+                  key={section.id}
                   number={idx + 1}
-                  question={section.question}
+                  question={section.title}
+                  body={section.body}
                   isOpen={openSection === idx}
                   onToggle={() => handleSectionToggle(idx)}
-                >
-                  {section.content}
-                </AccordionSection>
+                />
               ))}
             </div>
           )}
