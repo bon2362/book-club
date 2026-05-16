@@ -51,14 +51,7 @@ test.describe('Редактирование тега в админке', () => {
     await expect(page.locator('textarea').first()).toBeVisible({ timeout: 5000 })
 
     // ── Шаг 2: Находим блок тега "государство" ──────────────────────────
-    // Структура: <div> → <div>государство</div> + <textarea> + <button>Сохранить</button>
-    // XPath: родительский div, содержащий текст тега И textarea
-    const tagBlock = page
-      .locator('div')
-      .filter({ has: page.locator('textarea') })
-      .filter({ hasText: new RegExp(`^\\s*${TARGET_TAG}\\s*$`) })
-      .first()
-
+    const tagBlock = page.getByTestId(`tag-block-${TARGET_TAG}`)
     await expect(tagBlock).toBeVisible({ timeout: 5000 })
 
     const textarea = tagBlock.locator('textarea')

@@ -513,7 +513,7 @@ export default function AdminPanel({
               const isSaving = tagSaving === tag
               const isSaved = tagSavedSet.has(tag)
               return (
-                <div key={tag} style={{ marginBottom: '1.5rem' }}>
+                <div key={tag} data-testid={`tag-block-${tag}`} style={{ marginBottom: '1.5rem' }}>
                   <div
                     style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
