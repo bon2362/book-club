@@ -12,7 +12,7 @@ describe('SubmitBookCard', () => {
 
   it('рендерит подпись', () => {
     render(<SubmitBookCard onClick={() => {}} />)
-    expect(screen.getByText(/Предложите книгу для/i)).toBeInTheDocument()
+    expect(screen.getByText(/Расскажите, что и/i)).toBeInTheDocument()
   })
 
   it('вызывает onClick при клике', () => {
