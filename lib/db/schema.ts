@@ -114,6 +114,18 @@ export const bookPriorities = pgTable('book_priorities', {
   pk: primaryKey({ columns: [t.userId, t.bookName] }),
 }))
 
+export const introSections = pgTable('intro_sections', {
+  id:          text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  kind:        text('kind').notNull(), // 'header' | 'section'
+  sortOrder:   integer('sort_order').notNull().default(0),
+  title:       text('title').notNull().default(''),
+  body:        text('body').notNull().default(''),
+  isPublished: boolean('is_published').notNull().default(true),
+  updatedAt:   timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  kindIdx: index('intro_sections_kind_sort_idx').on(t.kind, t.sortOrder),
+}))
+
 export const notificationQueue = pgTable('notification_queue', {
   id:           text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userName:     text('user_name').notNull(),

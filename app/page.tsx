@@ -6,17 +6,24 @@ import { bookStatuses, tagDescriptions } from '@/lib/db/schema'
 import { SessionProvider } from 'next-auth/react'
 import BooksPage from '@/components/nd/BooksPage'
 import GoogleOneTap from '@/components/nd/GoogleOneTap'
+import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  const [session, books, signups, statuses, tagDescs] = await Promise.all([
+  const [session, books, signups, statuses, tagDescs, intro] = await Promise.all([
     auth(),
     fetchBooksWithCovers(),
     getAllSignups().catch(() => []),
     db.select().from(bookStatuses).catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
+    getIntroData({ onlyPublished: true }).catch(() => ({ header: null, sections: [] })),
   ])
+
+  const introHeader = intro.header ?? { title: DEFAULT_HEADER.title, body: DEFAULT_HEADER.body }
+  const introSections = intro.sections.length > 0
+    ? intro.sections.map(s => ({ id: s.id, title: s.title, body: s.body }))
+    : DEFAULT_SECTIONS.map((s, idx) => ({ id: `default-${idx}`, title: s.title, body: s.body }))
 
   const statusMap = new Map(statuses.map(s => [s.bookId, s.status as 'reading' | 'read']))
 
@@ -42,7 +49,7 @@ export default async function Home() {
   return (
     <SessionProvider>
       {!session && <GoogleOneTap />}
-      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} />
+      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} />
     </SessionProvider>
   )
 }

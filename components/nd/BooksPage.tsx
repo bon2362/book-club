@@ -14,7 +14,7 @@ import ContactsForm from './ContactsForm'
 import ProfileDrawer from './ProfileDrawer'
 import SubmitBookForm from './SubmitBookForm'
 import SubmitBookCard from './SubmitBookCard'
-import AboutBlock, { type AboutBlockHandle } from './AboutBlock'
+import AboutBlock, { type AboutBlockHandle, type AboutBlockHeader, type AboutBlockSection } from './AboutBlock'
 import Footer from './Footer'
 import FeedbackForm from './FeedbackForm'
 import { useScrollHide } from '@/lib/scroll-hide-context'
@@ -23,6 +23,8 @@ interface Props {
   books: BookWithCover[]
   currentUser: UserSignup | null
   tagDescriptions: Record<string, string>
+  introHeader: AboutBlockHeader
+  introSections: AboutBlockSection[]
 }
 
 async function saveSelection(name: string, contacts: string, books: string[]) {
@@ -34,7 +36,7 @@ async function saveSelection(name: string, contacts: string, books: string[]) {
   if (!res.ok) throw new Error(`Signup failed: ${res.status}`)
 }
 
-export default function BooksPage({ books, currentUser, tagDescriptions }: Props) {
+export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections }: Props) {
   const { data: session } = useSession()
   const { isHidden } = useScrollHide()
   const isLoggedIn = !!session?.user?.email
@@ -282,7 +284,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions }: Props
 
       {/* About */}
       {aboutVisible && (
-        <AboutBlock ref={aboutRef} onClose={handleCloseAbout} />
+        <AboutBlock ref={aboutRef} onClose={handleCloseAbout} header={introHeader} sections={introSections} />
       )}
 
       {/* Search + filters */}

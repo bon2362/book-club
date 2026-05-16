@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { UserSignup } from '@/lib/signups'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import Header from './Header'
+import IntroEditor from './IntroEditor'
 
 interface Submission {
   id: string
@@ -43,7 +44,7 @@ interface Props {
   emailToPgIdMap: Record<string, string>
 }
 
-type View = 'users' | 'books' | 'tags' | 'submissions'
+type View = 'users' | 'books' | 'tags' | 'submissions' | 'intro'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 
 const cell: React.CSSProperties = {
@@ -418,7 +419,12 @@ export default function AdminPanel({
           <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
             Заявки ({submissions.length})
           </button>
+          <button style={tabStyle(view === 'intro')} onClick={() => setView('intro')}>
+            Интро
+          </button>
         </div>
+
+        {view === 'intro' && <IntroEditor />}
 
         {/* Users table */}
         {view === 'users' && (
