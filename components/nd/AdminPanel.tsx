@@ -4,8 +4,10 @@ import { useState, useEffect, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
+import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
 import Header from './Header'
 import IntroEditor from './IntroEditor'
+import AdminUserDrawer from './AdminUserDrawer'
 
 interface Submission {
   id: string
@@ -43,8 +45,10 @@ interface Props {
   prioritiesSetMap: Record<string, boolean>
 }
 
-type View = 'users' | 'books' | 'tags' | 'submissions' | 'intro'
+type View = 'users' | 'books' | 'tags' | 'submissions' | 'feedback' | 'intro'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
+type FeedbackFilter = 'all' | 'registered' | 'anonymous'
+type UserSortKey = 'name' | 'telegram' | 'email' | 'books' | 'languages'
 
 const cell: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -97,13 +101,16 @@ export default function AdminPanel({
   allTags,
   tagDescriptions: initialTagDescriptions,
   newFlags: initialNewFlags,
-  userLanguages = {},
   bookPrioritiesMap,
-  prioritiesSetMap,
 }: Props) {
   const router = useRouter()
-  const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
-  const [localPrioritiesMap, setLocalPrioritiesMap] = useState<Record<string, { bookName: string; rank: number }[]>>(bookPrioritiesMap)
+  const [adminUsers, setAdminUsers] = useState<AdminUserSummary[]>([])
+  const [adminUsersLoaded, setAdminUsersLoaded] = useState(false)
+  const [userSearch, setUserSearch] = useState('')
+  const [userSort, setUserSort] = useState<{ key: UserSortKey; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' })
+  const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
+  const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
+  const [userDrawerLoading, setUserDrawerLoading] = useState(false)
   const [view, setView] = useState<View>('users')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
@@ -127,14 +134,54 @@ export default function AdminPanel({
   const [submissionEdits, setSubmissionEdits] = useState<Record<string, Partial<Submission>>>({})
   const [submissionActionLoading, setSubmissionActionLoading] = useState<string | null>(null)
   const [submissionDeleteConfirm, setSubmissionDeleteConfirm] = useState<string | null>(null)
+  const [feedbackItems, setFeedbackItems] = useState<AdminFeedbackItem[]>([])
+  const [feedbackLoaded, setFeedbackLoaded] = useState(false)
+  const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
+  const [feedbackSearch, setFeedbackSearch] = useState('')
 
   useEffect(() => {
     fetch('/api/admin/submissions')
       .then(r => r.json())
-      .then(d => { if (d.success) setSubmissions(d.data) })
+      .then(d => { if (d.success && Array.isArray(d.data)) setSubmissions(d.data) })
       .catch(() => {})
       .finally(() => setSubmissionsLoaded(true))
   }, [])
+
+  useEffect(() => {
+    fetch('/api/admin/users')
+      .then(r => r.json())
+      .then(d => { if (d.success && Array.isArray(d.data)) setAdminUsers(d.data) })
+      .catch(() => {})
+      .finally(() => setAdminUsersLoaded(true))
+  }, [])
+
+  useEffect(() => {
+    if (view !== 'feedback' || feedbackLoaded) return
+    fetch('/api/admin/feedback')
+      .then(r => r.json())
+      .then(d => { if (d.success && Array.isArray(d.data)) setFeedbackItems(d.data) })
+      .catch(() => {})
+      .finally(() => setFeedbackLoaded(true))
+  }, [view, feedbackLoaded])
+
+  async function openUserDrawer(userId: string) {
+    setSelectedAdminUserId(userId)
+    setSelectedAdminUser(null)
+    setUserDrawerLoading(true)
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`)
+      if (!res.ok) return
+      const d = await res.json()
+      if (d.success) setSelectedAdminUser(d.data)
+    } finally {
+      setUserDrawerLoading(false)
+    }
+  }
+
+  function closeUserDrawer() {
+    setSelectedAdminUserId(null)
+    setSelectedAdminUser(null)
+  }
 
   async function handleDeleteUser(userId: string, userName: string) {
     if (!window.confirm(`Удалить пользователя ${userName}? Это действие необратимо.`)) return
@@ -145,7 +192,8 @@ export default function AdminPanel({
         body: JSON.stringify({ userId }),
       })
       if (!res.ok) return
-      setLocalUsers(prev => prev.filter(u => u.userId !== userId))
+      setAdminUsers(prev => prev.filter(u => u.id !== userId))
+      if (selectedAdminUserId === userId) closeUserDrawer()
     } catch {
       // silently ignore
     }
@@ -154,23 +202,21 @@ export default function AdminPanel({
   async function handleRemoveBook(userId: string, bookName: string, userName: string) {
     if (!window.confirm(`Снять ${userName} с книги «${bookName}»?`)) return
     try {
-      const res = await fetch('/api/admin/remove-book', {
+      const res = await fetch('/api/admin/signup-books', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, bookName }),
       })
       if (!res.ok) return
-      setLocalUsers(prev =>
-        prev.map(u => u.userId === userId ? { ...u, selectedBooks: u.selectedBooks.filter(b => b !== bookName) } : u)
-      )
-      setLocalPrioritiesMap(prev => {
-        const books = prev[userId] ?? []
-        const removed = books.find(b => b.bookName === bookName)
-        if (!removed) return prev
-        const updated = books
-          .filter(b => b.bookName !== bookName)
-          .map(b => b.rank > removed.rank ? { ...b, rank: b.rank - 1 } : b)
-        return { ...prev, [userId]: updated }
+      setAdminUsers(prev => prev.map(u => u.id === userId ? { ...u, booksCount: Math.max(0, u.booksCount - 1) } : u))
+      setSelectedAdminUser(prev => {
+        if (!prev || prev.user.id !== userId) return prev
+        return {
+          ...prev,
+          user: { ...prev.user, booksCount: Math.max(0, prev.user.booksCount - 1) },
+          signupBooks: prev.signupBooks.filter(b => b.bookName !== bookName),
+          priorities: prev.priorities.filter(p => p.bookName !== bookName),
+        }
       })
     } catch {
       // silently ignore
@@ -360,6 +406,43 @@ export default function AdminPanel({
     ? submissions
     : submissions.filter(s => s.status === submissionFilter)
 
+  const filteredAdminUsers = adminUsers
+    .filter(u => {
+      const q = userSearch.trim().toLowerCase()
+      if (!q) return true
+      return `${u.name} ${u.email}`.toLowerCase().includes(q)
+    })
+    .sort((a, b) => {
+      const dir = userSort.dir === 'asc' ? 1 : -1
+      const value = (u: AdminUserSummary) => {
+        if (userSort.key === 'books') return u.booksCount
+        if (userSort.key === 'languages') return u.languages.join(', ')
+        if (userSort.key === 'telegram') return u.telegramUsername ?? u.contacts ?? ''
+        return u[userSort.key] ?? ''
+      }
+      const av = value(a)
+      const bv = value(b)
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+      return String(av).localeCompare(String(bv), 'ru') * dir
+    })
+
+  const feedbackCounts = {
+    all: feedbackItems.length,
+    registered: feedbackItems.filter(f => f.userId).length,
+    anonymous: feedbackItems.filter(f => !f.userId).length,
+  }
+  const filteredFeedback = feedbackItems.filter(item => {
+    if (feedbackFilter === 'registered' && !item.userId) return false
+    if (feedbackFilter === 'anonymous' && item.userId) return false
+    const q = feedbackSearch.trim().toLowerCase()
+    if (!q) return true
+    return `${item.message} ${item.userName ?? item.name ?? ''} ${item.userEmail ?? item.email ?? ''}`.toLowerCase().includes(q)
+  })
+
+  function setSort(key: UserSortKey) {
+    setUserSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
+  }
+
   const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
   const submissionStatusColor: Record<string, string> = { pending: '#C0603A', approved: '#2E7D32', rejected: '#999' }
 
@@ -404,7 +487,7 @@ export default function AdminPanel({
         {/* Tabs */}
         <div style={{ borderBottom: '1px solid #E5E5E5', marginBottom: '1.5rem' }}>
           <button style={tabStyle(view === 'users')} onClick={() => setView('users')}>
-            Участники ({localUsers.length})
+            Участники ({adminUsersLoaded ? adminUsers.length : users.length})
           </button>
           <button style={tabStyle(view === 'books')} onClick={() => setView('books')}>
             По книгам ({byBook.length})
@@ -414,6 +497,9 @@ export default function AdminPanel({
           </button>
           <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
             Заявки ({submissions.length})
+          </button>
+          <button style={tabStyle(view === 'feedback')} onClick={() => setView('feedback')}>
+            Фидбеки ({feedbackItems.length})
           </button>
           <button style={tabStyle(view === 'intro')} onClick={() => setView('intro')}>
             Интро
@@ -425,75 +511,55 @@ export default function AdminPanel({
         {/* Users table */}
         {view === 'users' && (
           <div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.9rem' }}>
+              <input
+                value={userSearch}
+                onChange={e => setUserSearch(e.target.value)}
+                placeholder="Поиск по имени или email"
+                aria-label="Поиск пользователей"
+                style={{ ...fieldInput, maxWidth: 420, borderBottomColor: '#111' }}
+              />
+              <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: '#999' }}>
+                {adminUsersLoaded ? `${filteredAdminUsers.length} из ${adminUsers.length}` : 'Загрузка…'}
+              </span>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', border: '1px solid #E5E5E5' }}>
               <thead>
                 <tr>
-                  <th style={headCell}>Имя</th>
-                  <th style={headCell}>Telegram</th>
-                  <th style={headCell}>Email</th>
-                  <th style={headCell}>Языки</th>
-                  <th style={headCell}>Книги</th>
-                  <th style={headCell}></th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('name')}>Имя{userSort.key === 'name' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('telegram')}>Telegram{userSort.key === 'telegram' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('email')}>Email{userSort.key === 'email' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
+                  <th style={{ ...headCell, cursor: 'pointer', textAlign: 'right' }} onClick={() => setSort('books')}>Книг{userSort.key === 'books' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('languages')}>Языки{userSort.key === 'languages' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
                 </tr>
               </thead>
               <tbody>
-                {localUsers.map(u => {
-                  const priSet = prioritiesSetMap[u.userId] ?? false
-                  const userPriorities = localPrioritiesMap[u.userId] ?? []
-                  const rankMap = new Map(userPriorities.map(p => [p.bookName, p.rank]))
-                  const ranked = u.selectedBooks
-                    .filter(b => rankMap.has(b))
-                    .sort((a, b) => rankMap.get(a)! - rankMap.get(b)!)
-                  const unranked = u.selectedBooks.filter(b => !rankMap.has(b))
-                  const sortedBooks = priSet ? [...ranked, ...unranked] : u.selectedBooks
+                {!adminUsersLoaded && (
+                  <tr><td colSpan={5} style={{ ...cell, color: '#999' }}>Загрузка пользователей…</td></tr>
+                )}
+                {adminUsersLoaded && filteredAdminUsers.length === 0 && (
+                  <tr><td colSpan={5} style={{ ...cell, color: '#999' }}>Никого не найдено</td></tr>
+                )}
+                {filteredAdminUsers.map(u => {
+                  const telegram = u.telegramUsername ? `@${u.telegramUsername}` : (u.contacts?.startsWith('@') ? u.contacts : '—')
                   return (
-                    <tr key={u.userId}>
-                      <td style={cell}>{u.name}</td>
-                      <td style={cell}>{u.contacts}</td>
+                    <tr
+                      key={u.id}
+                      onClick={() => openUserDrawer(u.id)}
+                      style={{ cursor: 'pointer', transition: 'background 0.1s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <td style={{ ...cell, fontWeight: 700 }}>{u.name || <span style={{ color: '#bbb' }}>—</span>}</td>
+                      <td style={cell}>{telegram}</td>
                       <td style={{ ...cell, color: '#666' }}>{u.email}</td>
+                      <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? '#111' : '#BBB' }}>{u.booksCount}</td>
                       <td style={{ ...cell, color: '#666' }}>
-                        {(userLanguages[u.userId] ?? []).join(', ') || <span style={{ color: '#ccc' }}>—</span>}
-                      </td>
-                      <td style={cell}>
-                        {!priSet && (
-                          <div style={{ fontSize: '0.65rem', color: '#aaa', fontStyle: 'italic', marginBottom: '0.25rem' }}>
-                            Приоритеты не расставлены
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                          {sortedBooks.map(book => {
-                            const rank = rankMap.get(book)
-                            const numLabel = !priSet ? '?' : rank !== undefined ? String(rank) : '+'
-                            const numBg = !priSet || rank === undefined ? '#E5E5E5' : '#111'
-                            const numColor = !priSet || rank === undefined ? '#aaa' : '#fff'
-                            return (
-                              <span key={book} style={{ display: 'inline-flex', alignItems: 'center', background: '#F5F5F5', fontSize: '0.75rem', overflow: 'hidden' }}>
-                                <span style={{ background: numBg, color: numColor, padding: '0.15rem 0.35rem', fontWeight: 700, fontSize: '0.7rem', flexShrink: 0 }}>
-                                  {numLabel}
-                                </span>
-                                <span style={{ padding: '0.15rem 0.4rem' }}>{book}</span>
-                                <button
-                                  onClick={() => handleRemoveBook(u.userId, book, u.name)}
-                                  title="Снять с книги"
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem', lineHeight: 1, padding: '0 0.2rem' }}
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            )
-                          })}
-                        </div>
-                      </td>
-                      <td style={{ ...cell, textAlign: 'right' }}>
-                        <button
-                          onClick={() => {
-                            handleDeleteUser(u.userId, u.name)
-                          }}
-                          title="Удалить пользователя"
-                          style={{ background: 'none', border: '1px solid #E5E5E5', cursor: 'pointer', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                        >
-                          Удалить
-                        </button>
+                        {u.languages.length === 0 ? <span style={{ color: '#ccc' }}>—</span> : u.languages.map(lang => (
+                          <span key={lang} style={{ display: 'inline-block', padding: '0.08rem 0.38rem', marginRight: '0.25rem', background: '#F0F0F0', color: '#555', fontSize: '0.68rem', borderRadius: 2, textTransform: 'uppercase' }}>
+                            {lang}
+                          </span>
+                        ))}
                       </td>
                     </tr>
                   )
@@ -906,7 +972,80 @@ export default function AdminPanel({
             )}
           </div>
         )}
+
+        {view === 'feedback' && (
+          <div>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+              <input
+                value={feedbackSearch}
+                onChange={e => setFeedbackSearch(e.target.value)}
+                placeholder="Поиск по тексту, имени или email"
+                aria-label="Поиск фидбеков"
+                style={{ ...fieldInput, maxWidth: 420 }}
+              />
+              {(['all', 'registered', 'anonymous'] as const).map(f => {
+                const labels = { all: 'Все', registered: 'Зарегистрированные', anonymous: 'Анонимные' }
+                return (
+                  <button key={f} onClick={() => setFeedbackFilter(f)} style={filterBtnStyle(feedbackFilter === f)}>
+                    {labels[f]} ({feedbackCounts[f]})
+                  </button>
+                )
+              })}
+            </div>
+            {!feedbackLoaded && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', color: '#666' }}>Загрузка…</p>}
+            {feedbackLoaded && filteredFeedback.length === 0 && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', color: '#999' }}>Нет фидбеков</p>}
+            {feedbackLoaded && filteredFeedback.length > 0 && (
+              <div style={{ display: 'grid', gap: '0.6rem' }}>
+                {filteredFeedback.map(item => {
+                  const displayName = item.userName ?? item.name ?? 'Аноним'
+                  const displayEmail = item.userEmail ?? item.email
+                  return (
+                    <article key={item.id} style={{ border: '1px solid #E5E5E5', background: '#fff', padding: '0.8rem 0.9rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.45rem', alignItems: 'baseline' }}>
+                        <div>
+                          {item.userId ? (
+                            <button onClick={() => openUserDrawer(item.userId!)} style={{ background: 'none', border: 'none', padding: 0, color: '#111', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--nd-sans), system-ui, sans-serif' }}>
+                              {displayName}
+                            </button>
+                          ) : (
+                            <span style={{ fontWeight: 700 }}>{displayName}</span>
+                          )}
+                          {displayEmail && <span style={{ color: '#999', marginLeft: '0.5rem', fontSize: '0.78rem' }}>{displayEmail}</span>}
+                          {!item.userId && <span style={{ marginLeft: '0.5rem', background: '#F0F0F0', color: '#777', borderRadius: 2, padding: '0.08rem 0.4rem', fontSize: '0.68rem' }}>Аноним</span>}
+                        </div>
+                        <time style={{ color: '#999', fontSize: '0.72rem' }}>{new Date(item.createdAt).toLocaleString('ru-RU')}</time>
+                      </div>
+                      <div style={{ whiteSpace: 'pre-wrap', color: '#333', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.86rem', lineHeight: 1.55 }}>
+                        {item.message}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </main>
+      <AdminUserDrawer
+        isOpen={selectedAdminUserId !== null}
+        data={selectedAdminUser}
+        loading={userDrawerLoading}
+        onClose={closeUserDrawer}
+        onRemoveSignup={(bookName) => {
+          if (!selectedAdminUser) return
+          handleRemoveBook(selectedAdminUser.user.id, bookName, selectedAdminUser.user.name || selectedAdminUser.user.email)
+        }}
+        onDeleteUser={() => {
+          if (!selectedAdminUser) return
+          handleDeleteUser(selectedAdminUser.user.id, selectedAdminUser.user.name || selectedAdminUser.user.email)
+        }}
+        onOpenSubmission={(submissionId) => {
+          closeUserDrawer()
+          setView('submissions')
+          setSubmissionFilter('all')
+          setSelectedSubmissionId(submissionId)
+        }}
+      />
     </>
   )
 }

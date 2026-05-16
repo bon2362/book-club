@@ -59,12 +59,14 @@ test.describe('Удаление пользователя в админке', () 
     // Принимаем confirm-диалог перед кликом
     page.on('dialog', dialog => dialog.accept())
 
-    // Находим строку жертвы и кликаем "Удалить"
+    // Находим строку жертвы, открываем карточку и удаляем из drawer
     const victimRow = page.locator('tr').filter({ hasText: VICTIM_NAME })
-    await victimRow.getByTitle('Удалить пользователя').click()
+    await victimRow.click()
+    await expect(page.getByRole('dialog')).toContainText(VICTIM_NAME)
+    await page.getByRole('dialog').getByRole('button', { name: /удалить пользователя/i }).click()
 
     // Жертва исчезла из таблицы (локальный стейт)
-    await expect(page.getByText(VICTIM_NAME)).not.toBeVisible()
+    await expect(page.locator('tr').filter({ hasText: VICTIM_NAME })).toHaveCount(0)
 
     const afterDelete = await page.request.get(`/api/test/user?email=${encodeURIComponent(VICTIM_EMAIL)}`)
     const afterDeleteData = await afterDelete.json()
@@ -78,6 +80,6 @@ test.describe('Удаление пользователя в админке', () 
     await page.waitForLoadState('networkidle')
 
     // Жертва не должна появиться снова
-    await expect(page.getByText(VICTIM_NAME)).not.toBeVisible()
+    await expect(page.locator('tr').filter({ hasText: VICTIM_NAME })).toHaveCount(0)
   })
 })

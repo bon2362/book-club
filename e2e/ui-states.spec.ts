@@ -52,3 +52,37 @@ test.describe('Header: hide on scroll down', () => {
     expect(await isFullyVisible(page, 'header')).toBe(true)
   })
 })
+
+test.describe('Admin user drawer layout', () => {
+  const ADMIN_EMAIL = 'e2e-ui-admin@test.invalid'
+  const USER_EMAIL = 'e2e-ui-drawer-user@test.invalid'
+  const USER_ID = `test:${USER_EMAIL}`
+  const USER_NAME = 'E2E UI Drawer User'
+
+  test.afterEach(async ({ page }) => {
+    await page.request.delete('/api/test/signup', { data: { userId: USER_ID } })
+    await page.request.delete('/api/test/session', { data: { email: ADMIN_EMAIL } })
+    await page.request.delete('/api/test/session', { data: { email: USER_EMAIL } })
+  })
+
+  test('drawer slides in from the right within viewport bounds', async ({ page }) => {
+    await page.request.post('/api/test/session', { data: { email: USER_EMAIL, name: USER_NAME } })
+    await page.request.post('/api/test/signup', {
+      data: { userId: USER_ID, name: USER_NAME, email: USER_EMAIL, contacts: '@ui_drawer', selectedBooks: ['Тестовая книга 1'] },
+    })
+    await page.request.post('/api/test/session', { data: { email: ADMIN_EMAIL, name: 'E2E UI Admin', isAdmin: true } })
+
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByLabel('Поиск пользователей').fill(USER_EMAIL)
+    await page.locator('tr').filter({ hasText: USER_EMAIL }).click()
+    await page.waitForTimeout(350)
+
+    const box = await page.getByRole('dialog').boundingBox()
+    const viewport = page.viewportSize()!
+    expect(box).not.toBeNull()
+    expect(box!.width).toBeLessThanOrEqual(640)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width + 1)
+    expect(box!.x).toBeGreaterThanOrEqual(Math.max(0, viewport.width - 641))
+  })
+})
