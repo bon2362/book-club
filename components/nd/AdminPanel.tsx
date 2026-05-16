@@ -191,11 +191,15 @@ export default function AdminPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null
+        setSyncMsg(`Не удалось удалить пользователя: ${data?.error || res.statusText}`)
+        return
+      }
       setAdminUsers(prev => prev.filter(u => u.id !== userId))
       if (selectedAdminUserId === userId) closeUserDrawer()
     } catch {
-      // silently ignore
+      setSyncMsg('Не удалось удалить пользователя: ошибка сети')
     }
   }
 

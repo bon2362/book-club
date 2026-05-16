@@ -84,13 +84,15 @@ describe('DELETE /api/admin/delete-user', () => {
     expect(res.status).toBe(400)
   })
 
-  it('возвращает 400 при email вместо UUID', async () => {
+  it('принимает legacy id, который уже пришёл из DB-списка пользователей', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
 
-    const res = await DELETE(makeRequest({ userId: 'user@test.com' }))
+    const res = await DELETE(makeRequest({ userId: 'test:user@test.com' }))
+    const data = await res.json()
 
-    expect(res.status).toBe(400)
-    expect(mockDelete).not.toHaveBeenCalled()
+    expect(res.status).toBe(200)
+    expect(data.ok).toBe(true)
+    expect(mockDelete).toHaveBeenCalled()
   })
 
   it('возвращает 200 и удаляет пользователя из DB', async () => {
