@@ -9,6 +9,9 @@ interface Props {
 export default function SubmitBookCard({ onClick }: Props) {
   const [hovered, setHovered] = useState(false)
 
+  const accent = '#C0603A'
+  const idle = '#D8D2CC'
+
   return (
     <button
       onClick={onClick}
@@ -18,59 +21,115 @@ export default function SubmitBookCard({ onClick }: Props) {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.75rem',
         width: '100%',
-        minHeight: '200px',
-        background: hovered ? '#FEF8F5' : '#fff',
-        border: `2px dashed ${hovered ? '#C0603A' : '#E5E5E5'}`,
+        padding: 0,
+        background: '#fff',
+        border: `1px solid ${hovered ? accent : '#E5E5E5'}`,
         cursor: 'pointer',
-        padding: '1.5rem',
-        transition: 'background 0.15s, border-color 0.15s',
-        boxSizing: 'border-box',
-        textAlign: 'center',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+        transition: 'border-color 0.15s',
       }}
     >
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={hovered ? '#C0603A' : '#bbb'}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        style={{ transition: 'stroke 0.15s', flexShrink: 0 }}
-      >
-        <path d="M12 5v14M5 12h14" />
-      </svg>
-
-      <span
+      <div
         style={{
-          fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-          fontSize: '0.8rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: hovered ? '#C0603A' : '#555',
-          fontWeight: 600,
-          transition: 'color 0.15s',
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '2/3',
+          background: hovered ? '#FEF8F5' : '#FAFAF8',
+          overflow: 'hidden',
+          transition: 'background 0.15s',
         }}
       >
-        Предложить книгу
-      </span>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: '14px',
+            background: hovered ? accent : '#E2D9D2',
+            transition: 'background 0.15s',
+          }}
+        />
 
-      <span
-        style={{
-          fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-          fontSize: '0.7rem',
-          color: '#999',
-          lineHeight: 1.5,
-        }}
-      >
-        Предложите книгу для&nbsp;клуба
-      </span>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: '14px',
+            right: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '1.25rem 1.1rem',
+          }}
+        >
+          <div
+            style={{
+              alignSelf: 'flex-start',
+              width: '32px',
+              height: '32px',
+              border: `1.5px solid ${hovered ? accent : idle}`,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'border-color 0.15s',
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={hovered ? accent : '#9A8E84'}
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+              style={{ transition: 'stroke 0.15s' }}
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+            <div style={{ height: '6px', width: '85%', background: idle }} />
+            <div style={{ height: '6px', width: '70%', background: idle }} />
+            <div style={{ height: '6px', width: '55%', background: idle }} />
+          </div>
+
+          <div />
+        </div>
+      </div>
+
+      <div style={{ padding: '0.75rem 0.85rem 0.9rem', borderTop: '1px solid #F0EBE6' }}>
+        <div
+          style={{
+            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            color: hovered ? accent : '#111',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            transition: 'color 0.15s',
+          }}
+        >
+          Предложить книгу
+        </div>
+        <div
+          style={{
+            marginTop: '0.25rem',
+            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+            fontSize: '0.7rem',
+            color: '#888',
+            lineHeight: 1.4,
+          }}
+        >
+          Расскажите, что и&nbsp;почему стоит прочитать
+        </div>
+      </div>
     </button>
   )
 }
