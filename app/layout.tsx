@@ -19,6 +19,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: '#7d8866',
 }
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
     telephone: false,
     address: false,
   },
+  manifest: '/manifest.webmanifest',
   title: "Долгое наступление",
   description: "Читательские круги — записывайтесь на совместное чтение и обсуждение книг",
   openGraph: {
