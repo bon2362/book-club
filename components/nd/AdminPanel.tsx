@@ -810,6 +810,30 @@ export default function AdminPanel({
                                   />
                                 </div>
                                 <div>
+                                  <div style={fieldLabel}>Ссылка на обложку</div>
+                                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                                    <input
+                                      value={edits.coverUrl ?? sub.coverUrl ?? ''}
+                                      onChange={e => updateSubmissionEdit(sub.id, 'coverUrl', e.target.value || null)}
+                                      placeholder="https://…"
+                                      style={{ ...fieldInput, flex: 1 }}
+                                    />
+                                    {(() => {
+                                      const url = (edits.coverUrl ?? sub.coverUrl ?? '').trim()
+                                      if (!url) return null
+                                      return (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={url}
+                                          alt="Превью обложки"
+                                          style={{ width: '48px', height: '72px', objectFit: 'cover', border: '1px solid #DDD', background: '#F5F5F5' }}
+                                          onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
+                                        />
+                                      )
+                                    })()}
+                                  </div>
+                                </div>
+                                <div>
                                   <div style={fieldLabel}>Причина отказа (отправится пользователю в письме)</div>
                                   <textarea
                                     value={edits.rejectionReason ?? sub.rejectionReason ?? ''}
