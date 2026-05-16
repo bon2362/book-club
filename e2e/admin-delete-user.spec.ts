@@ -6,6 +6,7 @@ const ADMIN_NAME = 'E2E Admin'
 const VICTIM_EMAIL = 'e2e-delete-victim@test.invalid'
 const VICTIM_NAME = 'E2E Жертва Удаления'
 const VICTIM_CONTACT = '@e2e_delete_victim'
+const VICTIM_ID = `test:${VICTIM_EMAIL}`
 
 test.describe('Удаление пользователя в админке', () => {
   test.setTimeout(120_000) // Google Sheets API may be slow
@@ -18,9 +19,9 @@ test.describe('Удаление пользователя в админке', () 
       data: { email: VICTIM_EMAIL, name: VICTIM_NAME },
     })
     // 2. Пишем сигнап жертвы напрямую в Google Sheets (обычный /api/signup
-    //    пропускает запись в Sheets в NEXTAUTH_TEST_MODE)
+    //    работает через UI-флоу, а здесь нужна компактная фикстура)
     await page.request.post('/api/test/signup', {
-      data: { userId: VICTIM_EMAIL, name: VICTIM_NAME, email: VICTIM_EMAIL, contacts: VICTIM_CONTACT, selectedBooks: [] },
+      data: { userId: VICTIM_ID, name: VICTIM_NAME, email: VICTIM_EMAIL, contacts: VICTIM_CONTACT, selectedBooks: ['Тестовая книга 1'] },
     })
 
     // 3. Переключаемся на сессию администратора
@@ -32,7 +33,7 @@ test.describe('Удаление пользователя в админке', () 
   test.afterEach(async ({ page }) => {
     // Помечаем запись жертвы в Sheets как TO DELETE (cleanup)
     await page.request.delete('/api/test/signup', {
-      data: { userId: VICTIM_EMAIL },
+      data: { userId: VICTIM_ID },
     })
     // Чистим обоих пользователей из БД
     await page.request.delete('/api/test/session', {
@@ -45,7 +46,9 @@ test.describe('Удаление пользователя в админке', () 
 
   test('удалённый пользователь не появляется после перезагрузки страницы', async ({ page }) => {
     const beforeDelete = await page.request.get(`/api/test/user?email=${encodeURIComponent(VICTIM_EMAIL)}`)
-    expect((await beforeDelete.json()).exists).toBe(true)
+    const beforeDeleteData = await beforeDelete.json()
+    expect(beforeDeleteData.exists).toBe(true)
+    expect(beforeDeleteData.signupBookCount).toBe(1)
 
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
@@ -68,6 +71,7 @@ test.describe('Удаление пользователя в админке', () 
     expect(afterDeleteData.exists).toBe(false)
     expect(afterDeleteData.accountCount).toBe(0)
     expect(afterDeleteData.sessionCount).toBe(0)
+    expect(afterDeleteData.signupBookCount).toBe(0)
 
     // Перезагружаем страницу — ключевая проверка: данные читаются заново из Sheets
     await page.reload()

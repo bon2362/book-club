@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getAllSignups } from '@/lib/signups'
+import { getAllSignups } from '@/lib/signup-books'
 import { fetchBooksWithCovers } from '@/lib/books-with-covers'
 import { db } from '@/lib/db'
 import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } from '@/lib/db/schema'
@@ -28,15 +28,13 @@ export default async function AdminPage() {
   ])
 
   const userLanguagesMap: Record<string, string[]> = {}
-  const emailToPgIdMap: Record<string, string> = {}
   const prioritiesSetMap: Record<string, boolean> = {}
   for (const row of languageRows) {
-    if (row.email && row.id) {
-      emailToPgIdMap[row.email] = row.id
+    if (row.id) {
       prioritiesSetMap[row.id] = row.prioritiesSet ?? false
     }
-    if (row.languages && row.email) {
-      try { userLanguagesMap[row.email] = JSON.parse(row.languages) } catch { /* skip */ }
+    if (row.languages && row.id) {
+      try { userLanguagesMap[row.id] = JSON.parse(row.languages) } catch { /* skip */ }
     }
   }
 
@@ -88,7 +86,6 @@ export default async function AdminPage() {
           userLanguages={userLanguagesMap}
           bookPrioritiesMap={bookPrioritiesMap}
           prioritiesSetMap={prioritiesSetMap}
-          emailToPgIdMap={emailToPgIdMap}
         />
       </SessionProvider>
       <footer style={{

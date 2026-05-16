@@ -2,9 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { getAllSignups } from '@/lib/signups'
+import { getAllSignups } from '@/lib/signup-books'
 import { db } from '@/lib/db'
-import { bookPriorities, users } from '@/lib/db/schema'
+import { bookPriorities } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
@@ -25,25 +25,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ users: [] })
   }
 
-  // NOTE: userId in Google Sheets signups stores the user's email (session.user.email),
-  // NOT the Postgres UUID. We must look up users by email to get their Postgres IDs
-  // for querying bookPriorities (which uses Postgres UUID as userId).
-  const signupEmails = bookSignups.map(s => s.userId) // userId in sheets = email
-
-  // Fetch Postgres users by email to get their IDs and prioritiesSet flag
-  const userRows = await db
-    .select({ id: users.id, email: users.email, prioritiesSet: users.prioritiesSet })
-    .from(users)
-    .where(inArray(users.email, signupEmails))
-
-  // Map email → { id, prioritiesSet }
-  const userByEmail = Object.fromEntries(userRows.map(r => [r.email, r]))
-
-  // Collect Postgres user IDs for priority lookup
-  const pgUserIds = userRows.map(r => r.id)
+  const userIds = bookSignups.map(s => s.userId)
 
   // Fetch priority rows for this specific book
-  const priorityRows = pgUserIds.length > 0
+  const priorityRows = userIds.length > 0
     ? await db
         .select({
           userId: bookPriorities.userId,
@@ -54,7 +39,7 @@ export async function GET(req: NextRequest) {
         .where(
           and(
             eq(bookPriorities.bookName, bookName),
-            inArray(bookPriorities.userId, pgUserIds)
+            inArray(bookPriorities.userId, userIds)
           )
         )
     : []
@@ -65,10 +50,8 @@ export async function GET(req: NextRequest) {
   )
 
   const result = bookSignups.map(s => {
-    const pgUser = userByEmail[s.userId] // userId in sheets = email
-    const pgId = pgUser?.id
-    const prioritiesSet = pgUser?.prioritiesSet ?? false
-    const priorityInfo = pgId ? priorityByPgId[pgId] : undefined
+    const prioritiesSet = s.prioritiesSet ?? false
+    const priorityInfo = priorityByPgId[s.userId]
 
     return {
       ...s,

@@ -4,11 +4,9 @@
 import { NextRequest } from 'next/server'
 import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
-import * as signups from '@/lib/signups'
 import * as dbModule from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/signups', () => ({ markSignupDeletedByAdmin: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
     delete: jest.fn().mockReturnValue({
@@ -18,7 +16,6 @@ jest.mock('@/lib/db', () => ({
 }))
 
 const mockAuth = authModule.auth as jest.Mock
-const mockMarkDeleted = signups.markSignupDeletedByAdmin as jest.Mock
 const mockDelete = dbModule.db.delete as jest.Mock
 const UUID = '123e4567-e89b-42d3-a456-426614174000'
 
@@ -35,21 +32,21 @@ describe('DELETE /api/admin/delete-user — security', () => {
     mockAuth.mockResolvedValue({ user: { email: 'user@test.com' } })
     const res = await DELETE(makeRequest({ userId: UUID }))
     expect(res.status).toBe(403)
-    expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
+    expect(mockDelete).not.toHaveBeenCalled()
   })
 
   it('[SEC] возвращает 403 при isAdmin=null', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'user@test.com', isAdmin: null } })
     const res = await DELETE(makeRequest({ userId: UUID }))
     expect(res.status).toBe(403)
-    expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
+    expect(mockDelete).not.toHaveBeenCalled()
   })
 
   it('[SEC] не-админ не может удалить чужой аккаунт', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'attacker@test.com', isAdmin: false } })
     const res = await DELETE(makeRequest({ userId: UUID }))
     expect(res.status).toBe(403)
-    expect(signups.markSignupDeletedByAdmin).not.toHaveBeenCalled()
+    expect(mockDelete).not.toHaveBeenCalled()
   })
 
   it('[SEC] NEXTAUTH_TEST_MODE не обходит проверку isAdmin', async () => {
@@ -96,16 +93,14 @@ describe('DELETE /api/admin/delete-user', () => {
     expect(mockDelete).not.toHaveBeenCalled()
   })
 
-  it('возвращает 200 и удаляет пользователя из DB и Sheets', async () => {
+  it('возвращает 200 и удаляет пользователя из DB', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
-    mockMarkDeleted.mockResolvedValue(undefined)
 
-    const res = await DELETE(makeRequest({ userId: UUID, signupUserId: 'user@test.com' }))
+    const res = await DELETE(makeRequest({ userId: UUID }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(mockDelete).toHaveBeenCalled()
-    expect(signups.markSignupDeletedByAdmin).toHaveBeenCalledWith('user@test.com')
   })
 })

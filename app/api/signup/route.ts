@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { upsertSignup } from '@/lib/signups'
+import { upsertSignup } from '@/lib/signup-books'
 import { db } from '@/lib/db'
 import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
@@ -23,18 +23,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const result = await upsertSignup({
-    userId: session.user.email,
-    name: name.trim(),
-    email: session.user.email,
-    contacts: contacts.trim(),
-    selectedBooks,
-  })
-
   await db.update(users).set({
     name: name.trim(),
     contacts: contacts.trim(),
   }).where(eq(users.id, pgUserId))
+
+  const result = await upsertSignup(pgUserId, selectedBooks as string[])
 
   // Clean up book_priorities for books no longer in selectedBooks.
   // Uses session.user.id (Postgres user UUID), not session.user.email (Sheets userId).

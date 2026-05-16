@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
-import type { UserSignup } from '@/lib/signups'
+import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import Header from './Header'
 import IntroEditor from './IntroEditor'
@@ -41,7 +41,6 @@ interface Props {
   userLanguages?: Record<string, string[]>
   bookPrioritiesMap: Record<string, { bookName: string; rank: number }[]>
   prioritiesSetMap: Record<string, boolean>
-  emailToPgIdMap: Record<string, string>
 }
 
 type View = 'users' | 'books' | 'tags' | 'submissions' | 'intro'
@@ -101,7 +100,6 @@ export default function AdminPanel({
   userLanguages = {},
   bookPrioritiesMap,
   prioritiesSetMap,
-  emailToPgIdMap,
 }: Props) {
   const router = useRouter()
   const [localUsers, setLocalUsers] = useState<UserSignup[]>(users)
@@ -138,16 +136,16 @@ export default function AdminPanel({
       .finally(() => setSubmissionsLoaded(true))
   }, [])
 
-  async function handleDeleteUser(userId: string, signupUserId: string, userName: string) {
+  async function handleDeleteUser(userId: string, userName: string) {
     if (!window.confirm(`Удалить пользователя ${userName}? Это действие необратимо.`)) return
     try {
       const res = await fetch('/api/admin/delete-user', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, signupUserId }),
+        body: JSON.stringify({ userId }),
       })
       if (!res.ok) return
-      setLocalUsers(prev => prev.filter(u => u.userId !== signupUserId))
+      setLocalUsers(prev => prev.filter(u => u.userId !== userId))
     } catch {
       // silently ignore
     }
@@ -166,15 +164,13 @@ export default function AdminPanel({
         prev.map(u => u.userId === userId ? { ...u, selectedBooks: u.selectedBooks.filter(b => b !== bookName) } : u)
       )
       setLocalPrioritiesMap(prev => {
-        const pgId = emailToPgIdMap[userId]
-        if (!pgId) return prev
-        const books = prev[pgId] ?? []
+        const books = prev[userId] ?? []
         const removed = books.find(b => b.bookName === bookName)
         if (!removed) return prev
         const updated = books
           .filter(b => b.bookName !== bookName)
           .map(b => b.rank > removed.rank ? { ...b, rank: b.rank - 1 } : b)
-        return { ...prev, [pgId]: updated }
+        return { ...prev, [userId]: updated }
       })
     } catch {
       // silently ignore
@@ -442,9 +438,8 @@ export default function AdminPanel({
               </thead>
               <tbody>
                 {localUsers.map(u => {
-                  const pgId = emailToPgIdMap[u.userId]
-                  const priSet = pgId ? (prioritiesSetMap[pgId] ?? false) : false
-                  const userPriorities = pgId ? (localPrioritiesMap[pgId] ?? []) : []
+                  const priSet = prioritiesSetMap[u.userId] ?? false
+                  const userPriorities = localPrioritiesMap[u.userId] ?? []
                   const rankMap = new Map(userPriorities.map(p => [p.bookName, p.rank]))
                   const ranked = u.selectedBooks
                     .filter(b => rankMap.has(b))
@@ -492,12 +487,10 @@ export default function AdminPanel({
                       <td style={{ ...cell, textAlign: 'right' }}>
                         <button
                           onClick={() => {
-                            const pgId = emailToPgIdMap[u.userId]
-                            if (pgId) handleDeleteUser(pgId, u.userId, u.name)
+                            handleDeleteUser(u.userId, u.name)
                           }}
-                          disabled={!pgId}
                           title="Удалить пользователя"
-                          style={{ background: 'none', border: '1px solid #E5E5E5', cursor: pgId ? 'pointer' : 'not-allowed', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: pgId ? 1 : 0.45 }}
+                          style={{ background: 'none', border: '1px solid #E5E5E5', cursor: 'pointer', color: '#999', fontSize: '0.65rem', padding: '0.2rem 0.5rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.06em' }}
                         >
                           Удалить
                         </button>
@@ -614,8 +607,7 @@ export default function AdminPanel({
                     <td style={{ ...cell, color: '#666' }}>
                       {(() => {
                         const withRanks = bookUsers.map(u => {
-                          const pgId = emailToPgIdMap[u.userId]
-                          const userPriorities = pgId ? (bookPrioritiesMap[pgId] ?? []) : [] // uses original prop intentionally; По книгам is static server data
+                          const userPriorities = bookPrioritiesMap[u.userId] ?? [] // uses original prop intentionally; По книгам is static server data
                           const entry = userPriorities.find(p => p.bookName === book.name)
                           return { name: u.name, rank: entry?.rank ?? null, userId: u.userId }
                         })

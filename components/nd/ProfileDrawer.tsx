@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
-import type { UserSignup } from '@/lib/signups'
+import type { UserSignup } from '@/lib/signup-books'
 import {
   DndContext,
   PointerSensor,
