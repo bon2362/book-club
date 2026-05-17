@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Прототип · Админка → Пользователи</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #FAFAFA;
+    color: #111;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ---------- top header (mimics existing admin) ---------- */
+  .admin-shell { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+  .admin-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    margin: 0 0 4px;
+  }
+  .admin-sub {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .tabs-row {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #E5E5E5;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #999;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-family: inherit;
+  }
+  .tab:hover { color: #111; }
+  .tab.active { color: #111; border-bottom-color: #111; }
+
+  /* ---------- search ---------- */
+  .search-row { display: flex; gap: 12px; margin-bottom: 14px; align-items: center; }
+  .search-input {
+    flex: 1; max-width: 420px;
+    padding: 8px 12px;
+    border: 1px solid #E5E5E5;
+    border-bottom: 2px solid #111;
+    font-size: 14px;
+    outline: none;
+    background: #fff;
+    font-family: inherit;
+  }
+  .count { color: #999; font-size: 12px; }
+
+  /* ---------- table ---------- */
+  table.users {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #E5E5E5;
+  }
+  table.users thead th {
+    text-align: left;
+    background: #FAFAFA;
+    color: #666;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 12px;
+    border-bottom: 1px solid #E5E5E5;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  table.users thead th.sorted::after { content: ' ↓'; color: #111; }
+  table.users tbody td {
+    padding: 12px;
+    border-bottom: 1px solid #F0F0F0;
+    color: #111;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  table.users tbody tr { cursor: pointer; transition: background 0.1s; }
+  table.users tbody tr:hover { background: #FAFAFA; }
+  table.users .name { font-weight: 600; }
+  table.users .muted { color: #BBB; }
+  table.users .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  table.users .num.zero { color: #BBB; font-weight: 400; }
+  .lang-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    margin-right: 4px;
+    background: #F0F0F0;
+    color: #555;
+    font-size: 11px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- drawer / overlay ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 200;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+
+  .drawer {
+    position: fixed;
+    top: 0; right: 0;
+    width: 640px; max-width: 100vw;
+    height: 100dvh;
+    background: #fff;
+    border-left: 2px solid #111;
+    z-index: 300;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+
+  .drawer-head {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid #E5E5E5;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .drawer-head .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #999;
+    margin-bottom: 4px;
+  }
+  .drawer-head .name {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #111;
+  }
+  .drawer-head .close {
+    background: none; border: none;
+    font-size: 24px; line-height: 1;
+    color: #666; cursor: pointer;
+    padding: 0 4px;
+  }
+  .drawer-body {
+    overflow-y: auto;
+    padding: 20px 22px 40px;
+    flex: 1;
+  }
+  .section { margin-bottom: 28px; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .section-head h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #666;
+    margin: 0;
+    font-weight: 600;
+  }
+  .section-head .pill {
+    font-size: 11px; color: #999;
+    background: #F0F0F0;
+    padding: 1px 7px;
+    border-radius: 10px;
+  }
+  .section-hint {
+    font-size: 12px;
+    font-style: italic;
+    color: #AAA;
+    margin-bottom: 8px;
+  }
+
+  /* profile grid */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 8px 14px;
+    margin: 0;
+    font-size: 13px;
+  }
+  .profile-grid dt { color: #999; font-size: 12px; }
+  .profile-grid dd { margin: 0; color: #111; }
+  .profile-grid dd.empty { color: #CCC; }
+  .auth-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    background: #F0F0F0;
+    color: #555;
+    font-size: 11px;
+    border-radius: 2px;
+  }
+  .auth-badge.google { background: #FCE9E2; color: #8C3415; }
+  .auth-badge.email  { background: #EEF1F8; color: #2C4677; }
+  .auth-badge.tg     { background: #DFEEF7; color: #1F5E8A; }
+
+  /* book pills with rank — like in current admin */
+  .books-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+  .book-pill {
+    display: inline-flex; align-items: center;
+    background: #F5F5F5;
+    font-size: 12px;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .book-pill .rank {
+    padding: 4px 7px;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 1.2;
+    flex-shrink: 0;
+  }
+  .book-pill .rank.set      { background: #111; color: #fff; }
+  .book-pill .rank.unranked { background: #E5E5E5; color: #AAA; }  /* + */
+  .book-pill .rank.unset    { background: #E5E5E5; color: #AAA; }  /* ? */
+  .book-pill .title { padding: 4px 8px; color: #222; }
+  .book-pill .x {
+    background: none; border: none; cursor: pointer;
+    color: #999; font-size: 14px; line-height: 1;
+    padding: 0 7px 0 2px;
+  }
+  .book-pill .x:hover { color: #B5451B; }
+
+  /* submissions / feedback lists */
+  .row-list { list-style: none; padding: 0; margin: 0; }
+  .row-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #F0F0F0;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .row-list li:last-child { border-bottom: none; }
+  .row-list .primary { color: #111; font-size: 13px; }
+  .row-list .meta { color: #999; font-size: 11px; margin-top: 2px; }
+  .status-pill {
+    font-size: 10px; padding: 2px 7px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    border-radius: 2px;
+  }
+  .status-pill.pending  { background: #FFF3DC; color: #8A5A1B; }
+  .status-pill.approved { background: #E2F0EA; color: #2D6A4F; }
+  .status-pill.rejected { background: #FAE0E0; color: #8C2C2C; }
+
+  .feedback-list li { display: block; }
+  .feedback-list .meta { margin-bottom: 4px; }
+  .feedback-list .msg { color: #333; white-space: pre-wrap; }
+
+  .empty-state {
+    color: #BBB; font-style: italic; font-size: 13px;
+  }
+
+  .danger {
+    margin-top: 6px;
+    background: none;
+    border: 1px solid #E5E5E5;
+    color: #999;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .danger:hover { color: #B5451B; border-color: #B5451B; }
+
+  .annotation {
+    background: #FFF8E1;
+    border-left: 3px solid #C9A227;
+    padding: 8px 12px;
+    margin: 0 0 16px;
+    font-size: 12px;
+    color: #5C4A1B;
+    font-style: italic;
+  }
+
+  /* ---------- feedback view ---------- */
+  .fb-filters { display: flex; gap: 6px; }
+  .filter-chip {
+    background: #fff;
+    border: 1px solid #E5E5E5;
+    color: #666;
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .filter-chip:hover { color: #111; border-color: #BBB; }
+  .filter-chip.active { background: #111; color: #fff; border-color: #111; }
+  .chip-count {
+    font-size: 10px;
+    background: #F0F0F0;
+    color: #666;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+  .filter-chip.active .chip-count { background: rgba(255,255,255,0.18); color: #fff; }
+
+  .feedback-list-full {
+    background: #fff;
+    border: 1px solid #E5E5E5;
+    padding: 0 16px;
+  }
+  .feedback-list-full li { padding: 14px 0; }
+  .fb-author {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 4px;
+  }
+  .fb-author .author-name {
+    color: #111;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+  }
+  .fb-author .author-name:hover { text-decoration-color: #111; }
+  .fb-author .author-name.anon {
+    color: #999; font-weight: 400; cursor: default;
+    text-decoration: none; font-style: italic;
+  }
+  .fb-author .author-email { color: #999; font-size: 12px; }
+  .fb-author .anon-pill {
+    font-size: 10px;
+    background: #FFEFD8; color: #8A5A1B;
+    padding: 2px 7px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .fb-author .ts { color: #BBB; font-size: 11px; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="admin-shell">
+  <h1 class="admin-title">Долгое наступление · Админ</h1>
+  <div class="admin-sub">Прототип, не настоящие данные</div>
+
+  <div class="tabs-row">
+    <button class="tab active" data-view="users">Пользователи</button>
+    <button class="tab" data-view="books">Книги</button>
+    <button class="tab" data-view="tags">Теги</button>
+    <button class="tab" data-view="submissions">Заявки</button>
+    <button class="tab" data-view="feedback">Фидбеки</button>
+    <button class="tab" data-view="intro">Интро</button>
+  </div>
+
+  <!-- ===== Users view ===== -->
+  <div class="view" id="view-users">
+    <div class="annotation">
+      Список: Имя · Telegram · Email · Книги (количество) · Языки. Поиск по имени и email. Клик по строке → широкий drawer-попап справа с карточкой юзера.
+    </div>
+
+    <div class="search-row">
+      <input class="search-input" id="search" placeholder="Поиск по имени или email…" />
+      <span class="count"><span id="count">6</span> из 6</span>
+    </div>
+
+    <table class="users">
+      <thead>
+        <tr>
+          <th class="sorted">Имя</th>
+          <th>Telegram</th>
+          <th>Email</th>
+          <th class="num">Книг</th>
+          <th>Языки</th>
+        </tr>
+      </thead>
+      <tbody id="users-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ===== Feedback view ===== -->
+  <div class="view" id="view-feedback" style="display:none;">
+    <div class="annotation">
+      Все фидбеки в хронологическом порядке. От анонимов (без user_id) и от зарегистрированных юзеров вместе. Клик по имени зарегистрированного юзера открывает его карточку.
+    </div>
+
+    <div class="search-row">
+      <input class="search-input" id="fb-search" placeholder="Поиск по тексту, имени или email…" />
+      <div class="fb-filters">
+        <button class="filter-chip active" data-filter="all">Все <span class="chip-count" id="fb-cnt-all">0</span></button>
+        <button class="filter-chip" data-filter="registered">Зарегистрированные <span class="chip-count" id="fb-cnt-reg">0</span></button>
+        <button class="filter-chip" data-filter="anonymous">Анонимные <span class="chip-count" id="fb-cnt-anon">0</span></button>
+      </div>
+    </div>
+
+    <ul class="row-list feedback-list feedback-list-full" id="fb-list"><!-- filled in JS --></ul>
+  </div>
+
+  <!-- ===== Stub views ===== -->
+  <div class="view" id="view-books" style="display:none;"><div class="empty-state" style="padding:40px 0;">↳ Существующая вкладка «Книги» (не меняется в этом прототипе).</div></div>
+  <div class="view" id="view-tags" style="display:none;"><div class="empty-state" style="padding:40px 0;">↳ Существующая вкладка «Теги» (не меняется в этом прототипе).</div></div>
+  <div class="view" id="view-submissions" style="display:none;"><div class="empty-state" style="padding:40px 0;">↳ Существующая вкладка «Заявки» (не меняется в этом прототипе).</div></div>
+  <div class="view" id="view-intro" style="display:none;"><div class="empty-state" style="padding:40px 0;">↳ Существующая вкладка «Интро» (не меняется в этом прототипе).</div></div>
+</div>
+
+<!-- Drawer overlay -->
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer" role="dialog" aria-label="Карточка пользователя" aria-modal="true">
+  <div class="drawer-head">
+    <div>
+      <div class="label">Пользователь</div>
+      <div class="name" id="d-name">—</div>
+    </div>
+    <button class="close" id="d-close" aria-label="Закрыть">×</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"><!-- filled in JS --></div>
+</div>
+
+<script>
+  // ============ realistic data with priority states ============
+  const BOOKS = {
+    katastrofa:   "Авторитарная Россия",
+    rabotaKap:    "Работа: Капитализм. Экономика. Сопротивление.",
+    predstav:     "Принципы представительного правления",
+    moya:         "Моя любимая страна",
+    transf:       "Великая трансформация",
+    sotsv:        "Социологическое воображение",
+    gulf:         "Войны в Заливе не было",
+    istoki:       "Истоки современной политической мысли",
+    swiss:        "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton",
+    state:        "Государство или Цена порядка",
+    prinuzh:      "Принуждение, капитал и европейские государства",
+    predpr:       "Предпринимательское государство",
+    austerity:    "Политика в эпоху жесткой экономии",
+    streeck:      "Купленное время",
+    shock:        "Доктрина шока",
+    neolib:       "Краткая история неолиберализма",
+    patriot:      "Патриот",
+    zarya:        "Заря всего",
+    revolution:   "Революционный темперамент. Париж в 1748–1789 годах",
+    future:       "Будущая революция",
+    longoutpost:  "Долгое отступление",
+    debt:         "Долг: первые 5000 лет истории",
+    publicop:     "Общественное мнение не существует",
+    demon:        "Демократия, или Демон и Гегемон",
+  };
+
+  // For each user, we model:
+  //   selectedBooks: list of book names (in order they signed up)
+  //   prioritiesSet: true/false
+  //   priorities: { bookName: rank } — partial map (some books may not be in priorities)
+  const USERS = [
+    {
+      id: 'bon-1',
+      name: 'Evgenii Koshkin',
+      telegram: '@bon2362',
+      email: 'bon2362@gmail.com',
+      languages: ['ru', 'en'],
+      authProvider: 'google',
+      lastSignIn: '2026-05-12T10:21:00Z',
+      created: '2026-02-26',
+      selectedBooks: [
+        BOOKS.katastrofa, BOOKS.rabotaKap, BOOKS.predstav, BOOKS.moya,
+        BOOKS.transf, BOOKS.sotsv, BOOKS.gulf, BOOKS.istoki, BOOKS.swiss,
+        BOOKS.state, BOOKS.prinuzh, BOOKS.predpr, BOOKS.austerity,
+        BOOKS.streeck, BOOKS.shock, BOOKS.neolib, BOOKS.patriot,
+        BOOKS.zarya, BOOKS.revolution,
+      ],
+      // Жене расставил приоритеты, но потом добавил пару книг
+      prioritiesSet: true,
+      priorities: {
+        [BOOKS.patriot]: 1, [BOOKS.zarya]: 2, [BOOKS.neolib]: 3,
+        [BOOKS.shock]: 4, [BOOKS.austerity]: 5, [BOOKS.predpr]: 6,
+        [BOOKS.streeck]: 7, [BOOKS.prinuzh]: 8, [BOOKS.transf]: 9,
+        [BOOKS.state]: 10, [BOOKS.istoki]: 11, [BOOKS.swiss]: 12,
+        [BOOKS.sotsv]: 13, [BOOKS.predstav]: 14, [BOOKS.rabotaKap]: 15,
+        // revolution, future, moya, gulf, katastrofa добавлены позже — без ранга
+      },
+      submissions: [],
+      feedback: [
+        { date: '2026-04-12', msg: 'Хотелось бы более долгие интервалы между книгами — на «Заря всего» не хватило времени.' },
+        { date: '2026-03-02', msg: 'Спасибо за подборку. Идея с приоритетами огонь.' },
+      ],
+    },
+    {
+      id: 'art-1',
+      name: 'Artem Zhiganov',
+      telegram: '@zhigaanov',
+      email: 'artem.zhiganov@newspeak.house',
+      languages: ['ru', 'en'],
+      authProvider: 'google',
+      lastSignIn: '2026-02-23T20:36:00Z',
+      created: '2026-02-23',
+      selectedBooks: [
+        BOOKS.zarya, BOOKS.patriot, BOOKS.neolib, BOOKS.future, BOOKS.swiss,
+      ],
+      prioritiesSet: false,   // не расставлял
+      priorities: {},
+      submissions: [
+        { id: 'sub-art-1', title: 'The Networked Public', author: 'Жан-Жак Дюфур', status: 'pending', date: '2026-02-24' },
+      ],
+      feedback: [],
+    },
+    {
+      id: 'sasha-1',
+      name: 'Александр',
+      telegram: '@XanderZhu',
+      email: 's.p.q.r.4century@gmail.com',
+      languages: ['ru'],
+      authProvider: 'email',
+      lastSignIn: '2026-03-08T18:17:00Z',
+      created: '2026-03-08',
+      selectedBooks: [
+        BOOKS.patriot, BOOKS.demon, BOOKS.neolib, BOOKS.shock, BOOKS.predpr,
+        BOOKS.prinuzh, BOOKS.future, BOOKS.transf, BOOKS.streeck,
+        BOOKS.austerity, BOOKS.katastrofa, BOOKS.predstav, BOOKS.gulf, BOOKS.istoki,
+      ],
+      // полностью расставил, все 14 ранжированы
+      prioritiesSet: true,
+      priorities: {
+        [BOOKS.patriot]: 1, [BOOKS.demon]: 2, [BOOKS.neolib]: 3, [BOOKS.shock]: 4,
+        [BOOKS.predpr]: 5, [BOOKS.prinuzh]: 6, [BOOKS.future]: 7, [BOOKS.transf]: 8,
+        [BOOKS.streeck]: 9, [BOOKS.austerity]: 10, [BOOKS.katastrofa]: 11,
+        [BOOKS.predstav]: 12, [BOOKS.gulf]: 13, [BOOKS.istoki]: 14,
+      },
+      submissions: [],
+      feedback: [],
+    },
+    {
+      id: 'ivan-1',
+      name: 'Ваня',
+      telegram: '@ivan',
+      email: 'slowreading@ivan.cx',
+      languages: ['ru'],
+      authProvider: 'email',
+      lastSignIn: '2026-03-23T20:05:00Z',
+      created: '2026-03-23',
+      selectedBooks: [
+        BOOKS.debt, BOOKS.longoutpost, BOOKS.moya, BOOKS.publicop,
+        BOOKS.future, BOOKS.demon, BOOKS.zarya, BOOKS.patriot,
+      ],
+      // расставил 6 из 8 — потом добавил patriot и zarya
+      prioritiesSet: true,
+      priorities: {
+        [BOOKS.debt]: 1, [BOOKS.longoutpost]: 2, [BOOKS.moya]: 3,
+        [BOOKS.publicop]: 4, [BOOKS.future]: 5, [BOOKS.demon]: 6,
+        // zarya, patriot добавлены потом — без ранга
+      },
+      submissions: [],
+      feedback: [
+        { date: '2026-03-25', msg: 'Можно добавить календарь-приглашения в gcal?' },
+      ],
+    },
+    {
+      id: 'katia-1',
+      name: 'Катя Вахрамеева',
+      telegram: '@postoronnim_villi',
+      email: 'mergasovakate@gmail.com',
+      languages: [],
+      authProvider: 'google',
+      lastSignIn: '2026-02-23T07:48:00Z',
+      created: '2026-02-23',
+      selectedBooks: [],
+      prioritiesSet: false,
+      priorities: {},
+      submissions: [],
+      feedback: [],
+    },
+    {
+      id: 'test-1',
+      name: 'E2E test user',
+      telegram: '@e2e_test_bot',
+      email: null,                 // synthetic-only, no real email
+      languages: [],
+      authProvider: 'telegram-preauth',
+      lastSignIn: null,
+      created: '2026-04-01',
+      selectedBooks: [],
+      prioritiesSet: false,
+      priorities: {},
+      submissions: [],
+      feedback: [],
+    },
+  ];
+
+  // Anonymous feedbacks (no user_id — submitted without login)
+  const ANON_FEEDBACK = [
+    {
+      id: 'anon-1',
+      date: '2026-05-10T14:33:00Z',
+      name: 'Иван',
+      email: 'ivan.somemail@gmail.com',
+      msg: 'Здравствуйте! А можно как-то на встречи приходить без регистрации? Друг рассказал, очень интересно.',
+    },
+    {
+      id: 'anon-2',
+      date: '2026-04-22T09:08:00Z',
+      name: null,
+      email: 'reader@protonmail.com',
+      msg: 'Огромное спасибо за «Долг» — давно хотел прочитать с группой.',
+    },
+    {
+      id: 'anon-3',
+      date: '2026-04-02T17:55:00Z',
+      name: 'Marina',
+      email: null,
+      msg: 'Сайт открывается только на ноутбуке нормально, на телефоне таблица книг сильно урезана.',
+    },
+  ];
+
+  // ============ list rendering ============
+  const tbody  = document.getElementById('users-tbody');
+  const search = document.getElementById('search');
+  const countEl = document.getElementById('count');
+
+  function authBadge(p) {
+    if (!p) return '';
+    const cls = p.startsWith('telegram') ? 'tg' : (p === 'google' ? 'google' : 'email');
+    return `<span class="auth-badge ${cls}">${p}</span>`;
+  }
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+  }
+  function fmtDateTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString('ru-RU', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function renderList(filter='') {
+    const f = filter.trim().toLowerCase();
+    const rows = USERS.filter(u =>
+      !f || u.name.toLowerCase().includes(f) || (u.email || '').toLowerCase().includes(f)
+    );
+    countEl.textContent = rows.length;
+    tbody.innerHTML = rows.map(u => `
+      <tr data-id="${u.id}">
+        <td class="name">${u.name}</td>
+        <td>${u.telegram ? u.telegram : '<span class="muted">—</span>'}</td>
+        <td>${u.email ? u.email : '<span class="muted">—</span>'}</td>
+        <td class="num ${u.selectedBooks.length ? '' : 'zero'}">${u.selectedBooks.length || '·'}</td>
+        <td>${u.languages.length ? u.languages.map(l => `<span class="lang-pill">${l}</span>`).join('') : '<span class="muted">—</span>'}</td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('tr').forEach(tr => {
+      tr.addEventListener('click', () => openDrawer(USERS.find(x => x.id === tr.dataset.id)));
+    });
+  }
+  renderList();
+  search.addEventListener('input', e => renderList(e.target.value));
+
+  // ============ drawer (user card) ============
+  const overlay = document.getElementById('overlay');
+  const drawer  = document.getElementById('drawer');
+  const dName   = document.getElementById('d-name');
+  const dBody   = document.getElementById('drawer-body');
+
+  function closeDrawer() {
+    overlay.classList.remove('open');
+    drawer.classList.remove('open');
+  }
+  overlay.addEventListener('click', closeDrawer);
+  document.getElementById('d-close').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+  function renderBooksSection(u) {
+    if (!u.selectedBooks.length) {
+      return `<div class="empty-state">Не записан ни на одну книгу.</div>`;
+    }
+    // build display order: if prioritiesSet, ranked first by rank, then unranked
+    const ranked = u.prioritiesSet
+      ? u.selectedBooks.filter(b => b in u.priorities).sort((a,b) => u.priorities[a] - u.priorities[b])
+      : [];
+    const unranked = u.prioritiesSet
+      ? u.selectedBooks.filter(b => !(b in u.priorities))
+      : u.selectedBooks;
+
+    const hint = !u.prioritiesSet
+      ? `<div class="section-hint">Приоритеты ещё не расставлены — все книги показаны в порядке записи.</div>`
+      : unranked.length
+        ? `<div class="section-hint">Добавил книги после расстановки приоритетов: они идут в конце списка без ранга.</div>`
+        : '';
+
+    const pill = (book) => {
+      const rank = u.priorities[book];
+      let cls, label;
+      if (!u.prioritiesSet) { cls = 'unset'; label = '?'; }
+      else if (rank === undefined) { cls = 'unranked'; label = '+'; }
+      else { cls = 'set'; label = String(rank); }
+      return `
+        <span class="book-pill">
+          <span class="rank ${cls}">${label}</span>
+          <span class="title">${book}</span>
+          <button class="x" title="Снять запись" onclick="event.stopPropagation();confirm('Снять запись на «${book.replace(/'/g, "\\'")}»?')">×</button>
+        </span>`;
+    };
+
+    const showList = u.prioritiesSet ? [...ranked, ...unranked] : u.selectedBooks;
+    return hint + `<div class="books-grid">${showList.map(pill).join('')}</div>`;
+  }
+
+  function renderSubmissions(u) {
+    if (!u.submissions.length) return `<div class="empty-state">Пока не предлагал книги.</div>`;
+    return `<ul class="row-list">` + u.submissions.map(s => `
+      <li>
+        <div>
+          <div class="primary">«${s.title}» — ${s.author}</div>
+          <div class="meta">подал ${fmtDate(s.date)} · <a href="#" onclick="event.preventDefault()" style="color:#B5451B;text-decoration:none;">открыть заявку →</a></div>
+        </div>
+        <span class="status-pill ${s.status}">${s.status}</span>
+      </li>
+    `).join('') + `</ul>`;
+  }
+
+  function renderFeedback(u) {
+    if (!u.feedback.length) return `<div class="empty-state">Не оставлял фидбеков.</div>`;
+    return `<ul class="row-list feedback-list">` + u.feedback.map(f => `
+      <li>
+        <div class="meta">${fmtDate(f.date)}</div>
+        <div class="msg">${f.msg}</div>
+      </li>
+    `).join('') + `</ul>`;
+  }
+
+  function openDrawer(u) {
+    dName.textContent = u.name;
+    dBody.innerHTML = `
+      <!-- Profile -->
+      <div class="section">
+        <div class="section-head"><h3>Профиль</h3></div>
+        <dl class="profile-grid">
+          <dt>Имя</dt><dd>${u.name}</dd>
+          <dt>Telegram</dt><dd${u.telegram ? '' : ' class="empty"'}>${u.telegram || '—'}</dd>
+          <dt>Email</dt><dd${u.email ? '' : ' class="empty"'}>${u.email || 'не указан'}</dd>
+          <dt>Языки</dt><dd${u.languages.length ? '' : ' class="empty"'}>${u.languages.length ? u.languages.join(', ') : 'не выбраны'}</dd>
+          <dt>Способ входа</dt><dd>${authBadge(u.authProvider)}</dd>
+          <dt>Последний вход</dt><dd${u.lastSignIn ? '' : ' class="empty"'}>${u.lastSignIn ? fmtDateTime(u.lastSignIn) : 'не входил'}</dd>
+          <dt>Создан</dt><dd>${fmtDate(u.created)}</dd>
+        </dl>
+        <button class="danger" onclick="confirm('Удалить пользователя «${u.name.replace(/'/g, "\\'")}»? Действие необратимо — будут удалены все его записи, приоритеты, заявки и фидбеки.')">Удалить пользователя</button>
+      </div>
+
+      <!-- Books -->
+      <div class="section">
+        <div class="section-head">
+          <h3>Записи на книги</h3>
+          <span class="pill">${u.selectedBooks.length}</span>
+          ${u.prioritiesSet ? '<span class="pill" style="background:#E2F0EA;color:#2D6A4F;">приоритеты расставлены</span>' : '<span class="pill">без приоритетов</span>'}
+        </div>
+        ${renderBooksSection(u)}
+      </div>
+
+      <!-- Submissions -->
+      <div class="section">
+        <div class="section-head">
+          <h3>Предложения книг</h3>
+          <span class="pill">${u.submissions.length}</span>
+        </div>
+        ${renderSubmissions(u)}
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-head">
+          <h3>Фидбеки</h3>
+          <span class="pill">${u.feedback.length}</span>
+        </div>
+        ${renderFeedback(u)}
+      </div>
+    `;
+    overlay.classList.add('open');
+    drawer.classList.add('open');
+  }
+
+  // ============ tabs ============
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      const v = t.dataset.view;
+      document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+      document.querySelectorAll('.view').forEach(view => {
+        view.style.display = (view.id === `view-${v}`) ? '' : 'none';
+      });
+    });
+  });
+
+  // ============ feedback view ============
+  const fbList = document.getElementById('fb-list');
+  const fbSearch = document.getElementById('fb-search');
+  const fbCntAll  = document.getElementById('fb-cnt-all');
+  const fbCntReg  = document.getElementById('fb-cnt-reg');
+  const fbCntAnon = document.getElementById('fb-cnt-anon');
+  let fbFilter = 'all';
+
+  // Build combined feedback feed
+  function allFeedback() {
+    const fromUsers = USERS.flatMap(u =>
+      (u.feedback || []).map(f => ({
+        id: `${u.id}-${f.date}`,
+        date: f.date,
+        msg: f.msg,
+        userId: u.id,
+        name: u.name,
+        email: u.email,
+        anon: false,
+      }))
+    );
+    const anon = ANON_FEEDBACK.map(f => ({
+      id: f.id,
+      date: f.date,
+      msg: f.msg,
+      userId: null,
+      name: f.name,
+      email: f.email,
+      anon: true,
+    }));
+    return [...fromUsers, ...anon].sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  }
+
+  function fmtDateOnly(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+  }
+
+  function renderFeedback() {
+    const all = allFeedback();
+    fbCntAll.textContent  = all.length;
+    fbCntReg.textContent  = all.filter(f => !f.anon).length;
+    fbCntAnon.textContent = all.filter(f => f.anon).length;
+
+    const q = (fbSearch.value || '').trim().toLowerCase();
+    let rows = all;
+    if (fbFilter === 'registered') rows = rows.filter(f => !f.anon);
+    if (fbFilter === 'anonymous')  rows = rows.filter(f =>  f.anon);
+    if (q) rows = rows.filter(f =>
+      (f.msg || '').toLowerCase().includes(q) ||
+      (f.name || '').toLowerCase().includes(q) ||
+      (f.email || '').toLowerCase().includes(q)
+    );
+
+    if (!rows.length) {
+      fbList.innerHTML = `<li><div class="empty-state" style="padding:24px 0;">Ничего не найдено</div></li>`;
+      return;
+    }
+
+    fbList.innerHTML = rows.map(f => {
+      const displayName = f.name || (f.anon ? 'Без имени' : 'Без имени');
+      const author = f.anon
+        ? `
+            <span class="author-name anon">${displayName}</span>
+            ${f.email ? `<span class="author-email">&lt;${f.email}&gt;</span>` : ''}
+            <span class="anon-pill">Аноним</span>
+          `
+        : `
+            <span class="author-name" onclick="openDrawer(USERS.find(u => u.id === '${f.userId}'))">${displayName}</span>
+            ${f.email ? `<span class="author-email">&lt;${f.email}&gt;</span>` : ''}
+          `;
+      return `
+        <li>
+          <div class="fb-author">
+            ${author}
+            <span class="ts">${fmtDateOnly(f.date)}</span>
+          </div>
+          <div class="msg">${f.msg}</div>
+        </li>
+      `;
+    }).join('');
+  }
+
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      fbFilter = chip.dataset.filter;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c === chip));
+      renderFeedback();
+    });
+  });
+  fbSearch.addEventListener('input', renderFeedback);
+  renderFeedback();
+</script>
+
+</body>
+</html>

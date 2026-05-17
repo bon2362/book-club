@@ -5,15 +5,19 @@
 
 ## Как работает
 - **ProfileDrawer** — client component (`components/nd/ProfileDrawer.tsx`); открывается кликом по аватарке в header
-- **ContactsForm** — автоматически открывается для авторизованных пользователей без данных профиля (`isLoggedIn && !currentUser && !savedUser`); собирает имя и контактную информацию
-- **Данные профиля** — хранятся в таблице `users` (поле `name`); дополнительные контакты — в записи пользователя или отдельном поле
+- **ContactsForm** — автоматически открывается для авторизованных пользователей без данных профиля (`isLoggedIn && !currentUser && !savedUser`); собирает имя и контактную информацию, пишет напрямую в `users.name` и `users.contacts`
+- **Данные профиля** — все поля живут в таблице `users` каноном: `name`, `contacts`, `telegram_username`, `languages`, плюс служебные `auth_provider` и `last_sign_in_at` (заполняются в `signIn` callback при каждом входе)
 - **Приоритеты книг** — таблица `book_priorities` (`userId`, `bookName`, `rank`, `updatedAt`); обновляется через `POST /api/priorities`; отображается как числа ранга рядом с книгами (до первого ранжирования показывается `—`)
-- **Языки** — языковые предпочтения пользователя хранятся в таблице `users` или сессии
+- **Языки** — `users.languages` (JSON-массив), редактируется через `/api/profile`
+- **Фидбек** — `FeedbackForm` отправляет в `POST /api/feedback`, который и шлёт письмо админу через Resend, и сохраняет запись в таблицу `feedback` (`user_id` nullable — анонимные допустимы)
 - **Выход** — доступен из drawer; вызывает `signOut()` из NextAuth
+- **Удаление аккаунта** — `DELETE /api/profile` через `db.delete(users)` каскадом удаляет всё связанное (`accounts`, `sessions`, `book_priorities`, `book_submissions`, `signup_books`); поле `feedback.user_id` обнуляется (`onDelete: 'set null'`), записи остаются
 
 ## Ключевые файлы
 - `components/nd/ProfileDrawer.tsx` — оболочка drawer (вкладки, открытие/закрытие)
 - `components/nd/ContactsForm.tsx` — форма имени и контактов (автооткрытие для новых пользователей)
+- `components/nd/FeedbackForm.tsx` — форма обратной связи
 - `app/api/profile/route.ts` — GET/PATCH данных профиля пользователя
 - `app/api/priorities/route.ts` — GET/POST ранжирования книг
-- `lib/db/schema.ts` — таблица `bookPriorities`, поле `users.name`
+- `app/api/feedback/route.ts` — приём фидбека (email + БД)
+- `lib/db/schema.ts` — таблицы `users` (с полями contacts/telegram_username/auth_provider/last_sign_in_at), `book_priorities`, `signup_books`, `feedback`
