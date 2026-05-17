@@ -6,9 +6,7 @@ import { db } from '@/lib/db'
 import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } from '@/lib/db/schema'
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminRefresh from '@/components/nd/AdminRefresh'
-import AdminStatusBar from '@/components/nd/AdminStatusBar'
-import DigestStatusWidget from '@/components/nd/DigestStatusWidget'
-import AllureWidget from '@/components/nd/AllureWidget'
+import AdminFooter from '@/components/nd/AdminFooter'
 import { SessionProvider } from 'next-auth/react'
 
 export const dynamic = 'force-dynamic'
@@ -88,41 +86,12 @@ export default async function AdminPage() {
           prioritiesSetMap={prioritiesSetMap}
         />
       </SessionProvider>
-      <footer style={{
-        borderTop: '1px solid #E5E5E5',
-        padding: '1rem 1.5rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-      }}>
-        <div style={{
-          fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-          fontSize: '0.7rem',
-          color: '#999',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.4rem 1rem',
-          alignItems: 'center',
-        }}>
-          {buildTime && <span>Деплой: <b style={{ color: '#555' }}>{buildTime} CET</b></span>}
-          {shortSha && (
-            <span>Коммит:{' '}
-              <a
-                href={`https://github.com/bon2362/book-club/commit/${sha}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#555', fontFamily: 'monospace', textDecoration: 'none', borderBottom: '1px solid #ccc' }}
-              >
-                {shortSha}
-              </a>
-            </span>
-          )}
-          {commitMsg && <span style={{ color: '#777' }}>{commitMsg}</span>}
-        </div>
-        <AdminStatusBar />
-        <DigestStatusWidget />
-        <AllureWidget />
-      </footer>
+      <AdminFooter
+        buildTime={buildTime}
+        commitSha={sha ?? null}
+        shortSha={shortSha}
+        commitMsg={commitMsg}
+      />
     </>
   )
 }

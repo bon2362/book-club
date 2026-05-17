@@ -20,7 +20,11 @@ const WIDGET_STYLE: React.CSSProperties = {
   gap: '0.3rem',
 }
 
-export default function DigestStatusWidget() {
+interface DigestStatusWidgetProps {
+  refreshSignal?: number
+}
+
+export default function DigestStatusWidget({ refreshSignal = 0 }: DigestStatusWidgetProps) {
   const [data, setData] = useState<DigestStatusData | null>(null)
 
   const fetchStatus = useCallback(async () => {
@@ -36,7 +40,7 @@ export default function DigestStatusWidget() {
     fetchStatus()
     const id = setInterval(fetchStatus, 60_000)
     return () => clearInterval(id)
-  }, [fetchStatus])
+  }, [fetchStatus, refreshSignal])
 
   if (!data) return null
 

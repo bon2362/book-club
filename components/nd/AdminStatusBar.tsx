@@ -68,7 +68,11 @@ const LINK_STYLE: React.CSSProperties = {
   borderBottom: '1px solid #ccc',
 }
 
-export default function AdminStatusBar() {
+interface AdminStatusBarProps {
+  refreshSignal?: number
+}
+
+export default function AdminStatusBar({ refreshSignal = 0 }: AdminStatusBarProps) {
   const [data, setData] = useState<StatusData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -85,7 +89,7 @@ export default function AdminStatusBar() {
     fetchStatus()
     const id = setInterval(fetchStatus, 60_000)
     return () => clearInterval(id)
-  }, [fetchStatus])
+  }, [fetchStatus, refreshSignal])
 
   if (loading) {
     return <div style={BASE_STYLE}><span style={{ color: '#bbb' }}>загрузка статусов…</span></div>

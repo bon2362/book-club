@@ -49,7 +49,11 @@ const MONO_STYLE: React.CSSProperties = {
   color: '#777',
 }
 
-export default function AllureWidget() {
+interface AllureWidgetProps {
+  refreshSignal?: number
+}
+
+export default function AllureWidget({ refreshSignal = 0 }: AllureWidgetProps) {
   const [data, setData] = useState<AllureSummary | null>(null)
   const [error, setError] = useState(false)
 
@@ -74,7 +78,7 @@ export default function AllureWidget() {
     fetchData()
     const id = setInterval(fetchData, 60_000)
     return () => clearInterval(id)
-  }, [fetchData])
+  }, [fetchData, refreshSignal])
 
   if (error) return null
   if (!data) return null
