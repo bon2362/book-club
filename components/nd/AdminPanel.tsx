@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, Fragment, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
@@ -49,6 +49,7 @@ type View = 'users' | 'books' | 'tags' | 'submissions' | 'feedback' | 'intro'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'email' | 'books' | 'languages'
+type BookSortKey = 'name' | 'signups' | 'participants' | 'status' | 'new'
 
 const cell: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -92,6 +93,60 @@ const fieldInput: React.CSSProperties = {
   outline: 'none',
   background: '#fff',
   boxSizing: 'border-box',
+}
+
+function getBookInitials(author: string): string {
+  return author
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(word => word[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
+function BookCoverThumb({ book }: { book: BookWithCover }) {
+  const [imgError, setImgError] = useState(false)
+  const initials = getBookInitials(book.author)
+
+  return (
+    <div
+      style={{
+        width: 34,
+        height: 50,
+        flex: '0 0 34px',
+        border: '1px solid #DDD',
+        background: '#F5F5F5',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {book.coverUrl && !imgError ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={book.coverUrl}
+          alt={`Обложка: ${book.name}`}
+          loading="lazy"
+          decoding="async"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span
+          aria-label={`Обложка: ${book.name}`}
+          style={{
+            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+            fontSize: '0.65rem',
+            color: '#999',
+            userSelect: 'none',
+          }}
+        >
+          {initials || '—'}
+        </span>
+      )}
+    </div>
+  )
 }
 
 export default function AdminPanel({
@@ -138,6 +193,7 @@ export default function AdminPanel({
   const [feedbackLoaded, setFeedbackLoaded] = useState(false)
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
   const [feedbackSearch, setFeedbackSearch] = useState('')
+  const [bookSort, setBookSort] = useState<{ key: BookSortKey; dir: 'asc' | 'desc' }>({ key: 'signups', dir: 'desc' })
 
   useEffect(() => {
     fetch('/api/admin/submissions')
@@ -430,6 +486,31 @@ export default function AdminPanel({
       return String(av).localeCompare(String(bv), 'ru') * dir
     })
 
+  const sortedByBook = useMemo(() => {
+    const statusRank = { reading: 2, read: 1, none: 0 }
+    const value = ({ book, users: bookUsers }: BookEntry) => {
+      if (bookSort.key === 'signups') return bookUsers.length
+      if (bookSort.key === 'participants') return bookUsers.map(u => u.name).join(', ')
+      if (bookSort.key === 'status') return statusRank[statuses[book.id] ?? 'none']
+      if (bookSort.key === 'new') return (newFlags[book.id] ?? book.isNew) ? 1 : 0
+      return `${book.name} ${book.author}`
+    }
+
+    return [...byBook].sort((a, b) => {
+      const dir = bookSort.dir === 'asc' ? 1 : -1
+      const av = value(a)
+      const bv = value(b)
+      let result: number
+      if (typeof av === 'number' && typeof bv === 'number') {
+        result = av - bv
+      } else {
+        result = String(av).localeCompare(String(bv), 'ru')
+      }
+      if (result !== 0) return result * dir
+      return a.book.name.localeCompare(b.book.name, 'ru')
+    })
+  }, [bookSort, byBook, statuses, newFlags])
+
   const feedbackCounts = {
     all: feedbackItems.length,
     registered: feedbackItems.filter(f => f.userId).length,
@@ -445,6 +526,18 @@ export default function AdminPanel({
 
   function setSort(key: UserSortKey) {
     setUserSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
+  }
+
+  function setBookTableSort(key: BookSortKey) {
+    setBookSort(prev => {
+      if (prev.key === key) return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      return { key, dir: key === 'signups' ? 'desc' : 'asc' }
+    })
+  }
+
+  function bookSortMark(key: BookSortKey) {
+    if (bookSort.key !== key) return ''
+    return bookSort.dir === 'asc' ? ' ↑' : ' ↓'
   }
 
   const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
@@ -649,16 +742,15 @@ export default function AdminPanel({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={headCell}>Книга</th>
-                <th style={headCell}>Автор</th>
-                <th style={{ ...headCell, textAlign: 'right' }}>Записались</th>
-                <th style={headCell}>Участники</th>
-                <th style={headCell}>Статус</th>
-                <th style={{ ...headCell, textAlign: 'center', width: '80px' }}>Новая</th>
+                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('name')}>Книга{bookSortMark('name')}</th>
+                <th style={{ ...headCell, textAlign: 'right', cursor: 'pointer' }} onClick={() => setBookTableSort('signups')}>Записались{bookSortMark('signups')}</th>
+                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('participants')}>Участники{bookSortMark('participants')}</th>
+                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('status')}>Статус{bookSortMark('status')}</th>
+                <th style={{ ...headCell, textAlign: 'center', width: '80px', cursor: 'pointer' }} onClick={() => setBookTableSort('new')}>Новая{bookSortMark('new')}</th>
               </tr>
             </thead>
             <tbody>
-              {byBook.map(({ book, users: bookUsers }) => {
+              {sortedByBook.map(({ book, users: bookUsers }) => {
                 const currentStatus = statuses[book.id]
                 const isStatusLoading = statusLoading === book.id
                 const isSubmission = !book.id.match(/^\d+$/)
@@ -667,12 +759,19 @@ export default function AdminPanel({
                 return (
                   <tr key={book.id}>
                     <td style={cell}>
-                      <div>{book.name}</div>
-                      <div style={{ fontSize: '0.65rem', color: '#999', marginTop: '0.15rem' }}>
-                        {isSubmission ? 'Заявка' : 'Google Sheets'}
+                      <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', minWidth: 0 }}>
+                        <BookCoverThumb book={book} />
+                        <div style={{ minWidth: 0 }}>
+                          <div>{book.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#666', fontStyle: 'italic', marginTop: '0.12rem' }}>
+                            {book.author || 'Автор не указан'}
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: '#999', marginTop: '0.15rem' }}>
+                            {isSubmission ? 'Заявка' : 'Google Sheets'}
+                          </div>
+                        </div>
                       </div>
                     </td>
-                    <td style={{ ...cell, color: '#666', fontStyle: 'italic' }}>{book.author}</td>
                     <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{bookUsers.length}</td>
                     <td style={{ ...cell, color: '#666' }}>
                       {(() => {

@@ -6,10 +6,14 @@ const ADMIN_NAME = 'E2E Book Status Admin'
 // Тестовый пользователь, который записывается на книгу
 const USER_EMAIL = 'e2e-bookstatus-user@test.invalid'
 const USER_NAME = 'E2E BookStatus User'
+const USER_ID = `test:${USER_EMAIL}`
 const USER_CONTACT = '@e2e_bookstatus_user'
+const SORT_USER_A_EMAIL = 'e2e-bookstatus-sort-a@test.invalid'
+const SORT_USER_B_EMAIL = 'e2e-bookstatus-sort-b@test.invalid'
 // Фикстурная книга из lib/books-with-covers.ts (только в NEXTAUTH_TEST_MODE)
 const TEST_BOOK_NAME = 'Тестовая книга 1'
 const TEST_BOOK_ID = '__test_book_1__'
+const TEST_BOOK_3_NAME = 'Тестовая книга 3'
 
 test.describe('AdminPanel — изменение статуса книги', () => {
   test.setTimeout(120_000) // Админка и e2e setup могут быть медленными в CI
@@ -20,9 +24,12 @@ test.describe('AdminPanel — изменение статуса книги', () 
     // 1. Создаём обычного пользователя, записавшегося на тестовую книгу
     //    Пишем напрямую в signup_books через /api/test/signup,
     //    чтобы компактно подготовить фикстуру для админки.
+    await page.request.post('/api/test/session', {
+      data: { email: USER_EMAIL, name: USER_NAME },
+    })
     await page.request.post('/api/test/signup', {
       data: {
-        userId: USER_EMAIL,
+        userId: USER_ID,
         name: USER_NAME,
         email: USER_EMAIL,
         contacts: USER_CONTACT,
@@ -37,15 +44,23 @@ test.describe('AdminPanel — изменение статуса книги', () 
   })
 
   test.afterEach(async ({ page }) => {
+    await page.request.post('/api/test/session', {
+      data: { email: ADMIN_EMAIL, name: ADMIN_NAME, isAdmin: true },
+    })
+
     // Сбрасываем статус книги (чтобы не влиять на другие тесты)
     await page.request.delete(`/api/admin/book-status?bookId=${encodeURIComponent(TEST_BOOK_ID)}`)
 
     // Чистим signup_books запись пользователя
-    await page.request.delete('/api/test/signup', { data: { userId: USER_EMAIL } })
+    await page.request.delete('/api/test/signup', { data: { userId: USER_ID } })
+    await page.request.delete('/api/test/signup', { data: { userId: `test:${SORT_USER_A_EMAIL}` } })
+    await page.request.delete('/api/test/signup', { data: { userId: `test:${SORT_USER_B_EMAIL}` } })
 
     // Удаляем пользователей из БД
     await page.request.delete('/api/test/session', { data: { email: ADMIN_EMAIL } })
     await page.request.delete('/api/test/session', { data: { email: USER_EMAIL } })
+    await page.request.delete('/api/test/session', { data: { email: SORT_USER_A_EMAIL } })
+    await page.request.delete('/api/test/session', { data: { email: SORT_USER_B_EMAIL } })
   })
 
   test('изменение статуса книги на "Читаем" сохраняется после перезагрузки', async ({ page }) => {
@@ -91,5 +106,51 @@ test.describe('AdminPanel — изменение статуса книги', () 
     })
 
     expect(res.status()).toBe(403)
+  })
+
+  test('таблица по книгам сортируется по числу записей и названию', async ({ page }) => {
+    await page.request.post('/api/test/session', {
+      data: { email: SORT_USER_A_EMAIL, name: 'E2E Sort Reader A' },
+    })
+    await page.request.post('/api/test/signup', {
+      data: {
+        userId: `test:${SORT_USER_A_EMAIL}`,
+        name: 'E2E Sort Reader A',
+        email: SORT_USER_A_EMAIL,
+        contacts: '@e2e_sort_a',
+        selectedBooks: [TEST_BOOK_3_NAME],
+      },
+    })
+    await page.request.post('/api/test/session', {
+      data: { email: SORT_USER_B_EMAIL, name: 'E2E Sort Reader B' },
+    })
+    await page.request.post('/api/test/signup', {
+      data: {
+        userId: `test:${SORT_USER_B_EMAIL}`,
+        name: 'E2E Sort Reader B',
+        email: SORT_USER_B_EMAIL,
+        contacts: '@e2e_sort_b',
+        selectedBooks: [TEST_BOOK_3_NAME],
+      },
+    })
+    await page.request.post('/api/test/session', {
+      data: { email: ADMIN_EMAIL, name: ADMIN_NAME, isAdmin: true },
+    })
+
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: /по книгам/i }).click()
+
+    const dataRows = page.locator('tbody tr')
+    await expect.poll(async () => {
+      const rows = await dataRows.allTextContents()
+      return rows.findIndex(row => row.includes(TEST_BOOK_3_NAME)) < rows.findIndex(row => row.includes(TEST_BOOK_NAME))
+    }).toBe(true)
+
+    await page.getByRole('columnheader', { name: /^книга/i }).click()
+    await expect.poll(async () => {
+      const rows = await dataRows.allTextContents()
+      return rows.findIndex(row => row.includes(TEST_BOOK_NAME)) < rows.findIndex(row => row.includes(TEST_BOOK_3_NAME))
+    }).toBe(true)
   })
 })

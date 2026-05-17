@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import AdminPanel from './AdminPanel'
 
 jest.mock('next/navigation', () => ({
@@ -62,6 +62,53 @@ const mockSubmissions = [
     status: 'approved',
     createdAt: '2026-03-02T10:00:00.000Z',
     updatedAt: '2026-03-02T10:00:00.000Z',
+  },
+]
+
+const mockByBook = [
+  {
+    book: {
+      id: '1',
+      name: 'Книга с одной записью',
+      author: 'Автор А',
+      tags: [],
+      type: 'Book',
+      size: '',
+      pages: '',
+      date: '',
+      link: '',
+      description: '',
+      coverUrl: 'https://example.com/cover-a.jpg',
+      whyRead: null,
+      recommendationLink: null,
+      isNew: false,
+    },
+    users: [
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-1', name: 'Анна', email: 'anna@test.com', contacts: '', selectedBooks: ['Книга с одной записью'] },
+    ],
+  },
+  {
+    book: {
+      id: '2',
+      name: 'Книга с тремя записями',
+      author: 'Автор Б',
+      tags: [],
+      type: 'Book',
+      size: '',
+      pages: '',
+      date: '',
+      link: '',
+      description: '',
+      coverUrl: null,
+      whyRead: null,
+      recommendationLink: null,
+      isNew: false,
+    },
+    users: [
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-2', name: 'Борис', email: 'boris@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-3', name: 'Вера', email: 'vera@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-4', name: 'Глеб', email: 'gleb@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'] },
+    ],
   },
 ]
 
@@ -255,5 +302,45 @@ describe('AdminPanel — Заявки таб', () => {
         ok: true,
       })
     })
+  })
+})
+
+describe('AdminPanel — По книгам таб', () => {
+  it('по умолчанию сортирует книги по числу записей по убыванию', () => {
+    render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
+    fireEvent.click(screen.getByText(/по книгам/i))
+
+    const rows = screen.getAllByRole('row')
+    expect(within(rows[1]).getByText('Книга с тремя записями')).toBeInTheDocument()
+    expect(within(rows[2]).getByText('Книга с одной записью')).toBeInTheDocument()
+  })
+
+  it('показывает автора в ячейке книги и не показывает отдельный столбец автора', () => {
+    render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
+    fireEvent.click(screen.getByText(/по книгам/i))
+
+    expect(screen.queryByRole('columnheader', { name: /^автор$/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Автор А')).toBeInTheDocument()
+    expect(screen.getByText('Автор Б')).toBeInTheDocument()
+  })
+
+  it('показывает миниатюру обложки, если coverUrl задан', () => {
+    render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
+    fireEvent.click(screen.getByText(/по книгам/i))
+
+    const cover = screen.getByAltText('Обложка: Книга с одной записью')
+    expect(cover).toHaveAttribute('src', 'https://example.com/cover-a.jpg')
+    expect(cover).toHaveAttribute('loading', 'lazy')
+  })
+
+  it('переключает сортировку по названию книги', () => {
+    render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
+    fireEvent.click(screen.getByText(/по книгам/i))
+
+    fireEvent.click(screen.getByRole('columnheader', { name: /^книга$/i }))
+
+    const rows = screen.getAllByRole('row')
+    expect(within(rows[1]).getByText('Книга с одной записью')).toBeInTheDocument()
+    expect(within(rows[2]).getByText('Книга с тремя записями')).toBeInTheDocument()
   })
 })
