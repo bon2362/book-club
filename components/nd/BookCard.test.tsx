@@ -84,6 +84,22 @@ describe('nd/BookCard', () => {
     expect(screen.getByRole('button', { name: /читать далее/i })).toBeInTheDocument()
   })
 
+  it('подсвечивает кнопку "Читать далее" при наведении на длинное описание', () => {
+    const longDescription = 'А'.repeat(121)
+    const longBook = { ...book, description: longDescription }
+    render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
+
+    const description = screen.getByText(longDescription)
+    const button = screen.getByRole('button', { name: /читать далее/i })
+
+    expect(button).toHaveStyle({ color: '#999' })
+    fireEvent.mouseEnter(description)
+    expect(button).toHaveStyle({ color: '#C0603A' })
+    expect(button).toHaveStyle({ borderBottom: '1px solid #C0603A' })
+    fireEvent.mouseLeave(description)
+    expect(button).toHaveStyle({ color: '#999' })
+  })
+
   it('разворачивает и сворачивает описание кнопкой', () => {
     const longBook = { ...book, description: 'А'.repeat(121) }
     render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
@@ -108,6 +124,12 @@ describe('nd/BookCard', () => {
     const bookWithCount = { ...book, signupCount: 5 }
     render(<BookCard book={bookWithCount} isSelected={false} onToggle={() => {}} />)
     expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('показывает ссылку на книгу строчными буквами', () => {
+    const bookWithLink = { ...book, link: 'https://example.com/book' }
+    render(<BookCard book={bookWithLink} isSelected={false} onToggle={() => {}} />)
+    expect(screen.getByRole('link', { name: 'читать' })).toHaveAttribute('href', bookWithLink.link)
   })
 
   it('извлекает год из даты формата M/D/YYYY', () => {

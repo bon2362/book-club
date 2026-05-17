@@ -38,6 +38,7 @@ function parseRecommendationLink(raw: string): { text: string; url: string } | n
 export default function BookCard({ book, isSelected, onToggle }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
+  const [descHovered, setDescHovered] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const hasExpandable = isLongDescription
@@ -288,7 +289,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
                 borderBottom: '1px solid #111',
               }}
             >
-              Читать
+              читать
             </a>
           )}
         </div>
@@ -300,6 +301,8 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
           {book.description && (
             <p
               onClick={hasExpandable ? () => setDescExpanded(e => !e) : undefined}
+              onMouseEnter={hasExpandable ? () => setDescHovered(true) : undefined}
+              onMouseLeave={hasExpandable ? () => setDescHovered(false) : undefined}
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.78rem',
@@ -325,13 +328,15 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
               style={{
                 background: 'none',
                 border: 'none',
+                borderBottom: `1px solid ${descHovered ? '#C0603A' : 'transparent'}`,
                 padding: '0.25rem 0 0',
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.7rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
-                color: '#999',
+                color: descHovered ? '#C0603A' : '#999',
                 cursor: 'pointer',
+                transition: 'color 160ms ease, border-color 160ms ease',
               }}
             >
               {descExpanded ? 'Свернуть' : 'Читать далее'}
