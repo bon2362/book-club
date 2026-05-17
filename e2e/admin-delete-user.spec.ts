@@ -9,7 +9,7 @@ const VICTIM_CONTACT = '@e2e_delete_victim'
 const VICTIM_ID = `test:${VICTIM_EMAIL}`
 
 test.describe('Удаление пользователя в админке', () => {
-  test.setTimeout(120_000) // Google Sheets API may be slow
+  test.setTimeout(120_000) // Админка и e2e setup могут быть медленными в CI
 
   test.beforeEach(async ({ page }) => {
     await epic('Администрирование')
@@ -18,7 +18,7 @@ test.describe('Удаление пользователя в админке', () 
     await page.request.post('/api/test/session', {
       data: { email: VICTIM_EMAIL, name: VICTIM_NAME },
     })
-    // 2. Пишем сигнап жертвы напрямую в Google Sheets (обычный /api/signup
+    // 2. Пишем signup жертвы напрямую в signup_books (обычный /api/signup
     //    работает через UI-флоу, а здесь нужна компактная фикстура)
     await page.request.post('/api/test/signup', {
       data: { userId: VICTIM_ID, name: VICTIM_NAME, email: VICTIM_EMAIL, contacts: VICTIM_CONTACT, selectedBooks: ['Тестовая книга 1'] },
@@ -31,7 +31,7 @@ test.describe('Удаление пользователя в админке', () 
   })
 
   test.afterEach(async ({ page }) => {
-    // Помечаем запись жертвы в Sheets как TO DELETE (cleanup)
+    // Чистим signup_books запись жертвы
     await page.request.delete('/api/test/signup', {
       data: { userId: VICTIM_ID },
     })

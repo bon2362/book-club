@@ -50,6 +50,11 @@ next-env.d.ts
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 
+# Local agent/Codex workspace config
+.agents/
+.codex/
+AGENTS.md
+
 # Allure test results (generated in CI, not committed)
 /allure-results
 /allure-history

@@ -12,14 +12,14 @@ const TEST_BOOK_NAME = 'Тестовая книга 1'
 const TEST_BOOK_ID = '__test_book_1__'
 
 test.describe('AdminPanel — изменение статуса книги', () => {
-  test.setTimeout(120_000) // Google Sheets API может быть медленным
+  test.setTimeout(120_000) // Админка и e2e setup могут быть медленными в CI
 
   test.beforeEach(async ({ page }) => {
     await epic('Администрирование')
     await feature('Статус книги')
     // 1. Создаём обычного пользователя, записавшегося на тестовую книгу
-    //    Пишем напрямую в Google Sheets через /api/test/signup,
-    //    т.к. /api/signup пропускает запись в Sheets в NEXTAUTH_TEST_MODE
+    //    Пишем напрямую в signup_books через /api/test/signup,
+    //    чтобы компактно подготовить фикстуру для админки.
     await page.request.post('/api/test/signup', {
       data: {
         userId: USER_EMAIL,
@@ -40,7 +40,7 @@ test.describe('AdminPanel — изменение статуса книги', () 
     // Сбрасываем статус книги (чтобы не влиять на другие тесты)
     await page.request.delete(`/api/admin/book-status?bookId=${encodeURIComponent(TEST_BOOK_ID)}`)
 
-    // Чистим Sheets запись пользователя
+    // Чистим signup_books запись пользователя
     await page.request.delete('/api/test/signup', { data: { userId: USER_EMAIL } })
 
     // Удаляем пользователей из БД

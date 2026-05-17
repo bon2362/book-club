@@ -104,8 +104,8 @@ npm run test:e2e
 |----------|-----------|
 | `POST /api/test/session` | Создать сессию (поддерживает `isAdmin`, `telegramUsername`) |
 | `DELETE /api/test/session` | Удалить пользователя и сессию |
-| `POST /api/test/signup` | Записать signup напрямую в Google Sheets |
-| `DELETE /api/test/signup` | Пометить запись как TO DELETE в Sheets |
+| `POST /api/test/signup` | Записать выбранные книги напрямую в `signup_books` |
+| `DELETE /api/test/signup` | Удалить тестовые записи пользователя из `signup_books` |
 
 В этом режиме `lib/sheets.ts` возвращает фикстурные книги (`__test_book_1__`, `__test_book_2__`, `__test_book_3__`) без обращения к Google Sheets.
 
@@ -201,7 +201,7 @@ git push → GitHub Actions
   4. unit-тесты + coverage (DATABASE_URL=dummy)
   5. upload coverage → Codecov
   6. install playwright chromium
-  7. e2e-тесты (реальная БД + Google Sheets)
+  7. e2e-тесты (реальная БД + фикстурный каталог вместо Google Sheets)
   8. allure generate → publish gh-pages
   9. build
 ```
