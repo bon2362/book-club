@@ -23,7 +23,6 @@ const config: Config = {
     '!lib/db/index.ts',
     '!lib/useTheme.ts',
     '!app/api/test/**',
-    '!app/api/debug-covers/**',
     '!app/api/auth/[...nextauth]/**',
   ],
   coverageThreshold: {
