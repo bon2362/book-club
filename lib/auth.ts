@@ -150,13 +150,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       const userId = user.id
-      if (userId && account?.provider) {
+      if ((userId || user.email) && account?.provider) {
         const provider = normalizeAuthProvider(account.provider)
         await db.update(users).set({
           authProvider: provider,
           lastSignInAt: new Date(),
           ...(user.telegramUsername ? { telegramUsername: user.telegramUsername } : {}),
-        }).where(eq(users.id, userId))
+        }).where(userId ? eq(users.id, userId) : eq(users.email, user.email!))
       }
       return true
     },
