@@ -47,12 +47,6 @@ export const verificationTokens = pgTable('verificationToken', {
   pk: primaryKey({ columns: [t.identifier, t.token] }),
 }))
 
-export const bookCovers = pgTable('book_covers', {
-  bookId:    text('book_id').primaryKey(),
-  coverUrl:  text('cover_url'),
-  fetchedAt: timestamp('fetched_at', { mode: 'date' }).notNull().defaultNow(),
-})
-
 export const bookStatuses = pgTable('book_statuses', {
   bookId: text('book_id').primaryKey(),
   status: text('status').notNull(), // 'reading' | 'read'

@@ -64,6 +64,13 @@
       "when": 1778954685289,
       "tag": "0008_signup_books",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779027074686,
+      "tag": "0009_wise_the_watchers",
+      "breakpoints": true
     }
   ]
 }

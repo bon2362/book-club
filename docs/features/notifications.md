@@ -4,10 +4,10 @@
 Когда пользователь записывается в список читателей книги (signup), каждому уже записавшемуся участнику этой книги ставится в очередь email-уведомление. Каждые 10 минут cron job отправляет накопившиеся уведомления пакетами. Участники получают digest-письмо со списком новых записавшихся и их контактами.
 
 ## Как работает
-- **Очередь** — таблица `notification_queue` в Neon Postgres; одна строка на каждое ожидающее уведомление. Поля: `userName`, `userEmail`, `contacts`, `addedBooks` (JSON), `recipientEmail`, `recipientName`, `status` (`pending` | `sent` | `failed`), `createdAt`, `sentAt`
+- **Очередь** — таблица `notification_queue` в Neon Postgres; одна строка на каждое ожидающее уведомление администратору. Поля: `userName`, `userEmail`, `contacts`, `addedBooks` (JSON), `isNew`, `createdAt`, `processingAt`, `sentAt`
 - **Постановка в очередь** — при signup пользователя `POST /api/signup` вставляет строки в `notification_queue` для всех текущих участников этой книги
 - **Cron trigger** — GitHub Actions `digest.yml` вызывает `GET /api/cron/digest` с заголовком `Authorization: Bearer $CRON_SECRET` каждые 10 минут
-- **Обработка** — `/api/cron/digest` забирает все строки со статусом `pending`, группирует по `recipientEmail`, отправляет одно письмо на получателя через Resend, помечает строки как `sent`
+- **Обработка** — `/api/cron/digest` атомарно захватывает строки с `sentAt IS NULL` и `processingAt IS NULL`, выдерживает debounce, отправляет один digest на `ADMIN_EMAIL` через Resend и заполняет `sentAt`
 - **Email** — HTML-шаблон в `lib/email-templates/`; содержит список новых участников и их контакты
 - **DigestStatusWidget** — компонент только для админов, показывает размер очереди и время последней отправки
 

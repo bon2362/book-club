@@ -21,7 +21,6 @@ const config: Config = {
     '!lib/db/migrations/**',
     '!lib/db/schema.ts',
     '!lib/db/index.ts',
-    '!lib/useTheme.ts',
     '!app/api/test/**',
     '!app/api/auth/[...nextauth]/**',
   ],

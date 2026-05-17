@@ -136,20 +136,20 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - Виджет не работает без third-party cookies (incognito, Safari strict mode)
 
 ## Архитектура обложек
-- Обложки берутся напрямую из **колонки L Google Sheets** (`coverUrl` = `row[11]`)
+- Обложки берутся напрямую из **колонки N Google Sheets** (`coverUrl` = `row[13]`)
 - `lib/covers.ts` удалён (был Google Books API + DB cache — убран из-за 429 rate limits)
-- `lib/books-with-covers.ts` — просто маппит данные из sheets, без фетча
-- `lib/sheets.ts` — читает `coverUrl` из колонки L таблицы
+- `lib/books-with-covers.ts` — объединяет книги из sheets и approved-заявки из БД, добавляет флаги новинок
+- `lib/sheets.ts` — читает `coverUrl` из колонки N таблицы
 - `CoverImage.tsx` — client component, fallback на инициалы автора при `coverUrl=null`
 - `BookCard.tsx` — кнопка «Читать далее» / «Свернуть» для описаний > 120 символов
-- Чтобы обложки появились — нужно заполнить колонку L в Google Sheets вручную
+- Чтобы обложки появились — нужно заполнить колонку N в Google Sheets вручную
 
 ## Документация по фичам
 `docs/features/` — краткое описание реализации каждой области (auth, books-catalog, admin-panel, notifications, user-profile). Читай перед работой с соответствующим кодом.
 
 ## Ключевые файлы
-- `lib/books-with-covers.ts` — pass-through из sheets
-- `lib/sheets.ts` — Google Sheets (каталог книг + coverUrl из колонки L)
+- `lib/books-with-covers.ts` — объединение sheets + approved-заявок + флагов новинок
+- `lib/sheets.ts` — Google Sheets (каталог книг + coverUrl из колонки N)
 - `components/nd/CoverImage.tsx` — client component, onError fallback
 - `components/nd/BookCard.tsx` — expand/collapse описания
-- `lib/db/schema.ts` — схема БД: users, accounts, sessions, bookPriorities и др. Таблица book_covers есть, но для обложек не используется (обложки из Google Sheets)
+- `lib/db/schema.ts` — схема БД: users, accounts, sessions, bookPriorities и др.
