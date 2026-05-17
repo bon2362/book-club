@@ -55,6 +55,10 @@ function authLabel(provider: string | null) {
   return provider
 }
 
+function lastAuthLabel(provider: string | null) {
+  return `последний способ: ${authLabel(provider)}`
+}
+
 export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemoveSignup, onDeleteUser, onOpenSubmission }: Props) {
   useEffect(() => {
     if (!isOpen) return
@@ -135,7 +139,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
               <section style={{ marginBottom: '1.6rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.7rem' }}>
                   <h3 style={sectionTitle}>Профиль</h3>
-                  <span style={pill('#F0F0F0', '#555')}>{authLabel(user.authProvider)}</span>
+                  <span style={pill('#F0F0F0', '#555')}>{lastAuthLabel(user.authProvider)}</span>
                 </div>
                 <dl style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.45rem 0.9rem', margin: 0, fontSize: '0.82rem' }}>
                   <dt style={{ color: '#999' }}>Имя</dt><dd style={{ margin: 0 }}>{user.name || '—'}</dd>
