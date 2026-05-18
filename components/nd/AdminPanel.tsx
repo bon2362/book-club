@@ -912,6 +912,10 @@ export default function AdminPanel({
                     const hasEdits = Object.keys(edits).length > 0
                     const statusColor = submissionStatusColor[sub.status] ?? '#111'
                     const statusLabel = submissionStatusLabel[sub.status] ?? sub.status
+                    const topicValue = ('topic' in edits ? edits.topic : sub.topic) ?? ''
+                    const topicOptions = topicValue && !allTags.includes(topicValue)
+                      ? [topicValue, ...allTags]
+                      : allTags
 
                     return (
                       <Fragment key={sub.id}>
@@ -971,11 +975,17 @@ export default function AdminPanel({
                                 </div>
                                 <div>
                                   <div style={fieldLabel}>Тема</div>
-                                  <input
-                                    value={edits.topic ?? sub.topic ?? ''}
-                                    onChange={e => updateSubmissionEdit(sub.id, 'topic', e.target.value)}
+                                  <select
+                                    aria-label="Тема"
+                                    value={topicValue}
+                                    onChange={e => updateSubmissionEdit(sub.id, 'topic', e.target.value || null)}
                                     style={fieldInput}
-                                  />
+                                  >
+                                    <option value="">Не выбрана</option>
+                                    {topicOptions.map(topic => (
+                                      <option key={topic} value={topic}>{topic}</option>
+                                    ))}
+                                  </select>
                                 </div>
                                 <div>
                                   <div style={fieldLabel}>Описание</div>

@@ -285,6 +285,51 @@ describe('AdminPanel — Заявки таб', () => {
     })
   })
 
+  it('редактирование темы использует список тем и сохраняет выбранную тему', async () => {
+    const updatedSub = { ...mockSubmissions[0], topic: 'Философия' }
+    ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/admin/submissions' && !init) {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: mockSubmissions }),
+          ok: true,
+        })
+      }
+      if (url === '/api/admin/submissions/sub-1') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: updatedSub }),
+          ok: true,
+        })
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: [] }),
+        ok: true,
+      })
+    })
+
+    render(<AdminPanel {...defaultProps} allTags={['История', 'Философия']} />)
+    fireEvent.click(screen.getByText(/заявки/i))
+    await waitFor(() => screen.getByText('Сапиенс'))
+
+    fireEvent.click(screen.getByText('Сапиенс'))
+
+    const topicSelect = screen.getByLabelText('Тема')
+    expect(within(topicSelect).getByRole('option', { name: 'История' })).toBeInTheDocument()
+    expect(within(topicSelect).getByRole('option', { name: 'Философия' })).toBeInTheDocument()
+
+    fireEvent.change(topicSelect, { target: { value: 'Философия' } })
+    fireEvent.click(screen.getByText('Сохранить'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/admin/submissions/sub-1',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.stringContaining('"topic":"Философия"'),
+        })
+      )
+    })
+  })
+
   it('показывает "Загрузка…" до получения данных', async () => {
     let resolve: (v: unknown) => void
     ;(global.fetch as jest.Mock).mockReturnValue(
