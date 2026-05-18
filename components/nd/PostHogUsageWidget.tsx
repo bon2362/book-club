@@ -18,11 +18,16 @@ function pickColor(ratio: number): string {
   return '#2D6A4F'
 }
 
-export default function PostHogUsageWidget() {
+interface Props {
+  refreshSignal?: number
+}
+
+export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
   const [state, setState] = useState<State>({ kind: 'loading' })
 
   useEffect(() => {
     let cancelled = false
+    setState({ kind: 'loading' })
     fetch('/api/admin/posthog-usage', { cache: 'no-store' })
       .then(async res => {
         const data = await res.json().catch(() => ({}))
@@ -47,14 +52,13 @@ export default function PostHogUsageWidget() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshSignal])
 
   const containerStyle: React.CSSProperties = {
     border: '1px solid #E5E5E5',
     background: '#fff',
-    padding: '1rem 1.25rem',
+    padding: '0.75rem 1rem',
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-    marginBottom: '1.5rem',
   }
 
   const labelStyle: React.CSSProperties = {

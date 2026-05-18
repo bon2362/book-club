@@ -7,7 +7,6 @@ import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } fr
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminRefresh from '@/components/nd/AdminRefresh'
 import AdminFooter from '@/components/nd/AdminFooter'
-import PostHogUsageWidget from '@/components/nd/PostHogUsageWidget'
 import { SessionProvider } from 'next-auth/react'
 
 export const dynamic = 'force-dynamic'
@@ -74,9 +73,6 @@ export default async function AdminPage() {
   return (
     <>
       <AdminRefresh />
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem 2rem 0' }}>
-        <PostHogUsageWidget />
-      </div>
       <SessionProvider>
         <AdminPanel
           users={signups}

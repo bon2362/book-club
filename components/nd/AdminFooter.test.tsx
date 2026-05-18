@@ -34,6 +34,9 @@ beforeEach(() => {
     if (url === '/api/admin/digest-status') {
       return { ok: true, json: async () => ({ status: 'empty' }) }
     }
+    if (url === '/api/admin/posthog-usage') {
+      return { ok: true, json: async () => ({ eventsThisMonth: 123, limit: 1_000_000 }) }
+    }
     return { ok: true, json: async () => allureSummary }
   }) as jest.Mock
 })
@@ -50,22 +53,30 @@ describe('AdminFooter', () => {
     )
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(3)
+      expect(global.fetch).toHaveBeenCalledTimes(4)
     })
 
-    expect(fetchUrl(0)).toBe('/api/admin/status')
-    expect(fetchUrl(1)).toBe('/api/admin/digest-status')
-    expect(fetchUrl(2)).toBe('https://bon2362.github.io/book-club/widgets/summary.json')
+    const initialUrls = (global.fetch as jest.Mock).mock.calls.slice(0, 4).map(c => c[0])
+    expect(initialUrls).toEqual(expect.arrayContaining([
+      '/api/admin/status',
+      '/api/admin/digest-status',
+      'https://bon2362.github.io/book-club/widgets/summary.json',
+      '/api/admin/posthog-usage',
+    ]))
 
     fireEvent.click(screen.getByRole('button', { name: /обновить виджеты/i }))
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(6)
+      expect(global.fetch).toHaveBeenCalledTimes(8)
     })
 
     expect(refresh).toHaveBeenCalledTimes(1)
-    expect(fetchUrl(3)).toBe('/api/admin/status')
-    expect(fetchUrl(4)).toBe('/api/admin/digest-status')
-    expect(fetchUrl(5)).toBe('https://bon2362.github.io/book-club/widgets/summary.json')
+    const refreshUrls = (global.fetch as jest.Mock).mock.calls.slice(4, 8).map(c => c[0])
+    expect(refreshUrls).toEqual(expect.arrayContaining([
+      '/api/admin/status',
+      '/api/admin/digest-status',
+      'https://bon2362.github.io/book-club/widgets/summary.json',
+      '/api/admin/posthog-usage',
+    ]))
   })
 })

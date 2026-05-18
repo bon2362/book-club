@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import AdminStatusBar from './AdminStatusBar'
 import DigestStatusWidget from './DigestStatusWidget'
 import AllureWidget from './AllureWidget'
+import PostHogUsageWidget from './PostHogUsageWidget'
 
 interface AdminFooterProps {
   buildTime: string | null
@@ -93,6 +94,7 @@ export default function AdminFooter({
       <AdminStatusBar refreshSignal={refreshSignal} />
       <DigestStatusWidget refreshSignal={refreshSignal} />
       <AllureWidget refreshSignal={refreshSignal} />
+      <PostHogUsageWidget refreshSignal={refreshSignal} />
     </footer>
   )
 }
