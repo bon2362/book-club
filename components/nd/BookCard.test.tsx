@@ -39,9 +39,9 @@ describe('nd/BookCard', () => {
     expect(screen.getByRole('button', { name: /хочу читать/i })).toBeInTheDocument()
   })
 
-  it('shows "✓ Записан" when selected', () => {
+  it('shows "✓ Вы записаны" when selected', () => {
     render(<BookCard book={book} isSelected={true} onToggle={() => {}} />)
-    expect(screen.getByRole('button', { name: /записан/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /вы записаны/i })).toBeInTheDocument()
   })
 
   it('calls onToggle with book when button clicked', () => {
