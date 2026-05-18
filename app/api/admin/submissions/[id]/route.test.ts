@@ -22,6 +22,8 @@ jest.mock('@/lib/email-templates/submission-status', () => ({
 const mockUpdate = jest.fn()
 const mockSelect = jest.fn()
 const mockDelete = jest.fn()
+const mockInsertValues = jest.fn()
+const mockOnConflictDoNothing = jest.fn()
 
 jest.mock('@/lib/db', () => ({
   db: {
@@ -44,6 +46,9 @@ jest.mock('@/lib/db', () => ({
         returning: mockDelete,
       }),
     }),
+    insert: jest.fn(() => ({
+      values: mockInsertValues,
+    })),
   },
 }))
 
@@ -84,10 +89,13 @@ describe('PATCH /api/admin/submissions/[id] — auth', () => {
 
 describe('PATCH /api/admin/submissions/[id] — happy path', () => {
   beforeEach(() => {
+    jest.clearAllMocks()
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockUpdate.mockResolvedValue([mockSubmission])
     mockSelect.mockResolvedValue([{ email: 'user@test.com' }])
     mockSend.mockResolvedValue({ id: 'email-id' })
+    mockInsertValues.mockReturnValue({ onConflictDoNothing: mockOnConflictDoNothing })
+    mockOnConflictDoNothing.mockResolvedValue(undefined)
   })
 
   it('возвращает 200 с обновлённой заявкой', async () => {
@@ -103,11 +111,18 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
     expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: 'user@test.com', subject: 'Одобрено' }))
   })
 
+  it('записывает автора заявки на книгу при статусе approved', async () => {
+    await PATCH(makeRequest('sub-1', { status: 'approved' }), { params: { id: 'sub-1' } })
+    expect(mockInsertValues).toHaveBeenCalledWith({ userId: 'user-1', bookName: 'Сапиенс' })
+    expect(mockOnConflictDoNothing).toHaveBeenCalled()
+  })
+
   it('отправляет email при статусе rejected', async () => {
     const rejectedSubmission = { ...mockSubmission, status: 'rejected' }
     mockUpdate.mockResolvedValue([rejectedSubmission])
     await PATCH(makeRequest('sub-1', { status: 'rejected' }), { params: { id: 'sub-1' } })
     expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: 'user@test.com', subject: 'Отклонено' }))
+    expect(mockInsertValues).not.toHaveBeenCalled()
   })
 
   it('возвращает 200 даже если Resend падает', async () => {
@@ -122,6 +137,7 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
     mockUpdate.mockResolvedValue([pendingSubmission])
     await PATCH(makeRequest('sub-1', { title: 'Новый заголовок' }), { params: { id: 'sub-1' } })
     expect(mockSend).not.toHaveBeenCalled()
+    expect(mockInsertValues).not.toHaveBeenCalled()
   })
 
   it('возвращает 404 если заявка не найдена', async () => {
