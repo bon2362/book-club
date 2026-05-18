@@ -6,7 +6,7 @@ let initialized = false
 
 export function initPostHog(): void {
   if (initialized || typeof window === 'undefined') return
-  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
+  const key = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
   if (!key) return
   posthog.init(key, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
