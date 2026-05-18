@@ -19,6 +19,7 @@ export interface AdminUserSummary {
   createdAt: string | null
   languages: string[]
   booksCount: number
+  isAdmin: boolean
 }
 
 export interface AdminUserDetails {
@@ -80,6 +81,7 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
         authProvider: users.authProvider,
         lastSignInAt: users.lastSignInAt,
         languages: users.languages,
+        isAdmin: users.isAdmin,
       })
       .from(users)
       .orderBy(asc(users.name), asc(users.email)),
@@ -100,6 +102,7 @@ export function buildAdminUserSummaries(
     lastSignInAt: Date | null
     emailVerified: Date | null
     languages: string | null
+    isAdmin?: boolean | null
   }[],
   signupRows: { userId: string }[]
 ): AdminUserSummary[] {
@@ -117,6 +120,7 @@ export function buildAdminUserSummaries(
     createdAt: dateToIso(row.emailVerified),
     languages: parseLanguages(row.languages),
     booksCount: counts.get(row.id) ?? 0,
+    isAdmin: row.isAdmin ?? false,
   }))
 }
 
@@ -133,6 +137,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       lastSignInAt: users.lastSignInAt,
       languages: users.languages,
       prioritiesSet: users.prioritiesSet,
+      isAdmin: users.isAdmin,
     })
     .from(users)
     .where(eq(users.id, userId))

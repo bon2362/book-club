@@ -18,6 +18,7 @@ describe('admin-users aggregations', () => {
         lastSignInAt: new Date('2026-01-02T10:00:00Z'),
         emailVerified: new Date('2026-01-01T10:00:00Z'),
         languages: '["ru","en"]',
+        isAdmin: true,
       },
       {
         id: 'u2',
@@ -29,6 +30,7 @@ describe('admin-users aggregations', () => {
         lastSignInAt: null,
         emailVerified: null,
         languages: 'not-json',
+        isAdmin: false,
       },
     ]
 
@@ -45,6 +47,7 @@ describe('admin-users aggregations', () => {
         email: 'anna@test.com',
         languages: ['ru', 'en'],
         booksCount: 2,
+        isAdmin: true,
         lastSignInAt: '2026-01-02T10:00:00.000Z',
         createdAt: '2026-01-01T10:00:00.000Z',
       }),
@@ -53,6 +56,7 @@ describe('admin-users aggregations', () => {
         name: '',
         languages: [],
         booksCount: 0,
+        isAdmin: false,
         lastSignInAt: null,
       }),
     ])

@@ -59,6 +59,21 @@ function lastAuthLabel(provider: string | null) {
   return `последний способ: ${authLabel(provider)}`
 }
 
+const adminBadge: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '0.1rem 0.45rem',
+  borderRadius: 2,
+  background: '#111',
+  color: '#fff',
+  fontFamily: sans,
+  fontSize: '0.62rem',
+  fontWeight: 700,
+  lineHeight: 1.35,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+}
+
 export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemoveSignup, onDeleteUser, onOpenSubmission }: Props) {
   useEffect(() => {
     if (!isOpen) return
@@ -122,9 +137,12 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
             <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.16em', color: '#999' }}>
               Карточка пользователя
             </div>
-            <h2 style={{ fontFamily: serif, fontSize: '1.35rem', margin: '0.2rem 0 0', color: '#111' }}>
-              {loading ? 'Загрузка…' : user?.name || user?.email || 'Пользователь'}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+              <h2 style={{ fontFamily: serif, fontSize: '1.35rem', margin: 0, color: '#111' }}>
+                {loading ? 'Загрузка…' : user?.name || user?.email || 'Пользователь'}
+              </h2>
+              {user?.isAdmin && <span style={adminBadge}>Admin</span>}
+            </div>
           </div>
           <button onClick={onClose} aria-label="Закрыть" style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: '#666', cursor: 'pointer', height: 32 }}>
             ×
