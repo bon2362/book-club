@@ -4,7 +4,7 @@
  * Tests for lib/auth.ts:
  * - jwt callback (isAdmin, telegramUsername, provider, deleted user)
  * - session callback (user.id, isAdmin, telegramUsername, provider)
- * - telegram-preauth provider authorize (HMAC, freshness, DB lookup)
+ * - telegram-preauth provider authorize (one-time token consume, freshness, DB lookup)
  * - telegram provider authorize (verifyTelegramHash, DB upsert)
  */
 
@@ -17,7 +17,7 @@ jest.mock('@auth/drizzle-adapter', () => ({
 }))
 
 jest.mock('@/lib/db', () => ({
-  db: { select: jest.fn(), insert: jest.fn(), update: jest.fn() },
+  db: { select: jest.fn(), insert: jest.fn(), update: jest.fn(), delete: jest.fn() },
 }))
 
 jest.mock('@/lib/auth.google-one-tap', () => ({
@@ -113,15 +113,17 @@ function mockDbInsert() {
 function mockDbUpdate() {
   const chain = {
     set: jest.fn().mockReturnThis(),
-    where: jest.fn().mockResolvedValue(undefined),
+    where: jest.fn().mockReturnThis(),
+    returning: jest.fn().mockResolvedValue([]),
   }
   ;(db.update as jest.Mock).mockReturnValue(chain)
   return chain
 }
 
-// Build a valid telegram-preauth token
-function buildPreauthToken(uid: string, ts: string, secret: string): string {
-  return createHmac('sha256', secret).update(`${uid}:${ts}`).digest('hex')
+function mockPreauthConsume(allowed: boolean) {
+  const chain = mockDbUpdate()
+  chain.returning.mockResolvedValue(allowed ? [{ userId: 'telegram:user' }] : [])
+  return chain
 }
 
 // Build a valid Telegram Widget hash
@@ -235,46 +237,82 @@ describe('signIn callback', () => {
 describe('jwt callback', () => {
   const jwtCallback = () => getConfig().callbacks.jwt
 
-  it('устанавливает isAdmin=true для admin email', async () => {
+  it('читает isAdmin=true из DB', async () => {
+    mockDbSelect([{ id: 'admin-id', isAdmin: true }])
+
     const token = await jwtCallback()({
-      token: { email: ADMIN_EMAIL },
-      user: { email: ADMIN_EMAIL },
+      token: { sub: 'admin-id', email: ADMIN_EMAIL },
+      user: { id: 'admin-id', email: ADMIN_EMAIL },
       account: { provider: 'google' },
     })
     expect((token as Record<string, unknown>).isAdmin).toBe(true)
   })
 
-  it('устанавливает isAdmin=false для обычного email', async () => {
+  it('читает isAdmin=false из DB даже для обычного email', async () => {
+    mockDbSelect([{ id: 'user-id', isAdmin: false }])
+
     const token = await jwtCallback()({
-      token: { email: 'user@test.com' },
-      user: { email: 'user@test.com' },
+      token: { sub: 'user-id', email: 'user@test.com' },
+      user: { id: 'user-id', email: 'user@test.com' },
       account: { provider: 'google' },
     })
     expect((token as Record<string, unknown>).isAdmin).toBe(false)
   })
 
-  it('устанавливает provider из account', async () => {
+  it('bootstrap-ит ADMIN_EMAIL в isAdmin если в DB ещё нет админов', async () => {
+    const userSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ id: 'admin-id', isAdmin: false }]),
+    }
+    const adminSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]),
+    }
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce(userSelect)
+      .mockReturnValueOnce(adminSelect)
+    mockDbUpdate()
+
     const token = await jwtCallback()({
-      token: {},
-      user: { email: 'u@t.com' },
+      token: { sub: 'admin-id', email: ADMIN_EMAIL },
+      user: { id: 'admin-id', email: ADMIN_EMAIL },
+      account: { provider: 'google' },
+    })
+
+    expect((token as Record<string, unknown>).isAdmin).toBe(true)
+    expect(db.update).toHaveBeenCalled()
+  })
+
+  it('устанавливает provider из account', async () => {
+    mockDbSelect([{ id: 'user-id', isAdmin: false }])
+
+    const token = await jwtCallback()({
+      token: { sub: 'user-id' },
+      user: { id: 'user-id', email: 'u@t.com' },
       account: { provider: 'google' },
     })
     expect((token as Record<string, unknown>).provider).toBe('google')
   })
 
   it('устанавливает telegramUsername из user', async () => {
+    mockDbSelect([{ id: 'user-id', isAdmin: false }])
+
     const token = await jwtCallback()({
-      token: {},
-      user: { email: 'u@t.com', telegramUsername: 'ivan_tg' },
+      token: { sub: 'user-id' },
+      user: { id: 'user-id', email: 'u@t.com', telegramUsername: 'ivan_tg' },
       account: { provider: 'telegram-preauth' },
     })
     expect((token as Record<string, unknown>).telegramUsername).toBe('ivan_tg')
   })
 
   it('сохраняет telegramUsername из токена если user не передаёт', async () => {
+    mockDbSelect([{ id: 'user-id', isAdmin: false }])
+
     const token = await jwtCallback()({
-      token: { telegramUsername: 'existing_tg' },
-      user: { email: 'u@t.com' },
+      token: { sub: 'user-id', telegramUsername: 'existing_tg' },
+      user: { id: 'user-id', email: 'u@t.com' },
       account: { provider: 'google' },
     })
     expect((token as Record<string, unknown>).telegramUsername).toBe('existing_tg')
@@ -294,7 +332,7 @@ describe('jwt callback', () => {
 
   it('возвращает token если пользователь есть в DB', async () => {
     delete process.env.NEXTAUTH_TEST_MODE
-    mockDbSelect([{ id: 'user-uuid' }])
+    mockDbSelect([{ id: 'user-uuid', isAdmin: false }])
 
     const result = await jwtCallback()({
       token: { email: 'active@test.com' },
@@ -383,24 +421,35 @@ describe('telegram-preauth authorize', () => {
     expect(await authorize({ uid: 'u', token: 'x', ts: '' })).toBeNull()
   })
 
-  it('возвращает null если токен протух (> 300 сек)', async () => {
-    const staleTs = String(Math.floor(Date.now() / 1000) - 400)
-    const token = buildPreauthToken('user-id', staleTs, SECRET)
+  it('возвращает null если токен протух (> 60 сек)', async () => {
+    const staleTs = String(Math.floor(Date.now() / 1000) - 90)
+    const token = 'token'
     const result = await authorize({ uid: 'user-id', token, ts: staleTs })
     expect(result).toBeNull()
   })
 
-  it('возвращает null если HMAC неверен', async () => {
+  it('возвращает null если одноразовый токен не найден или уже использован', async () => {
     const ts = String(Math.floor(Date.now() / 1000))
-    const result = await authorize({ uid: 'user-id', token: 'a'.repeat(64), ts })
+    mockPreauthConsume(false)
+
+    const result = await authorize({ uid: 'user-id', token: 'token', ts })
+
     expect(result).toBeNull()
+  })
+
+  it('возвращает null если ts не число', async () => {
+    const result = await authorize({ uid: 'user-id', token: 'token', ts: 'not-a-number' })
+
+    expect(result).toBeNull()
+    expect(db.update).not.toHaveBeenCalled()
   })
 
   it('возвращает null если пользователь не найден в DB', async () => {
     const uid = 'ghost-user'
     const ts = String(Math.floor(Date.now() / 1000))
-    const token = buildPreauthToken(uid, ts, SECRET)
+    const token = 'token'
 
+    mockPreauthConsume(true)
     mockDbSelect([])
 
     const result = await authorize({ uid, token, ts })
@@ -410,8 +459,9 @@ describe('telegram-preauth authorize', () => {
   it('возвращает пользователя при валидных данных', async () => {
     const uid = 'real-user-id'
     const ts = String(Math.floor(Date.now() / 1000))
-    const token = buildPreauthToken(uid, ts, SECRET)
+    const token = 'token'
 
+    mockPreauthConsume(true)
     mockDbSelect([{ id: uid, email: 'tg@telegram.user', name: 'Ivan' }])
 
     const result = await authorize({ uid, token, ts, username: 'ivan_tg' })
@@ -427,8 +477,9 @@ describe('telegram-preauth authorize', () => {
   it('возвращает telegramUsername=null если username не передан', async () => {
     const uid = 'user-no-username'
     const ts = String(Math.floor(Date.now() / 1000))
-    const token = buildPreauthToken(uid, ts, SECRET)
+    const token = 'token'
 
+    mockPreauthConsume(true)
     mockDbSelect([{ id: uid, email: 'tg@telegram.user', name: 'Ivan' }])
 
     const result = (await authorize({ uid, token, ts })) as Record<string, unknown>
@@ -468,6 +519,19 @@ describe('telegram provider authorize + verifyTelegramHash', () => {
 
     expect(result).toBeNull()
     process.env.TELEGRAM_BOT_TOKEN = BOT_TOKEN
+  })
+
+  it('возвращает null если auth_date старше 5 минут', async () => {
+    const data = {
+      id: '123',
+      first_name: 'Ivan',
+      auth_date: String(Math.floor(Date.now() / 1000) - 600),
+    }
+    const hash = buildTelegramHash(data, BOT_TOKEN)
+
+    const result = await authorize({ ...data, hash })
+
+    expect(result).toBeNull()
   })
 
   it('создаёт пользователя и возвращает его при валидных данных', async () => {

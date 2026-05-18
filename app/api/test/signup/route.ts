@@ -7,13 +7,14 @@ import { db } from '@/lib/db'
 import { signupBooks, users } from '@/lib/db/schema'
 import { upsertSignup } from '@/lib/signup-books'
 import { eq } from 'drizzle-orm'
+import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
 }
 
 export async function POST(req: NextRequest) {
-  if (process.env.NEXTAUTH_TEST_MODE !== 'true') return notAllowed()
+  if (!isTestEndpointAllowed()) return notAllowed()
 
   const { userId, name, contacts, selectedBooks } = await req.json() as {
     userId: string; name: string; email: string; contacts: string; selectedBooks: string[]
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (process.env.NEXTAUTH_TEST_MODE !== 'true') return notAllowed()
+  if (!isTestEndpointAllowed()) return notAllowed()
 
   const { userId } = await req.json() as { userId: string }
   await db.delete(signupBooks).where(eq(signupBooks.userId, userId))

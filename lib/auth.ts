@@ -6,11 +6,26 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { createHash, createHmac, timingSafeEqual } from 'crypto'
 import { Resend as ResendClient } from 'resend'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
+import { consumeTelegramPreauthToken, verifyTelegramHash } from '@/lib/telegram-auth'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
+
+async function bootstrapAdminFromEnv(userId: string, email?: string | null) {
+  if (!email || email !== process.env.ADMIN_EMAIL) return false
+
+  const existingAdmins = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.isAdmin, true))
+    .limit(1)
+
+  if (existingAdmins.length > 0) return false
+
+  await db.update(users).set({ isAdmin: true }).where(eq(users.id, userId))
+  return true
+}
 
 function normalizeAuthProvider(provider: string) {
   return provider === 'resend' ? 'email' : provider
@@ -67,20 +82,6 @@ async function sendMagicLinkEmail(email: string, url: string) {
   })
 }
 
-function verifyTelegramHash(data: Record<string, string>): boolean {
-  if (!process.env.TELEGRAM_BOT_TOKEN) return false
-  const { hash, ...rest } = data
-  if (!hash) return false
-  const dataCheckString = Object.keys(rest).sort().map(k => `${k}=${rest[k]}`).join('\n')
-  const secret = createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN).digest()
-  const expected = createHmac('sha256', secret).update(dataCheckString).digest('hex')
-  try {
-    return timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(expected, 'hex'))
-  } catch {
-    return false
-  }
-}
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: DrizzleAdapter(db),
   providers: [
@@ -109,14 +110,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         const { uid, token, ts, username } = credentials as { uid: string; token: string; ts: string; username?: string }
         if (!uid || !token || !ts) return null
-        // Verify HMAC and freshness (5 min window)
-        if (Date.now() / 1000 - parseInt(ts) > 300) return null
-        const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
-        if (!secret) return null
-        const expected = createHmac('sha256', secret).update(`${uid}:${ts}`).digest('hex')
-        try {
-          if (!timingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'))) return null
-        } catch { return null }
+        // ts is still checked to reject very old auth pages before the DB consume.
+        const issuedAt = Number.parseInt(ts, 10)
+        const now = Math.floor(Date.now() / 1000)
+        if (!Number.isFinite(issuedAt) || now - issuedAt > 60 || issuedAt > now + 60) return null
+        if (!await consumeTelegramPreauthToken(uid, token)) return null
         const existing = await db.select().from(users).where(eq(users.id, uid)).limit(1)
         if (existing.length === 0) return null
         const user = existing[0]
@@ -162,12 +160,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async jwt({ token, user, account }) {
       if (user) {
-        token.isAdmin = user.email === process.env.ADMIN_EMAIL
         token.telegramUsername = user.telegramUsername ?? token.telegramUsername
         token.provider = account?.provider ?? token.provider
-      } else if (token.email && process.env.NEXTAUTH_TEST_MODE !== 'true') {
-        const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, token.email)).limit(1)
+      }
+
+      if (process.env.NEXTAUTH_TEST_MODE === 'true') {
+        if (user && token.isAdmin === undefined) token.isAdmin = false
+        return token
+      }
+
+      const userId = (user?.id ?? token.sub) as string | undefined
+      const email = (user?.email ?? token.email) as string | undefined
+      if (userId || email) {
+        const existing = await db
+          .select({ id: users.id, isAdmin: users.isAdmin })
+          .from(users)
+          .where(userId ? eq(users.id, userId) : eq(users.email, email!))
+          .limit(1)
         if (existing.length === 0) return null
+        token.isAdmin = existing[0].isAdmin
+        if (!token.isAdmin) {
+          token.isAdmin = await bootstrapAdminFromEnv(existing[0].id, email)
+        }
       }
       return token
     },
