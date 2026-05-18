@@ -146,7 +146,7 @@ export default function BookRow({ book, isSelected, onToggle }: Props) {
             transition: 'background 0.15s, color 0.15s',
           }}
         >
-          {isSelected ? '✓ Записан' : 'Хочу читать'}
+          {isSelected ? '✓ Записан:а' : 'Хочу читать'}
         </button>
       </td>
     </tr>

@@ -147,7 +147,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                   <dt style={{ color: '#999' }}>Email</dt><dd style={{ margin: 0 }}>{user.email}</dd>
                   <dt style={{ color: '#999' }}>Языки</dt><dd style={{ margin: 0 }}>{user.languages.length ? user.languages.join(', ') : '—'}</dd>
                   <dt style={{ color: '#999' }}>Последний вход</dt><dd style={{ margin: 0 }}>{formatDate(user.lastSignInAt)}</dd>
-                  <dt style={{ color: '#999' }}>Создан</dt><dd style={{ margin: 0 }}>{formatDate(user.createdAt)}</dd>
+                  <dt style={{ color: '#999' }}>Дата создания</dt><dd style={{ margin: 0 }}>{formatDate(user.createdAt)}</dd>
                 </dl>
                 <button onClick={onDeleteUser} style={{ marginTop: '0.9rem', background: 'transparent', border: '1px solid #E5E5E5', color: '#999', padding: '0.35rem 0.75rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Удалить пользователя
@@ -162,7 +162,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                   </span>
                 </div>
                 {!user.prioritiesSet && sortedBooks.length > 0 && <div style={{ color: '#AAA', fontStyle: 'italic', fontSize: '0.76rem', marginBottom: '0.5rem' }}>приоритеты ещё не расставлены</div>}
-                {user.prioritiesSet && unranked.length > 0 && <div style={{ color: '#AAA', fontStyle: 'italic', fontSize: '0.76rem', marginBottom: '0.5rem' }}>добавил книги после расстановки</div>}
+                {user.prioritiesSet && unranked.length > 0 && <div style={{ color: '#AAA', fontStyle: 'italic', fontSize: '0.76rem', marginBottom: '0.5rem' }}>добавил:а книги после расстановки</div>}
                 {sortedBooks.length === 0 ? <p style={{ color: '#BBB', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет записей</p> : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                     {sortedBooks.map(row => {
