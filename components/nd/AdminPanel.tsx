@@ -70,6 +70,21 @@ const headCell: React.CSSProperties = {
   borderBottom: '2px solid #111',
 }
 
+const adminBadge: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '0.08rem 0.38rem',
+  borderRadius: 2,
+  background: '#111',
+  color: '#fff',
+  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+  fontSize: '0.62rem',
+  fontWeight: 700,
+  lineHeight: 1.35,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+}
+
 const fieldLabel: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.65rem',
@@ -647,7 +662,12 @@ export default function AdminPanel({
                       onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                     >
-                      <td style={{ ...cell, fontWeight: 700 }}>{u.name || <span style={{ color: '#bbb' }}>—</span>}</td>
+                      <td style={{ ...cell, fontWeight: 700 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {u.name || <span style={{ color: '#bbb' }}>—</span>}
+                          {u.isAdmin && <span style={adminBadge}>Admin</span>}
+                        </span>
+                      </td>
                       <td style={cell}>{telegram}</td>
                       <td style={{ ...cell, color: '#666' }}>{u.email}</td>
                       <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? '#111' : '#BBB' }}>{u.booksCount}</td>

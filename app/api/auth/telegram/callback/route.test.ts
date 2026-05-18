@@ -89,6 +89,17 @@ describe('GET /api/auth/telegram/callback', () => {
     expect(db.insert).not.toHaveBeenCalled()
   })
 
+  it('[SEC] редиректит на /?auth=failed если auth_date старше 5 минут', async () => {
+    const { db } = await import('@/lib/db')
+    const params = validParams({ auth_date: String(Math.floor(Date.now() / 1000) - 600) })
+    const res = await GET(makeRequest(params))
+
+    expect(res.status).toBe(307)
+    const url = new URL(res.headers.get('location')!)
+    expect(url.searchParams.get('auth')).toBe('failed')
+    expect(db.insert).not.toHaveBeenCalled()
+  })
+
   it('[SEC] редиректит на /?auth=failed при отсутствии TELEGRAM_BOT_TOKEN', async () => {
     const { db } = await import('@/lib/db')
     delete process.env.TELEGRAM_BOT_TOKEN

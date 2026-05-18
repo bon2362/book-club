@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { accounts, sessions, signupBooks, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
 }
 
 export async function GET(req: NextRequest) {
-  if (process.env.NEXTAUTH_TEST_MODE !== 'true') return notAllowed()
+  if (!isTestEndpointAllowed()) return notAllowed()
 
   const email = req.nextUrl.searchParams.get('email')
   if (!email) {

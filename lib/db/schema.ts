@@ -15,6 +15,7 @@ export const users = pgTable('user', {
   lastSignInAt: timestamp('last_sign_in_at', { mode: 'date' }),
   languages: text('languages'),
   prioritiesSet: boolean('priorities_set').notNull().default(false),
+  isAdmin: boolean('is_admin').notNull().default(false),
 })
 
 export const accounts = pgTable('account', {
@@ -133,4 +134,15 @@ export const notificationQueue = pgTable('notification_queue', {
   sentAt:       timestamp('sent_at', { mode: 'date' }),        // NULL = unsent; NOT NULL = sent
 }, (t) => ({
   sentAtIdx: index('notification_queue_sent_at_idx').on(t.sentAt),
+}))
+
+export const telegramPreauthTokens = pgTable('telegram_preauth_tokens', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
+  usedAt: timestamp('used_at', { mode: 'date' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  userIdIdx: index('telegram_preauth_tokens_user_id_idx').on(t.userId),
+  expiresAtIdx: index('telegram_preauth_tokens_expires_at_idx').on(t.expiresAt),
 }))

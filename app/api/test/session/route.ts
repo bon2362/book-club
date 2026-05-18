@@ -6,13 +6,14 @@ import { encode } from '@auth/core/jwt'
 import { db } from '@/lib/db'
 import { users, notificationQueue } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
 }
 
 export async function POST(req: NextRequest) {
-  if (process.env.NEXTAUTH_TEST_MODE !== 'true') return notAllowed()
+  if (!isTestEndpointAllowed()) return notAllowed()
 
   const { email, name, isAdmin, telegramUsername, provider } = await req.json() as {
     email: string; name: string; isAdmin?: boolean; telegramUsername?: string; provider?: string
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
     authProvider: provider ?? 'email',
     telegramUsername: telegramUsername ?? null,
     lastSignInAt: new Date(),
+    isAdmin: isAdmin ?? false,
   }).onConflictDoUpdate({
     target: users.id,
     set: {
@@ -33,6 +35,7 @@ export async function POST(req: NextRequest) {
       authProvider: provider ?? 'email',
       telegramUsername: telegramUsername ?? null,
       lastSignInAt: new Date(),
+      isAdmin: isAdmin ?? false,
     },
   })
 
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (process.env.NEXTAUTH_TEST_MODE !== 'true') return notAllowed()
+  if (!isTestEndpointAllowed()) return notAllowed()
 
   const { email } = await req.json() as { email: string }
   await db.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))

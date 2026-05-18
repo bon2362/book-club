@@ -1,19 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash, createHmac, timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
-
-function verifyTelegramHash(data: Record<string, string>): boolean {
-  if (!process.env.TELEGRAM_BOT_TOKEN) return false
-  const { hash, ...rest } = data
-  if (!hash) return false
-  const dataCheckString = Object.keys(rest).sort().map(k => `${k}=${rest[k]}`).join('\n')
-  const secret = createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN).digest()
-  const expected = createHmac('sha256', secret).update(dataCheckString).digest('hex')
-  try {
-    return timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(expected, 'hex'))
-  } catch { return false }
-}
+import { createTelegramPreauthToken, verifyTelegramHash } from '@/lib/telegram-auth'
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
@@ -32,8 +20,7 @@ export async function GET(req: NextRequest) {
     .onConflictDoUpdate({ target: users.id, set: { name, image: photo_url || null } })
 
   const ts = String(Math.floor(Date.now() / 1000))
-  const secret = (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)!
-  const token = createHmac('sha256', secret).update(`${userId}:${ts}`).digest('hex')
+  const { token } = await createTelegramPreauthToken(userId)
 
   const url = new URL('/auth/telegram', origin)
   url.searchParams.set('uid', userId)
