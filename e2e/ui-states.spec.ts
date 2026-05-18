@@ -13,6 +13,12 @@ async function isFullyVisible(page: import('@playwright/test').Page, selector: s
   return box.y >= 0 && box.y < page.viewportSize()!.height
 }
 
+async function isFullyAboveViewportByLocator(locator: import('@playwright/test').Locator) {
+  const box = await locator.boundingBox()
+  if (!box) return true
+  return box.y + box.height <= 0
+}
+
 test.beforeEach(async () => {
   await epic('UI')
   await feature('Состояния интерфейса')
@@ -29,17 +35,14 @@ test.describe('Header: hide on scroll down', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
     await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
-    await page.waitForTimeout(350)
-    expect(await isFullyAboveViewport(page, 'header')).toBe(true)
+    await expect.poll(() => isFullyAboveViewport(page, 'header'), { timeout: 1500 }).toBe(true)
   })
 
   test('filter bar hides together with header on scroll down', async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
     await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
-    await page.waitForTimeout(350)
-    const filterBox = await page.locator('.filters-bar').boundingBox()
-    expect(filterBox!.y + filterBox!.height).toBeLessThanOrEqual(0)
+    await expect.poll(() => isFullyAboveViewportByLocator(page.locator('.filters-bar')), { timeout: 1500 }).toBe(true)
   })
 
   test('header and filters reappear on scroll up', async ({ page }) => {
@@ -48,8 +51,7 @@ test.describe('Header: hide on scroll down', () => {
     await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
     await page.waitForTimeout(350)
     await page.evaluate(() => window.scrollTo({ top: 100, behavior: 'instant' }))
-    await page.waitForTimeout(350)
-    expect(await isFullyVisible(page, 'header')).toBe(true)
+    await expect.poll(() => isFullyVisible(page, 'header'), { timeout: 1500 }).toBe(true)
   })
 })
 
@@ -86,15 +88,85 @@ test.describe('Admin user drawer layout', () => {
 
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
-    await page.getByLabel('Поиск пользователей').fill(USER_EMAIL)
-    await page.locator('tr').filter({ hasText: USER_EMAIL }).click()
-    await page.waitForTimeout(350)
-
-    const box = await page.getByRole('dialog').boundingBox()
+    await page.getByLabel('Поиск пользователей').fill(USER_NAME)
+    await page.locator('tr').filter({ hasText: USER_NAME }).click()
     const viewport = page.viewportSize()!
-    expect(box).not.toBeNull()
-    expect(box!.width).toBeLessThanOrEqual(640)
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width + 1)
-    expect(box!.x).toBeGreaterThanOrEqual(Math.max(0, viewport.width - 641))
+    await expect.poll(async () => {
+      const box = await page.getByRole('dialog').boundingBox()
+      if (!box) return false
+      return box.width <= 640
+        && box.x + box.width <= viewport.width + 1
+        && box.x >= Math.max(0, viewport.width - 641)
+    }, { timeout: 1500 }).toBe(true)
+  })
+})
+
+test.describe('Admin tab layout states', () => {
+  const ADMIN_EMAIL = 'e2e-ui-admin-tabs@test.invalid'
+
+  test.beforeEach(async ({ page }) => {
+    await page.request.post('/api/test/session', { data: { email: ADMIN_EMAIL, name: 'E2E UI Admin Tabs', isAdmin: true } })
+  })
+
+  test.afterEach(async ({ page }) => {
+    await page.request.delete('/api/test/session', { data: { email: ADMIN_EMAIL } })
+  })
+
+  test('book sort arrow stays on the same line as header text', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: /по книгам/i }).click()
+
+    const header = page.getByRole('columnheader', { name: /книга/i })
+    await header.click()
+
+    const sameLine = await header.locator('span').first().evaluate(node => {
+      const children = Array.from(node.children)
+      if (children.length < 2) return false
+      const [label, arrow] = children.map(child => child.getBoundingClientRect())
+      return Math.abs(label.top - arrow.top) <= 1
+    })
+    expect(sameLine).toBe(true)
+  })
+
+  test('tag description textarea grows to fit entered text', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: /теги/i }).click()
+
+    const textarea = page.locator('textarea').first()
+    await expect(textarea).toBeVisible()
+    const before = await textarea.boundingBox()
+    await textarea.fill([
+      'Первая строка',
+      'Вторая строка',
+      'Третья строка',
+      'Четвертая строка',
+      'Пятая строка',
+      'Шестая строка',
+      'Седьмая строка',
+      'Восьмая строка',
+    ].join('\n'))
+    const after = await textarea.boundingBox()
+
+    expect(before).not.toBeNull()
+    expect(after).not.toBeNull()
+    expect(after!.height).toBeGreaterThan(before!.height)
+  })
+
+  test('intro body textarea grows to fit entered text', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: /^интро$/i }).click()
+
+    const textarea = page.getByTestId('intro-header-body')
+    await expect(textarea).toBeVisible()
+    const before = await textarea.boundingBox()
+    await textarea.fill(['Первая строка интро', 'Вторая строка интро', 'Третья строка интро', 'Четвертая строка интро'].join('\n'))
+    const after = await textarea.boundingBox()
+
+    expect(before).not.toBeNull()
+    expect(after).not.toBeNull()
+    expect(after!.height).toBeGreaterThan(before!.height)
   })
 })

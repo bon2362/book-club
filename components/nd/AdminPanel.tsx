@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Fragment, useMemo } from 'react'
+import { useState, useEffect, Fragment, useMemo, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
@@ -48,7 +48,7 @@ interface Props {
 type View = 'users' | 'books' | 'tags' | 'submissions' | 'feedback' | 'intro'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
-type UserSortKey = 'name' | 'telegram' | 'email' | 'books' | 'languages'
+type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastSignInAt' | 'createdAt'
 type BookSortKey = 'name' | 'signups' | 'participants' | 'status' | 'new'
 
 const cell: React.CSSProperties = {
@@ -85,6 +85,11 @@ const adminBadge: React.CSSProperties = {
   letterSpacing: '0.06em',
 }
 
+const newUserBadge: React.CSSProperties = {
+  ...adminBadge,
+  background: '#C0603A',
+}
+
 const fieldLabel: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.65rem',
@@ -108,6 +113,42 @@ const fieldInput: React.CSSProperties = {
   outline: 'none',
   background: '#fff',
   boxSizing: 'border-box',
+}
+
+function AutoHeightTextarea({
+  value,
+  onChange,
+  minRows = 1,
+  style,
+  ...props
+}: Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> & {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  minRows?: number
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null)
+
+  useLayoutEffect(() => {
+    const node = ref.current
+    if (!node) return
+    node.style.height = 'auto'
+    node.style.height = `${node.scrollHeight}px`
+  }, [value])
+
+  return (
+    <textarea
+      {...props}
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      rows={minRows}
+      style={{
+        resize: 'none',
+        overflow: 'hidden',
+        ...style,
+      }}
+    />
+  )
 }
 
 function getBookInitials(author: string): string {
@@ -164,6 +205,59 @@ function BookCoverThumb({ book }: { book: BookWithCover }) {
   )
 }
 
+function formatAdminDate(value: string | null): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('ru-RU')
+}
+
+function dateValue(value: string | null): number {
+  return value ? new Date(value).getTime() : 0
+}
+
+function isNewUser(createdAt: string | null): boolean {
+  if (!createdAt) return false
+  const created = dateValue(createdAt)
+  if (!Number.isFinite(created)) return false
+  const threeDaysMs = 3 * 24 * 60 * 60 * 1000
+  const age = Date.now() - created
+  return age >= 0 && age <= threeDaysMs
+}
+
+function SortHeader({ label, active, dir }: { label: string; active: boolean; dir: 'asc' | 'desc' }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+      <span>{label}</span>
+      {active && <span aria-hidden="true">{dir === 'asc' ? '↑' : '↓'}</span>}
+    </span>
+  )
+}
+
+function CountBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span
+      aria-label={`${count} новых`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '1rem',
+        height: '1rem',
+        padding: '0 0.28rem',
+        marginLeft: '0.35rem',
+        borderRadius: 999,
+        background: '#C0603A',
+        color: '#fff',
+        fontSize: '0.6rem',
+        lineHeight: 1,
+        letterSpacing: 0,
+      }}
+    >
+      {count}
+    </span>
+  )
+}
+
 export default function AdminPanel({
   users,
   byBook,
@@ -177,7 +271,7 @@ export default function AdminPanel({
   const [adminUsers, setAdminUsers] = useState<AdminUserSummary[]>([])
   const [adminUsersLoaded, setAdminUsersLoaded] = useState(false)
   const [userSearch, setUserSearch] = useState('')
-  const [userSort, setUserSort] = useState<{ key: UserSortKey; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' })
+  const [userSort, setUserSort] = useState<{ key: UserSortKey; dir: 'asc' | 'desc' }>({ key: 'lastSignInAt', dir: 'desc' })
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
   const [userDrawerLoading, setUserDrawerLoading] = useState(false)
@@ -213,7 +307,11 @@ export default function AdminPanel({
   useEffect(() => {
     fetch('/api/admin/submissions')
       .then(r => r.json())
-      .then(d => { if (d.success && Array.isArray(d.data)) setSubmissions(d.data) })
+      .then(d => {
+        if (!d.success || !Array.isArray(d.data)) return
+        setSubmissions(d.data)
+        setSubmissionFilter(d.data.some((s: Submission) => s.status === 'pending') ? 'pending' : 'all')
+      })
       .catch(() => {})
       .finally(() => setSubmissionsLoaded(true))
   }, [])
@@ -227,13 +325,12 @@ export default function AdminPanel({
   }, [])
 
   useEffect(() => {
-    if (view !== 'feedback' || feedbackLoaded) return
     fetch('/api/admin/feedback')
       .then(r => r.json())
       .then(d => { if (d.success && Array.isArray(d.data)) setFeedbackItems(d.data) })
       .catch(() => {})
       .finally(() => setFeedbackLoaded(true))
-  }, [view, feedbackLoaded])
+  }, [])
 
   async function openUserDrawer(userId: string) {
     setSelectedAdminUserId(userId)
@@ -398,7 +495,11 @@ export default function AdminPanel({
     try {
       const res = await fetch(`/api/admin/submissions/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        setSubmissions(prev => prev.filter(s => s.id !== id))
+        setSubmissions(prev => {
+          const next = prev.filter(s => s.id !== id)
+          if (!next.some(s => s.status === 'pending')) setSubmissionFilter('all')
+          return next
+        })
         setSelectedSubmissionId(null)
         setSubmissionDeleteConfirm(null)
         setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
@@ -418,7 +519,11 @@ export default function AdminPanel({
       })
       if (res.ok) {
         const d = await res.json()
-        setSubmissions(prev => prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s))
+        setSubmissions(prev => {
+          const next = prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s)
+          if (!next.some(s => s.status === 'pending')) setSubmissionFilter('all')
+          return next
+        })
         setSelectedSubmissionId(null)
         setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
       }
@@ -485,7 +590,7 @@ export default function AdminPanel({
     .filter(u => {
       const q = userSearch.trim().toLowerCase()
       if (!q) return true
-      return `${u.name} ${u.email}`.toLowerCase().includes(q)
+      return `${u.name} ${u.telegramUsername ?? ''} ${u.contacts ?? ''}`.toLowerCase().includes(q)
     })
     .sort((a, b) => {
       const dir = userSort.dir === 'asc' ? 1 : -1
@@ -493,6 +598,8 @@ export default function AdminPanel({
         if (userSort.key === 'books') return u.booksCount
         if (userSort.key === 'languages') return u.languages.join(', ')
         if (userSort.key === 'telegram') return u.telegramUsername ?? u.contacts ?? ''
+        if (userSort.key === 'lastSignInAt') return dateValue(u.lastSignInAt)
+        if (userSort.key === 'createdAt') return dateValue(u.createdAt)
         return u[userSort.key] ?? ''
       }
       const av = value(a)
@@ -531,6 +638,8 @@ export default function AdminPanel({
     registered: feedbackItems.filter(f => f.userId).length,
     anonymous: feedbackItems.filter(f => !f.userId).length,
   }
+  const pendingSubmissionsCount = submissions.filter(s => s.status === 'pending').length
+  const feedbackNotificationCount = feedbackItems.length
   const filteredFeedback = feedbackItems.filter(item => {
     if (feedbackFilter === 'registered' && !item.userId) return false
     if (feedbackFilter === 'anonymous' && item.userId) return false
@@ -540,7 +649,10 @@ export default function AdminPanel({
   })
 
   function setSort(key: UserSortKey) {
-    setUserSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
+    setUserSort(prev => {
+      if (prev.key === key) return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      return { key, dir: key === 'books' || key === 'lastSignInAt' || key === 'createdAt' ? 'desc' : 'asc' }
+    })
   }
 
   function setBookTableSort(key: BookSortKey) {
@@ -551,9 +663,25 @@ export default function AdminPanel({
   }
 
   function bookSortMark(key: BookSortKey) {
-    if (bookSort.key !== key) return ''
-    return bookSort.dir === 'asc' ? ' ↑' : ' ↓'
+    return <SortHeader label={bookSortLabel[key]} active={bookSort.key === key} dir={bookSort.dir} />
   }
+
+  const userSortLabel: Record<UserSortKey, string> = {
+    name: 'Имя',
+    telegram: 'Telegram',
+    books: 'Книг',
+    languages: 'Языки',
+    lastSignInAt: 'Последний вход',
+    createdAt: 'Дата создания',
+  }
+  const bookSortLabel: Record<BookSortKey, string> = {
+    name: 'Книга',
+    signups: 'Записались',
+    participants: 'Участники',
+    status: 'Статус',
+    new: 'Новая',
+  }
+  const topPriorityEmoji = ['🏆', '🥈', '🥉']
 
   const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
   const submissionStatusColor: Record<string, string> = { pending: '#C0603A', approved: '#2E7D32', rejected: '#999' }
@@ -609,9 +737,11 @@ export default function AdminPanel({
           </button>
           <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
             Заявки ({submissions.length})
+            <CountBadge count={pendingSubmissionsCount} />
           </button>
           <button style={tabStyle(view === 'feedback')} onClick={() => setView('feedback')}>
             Фидбеки ({feedbackItems.length})
+            <CountBadge count={feedbackNotificationCount} />
           </button>
           <button style={tabStyle(view === 'intro')} onClick={() => setView('intro')}>
             Интро
@@ -627,7 +757,7 @@ export default function AdminPanel({
               <input
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}
-                placeholder="Поиск по имени или email"
+                placeholder="Поиск по имени или Telegram"
                 aria-label="Поиск пользователей"
                 style={{ ...fieldInput, maxWidth: 420, borderBottomColor: '#111' }}
               />
@@ -638,19 +768,32 @@ export default function AdminPanel({
             <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', border: '1px solid #E5E5E5' }}>
               <thead>
                 <tr>
-                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('name')}>Имя{userSort.key === 'name' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
-                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('telegram')}>Telegram{userSort.key === 'telegram' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
-                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('email')}>Email{userSort.key === 'email' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
-                  <th style={{ ...headCell, cursor: 'pointer', textAlign: 'right' }} onClick={() => setSort('books')}>Книг{userSort.key === 'books' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
-                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('languages')}>Языки{userSort.key === 'languages' ? (userSort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>
+                  <th style={{ ...headCell, cursor: 'pointer', textAlign: 'right' }} onClick={() => setSort('books')}>
+                    <SortHeader label={userSortLabel.books} active={userSort.key === 'books'} dir={userSort.dir} />
+                  </th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('name')}>
+                    <SortHeader label={userSortLabel.name} active={userSort.key === 'name'} dir={userSort.dir} />
+                  </th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('telegram')}>
+                    <SortHeader label={userSortLabel.telegram} active={userSort.key === 'telegram'} dir={userSort.dir} />
+                  </th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('lastSignInAt')}>
+                    <SortHeader label={userSortLabel.lastSignInAt} active={userSort.key === 'lastSignInAt'} dir={userSort.dir} />
+                  </th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('createdAt')}>
+                    <SortHeader label={userSortLabel.createdAt} active={userSort.key === 'createdAt'} dir={userSort.dir} />
+                  </th>
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('languages')}>
+                    <SortHeader label={userSortLabel.languages} active={userSort.key === 'languages'} dir={userSort.dir} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {!adminUsersLoaded && (
-                  <tr><td colSpan={5} style={{ ...cell, color: '#999' }}>Загрузка пользователей…</td></tr>
+                  <tr><td colSpan={6} style={{ ...cell, color: '#999' }}>Загрузка пользователей…</td></tr>
                 )}
                 {adminUsersLoaded && filteredAdminUsers.length === 0 && (
-                  <tr><td colSpan={5} style={{ ...cell, color: '#999' }}>Никого не найдено</td></tr>
+                  <tr><td colSpan={6} style={{ ...cell, color: '#999' }}>Никого не найдено</td></tr>
                 )}
                 {filteredAdminUsers.map(u => {
                   const telegram = u.telegramUsername ? `@${u.telegramUsername}` : (u.contacts?.startsWith('@') ? u.contacts : '—')
@@ -662,15 +805,17 @@ export default function AdminPanel({
                       onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                     >
+                      <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? '#111' : '#BBB' }}>{u.booksCount}</td>
                       <td style={{ ...cell, fontWeight: 700 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                           {u.name || <span style={{ color: '#bbb' }}>—</span>}
                           {u.isAdmin && <span style={adminBadge}>Admin</span>}
+                          {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
                         </span>
                       </td>
                       <td style={cell}>{telegram}</td>
-                      <td style={{ ...cell, color: '#666' }}>{u.email}</td>
-                      <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? '#111' : '#BBB' }}>{u.booksCount}</td>
+                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.lastSignInAt)}</td>
+                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.createdAt)}</td>
                       <td style={{ ...cell, color: '#666' }}>
                         {u.languages.length === 0 ? <span style={{ color: '#ccc' }}>—</span> : u.languages.map(lang => (
                           <span key={lang} style={{ display: 'inline-block', padding: '0.08rem 0.38rem', marginRight: '0.25rem', background: '#F0F0F0', color: '#555', fontSize: '0.68rem', borderRadius: 2, textTransform: 'uppercase' }}>
@@ -706,10 +851,10 @@ export default function AdminPanel({
                   >
                     {tag}
                   </div>
-                  <textarea
+                  <AutoHeightTextarea
                     value={tagDescEdits[tag] ?? ''}
                     onChange={e => setTagDescEdits(prev => ({ ...prev, [tag]: e.target.value }))}
-                    rows={4}
+                    minRows={1}
                     placeholder="Описание не задано"
                     style={{
                       display: 'block',
@@ -721,7 +866,6 @@ export default function AdminPanel({
                       border: '1px solid #E5E5E5',
                       borderBottom: '2px solid #111',
                       padding: '0.5rem 0.75rem',
-                      resize: 'vertical',
                       outline: 'none',
                       background: '#fff',
                       boxSizing: 'border-box',
@@ -762,11 +906,11 @@ export default function AdminPanel({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('name')}>Книга{bookSortMark('name')}</th>
-                <th style={{ ...headCell, textAlign: 'right', cursor: 'pointer' }} onClick={() => setBookTableSort('signups')}>Записались{bookSortMark('signups')}</th>
-                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('participants')}>Участники{bookSortMark('participants')}</th>
-                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('status')}>Статус{bookSortMark('status')}</th>
-                <th style={{ ...headCell, textAlign: 'center', width: '80px', cursor: 'pointer' }} onClick={() => setBookTableSort('new')}>Новая{bookSortMark('new')}</th>
+                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('name')}>{bookSortMark('name')}</th>
+                <th style={{ ...headCell, textAlign: 'right', cursor: 'pointer' }} onClick={() => setBookTableSort('signups')}>{bookSortMark('signups')}</th>
+                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('participants')}>{bookSortMark('participants')}</th>
+                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('status')}>{bookSortMark('status')}</th>
+                <th style={{ ...headCell, textAlign: 'center', width: '80px', cursor: 'pointer' }} onClick={() => setBookTableSort('new')}>{bookSortMark('new')}</th>
               </tr>
             </thead>
             <tbody>
@@ -811,7 +955,9 @@ export default function AdminPanel({
                             {i > 0 && ', '}
                             {name}
                             {rank !== null && (
-                              <span style={{ fontSize: '0.65rem', color: '#aaa' }}>(#{rank})</span>
+                              <span style={{ fontSize: '0.65rem', color: '#aaa', whiteSpace: 'nowrap' }}>
+                                ({topPriorityEmoji[rank - 1] ? `${topPriorityEmoji[rank - 1]} ` : ''}#{rank})
+                              </span>
                             )}
                           </span>
                         ))

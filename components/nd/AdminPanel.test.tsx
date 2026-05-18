@@ -112,6 +112,58 @@ const mockByBook = [
   },
 ]
 
+const mockAdminUsers = [
+  {
+    id: 'user-old',
+    name: 'Старый участник',
+    email: 'old@test.com',
+    contacts: '@old_reader',
+    telegramUsername: 'old_reader',
+    authProvider: 'telegram',
+    lastSignInAt: '2026-01-01T10:00:00.000Z',
+    createdAt: '2025-12-01T10:00:00.000Z',
+    languages: ['ru'],
+    booksCount: 1,
+    isAdmin: false,
+  },
+  {
+    id: 'user-new',
+    name: 'Новый участник',
+    email: 'new@test.com',
+    contacts: '@new_reader',
+    telegramUsername: 'new_reader',
+    authProvider: 'telegram',
+    lastSignInAt: '2026-05-18T10:00:00.000Z',
+    createdAt: new Date().toISOString(),
+    languages: ['en'],
+    booksCount: 3,
+    isAdmin: false,
+  },
+]
+
+const mockFeedback = [
+  {
+    id: 'fb-1',
+    userId: 'user-1',
+    name: null,
+    email: null,
+    message: 'Первый фидбек',
+    createdAt: '2026-03-01T10:00:00.000Z',
+    userName: 'Анна',
+    userEmail: 'anna@test.com',
+  },
+  {
+    id: 'fb-2',
+    userId: null,
+    name: 'Гость',
+    email: 'guest@test.com',
+    message: 'Второй фидбек',
+    createdAt: '2026-03-02T10:00:00.000Z',
+    userName: null,
+    userEmail: null,
+  },
+]
+
 beforeEach(() => {
   global.fetch = jest.fn().mockResolvedValue({
     json: () => Promise.resolve({ success: true, data: [] }),
@@ -172,6 +224,30 @@ describe('AdminPanel — Заявки таб', () => {
     fireEvent.click(screen.getByText(/^все/i))
     expect(screen.getByText('Сапиенс')).toBeInTheDocument()
     expect(screen.getByText('Война и мир')).toBeInTheDocument()
+  })
+
+  it('если новых заявок нет, по умолчанию открывает фильтр "Все"', async () => {
+    const nonPending = mockSubmissions.map(s => ({ ...s, status: 'approved' }))
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/admin/submissions') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: nonPending }),
+          ok: true,
+        })
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: [] }),
+        ok: true,
+      })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+    fireEvent.click(screen.getByText(/заявки/i))
+
+    await waitFor(() => {
+      expect(screen.getByText('Сапиенс')).toBeInTheDocument()
+      expect(screen.getByText('Война и мир')).toBeInTheDocument()
+    })
   })
 
   it('клик на заявку разворачивает детальный вид', async () => {
@@ -387,5 +463,77 @@ describe('AdminPanel — По книгам таб', () => {
     const rows = screen.getAllByRole('row')
     expect(within(rows[1]).getByText('Книга с одной записью')).toBeInTheDocument()
     expect(within(rows[2]).getByText('Книга с тремя записями')).toBeInTheDocument()
+  })
+
+  it('показывает эмодзи топ-3 рядом с номером приоритета участника', () => {
+    render(
+      <AdminPanel
+        {...defaultProps}
+        byBook={mockByBook}
+        bookPrioritiesMap={{
+          'user-2': [{ bookName: 'Книга с тремя записями', rank: 1 }],
+          'user-3': [{ bookName: 'Книга с тремя записями', rank: 2 }],
+          'user-4': [{ bookName: 'Книга с тремя записями', rank: 3 }],
+        }}
+      />
+    )
+    fireEvent.click(screen.getByText(/по книгам/i))
+
+    expect(screen.getByText(/\(🏆 #1\)/)).toBeInTheDocument()
+    expect(screen.getByText(/\(🥈 #2\)/)).toBeInTheDocument()
+    expect(screen.getByText(/\(🥉 #3\)/)).toBeInTheDocument()
+  })
+})
+
+describe('AdminPanel — Участники таб', () => {
+  it('по умолчанию сортирует пользователей по последнему входу и показывает новые колонки', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/admin/users') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: mockAdminUsers }),
+          ok: true,
+        })
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: [] }),
+        ok: true,
+      })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+
+    await waitFor(() => screen.getByText('Новый участник'))
+
+    const rows = screen.getAllByRole('row')
+    expect(within(rows[0]).getByRole('columnheader', { name: /книг/i })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /последний вход/i })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /дата создания/i })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /^email$/i })).not.toBeInTheDocument()
+    expect(within(rows[1]).getByText('Новый участник')).toBeInTheDocument()
+    expect(screen.getByText('New')).toBeInTheDocument()
+  })
+})
+
+describe('AdminPanel — Фидбеки таб', () => {
+  it('заранее загружает счетчик фидбеков и показывает бейдж на вкладке', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/admin/feedback') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: mockFeedback }),
+          ok: true,
+        })
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: [] }),
+        ok: true,
+      })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Фидбеки (2)')).toBeInTheDocument()
+      expect(screen.getByLabelText('2 новых')).toBeInTheDocument()
+    })
   })
 })

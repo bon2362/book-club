@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -58,7 +58,8 @@ const textareaStyle: React.CSSProperties = {
   ...inputStyle,
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   minHeight: '6rem',
-  resize: 'vertical',
+  resize: 'none',
+  overflow: 'hidden',
   lineHeight: 1.55,
 }
 
@@ -73,6 +74,35 @@ const btn = (color: string, disabled = false): React.CSSProperties => ({
   color: disabled ? '#999' : color,
   cursor: disabled ? 'default' : 'pointer',
 })
+
+function AutoHeightTextarea({
+  value,
+  onChange,
+  style,
+  ...props
+}: Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> & {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null)
+
+  useLayoutEffect(() => {
+    const node = ref.current
+    if (!node) return
+    node.style.height = 'auto'
+    node.style.height = `${node.scrollHeight}px`
+  }, [value])
+
+  return (
+    <textarea
+      {...props}
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      style={{ ...textareaStyle, ...style }}
+    />
+  )
+}
 
 function SortableSection({
   section,
@@ -143,10 +173,9 @@ function SortableSection({
         data-testid={`intro-question-${section.id}`}
       />
       <label style={labelStyle}>Ответ (абзацы разделять пустой строкой)</label>
-      <textarea
+      <AutoHeightTextarea
         value={section.body}
         onChange={e => onChange({ body: e.target.value })}
-        style={textareaStyle}
         data-testid={`intro-body-${section.id}`}
       />
     </div>
@@ -311,10 +340,9 @@ export default function IntroEditor() {
             data-testid="intro-header-title"
           />
           <label style={labelStyle}>Лид-абзац (абзацы разделять пустой строкой)</label>
-          <textarea
+          <AutoHeightTextarea
             value={header.body}
             onChange={e => handleHeaderChange({ body: e.target.value })}
-            style={textareaStyle}
             data-testid="intro-header-body"
           />
         </div>
