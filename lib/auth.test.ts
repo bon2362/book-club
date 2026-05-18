@@ -218,6 +218,20 @@ describe('signIn callback', () => {
     expect(updateChain.where).toHaveBeenCalled()
   })
 
+  it('пишет authProvider=email если account отсутствует (Resend magic link)', async () => {
+    const updateChain = mockDbUpdate()
+
+    await signInCallback()({
+      user: { id: 'user-uuid', email: 'magic@test.com' },
+      account: null,
+    })
+
+    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
+      authProvider: 'email',
+      lastSignInAt: expect.any(Date),
+    }))
+  })
+
   it('не перетирает telegram_username пустым значением', async () => {
     const updateChain = mockDbUpdate()
 

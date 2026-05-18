@@ -148,8 +148,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       const userId = user.id
-      if ((userId || user.email) && account?.provider) {
-        const provider = normalizeAuthProvider(account.provider)
+      if (userId || user.email) {
+        // account is null for email magic link (Resend doesn't create an accounts row)
+        const provider = account?.provider ? normalizeAuthProvider(account.provider) : 'email'
         await db.update(users).set({
           authProvider: provider,
           lastSignInAt: new Date(),
