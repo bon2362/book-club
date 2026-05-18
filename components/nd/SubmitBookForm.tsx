@@ -5,8 +5,6 @@ import { useState, useEffect, useCallback } from 'react'
 interface Props {
   isOpen: boolean
   onClose: () => void
-  topics: string[]
-  initialTopic?: string
   initialAuthor?: string
 }
 
@@ -52,12 +50,11 @@ const errorTextStyle: React.CSSProperties = {
   marginTop: '0.25rem',
 }
 
-export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, initialAuthor }: Props) {
+export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props) {
   const [status, setStatus] = useState<FormStatus>('idle')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [title, setTitle] = useState('')
-  const [topic, setTopic] = useState('')
   const [author, setAuthor] = useState('')
   const [pages, setPages] = useState('')
   const [publishedDate, setPublishedDate] = useState('')
@@ -86,7 +83,6 @@ export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, 
       setStatus('idle')
       setErrors({})
       setTitle('')
-      setTopic('')
       setAuthor('')
       setPages('')
       setPublishedDate('')
@@ -95,10 +91,9 @@ export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, 
       setCoverUrl('')
       setWhyRead('')
     } else {
-      if (initialTopic) setTopic(initialTopic)
       if (initialAuthor) setAuthor(initialAuthor)
     }
-  }, [isOpen, initialTopic, initialAuthor])
+  }, [isOpen, initialAuthor])
 
   function validateField(name: string, value: string) {
     if (['title', 'author', 'whyRead'].includes(name) && !value.trim()) {
@@ -128,7 +123,6 @@ export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, 
           title: title.trim(),
           author: author.trim(),
           whyRead: whyRead.trim(),
-          topic: topic || undefined,
           pages: pages ? Number(pages) : undefined,
           publishedDate: publishedDate.trim() || undefined,
           textUrl: textUrl.trim() || undefined,
@@ -293,16 +287,27 @@ export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, 
               {/* Optional fields */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
-                  <label htmlFor="sb-topic" style={labelStyle}>Тема</label>
-                  <select
-                    id="sb-topic"
-                    value={topic}
-                    onChange={e => setTopic(e.target.value)}
-                    style={{ ...inputStyle, cursor: 'pointer' }}
-                  >
-                    <option value="">— выберите тему —</option>
-                    {topics.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <label htmlFor="sb-description" style={labelStyle}>Описание</label>
+                  <textarea
+                    id="sb-description"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Краткое описание книги"
+                    rows={2}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="sb-published-date" style={labelStyle}>Дата издания</label>
+                  <input
+                    id="sb-published-date"
+                    type="text"
+                    value={publishedDate}
+                    onChange={e => setPublishedDate(e.target.value)}
+                    placeholder="2020 или 2020-05"
+                    style={inputStyle}
+                  />
                 </div>
 
                 <div>
@@ -320,38 +325,14 @@ export default function SubmitBookForm({ isOpen, onClose, topics, initialTopic, 
                 </div>
 
                 <div>
-                  <label htmlFor="sb-published-date" style={labelStyle}>Дата издания</label>
-                  <input
-                    id="sb-published-date"
-                    type="text"
-                    value={publishedDate}
-                    onChange={e => setPublishedDate(e.target.value)}
-                    placeholder="2020 или 2020-05"
-                    style={inputStyle}
-                  />
-                </div>
-
-                <div>
                   <label htmlFor="sb-text-url" style={labelStyle}>Ссылка на текст</label>
                   <input
                     id="sb-text-url"
                     type="url"
                     value={textUrl}
                     onChange={e => setTextUrl(e.target.value)}
-                    placeholder="https://..."
+                    placeholder="Где купить или прочитать онлайн"
                     style={inputStyle}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="sb-description" style={labelStyle}>Описание</label>
-                  <textarea
-                    id="sb-description"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    placeholder="Краткое описание книги"
-                    rows={2}
-                    style={{ ...inputStyle, resize: 'vertical' }}
                   />
                 </div>
 

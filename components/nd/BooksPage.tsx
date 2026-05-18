@@ -528,8 +528,6 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         <SubmitBookForm
           isOpen={submitFormOpen}
           onClose={() => setSubmitFormOpen(false)}
-          topics={allTags}
-          initialTopic={filterTag || undefined}
           initialAuthor={filterAuthor || undefined}
         />
       )}

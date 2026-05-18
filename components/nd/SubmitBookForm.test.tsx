@@ -4,13 +4,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import SubmitBookForm from './SubmitBookForm'
 
-const topics = ['Наука', 'История', 'Философия']
-
 function renderForm(overrides?: Partial<React.ComponentProps<typeof SubmitBookForm>>) {
   const props = {
     isOpen: true,
     onClose: jest.fn(),
-    topics,
     ...overrides,
   }
   return { ...render(<SubmitBookForm {...props} />), onClose: props.onClose }
@@ -22,30 +19,30 @@ describe('SubmitBookForm — рендер', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('рендерит все 9 полей', () => {
+  it('рендерит поля в нужном порядке без темы', () => {
     renderForm()
-    expect(screen.getByLabelText(/Название/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Тема/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Писатель/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Число страниц/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Дата издания/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Ссылка на текст/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Описание/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Ссылка на обложку/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Почему предлагаю прочитать/i)).toBeInTheDocument()
-  })
-
-  it('рендерит темы в дропдауне', () => {
-    renderForm()
-    const select = screen.getByLabelText(/Тема/i)
-    topics.forEach(t => {
-      expect(select).toContainElement(screen.getByRole('option', { name: t }))
-    })
+    const labels = screen.getAllByText(/Название|Писатель|Почему предлагаю прочитать|Описание|Дата издания|Число страниц|Ссылка на текст|Ссылка на обложку/i)
+    expect(labels.map(label => label.textContent)).toEqual([
+      'Название *',
+      'Писатель *',
+      'Почему предлагаю прочитать *',
+      'Описание',
+      'Дата издания',
+      'Число страниц',
+      'Ссылка на текст',
+      'Ссылка на обложку',
+    ])
+    expect(screen.queryByLabelText(/Тема/i)).not.toBeInTheDocument()
   })
 
   it('рендерит кнопку "Отправить заявку"', () => {
     renderForm()
     expect(screen.getByRole('button', { name: /отправить заявку/i })).toBeInTheDocument()
+  })
+
+  it('показывает новый плейсхолдер для ссылки на текст', () => {
+    renderForm()
+    expect(screen.getByPlaceholderText('Где купить или прочитать онлайн')).toBeInTheDocument()
   })
 })
 
@@ -101,6 +98,7 @@ describe('SubmitBookForm — отправка', () => {
       expect(body.title).toBe('Сапиенс')
       expect(body.author).toBe('Харари')
       expect(body.whyRead).toBe('Очень интересно')
+      expect(body.topic).toBeUndefined()
     })
   })
 
