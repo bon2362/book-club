@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { telegramPreauthTokens } from '@/lib/db/schema'
 
 export const TELEGRAM_AUTH_MAX_AGE_SECONDS = 5 * 60
-export const TELEGRAM_PREAUTH_TTL_SECONDS = 60
+export const TELEGRAM_PREAUTH_TTL_SECONDS = 5 * 60
 
 function safeEqualHex(left: string, right: string) {
   try {

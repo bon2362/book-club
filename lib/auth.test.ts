@@ -421,8 +421,8 @@ describe('telegram-preauth authorize', () => {
     expect(await authorize({ uid: 'u', token: 'x', ts: '' })).toBeNull()
   })
 
-  it('возвращает null если токен протух (> 60 сек)', async () => {
-    const staleTs = String(Math.floor(Date.now() / 1000) - 90)
+  it('возвращает null если токен протух (> 5 минут)', async () => {
+    const staleTs = String(Math.floor(Date.now() / 1000) - 6 * 60)
     const token = 'token'
     const result = await authorize({ uid: 'user-id', token, ts: staleTs })
     expect(result).toBeNull()
