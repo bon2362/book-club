@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { track } from '@vercel/analytics'
+import { track } from '@/lib/analytics'
 import type { UserSignup } from '@/lib/signup-books'
 
 interface Props {

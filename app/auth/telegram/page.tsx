@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { track } from '@vercel/analytics'
+import { track } from '@/lib/analytics'
 
 function TelegramAuthInner() {
   const searchParams = useSearchParams()

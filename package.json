@@ -27,6 +27,7 @@
     "googleapis": "^171.4.0",
     "next": "14.2.35",
     "next-auth": "^5.0.0-beta.30",
+    "posthog-js": "^1.374.0",
     "react": "^18",
     "react-dom": "^18",
     "resend": "^6.9.2",

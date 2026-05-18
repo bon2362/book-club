@@ -4,4 +4,13 @@ import '@testing-library/jest-dom'
 import { TextDecoder, TextEncoder } from 'util'
 Object.assign(global, { TextDecoder, TextEncoder })
 
-jest.mock('@vercel/analytics', () => ({ track: jest.fn() }))
+jest.mock('@/lib/analytics', () => ({
+  track: jest.fn(),
+  initPostHog: jest.fn(),
+  capturePageview: jest.fn(),
+  isPostHogReady: jest.fn(() => false),
+}))
+jest.mock('posthog-js', () => ({
+  __esModule: true,
+  default: { init: jest.fn(), capture: jest.fn() },
+}))

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { track } from '@vercel/analytics'
+import { track } from '@/lib/analytics'
 
 declare global {
   interface Window {

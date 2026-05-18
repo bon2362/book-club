@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { track } from '@vercel/analytics'
+import { track } from '@/lib/analytics'
 
 interface Props {
   defaultName?: string

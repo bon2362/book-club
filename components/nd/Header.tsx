@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { track } from '@vercel/analytics'
+import { track } from '@/lib/analytics'
 import Link from 'next/link'
 import SubmitBookButton from './SubmitBookButton'
 import { useScrollHide } from '@/lib/scroll-hide-context'
