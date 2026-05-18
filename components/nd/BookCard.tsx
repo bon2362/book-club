@@ -106,91 +106,93 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
             Сейчас читаем
           </div>
         )}
-        {(book.submittedByMember || (book.isNew && !isReading)) && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '0.5rem',
-              right: '0.5rem',
-              display: 'flex',
-              alignItems: 'stretch',
-              gap: '0.25rem',
-            }}
-          >
-            {book.submittedByMember && (
-              <div
-                onMouseEnter={() => setSubmittedTooltip(true)}
-                onMouseLeave={() => setSubmittedTooltip(false)}
-                style={{
-                  position: 'relative',
-                  background: '#C0603A',
-                  color: '#fff',
-                  padding: '0.2rem 0.35rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'default',
-                }}
-                aria-label="Эта книга предложена участни:цей клуба"
-              >
-                <svg
-                  viewBox="0 0 12 14"
-                  width="10"
-                  height="12"
-                  fill="none"
-                  stroke="#fff"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  style={{ display: 'block' }}
-                >
-                  <path d="M6 1 C3.5 1 1.8 2.8 1.8 5.1 C1.8 6.6 2.6 7.8 3.7 8.6 L3.7 10.3 L8.3 10.3 L8.3 8.6 C9.4 7.8 10.2 6.6 10.2 5.1 C10.2 2.8 8.5 1 6 1 Z" />
-                  <line x1="4.2" y1="11.6" x2="7.8" y2="11.6" />
-                  <line x1="4.8" y1="12.9" x2="7.2" y2="12.9" />
-                </svg>
-                {submittedTooltip && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: '#111',
-                      color: '#fff',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.65rem',
-                      padding: '0.3rem 0.5rem',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      zIndex: 10,
-                    }}
-                  >
-                    Эта книга предложена участни:цей клуба
-                  </div>
-                )}
-              </div>
-            )}
-            {book.isNew && !isReading && (
-              <div
-                style={{
-                  background: '#C0603A',
-                  color: '#fff',
-                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.55rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  padding: '0.2rem 0.45rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                Новая
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {(book.submittedByMember || (book.isNew && !isReading)) && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0.5rem',
+            display: 'flex',
+            alignItems: 'stretch',
+            gap: '0.25rem',
+            zIndex: 5,
+          }}
+        >
+          {book.submittedByMember && (
+            <div
+              onMouseEnter={() => setSubmittedTooltip(true)}
+              onMouseLeave={() => setSubmittedTooltip(false)}
+              style={{
+                position: 'relative',
+                background: '#C0603A',
+                color: '#fff',
+                padding: '0.2rem 0.35rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'default',
+              }}
+              aria-label="Эта книга предложена участни:цей клуба"
+            >
+              <svg
+                viewBox="0 0 12 14"
+                width="10"
+                height="12"
+                fill="none"
+                stroke="#fff"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                style={{ display: 'block' }}
+              >
+                <path d="M6 1 C3.5 1 1.8 2.8 1.8 5.1 C1.8 6.6 2.6 7.8 3.7 8.6 L3.7 10.3 L8.3 10.3 L8.3 8.6 C9.4 7.8 10.2 6.6 10.2 5.1 C10.2 2.8 8.5 1 6 1 Z" />
+                <line x1="4.2" y1="11.6" x2="7.8" y2="11.6" />
+                <line x1="4.8" y1="12.9" x2="7.2" y2="12.9" />
+              </svg>
+              {submittedTooltip && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#111',
+                    color: '#fff',
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.65rem',
+                    padding: '0.3rem 0.5rem',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                  }}
+                >
+                  Эта книга предложена участни:цей клуба
+                </div>
+              )}
+            </div>
+          )}
+          {book.isNew && !isReading && (
+            <div
+              style={{
+                background: '#C0603A',
+                color: '#fff',
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.55rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                padding: '0.2rem 0.45rem',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              Новая
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tags + signup count */}
       {(book.tags.length > 0 || !!book.signupCount) && (
