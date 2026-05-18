@@ -21,10 +21,6 @@ const allureSummary = {
   },
 }
 
-function fetchUrl(index: number) {
-  return (global.fetch as jest.Mock).mock.calls[index][0]
-}
-
 beforeEach(() => {
   jest.clearAllMocks()
   global.fetch = jest.fn(async (url: string) => {
