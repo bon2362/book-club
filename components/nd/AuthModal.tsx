@@ -55,7 +55,8 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     const script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
     script.setAttribute('data-telegram-login', BOT_NAME)
-    script.setAttribute('data-size', 'medium')
+    script.setAttribute('data-size', 'large')
+    script.setAttribute('data-lang', 'ru')
     script.setAttribute('data-auth-url', `${window.location.origin}/api/auth/telegram/callback`)
     script.async = true
     container.appendChild(script)
@@ -252,26 +253,28 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                     Не удалось отправить письмо. Попробуйте ещё раз.
                   </p>
                 )}
-                <button
-                  type="submit"
-                  disabled={magicState === 'loading'}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.8rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    cursor: magicState === 'loading' ? 'default' : 'pointer',
-                    border: '1px solid #111',
-                    background: 'transparent',
-                    color: magicState === 'loading' ? '#999' : '#111',
-                    borderColor: magicState === 'loading' ? '#C8C8C8' : '#111',
-                    transition: 'color 0.15s, border-color 0.15s',
-                  }}
-                >
-                  {magicState === 'loading' ? 'Отправляем…' : 'Получить ссылку на почту'}
-                </button>
+                {email.trim() && (
+                  <button
+                    type="submit"
+                    disabled={magicState === 'loading'}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.8rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      cursor: magicState === 'loading' ? 'default' : 'pointer',
+                      border: '1px solid #111',
+                      background: 'transparent',
+                      color: magicState === 'loading' ? '#999' : '#111',
+                      borderColor: magicState === 'loading' ? '#C8C8C8' : '#111',
+                      transition: 'color 0.15s, border-color 0.15s',
+                    }}
+                  >
+                    {magicState === 'loading' ? 'Отправляем…' : 'Получить ссылку на почту'}
+                  </button>
+                )}
               </form>
             )}
           </div>
