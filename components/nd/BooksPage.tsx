@@ -10,6 +10,7 @@ import Header from './Header'
 import BookCard from './BookCard'
 import BookRow from './BookRow'
 import AuthModal from './AuthModal'
+import { track } from '@vercel/analytics'
 import ContactsForm from './ContactsForm'
 import ProfileDrawer from './ProfileDrawer'
 import SubmitBookForm from './SubmitBookForm'
@@ -137,6 +138,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     } else {
       localStorage.setItem('submitIntent', '1')
       setSubmitIntent(true)
+      track('auth_modal_opened', { trigger: 'submit_book' })
       setAuthModalOpen(true)
     }
   }
@@ -197,6 +199,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   function handleToggle(book: BookWithCover) {
     if (!isLoggedIn) {
       setPendingBook(book)
+      track('auth_modal_opened', { trigger: 'book_signup' })
       setAuthModalOpen(true)
       return
     }
@@ -211,6 +214,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       ? [...selectedBooks, book.name]
       : selectedBooks.filter(n => n !== book.name)
 
+    track(isAdding ? 'book_signup' : 'book_unsignup', { bookName: book.name })
     setSelectedBooks(next)
 
     if (isAdding && next.length === 2 && !localStorage.getItem('hint_priorities_seen')) {
@@ -240,9 +244,11 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
 
   async function handleToggleByName(bookName: string): Promise<void> {
     const original = selectedBooks
-    const next = selectedBooks.includes(bookName)
-      ? selectedBooks.filter(n => n !== bookName)
-      : [...selectedBooks, bookName]
+    const isAdding = !selectedBooks.includes(bookName)
+    const next = isAdding
+      ? [...selectedBooks, bookName]
+      : selectedBooks.filter(n => n !== bookName)
+    track(isAdding ? 'book_signup' : 'book_unsignup', { bookName })
     setSelectedBooks(next)
     try {
       await saveSelection(effectiveUser!.name, effectiveUser!.contacts, next)

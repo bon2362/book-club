@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { track } from '@vercel/analytics'
 
 interface Props {
   defaultName?: string
@@ -30,6 +31,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
     setError('')
     try {
       await onSave(name.trim(), contacts.trim())
+      track('contacts_saved', { isFirstTime: !defaultName })
       onClose()
     } catch {
       setError('Что-то пошло не так, попробуйте снова')

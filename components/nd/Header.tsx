@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { track } from '@vercel/analytics'
 import Link from 'next/link'
 import SubmitBookButton from './SubmitBookButton'
 import { useScrollHide } from '@/lib/scroll-hide-context'
@@ -223,7 +224,10 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             </>
           ) : (
             <button
-              onClick={onSignIn}
+              onClick={() => {
+                track('auth_modal_opened', { trigger: 'header' })
+                onSignIn?.()
+              }}
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.65rem',

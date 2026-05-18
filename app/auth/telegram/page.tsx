@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { track } from '@vercel/analytics'
 
 function TelegramAuthInner() {
   const searchParams = useSearchParams()
@@ -23,6 +24,7 @@ function TelegramAuthInner() {
       if (result?.error) {
         router.replace('/?auth=failed')
       } else {
+        track('auth_success', { provider: 'telegram' })
         router.replace('/')
       }
     })

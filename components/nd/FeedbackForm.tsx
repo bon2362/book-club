@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { track } from '@vercel/analytics'
 import type { UserSignup } from '@/lib/signup-books'
 
 interface Props {
@@ -80,6 +81,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
         }),
       })
       if (!res.ok) throw new Error('Failed')
+      track('feedback_sent')
       setStatus('success')
     } catch {
       setStatus('error')

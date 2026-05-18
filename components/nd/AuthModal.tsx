@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { signIn } from 'next-auth/react'
+import { track } from '@vercel/analytics'
 
 declare global {
   interface Window {
@@ -28,9 +29,15 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     e.preventDefault()
     if (!email.trim()) return
     setMagicState('loading')
+    track('auth_attempt', { provider: 'email' })
     try {
       const res = await signIn('resend', { email: email.trim(), redirect: false })
-      setMagicState(res?.error ? 'error' : 'sent')
+      if (res?.error) {
+        setMagicState('error')
+      } else {
+        track('auth_email_link_sent')
+        setMagicState('sent')
+      }
     } catch {
       setMagicState('error')
     }
@@ -189,7 +196,10 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         {showOther && (
           <div style={{ marginTop: '1.25rem' }}>
             <button
-              onClick={() => signIn('google')}
+              onClick={() => {
+                track('auth_attempt', { provider: 'google' })
+                signIn('google')
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',

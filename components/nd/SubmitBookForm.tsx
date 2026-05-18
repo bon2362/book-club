@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { track } from '@vercel/analytics'
 
 interface Props {
   isOpen: boolean
@@ -131,6 +132,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
         }),
       })
       if (!res.ok) throw new Error('Submit failed')
+      track('book_submission')
       setStatus('success')
     } catch {
       setStatus('error')
