@@ -13,7 +13,10 @@ export default function SubmitBookCard({ onClick }: Props) {
   const idle = '#D8D2CC'
 
   return (
+    <>
     <button
+      className="submit-book-card"
+      data-testid="submit-book-card"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -32,6 +35,7 @@ export default function SubmitBookCard({ onClick }: Props) {
       }}
     >
       <div
+        className="submit-book-card__preview"
         style={{
           position: 'relative',
           width: '100%',
@@ -42,6 +46,7 @@ export default function SubmitBookCard({ onClick }: Props) {
         }}
       >
         <div
+          className="submit-book-card__spine"
           style={{
             position: 'absolute',
             top: 0,
@@ -54,6 +59,7 @@ export default function SubmitBookCard({ onClick }: Props) {
         />
 
         <div
+          className="submit-book-card__preview-inner"
           style={{
             position: 'absolute',
             top: 0,
@@ -67,6 +73,7 @@ export default function SubmitBookCard({ onClick }: Props) {
           }}
         >
           <div
+            className="submit-book-card__plus"
             style={{
               alignSelf: 'flex-start',
               width: '32px',
@@ -94,7 +101,7 @@ export default function SubmitBookCard({ onClick }: Props) {
             </svg>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+          <div className="submit-book-card__lines" style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
             <div style={{ height: '6px', width: '85%', background: idle }} />
             <div style={{ height: '6px', width: '70%', background: idle }} />
             <div style={{ height: '6px', width: '55%', background: idle }} />
@@ -104,7 +111,7 @@ export default function SubmitBookCard({ onClick }: Props) {
         </div>
       </div>
 
-      <div style={{ padding: '0.75rem 0.85rem 0.9rem', borderTop: '1px solid #F0EBE6' }}>
+      <div className="submit-book-card__copy" style={{ padding: '0.75rem 0.85rem 0.9rem', borderTop: '1px solid #F0EBE6' }}>
         <div
           style={{
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -131,5 +138,52 @@ export default function SubmitBookCard({ onClick }: Props) {
         </div>
       </div>
     </button>
+    <style jsx>{`
+      @media (max-width: 640px) {
+        .submit-book-card {
+          flex-direction: row !important;
+          align-items: stretch;
+          min-height: 72px;
+        }
+
+        .submit-book-card__preview {
+          width: 72px !important;
+          flex: 0 0 72px;
+          aspect-ratio: auto !important;
+          min-height: 72px;
+        }
+
+        .submit-book-card__spine {
+          width: 8px !important;
+        }
+
+        .submit-book-card__preview-inner {
+          left: 8px !important;
+          padding: 0.75rem 0.65rem !important;
+          justify-content: center !important;
+        }
+
+        .submit-book-card__plus {
+          width: 28px !important;
+          height: 28px !important;
+        }
+
+        .submit-book-card__lines {
+          display: none !important;
+        }
+
+        .submit-book-card__copy {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-width: 0;
+          padding: 0.75rem 0.85rem !important;
+          border-top: none !important;
+          border-left: 1px solid #F0EBE6;
+        }
+      }
+    `}</style>
+    </>
   )
 }

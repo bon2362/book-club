@@ -53,6 +53,18 @@ test.describe('Header: hide on scroll down', () => {
   })
 })
 
+test.describe('Home submit book CTA layout', () => {
+  test('submit book button is compact on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    const box = await page.getByTestId('submit-book-card').boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.height).toBeLessThanOrEqual(96)
+  })
+})
+
 test.describe('Admin user drawer layout', () => {
   const ADMIN_EMAIL = 'e2e-ui-admin@test.invalid'
   const USER_EMAIL = 'e2e-ui-drawer-user@test.invalid'
