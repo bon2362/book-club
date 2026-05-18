@@ -237,7 +237,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                   required
                   style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.8rem',
+                    fontSize: '1rem',
                     color: '#111',
                     background: '#fff',
                     border: '1px solid #E5E5E5',
