@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { UserSignup } from '@/lib/signup-books'
 import { searchBooks } from '@/lib/search'
+import { bookMatchesAuthor, getUniqueAuthors } from '@/lib/authors'
 import Header from './Header'
 import BookCard from './BookCard'
 import BookRow from './BookRow'
@@ -172,21 +173,13 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   }, [books])
 
   const allAuthors = useMemo(() => {
-    const s = new Set<string>()
-    books.forEach(b => {
-      if (!b.author) return
-      b.author.split(/,|( и )|&/).forEach(part => {
-        const name = part?.trim()
-        if (name) s.add(name)
-      })
-    })
-    return Array.from(s).sort()
+    return getUniqueAuthors(books)
   }, [books])
 
   const filteredBooks = useMemo(() => {
     let result = searchBooks(books, query)
     if (filterTag) result = result.filter(b => b.tags.includes(filterTag))
-    if (filterAuthor) result = result.filter(b => b.author.split(/,|( и )|&/).map(p => p?.trim()).includes(filterAuthor))
+    if (filterAuthor) result = result.filter(b => bookMatchesAuthor(b, filterAuthor))
     result = result.filter(b => showRead ? b.status === 'read' : b.status !== 'read')
     if (showMyBooks) result = result.filter(b => selectedBooks.includes(b.name))
     if (showNew) result = result.filter(b => b.isNew)
