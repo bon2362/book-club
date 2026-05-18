@@ -22,6 +22,7 @@ export interface BookWithCover {
   isNew: boolean
   status?: 'reading' | 'read' | null
   signupCount?: number
+  submittedByMember?: boolean
 }
 
 const TEST_FIXTURE_BOOKS: BookWithCover[] = [
@@ -60,6 +61,7 @@ export async function fetchBooksWithCovers(forceRefresh = false): Promise<BookWi
         whyRead: s.whyRead ?? null,
         recommendationLink: null,
         isNew,
+        submittedByMember: true,
       }
     })
 
