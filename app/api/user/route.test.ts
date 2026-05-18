@@ -12,8 +12,10 @@ jest.mock('@/lib/db', () => ({
     }),
   },
 }))
+jest.mock('@/lib/posthog-server', () => ({ deletePostHogPerson: jest.fn().mockResolvedValue(undefined) }))
 
 const mockAuth = authModule.auth as jest.Mock
+const { deletePostHogPerson: mockDeletePostHogPerson } = jest.requireMock('@/lib/posthog-server')
 
 describe('DELETE /api/user', () => {
   it('возвращает 401 без сессии', async () => {
@@ -41,5 +43,11 @@ describe('DELETE /api/user', () => {
     const { db } = jest.requireMock('@/lib/db')
     await DELETE()
     expect(db.delete).toHaveBeenCalled()
+  })
+
+  it('удаляет профиль из PostHog по тому же id (ZZPL right-to-be-forgotten)', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-42', email: 'user@test.com' } })
+    await DELETE()
+    expect(mockDeletePostHogPerson).toHaveBeenCalledWith('user-42')
   })
 })

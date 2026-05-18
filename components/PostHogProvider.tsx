@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { capturePageview, initPostHog } from '@/lib/analytics'
+import { useSession } from 'next-auth/react'
+import { capturePageview, identifyUser, initPostHog, resetIdentity } from '@/lib/analytics'
 
 function PageviewTracker() {
   const pathname = usePathname()
@@ -19,6 +20,19 @@ function PageviewTracker() {
   return null
 }
 
+function IdentityTracker() {
+  const { data: session, status } = useSession()
+  const userId = session?.user?.id
+
+  useEffect(() => {
+    if (status === 'loading') return
+    if (userId) identifyUser(userId)
+    else resetIdentity()
+  }, [userId, status])
+
+  return null
+}
+
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initPostHog()
@@ -29,6 +43,7 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       <Suspense fallback={null}>
         <PageviewTracker />
       </Suspense>
+      <IdentityTracker />
       {children}
     </>
   )

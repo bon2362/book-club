@@ -3,6 +3,7 @@ import posthog from 'posthog-js'
 type EventProps = Record<string, string | number | boolean | undefined | null>
 
 let initialized = false
+let currentIdentity: string | null = null
 
 export function initPostHog(): void {
   if (initialized || typeof window === 'undefined') return
@@ -13,6 +14,7 @@ export function initPostHog(): void {
     capture_pageview: false,
     capture_pageleave: true,
     person_profiles: 'identified_only',
+    respect_dnt: true,
   })
   initialized = true
 }
@@ -29,4 +31,18 @@ export function track(event: string, properties?: EventProps): void {
 export function capturePageview(url: string): void {
   if (typeof window === 'undefined' || !initialized) return
   posthog.capture('$pageview', { $current_url: url })
+}
+
+export function identifyUser(userId: string): void {
+  if (typeof window === 'undefined' || !initialized) return
+  if (currentIdentity === userId) return
+  posthog.identify(userId)
+  currentIdentity = userId
+}
+
+export function resetIdentity(): void {
+  if (typeof window === 'undefined' || !initialized) return
+  if (currentIdentity === null) return
+  posthog.reset()
+  currentIdentity = null
 }

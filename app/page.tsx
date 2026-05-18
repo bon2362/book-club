@@ -4,7 +4,6 @@ import { getAllSignups } from '@/lib/signup-books'
 import { db } from '@/lib/db'
 import { bookStatuses, tagDescriptions, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { SessionProvider } from 'next-auth/react'
 import BooksPage from '@/components/nd/BooksPage'
 import GoogleOneTap from '@/components/nd/GoogleOneTap'
 import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
@@ -65,9 +64,9 @@ export default async function Home() {
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
 
   return (
-    <SessionProvider>
+    <>
       {!session && <GoogleOneTap />}
       <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} />
-    </SessionProvider>
+    </>
   )
 }

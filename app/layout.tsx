@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SessionProvider } from 'next-auth/react'
 import { ScrollHideProvider } from '@/lib/scroll-hide-context'
 import PostHogProvider from '@/components/PostHogProvider'
 import "./globals.css";
@@ -68,11 +69,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <PostHogProvider>
-          <ScrollHideProvider>
-            {children}
-          </ScrollHideProvider>
-        </PostHogProvider>
+        <SessionProvider>
+          <PostHogProvider>
+            <ScrollHideProvider>
+              {children}
+            </ScrollHideProvider>
+          </PostHogProvider>
+        </SessionProvider>
         <Analytics />
         <SpeedInsights />
       </body>

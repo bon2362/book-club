@@ -7,7 +7,6 @@ import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } fr
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminRefresh from '@/components/nd/AdminRefresh'
 import AdminFooter from '@/components/nd/AdminFooter'
-import { SessionProvider } from 'next-auth/react'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,19 +72,17 @@ export default async function AdminPage() {
   return (
     <>
       <AdminRefresh />
-      <SessionProvider>
-        <AdminPanel
-          users={signups}
-          byBook={byBook}
-          statuses={statusMap}
-          allTags={allTags}
-          tagDescriptions={tagDescMap}
-          newFlags={newFlagsMap}
-          userLanguages={userLanguagesMap}
-          bookPrioritiesMap={bookPrioritiesMap}
-          prioritiesSetMap={prioritiesSetMap}
-        />
-      </SessionProvider>
+      <AdminPanel
+        users={signups}
+        byBook={byBook}
+        statuses={statusMap}
+        allTags={allTags}
+        tagDescriptions={tagDescMap}
+        newFlags={newFlagsMap}
+        userLanguages={userLanguagesMap}
+        bookPrioritiesMap={bookPrioritiesMap}
+        prioritiesSetMap={prioritiesSetMap}
+      />
       <AdminFooter
         buildTime={buildTime}
         commitSha={sha ?? null}
