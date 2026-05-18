@@ -3,6 +3,7 @@ import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-submit@test.invalid'
 const TEST_NAME = 'E2E Submit User'
+const ADMIN_EMAIL = 'e2e-submit-admin@test.invalid'
 
 // Ждём гидрации React и закрываем ContactsForm, если появилась
 async function waitAndCloseContactsForm(page: Page) {
@@ -23,6 +24,9 @@ test.beforeEach(async () => {
 test.afterEach(async ({ page }) => {
   await page.request.delete('/api/test/session', {
     data: { email: TEST_EMAIL },
+  })
+  await page.request.delete('/api/test/session', {
+    data: { email: ADMIN_EMAIL },
   })
 })
 
@@ -209,6 +213,47 @@ test('успешная отправка: форма показывает под�
   // Должно появиться подтверждение
   await expect(page.getByText('Заявка принята!')).toBeVisible({ timeout: 10000 })
   await expect(page.getByText(/рассмотрим/i)).toBeVisible()
+})
+
+test('одобрение заявки автоматически записывает автора на предложенную книгу', async ({ page }) => {
+  const title = `E2E Auto Signup ${Date.now()}`
+  await page.request.post('/api/test/session', {
+    data: { email: TEST_EMAIL, name: TEST_NAME },
+  })
+
+  const submitRes = await page.request.post('/api/submissions', {
+    data: {
+      title,
+      author: 'E2E Автор',
+      whyRead: 'Проверяем автозапись автора заявки после одобрения',
+    },
+  })
+  expect(submitRes.ok()).toBeTruthy()
+  const submitData = await submitRes.json()
+
+  await page.request.post('/api/test/session', {
+    data: { email: ADMIN_EMAIL, name: 'E2E Submit Admin', isAdmin: true },
+  })
+  const approveRes = await page.request.patch(`/api/admin/submissions/${submitData.data.id}`, {
+    data: { status: 'approved' },
+  })
+  expect(approveRes.ok()).toBeTruthy()
+
+  await page.request.post('/api/test/session', {
+    data: { email: TEST_EMAIL, name: TEST_NAME },
+  })
+  await page.goto('/')
+  await waitAndCloseContactsForm(page)
+
+  const book = page.locator('article').filter({ hasText: title })
+  await expect(book.getByRole('button', { name: /записан/i })).toBeVisible({ timeout: 10000 })
+
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+  await expect(book.getByRole('button', { name: /записан/i })).toBeVisible({ timeout: 10000 })
+
+  const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(TEST_EMAIL)}`)).json()
+  expect(userState.signupBooks).toContain(title)
 })
 
 test('успешная отправка: кнопка «Закрыть» в success-стейте закрывает диалог', async ({ page }) => {

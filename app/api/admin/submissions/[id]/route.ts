@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { bookSubmissions, users } from '@/lib/db/schema'
+import { bookSubmissions, signupBooks, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
@@ -69,6 +69,13 @@ export async function PATCH(
   }
 
   const submission = updated[0]
+
+  if (status === 'approved') {
+    await db.insert(signupBooks).values({
+      userId: submission.userId,
+      bookName: submission.title,
+    }).onConflictDoNothing()
+  }
 
   if (status === 'approved' || status === 'rejected') {
     const [userRow] = await db
