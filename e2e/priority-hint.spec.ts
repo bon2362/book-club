@@ -1,21 +1,29 @@
 import { test, expect } from '@playwright/test'
 import { epic, feature } from 'allure-js-commons'
 
-const TEST_EMAIL = 'e2e-priority-hint@test.invalid'
-const TEST_NAME = 'E2E Priority Hint'
-const TEST_CONTACT = '@e2e_priority_hint'
+const TEST_NAME_BASE = 'E2E Priority Hint'
+const TEST_CONTACT_BASE = 'e2e_priority_hint'
 
-test.beforeEach(async ({ page }) => {
+let testEmail = ''
+let testName = ''
+let testContact = ''
+
+test.beforeEach(async ({ page }, testInfo) => {
   await epic('Каталог книг')
   await feature('Приоритеты книг')
+  const runId = `${testInfo.workerIndex}-${testInfo.retry}-${Date.now()}`
+  testEmail = `e2e-priority-hint-${runId}@test.invalid`
+  testName = `${TEST_NAME_BASE} ${runId}`
+  testContact = `@${TEST_CONTACT_BASE}_${runId.replace(/[^a-zA-Z0-9_]/g, '_')}`
+
   await page.request.post('/api/test/session', {
-    data: { email: TEST_EMAIL, name: TEST_NAME },
+    data: { email: testEmail, name: testName },
   })
 })
 
 test.afterEach(async ({ page }) => {
   await page.request.delete('/api/test/session', {
-    data: { email: TEST_EMAIL },
+    data: { email: testEmail },
   })
 })
 
@@ -27,8 +35,8 @@ async function setupProfileAndClearHint(page: import('@playwright/test').Page) {
 
   // ContactsForm автоматически открывается для нового пользователя — заполняем первой,
   // потому что её оверлей перехватывает клики по кнопке закрытия блока "О клубе"
-  await page.getByLabel(/имя/i).fill(TEST_NAME)
-  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
+  await page.getByLabel(/имя/i).fill(testName)
+  await page.getByLabel(/telegram/i).fill(testContact)
   await page.getByRole('button', { name: /сохранить/i }).click()
   await expect(page.getByLabel(/имя/i)).not.toBeVisible()
 
@@ -126,7 +134,7 @@ test('hover на тост ставит таймер на паузу', async ({ p
   await expect(toast).toBeVisible()
 
   // Уводим курсор — таймер возобновляется и тост закрывается
-  await page.mouse.move(0, 0)
+  await page.getByRole('banner').hover()
   await expect(toast).toBeHidden({ timeout: 21000 })
 })
 
@@ -136,8 +144,8 @@ test('тост не показывается повторно если флаг 
   // Устанавливаем флаг до взаимодействия с книгами
   await page.evaluate(() => localStorage.setItem('hint_priorities_seen', '1'))
 
-  await page.getByLabel(/имя/i).fill(TEST_NAME)
-  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
+  await page.getByLabel(/имя/i).fill(testName)
+  await page.getByLabel(/telegram/i).fill(testContact)
   await page.getByRole('button', { name: /сохранить/i }).click()
   await expect(page.getByLabel(/имя/i)).not.toBeVisible()
 
