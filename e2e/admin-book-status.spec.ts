@@ -10,6 +10,7 @@ const USER_ID = `test:${USER_EMAIL}`
 const USER_CONTACT = '@e2e_bookstatus_user'
 const SORT_USER_A_EMAIL = 'e2e-bookstatus-sort-a@test.invalid'
 const SORT_USER_B_EMAIL = 'e2e-bookstatus-sort-b@test.invalid'
+const SORT_EXTRA_EMAIL_PREFIX = 'e2e-bookstatus-sort-extra'
 // Фикстурная книга из lib/books-with-covers.ts (только в NEXTAUTH_TEST_MODE)
 const TEST_BOOK_NAME = 'Тестовая книга 1'
 const TEST_BOOK_ID = '__test_book_1__'
@@ -17,10 +18,12 @@ const TEST_BOOK_3_NAME = 'Тестовая книга 3'
 
 test.describe('AdminPanel — изменение статуса книги', () => {
   test.setTimeout(120_000) // Админка и e2e setup могут быть медленными в CI
+  let sortExtraEmails: string[] = []
 
   test.beforeEach(async ({ page }) => {
     await epic('Администрирование')
     await feature('Статус книги')
+    sortExtraEmails = []
     // 1. Создаём обычного пользователя, записавшегося на тестовую книгу
     //    Пишем напрямую в signup_books через /api/test/signup,
     //    чтобы компактно подготовить фикстуру для админки.
@@ -55,13 +58,42 @@ test.describe('AdminPanel — изменение статуса книги', () 
     await page.request.delete('/api/test/signup', { data: { userId: USER_ID } })
     await page.request.delete('/api/test/signup', { data: { userId: `test:${SORT_USER_A_EMAIL}` } })
     await page.request.delete('/api/test/signup', { data: { userId: `test:${SORT_USER_B_EMAIL}` } })
+    for (const email of sortExtraEmails) {
+      await page.request.delete('/api/test/signup', { data: { userId: `test:${email}` } })
+    }
 
     // Удаляем пользователей из БД
     await page.request.delete('/api/test/session', { data: { email: ADMIN_EMAIL } })
     await page.request.delete('/api/test/session', { data: { email: USER_EMAIL } })
     await page.request.delete('/api/test/session', { data: { email: SORT_USER_A_EMAIL } })
     await page.request.delete('/api/test/session', { data: { email: SORT_USER_B_EMAIL } })
+    for (const email of sortExtraEmails) {
+      await page.request.delete('/api/test/session', { data: { email } })
+    }
   })
+
+  async function addSortSignup(page: import('@playwright/test').Page, email: string, index: number) {
+    const name = `E2E Sort Reader Extra ${index}`
+    await page.request.post('/api/test/session', {
+      data: { email, name },
+    })
+    await page.request.post('/api/test/signup', {
+      data: {
+        userId: `test:${email}`,
+        name,
+        email,
+        contacts: `@e2e_sort_extra_${index}`,
+        selectedBooks: [TEST_BOOK_3_NAME],
+      },
+    })
+  }
+
+  async function getBookSignupCount(page: import('@playwright/test').Page, bookName: string) {
+    const row = page.locator('tbody tr').filter({ hasText: bookName })
+    await expect(row).toBeVisible()
+    const text = await row.locator('td').nth(1).innerText()
+    return Number.parseInt(text, 10)
+  }
 
   test('изменение статуса книги на "Читаем" сохраняется после перезагрузки', async ({ page }) => {
     await page.goto('/admin')
@@ -140,6 +172,20 @@ test.describe('AdminPanel — изменение статуса книги', () 
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: /по книгам/i }).click()
+
+    const book1Count = await getBookSignupCount(page, TEST_BOOK_NAME)
+    const book3Count = await getBookSignupCount(page, TEST_BOOK_3_NAME)
+    const extrasNeeded = Math.max(0, book1Count - book3Count + 1)
+    for (let i = 0; i < extrasNeeded; i += 1) {
+      const email = `${SORT_EXTRA_EMAIL_PREFIX}-${i}@test.invalid`
+      sortExtraEmails.push(email)
+      await addSortSignup(page, email, i)
+    }
+    if (extrasNeeded > 0) {
+      await page.reload()
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: /по книгам/i }).click()
+    }
 
     const dataRows = page.locator('tbody tr')
     await expect.poll(async () => {
