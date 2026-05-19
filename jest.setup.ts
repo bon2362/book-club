@@ -12,5 +12,13 @@ jest.mock('@/lib/analytics', () => ({
 }))
 jest.mock('posthog-js', () => ({
   __esModule: true,
-  default: { init: jest.fn(), capture: jest.fn() },
+  default: {
+    init: jest.fn(),
+    capture: jest.fn(),
+    identify: jest.fn(),
+    reset: jest.fn(),
+    opt_out_capturing: jest.fn(),
+    opt_in_capturing: jest.fn(),
+    has_opted_out_capturing: jest.fn(() => false),
+  },
 }))
