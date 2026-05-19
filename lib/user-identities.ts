@@ -142,17 +142,6 @@ async function findGoogleAccountUserId(tx: IdentityDb, provider: IdentityProvide
   return rows[0]?.userId ?? null
 }
 
-async function findLegacyTelegramUserId(tx: IdentityDb, provider: IdentityProvider, providerAccountId: string): Promise<string | null> {
-  if (provider !== 'telegram') return null
-  const legacyUserId = `telegram:${providerAccountId}`
-  const rows = await tx
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.id, legacyUserId))
-    .limit(1)
-  return rows[0]?.id ?? null
-}
-
 async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean): Promise<ResolvedIdentityUser> {
   const rows = await tx
     .select({
@@ -294,9 +283,8 @@ export async function resolveOrCreateUserFromIdentity(
     const linkedByEmailUserId = !linkedByAccountUserId && canLinkByEmail(normalizedProvider, profile, email)
       ? await findUserIdByEmail(tx, email)
       : null
-    const legacyTelegramUserId = await findLegacyTelegramUserId(tx, normalizedProvider, normalizedProviderAccountId)
-    const userId = profile.userId ?? linkedByAccountUserId ?? linkedByEmailUserId ?? legacyTelegramUserId ?? crypto.randomUUID()
-    const isNew = !profile.userId && !linkedByAccountUserId && !linkedByEmailUserId && !legacyTelegramUserId
+    const userId = profile.userId ?? linkedByAccountUserId ?? linkedByEmailUserId ?? crypto.randomUUID()
+    const isNew = !profile.userId && !linkedByAccountUserId && !linkedByEmailUserId
 
     if (isNew) {
       await tx.insert(users).values({

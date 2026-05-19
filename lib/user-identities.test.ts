@@ -143,27 +143,6 @@ describe('user identity helpers', () => {
     }))
   })
 
-  it('линкует новую Telegram identity к legacy telegram:* user вместо физической миграции id', async () => {
-    queueSelects(
-      [],
-      [{ id: 'telegram:123' }],
-      [{ id: 'telegram:123', email: 'telegram:123@telegram.user', name: 'Legacy', image: null, telegramUsername: 'legacy' }]
-    )
-    const insertChains = mockInserts()
-    mockUpdate()
-
-    const result = await resolveOrCreateUserFromIdentity('telegram', '123', { telegramUsername: 'legacy' })
-
-    expect(result.id).toBe('telegram:123')
-    expect(insertChains.some(chain => chain.table === users)).toBe(false)
-    expect(insertChains[0].table).toBe(userIdentities)
-    expect(insertChains[0].lastValues).toEqual(expect.objectContaining({
-      userId: 'telegram:123',
-      provider: 'telegram',
-      providerAccountId: '123',
-    }))
-  })
-
   it('линкует trusted Google identity к существующему user by email и синхронизирует account', async () => {
     queueSelects(
       [],
