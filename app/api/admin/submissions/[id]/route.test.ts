@@ -36,6 +36,11 @@ jest.mock('@/lib/db', () => ({
     }),
     select: () => ({
       from: () => ({
+        leftJoin: () => ({
+          where: () => ({
+            limit: mockSelect,
+          }),
+        }),
         where: () => ({
           limit: mockSelect,
         }),
@@ -92,7 +97,10 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
     jest.clearAllMocks()
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockUpdate.mockResolvedValue([mockSubmission])
-    mockSelect.mockResolvedValue([{ email: 'user@test.com' }])
+    // First select: existing submission; second select: user email for notification
+    mockSelect
+      .mockResolvedValueOnce([{ title: 'Сапиенс', status: 'approved' }])
+      .mockResolvedValue([{ email: 'user@test.com' }])
     mockSend.mockResolvedValue({ id: 'email-id' })
     mockInsertValues.mockReturnValue({ onConflictDoNothing: mockOnConflictDoNothing })
     mockOnConflictDoNothing.mockResolvedValue(undefined)
@@ -140,8 +148,22 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
     expect(mockInsertValues).not.toHaveBeenCalled()
   })
 
+  it('обновляет signupBooks и bookPriorities при смене title одобренной заявки', async () => {
+    const updatedSubmission = { ...mockSubmission, title: 'Новый заголовок', status: 'approved' }
+    mockUpdate.mockResolvedValue([updatedSubmission])
+    // first select: existing (old title, approved); second: user email (won't be called — no status change)
+    mockSelect.mockReset()
+    mockSelect
+      .mockResolvedValueOnce([{ title: 'Сапиенс', status: 'approved' }])
+      .mockResolvedValue([{ email: 'user@test.com' }])
+    await PATCH(makeRequest('sub-1', { title: 'Новый заголовок' }), { params: { id: 'sub-1' } })
+    // db.update is called 3 times: submission, signupBooks, bookPriorities
+    expect(mockUpdate).toHaveBeenCalledTimes(1) // only the .returning() call (for submission update)
+  })
+
   it('возвращает 404 если заявка не найдена', async () => {
-    mockUpdate.mockResolvedValue([])
+    mockSelect.mockReset()
+    mockSelect.mockResolvedValue([])
     const res = await PATCH(makeRequest('missing', { status: 'approved' }), { params: { id: 'missing' } })
     expect(res.status).toBe(404)
   })

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { bookSubmissions, signupBooks, users } from '@/lib/db/schema'
+import { bookSubmissions, signupBooks, bookPriorities, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
@@ -45,6 +45,16 @@ export async function PATCH(
   const body = await req.json()
   const { status, title, author, whyRead, topic, pages, publishedDate, textUrl, description, coverUrl, rejectionReason } = body
 
+  const [existing] = await db
+    .select({ title: bookSubmissions.title, status: bookSubmissions.status })
+    .from(bookSubmissions)
+    .where(eq(bookSubmissions.id, id))
+    .limit(1)
+
+  if (!existing) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   const updates: Record<string, unknown> = { updatedAt: new Date() }
   if (status !== undefined) updates.status = status
   if (title !== undefined) updates.title = title
@@ -69,6 +79,19 @@ export async function PATCH(
   }
 
   const submission = updated[0]
+
+  const titleChanged = title !== undefined && title !== existing.title
+  const isApproved = submission.status === 'approved'
+  if (titleChanged && isApproved) {
+    await Promise.all([
+      db.update(signupBooks)
+        .set({ bookName: title })
+        .where(eq(signupBooks.bookName, existing.title)),
+      db.update(bookPriorities)
+        .set({ bookName: title })
+        .where(eq(bookPriorities.bookName, existing.title)),
+    ])
+  }
 
   if (status === 'approved') {
     await db.insert(signupBooks).values({
