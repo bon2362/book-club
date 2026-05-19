@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-intro-admin@test.invalid'

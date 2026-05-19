@@ -22,6 +22,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       NEXTAUTH_TEST_MODE: 'true',
+      NEXT_PUBLIC_DISABLE_ANALYTICS: 'true',
     },
   },
 })

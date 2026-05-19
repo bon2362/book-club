@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
 // BookCard показывает кнопку «Читать далее» только когда description.length > 120.

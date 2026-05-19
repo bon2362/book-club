@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
 // Тема переключения в текущей версии не реализована в UI.
