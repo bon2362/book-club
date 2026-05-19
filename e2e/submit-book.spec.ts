@@ -1,4 +1,4 @@
-import { type Page, test, expect } from '@playwright/test'
+import { type Page, test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-submit@test.invalid'

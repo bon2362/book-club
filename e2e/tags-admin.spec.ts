@@ -10,7 +10,7 @@
  *
  * После теста описание восстанавливается к исходному значению.
  */
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 const TEST_EMAIL = 'e2e-tags-admin@test.invalid'
 const TEST_NAME = 'E2E Tags Admin'

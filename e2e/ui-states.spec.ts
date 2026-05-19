@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
 async function isFullyAboveViewport(page: import('@playwright/test').Page, selector: string) {
