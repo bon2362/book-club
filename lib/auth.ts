@@ -10,6 +10,7 @@ import { Resend as ResendClient } from 'resend'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
 import { consumeTelegramPreauthToken, verifyTelegramHash } from '@/lib/telegram-auth'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
+import { linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
@@ -130,16 +131,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!verifyTelegramHash(data)) return null
         const { id, first_name, last_name, username, photo_url } = data
         const name = [first_name, last_name].filter(Boolean).join(' ') || username || String(id)
-        const email = `telegram:${id}@telegram.user`
-        const userId = `telegram:${id}`
-        await db.insert(users).values({ id: userId, email, name, image: photo_url || null }).onConflictDoUpdate({
-          target: users.id,
-          set: { name, image: photo_url || null },
+        const user = await resolveOrCreateUserFromIdentity('telegram', id, {
+          name,
+          image: photo_url || null,
+          telegramUsername: username || null,
+          metadata: { source: 'telegram-credentials' },
         })
         return {
-          id: userId,
-          email,
-          name,
+          id: user.id,
+          email: user.email,
+          name: user.name ?? name,
           telegramUsername: username || null,
         }
       },
@@ -147,7 +148,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, email }) {
+      if (email?.verificationRequest) return true
       const userId = user.id
       if (userId || user.email) {
         // account is null for email magic link (Resend doesn't create an accounts row)
@@ -165,6 +167,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             sourceId: provider,
             metadata: { provider },
           })
+        }
+        if (account?.provider === 'google' && account.providerAccountId && userId) {
+          await linkIdentityToUser(userId, 'google', account.providerAccountId, {
+            email: user.email,
+            emailVerified: true,
+            name: user.name,
+            image: user.image,
+            now,
+            metadata: { source: 'auth-sign-in' },
+          })
+        } else if (provider === 'email' && user.email) {
+          if (userId) {
+            await linkIdentityToUser(userId, 'email', user.email, {
+              email: user.email,
+              emailVerified: true,
+              name: user.name,
+              image: user.image,
+              now,
+              metadata: { source: 'auth-sign-in' },
+            })
+          } else {
+            await resolveOrCreateUserFromIdentity('email', user.email, {
+              email: user.email,
+              emailVerified: true,
+              name: user.name,
+              image: user.image,
+              now,
+              metadata: { source: 'auth-sign-in' },
+            })
+          }
         }
       }
       return true

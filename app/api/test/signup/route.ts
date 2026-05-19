@@ -16,14 +16,20 @@ function notAllowed() {
 export async function POST(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
-  const { userId, name, contacts, selectedBooks } = await req.json() as {
+  const { userId, name, email, contacts, selectedBooks } = await req.json() as {
     userId: string; name: string; email: string; contacts: string; selectedBooks: string[]
   }
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1)
+  const canonicalUserId = rows[0]?.id ?? userId
 
-  await db.update(users).set({ name, contacts }).where(eq(users.id, userId))
-  await upsertSignup(userId, selectedBooks)
+  await db.update(users).set({ name, contacts }).where(eq(users.id, canonicalUserId))
+  await upsertSignup(canonicalUserId, selectedBooks)
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, userId: canonicalUserId })
 }
 
 export async function DELETE(req: NextRequest) {

@@ -11,9 +11,9 @@ jest.mock('@auth/core/jwt', () => ({
 
 jest.mock('@/lib/db', () => ({
   db: {
-    insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockReturnValue({
-        onConflictDoUpdate: jest.fn().mockResolvedValue(undefined),
+    update: jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue(undefined),
       }),
     }),
     delete: jest.fn().mockReturnValue({
@@ -21,6 +21,14 @@ jest.mock('@/lib/db', () => ({
     }),
   },
 }))
+
+jest.mock('@/lib/user-identities', () => ({
+  normalizeIdentityProvider: jest.fn((provider: string) => provider === 'telegram-preauth' ? 'telegram' : provider),
+  resolveOrCreateUserFromIdentity: jest.fn(),
+}))
+
+import { encode } from '@auth/core/jwt'
+import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 function setNodeEnv(value: string) {
   Object.defineProperty(process.env, 'NODE_ENV', {
@@ -72,9 +80,49 @@ describe('/api/test/session guards', () => {
     setNodeEnv('test')
     process.env.NEXTAUTH_TEST_MODE = 'true'
     process.env.NEXTAUTH_SECRET = 'secret'
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'canonical-test-uuid',
+      email: 'user@test.com',
+      name: 'User',
+    })
 
     const res = await POST(makeRequest({ email: 'user@test.com', name: 'User' }))
 
     expect(res.status).toBe(200)
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('email', 'user@test.com', expect.objectContaining({
+      email: 'user@test.com',
+      name: 'User',
+      metadata: { source: 'test-session' },
+    }))
+    expect(encode).toHaveBeenCalledWith(expect.objectContaining({
+      token: expect.objectContaining({ sub: 'canonical-test-uuid' }),
+    }))
+  })
+
+  it('POST для telegram-preauth создаёт session на canonical UUID, не на test:* id', async () => {
+    setNodeEnv('test')
+    process.env.NEXTAUTH_TEST_MODE = 'true'
+    process.env.NEXTAUTH_SECRET = 'secret'
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'telegram-canonical-uuid',
+      email: 'tg@test.com',
+      name: 'Telegram User',
+    })
+
+    const res = await POST(makeRequest({
+      email: 'tg@test.com',
+      name: 'Telegram User',
+      telegramUsername: 'reader_tg',
+      provider: 'telegram-preauth',
+    }))
+
+    expect(res.status).toBe(200)
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', 'reader_tg', expect.objectContaining({
+      email: 'tg@test.com',
+      telegramUsername: 'reader_tg',
+    }))
+    expect(encode).toHaveBeenCalledWith(expect.objectContaining({
+      token: expect.objectContaining({ sub: 'telegram-canonical-uuid' }),
+    }))
   })
 })

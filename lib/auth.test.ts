@@ -28,6 +28,11 @@ jest.mock('@/lib/user-activity', () => ({
   bestEffortRecordUserActivity: jest.fn(),
 }))
 
+jest.mock('@/lib/user-identities', () => ({
+  linkIdentityToUser: jest.fn(),
+  resolveOrCreateUserFromIdentity: jest.fn(),
+}))
+
 jest.mock('next-auth/providers/google', () => ({
   __esModule: true,
   default: jest.fn(() => ({ id: 'google', type: 'oauth' })),
@@ -71,6 +76,7 @@ jest.mock('next-auth', () => ({
 import NextAuth from 'next-auth'
 import { db } from '@/lib/db'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
+import { linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('@/lib/auth')
@@ -102,16 +108,6 @@ function mockDbSelect(rows: unknown[]) {
     limit: jest.fn().mockResolvedValue(rows),
   }
   ;(db.select as jest.Mock).mockReturnValue(chain)
-  return chain
-}
-
-// Mock db chain for insert with onConflictDoUpdate
-function mockDbInsert() {
-  const chain = {
-    values: jest.fn().mockReturnThis(),
-    onConflictDoUpdate: jest.fn().mockResolvedValue(undefined),
-  }
-  ;(db.insert as jest.Mock).mockReturnValue(chain)
   return chain
 }
 
@@ -158,6 +154,16 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  ;(linkIdentityToUser as jest.Mock).mockResolvedValue({
+    id: 'identity-user',
+    email: 'identity@test.com',
+    name: 'Identity',
+  })
+  ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+    id: 'identity-user',
+    email: 'identity@test.com',
+    name: 'Identity',
+  })
 })
 
 // ── signIn callback ──────────────────────────────────────────────────────────
@@ -184,6 +190,56 @@ describe('signIn callback', () => {
       sourceId: 'google',
       metadata: { provider: 'google' },
     }))
+    expect(linkIdentityToUser).not.toHaveBeenCalled()
+  })
+
+  it('синхронизирует Google OAuth account в user_identities для canonical users.id', async () => {
+    mockDbUpdate()
+
+    const result = await signInCallback()({
+      user: { id: 'user-uuid', email: 'user@test.com', name: 'User', image: 'https://avatar.test/u.png' },
+      account: { provider: 'google', providerAccountId: 'google-sub-123' },
+    })
+
+    expect(result).toBe(true)
+    expect(linkIdentityToUser).toHaveBeenCalledWith('user-uuid', 'google', 'google-sub-123', expect.objectContaining({
+      email: 'user@test.com',
+      emailVerified: true,
+      name: 'User',
+      image: 'https://avatar.test/u.png',
+      metadata: { source: 'auth-sign-in' },
+    }))
+  })
+
+  it('синхронизирует Resend/email sign-in в user_identities', async () => {
+    mockDbUpdate()
+
+    await signInCallback()({
+      user: { id: 'email-user-uuid', email: 'magic@test.com', name: 'Magic User' },
+      account: { provider: 'resend' },
+    })
+
+    expect(linkIdentityToUser).toHaveBeenCalledWith('email-user-uuid', 'email', 'magic@test.com', expect.objectContaining({
+      email: 'magic@test.com',
+      emailVerified: true,
+      name: 'Magic User',
+      metadata: { source: 'auth-sign-in' },
+    }))
+  })
+
+  it('не создаёт email identity на pre-send фазе magic link', async () => {
+    mockDbUpdate()
+
+    const result = await signInCallback()({
+      user: { email: 'not-yet-verified@test.com' },
+      account: { provider: 'resend' },
+      email: { verificationRequest: true },
+    })
+
+    expect(result).toBe(true)
+    expect(db.update).not.toHaveBeenCalled()
+    expect(linkIdentityToUser).not.toHaveBeenCalled()
+    expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
   it('пишет telegram_username если он пришёл из credentials user', async () => {
@@ -568,19 +624,29 @@ describe('telegram provider authorize + verifyTelegramHash', () => {
       auth_date: String(Math.floor(Date.now() / 1000)),
     }
     const hash = buildTelegramHash(data, BOT_TOKEN)
-    mockDbInsert()
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'canonical-telegram-uuid',
+      email: 'telegram:987654321@telegram.user',
+      name: 'Ivan Petrov',
+    })
 
     const result = await authorize({ ...data, hash })
 
     expect(result).toMatchObject({
-      id: 'telegram:987654321',
+      id: 'canonical-telegram-uuid',
       email: 'telegram:987654321@telegram.user',
       name: 'Ivan Petrov',
       telegramUsername: 'ivan_p',
     })
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '987654321', expect.objectContaining({
+      name: 'Ivan Petrov',
+      image: 'https://t.me/photo.jpg',
+      telegramUsername: 'ivan_p',
+      metadata: { source: 'telegram-credentials' },
+    }))
   })
 
-  it('устанавливает image из photo_url', async () => {
+  it('передаёт image из photo_url в identity helper', async () => {
     const data = {
       id: '111',
       first_name: 'Anna',
@@ -588,13 +654,12 @@ describe('telegram provider authorize + verifyTelegramHash', () => {
       auth_date: String(Math.floor(Date.now() / 1000)),
     }
     const hash = buildTelegramHash(data, BOT_TOKEN)
-    const insertChain = mockDbInsert()
 
     await authorize({ ...data, hash })
 
-    expect(insertChain.values).toHaveBeenCalledWith(
-      expect.objectContaining({ image: 'https://t.me/photo.jpg' })
-    )
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '111', expect.objectContaining({
+      image: 'https://t.me/photo.jpg',
+    }))
   })
 
   it('использует username как имя если first_name и last_name пусты', async () => {
@@ -604,7 +669,11 @@ describe('telegram provider authorize + verifyTelegramHash', () => {
       auth_date: String(Math.floor(Date.now() / 1000)),
     }
     const hash = buildTelegramHash(data, BOT_TOKEN)
-    mockDbInsert()
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'canonical-telegram-uuid',
+      email: 'telegram:222@telegram.user',
+      name: 'noname_user',
+    })
 
     const result = (await authorize({ ...data, hash })) as Record<string, unknown>
     expect(result.name).toBe('noname_user')
@@ -616,25 +685,28 @@ describe('telegram provider authorize + verifyTelegramHash', () => {
       auth_date: String(Math.floor(Date.now() / 1000)),
     }
     const hash = buildTelegramHash(data, BOT_TOKEN)
-    mockDbInsert()
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'canonical-telegram-uuid',
+      email: 'telegram:333@telegram.user',
+      name: '333',
+    })
 
     const result = (await authorize({ ...data, hash })) as Record<string, unknown>
     expect(result.name).toBe('333')
   })
 
-  it('устанавливает image=null если photo_url отсутствует', async () => {
+  it('передаёт image=null если photo_url отсутствует', async () => {
     const data = {
       id: '444',
       first_name: 'No Photo',
       auth_date: String(Math.floor(Date.now() / 1000)),
     }
     const hash = buildTelegramHash(data, BOT_TOKEN)
-    const insertChain = mockDbInsert()
 
     await authorize({ ...data, hash })
 
-    expect(insertChain.values).toHaveBeenCalledWith(
-      expect.objectContaining({ image: null })
-    )
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '444', expect.objectContaining({
+      image: null,
+    }))
   })
 })
