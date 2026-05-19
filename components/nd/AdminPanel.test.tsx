@@ -165,6 +165,7 @@ const mockFeedback = [
 ]
 
 beforeEach(() => {
+  window.localStorage.clear()
   global.fetch = jest.fn().mockResolvedValue({
     json: () => Promise.resolve({ success: true, data: [] }),
     ok: true,
@@ -294,6 +295,37 @@ describe('AdminPanel — Заявки таб', () => {
           body: expect.stringContaining('"status":"approved"'),
         })
       )
+    })
+  })
+
+  it('сбрасывает счетчик непрочитанных после обработки заявки', async () => {
+    const updatedSub = { ...mockSubmissions[0], status: 'approved' }
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true, data: mockSubmissions }),
+        ok: true,
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true, data: [] }),
+        ok: true,
+      })
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({ success: true, data: updatedSub }),
+        ok: true,
+      })
+
+    render(<AdminPanel {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('1 новых')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText(/заявки/i))
+    fireEvent.click(await screen.findByText('Сапиенс'))
+    fireEvent.click(screen.getByText('Одобрить'))
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('1 новых')).not.toBeInTheDocument()
     })
   })
 
@@ -534,6 +566,33 @@ describe('AdminPanel — Фидбеки таб', () => {
     await waitFor(() => {
       expect(screen.getByText('Фидбеки (2)')).toBeInTheDocument()
       expect(screen.getByLabelText('2 новых')).toBeInTheDocument()
+    })
+  })
+
+  it('сбрасывает счетчик непрочитанных после просмотра вкладки', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/admin/feedback') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: mockFeedback }),
+          ok: true,
+        })
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: [] }),
+        ok: true,
+      })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('2 новых')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText(/фидбеки/i))
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('2 новых')).not.toBeInTheDocument()
     })
   })
 })

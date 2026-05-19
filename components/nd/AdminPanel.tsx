@@ -51,6 +51,29 @@ type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastSignInAt' | 'createdAt'
 type BookSortKey = 'name' | 'signups' | 'participants' | 'status' | 'new'
 
+const READ_SUBMISSIONS_STORAGE_KEY = 'admin_read_submission_ids'
+const READ_FEEDBACK_STORAGE_KEY = 'admin_read_feedback_ids'
+
+function readStoredIdSet(key: string) {
+  if (typeof window === 'undefined') return new Set<string>()
+  try {
+    const raw = window.localStorage.getItem(key)
+    const ids = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [])
+  } catch {
+    return new Set<string>()
+  }
+}
+
+function writeStoredIdSet(key: string, ids: Set<string>) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(key, JSON.stringify(Array.from(ids)))
+  } catch {
+    // Ignore storage failures: notification badges still work for the current session.
+  }
+}
+
 const cell: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.8rem',
@@ -298,10 +321,12 @@ export default function AdminPanel({
   const [submissionEdits, setSubmissionEdits] = useState<Record<string, Partial<Submission>>>({})
   const [submissionActionLoading, setSubmissionActionLoading] = useState<string | null>(null)
   const [submissionDeleteConfirm, setSubmissionDeleteConfirm] = useState<string | null>(null)
+  const [readSubmissionIds, setReadSubmissionIds] = useState<Set<string>>(() => readStoredIdSet(READ_SUBMISSIONS_STORAGE_KEY))
   const [feedbackItems, setFeedbackItems] = useState<AdminFeedbackItem[]>([])
   const [feedbackLoaded, setFeedbackLoaded] = useState(false)
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
   const [feedbackSearch, setFeedbackSearch] = useState('')
+  const [readFeedbackIds, setReadFeedbackIds] = useState<Set<string>>(() => readStoredIdSet(READ_FEEDBACK_STORAGE_KEY))
   const [bookSort, setBookSort] = useState<{ key: BookSortKey; dir: 'asc' | 'desc' }>({ key: 'signups', dir: 'desc' })
 
   useEffect(() => {
@@ -331,6 +356,32 @@ export default function AdminPanel({
       .catch(() => {})
       .finally(() => setFeedbackLoaded(true))
   }, [])
+
+  useEffect(() => {
+    if (view !== 'feedback' || !feedbackLoaded || feedbackItems.length === 0) return
+    setReadFeedbackIds(prev => {
+      const next = new Set(prev)
+      let changed = false
+      for (const item of feedbackItems) {
+        if (!next.has(item.id)) {
+          next.add(item.id)
+          changed = true
+        }
+      }
+      if (changed) writeStoredIdSet(READ_FEEDBACK_STORAGE_KEY, next)
+      return changed ? next : prev
+    })
+  }, [feedbackItems, feedbackLoaded, view])
+
+  function markSubmissionRead(id: string) {
+    setReadSubmissionIds(prev => {
+      if (prev.has(id)) return prev
+      const next = new Set(prev)
+      next.add(id)
+      writeStoredIdSet(READ_SUBMISSIONS_STORAGE_KEY, next)
+      return next
+    })
+  }
 
   async function openUserDrawer(userId: string) {
     setSelectedAdminUserId(userId)
@@ -502,6 +553,7 @@ export default function AdminPanel({
         })
         setSelectedSubmissionId(null)
         setSubmissionDeleteConfirm(null)
+        markSubmissionRead(id)
         setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
       }
     } catch { /* silently ignore */ }
@@ -519,6 +571,7 @@ export default function AdminPanel({
       })
       if (res.ok) {
         const d = await res.json()
+        markSubmissionRead(id)
         setSubmissions(prev => {
           const next = prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s)
           if (!next.some(s => s.status === 'pending')) setSubmissionFilter('all')
@@ -638,8 +691,8 @@ export default function AdminPanel({
     registered: feedbackItems.filter(f => f.userId).length,
     anonymous: feedbackItems.filter(f => !f.userId).length,
   }
-  const pendingSubmissionsCount = submissions.filter(s => s.status === 'pending').length
-  const feedbackNotificationCount = feedbackItems.length
+  const unreadSubmissionsCount = submissions.filter(s => s.status === 'pending' && !readSubmissionIds.has(s.id)).length
+  const feedbackNotificationCount = feedbackItems.filter(item => !readFeedbackIds.has(item.id)).length
   const filteredFeedback = feedbackItems.filter(item => {
     if (feedbackFilter === 'registered' && !item.userId) return false
     if (feedbackFilter === 'anonymous' && item.userId) return false
@@ -737,7 +790,7 @@ export default function AdminPanel({
           </button>
           <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
             Заявки ({submissions.length})
-            <CountBadge count={pendingSubmissionsCount} />
+            <CountBadge count={unreadSubmissionsCount} />
           </button>
           <button style={tabStyle(view === 'feedback')} onClick={() => setView('feedback')}>
             Фидбеки ({feedbackItems.length})

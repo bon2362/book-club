@@ -108,7 +108,14 @@ test.describe('админка — пользователи и фидбеки', (
   test('вкладка фидбеков показывает фильтры, поиск и открывает пользователя', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
+    const feedbackTab = page.locator('button').filter({ hasText: /фидбеки/i }).first()
+    await expect(feedbackTab).toBeVisible()
+    const feedbackCount = Number((await feedbackTab.textContent())?.match(/Фидбеки \((\d+)\)/i)?.[1] ?? 0)
+    expect(feedbackCount).toBeGreaterThanOrEqual(2)
+    await expect(feedbackTab.getByLabel(`${feedbackCount} новых`)).toBeVisible()
+
     await page.getByRole('button', { name: /фидбеки/i }).click()
+    await expect(feedbackTab.getByLabel(/новых/)).not.toBeVisible()
 
     await expect(page.getByText(registeredFeedback)).toBeVisible()
     await expect(page.getByText(anonFeedback)).toBeVisible()
