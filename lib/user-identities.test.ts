@@ -114,7 +114,6 @@ describe('user identity helpers', () => {
   it('создаёт нового Telegram user с UUID и technical placeholder email', async () => {
     queueSelects(
       [],
-      [],
       [{ id: 'generated-uuid', email: 'telegram:123@telegram.user', name: 'Ivan', image: null, telegramUsername: 'ivan' }]
     )
     const insertChains = mockInserts()
