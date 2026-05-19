@@ -182,6 +182,10 @@ test.describe('AdminPanel — изменение статуса книги', () 
       await addSortSignup(page, email, i)
     }
     if (extrasNeeded > 0) {
+      // addSortSignup switches session to non-admin; restore admin before reload
+      await page.request.post('/api/test/session', {
+        data: { email: ADMIN_EMAIL, name: ADMIN_NAME, isAdmin: true },
+      })
       await page.reload()
       await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: /по книгам/i }).click()

@@ -30,8 +30,8 @@ test.afterEach(async ({ page }) => {
 // Устанавливает профиль нового пользователя и сбрасывает флаг подсказки
 async function setupProfileAndClearHint(page: import('@playwright/test').Page) {
   await page.goto('/')
-  await page.waitForLoadState('networkidle')
   await page.evaluate(() => localStorage.removeItem('hint_priorities_seen'))
+  await expect(page.getByLabel(/имя/i)).toBeVisible()
 
   // ContactsForm автоматически открывается для нового пользователя — заполняем первой,
   // потому что её оверлей перехватывает клики по кнопке закрытия блока "О клубе"
