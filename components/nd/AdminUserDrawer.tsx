@@ -164,7 +164,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                   <dt style={{ color: '#999' }}>Telegram</dt><dd style={{ margin: 0 }}>{user.telegramUsername ? `@${user.telegramUsername}` : user.contacts || '—'}</dd>
                   <dt style={{ color: '#999' }}>Email</dt><dd style={{ margin: 0 }}>{user.email}</dd>
                   <dt style={{ color: '#999' }}>Языки</dt><dd style={{ margin: 0 }}>{user.languages.length ? user.languages.join(', ') : '—'}</dd>
-                  <dt style={{ color: '#999' }}>Последний вход</dt><dd style={{ margin: 0 }}>{formatDate(user.lastSignInAt)}</dd>
+                  <dt style={{ color: '#999' }}>Последняя активность</dt><dd style={{ margin: 0 }}>{formatDate(user.lastActivityAt)}</dd>
                   <dt style={{ color: '#999' }}>Дата создания</dt><dd style={{ margin: 0 }}>{formatDate(user.createdAt)}</dd>
                 </dl>
                 <button onClick={onDeleteUser} style={{ marginTop: '0.9rem', background: 'transparent', border: '1px solid #E5E5E5', color: '#999', padding: '0.35rem 0.75rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>

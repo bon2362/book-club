@@ -15,7 +15,7 @@ export interface AdminUserSummary {
   contacts: string | null
   telegramUsername: string | null
   authProvider: string | null
-  lastSignInAt: string | null
+  lastActivityAt: string | null
   createdAt: string | null
   languages: string[]
   booksCount: number
@@ -69,13 +69,14 @@ export function getTelegramDisplay(user: { telegramUsername?: string | null; con
 }
 
 export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
-  const [userRows, signupRows] = await Promise.all([
+  const [userRows, signupRows, priorityRows, submissionRows, feedbackRows] = await Promise.all([
     db
       .select({
         id: users.id,
         name: users.name,
         email: users.email,
         emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
         contacts: users.contacts,
         telegramUsername: users.telegramUsername,
         authProvider: users.authProvider,
@@ -85,10 +86,17 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
       })
       .from(users)
       .orderBy(asc(users.name), asc(users.email)),
-    db.select({ userId: signupBooks.userId }).from(signupBooks),
+    db.select({ userId: signupBooks.userId, activityAt: signupBooks.signedAt }).from(signupBooks),
+    db.select({ userId: bookPriorities.userId, activityAt: bookPriorities.updatedAt }).from(bookPriorities),
+    db.select({ userId: bookSubmissions.userId, activityAt: bookSubmissions.createdAt }).from(bookSubmissions),
+    db.select({ userId: feedback.userId, activityAt: feedback.createdAt }).from(feedback),
   ])
 
-  return buildAdminUserSummaries(userRows, signupRows)
+  return buildAdminUserSummaries(userRows, signupRows, [
+    ...priorityRows,
+    ...submissionRows,
+    ...feedbackRows.filter((row): row is { userId: string; activityAt: Date } => row.userId !== null),
+  ])
 }
 
 export function buildAdminUserSummaries(
@@ -101,13 +109,26 @@ export function buildAdminUserSummaries(
     authProvider: string | null
     lastSignInAt: Date | null
     emailVerified: Date | null
+    createdAt: Date
     languages: string | null
     isAdmin?: boolean | null
   }[],
-  signupRows: { userId: string }[]
+  signupRows: { userId: string; activityAt?: Date }[],
+  activityRows: { userId: string; activityAt: Date }[] = []
 ): AdminUserSummary[] {
   const counts = new Map<string, number>()
-  for (const row of signupRows) counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1)
+  const latestActivity = new Map<string, Date>()
+  function recordActivity(userId: string, activityAt: Date | null | undefined) {
+    if (!activityAt) return
+    const current = latestActivity.get(userId)
+    if (!current || activityAt > current) latestActivity.set(userId, activityAt)
+  }
+
+  for (const row of signupRows) {
+    counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1)
+    recordActivity(row.userId, row.activityAt)
+  }
+  for (const row of activityRows) recordActivity(row.userId, row.activityAt)
 
   return userRows.map(row => ({
     id: row.id,
@@ -116,8 +137,8 @@ export function buildAdminUserSummaries(
     contacts: row.contacts,
     telegramUsername: row.telegramUsername,
     authProvider: row.authProvider,
-    lastSignInAt: dateToIso(row.lastSignInAt),
-    createdAt: dateToIso(row.emailVerified),
+    lastActivityAt: dateToIso(latestActivity.get(row.id) ?? row.lastSignInAt),
+    createdAt: dateToIso(row.createdAt),
     languages: parseLanguages(row.languages),
     booksCount: counts.get(row.id) ?? 0,
     isAdmin: row.isAdmin ?? false,
@@ -131,6 +152,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       name: users.name,
       email: users.email,
       emailVerified: users.emailVerified,
+      createdAt: users.createdAt,
       contacts: users.contacts,
       telegramUsername: users.telegramUsername,
       authProvider: users.authProvider,
@@ -152,7 +174,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       .where(eq(signupBooks.userId, userId))
       .orderBy(asc(signupBooks.signedAt), asc(signupBooks.bookName)),
     db
-      .select({ bookName: bookPriorities.bookName, rank: bookPriorities.rank })
+      .select({ bookName: bookPriorities.bookName, rank: bookPriorities.rank, updatedAt: bookPriorities.updatedAt })
       .from(bookPriorities)
       .where(eq(bookPriorities.userId, userId))
       .orderBy(asc(bookPriorities.rank)),
@@ -184,7 +206,13 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       .orderBy(desc(feedback.createdAt)),
   ])
 
-  const summary = buildAdminUserSummaries([userRow], signupRows.map(() => ({ userId })))[0]
+  const activityRows = [
+    ...signupRows.map(row => ({ userId, activityAt: row.signedAt })),
+    ...priorityRows.map(row => ({ userId, activityAt: row.updatedAt })),
+    ...submissionRows.map(row => ({ userId, activityAt: row.createdAt })),
+    ...feedbackRows.map(row => ({ userId, activityAt: row.createdAt })),
+  ]
+  const summary = buildAdminUserSummaries([userRow], signupRows.map(row => ({ userId, activityAt: row.signedAt })), activityRows)[0]
 
   return {
     user: { ...summary, prioritiesSet: userRow.prioritiesSet ?? false },

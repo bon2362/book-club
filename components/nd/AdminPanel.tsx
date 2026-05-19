@@ -48,7 +48,7 @@ interface Props {
 type View = 'users' | 'books' | 'tags' | 'submissions' | 'feedback' | 'intro'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
-type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastSignInAt' | 'createdAt'
+type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastActivityAt' | 'createdAt'
 type BookSortKey = 'name' | 'signups' | 'participants' | 'status' | 'new'
 
 const READ_SUBMISSIONS_STORAGE_KEY = 'admin_read_submission_ids'
@@ -294,7 +294,7 @@ export default function AdminPanel({
   const [adminUsers, setAdminUsers] = useState<AdminUserSummary[]>([])
   const [adminUsersLoaded, setAdminUsersLoaded] = useState(false)
   const [userSearch, setUserSearch] = useState('')
-  const [userSort, setUserSort] = useState<{ key: UserSortKey; dir: 'asc' | 'desc' }>({ key: 'lastSignInAt', dir: 'desc' })
+  const [userSort, setUserSort] = useState<{ key: UserSortKey; dir: 'asc' | 'desc' }>({ key: 'lastActivityAt', dir: 'desc' })
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
   const [userDrawerLoading, setUserDrawerLoading] = useState(false)
@@ -651,7 +651,7 @@ export default function AdminPanel({
         if (userSort.key === 'books') return u.booksCount
         if (userSort.key === 'languages') return u.languages.join(', ')
         if (userSort.key === 'telegram') return u.telegramUsername ?? u.contacts ?? ''
-        if (userSort.key === 'lastSignInAt') return dateValue(u.lastSignInAt)
+        if (userSort.key === 'lastActivityAt') return dateValue(u.lastActivityAt)
         if (userSort.key === 'createdAt') return dateValue(u.createdAt)
         return u[userSort.key] ?? ''
       }
@@ -704,7 +704,7 @@ export default function AdminPanel({
   function setSort(key: UserSortKey) {
     setUserSort(prev => {
       if (prev.key === key) return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-      return { key, dir: key === 'books' || key === 'lastSignInAt' || key === 'createdAt' ? 'desc' : 'asc' }
+      return { key, dir: key === 'books' || key === 'lastActivityAt' || key === 'createdAt' ? 'desc' : 'asc' }
     })
   }
 
@@ -724,7 +724,7 @@ export default function AdminPanel({
     telegram: 'Telegram',
     books: 'Книг',
     languages: 'Языки',
-    lastSignInAt: 'Последний вход',
+    lastActivityAt: 'Последняя активность',
     createdAt: 'Дата создания',
   }
   const bookSortLabel: Record<BookSortKey, string> = {
@@ -830,8 +830,8 @@ export default function AdminPanel({
                   <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('telegram')}>
                     <SortHeader label={userSortLabel.telegram} active={userSort.key === 'telegram'} dir={userSort.dir} />
                   </th>
-                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('lastSignInAt')}>
-                    <SortHeader label={userSortLabel.lastSignInAt} active={userSort.key === 'lastSignInAt'} dir={userSort.dir} />
+                  <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('lastActivityAt')}>
+                    <SortHeader label={userSortLabel.lastActivityAt} active={userSort.key === 'lastActivityAt'} dir={userSort.dir} />
                   </th>
                   <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setSort('createdAt')}>
                     <SortHeader label={userSortLabel.createdAt} active={userSort.key === 'createdAt'} dir={userSort.dir} />
@@ -867,7 +867,7 @@ export default function AdminPanel({
                         </span>
                       </td>
                       <td style={cell}>{telegram}</td>
-                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.lastSignInAt)}</td>
+                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.lastActivityAt)}</td>
                       <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.createdAt)}</td>
                       <td style={{ ...cell, color: '#666' }}>
                         {u.languages.length === 0 ? <span style={{ color: '#ccc' }}>—</span> : u.languages.map(lang => (

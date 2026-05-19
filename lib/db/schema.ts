@@ -7,6 +7,7 @@ export const users = pgTable('user', {
   name: text('name'),
   email: text('email').notNull().unique(),
   emailVerified: timestamp('emailVerified', { mode: 'date' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   image: text('image'),
   contacts: text('contacts'),
   telegramUsername: text('telegram_username'),

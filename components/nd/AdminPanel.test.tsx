@@ -120,7 +120,7 @@ const mockAdminUsers = [
     contacts: '@old_reader',
     telegramUsername: 'old_reader',
     authProvider: 'telegram',
-    lastSignInAt: '2026-01-01T10:00:00.000Z',
+    lastActivityAt: '2026-01-01T10:00:00.000Z',
     createdAt: '2025-12-01T10:00:00.000Z',
     languages: ['ru'],
     booksCount: 1,
@@ -133,7 +133,7 @@ const mockAdminUsers = [
     contacts: '@new_reader',
     telegramUsername: 'new_reader',
     authProvider: 'telegram',
-    lastSignInAt: '2026-05-18T10:00:00.000Z',
+    lastActivityAt: '2026-05-18T10:00:00.000Z',
     createdAt: new Date().toISOString(),
     languages: ['en'],
     booksCount: 3,
@@ -518,7 +518,7 @@ describe('AdminPanel — По книгам таб', () => {
 })
 
 describe('AdminPanel — Участники таб', () => {
-  it('по умолчанию сортирует пользователей по последнему входу и показывает новые колонки', async () => {
+  it('по умолчанию сортирует пользователей по последней активности и показывает новые колонки', async () => {
     ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url === '/api/admin/users') {
         return Promise.resolve({
@@ -538,7 +538,7 @@ describe('AdminPanel — Участники таб', () => {
 
     const rows = screen.getAllByRole('row')
     expect(within(rows[0]).getByRole('columnheader', { name: /книг/i })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: /последний вход/i })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /последняя активность/i })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: /дата создания/i })).toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: /^email$/i })).not.toBeInTheDocument()
     expect(within(rows[1]).getByText('Новый участник')).toBeInTheDocument()
