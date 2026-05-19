@@ -4,6 +4,7 @@
 import { NextRequest } from 'next/server'
 import { POST } from './route'
 import * as authModule from '@/lib/auth'
+import * as activityModule from '@/lib/user-activity'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({
@@ -30,8 +31,10 @@ jest.mock('@/lib/db', () => ({
     }),
   },
 }))
+jest.mock('@/lib/user-activity', () => ({ bestEffortRecordUserActivity: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
+const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/submissions', {
@@ -106,6 +109,11 @@ describe('POST /api/submissions — happy path', () => {
     expect(data.success).toBe(true)
     expect(data.data.id).toBe('test-uuid')
     expect(data.data.status).toBe('pending')
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'submission_created', expect.objectContaining({
+      source: 'api',
+      sourceId: 'test-uuid',
+      dedupeKey: 'api:submission_created:test-uuid',
+    }))
   })
 
   it('возвращает 201 только с обязательными полями (остальные null)', async () => {

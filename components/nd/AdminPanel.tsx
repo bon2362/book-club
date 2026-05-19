@@ -643,14 +643,14 @@ export default function AdminPanel({
     .filter(u => {
       const q = userSearch.trim().toLowerCase()
       if (!q) return true
-      return `${u.name} ${u.telegramUsername ?? ''} ${u.contacts ?? ''}`.toLowerCase().includes(q)
+      return `${u.name} ${u.telegramDisplay} ${u.telegramUsername ?? ''} ${u.contacts ?? ''}`.toLowerCase().includes(q)
     })
     .sort((a, b) => {
       const dir = userSort.dir === 'asc' ? 1 : -1
       const value = (u: AdminUserSummary) => {
         if (userSort.key === 'books') return u.booksCount
         if (userSort.key === 'languages') return u.languages.join(', ')
-        if (userSort.key === 'telegram') return u.telegramUsername ?? u.contacts ?? ''
+        if (userSort.key === 'telegram') return u.telegramDisplay
         if (userSort.key === 'lastActivityAt') return dateValue(u.lastActivityAt)
         if (userSort.key === 'createdAt') return dateValue(u.createdAt)
         return u[userSort.key] ?? ''
@@ -849,7 +849,7 @@ export default function AdminPanel({
                   <tr><td colSpan={6} style={{ ...cell, color: '#999' }}>Никого не найдено</td></tr>
                 )}
                 {filteredAdminUsers.map(u => {
-                  const telegram = u.telegramUsername ? `@${u.telegramUsername}` : (u.contacts?.startsWith('@') ? u.contacts : '—')
+                  const telegram = u.telegramDisplay || '—'
                   return (
                     <tr
                       key={u.id}

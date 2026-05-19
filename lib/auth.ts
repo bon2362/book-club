@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm'
 import { Resend as ResendClient } from 'resend'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
 import { consumeTelegramPreauthToken, verifyTelegramHash } from '@/lib/telegram-auth'
+import { bestEffortRecordUserActivity } from '@/lib/user-activity'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
@@ -151,11 +152,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (userId || user.email) {
         // account is null for email magic link (Resend doesn't create an accounts row)
         const provider = account?.provider ? normalizeAuthProvider(account.provider) : 'email'
+        const now = new Date()
         await db.update(users).set({
           authProvider: provider,
-          lastSignInAt: new Date(),
+          lastSignInAt: now,
           ...(user.telegramUsername ? { telegramUsername: user.telegramUsername } : {}),
         }).where(userId ? eq(users.id, userId) : eq(users.email, user.email!))
+        if (userId) {
+          await bestEffortRecordUserActivity(userId, 'sign_in', {
+            occurredAt: now,
+            source: 'auth',
+            sourceId: provider,
+            metadata: { provider },
+          })
+        }
       }
       return true
     },

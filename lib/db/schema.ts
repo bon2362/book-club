@@ -1,5 +1,5 @@
 import {
-  pgTable, text, timestamp, integer, boolean, primaryKey, index,
+  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -14,10 +14,25 @@ export const users = pgTable('user', {
   // Allowed values: 'google' | 'email' | 'google-one-tap' | 'telegram' | 'telegram-preauth'
   authProvider: text('auth_provider'),
   lastSignInAt: timestamp('last_sign_in_at', { mode: 'date' }),
+  lastActivityAt: timestamp('last_activity_at', { mode: 'date' }),
   languages: text('languages'),
   prioritiesSet: boolean('priorities_set').notNull().default(false),
   isAdmin: boolean('is_admin').notNull().default(false),
 })
+
+export const userActivityEvents = pgTable('user_activity_events', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  occurredAt: timestamp('occurred_at', { mode: 'date' }).notNull().defaultNow(),
+  source: text('source'),
+  sourceId: text('source_id'),
+  dedupeKey: text('dedupe_key'),
+  metadata: text('metadata'),
+}, (t) => ({
+  userIdOccurredAtIdx: index('user_activity_events_user_id_occurred_at_idx').on(t.userId, t.occurredAt),
+  dedupeKeyIdx: uniqueIndex('user_activity_events_dedupe_key_idx').on(t.dedupeKey),
+}))
 
 export const accounts = pgTable('account', {
   userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),

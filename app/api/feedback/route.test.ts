@@ -5,9 +5,11 @@ import { NextRequest } from 'next/server'
 import { POST } from './route'
 import * as authModule from '@/lib/auth'
 import * as dbModule from '@/lib/db'
+import * as activityModule from '@/lib/user-activity'
 
 const mockSend = jest.fn()
-const mockValues = jest.fn().mockResolvedValue(undefined)
+const mockReturning = jest.fn().mockResolvedValue([{ id: 'feedback-1', createdAt: new Date('2026-05-19T10:00:00Z') }])
+const mockValues = jest.fn().mockReturnValue({ returning: mockReturning })
 
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
@@ -21,9 +23,11 @@ jest.mock('@/lib/db', () => ({
   },
 }))
 jest.mock('@/lib/db/schema', () => ({ feedback: {} }))
+jest.mock('@/lib/user-activity', () => ({ bestEffortRecordUserActivity: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockInsert = dbModule.db.insert as jest.Mock
+const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/feedback', {
@@ -121,6 +125,7 @@ describe('POST /api/feedback — happy path', () => {
       email: 'ivan@test.com',
       message: 'Текст',
     })
+    expect(mockRecordUserActivity).not.toHaveBeenCalled()
   })
 
   it('записывает userId для залогиненного пользователя', async () => {
@@ -131,6 +136,11 @@ describe('POST /api/feedback — happy path', () => {
     expect(mockValues).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'user-uuid',
       message: 'Авторизованный фидбек',
+    }))
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-uuid', 'feedback_created', expect.objectContaining({
+      source: 'api',
+      sourceId: 'feedback-1',
+      dedupeKey: 'api:feedback_created:feedback-1',
     }))
   })
 })

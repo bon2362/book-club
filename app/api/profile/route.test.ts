@@ -4,8 +4,13 @@
 import { NextRequest } from 'next/server'
 import { GET, PATCH } from './route'
 import * as authModule from '@/lib/auth'
+import * as activityModule from '@/lib/user-activity'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
+jest.mock('@/lib/user-activity', () => ({
+  buildUserActivityDedupeKey: jest.fn(() => 'profile-dedupe-key'),
+  bestEffortRecordUserActivity: jest.fn(),
+}))
 
 const mockSelectResult = jest.fn()
 const mockUpdateResult = jest.fn()
@@ -30,6 +35,7 @@ jest.mock('@/lib/db', () => ({
 }))
 
 const mockAuth = authModule.auth as jest.Mock
+const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 
 describe('GET /api/profile — auth', () => {
   it('возвращает 401 без сессии', async () => {
@@ -94,6 +100,10 @@ describe('PATCH /api/profile — happy path', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.languages).toEqual(['ru', 'en'])
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_updated', expect.objectContaining({
+      source: 'api',
+      metadata: { languages: ['ru', 'en'] },
+    }))
   })
 })
 

@@ -23,6 +23,7 @@ describe('admin-users aggregations', () => {
         telegramUsername: 'anna',
         authProvider: 'telegram-preauth',
         lastSignInAt: new Date('2026-01-02T10:00:00Z'),
+        lastActivityAt: new Date('2026-01-06T10:00:00Z'),
         emailVerified: new Date('2026-01-01T10:00:00Z'),
         createdAt: new Date('2026-01-01T09:00:00Z'),
         languages: '["ru","en"]',
@@ -36,6 +37,7 @@ describe('admin-users aggregations', () => {
         telegramUsername: null,
         authProvider: 'google',
         lastSignInAt: null,
+        lastActivityAt: null,
         emailVerified: null,
         createdAt: new Date('2026-01-03T10:00:00Z'),
         languages: 'not-json',
@@ -57,7 +59,8 @@ describe('admin-users aggregations', () => {
         languages: ['ru', 'en'],
         booksCount: 2,
         isAdmin: true,
-        lastActivityAt: '2026-01-04T10:00:00.000Z',
+        telegramDisplay: '@anna',
+        lastActivityAt: '2026-01-06T10:00:00.000Z',
         createdAt: '2026-01-01T09:00:00.000Z',
       }),
       expect.objectContaining({
@@ -72,7 +75,7 @@ describe('admin-users aggregations', () => {
     ])
   })
 
-  it('использует last_sign_in_at как активность, если действий ещё нет', () => {
+  it('использует users.last_activity_at для последней активности', () => {
     const result = buildAdminUserSummaries([
       {
         id: 'u1',
@@ -82,6 +85,7 @@ describe('admin-users aggregations', () => {
         telegramUsername: null,
         authProvider: 'email',
         lastSignInAt: new Date('2026-01-02T10:00:00Z'),
+        lastActivityAt: new Date('2026-01-03T10:00:00Z'),
         emailVerified: null,
         createdAt: new Date('2026-01-01T10:00:00Z'),
         languages: null,
@@ -89,13 +93,13 @@ describe('admin-users aggregations', () => {
       },
     ], [])
 
-    expect(result[0].lastActivityAt).toBe('2026-01-02T10:00:00.000Z')
+    expect(result[0].lastActivityAt).toBe('2026-01-03T10:00:00.000Z')
   })
 
-  it('показывает telegram_username раньше contacts', () => {
+  it('форматирует Telegram единым formatter-ом', () => {
     expect(getTelegramDisplay({ telegramUsername: 'reader', contacts: '@fallback' })).toBe('@reader')
     expect(getTelegramDisplay({ contacts: '@fallback' })).toBe('@fallback')
-    expect(getTelegramDisplay({ contacts: 'email@test.com' })).toBe('email@test.com')
+    expect(getTelegramDisplay({ contacts: 'email@test.com' })).toBe('')
   })
 
   it('возвращает null для деталей отсутствующего пользователя', async () => {

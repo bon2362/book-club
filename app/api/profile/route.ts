@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
 
 export async function GET() {
   const session = await auth()
@@ -51,6 +52,13 @@ export async function PATCH(req: NextRequest) {
   if (updated.length === 0) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
+
+  await bestEffortRecordUserActivity(session.user.id, 'profile_updated', {
+    source: 'api',
+    sourceId: session.user.id,
+    dedupeKey: buildUserActivityDedupeKey(['api', 'profile_updated', session.user.id, JSON.stringify(languages)]),
+    metadata: { languages },
+  })
 
   const saved = updated[0].languages
   return NextResponse.json({ languages: saved ? JSON.parse(saved) as string[] : languages })

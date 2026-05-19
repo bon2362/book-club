@@ -6,6 +6,7 @@ import { POST } from './route'
 import * as authModule from '@/lib/auth'
 import * as signups from '@/lib/signup-books'
 import * as dbModule from '@/lib/db'
+import * as activityModule from '@/lib/user-activity'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signup-books', () => ({ upsertSignup: jest.fn() }))
@@ -25,10 +26,15 @@ jest.mock('@/lib/db/schema', () => ({
   notificationQueue: {},
   users: {},
 }))
+jest.mock('@/lib/user-activity', () => ({
+  buildUserActivityDedupeKey: jest.fn(() => 'dedupe-key'),
+  bestEffortRecordUserActivity: jest.fn(),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockUpsertSignup = signups.upsertSignup as jest.Mock
 const mockInsert = dbModule.db.insert as jest.Mock
+const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/signup', {
@@ -84,6 +90,14 @@ describe('POST /api/signup', () => {
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', ['Book A'])
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_submitted', expect.objectContaining({
+      source: 'api',
+      metadata: expect.objectContaining({ selectedBooksCount: 1, addedBooksCount: 1 }),
+    }))
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'books_selected', expect.objectContaining({
+      source: 'api',
+      metadata: expect.objectContaining({ selectedBooksCount: 1, addedBooksCount: 1 }),
+    }))
   })
 
   it('обрезает пробелы в name и contacts', async () => {
@@ -93,6 +107,7 @@ describe('POST /api/signup', () => {
     await POST(makeRequest({ name: '  Test User  ', contacts: '  @test  ', selectedBooks: [] }))
 
     expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', [])
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_submitted', expect.any(Object))
   })
 
   it('пишет name и contacts в users', async () => {

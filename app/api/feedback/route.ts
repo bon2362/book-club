@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { feedback } from '@/lib/db/schema'
+import { bestEffortRecordUserActivity } from '@/lib/user-activity'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -30,12 +31,20 @@ export async function POST(req: NextRequest) {
       subject,
       text,
     })
-    await db.insert(feedback).values({
+    const saved = await db.insert(feedback).values({
       userId: session?.user?.id ?? null,
       name: name?.trim() || null,
       email: email?.trim() || null,
       message: message.trim(),
-    })
+    }).returning({ id: feedback.id, createdAt: feedback.createdAt })
+    if (session?.user?.id && saved[0]) {
+      await bestEffortRecordUserActivity(session.user.id, 'feedback_created', {
+        occurredAt: saved[0].createdAt,
+        source: 'api',
+        sourceId: saved[0].id,
+        dedupeKey: `api:feedback_created:${saved[0].id}`,
+      })
+    }
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'Failed to send' }, { status: 500 })
