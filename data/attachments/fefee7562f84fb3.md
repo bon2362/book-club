@@ -1,0 +1,286 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Читательские круги
+      - link "Долгое наступление" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - button "Предложить книгу" [ref=e9] [cursor=pointer]
+        - button "E2E Sort Reader Extra 1" [ref=e10] [cursor=pointer]
+  - region "Читательские круги" [ref=e11] [cursor=pointer]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: Что это
+      - generic [ref=e14]:
+        - paragraph [ref=e16]: Мы собираемся группами по 3-4 человека читать книги по демократии
+        - generic [ref=e17]:
+          - button "Подробнее ↓" [ref=e18]
+          - button "×" [ref=e19]
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - searchbox "Поиск по названию или автору…" [ref=e23]
+      - button "Переключить в таблицу" [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e29]:
+      - combobox [ref=e30] [cursor=pointer]:
+        - 'option "Тема: все" [selected]'
+        - option "Государство"
+        - option "Демократия"
+        - option "Капитализм"
+        - option "Народные движения"
+        - option "Путинизм"
+        - option "государство"
+        - option "тест"
+      - combobox [ref=e31] [cursor=pointer]:
+        - 'option "Автор: все" [selected]'
+        - option "Charles Tilly"
+        - option "CrimethInc"
+        - option "Daniel Treisman"
+        - option "Daron Acemoglu"
+        - option "James A. Robinson"
+        - option "James Scott"
+        - option "Peter Gelderloos"
+        - option "Sidney Tarrow"
+        - option "Test Author A"
+        - option "Test Author B"
+        - option "Test Author C"
+        - option "Автор Тестов"
+        - option "Екатерина Шульман"
+        - option "Сергей Гуриев"
+      - button "Новинки" [ref=e32] [cursor=pointer]
+      - generic [ref=e33]:
+        - button "Записал:ась" [ref=e34] [cursor=pointer]
+        - generic: Книги, на которые вы записались
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - button "Предложить книгу" [ref=e37] [cursor=pointer]:
+        - img [ref=e42]
+        - generic [ref=e48]:
+          - generic [ref=e49]: Предложить книгу
+          - generic [ref=e50]: Расскажите, что и почему стоит прочитать
+      - article [ref=e51]:
+        - 'generic "Обложка: Тестовая книга 1" [ref=e54]':
+          - generic [ref=e55]: TA
+        - generic [ref=e56]:
+          - generic [ref=e57]: государство
+          - generic [ref=e59]:
+            - img [ref=e60]
+            - text: "1"
+        - generic [ref=e64]:
+          - heading "Тестовая книга 1" [level=2] [ref=e65]
+          - generic [ref=e66]: "2024"
+        - paragraph [ref=e67]: Test Author A
+        - generic [ref=e69]: 100 стр.
+        - paragraph [ref=e71]: Книга для e2e-тестов
+        - button "Хочу читать" [ref=e73] [cursor=pointer]
+      - article [ref=e74]:
+        - 'generic "Обложка: Тестовая книга 2" [ref=e77]':
+          - generic [ref=e78]: TA
+        - generic [ref=e80]:
+          - heading "Тестовая книга 2" [level=2] [ref=e81]
+          - generic [ref=e82]: "2024"
+        - paragraph [ref=e83]: Test Author B
+        - generic [ref=e85]: 200 стр.
+        - paragraph [ref=e87]: Книга для e2e-тестов
+        - button "Хочу читать" [ref=e90] [cursor=pointer]
+      - article [ref=e91]:
+        - 'generic "Обложка: Тестовая книга 3" [ref=e94]':
+          - generic [ref=e95]: TA
+        - generic [ref=e98]:
+          - img [ref=e99]
+          - text: "4"
+        - generic [ref=e103]:
+          - heading "Тестовая книга 3" [level=2] [ref=e104]
+          - generic [ref=e105]: "2024"
+        - paragraph [ref=e106]: Test Author C
+        - generic [ref=e108]: 300 стр.
+        - paragraph [ref=e110]: Книга для e2e-тестов
+        - button "✓ Вы записаны" [pressed] [ref=e112] [cursor=pointer]
+      - article [ref=e113]:
+        - 'img "Обложка: Диктаторы обмана. Новое лицо тирании в XXI веке" [ref=e116]'
+        - generic [ref=e117]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e118] [cursor=pointer]:
+            - img [ref=e119]
+          - generic [ref=e121]: Новая
+        - generic [ref=e122]:
+          - generic [ref=e123]: Путинизм
+          - generic [ref=e125]:
+            - img [ref=e126]
+            - text: "1"
+        - generic [ref=e130]:
+          - heading "Диктаторы обмана. Новое лицо тирании в XXI веке" [level=2] [ref=e131]
+          - generic [ref=e132]: "2022"
+        - paragraph [ref=e133]: Сергей Гуриев, Daniel Treisman
+        - generic [ref=e134]:
+          - generic [ref=e135]: 500 стр.
+          - link "читать" [ref=e136] [cursor=pointer]:
+            - /url: https://babook.org/drupal/sites/default/files/2023-07/Dictators1.pdf
+        - generic [ref=e137]:
+          - paragraph [ref=e138] [cursor=pointer]: "Авторы объясняют, как в XXI веке изменились авторитарные режимы: если раньше диктаторы удерживали власть через страх, насилие и открытые репрессии, то сегодня всё чаще появляются так называемые «диктаторы обмана», которые действуют иначе — через манипуляцию информацией, пропаганду и имитацию демократических институтов. Авторы показывают, что современные автократы стараются выглядеть законными и популярными, допускают ограниченную оппозицию и выборы, но при этом контролируют медиа и формируют нужную картину реальности, что позволяет им удерживать власть без массового насилия и даже с поддержкой части общества. Такие режимы оказываются не слабее, а часто устойчивее старых диктатур, поскольку люди подчиняются им не из страха, а потому что верят в созданную ими версию реальности и не воспринимают систему как откровенно репрессивную."
+          - button "Читать далее" [ref=e139] [cursor=pointer]
+        - button "Хочу читать" [ref=e142] [cursor=pointer]
+      - article [ref=e143]:
+        - 'img "Обложка: Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [ref=e146]'
+        - generic [ref=e147]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e148] [cursor=pointer]:
+            - img [ref=e149]
+          - generic [ref=e151]: Новая
+        - generic [ref=e152]:
+          - generic [ref=e153]: Государство
+          - generic [ref=e155]:
+            - img [ref=e156]
+            - text: "1"
+        - generic [ref=e160]:
+          - 'heading "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [level=2] [ref=e161]'
+          - generic [ref=e162]: "2012"
+        - paragraph [ref=e163]: Daron Acemoglu, James A. Robinson
+        - generic [ref=e164]:
+          - generic [ref=e165]: 510 стр.
+          - link "читать" [ref=e166] [cursor=pointer]:
+            - /url: https://webveblen.wordpress.com/wp-content/uploads/2018/06/acemoglu2.pdf
+        - generic [ref=e167]:
+          - paragraph [ref=e168] [cursor=pointer]: "Авторы предлагают объяснение мирового неравенства, которое выходит за рамки привычных факторов вроде географии или культуры, и показывают, что решающую роль играют политические и экономические институты — правила, определяющие, кто обладает властью и как распределяются ресурсы. Ключевая идея состоит в том, что богатые страны формируют инклюзивные институты, позволяющие широким слоям населения участвовать в экономике и получать выгоду от своей деятельности, тогда как бедные страны остаются в ловушке экстрактивных институтов, где узкая элита контролирует власть и ограничивает развитие. При этом менее очевидный тезис заключается в том, что такая ситуация часто поддерживается осознанно: правящие группы могут препятствовать реформам и экономическому росту, если эти изменения угрожают их позиции, то есть отсталость может быть не случайной, а логичным следствием структуры власти."
+          - button "Читать далее" [ref=e169] [cursor=pointer]
+        - button "Хочу читать" [ref=e171] [cursor=pointer]
+      - article [ref=e172]:
+        - 'img "Обложка: Contentious Politics" [ref=e175]'
+        - generic [ref=e176]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e177] [cursor=pointer]:
+            - img [ref=e178]
+          - generic [ref=e180]: Новая
+        - generic [ref=e181]:
+          - generic [ref=e182]: Государство
+          - generic [ref=e184]:
+            - img [ref=e185]
+            - text: "1"
+        - generic [ref=e189]:
+          - heading "Contentious Politics" [level=2] [ref=e190]
+          - generic [ref=e191]: "2015"
+        - paragraph [ref=e192]: Charles Tilly, Sidney Tarrow
+        - generic [ref=e193]:
+          - generic [ref=e194]: 288 стр.
+          - link "читать" [ref=e195] [cursor=pointer]:
+            - /url: https://books.apple.com/us/book/contentious-politics/id1024488233
+        - generic [ref=e196]:
+          - paragraph [ref=e197] [cursor=pointer]: Авторы предлагают рассматривать протесты, социальные движения и революции как единый процесс, в котором группы предъявляют требования друг другу и государству, а политика развивается через взаимные действия и реакции. Книга показывает, что за внешне разными событиями стоят сходные механизмы — мобилизация участников, ответ государства, эскалация или затухание конфликта. Эта динамика во многом определяет, во что в итоге выливается политическое противостояние. Работа стала одной из ключевых в изучении политических конфликтов и задала современный подход, сместив фокус с отдельных причин на механизмы их развития — как такие процессы возникают, разворачиваются и к чему приводят.
+          - button "Читать далее" [ref=e198] [cursor=pointer]
+        - button "Хочу читать" [ref=e201] [cursor=pointer]
+      - article [ref=e202]:
+        - 'img "Обложка: Возвращение государства. Россия в нулевые (2000-2012)" [ref=e205]'
+        - generic [ref=e206]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e207] [cursor=pointer]:
+            - img [ref=e208]
+          - generic [ref=e210]: Новая
+        - generic [ref=e211]:
+          - generic [ref=e212]: Путинизм
+          - generic [ref=e214]:
+            - img [ref=e215]
+            - text: "1"
+        - generic [ref=e219]:
+          - heading "Возвращение государства. Россия в нулевые (2000-2012)" [level=2] [ref=e220]
+          - generic [ref=e221]: "2023"
+        - paragraph [ref=e222]: Екатерина Шульман
+        - generic [ref=e223]:
+          - generic [ref=e224]: 208 стр.
+          - link "читать" [ref=e225] [cursor=pointer]:
+            - /url: https://flibusta.su/book/168011-vozvraschenie-gosudarstva-rossiya-v-nulevyie-2000-2012/
+        - generic [ref=e226]:
+          - paragraph [ref=e227] [cursor=pointer]: "«Возвращение государства» Екатерины Шульман — это исследование политической истории России в период 2000–2012 годов. Книга анализирует не столько события и фигуры, сколько изменение институтов: как перестраивались государственный аппарат, партийная система, суды, региональная политика, медиа и отношения между государством и обществом. Это попытка показать, как постепенно формируется и закрепляется политический режим и почему он начинает воспроизводить сам себя. Аудио: 6 часов"
+          - button "Читать далее" [ref=e228] [cursor=pointer]
+        - button "Хочу читать" [ref=e231] [cursor=pointer]
+      - article [ref=e232]:
+        - 'img "Обложка: Оружие слабых. Повседневные формы крестьянского сопротивления" [ref=e235]'
+        - generic [ref=e236]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e237] [cursor=pointer]:
+            - img [ref=e238]
+          - generic [ref=e240]: Новая
+        - generic [ref=e241]:
+          - generic [ref=e242]: Народные движения
+          - generic [ref=e244]:
+            - img [ref=e245]
+            - text: "1"
+        - generic [ref=e249]:
+          - heading "Оружие слабых. Повседневные формы крестьянского сопротивления" [level=2] [ref=e250]
+          - generic [ref=e251]: "1985"
+        - paragraph [ref=e252]: James Scott
+        - generic [ref=e253]:
+          - generic [ref=e254]: 390 стр.
+          - link "читать" [ref=e255] [cursor=pointer]:
+            - /url: https://flibusta.su/book/376190-oruzie-slabyh-povsednevnye-formy-krestanskogo-soprotivlenia/
+        - generic [ref=e256]:
+          - paragraph [ref=e257] [cursor=pointer]: "«Оружие слабых» Джеймса Скотта — исследование повседневных форм сопротивления среди сельских жителей в Малайзии. Книга основана на полевой работе автора в конце 1970‑х годов в деревне Седака. В ходе экономических изменений конца 1960‑х – 1970‑х годов (включая механизацию и внедрение новых аграрных технологий) усилилось неравенство в деревне: более обеспеченные хозяйства выигрывали, а бедные теряли доступ к земле и доходам. Вместо открытых протестов и восстаний Скотт показывает, как социально уязвимые группы используют скрытые и низко рискованные стратегии — саботаж, затягивание работы, притворное подчинение, мелкое присвоение ресурсов — чтобы противостоять неравенству и власти. Эта книга расширила понятие сопротивления, и этот подход оказался применимым к рабочим, студентам, мигрантам и другим социальным группам — поэтому работа Скотта остаётся фундаментальной для политологии, социологии и антропологии. Аудио: 17 часов"
+          - button "Читать далее" [ref=e258] [cursor=pointer]
+        - button "Хочу читать" [ref=e260] [cursor=pointer]
+      - article [ref=e261]:
+        - 'img "Обложка: Работа: Капитализм. Экономика. Сопротивление." [ref=e264]'
+        - generic [ref=e265]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e266] [cursor=pointer]:
+            - img [ref=e267]
+          - generic [ref=e269]: Новая
+        - generic [ref=e270]:
+          - generic [ref=e271]: Капитализм
+          - generic [ref=e273]:
+            - img [ref=e274]
+            - text: "3"
+        - generic [ref=e278]:
+          - 'heading "Работа: Капитализм. Экономика. Сопротивление." [level=2] [ref=e279]'
+          - generic [ref=e280]: "2021"
+        - paragraph [ref=e281]: CrimethInc
+        - generic [ref=e282]:
+          - generic [ref=e283]: 340 стр.
+          - link "читать" [ref=e284] [cursor=pointer]:
+            - /url: https://www.rtpbooks.info/product/rabota-crimethinc/
+        - generic [ref=e285]:
+          - paragraph [ref=e286] [cursor=pointer]: Почему во времена значительного технического прогресса нам приходится работать больше, чем когда-либо прежде? Почему, чем больше мы работаем, тем беднее становимся по сравнению с начальниками? Почему во времена кризисов люди так яро защищают свои рабочие места, если никто не любит работать? Сможет ли капитализм пережить ещё одно столетие кризисов? В книге «Работа» рассматриваются эти и многие другие вопросы. Чтобы ответить на них, нам пришлось пересмотреть наш прежний взгляд на трудовую деятельность и выработать более тонкое понимание экономики. Мы провели месяцы, изучая непонятную историю и сравнивая опыт эксплуатации в повседневной жизни, постепенно создавая великую единую теорию современного капитализма.
+          - button "Читать далее" [ref=e287] [cursor=pointer]
+        - button "Хочу читать" [ref=e290] [cursor=pointer]
+      - article [ref=e291]:
+        - 'img "Обложка: Консенсус: Принятие решений в свободном обществе" [ref=e294]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e296] [cursor=pointer]:
+          - img [ref=e297]
+        - generic [ref=e299]:
+          - generic [ref=e300]: Демократия
+          - generic [ref=e302]:
+            - img [ref=e303]
+            - text: "2"
+        - 'heading "Консенсус: Принятие решений в свободном обществе" [level=2] [ref=e308]'
+        - paragraph [ref=e309]: Peter Gelderloos
+        - generic [ref=e310]:
+          - generic [ref=e311]: 106 стр.
+          - link "читать" [ref=e312] [cursor=pointer]:
+            - /url: https://we.riseup.net/assets/64520/consensus.pdf
+        - generic [ref=e313]:
+          - paragraph [ref=e314] [cursor=pointer]: Это быстрое и лёгкое руководство по принятию коллективных решений описывает процесс прихода к консенсусу логично, шаг за шагом. Ясная форма позволяет этому пособию быть полезным не только в качестве инструкции для начинающих, но и как справочник для тех, кто уже знаком с принятием решений методом консенсуса. Будучи предназначенным в первую очередь для низовых политических и экологических групп, это руководство может быть полезно всякому, кто предпочитает сотрудничество, а не конфликт.
+          - button "Читать далее" [ref=e315] [cursor=pointer]
+        - button "Хочу читать" [ref=e318] [cursor=pointer]
+      - article [ref=e319]:
+        - 'generic "Обложка: Тестовая книга" [ref=e322]':
+          - generic [ref=e323]: АТ
+        - generic [ref=e325]: Новая
+        - generic [ref=e327]: тест
+        - generic [ref=e329]:
+          - heading "Тестовая книга" [level=2] [ref=e330]
+          - generic [ref=e331]: "2024"
+        - paragraph [ref=e332]: Автор Тестов
+        - generic [ref=e334]: 300 стр.
+        - generic [ref=e335]:
+          - paragraph [ref=e336] [cursor=pointer]: Описание тестовой книги для E2E тестов. Эта книга содержит достаточно длинное описание, чтобы проверить функцию разворачивания текста в карточке книги на главной странице.
+          - button "Читать далее" [ref=e337] [cursor=pointer]
+        - button "Хочу читать" [ref=e340] [cursor=pointer]
+  - contentinfo [ref=e341]:
+    - button "Написать автору проекта" [ref=e343] [cursor=pointer]
+  - dialog [ref=e344]:
+    - generic [ref=e345]:
+      - generic [ref=e346]:
+        - generic [ref=e347]: Личный кабинет
+        - generic [ref=e348]: E2E Sort Reader Extra 1
+      - button [ref=e349] [cursor=pointer]: ×
+    - generic [ref=e350]:
+      - button [ref=e351] [cursor=pointer]: Записал:ась
+      - button [ref=e352] [cursor=pointer]: Предложил:а
+      - button [ref=e353] [cursor=pointer]: Профиль
+    - status [ref=e357]
+  - alert [ref=e358]
+```
