@@ -40,68 +40,44 @@ describe('initPostHog', () => {
   })
 })
 
-describe('identifyUser — opt-out for excluded IDs', () => {
+describe('identifyUser — opt-out via isExcluded flag', () => {
   beforeEach(() => {
     process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
-    process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS = 'owner-uuid-1,owner-uuid-2'
     initPostHog()
   })
 
-  afterEach(() => {
-    delete process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS
-  })
-
-  it('calls opt_out_capturing when userId is in excluded list', () => {
-    identifyUser('owner-uuid-1')
+  it('calls opt_out_capturing when isExcluded is true', () => {
+    identifyUser('owner-uuid-1', true)
     expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1)
     expect(posthog.identify).not.toHaveBeenCalled()
   })
 
-  it('calls opt_out_capturing for the second excluded ID', () => {
-    identifyUser('owner-uuid-2')
+  it('does not call opt_out_capturing twice when identifyUser called twice with same userId and isExcluded', () => {
+    identifyUser('owner-uuid-1', true)
+    identifyUser('owner-uuid-1', true)
     expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1)
   })
 
-  it('does not call opt_out_capturing twice when identifyUser called twice with same excluded ID', () => {
-    identifyUser('owner-uuid-1')
-    identifyUser('owner-uuid-1')
-    expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1)
-  })
-
-  it('does NOT call opt_out_capturing for a regular user', () => {
-    identifyUser('regular-user-uuid')
+  it('does NOT call opt_out_capturing when isExcluded is false', () => {
+    identifyUser('regular-user-uuid', false)
     expect(posthog.opt_out_capturing).not.toHaveBeenCalled()
     expect(posthog.identify).toHaveBeenCalledWith('regular-user-uuid')
   })
 
-  it('does NOT call opt_out_capturing when env var is not set', () => {
-    delete process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS
-    identifyUser('owner-uuid-1')
+  it('does NOT call opt_out_capturing when isExcluded is undefined', () => {
+    identifyUser('regular-user-uuid')
     expect(posthog.opt_out_capturing).not.toHaveBeenCalled()
-  })
-
-  it('handles empty EXCLUDED_USER_IDS env var without matching anything', () => {
-    process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS = ''
-    identifyUser('owner-uuid-1')
-    expect(posthog.opt_out_capturing).not.toHaveBeenCalled()
-  })
-
-  it('handles env var with spaces around commas', () => {
-    process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS = ' owner-uuid-1 , owner-uuid-2 '
-    identifyUser('owner-uuid-1')
-    expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1)
+    expect(posthog.identify).toHaveBeenCalledWith('regular-user-uuid')
   })
 })
 
 describe('identifyUser — lazy initPostHog (race condition fix)', () => {
   it('initialises PostHog internally so opt-out works even if initPostHog was not called before', () => {
     process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
-    process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS = 'owner-uuid-1'
     // Do NOT call initPostHog() — simulate the race where child effect fires first
-    identifyUser('owner-uuid-1')
+    identifyUser('owner-uuid-1', true)
     expect(posthog.init).toHaveBeenCalledTimes(1)
     expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1)
-    delete process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS
   })
 })
 

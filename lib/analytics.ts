@@ -5,11 +5,6 @@ type EventProps = Record<string, string | number | boolean | undefined | null>
 let initialized = false
 let currentIdentity: string | null = null
 
-function getExcludedIds(): Set<string> {
-  const raw = process.env.NEXT_PUBLIC_POSTHOG_EXCLUDED_USER_IDS ?? ''
-  return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean))
-}
-
 export function initPostHog(): void {
   if (initialized || typeof window === 'undefined') return
   if (process.env.NEXT_PUBLIC_DISABLE_ANALYTICS === 'true') return
@@ -39,12 +34,12 @@ export function capturePageview(url: string): void {
   posthog.capture('$pageview', { $current_url: url })
 }
 
-export function identifyUser(userId: string): void {
+export function identifyUser(userId: string, isExcluded?: boolean): void {
   if (typeof window === 'undefined') return
   initPostHog() // ensure init before identify, even if parent useEffect hasn't fired yet
   if (!initialized) return
   if (currentIdentity === userId) return
-  if (getExcludedIds().has(userId)) {
+  if (isExcluded) {
     posthog.opt_out_capturing()
     currentIdentity = userId // prevent duplicate calls on re-render
     return
