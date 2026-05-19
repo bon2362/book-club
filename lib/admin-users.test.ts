@@ -1,11 +1,18 @@
 /**
  * @jest-environment node
  */
-jest.mock('@/lib/db', () => ({ db: {} }))
+jest.mock('@/lib/db', () => ({ db: { select: jest.fn() } }))
 
-import { buildAdminUserSummaries, getTelegramDisplay } from './admin-users'
+import { db } from '@/lib/db'
+import { buildAdminUserSummaries, getAdminFeedback, getAdminUserDetails, getTelegramDisplay } from './admin-users'
 
 describe('admin-users aggregations', () => {
+  const mockSelect = db.select as jest.Mock
+
+  beforeEach(() => {
+    mockSelect.mockReset()
+  })
+
   it('считает signup_books по пользователям и парсит языки', () => {
     const users = [
       {
@@ -89,5 +96,50 @@ describe('admin-users aggregations', () => {
     expect(getTelegramDisplay({ telegramUsername: 'reader', contacts: '@fallback' })).toBe('@reader')
     expect(getTelegramDisplay({ contacts: '@fallback' })).toBe('@fallback')
     expect(getTelegramDisplay({ contacts: 'email@test.com' })).toBe('email@test.com')
+  })
+
+  it('возвращает null для деталей отсутствующего пользователя', async () => {
+    const query = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]),
+    }
+    mockSelect.mockReturnValueOnce(query)
+
+    await expect(getAdminUserDetails('missing-user')).resolves.toBeNull()
+  })
+
+  it('форматирует фидбеки для админской вкладки', async () => {
+    const createdAt = new Date('2026-05-18T10:00:00Z')
+    const query = {
+      from: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockResolvedValue([
+        {
+          id: 'f1',
+          userId: 'u1',
+          name: 'Анна',
+          email: 'anna@test.com',
+          message: 'Спасибо',
+          createdAt,
+          userName: 'Анна из профиля',
+          userEmail: 'profile@test.com',
+        },
+      ]),
+    }
+    mockSelect.mockReturnValueOnce(query)
+
+    await expect(getAdminFeedback()).resolves.toEqual([
+      {
+        id: 'f1',
+        userId: 'u1',
+        name: 'Анна',
+        email: 'anna@test.com',
+        message: 'Спасибо',
+        createdAt: '2026-05-18T10:00:00.000Z',
+        userName: 'Анна из профиля',
+        userEmail: 'profile@test.com',
+      },
+    ])
   })
 })
