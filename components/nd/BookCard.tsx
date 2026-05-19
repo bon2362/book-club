@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import CoverImage from './CoverImage'
 
@@ -41,6 +41,18 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
   const [descHovered, setDescHovered] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
   const [submittedTooltip, setSubmittedTooltip] = useState(false)
+  const submittedBadgeRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!submittedTooltip) return
+    const onDocPointer = (e: Event) => {
+      if (submittedBadgeRef.current && !submittedBadgeRef.current.contains(e.target as Node)) {
+        setSubmittedTooltip(false)
+      }
+    }
+    document.addEventListener('pointerdown', onDocPointer)
+    return () => document.removeEventListener('pointerdown', onDocPointer)
+  }, [submittedTooltip])
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const hasExpandable = isLongDescription
   const isReading = book.status === 'reading'
@@ -122,8 +134,13 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
         >
           {book.submittedByMember && (
             <div
+              ref={submittedBadgeRef}
               onMouseEnter={() => setSubmittedTooltip(true)}
               onMouseLeave={() => setSubmittedTooltip(false)}
+              onClick={() => setSubmittedTooltip(v => !v)}
+              role="button"
+              tabIndex={0}
+              aria-expanded={submittedTooltip}
               style={{
                 position: 'relative',
                 background: '#C0603A',
@@ -132,7 +149,7 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'default',
+                cursor: 'pointer',
               }}
               aria-label="Эта книга предложена участни:цей клуба"
             >
