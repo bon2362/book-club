@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { bookPriorities, users } from '@/lib/db/schema'
 import { eq, asc, and, notInArray, sql } from 'drizzle-orm'
+import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
 
 export async function GET() {
   const session = await auth()
@@ -77,6 +78,14 @@ export async function PUT(req: NextRequest) {
     .update(users)
     .set({ prioritiesSet: true })
     .where(eq(users.id, userId))
+
+  await bestEffortRecordUserActivity(userId, 'priorities_updated', {
+    occurredAt: now,
+    source: 'api',
+    sourceId: userId,
+    dedupeKey: buildUserActivityDedupeKey(['api', 'priorities_updated', userId, JSON.stringify(validBooks)]),
+    metadata: { booksCount: validBooks.length },
+  })
 
   revalidatePath('/admin')
 

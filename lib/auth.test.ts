@@ -24,6 +24,10 @@ jest.mock('@/lib/auth.google-one-tap', () => ({
   authorizeGoogleOneTap: jest.fn(),
 }))
 
+jest.mock('@/lib/user-activity', () => ({
+  bestEffortRecordUserActivity: jest.fn(),
+}))
+
 jest.mock('next-auth/providers/google', () => ({
   __esModule: true,
   default: jest.fn(() => ({ id: 'google', type: 'oauth' })),
@@ -66,6 +70,7 @@ jest.mock('next-auth', () => ({
 
 import NextAuth from 'next-auth'
 import { db } from '@/lib/db'
+import { bestEffortRecordUserActivity } from '@/lib/user-activity'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('@/lib/auth')
@@ -173,6 +178,11 @@ describe('signIn callback', () => {
     expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
       authProvider: 'google',
       lastSignInAt: expect.any(Date),
+    }))
+    expect(bestEffortRecordUserActivity).toHaveBeenCalledWith('user-uuid', 'sign_in', expect.objectContaining({
+      source: 'auth',
+      sourceId: 'google',
+      metadata: { provider: 'google' },
     }))
   })
 

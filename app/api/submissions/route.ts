@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { bookSubmissions } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { bestEffortRecordUserActivity } from '@/lib/user-activity'
 
 export async function GET() {
   const session = await auth()
@@ -52,6 +53,17 @@ export async function POST(req: NextRequest) {
     description: description ?? null,
     coverUrl: coverUrl ?? null,
   }).returning()
+
+  await bestEffortRecordUserActivity(session.user.id, 'submission_created', {
+    occurredAt: result[0].createdAt,
+    source: 'api',
+    sourceId: result[0].id,
+    dedupeKey: `api:submission_created:${result[0].id}`,
+    metadata: {
+      title,
+      author,
+    },
+  })
 
   return NextResponse.json({ success: true, data: result[0] }, { status: 201 })
 }

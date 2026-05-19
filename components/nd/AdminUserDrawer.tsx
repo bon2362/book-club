@@ -161,7 +161,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                 </div>
                 <dl style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.45rem 0.9rem', margin: 0, fontSize: '0.82rem' }}>
                   <dt style={{ color: '#999' }}>Имя</dt><dd style={{ margin: 0 }}>{user.name || '—'}</dd>
-                  <dt style={{ color: '#999' }}>Telegram</dt><dd style={{ margin: 0 }}>{user.telegramUsername ? `@${user.telegramUsername}` : user.contacts || '—'}</dd>
+                  <dt style={{ color: '#999' }}>Telegram</dt><dd style={{ margin: 0 }}>{user.telegramDisplay || '—'}</dd>
                   <dt style={{ color: '#999' }}>Email</dt><dd style={{ margin: 0 }}>{user.email}</dd>
                   <dt style={{ color: '#999' }}>Языки</dt><dd style={{ margin: 0 }}>{user.languages.length ? user.languages.join(', ') : '—'}</dd>
                   <dt style={{ color: '#999' }}>Последняя активность</dt><dd style={{ margin: 0 }}>{formatDate(user.lastActivityAt)}</dd>

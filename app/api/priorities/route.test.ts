@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server'
 import { GET, PUT } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
+import * as activityModule from '@/lib/user-activity'
 
 jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
@@ -16,8 +17,13 @@ jest.mock('@/lib/db', () => ({
     update: jest.fn(),
   },
 }))
+jest.mock('@/lib/user-activity', () => ({
+  buildUserActivityDedupeKey: jest.fn(() => 'priorities-dedupe-key'),
+  bestEffortRecordUserActivity: jest.fn(),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
+const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 
 function makeSelectMock(rows: unknown[]) {
   const chain = {
@@ -114,5 +120,9 @@ describe('PUT /api/priorities', () => {
     expect(data.ok).toBe(true)
     expect(db.insert).toHaveBeenCalled()
     expect(db.update).toHaveBeenCalled()
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'priorities_updated', expect.objectContaining({
+      source: 'api',
+      metadata: { booksCount: 2 },
+    }))
   })
 })

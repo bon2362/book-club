@@ -1,12 +1,13 @@
 import { db } from '@/lib/db'
 import {
+  signupBooks,
   bookPriorities,
   bookSubmissions,
   feedback,
-  signupBooks,
   users,
 } from '@/lib/db/schema'
 import { asc, desc, eq } from 'drizzle-orm'
+import { formatTelegramDisplay } from '@/lib/telegram-display'
 
 export interface AdminUserSummary {
   id: string
@@ -14,6 +15,7 @@ export interface AdminUserSummary {
   email: string
   contacts: string | null
   telegramUsername: string | null
+  telegramDisplay: string
   authProvider: string | null
   lastActivityAt: string | null
   createdAt: string | null
@@ -61,15 +63,10 @@ function dateToIso(value: Date | null | undefined): string | null {
   return value ? value.toISOString() : null
 }
 
-export function getTelegramDisplay(user: { telegramUsername?: string | null; contacts?: string | null }) {
-  if (user.telegramUsername) return `@${user.telegramUsername.replace(/^@/, '')}`
-  const contacts = user.contacts?.trim()
-  if (contacts?.startsWith('@')) return contacts
-  return contacts ?? ''
-}
+export { formatTelegramDisplay as getTelegramDisplay }
 
 export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
-  const [userRows, signupRows, priorityRows, submissionRows, feedbackRows] = await Promise.all([
+  const [userRows, signupRows] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -81,22 +78,16 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
         telegramUsername: users.telegramUsername,
         authProvider: users.authProvider,
         lastSignInAt: users.lastSignInAt,
+        lastActivityAt: users.lastActivityAt,
         languages: users.languages,
         isAdmin: users.isAdmin,
       })
       .from(users)
       .orderBy(asc(users.name), asc(users.email)),
     db.select({ userId: signupBooks.userId, activityAt: signupBooks.signedAt }).from(signupBooks),
-    db.select({ userId: bookPriorities.userId, activityAt: bookPriorities.updatedAt }).from(bookPriorities),
-    db.select({ userId: bookSubmissions.userId, activityAt: bookSubmissions.createdAt }).from(bookSubmissions),
-    db.select({ userId: feedback.userId, activityAt: feedback.createdAt }).from(feedback),
   ])
 
-  return buildAdminUserSummaries(userRows, signupRows, [
-    ...priorityRows,
-    ...submissionRows,
-    ...feedbackRows.filter((row): row is { userId: string; activityAt: Date } => row.userId !== null),
-  ])
+  return buildAdminUserSummaries(userRows, signupRows)
 }
 
 export function buildAdminUserSummaries(
@@ -108,27 +99,18 @@ export function buildAdminUserSummaries(
     telegramUsername: string | null
     authProvider: string | null
     lastSignInAt: Date | null
+    lastActivityAt: Date | null
     emailVerified: Date | null
     createdAt: Date
     languages: string | null
     isAdmin?: boolean | null
   }[],
-  signupRows: { userId: string; activityAt?: Date }[],
-  activityRows: { userId: string; activityAt: Date }[] = []
+  signupRows: { userId: string; activityAt?: Date }[]
 ): AdminUserSummary[] {
   const counts = new Map<string, number>()
-  const latestActivity = new Map<string, Date>()
-  function recordActivity(userId: string, activityAt: Date | null | undefined) {
-    if (!activityAt) return
-    const current = latestActivity.get(userId)
-    if (!current || activityAt > current) latestActivity.set(userId, activityAt)
-  }
-
   for (const row of signupRows) {
     counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1)
-    recordActivity(row.userId, row.activityAt)
   }
-  for (const row of activityRows) recordActivity(row.userId, row.activityAt)
 
   return userRows.map(row => ({
     id: row.id,
@@ -136,8 +118,9 @@ export function buildAdminUserSummaries(
     email: row.email,
     contacts: row.contacts,
     telegramUsername: row.telegramUsername,
+    telegramDisplay: formatTelegramDisplay(row),
     authProvider: row.authProvider,
-    lastActivityAt: dateToIso(latestActivity.get(row.id) ?? row.lastSignInAt),
+    lastActivityAt: dateToIso(row.lastActivityAt),
     createdAt: dateToIso(row.createdAt),
     languages: parseLanguages(row.languages),
     booksCount: counts.get(row.id) ?? 0,
@@ -157,6 +140,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       telegramUsername: users.telegramUsername,
       authProvider: users.authProvider,
       lastSignInAt: users.lastSignInAt,
+      lastActivityAt: users.lastActivityAt,
       languages: users.languages,
       prioritiesSet: users.prioritiesSet,
       isAdmin: users.isAdmin,
@@ -206,13 +190,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       .orderBy(desc(feedback.createdAt)),
   ])
 
-  const activityRows = [
-    ...signupRows.map(row => ({ userId, activityAt: row.signedAt })),
-    ...priorityRows.map(row => ({ userId, activityAt: row.updatedAt })),
-    ...submissionRows.map(row => ({ userId, activityAt: row.createdAt })),
-    ...feedbackRows.map(row => ({ userId, activityAt: row.createdAt })),
-  ]
-  const summary = buildAdminUserSummaries([userRow], signupRows.map(row => ({ userId, activityAt: row.signedAt })), activityRows)[0]
+  const summary = buildAdminUserSummaries([userRow], signupRows.map(row => ({ userId, activityAt: row.signedAt })))[0]
 
   return {
     user: { ...summary, prioritiesSet: userRow.prioritiesSet ?? false },
