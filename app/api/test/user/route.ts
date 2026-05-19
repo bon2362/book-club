@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { accounts, sessions, signupBooks, users } from '@/lib/db/schema'
+import { accounts, sessions, signupBooks, userIdentities, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
@@ -27,16 +27,26 @@ export async function GET(req: NextRequest) {
   }
 
   const userId = rows[0].id
-  const [accountRows, sessionRows, signupBookRows] = await Promise.all([
+  const [accountRows, sessionRows, signupBookRows, identityRows] = await Promise.all([
     db.select({ userId: accounts.userId }).from(accounts).where(eq(accounts.userId, userId)),
     db.select({ userId: sessions.userId }).from(sessions).where(eq(sessions.userId, userId)),
     db.select({ bookName: signupBooks.bookName }).from(signupBooks).where(eq(signupBooks.userId, userId)),
+    db
+      .select({
+        provider: userIdentities.provider,
+        providerAccountId: userIdentities.providerAccountId,
+        userId: userIdentities.userId,
+      })
+      .from(userIdentities)
+      .where(eq(userIdentities.userId, userId)),
   ])
 
   return NextResponse.json({
     exists: true,
     user: rows[0],
     accountCount: accountRows.length,
+    identityCount: identityRows.length,
+    identities: identityRows,
     sessionCount: sessionRows.length,
     signupBookCount: signupBookRows.length,
     signupBooks: signupBookRows.map(row => row.bookName),

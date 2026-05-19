@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { users } from '@/lib/db/schema'
 import { createTelegramPreauthToken, verifyTelegramHash } from '@/lib/telegram-auth'
+import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
@@ -13,17 +12,19 @@ export async function GET(req: NextRequest) {
 
   const { id, first_name, last_name, username, photo_url } = params
   const name = [first_name, last_name].filter(Boolean).join(' ') || username || String(id)
-  const email = `telegram:${id}@telegram.user`
-  const userId = `telegram:${id}`
 
-  await db.insert(users).values({ id: userId, email, name, image: photo_url || null })
-    .onConflictDoUpdate({ target: users.id, set: { name, image: photo_url || null } })
+  const user = await resolveOrCreateUserFromIdentity('telegram', id, {
+    name,
+    image: photo_url || null,
+    telegramUsername: username || null,
+    metadata: { source: 'telegram-callback' },
+  })
 
   const ts = String(Math.floor(Date.now() / 1000))
-  const { token } = await createTelegramPreauthToken(userId)
+  const { token } = await createTelegramPreauthToken(user.id)
 
   const url = new URL('/auth/telegram', origin)
-  url.searchParams.set('uid', userId)
+  url.searchParams.set('uid', user.id)
   url.searchParams.set('token', token)
   url.searchParams.set('ts', ts)
   if (username) url.searchParams.set('username', username)

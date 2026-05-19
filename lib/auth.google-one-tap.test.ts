@@ -11,12 +11,13 @@ jest.mock('google-auth-library', () => ({
   })),
 }))
 
-// Mock the DB
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn() } }))
+jest.mock('@/lib/user-identities', () => ({
+  resolveOrCreateUserFromIdentity: jest.fn(),
+}))
 
 import { OAuth2Client } from 'google-auth-library'
 import { authorizeGoogleOneTap } from './auth.google-one-tap'
-import { db } from '@/lib/db'
+import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 const mockVerifyIdToken = jest.fn()
 const mockGetPayload = jest.fn()
@@ -35,17 +36,6 @@ const VALID_PAYLOAD = {
   name: 'Ivan Petrov',
 }
 
-function mockDbSelect(rows: { id: string }[]) {
-  const chain = {
-    select: jest.fn().mockReturnThis(),
-    from: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockResolvedValue(rows),
-  }
-  ;(db.select as jest.Mock).mockReturnValue(chain)
-  return chain
-}
-
 describe('authorizeGoogleOneTap', () => {
   it('returns null when credential is invalid (verifyIdToken throws)', async () => {
     mockVerifyIdToken.mockRejectedValue(new Error('Invalid token'))
@@ -57,19 +47,23 @@ describe('authorizeGoogleOneTap', () => {
     mockGetPayload.mockReturnValue(null)
     const result = await authorizeGoogleOneTap('credential')
     expect(result).toBeNull()
-    expect(db.select).not.toHaveBeenCalled()
+    expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
   it('returns null when payload has no email', async () => {
     mockGetPayload.mockReturnValue({ sub: 'abc', name: 'No Email' })
     const result = await authorizeGoogleOneTap('credential')
     expect(result).toBeNull()
-    expect(db.select).not.toHaveBeenCalled()
+    expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
-  it('returns existing user when found in DB by email', async () => {
+  it('returns user resolved through google identity helper', async () => {
     mockGetPayload.mockReturnValue(VALID_PAYLOAD)
-    mockDbSelect([{ id: 'existing-uuid' }])
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'existing-uuid',
+      email: 'user@example.com',
+      name: 'Ivan Petrov',
+    })
 
     const result = await authorizeGoogleOneTap('credential')
 
@@ -78,33 +72,21 @@ describe('authorizeGoogleOneTap', () => {
       email: 'user@example.com',
       name: 'Ivan Petrov',
     })
-    // Should NOT insert anything for existing users
-    expect(db.insert).not.toHaveBeenCalled()
-  })
-
-  it('creates new user + accounts entry when user not found in DB', async () => {
-    mockGetPayload.mockReturnValue(VALID_PAYLOAD)
-    mockDbSelect([])
-    // Two inserts: users then accounts — use mockReturnValueOnce for correctness
-    const chain1 = { values: jest.fn().mockResolvedValue(undefined) }
-    const chain2 = { values: jest.fn().mockResolvedValue(undefined) }
-    ;(db.insert as jest.Mock).mockReturnValueOnce(chain1).mockReturnValueOnce(chain2)
-
-    const result = await authorizeGoogleOneTap('credential')
-
-    expect(result).not.toBeNull()
-    expect(result!.email).toBe('user@example.com')
-    expect(result!.name).toBe('Ivan Petrov')
-    expect(typeof result!.id).toBe('string')
-    // Should insert into both users and accounts
-    expect(db.insert).toHaveBeenCalledTimes(2)
-    expect(chain1.values).toHaveBeenCalledTimes(1)
-    expect(chain2.values).toHaveBeenCalledTimes(1)
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('google-one-tap', 'google-sub-123', expect.objectContaining({
+      email: 'user@example.com',
+      name: 'Ivan Petrov',
+      emailVerified: true,
+      metadata: { source: 'google-one-tap' },
+    }))
   })
 
   it('falls back to email as name when payload has no name', async () => {
     mockGetPayload.mockReturnValue({ sub: 'abc', email: 'user@example.com' })
-    mockDbSelect([{ id: 'existing-uuid' }])
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'existing-uuid',
+      email: 'user@example.com',
+      name: 'user@example.com',
+    })
 
     const result = await authorizeGoogleOneTap('credential')
 

@@ -26,13 +26,13 @@ test.describe('админка — пользователи и фидбеки', (
     const runId = `${testInfo.workerIndex}-${testInfo.retry}-${Date.now()}`
     adminEmail = `e2e-admin-users-admin-${runId}@test.invalid`
     userEmail = `e2e-admin-users-user-${runId}@test.invalid`
-    userId = `test:${userEmail}`
     registeredFeedback = `${REGISTERED_FEEDBACK_BASE} ${runId}`
     anonFeedback = `${ANON_FEEDBACK_BASE} ${runId}`
 
-    await page.request.post('/api/test/session', {
+    const userSession = await page.request.post('/api/test/session', {
       data: { email: userEmail, name: USER_NAME },
     })
+    userId = (await userSession.json()).userId
     await page.request.post('/api/test/signup', {
       data: { userId, name: USER_NAME, email: userEmail, contacts: USER_CONTACT, selectedBooks: [BOOK_A, BOOK_B] },
     })

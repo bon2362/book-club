@@ -4,9 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { encode } from '@auth/core/jwt'
 import { db } from '@/lib/db'
-import { users, notificationQueue } from '@/lib/db/schema'
+import { notificationQueue, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
+import { normalizeIdentityProvider, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -15,37 +16,37 @@ function notAllowed() {
 export async function POST(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
-  const { email, name, isAdmin, telegramUsername, provider } = await req.json() as {
-    email: string; name: string; isAdmin?: boolean; telegramUsername?: string; provider?: string
+  const { email, name, isAdmin, telegramUsername, provider, providerAccountId } = await req.json() as {
+    email: string; name: string; isAdmin?: boolean; telegramUsername?: string; provider?: string; providerAccountId?: string
   }
+  const identityProvider = normalizeIdentityProvider(provider ?? 'email')
+  const identityAccountId = providerAccountId ?? (identityProvider === 'telegram' ? telegramUsername ?? email : email)
 
-  await db.insert(users).values({
-    id: `test:${email}`,
+  const user = await resolveOrCreateUserFromIdentity(identityProvider, identityAccountId, {
     email,
     name,
-    emailVerified: new Date(),
+    emailVerified: identityProvider !== 'telegram',
+    telegramUsername: telegramUsername ?? null,
+    isAdmin: isAdmin ?? false,
+    metadata: { source: 'test-session' },
+  })
+
+  await db.update(users).set({
+    name,
     authProvider: provider ?? 'email',
     telegramUsername: telegramUsername ?? null,
     lastSignInAt: new Date(),
+    emailVerified: new Date(),
     isAdmin: isAdmin ?? false,
-  }).onConflictDoUpdate({
-    target: users.id,
-    set: {
-      name,
-      authProvider: provider ?? 'email',
-      telegramUsername: telegramUsername ?? null,
-      lastSignInAt: new Date(),
-      isAdmin: isAdmin ?? false,
-    },
-  })
+  }).where(eq(users.id, user.id))
 
   const token = await encode({
-    token: { sub: `test:${email}`, email, name, isAdmin: isAdmin ?? false, telegramUsername: telegramUsername ?? null, provider: provider ?? null },
+    token: { sub: user.id, email, name, isAdmin: isAdmin ?? false, telegramUsername: telegramUsername ?? null, provider: provider ?? null },
     secret: (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET)!,
     salt: 'authjs.session-token',
   })
 
-  const res = NextResponse.json({ ok: true })
+  const res = NextResponse.json({ ok: true, userId: user.id })
   res.cookies.set('authjs.session-token', token, {
     httpOnly: true, sameSite: 'lax', path: '/', maxAge: 86400,
   })

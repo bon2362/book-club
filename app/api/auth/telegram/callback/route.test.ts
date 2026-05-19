@@ -2,7 +2,7 @@
  * @jest-environment node
  *
  * Unit-тесты для GET /api/auth/telegram/callback — route handler.
- * Проверяет: создание пользователя в БД, генерацию pre-auth токена,
+ * Проверяет: создание/поиск пользователя через identity helper, генерацию pre-auth токена,
  * redirect на /auth/telegram, отклонение невалидного HMAC.
  */
 import { NextRequest } from 'next/server'
@@ -18,6 +18,12 @@ jest.mock('@/lib/db', () => ({
     }),
   },
 }))
+
+jest.mock('@/lib/user-identities', () => ({
+  resolveOrCreateUserFromIdentity: jest.fn(),
+}))
+
+import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 const BOT_TOKEN = 'test-telegram-bot-token'
 const SECRET = 'test-auth-secret-that-is-long-enough-32'
@@ -54,6 +60,12 @@ describe('GET /api/auth/telegram/callback', () => {
   beforeEach(() => {
     process.env.TELEGRAM_BOT_TOKEN = BOT_TOKEN
     process.env.NEXTAUTH_SECRET = SECRET
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
+      id: 'canonical-uuid',
+      email: 'telegram:123456789@telegram.user',
+      name: 'Иван Петров',
+      telegramUsername: 'ivanp',
+    })
     jest.clearAllMocks()
   })
 
@@ -62,7 +74,7 @@ describe('GET /api/auth/telegram/callback', () => {
     delete process.env.NEXTAUTH_SECRET
   })
 
-  it('создаёт пользователя в БД и редиректит на /auth/telegram при валидном HMAC', async () => {
+  it('создаёт пользователя через identity helper и редиректит на /auth/telegram при валидном HMAC', async () => {
     const { db } = await import('@/lib/db')
     const res = await GET(makeRequest(validParams()))
 
@@ -70,10 +82,16 @@ describe('GET /api/auth/telegram/callback', () => {
     const location = res.headers.get('location')!
     const url = new URL(location)
     expect(url.pathname).toBe('/auth/telegram')
-    expect(url.searchParams.get('uid')).toBe('telegram:123456789')
+    expect(url.searchParams.get('uid')).toBe('canonical-uuid')
     expect(url.searchParams.get('token')).toBeTruthy()
     expect(url.searchParams.get('ts')).toBeTruthy()
     expect(url.searchParams.get('username')).toBe('ivanp')
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '123456789', expect.objectContaining({
+      name: 'Иван Петров',
+      image: null,
+      telegramUsername: 'ivanp',
+      metadata: { source: 'telegram-callback' },
+    }))
     expect(db.insert).toHaveBeenCalled()
   })
 
@@ -87,6 +105,7 @@ describe('GET /api/auth/telegram/callback', () => {
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
     expect(db.insert).not.toHaveBeenCalled()
+    expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
   it('[SEC] редиректит на /?auth=failed если auth_date старше 5 минут', async () => {
@@ -98,6 +117,7 @@ describe('GET /api/auth/telegram/callback', () => {
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
     expect(db.insert).not.toHaveBeenCalled()
+    expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
   it('[SEC] редиректит на /?auth=failed при отсутствии TELEGRAM_BOT_TOKEN', async () => {
@@ -109,6 +129,7 @@ describe('GET /api/auth/telegram/callback', () => {
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
     expect(db.insert).not.toHaveBeenCalled()
+    expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
   it('не добавляет username в redirect URL если он отсутствует', async () => {
@@ -125,27 +146,18 @@ describe('GET /api/auth/telegram/callback', () => {
     expect(url.searchParams.has('username')).toBe(false)
   })
 
-  it('использует first_name + last_name как имя пользователя в БД', async () => {
-    const { db } = await import('@/lib/db')
-    const mockValues = jest.fn().mockReturnValue({ onConflictDoUpdate: jest.fn().mockResolvedValue(undefined) })
-    ;(db.insert as jest.Mock).mockReturnValue({ values: mockValues })
-
+  it('использует first_name + last_name как имя пользователя в identity profile', async () => {
     await GET(makeRequest(validParams()))
 
-    const insertArg = mockValues.mock.calls[0][0]
-    expect(insertArg.name).toBe('Иван Петров')
-    expect(insertArg.email).toBe('telegram:123456789@telegram.user')
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '123456789', expect.objectContaining({
+      name: 'Иван Петров',
+    }))
   })
 
-  it('повторный вход вызывает onConflictDoUpdate (не дублирует пользователя)', async () => {
-    const { db } = await import('@/lib/db')
-    const mockOnConflict = jest.fn().mockResolvedValue(undefined)
-    const mockValues = jest.fn().mockReturnValue({ onConflictDoUpdate: mockOnConflict })
-    ;(db.insert as jest.Mock).mockReturnValue({ values: mockValues })
-
+  it('повторный вход делегирует идемпотентность identity helper', async () => {
     await GET(makeRequest(validParams()))
     await GET(makeRequest(validParams()))
 
-    expect(mockOnConflict).toHaveBeenCalledTimes(2)
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledTimes(2)
   })
 })

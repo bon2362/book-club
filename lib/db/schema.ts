@@ -34,6 +34,21 @@ export const userActivityEvents = pgTable('user_activity_events', {
   dedupeKeyIdx: uniqueIndex('user_activity_events_dedupe_key_idx').on(t.dedupeKey),
 }))
 
+export const userIdentities = pgTable('user_identities', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull(),
+  providerAccountId: text('provider_account_id').notNull(),
+  email: text('email'),
+  telegramUsername: text('telegram_username'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { mode: 'date' }).notNull().defaultNow(),
+  metadata: text('metadata'),
+}, (t) => ({
+  providerAccountUnique: uniqueIndex('user_identities_provider_account_id_idx').on(t.provider, t.providerAccountId),
+  userIdIdx: index('user_identities_user_id_idx').on(t.userId),
+}))
+
 export const accounts = pgTable('account', {
   userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
   type: text('type').notNull(),

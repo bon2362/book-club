@@ -92,6 +92,13 @@
       "when": 1779209212687,
       "tag": "0012_user_activity_events",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779226192891,
+      "tag": "0013_user_identities",
+      "breakpoints": true
     }
   ]
 }
