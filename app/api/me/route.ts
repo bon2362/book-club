@@ -16,7 +16,7 @@ export async function GET() {
     .select({
       id: users.id,
       name: users.name,
-      email: users.email,
+      email: users.contactEmail,
       contactEmail: users.contactEmail,
       contacts: users.contacts,
       telegramUsername: users.telegramUsername,

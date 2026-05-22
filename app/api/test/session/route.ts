@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { encode } from '@auth/core/jwt'
 import { db } from '@/lib/db'
 import { notificationQueue, userIdentities, users } from '@/lib/db/schema'
-import { eq, or } from 'drizzle-orm'
+import { and, eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { normalizeIdentityProvider, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
@@ -58,23 +58,32 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
-  const { email } = await req.json() as { email: string }
-  const userRows = await db
+  const { email, provider, providerAccountId, telegramUsername } = await req.json() as {
+    email?: string
+    provider?: string
+    providerAccountId?: string
+    telegramUsername?: string
+  }
+  const identityProvider = provider ? normalizeIdentityProvider(provider) : null
+  const identityAccountId = providerAccountId ?? telegramUsername ?? email
+  const userRows = email ? await db
     .select({ id: users.id })
     .from(users)
-    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
-    .limit(1)
+    .where(eq(users.contactEmail, email))
+    .limit(1) : []
   const identityRows = await db
     .select({ userId: userIdentities.userId })
     .from(userIdentities)
-    .where(or(
-      eq(userIdentities.email, email),
-      eq(userIdentities.providerAccountId, email)
-    ))
+    .where(identityProvider && identityAccountId
+      ? and(eq(userIdentities.provider, identityProvider), eq(userIdentities.providerAccountId, identityAccountId))
+      : or(
+        eq(userIdentities.email, email ?? ''),
+        eq(userIdentities.providerAccountId, identityAccountId ?? '')
+      ))
     .limit(1)
   const userId = userRows[0]?.id ?? identityRows[0]?.userId ?? null
 
-  await db.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
+  if (email) await db.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
   if (userId) {
     await db.delete(userIdentities).where(eq(userIdentities.userId, userId))
     await db.delete(users).where(eq(users.id, userId))

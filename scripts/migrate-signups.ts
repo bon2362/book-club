@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { signupBooks, users } from '../lib/db/schema'
 import * as schema from '../lib/db/schema'
-import { eq, or } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 function createDb() {
   return drizzle(neon(process.env.DATABASE_URL!), { schema })
@@ -74,7 +74,7 @@ export async function migrateSignupRows(
     const userRows = await database
       .select({ id: users.id, name: users.name, contacts: users.contacts })
       .from(users)
-      .where(or(eq(users.email, normalizedEmail), eq(users.contactEmail, normalizedEmail)))
+      .where(eq(users.contactEmail, normalizedEmail))
       .limit(1)
 
     const user = userRows[0]

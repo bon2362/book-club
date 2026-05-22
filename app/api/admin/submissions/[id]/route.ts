@@ -103,7 +103,7 @@ export async function PATCH(
 
   if (status === 'approved' || status === 'rejected') {
     const [userRow] = await db
-      .select({ email: users.email, contactEmail: users.contactEmail })
+      .select({ contactEmail: users.contactEmail })
       .from(users)
       .where(eq(users.id, submission.userId))
       .limit(1)

@@ -1,4 +1,4 @@
-import { and, eq, or } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { accounts, userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 
@@ -91,12 +91,6 @@ function normalizeProviderAccountId(provider: IdentityProvider, providerAccountI
   return provider === 'email' ? trimmed.toLowerCase() : trimmed
 }
 
-function userInsertEmail(provider: IdentityProvider, email: string | null): string | null {
-  if (provider === 'telegram') return null
-  if (email) return email
-  throw new Error(`${provider} identity requires email`)
-}
-
 function userContactEmail(provider: IdentityProvider, email: string | null): string | null {
   return provider === 'telegram' ? null : email
 }
@@ -116,7 +110,7 @@ async function findUserIdByEmail(tx: IdentityDb, email: string): Promise<string 
   const rows = await tx
     .select({ id: users.id })
     .from(users)
-    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
+    .where(eq(users.contactEmail, email))
     .limit(1)
   if (rows[0]?.id) return rows[0].id
 
@@ -161,7 +155,7 @@ async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean
   const rows = await tx
     .select({
       id: users.id,
-      email: users.email,
+      email: users.contactEmail,
       contactEmail: users.contactEmail,
       name: users.name,
       image: users.image,
@@ -330,7 +324,6 @@ export async function resolveOrCreateUserFromIdentity(
     if (isNew) {
       await tx.insert(users).values({
         id: userId,
-        email: userInsertEmail(normalizedProvider, email),
         contactEmail: userContactEmail(normalizedProvider, email),
         name: profile.name ?? email ?? normalizeTelegramContact(profile.telegramUsername) ?? normalizedProviderAccountId,
         emailVerified: email && normalizedProvider !== 'telegram' ? now : null,

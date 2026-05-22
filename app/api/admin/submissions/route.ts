@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { bookSubmissions, users } from '@/lib/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 export async function GET() {
   const session = await auth()
@@ -16,7 +16,7 @@ export async function GET() {
     .select({
       id: bookSubmissions.id,
       userId: bookSubmissions.userId,
-      userEmail: sql<string | null>`coalesce(${users.contactEmail}, ${users.email})`,
+      userEmail: users.contactEmail,
       title: bookSubmissions.title,
       topic: bookSubmissions.topic,
       author: bookSubmissions.author,
