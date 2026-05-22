@@ -8,10 +8,12 @@ declare module 'next-auth' {
       isExcludedFromAnalytics?: boolean
       telegramUsername?: string | null
       provider?: string | null
+      contactEmail?: string | null
     } & DefaultSession['user']
   }
   interface User {
     telegramUsername?: string | null
+    contactEmail?: string | null
   }
 }
 
@@ -21,5 +23,6 @@ declare module '@auth/core/jwt' {
     isExcludedFromAnalytics?: boolean
     telegramUsername?: string | null
     provider?: string | null
+    contactEmail?: string | null
   }
 }

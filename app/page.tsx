@@ -45,7 +45,7 @@ export default async function Home() {
     : null
   const dbUserRows = !signupUser && session?.user?.id
     ? await db
-      .select({ name: users.name, email: users.email, contacts: users.contacts })
+      .select({ name: users.name, email: users.email, contactEmail: users.contactEmail, contacts: users.contacts })
       .from(users)
       .where(eq(users.id, session.user.id))
       .limit(1)
@@ -57,6 +57,7 @@ export default async function Home() {
     userId: session!.user!.id!,
     name: dbUser.name ?? session?.user?.name ?? '',
     email: dbUser.email,
+    contactEmail: dbUser.contactEmail,
     contacts: dbUser.contacts,
     selectedBooks: [],
   } : null)

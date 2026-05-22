@@ -13,7 +13,8 @@ import { formatTelegramDisplay } from '@/lib/telegram-display'
 export interface AdminUserSummary {
   id: string
   name: string
-  email: string
+  email: string | null
+  contactEmail: string | null
   contacts: string | null
   telegramUsername: string | null
   telegramDisplay: string
@@ -48,6 +49,7 @@ export interface AdminFeedbackItem {
   createdAt: string
   userName: string | null
   userEmail: string | null
+  userContactEmail: string | null
 }
 
 function parseLanguages(value: string | null): string[] {
@@ -73,6 +75,7 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
         id: users.id,
         name: users.name,
         email: users.email,
+        contactEmail: users.contactEmail,
         emailVerified: users.emailVerified,
         createdAt: users.createdAt,
         contacts: users.contacts,
@@ -103,7 +106,8 @@ export function buildAdminUserSummaries(
   userRows: {
     id: string
     name: string | null
-    email: string
+    email: string | null
+    contactEmail?: string | null
     contacts: string | null
     telegramUsername: string | null
     authProvider?: string | null
@@ -133,6 +137,7 @@ export function buildAdminUserSummaries(
     id: row.id,
     name: row.name ?? '',
     email: row.email,
+    contactEmail: row.contactEmail ?? null,
     contacts: row.contacts,
     telegramUsername: row.telegramUsername,
     telegramDisplay: formatTelegramDisplay(row),
@@ -151,6 +156,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       id: users.id,
       name: users.name,
       email: users.email,
+      contactEmail: users.contactEmail,
       emailVerified: users.emailVerified,
       createdAt: users.createdAt,
       contacts: users.contacts,
@@ -200,6 +206,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
         createdAt: feedback.createdAt,
         userName: users.name,
         userEmail: users.email,
+        userContactEmail: users.contactEmail,
       })
       .from(feedback)
       .leftJoin(users, eq(feedback.userId, users.id))
@@ -243,6 +250,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       createdAt: row.createdAt.toISOString(),
       userName: row.userName,
       userEmail: row.userEmail,
+      userContactEmail: row.userContactEmail,
     })),
   }
 }
@@ -258,6 +266,7 @@ export async function getAdminFeedback(): Promise<AdminFeedbackItem[]> {
       createdAt: feedback.createdAt,
       userName: users.name,
       userEmail: users.email,
+      userContactEmail: users.contactEmail,
     })
     .from(feedback)
     .leftJoin(users, eq(feedback.userId, users.id))
@@ -272,5 +281,6 @@ export async function getAdminFeedback(): Promise<AdminFeedbackItem[]> {
     createdAt: row.createdAt.toISOString(),
     userName: row.userName,
     userEmail: row.userEmail,
+    userContactEmail: row.userContactEmail,
   }))
 }

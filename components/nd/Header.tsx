@@ -6,7 +6,7 @@ import { track } from '@/lib/analytics'
 import Link from 'next/link'
 import SubmitBookButton from './SubmitBookButton'
 import { useScrollHide } from '@/lib/scroll-hide-context'
-import { getContactEmail } from '@/lib/user-email'
+import { getUserContactEmail } from '@/lib/user-email'
 
 interface Props {
   onEditProfile?: () => void
@@ -22,7 +22,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
   const [whatIsThisHovered, setWhatIsThisHovered] = useState(false)
   const { isHidden } = useScrollHide()
   const headerRef = useRef<HTMLElement>(null)
-  const contactEmail = getContactEmail(session?.user?.email)
+  const contactEmail = getUserContactEmail(session?.user)
   const telegramHandle = session?.user?.telegramUsername ? `@${session.user.telegramUsername}` : null
   const userLabel = displayName || session?.user?.name || telegramHandle || contactEmail || ''
 

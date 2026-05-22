@@ -20,7 +20,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { getContactEmail } from '@/lib/user-email'
+import { getUserContactEmail } from '@/lib/user-email'
 
 interface Submission {
   id: string
@@ -455,7 +455,7 @@ export default function ProfileDrawer({
     })
   )
 
-  const contactEmail = getContactEmail(session?.user?.email)
+  const contactEmail = getUserContactEmail(session?.user)
   const telegramHandle = session?.user?.telegramUsername ? `@${session.user.telegramUsername}` : null
   const displayName = effectiveUser?.name?.trim() || session?.user?.name || telegramHandle || contactEmail || ''
   const profileUnchanged = name.trim() === (effectiveUser?.name ?? '') && contacts.trim() === (effectiveUser?.contacts ?? '')

@@ -5,7 +5,8 @@ import {
 export const users = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name'),
-  email: text('email').notNull().unique(),
+  email: text('email').unique(),
+  contactEmail: text('contact_email'),
   emailVerified: timestamp('emailVerified', { mode: 'date' }),
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   image: text('image'),

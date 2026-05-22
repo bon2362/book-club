@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { accounts, sessions, signupBooks, userIdentities, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
@@ -17,16 +17,33 @@ export async function GET(req: NextRequest) {
   }
 
   const rows = await db
-    .select({ id: users.id, email: users.email })
+    .select({ id: users.id, email: users.email, contactEmail: users.contactEmail })
     .from(users)
-    .where(eq(users.email, email))
+    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
     .limit(1)
 
-  if (rows.length === 0) {
+  let userRow = rows[0]
+  if (!userRow) {
+    const identityRows = await db
+      .select({ userId: userIdentities.userId })
+      .from(userIdentities)
+      .where(or(eq(userIdentities.email, email), eq(userIdentities.providerAccountId, email)))
+      .limit(1)
+    if (identityRows[0]?.userId) {
+      const byIdentityRows = await db
+        .select({ id: users.id, email: users.email, contactEmail: users.contactEmail })
+        .from(users)
+        .where(eq(users.id, identityRows[0].userId))
+        .limit(1)
+      userRow = byIdentityRows[0]
+    }
+  }
+
+  if (!userRow) {
     return NextResponse.json({ exists: false, accountCount: 0, sessionCount: 0, signupBookCount: 0 })
   }
 
-  const userId = rows[0].id
+  const userId = userRow.id
   const [accountRows, sessionRows, signupBookRows, identityRows] = await Promise.all([
     db.select({ userId: accounts.userId }).from(accounts).where(eq(accounts.userId, userId)),
     db.select({ userId: sessions.userId }).from(sessions).where(eq(sessions.userId, userId)),
@@ -43,7 +60,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     exists: true,
-    user: rows[0],
+    user: userRow,
     accountCount: accountRows.length,
     identityCount: identityRows.length,
     identities: identityRows,

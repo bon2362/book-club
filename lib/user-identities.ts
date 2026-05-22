@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { accounts, userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 
@@ -29,7 +29,8 @@ export interface IdentityProfile {
 
 export interface ResolvedIdentityUser {
   id: string
-  email: string
+  email: string | null
+  contactEmail: string | null
   name: string | null
   image: string | null
   telegramUsername: string | null
@@ -90,14 +91,14 @@ function normalizeProviderAccountId(provider: IdentityProvider, providerAccountI
   return provider === 'email' ? trimmed.toLowerCase() : trimmed
 }
 
-function syntheticTelegramEmail(providerAccountId: string): string {
-  return `telegram:${providerAccountId}@telegram.user`
+function userInsertEmail(provider: IdentityProvider, email: string | null): string | null {
+  if (provider === 'telegram') return null
+  if (email) return email
+  throw new Error(`${provider} identity requires email`)
 }
 
-function userInsertEmail(provider: IdentityProvider, providerAccountId: string, email: string | null): string {
-  if (email) return email
-  if (provider === 'telegram') return syntheticTelegramEmail(providerAccountId)
-  throw new Error(`${provider} identity requires email`)
+function userContactEmail(provider: IdentityProvider, email: string | null): string | null {
+  return provider === 'telegram' ? null : email
 }
 
 function metadataToText(metadata?: IdentityMetadata): string | null {
@@ -115,9 +116,16 @@ async function findUserIdByEmail(tx: IdentityDb, email: string): Promise<string 
   const rows = await tx
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
     .limit(1)
-  return rows[0]?.id ?? null
+  if (rows[0]?.id) return rows[0].id
+
+  const identityRows = await tx
+    .select({ userId: userIdentities.userId })
+    .from(userIdentities)
+    .where(eq(userIdentities.email, email))
+    .limit(1)
+  return identityRows[0]?.userId ?? null
 }
 
 async function findIdentityUserId(
@@ -154,6 +162,7 @@ async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean
     .select({
       id: users.id,
       email: users.email,
+      contactEmail: users.contactEmail,
       name: users.name,
       image: users.image,
       telegramUsername: users.telegramUsername,
@@ -170,13 +179,16 @@ async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean
 async function updateUserCache(
   tx: IdentityDb,
   userId: string,
+  provider: IdentityProvider,
   profile: IdentityProfile,
   now: Date
 ): Promise<void> {
+  const contactEmail = userContactEmail(provider, normalizeEmail(profile.email))
   await tx
     .update(users)
     .set({
       lastActivityAt: now,
+      ...(contactEmail ? { contactEmail } : {}),
       ...(profile.name ? { name: profile.name } : {}),
       ...(profile.image ? { image: profile.image } : {}),
       ...(normalizeTelegramContact(profile.telegramUsername) ? { telegramUsername: normalizeTelegramContact(profile.telegramUsername) } : {}),
@@ -281,7 +293,7 @@ export async function linkIdentityToUser(
       throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
     }
     const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
-    await updateUserCache(tx, identityUserId, profile, now)
+    await updateUserCache(tx, identityUserId, normalizedProvider, profile, now)
     await syncGoogleAccount(tx, identityUserId, normalizedProvider, normalizedProviderAccountId)
     return selectResolvedUser(tx, identityUserId, false)
   })
@@ -303,7 +315,7 @@ export async function resolveOrCreateUserFromIdentity(
     if (existingIdentityUserId) {
       const userId = existingIdentityUserId
       await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
-      await updateUserCache(tx, userId, profile, now)
+      await updateUserCache(tx, userId, normalizedProvider, profile, now)
       await syncGoogleAccount(tx, userId, normalizedProvider, normalizedProviderAccountId)
       return selectResolvedUser(tx, userId, false)
     }
@@ -318,7 +330,8 @@ export async function resolveOrCreateUserFromIdentity(
     if (isNew) {
       await tx.insert(users).values({
         id: userId,
-        email: userInsertEmail(normalizedProvider, normalizedProviderAccountId, email),
+        email: userInsertEmail(normalizedProvider, email),
+        contactEmail: userContactEmail(normalizedProvider, email),
         name: profile.name ?? email ?? normalizeTelegramContact(profile.telegramUsername) ?? normalizedProviderAccountId,
         emailVerified: email && normalizedProvider !== 'telegram' ? now : null,
         image: profile.image ?? null,
@@ -328,7 +341,7 @@ export async function resolveOrCreateUserFromIdentity(
       })
       await bestEffortRecordUserCreated(tx, userId, normalizedProvider, now)
     } else {
-      await updateUserCache(tx, userId, profile, now)
+      await updateUserCache(tx, userId, normalizedProvider, profile, now)
     }
 
     const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)

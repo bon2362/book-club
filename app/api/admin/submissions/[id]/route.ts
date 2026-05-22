@@ -7,7 +7,7 @@ import { bookSubmissions, signupBooks, bookPriorities, users } from '@/lib/db/sc
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
-import { getContactEmail } from '@/lib/user-email'
+import { getUserContactEmail } from '@/lib/user-email'
 
 export async function DELETE(
   _req: NextRequest,
@@ -103,12 +103,12 @@ export async function PATCH(
 
   if (status === 'approved' || status === 'rejected') {
     const [userRow] = await db
-      .select({ email: users.email })
+      .select({ email: users.email, contactEmail: users.contactEmail })
       .from(users)
       .where(eq(users.id, submission.userId))
       .limit(1)
 
-    const contactEmail = getContactEmail(userRow?.email)
+    const contactEmail = getUserContactEmail(userRow)
 
     if (contactEmail) {
       const template = status === 'approved'

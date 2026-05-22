@@ -4,9 +4,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { signupBooks, users } from '@/lib/db/schema'
+import { signupBooks, userIdentities, users } from '@/lib/db/schema'
 import { upsertSignup } from '@/lib/signup-books'
-import { eq } from 'drizzle-orm'
+import { eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
@@ -22,9 +22,14 @@ export async function POST(req: NextRequest) {
   const rows = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
     .limit(1)
-  const canonicalUserId = rows[0]?.id ?? userId
+  const identityRows = rows[0]?.id ? [] : await db
+    .select({ userId: userIdentities.userId })
+    .from(userIdentities)
+    .where(or(eq(userIdentities.email, email), eq(userIdentities.providerAccountId, email)))
+    .limit(1)
+  const canonicalUserId = rows[0]?.id ?? identityRows[0]?.userId ?? userId
 
   await db.update(users).set({ name, contacts }).where(eq(users.id, canonicalUserId))
   await upsertSignup(canonicalUserId, selectedBooks)
