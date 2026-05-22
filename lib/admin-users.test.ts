@@ -21,8 +21,6 @@ describe('admin-users aggregations', () => {
         email: 'anna@test.com',
         contacts: '@anna_contact',
         telegramUsername: 'anna',
-        authProvider: 'telegram-preauth',
-        lastSignInAt: new Date('2026-01-02T10:00:00Z'),
         lastActivityAt: new Date('2026-01-06T10:00:00Z'),
         emailVerified: new Date('2026-01-01T10:00:00Z'),
         createdAt: new Date('2026-01-01T09:00:00Z'),
@@ -35,8 +33,6 @@ describe('admin-users aggregations', () => {
         email: 'b@test.com',
         contacts: null,
         telegramUsername: null,
-        authProvider: 'google',
-        lastSignInAt: null,
         lastActivityAt: null,
         emailVerified: null,
         createdAt: new Date('2026-01-03T10:00:00Z'),
@@ -49,6 +45,10 @@ describe('admin-users aggregations', () => {
       { userId: 'u1', activityAt: new Date('2026-01-04T10:00:00Z') },
       { userId: 'u1', activityAt: new Date('2026-01-03T10:00:00Z') },
       { userId: 'missing', activityAt: new Date('2026-01-05T10:00:00Z') },
+    ], [
+      { userId: 'u1', provider: 'email', lastSeenAt: new Date('2026-01-01T10:00:00Z') },
+      { userId: 'u1', provider: 'telegram', lastSeenAt: new Date('2026-01-02T10:00:00Z') },
+      { userId: 'u2', provider: 'google', lastSeenAt: new Date('2026-01-03T10:00:00Z') },
     ])
 
     expect(result).toEqual([
@@ -60,6 +60,7 @@ describe('admin-users aggregations', () => {
         booksCount: 2,
         isAdmin: true,
         telegramDisplay: '@anna',
+        authProvider: 'telegram',
         lastActivityAt: '2026-01-06T10:00:00.000Z',
         createdAt: '2026-01-01T09:00:00.000Z',
       }),
@@ -69,6 +70,7 @@ describe('admin-users aggregations', () => {
         languages: [],
         booksCount: 0,
         isAdmin: false,
+        authProvider: 'google',
         lastActivityAt: null,
         createdAt: '2026-01-03T10:00:00.000Z',
       }),
@@ -83,8 +85,6 @@ describe('admin-users aggregations', () => {
         email: 'anna@test.com',
         contacts: null,
         telegramUsername: null,
-        authProvider: 'email',
-        lastSignInAt: new Date('2026-01-02T10:00:00Z'),
         lastActivityAt: new Date('2026-01-03T10:00:00Z'),
         emailVerified: null,
         createdAt: new Date('2026-01-01T10:00:00Z'),

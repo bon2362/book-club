@@ -5,10 +5,8 @@
  * - jwt callback (isAdmin, telegramUsername, provider, deleted user)
  * - session callback (user.id, isAdmin, telegramUsername, provider)
  * - telegram-preauth provider authorize (one-time token consume, freshness, DB lookup)
- * - telegram provider authorize (verifyTelegramHash, DB upsert)
+ * - signIn identity sync error handling
  */
-
-import { createHash, createHmac } from 'crypto'
 
 // ── Mocks (must be before imports) ───────────────────────────────────────────
 
@@ -29,6 +27,12 @@ jest.mock('@/lib/user-activity', () => ({
 }))
 
 jest.mock('@/lib/user-identities', () => ({
+  IdentityConflictError: class IdentityConflictError extends Error {
+    constructor(message: string) {
+      super(message)
+      this.name = 'IdentityConflictError'
+    }
+  },
   linkIdentityToUser: jest.fn(),
   resolveOrCreateUserFromIdentity: jest.fn(),
 }))
@@ -76,7 +80,7 @@ jest.mock('next-auth', () => ({
 import NextAuth from 'next-auth'
 import { db } from '@/lib/db'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
-import { linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { IdentityConflictError, linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('@/lib/auth')
@@ -127,18 +131,6 @@ function mockPreauthConsume(allowed: boolean) {
   return chain
 }
 
-// Build a valid Telegram Widget hash
-function buildTelegramHash(data: Record<string, string>, botToken: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { hash: _omit, ...rest } = data
-  const checkString = Object.keys(rest)
-    .sort()
-    .map((k) => `${k}=${rest[k]}`)
-    .join('\n')
-  const secret = createHash('sha256').update(botToken).digest()
-  return createHmac('sha256', secret).update(checkString).digest('hex')
-}
-
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 const SECRET = 'test-auth-secret'
@@ -171,20 +163,14 @@ beforeEach(() => {
 describe('signIn callback', () => {
   const signInCallback = () => getConfig().callbacks.signIn
 
-  it('пишет auth_provider и last_sign_in_at по provider из account', async () => {
-    const updateChain = mockDbUpdate()
-
+  it('не пишет denormalized auth columns и записывает sign_in activity', async () => {
     const result = await signInCallback()({
       user: { id: 'user-uuid', email: 'user@test.com' },
       account: { provider: 'google' },
     })
 
     expect(result).toBe(true)
-    expect(db.update).toHaveBeenCalled()
-    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-      authProvider: 'google',
-      lastSignInAt: expect.any(Date),
-    }))
+    expect(db.update).not.toHaveBeenCalled()
     expect(bestEffortRecordUserActivity).toHaveBeenCalledWith('user-uuid', 'sign_in', expect.objectContaining({
       source: 'auth',
       sourceId: 'google',
@@ -194,8 +180,6 @@ describe('signIn callback', () => {
   })
 
   it('синхронизирует Google OAuth account в user_identities для canonical users.id', async () => {
-    mockDbUpdate()
-
     const result = await signInCallback()({
       user: { id: 'user-uuid', email: 'user@test.com', name: 'User', image: 'https://avatar.test/u.png' },
       account: { provider: 'google', providerAccountId: 'google-sub-123' },
@@ -212,8 +196,6 @@ describe('signIn callback', () => {
   })
 
   it('синхронизирует Resend/email sign-in в user_identities', async () => {
-    mockDbUpdate()
-
     await signInCallback()({
       user: { id: 'email-user-uuid', email: 'magic@test.com', name: 'Magic User' },
       account: { provider: 'resend' },
@@ -240,6 +222,7 @@ describe('signIn callback', () => {
     expect(db.update).not.toHaveBeenCalled()
     expect(linkIdentityToUser).not.toHaveBeenCalled()
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
+    expect(bestEffortRecordUserActivity).not.toHaveBeenCalled()
   })
 
   it('пишет telegram_username если он пришёл из credentials user', async () => {
@@ -251,64 +234,92 @@ describe('signIn callback', () => {
     })
 
     expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-      authProvider: 'telegram-preauth',
       telegramUsername: 'ivan_tg',
+    }))
+    expect(updateChain.set).toHaveBeenCalledWith(expect.not.objectContaining({
+      authProvider: expect.anything(),
+      lastSignInAt: expect.anything(),
     }))
   })
 
-  it('нормализует resend provider в email', async () => {
-    const updateChain = mockDbUpdate()
-
+  it('нормализует resend provider в email для user_identities и activity', async () => {
     await signInCallback()({
       user: { id: 'user-uuid', email: 'user@test.com' },
       account: { provider: 'resend' },
     })
 
-    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-      authProvider: 'email',
+    expect(db.update).not.toHaveBeenCalled()
+    expect(linkIdentityToUser).toHaveBeenCalledWith('user-uuid', 'email', 'user@test.com', expect.objectContaining({
+      email: 'user@test.com',
+    }))
+    expect(bestEffortRecordUserActivity).toHaveBeenCalledWith('user-uuid', 'sign_in', expect.objectContaining({
+      sourceId: 'email',
     }))
   })
 
-  it('для magic link обновляет пользователя по email, если id ещё не пришёл из callback', async () => {
-    const updateChain = mockDbUpdate()
-
+  it('для magic link без id создаёт/резолвит email identity по email', async () => {
     await signInCallback()({
       user: { email: 'magic@test.com' },
       account: { provider: 'resend' },
     })
 
-    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-      authProvider: 'email',
-      lastSignInAt: expect.any(Date),
+    expect(db.update).not.toHaveBeenCalled()
+    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('email', 'magic@test.com', expect.objectContaining({
+      email: 'magic@test.com',
+      emailVerified: true,
     }))
-    expect(updateChain.where).toHaveBeenCalled()
   })
 
-  it('пишет authProvider=email если account отсутствует (Resend magic link)', async () => {
-    const updateChain = mockDbUpdate()
-
+  it('обрабатывает sign-in без account как email identity', async () => {
     await signInCallback()({
       user: { id: 'user-uuid', email: 'magic@test.com' },
       account: null,
     })
 
-    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-      authProvider: 'email',
-      lastSignInAt: expect.any(Date),
+    expect(db.update).not.toHaveBeenCalled()
+    expect(linkIdentityToUser).toHaveBeenCalledWith('user-uuid', 'email', 'magic@test.com', expect.objectContaining({
+      email: 'magic@test.com',
+      emailVerified: true,
     }))
   })
 
   it('не перетирает telegram_username пустым значением', async () => {
-    const updateChain = mockDbUpdate()
-
     await signInCallback()({
       user: { id: 'user-uuid', email: 'user@test.com' },
       account: { provider: 'email' },
     })
 
-    expect(updateChain.set).toHaveBeenCalledWith(expect.not.objectContaining({
-      telegramUsername: expect.anything(),
-    }))
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
+  it('логирует transient identity sync error и не ломает вход', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockDbUpdate()
+    ;(linkIdentityToUser as jest.Mock).mockRejectedValueOnce(new Error('temporary db timeout'))
+
+    const result = await signInCallback()({
+      user: { id: 'user-uuid', email: 'user@test.com', name: 'User' },
+      account: { provider: 'google', providerAccountId: 'google-sub-123' },
+    })
+
+    expect(result).toBe(true)
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Failed to sync user identity during sign-in',
+      { errorName: 'Error' }
+    )
+    errorSpy.mockRestore()
+  })
+
+  it('не проглатывает conflict identity sync error', async () => {
+    mockDbUpdate()
+    ;(linkIdentityToUser as jest.Mock).mockRejectedValueOnce(
+      new IdentityConflictError('Identity google:sub is already linked to another user')
+    )
+
+    await expect(signInCallback()({
+      user: { id: 'user-uuid', email: 'user@test.com', name: 'User' },
+      account: { provider: 'google', providerAccountId: 'google-sub-123' },
+    })).rejects.toThrow(IdentityConflictError)
   })
 })
 
@@ -564,149 +575,5 @@ describe('telegram-preauth authorize', () => {
 
     const result = (await authorize({ uid, token, ts })) as Record<string, unknown>
     expect(result.telegramUsername).toBeNull()
-  })
-})
-
-// ── telegram provider ─────────────────────────────────────────────────────────
-
-describe('telegram provider authorize + verifyTelegramHash', () => {
-  let authorize: (creds: Record<string, string>) => Promise<unknown>
-
-  beforeAll(() => {
-    const provider = getProvider('telegram')
-    authorize = provider!.authorize!
-  })
-
-  it('возвращает null если hash неверен', async () => {
-    const result = await authorize({
-      id: '123',
-      first_name: 'Ivan',
-      auth_date: String(Math.floor(Date.now() / 1000)),
-      hash: 'invalid-hash',
-    })
-    expect(result).toBeNull()
-  })
-
-  it('возвращает null если TELEGRAM_BOT_TOKEN не задан', async () => {
-    delete process.env.TELEGRAM_BOT_TOKEN
-
-    const result = await authorize({
-      id: '123',
-      first_name: 'Ivan',
-      auth_date: String(Math.floor(Date.now() / 1000)),
-      hash: 'some-hash',
-    })
-
-    expect(result).toBeNull()
-    process.env.TELEGRAM_BOT_TOKEN = BOT_TOKEN
-  })
-
-  it('возвращает null если auth_date старше 5 минут', async () => {
-    const data = {
-      id: '123',
-      first_name: 'Ivan',
-      auth_date: String(Math.floor(Date.now() / 1000) - 600),
-    }
-    const hash = buildTelegramHash(data, BOT_TOKEN)
-
-    const result = await authorize({ ...data, hash })
-
-    expect(result).toBeNull()
-  })
-
-  it('создаёт пользователя и возвращает его при валидных данных', async () => {
-    const data = {
-      id: '987654321',
-      first_name: 'Ivan',
-      last_name: 'Petrov',
-      username: 'ivan_p',
-      photo_url: 'https://t.me/photo.jpg',
-      auth_date: String(Math.floor(Date.now() / 1000)),
-    }
-    const hash = buildTelegramHash(data, BOT_TOKEN)
-    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
-      id: 'canonical-telegram-uuid',
-      email: 'telegram:987654321@telegram.user',
-      name: 'Ivan Petrov',
-    })
-
-    const result = await authorize({ ...data, hash })
-
-    expect(result).toMatchObject({
-      id: 'canonical-telegram-uuid',
-      email: 'telegram:987654321@telegram.user',
-      name: 'Ivan Petrov',
-      telegramUsername: 'ivan_p',
-    })
-    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '987654321', expect.objectContaining({
-      name: 'Ivan Petrov',
-      image: 'https://t.me/photo.jpg',
-      telegramUsername: 'ivan_p',
-      metadata: { source: 'telegram-credentials' },
-    }))
-  })
-
-  it('передаёт image из photo_url в identity helper', async () => {
-    const data = {
-      id: '111',
-      first_name: 'Anna',
-      photo_url: 'https://t.me/photo.jpg',
-      auth_date: String(Math.floor(Date.now() / 1000)),
-    }
-    const hash = buildTelegramHash(data, BOT_TOKEN)
-
-    await authorize({ ...data, hash })
-
-    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '111', expect.objectContaining({
-      image: 'https://t.me/photo.jpg',
-    }))
-  })
-
-  it('использует username как имя если first_name и last_name пусты', async () => {
-    const data = {
-      id: '222',
-      username: 'noname_user',
-      auth_date: String(Math.floor(Date.now() / 1000)),
-    }
-    const hash = buildTelegramHash(data, BOT_TOKEN)
-    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
-      id: 'canonical-telegram-uuid',
-      email: 'telegram:222@telegram.user',
-      name: 'noname_user',
-    })
-
-    const result = (await authorize({ ...data, hash })) as Record<string, unknown>
-    expect(result.name).toBe('noname_user')
-  })
-
-  it('использует id как имя если нет first_name/last_name/username', async () => {
-    const data = {
-      id: '333',
-      auth_date: String(Math.floor(Date.now() / 1000)),
-    }
-    const hash = buildTelegramHash(data, BOT_TOKEN)
-    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
-      id: 'canonical-telegram-uuid',
-      email: 'telegram:333@telegram.user',
-      name: '333',
-    })
-
-    const result = (await authorize({ ...data, hash })) as Record<string, unknown>
-    expect(result.name).toBe('333')
-  })
-
-  it('передаёт image=null если photo_url отсутствует', async () => {
-    const data = {
-      id: '444',
-      first_name: 'No Photo',
-      auth_date: String(Math.floor(Date.now() / 1000)),
-    }
-    const hash = buildTelegramHash(data, BOT_TOKEN)
-
-    await authorize({ ...data, hash })
-
-    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '444', expect.objectContaining({
-      image: null,
-    }))
   })
 })

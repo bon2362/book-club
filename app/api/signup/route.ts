@@ -24,13 +24,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const selectedBookNames = selectedBooks as string[]
   await db.update(users).set({
     name: name.trim(),
     contacts: contacts.trim(),
+    ...(selectedBookNames.length === 0 ? { prioritiesSet: false } : {}),
   }).where(eq(users.id, pgUserId))
 
-  const result = await upsertSignup(pgUserId, selectedBooks as string[])
-  const selectedBookNames = selectedBooks as string[]
+  const result = await upsertSignup(pgUserId, selectedBookNames)
 
   // Clean up book_priorities for books no longer in selectedBooks.
   // Uses session.user.id (Postgres user UUID), not session.user.email (Sheets userId).
@@ -90,7 +91,9 @@ export async function POST(req: NextRequest) {
       contacts: contacts.trim(),
       addedBooks: JSON.stringify(result.addedBooks),
       isNew: result.isNew,
-    }).catch(console.error)
+    }).catch(() => {
+      console.error('Failed to enqueue signup notification')
+    })
   }
 
   return NextResponse.json({ ok: true })

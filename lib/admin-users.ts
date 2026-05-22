@@ -5,6 +5,7 @@ import {
   bookSubmissions,
   feedback,
   users,
+  userIdentities,
 } from '@/lib/db/schema'
 import { asc, desc, eq } from 'drizzle-orm'
 import { formatTelegramDisplay } from '@/lib/telegram-display'
@@ -66,7 +67,7 @@ function dateToIso(value: Date | null | undefined): string | null {
 export { formatTelegramDisplay as getTelegramDisplay }
 
 export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
-  const [userRows, signupRows] = await Promise.all([
+  const [userRows, signupRows, identityRows] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -85,9 +86,17 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
       .from(users)
       .orderBy(asc(users.name), asc(users.email)),
     db.select({ userId: signupBooks.userId, activityAt: signupBooks.signedAt }).from(signupBooks),
+    db
+      .select({
+        userId: userIdentities.userId,
+        provider: userIdentities.provider,
+        lastSeenAt: userIdentities.lastSeenAt,
+      })
+      .from(userIdentities)
+      .orderBy(desc(userIdentities.lastSeenAt)),
   ])
 
-  return buildAdminUserSummaries(userRows, signupRows)
+  return buildAdminUserSummaries(userRows, signupRows, identityRows)
 }
 
 export function buildAdminUserSummaries(
@@ -97,19 +106,27 @@ export function buildAdminUserSummaries(
     email: string
     contacts: string | null
     telegramUsername: string | null
-    authProvider: string | null
-    lastSignInAt: Date | null
+    authProvider?: string | null
+    lastSignInAt?: Date | null
     lastActivityAt: Date | null
     emailVerified: Date | null
     createdAt: Date
     languages: string | null
     isAdmin?: boolean | null
   }[],
-  signupRows: { userId: string; activityAt?: Date }[]
+  signupRows: { userId: string; activityAt?: Date }[],
+  identityRows: { userId: string; provider: string; lastSeenAt: Date }[] = []
 ): AdminUserSummary[] {
   const counts = new Map<string, number>()
   for (const row of signupRows) {
     counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1)
+  }
+  const latestProviders = new Map<string, { provider: string; lastSeenAt: Date }>()
+  for (const row of identityRows) {
+    const current = latestProviders.get(row.userId)
+    if (!current || current.lastSeenAt < row.lastSeenAt) {
+      latestProviders.set(row.userId, { provider: row.provider, lastSeenAt: row.lastSeenAt })
+    }
   }
 
   return userRows.map(row => ({
@@ -119,7 +136,7 @@ export function buildAdminUserSummaries(
     contacts: row.contacts,
     telegramUsername: row.telegramUsername,
     telegramDisplay: formatTelegramDisplay(row),
-    authProvider: row.authProvider,
+    authProvider: latestProviders.get(row.id)?.provider ?? row.authProvider ?? null,
     lastActivityAt: dateToIso(row.lastActivityAt),
     createdAt: dateToIso(row.createdAt),
     languages: parseLanguages(row.languages),
@@ -151,7 +168,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
 
   if (!userRow) return null
 
-  const [signupRows, priorityRows, submissionRows, feedbackRows] = await Promise.all([
+  const [signupRows, priorityRows, submissionRows, feedbackRows, identityRows] = await Promise.all([
     db
       .select({ bookName: signupBooks.bookName, signedAt: signupBooks.signedAt })
       .from(signupBooks)
@@ -188,9 +205,23 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       .leftJoin(users, eq(feedback.userId, users.id))
       .where(eq(feedback.userId, userId))
       .orderBy(desc(feedback.createdAt)),
+    db
+      .select({
+        userId: userIdentities.userId,
+        provider: userIdentities.provider,
+        lastSeenAt: userIdentities.lastSeenAt,
+      })
+      .from(userIdentities)
+      .where(eq(userIdentities.userId, userId))
+      .orderBy(desc(userIdentities.lastSeenAt))
+      .limit(1),
   ])
 
-  const summary = buildAdminUserSummaries([userRow], signupRows.map(row => ({ userId, activityAt: row.signedAt })))[0]
+  const summary = buildAdminUserSummaries(
+    [userRow],
+    signupRows.map(row => ({ userId, activityAt: row.signedAt })),
+    identityRows
+  )[0]
 
   return {
     user: { ...summary, prioritiesSet: userRow.prioritiesSet ?? false },

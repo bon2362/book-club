@@ -3,8 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { userIdentities, users } from '@/lib/db/schema'
+import { desc, eq } from 'drizzle-orm'
 
 export async function GET() {
   const session = await auth()
@@ -19,8 +19,8 @@ export async function GET() {
       email: users.email,
       contacts: users.contacts,
       telegramUsername: users.telegramUsername,
-      authProvider: users.authProvider,
-      lastSignInAt: users.lastSignInAt,
+      legacyAuthProvider: users.authProvider,
+      legacyLastSignInAt: users.lastSignInAt,
     })
     .from(users)
     .where(eq(users.id, session.user.id))
@@ -30,5 +30,23 @@ export async function GET() {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
-  return NextResponse.json({ user: rows[0] })
+  const identities = await db
+    .select({
+      authProvider: userIdentities.provider,
+      lastSignInAt: userIdentities.lastSeenAt,
+    })
+    .from(userIdentities)
+    .where(eq(userIdentities.userId, session.user.id))
+    .orderBy(desc(userIdentities.lastSeenAt))
+    .limit(1)
+
+  return NextResponse.json({
+    user: {
+      ...rows[0],
+      authProvider: identities[0]?.authProvider ?? rows[0].legacyAuthProvider ?? null,
+      lastSignInAt: identities[0]?.lastSignInAt ?? rows[0].legacyLastSignInAt ?? null,
+      legacyAuthProvider: undefined,
+      legacyLastSignInAt: undefined,
+    },
+  })
 }

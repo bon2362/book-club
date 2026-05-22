@@ -28,6 +28,7 @@ jest.mock('@/lib/user-identities', () => ({
 }))
 
 import { encode } from '@auth/core/jwt'
+import { db } from '@/lib/db'
 import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 function setNodeEnv(value: string) {
@@ -93,6 +94,11 @@ describe('/api/test/session guards', () => {
       email: 'user@test.com',
       name: 'User',
       metadata: { source: 'test-session' },
+    }))
+    const updateChain = (db.update as jest.Mock).mock.results[0].value
+    expect(updateChain.set).toHaveBeenCalledWith(expect.not.objectContaining({
+      authProvider: expect.anything(),
+      lastSignInAt: expect.anything(),
     }))
     expect(encode).toHaveBeenCalledWith(expect.objectContaining({
       token: expect.objectContaining({ sub: 'canonical-test-uuid' }),

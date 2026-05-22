@@ -36,6 +36,13 @@ export interface ResolvedIdentityUser {
   isNew: boolean
 }
 
+export class IdentityConflictError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'IdentityConflictError'
+  }
+}
+
 type IdentityDb = Pick<typeof db, 'select' | 'insert' | 'update'>
 type TransactionalIdentityDb = IdentityDb & {
   transaction?: <T>(callback: (tx: IdentityDb) => Promise<T>) => Promise<T>
@@ -163,15 +170,12 @@ async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean
 async function updateUserCache(
   tx: IdentityDb,
   userId: string,
-  provider: IdentityProvider,
   profile: IdentityProfile,
   now: Date
 ): Promise<void> {
   await tx
     .update(users)
     .set({
-      authProvider: provider,
-      lastSignInAt: now,
       lastActivityAt: now,
       ...(profile.name ? { name: profile.name } : {}),
       ...(profile.image ? { image: profile.image } : {}),
@@ -217,7 +221,7 @@ async function syncGoogleAccount(tx: IdentityDb, userId: string, provider: Ident
   if (provider !== 'google') return
   const existingAccountUserId = await findGoogleAccountUserId(tx, provider, providerAccountId)
   if (existingAccountUserId && existingAccountUserId !== userId) {
-    throw new Error(`Google account ${providerAccountId} is already linked to another user`)
+    throw new IdentityConflictError(`Google account ${providerAccountId} is already linked to another user`)
   }
 
   await tx
@@ -245,14 +249,14 @@ export async function linkIdentityToUser(
     const now = profile.now ?? new Date()
     const existingGoogleAccountUserId = await findGoogleAccountUserId(tx, normalizedProvider, normalizedProviderAccountId)
     if (existingGoogleAccountUserId && existingGoogleAccountUserId !== userId) {
-      throw new Error(`Google account ${normalizedProviderAccountId} is already linked to another user`)
+      throw new IdentityConflictError(`Google account ${normalizedProviderAccountId} is already linked to another user`)
     }
     const existingIdentityUserId = await findIdentityUserId(tx, normalizedProvider, normalizedProviderAccountId)
     if (existingIdentityUserId && existingIdentityUserId !== userId) {
-      throw new Error(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
+      throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
     }
     const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
-    await updateUserCache(tx, identityUserId, normalizedProvider, profile, now)
+    await updateUserCache(tx, identityUserId, profile, now)
     await syncGoogleAccount(tx, identityUserId, normalizedProvider, normalizedProviderAccountId)
     return selectResolvedUser(tx, identityUserId, false)
   })
@@ -274,7 +278,7 @@ export async function resolveOrCreateUserFromIdentity(
     if (existingIdentityUserId) {
       const userId = existingIdentityUserId
       await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
-      await updateUserCache(tx, userId, normalizedProvider, profile, now)
+      await updateUserCache(tx, userId, profile, now)
       await syncGoogleAccount(tx, userId, normalizedProvider, normalizedProviderAccountId)
       return selectResolvedUser(tx, userId, false)
     }
@@ -294,13 +298,11 @@ export async function resolveOrCreateUserFromIdentity(
         emailVerified: email && normalizedProvider !== 'telegram' ? now : null,
         image: profile.image ?? null,
         telegramUsername: normalizeTelegramContact(profile.telegramUsername),
-        authProvider: normalizedProvider,
-        lastSignInAt: now,
         lastActivityAt: now,
         isAdmin: profile.isAdmin ?? false,
       })
     } else {
-      await updateUserCache(tx, userId, normalizedProvider, profile, now)
+      await updateUserCache(tx, userId, profile, now)
     }
 
     const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)

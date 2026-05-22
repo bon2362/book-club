@@ -122,13 +122,36 @@ jest.mock('@/lib/db', () => ({
 jest.mock('drizzle-orm', () => ({
   asc: () => undefined,
   eq: (col: string, val: string) => ({ __col: col, __val: val }),
-  sql: () => undefined,
 }))
 
 // Schema mock — fake column references so chain calls don't blow up
 jest.mock('@/lib/db/schema', () => ({
   introSections: { id: 'id', kind: 'kind', sortOrder: 'sortOrder', title: 'title', body: 'body', isPublished: 'isPublished', updatedAt: 'updatedAt' },
 }))
+
+function seedMigratedIntroRows(intro: typeof import('./intro')) {
+  rows = [
+    {
+      id: 'intro-header',
+      kind: 'header',
+      sortOrder: 0,
+      title: intro.DEFAULT_HEADER.title,
+      body: intro.DEFAULT_HEADER.body,
+      isPublished: true,
+      updatedAt: new Date(),
+    },
+    ...intro.DEFAULT_SECTIONS.map((section, idx) => ({
+      id: `intro-section-${idx + 1}`,
+      kind: 'section',
+      sortOrder: idx,
+      title: section.title,
+      body: section.body,
+      isPublished: true,
+      updatedAt: new Date(),
+    })),
+  ]
+  idCounter = rows.length
+}
 
 describe('lib/intro DB functions', () => {
   beforeEach(() => {
@@ -137,8 +160,16 @@ describe('lib/intro DB functions', () => {
     idCounter = 0
   })
 
-  it('getIntroData seeds defaults on empty table and returns header + sections', async () => {
+  it('getIntroData does not seed defaults on empty table', async () => {
     const intro = await import('./intro')
+    const data = await intro.getIntroData({ onlyPublished: true })
+    expect(data).toEqual({ header: null, sections: [] })
+    expect(rows).toEqual([])
+  })
+
+  it('getIntroData returns migrated header + sections', async () => {
+    const intro = await import('./intro')
+    seedMigratedIntroRows(intro)
     const data = await intro.getIntroData({ onlyPublished: true })
     expect(data.header).not.toBeNull()
     expect(data.header?.title).toBe(intro.DEFAULT_HEADER.title)
@@ -148,7 +179,7 @@ describe('lib/intro DB functions', () => {
 
   it('getIntroData with onlyPublished=true hides unpublished header', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
+    seedMigratedIntroRows(intro)
     const headerRow = rows.find(r => r.kind === 'header')!
     rows = rows.map(r => (r.id === headerRow.id ? { ...r, isPublished: false } : r))
     const data = await intro.getIntroData({ onlyPublished: true })
@@ -157,7 +188,7 @@ describe('lib/intro DB functions', () => {
 
   it('getIntroData returns unpublished sections when onlyPublished=false', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
+    seedMigratedIntroRows(intro)
     rows = rows.map(r => (r.kind === 'section' ? { ...r, isPublished: false } : r))
     const publicData = await intro.getIntroData({ onlyPublished: true })
     expect(publicData.sections.length).toBe(0)
@@ -167,7 +198,7 @@ describe('lib/intro DB functions', () => {
 
   it('updateSections updates section fields and ignores sort_order/is_published on header', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
+    seedMigratedIntroRows(intro)
     const headerRow = rows.find(r => r.kind === 'header')!
     const sectionRow = rows.find(r => r.kind === 'section')!
     await intro.updateSections([
@@ -186,7 +217,7 @@ describe('lib/intro DB functions', () => {
 
   it('updateSections no-ops for empty patch list and unknown ids', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
+    seedMigratedIntroRows(intro)
     const before = rows.map(r => ({ ...r }))
     await intro.updateSections([])
     await intro.updateSections([{ id: 'no-such-id', title: 'x' }])
@@ -195,7 +226,7 @@ describe('lib/intro DB functions', () => {
 
   it('createSection appends a section with sortOrder = max+1', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
+    seedMigratedIntroRows(intro)
     const before = rows.filter(r => r.kind === 'section').length
     const maxOrder = Math.max(...rows.filter(r => r.kind === 'section').map(r => r.sortOrder))
     const created = await intro.createSection()
@@ -206,7 +237,7 @@ describe('lib/intro DB functions', () => {
 
   it('deleteSection refuses to delete header and returns reason', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
+    seedMigratedIntroRows(intro)
     const headerRow = rows.find(r => r.kind === 'header')!
     const result = await intro.deleteSection(headerRow.id)
     expect(result).toEqual({ ok: false, reason: 'header_protected' })
@@ -215,27 +246,28 @@ describe('lib/intro DB functions', () => {
 
   it('deleteSection returns not_found for missing id', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
     const result = await intro.deleteSection('does-not-exist')
     expect(result).toEqual({ ok: false, reason: 'not_found' })
   })
 
   it('deleteSection removes a section', async () => {
     const intro = await import('./intro')
-    await intro.getIntroData()
+    seedMigratedIntroRows(intro)
     const sectionRow = rows.find(r => r.kind === 'section')!
     const result = await intro.deleteSection(sectionRow.id)
     expect(result.ok).toBe(true)
     expect(rows.find(r => r.id === sectionRow.id)).toBeUndefined()
   })
 
-  it('ensureIntroTable bootstrap is cached across calls', async () => {
+  it('ensureIntroTable does not run DDL or seed data at runtime', async () => {
     const intro = await import('./intro')
-    const { db } = jest.requireMock('@/lib/db') as { db: { execute: jest.Mock } }
+    const { db } = jest.requireMock('@/lib/db') as { db: { execute: jest.Mock; insert: jest.Mock } }
     db.execute.mockClear()
+    db.insert.mockClear()
     await intro.ensureIntroTable()
     await intro.ensureIntroTable()
-    await intro.ensureIntroTable()
-    expect(db.execute).toHaveBeenCalledTimes(2) // CREATE TABLE + CREATE INDEX, once
+    await intro.getIntroData()
+    expect(db.execute).not.toHaveBeenCalled()
+    expect(db.insert).not.toHaveBeenCalled()
   })
 })

@@ -121,7 +121,37 @@ describe('POST /api/signup', () => {
     await POST(makeRequest({ name: '  Latest Name  ', contacts: '  @latest  ', selectedBooks: [] }))
 
     expect(db.update).toHaveBeenCalled()
-    expect(mockSet).toHaveBeenCalledWith({ name: 'Latest Name', contacts: '@latest' })
+    expect(mockSet).toHaveBeenCalledWith({ name: 'Latest Name', contacts: '@latest', prioritiesSet: false })
+  })
+
+  it('сбрасывает prioritiesSet=false когда selectedBooks пустой', async () => {
+    const { db } = await import('@/lib/db')
+    const mockWhere = jest.fn().mockResolvedValue(undefined)
+    const mockSet = jest.fn().mockReturnValue({ where: mockWhere })
+    ;(db.update as jest.Mock).mockReturnValue({ set: mockSet })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: [] }))
+
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+      prioritiesSet: false,
+    }))
+  })
+
+  it('не сбрасывает prioritiesSet если selectedBooks не пустой', async () => {
+    const { db } = await import('@/lib/db')
+    const mockWhere = jest.fn().mockResolvedValue(undefined)
+    const mockSet = jest.fn().mockReturnValue({ where: mockWhere })
+    ;(db.update as jest.Mock).mockReturnValue({ set: mockSet })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А'] }))
+
+    expect(mockSet).toHaveBeenCalledWith(expect.not.objectContaining({
+      prioritiesSet: expect.anything(),
+    }))
   })
 
   it('удаляет приоритеты для книг, которых нет в новом списке', async () => {

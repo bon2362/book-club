@@ -4,8 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { encode } from '@auth/core/jwt'
 import { db } from '@/lib/db'
-import { notificationQueue, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { notificationQueue, userIdentities, users } from '@/lib/db/schema'
+import { eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { normalizeIdentityProvider, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
@@ -33,9 +33,7 @@ export async function POST(req: NextRequest) {
 
   await db.update(users).set({
     name,
-    authProvider: provider ?? 'email',
     telegramUsername: telegramUsername ?? null,
-    lastSignInAt: new Date(),
     emailVerified: new Date(),
     isAdmin: isAdmin ?? false,
   }).where(eq(users.id, user.id))
@@ -58,6 +56,10 @@ export async function DELETE(req: NextRequest) {
 
   const { email } = await req.json() as { email: string }
   await db.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
+  await db.delete(userIdentities).where(or(
+    eq(userIdentities.email, email),
+    eq(userIdentities.providerAccountId, email)
+  ))
   await db.delete(users).where(eq(users.email, email))
 
   const res = NextResponse.json({ ok: true })
