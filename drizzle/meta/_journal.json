@@ -120,6 +120,13 @@
       "when": 1779290200000,
       "tag": "0016_seed_intro_sections",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1779438400000,
+      "tag": "0017_user_created_activity_backfill",
+      "breakpoints": true
     }
   ]
 }

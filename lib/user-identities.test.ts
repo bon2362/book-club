@@ -11,7 +11,7 @@ jest.mock('@/lib/db', () => ({
 }))
 
 import { db } from '@/lib/db'
-import { accounts, userIdentities, users } from '@/lib/db/schema'
+import { accounts, userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 import {
   IdentityConflictError,
   linkIdentityToUser,
@@ -137,8 +137,21 @@ describe('user identity helpers', () => {
       authProvider: expect.anything(),
       lastSignInAt: expect.anything(),
     }))
-    expect(insertChains[1].table).toBe(userIdentities)
+    expect(insertChains[1].table).toBe(userActivityEvents)
     expect(insertChains[1].lastValues).toEqual(expect.objectContaining({
+      userId: 'generated-uuid',
+      type: 'user_created',
+      occurredAt: expect.any(Date),
+      source: 'auth',
+      sourceId: 'telegram',
+      dedupeKey: 'user_created:generated-uuid',
+      metadata: JSON.stringify({ provider: 'telegram' }),
+    }))
+    expect(insertChains[1].onConflictDoNothing).toHaveBeenCalledWith({
+      target: userActivityEvents.dedupeKey,
+    })
+    expect(insertChains[2].table).toBe(userIdentities)
+    expect(insertChains[2].lastValues).toEqual(expect.objectContaining({
       userId: 'generated-uuid',
       provider: 'telegram',
       providerAccountId: '123',
@@ -166,6 +179,7 @@ describe('user identity helpers', () => {
 
     expect(result.id).toBe('user-uuid')
     expect(insertChains.some(chain => chain.table === users)).toBe(false)
+    expect(insertChains.some(chain => chain.table === userActivityEvents)).toBe(false)
     expect(insertChains[0].table).toBe(userIdentities)
     expect(insertChains[0].lastValues).toEqual(expect.objectContaining({
       userId: 'user-uuid',
@@ -203,6 +217,7 @@ describe('user identity helpers', () => {
 
     expect(result.id).toBe('account-owner')
     expect(insertChains.some(chain => chain.table === users)).toBe(false)
+    expect(insertChains.some(chain => chain.table === userActivityEvents)).toBe(false)
     expect(insertChains[0].table).toBe(userIdentities)
     expect(insertChains[0].lastValues).toEqual(expect.objectContaining({
       userId: 'account-owner',

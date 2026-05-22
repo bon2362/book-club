@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { accounts, userIdentities, users } from '@/lib/db/schema'
+import { accounts, userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 
 export const IDENTITY_PROVIDERS = ['google', 'email', 'telegram'] as const
 
@@ -185,6 +185,31 @@ async function updateUserCache(
     .where(eq(users.id, userId))
 }
 
+async function bestEffortRecordUserCreated(
+  tx: IdentityDb,
+  userId: string,
+  provider: IdentityProvider,
+  now: Date
+): Promise<void> {
+  try {
+    await tx
+      .insert(userActivityEvents)
+      .values({
+        userId,
+        type: 'user_created',
+        occurredAt: now,
+        source: 'auth',
+        sourceId: provider,
+        dedupeKey: `user_created:${userId}`,
+        metadata: JSON.stringify({ provider }),
+      })
+      .onConflictDoNothing({ target: userActivityEvents.dedupeKey })
+  } catch (error) {
+    const errorName = error instanceof Error ? error.name : typeof error
+    console.error('Failed to record user_created activity', { errorName })
+  }
+}
+
 async function upsertIdentity(
   tx: IdentityDb,
   userId: string,
@@ -301,6 +326,7 @@ export async function resolveOrCreateUserFromIdentity(
         lastActivityAt: now,
         isAdmin: profile.isAdmin ?? false,
       })
+      await bestEffortRecordUserCreated(tx, userId, normalizedProvider, now)
     } else {
       await updateUserCache(tx, userId, profile, now)
     }
