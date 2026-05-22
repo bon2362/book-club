@@ -23,7 +23,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
     .select({
       userId: users.id,
       name: users.name,
-      email: users.email,
+      email: users.contactEmail,
       contactEmail: users.contactEmail,
       contacts: users.contacts,
       prioritiesSet: users.prioritiesSet,

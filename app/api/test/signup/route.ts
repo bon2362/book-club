@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const rows = await db
     .select({ id: users.id })
     .from(users)
-    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
+    .where(eq(users.contactEmail, email))
     .limit(1)
   const identityRows = rows[0]?.id ? [] : await db
     .select({ userId: userIdentities.userId })

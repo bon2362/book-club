@@ -130,10 +130,10 @@ describe('user identity helpers', () => {
     expect(insertChains[0].table).toBe(users)
     expect(insertChains[0].lastValues).toEqual(expect.objectContaining({
       id: 'generated-uuid',
-      email: null,
       contactEmail: null,
       telegramUsername: 'ivan',
     }))
+    expect(insertChains[0].lastValues).not.toHaveProperty('email')
     expect(insertChains[0].lastValues).toEqual(expect.not.objectContaining({
       authProvider: expect.anything(),
       lastSignInAt: expect.anything(),

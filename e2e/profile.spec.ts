@@ -19,7 +19,9 @@ test.describe('ProfileDrawer — редактирование профиля', (
   })
 
   test.afterEach(async ({ page }) => {
-    await page.request.delete('/api/test/session', { data: { email: EMAIL } })
+    await page.request.delete('/api/test/session', {
+      data: { email: EMAIL, provider: 'telegram-preauth', telegramUsername: TG_USERNAME },
+    })
   })
 
   test('языки чтения сохраняются после перезагрузки страницы', async ({ page }) => {

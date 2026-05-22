@@ -17,9 +17,9 @@ export async function GET(req: NextRequest) {
   }
 
   const rows = await db
-    .select({ id: users.id, email: users.email, contactEmail: users.contactEmail })
+    .select({ id: users.id, email: users.contactEmail, contactEmail: users.contactEmail })
     .from(users)
-    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
+    .where(eq(users.contactEmail, email))
     .limit(1)
 
   let userRow = rows[0]
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       .limit(1)
     if (identityRows[0]?.userId) {
       const byIdentityRows = await db
-        .select({ id: users.id, email: users.email, contactEmail: users.contactEmail })
+        .select({ id: users.id, email: users.contactEmail, contactEmail: users.contactEmail })
         .from(users)
         .where(eq(users.id, identityRows[0].userId))
         .limit(1)

@@ -553,13 +553,13 @@ describe('telegram-preauth authorize', () => {
     const token = 'token'
 
     mockPreauthConsume(true)
-    mockDbSelect([{ id: uid, email: 'tg@telegram.user', name: 'Ivan' }])
+    mockDbSelect([{ id: uid, contactEmail: null, name: 'Ivan' }])
 
     const result = await authorize({ uid, token, ts, username: 'ivan_tg' })
 
     expect(result).toMatchObject({
       id: uid,
-      email: 'tg@telegram.user',
+      email: null,
       name: 'Ivan',
       telegramUsername: 'ivan_tg',
     })

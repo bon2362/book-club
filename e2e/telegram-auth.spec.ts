@@ -22,7 +22,9 @@ test.describe('Авторизация через Telegram', () => {
   })
 
   test.afterEach(async ({ page }) => {
-    await page.request.delete('/api/test/session', { data: { email: TG_EMAIL } })
+    await page.request.delete('/api/test/session', {
+      data: { email: TG_EMAIL, provider: 'telegram-preauth', providerAccountId: TG_PROVIDER_ACCOUNT_ID },
+    })
   })
 
   test('ContactsForm не появляется — профиль сохраняется автоматически', async ({ page }) => {

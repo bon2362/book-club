@@ -74,7 +74,7 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
       .select({
         id: users.id,
         name: users.name,
-        email: users.email,
+        email: users.contactEmail,
         contactEmail: users.contactEmail,
         emailVerified: users.emailVerified,
         createdAt: users.createdAt,
@@ -87,7 +87,7 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
         isAdmin: users.isAdmin,
       })
       .from(users)
-      .orderBy(asc(users.name), asc(users.email)),
+      .orderBy(asc(users.name), asc(users.contactEmail)),
     db.select({ userId: signupBooks.userId, activityAt: signupBooks.signedAt }).from(signupBooks),
     db
       .select({
@@ -155,7 +155,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
     .select({
       id: users.id,
       name: users.name,
-      email: users.email,
+      email: users.contactEmail,
       contactEmail: users.contactEmail,
       emailVerified: users.emailVerified,
       createdAt: users.createdAt,
@@ -205,7 +205,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
         message: feedback.message,
         createdAt: feedback.createdAt,
         userName: users.name,
-        userEmail: users.email,
+        userEmail: users.contactEmail,
         userContactEmail: users.contactEmail,
       })
       .from(feedback)
@@ -265,7 +265,7 @@ export async function getAdminFeedback(): Promise<AdminFeedbackItem[]> {
       message: feedback.message,
       createdAt: feedback.createdAt,
       userName: users.name,
-      userEmail: users.email,
+      userEmail: users.contactEmail,
       userContactEmail: users.contactEmail,
     })
     .from(feedback)

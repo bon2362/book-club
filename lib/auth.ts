@@ -2,11 +2,11 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Resend from 'next-auth/providers/resend'
 import Credentials from 'next-auth/providers/credentials'
-import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { db } from '@/lib/db'
-import { users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { userIdentities, users } from '@/lib/db/schema'
+import { eq, or } from 'drizzle-orm'
 import { Resend as ResendClient } from 'resend'
+import { IdentityAwareDrizzleAdapter } from '@/lib/auth-adapter'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
 import { consumeTelegramPreauthToken } from '@/lib/telegram-auth'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
@@ -91,7 +91,7 @@ async function sendMagicLinkEmail(email: string, url: string) {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: DrizzleAdapter(db),
+  adapter: IdentityAwareDrizzleAdapter(),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -126,7 +126,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const existing = await db.select().from(users).where(eq(users.id, uid)).limit(1)
         if (existing.length === 0) return null
         const user = existing[0]
-        return { id: user.id, email: user.email, contactEmail: user.contactEmail, name: user.name ?? '', telegramUsername: username || null }
+        return { id: user.id, email: user.contactEmail, contactEmail: user.contactEmail, name: user.name ?? '', telegramUsername: username || null }
       },
     }),
   ],
@@ -139,10 +139,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // account is null for email magic link (Resend doesn't create an accounts row)
         const provider = account?.provider ? normalizeAuthProvider(account.provider) : 'email'
         const now = new Date()
-        if (user.telegramUsername) {
+        if (user.telegramUsername && userId) {
           await db.update(users).set({
             telegramUsername: user.telegramUsername,
-          }).where(userId ? eq(users.id, userId) : eq(users.email, user.email!))
+          }).where(eq(users.id, userId))
         }
         if (userId) {
           await bestEffortRecordUserActivity(userId, 'sign_in', {
@@ -209,14 +209,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const email = (user?.email ?? token.email) as string | undefined
       if (userId || email) {
         const existing = await db
-          .select({ id: users.id, isAdmin: users.isAdmin, contactEmail: users.contactEmail, email: users.email })
+          .select({ id: users.id, isAdmin: users.isAdmin, contactEmail: users.contactEmail })
           .from(users)
-          .where(userId ? eq(users.id, userId) : eq(users.email, email!))
+          .where(userId ? eq(users.id, userId) : eq(users.contactEmail, email!))
           .limit(1)
+        if (existing.length === 0 && email) {
+          const identityRows = await db
+            .select({ userId: userIdentities.userId })
+            .from(userIdentities)
+            .where(or(eq(userIdentities.email, email), eq(userIdentities.providerAccountId, email)))
+            .limit(1)
+          if (identityRows[0]?.userId) {
+            const identityUserRows = await db
+              .select({ id: users.id, isAdmin: users.isAdmin, contactEmail: users.contactEmail })
+              .from(users)
+              .where(eq(users.id, identityRows[0].userId))
+              .limit(1)
+            existing.push(...identityUserRows)
+          }
+        }
         if (existing.length === 0) return null
         token.isAdmin = existing[0].isAdmin
         token.contactEmail = existing[0].contactEmail
-        const contactEmail = existing[0].contactEmail ?? existing[0].email ?? email
+        const contactEmail = existing[0].contactEmail ?? email
         if (!token.isAdmin) {
           token.isAdmin = await bootstrapAdminFromEnv(existing[0].id, contactEmail)
         }
