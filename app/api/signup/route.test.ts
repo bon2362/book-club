@@ -52,29 +52,36 @@ describe('POST /api/signup', () => {
     expect(res.status).toBe(401)
   })
 
-  it('возвращает 400 при пустом name', async () => {
+  it('возвращает 401 если в сессии нет user.id', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+
+    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBooks: [] }))
+    expect(res.status).toBe(401)
+  })
+
+  it('возвращает 400 при пустом name', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
     const res = await POST(makeRequest({ name: '   ', contacts: 'tg', selectedBooks: [] }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 400 при некорректном contacts (не строка)', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 123, selectedBooks: [] }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 400 при отсутствии selectedBooks', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 'tg' }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 400 если selectedBooks не массив', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBooks: 'Book A' }))
     expect(res.status).toBe(400)
@@ -180,6 +187,22 @@ describe('POST /api/signup', () => {
         contacts: '@t',
         addedBooks: JSON.stringify(['Книга А', 'Книга Б']),
         isNew: true,
+      })
+    )
+  })
+
+  it('не пишет технический Telegram-only email в очередь уведомлений', async () => {
+    const mockValues = jest.fn().mockReturnValue({ catch: jest.fn() })
+    mockInsert.mockReturnValue({ values: mockValues })
+    mockAuth.mockResolvedValue({ user: { email: 'telegram:123456@telegram.user', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue({ isNew: true, addedBooks: ['Книга А'] })
+
+    await POST(makeRequest({ name: 'Test', contacts: '@telegram', selectedBooks: ['Книга А'] }))
+
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userEmail: '',
+        contacts: '@telegram',
       })
     )
   })

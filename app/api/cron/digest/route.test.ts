@@ -162,6 +162,16 @@ describe('GET /api/cron/digest', () => {
     expect(callArg.subject).toMatch(/дайджест/i)
   })
 
+  it('не добавляет пустую строку Email в дайджест', async () => {
+    const cooledRow = makeRow({ userEmail: '' })
+    setupDbMock([cooledRow])
+    const res = await GET(makeRequest({ secret: VALID_SECRET }))
+    expect(res.status).toBe(200)
+    const callArg = mockEmailSend.mock.calls[0][0]
+    expect(callArg.text).toContain('Контакт: @test')
+    expect(callArg.text).not.toContain('Email:')
+  })
+
   it('отправляет дайджест при принудительном сбросе (старейшая строка > 2 ч)', async () => {
     const oldRow = makeRow({
       id: 'old',

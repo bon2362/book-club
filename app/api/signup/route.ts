@@ -5,10 +5,12 @@ import { db } from '@/lib/db'
 import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
+import { getContactEmail } from '@/lib/user-email'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
-  if (!session?.user?.email) {
+  const pgUserId = session?.user?.id
+  if (!pgUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -17,11 +19,6 @@ export async function POST(req: NextRequest) {
 
   if (!name?.trim() || typeof contacts !== 'string' || !Array.isArray(selectedBooks)) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-  }
-
-  const pgUserId = session.user.id
-  if (!pgUserId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const selectedBookNames = selectedBooks as string[]
@@ -87,7 +84,7 @@ export async function POST(req: NextRequest) {
   if (result.addedBooks.length > 0 && process.env.NEXTAUTH_TEST_MODE !== 'true') {
     db.insert(notificationQueue).values({
       userName: name.trim(),
-      userEmail: session.user.email,
+      userEmail: getContactEmail(session.user.email) ?? '',
       contacts: contacts.trim(),
       addedBooks: JSON.stringify(result.addedBooks),
       isNew: result.isNew,

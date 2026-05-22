@@ -7,6 +7,7 @@ import { bookSubmissions, signupBooks, bookPriorities, users } from '@/lib/db/sc
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
+import { getContactEmail } from '@/lib/user-email'
 
 export async function DELETE(
   _req: NextRequest,
@@ -107,13 +108,15 @@ export async function PATCH(
       .where(eq(users.id, submission.userId))
       .limit(1)
 
-    if (userRow?.email) {
+    const contactEmail = getContactEmail(userRow?.email)
+
+    if (contactEmail) {
       const template = status === 'approved'
         ? approvedEmail(submission.title)
         : rejectedEmail(submission.title, submission.rejectionReason)
       try {
         const resend = new Resend(process.env.RESEND_API_KEY!)
-        await resend.emails.send({ from: FROM, to: userRow.email, ...template })
+        await resend.emails.send({ from: FROM, to: contactEmail, ...template })
       } catch (e) {
         console.error('Email send failed:', e)
       }

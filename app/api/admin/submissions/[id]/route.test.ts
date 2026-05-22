@@ -119,6 +119,17 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
     expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: 'user@test.com', subject: 'Одобрено' }))
   })
 
+  it('не отправляет email на технический Telegram-only адрес', async () => {
+    mockSelect.mockReset()
+    mockSelect
+      .mockResolvedValueOnce([{ title: 'Сапиенс', status: 'approved' }])
+      .mockResolvedValue([{ email: 'telegram:123456@telegram.user' }])
+
+    await PATCH(makeRequest('sub-1', { status: 'approved' }), { params: { id: 'sub-1' } })
+
+    expect(mockSend).not.toHaveBeenCalled()
+  })
+
   it('записывает автора заявки на книгу при статусе approved', async () => {
     await PATCH(makeRequest('sub-1', { status: 'approved' }), { params: { id: 'sub-1' } })
     expect(mockInsertValues).toHaveBeenCalledWith({ userId: 'user-1', bookName: 'Сапиенс' })

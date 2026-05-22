@@ -20,6 +20,7 @@ import AboutBlock, { type AboutBlockHandle, type AboutBlockHeader, type AboutBlo
 import Footer from './Footer'
 import FeedbackForm from './FeedbackForm'
 import { useScrollHide } from '@/lib/scroll-hide-context'
+import { getContactEmail } from '@/lib/user-email'
 
 interface Props {
   books: BookWithCover[]
@@ -41,10 +42,11 @@ async function saveSelection(name: string, contacts: string, books: string[]) {
 export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections }: Props) {
   const { data: session } = useSession()
   const { isHidden } = useScrollHide()
-  const isLoggedIn = !!session?.user?.email
+  const isLoggedIn = !!session?.user?.id
   const isAdmin = !!session?.user?.isAdmin
   const telegramUsername = session?.user?.telegramUsername ?? null
   const telegramName = session?.user?.name ?? null
+  const contactEmail = getContactEmail(session?.user?.email)
 
   const [aboutVisible, setAboutVisible] = useState(true)
   const aboutRef = useRef<AboutBlockHandle>(null)
@@ -103,6 +105,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const [selectedBooks, setSelectedBooks] = useState<string[]>(
     currentUser?.selectedBooks ?? []
   )
+  const selectedBooksRef = useRef(selectedBooks)
+  const saveSelectionQueueRef = useRef<Promise<void>>(Promise.resolve())
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [showContactsForm, setShowContactsForm] = useState(false)
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
@@ -112,11 +116,23 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const [submitIntent, setSubmitIntent] = useState(false)
   const [feedbackFormOpen, setFeedbackFormOpen] = useState(false)
 
+  function enqueueSaveSelection(name: string, contacts: string, booksList: string[]): Promise<void> {
+    const nextSave = saveSelectionQueueRef.current
+      .catch(() => undefined)
+      .then(() => saveSelection(name, contacts, booksList))
+    saveSelectionQueueRef.current = nextSave
+    return nextSave
+  }
+
   useEffect(() => {
     if (!showPriorityHint || priorityHintPaused) return
     const t = setTimeout(() => setShowPriorityHint(false), 20000)
     return () => clearTimeout(t)
   }, [showPriorityHint, priorityHintPaused])
+
+  useEffect(() => {
+    selectedBooksRef.current = selectedBooks
+  }, [selectedBooks])
 
   useEffect(() => {
     const stored = localStorage.getItem('submitIntent') === '1'
@@ -157,7 +173,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         // Telegram users already provided name and username — auto-save without showing the form
         const name = telegramName || telegramUsername
         const contacts = '@' + telegramUsername
-        saveSelection(name, contacts, [])
+        enqueueSaveSelection(name, contacts, [])
           .then(() => setSavedUser({ name, contacts }))
           .catch(console.error)
       } else {
@@ -202,12 +218,14 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       return
     }
 
-    const isAdding = !selectedBooks.includes(book.name)
+    const currentSelection = selectedBooksRef.current
+    const isAdding = !currentSelection.includes(book.name)
     const next = isAdding
-      ? [...selectedBooks, book.name]
-      : selectedBooks.filter(n => n !== book.name)
+      ? [...currentSelection, book.name]
+      : currentSelection.filter(n => n !== book.name)
 
     track(isAdding ? 'book_signup' : 'book_unsignup', { bookName: book.name })
+    selectedBooksRef.current = next
     setSelectedBooks(next)
 
     if (isAdding && next.length === 2 && !localStorage.getItem('hint_priorities_seen')) {
@@ -215,16 +233,17 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       setShowPriorityHint(true)
     }
 
-    saveSelection(effectiveUser.name, effectiveUser.contacts, next).catch(console.error)
+    enqueueSaveSelection(effectiveUser.name, effectiveUser.contacts, next).catch(console.error)
   }
 
   async function handleSaveContacts(name: string, contacts: string) {
     const booksList = pendingBook
-      ? [...selectedBooks, pendingBook.name]
-      : selectedBooks
-    await saveSelection(name, contacts, booksList)
+      ? [...selectedBooksRef.current, pendingBook.name]
+      : selectedBooksRef.current
+    await enqueueSaveSelection(name, contacts, booksList)
     setSavedUser({ name, contacts })
     if (pendingBook) {
+      selectedBooksRef.current = booksList
       setSelectedBooks(booksList)
       setPendingBook(null)
     }
@@ -236,16 +255,18 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   }
 
   async function handleToggleByName(bookName: string): Promise<void> {
-    const original = selectedBooks
-    const isAdding = !selectedBooks.includes(bookName)
+    const original = selectedBooksRef.current
+    const isAdding = !original.includes(bookName)
     const next = isAdding
-      ? [...selectedBooks, bookName]
-      : selectedBooks.filter(n => n !== bookName)
+      ? [...original, bookName]
+      : original.filter(n => n !== bookName)
     track(isAdding ? 'book_signup' : 'book_unsignup', { bookName })
+    selectedBooksRef.current = next
     setSelectedBooks(next)
     try {
-      await saveSelection(effectiveUser!.name, effectiveUser!.contacts, next)
+      await enqueueSaveSelection(effectiveUser!.name, effectiveUser!.contacts, next)
     } catch (err) {
+      selectedBooksRef.current = original
       setSelectedBooks(original) // rollback to snapshot taken before optimistic update
       throw err
     }
@@ -557,7 +578,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
           isOpen={feedbackFormOpen}
           onClose={() => setFeedbackFormOpen(false)}
           currentUser={currentUser}
-          userEmail={session?.user?.email ?? undefined}
+          userEmail={contactEmail ?? undefined}
         />
       )}
 
