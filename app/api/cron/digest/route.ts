@@ -73,7 +73,8 @@ export async function GET(req: Request) {
   const lines = captured.map((r, i) => {
     const books = JSON.parse(r.addedBooks) as string[]
     const label = r.isNew ? 'новая запись' : 'обновление'
-    return `${i + 1}. ${r.userName} (${label})\n   Контакт: ${r.contacts}\n   Email: ${r.userEmail}\n   Книги: ${books.join(', ')}`
+    const emailLine = r.userEmail ? `\n   Email: ${r.userEmail}` : ''
+    return `${i + 1}. ${r.userName} (${label})\n   Контакт: ${r.contacts}${emailLine}\n   Книги: ${books.join(', ')}`
   })
   const text = `${subject}\n\n${lines.join('\n\n')}`
 

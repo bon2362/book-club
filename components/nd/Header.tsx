@@ -6,6 +6,7 @@ import { track } from '@/lib/analytics'
 import Link from 'next/link'
 import SubmitBookButton from './SubmitBookButton'
 import { useScrollHide } from '@/lib/scroll-hide-context'
+import { getContactEmail } from '@/lib/user-email'
 
 interface Props {
   onEditProfile?: () => void
@@ -21,6 +22,9 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
   const [whatIsThisHovered, setWhatIsThisHovered] = useState(false)
   const { isHidden } = useScrollHide()
   const headerRef = useRef<HTMLElement>(null)
+  const contactEmail = getContactEmail(session?.user?.email)
+  const telegramHandle = session?.user?.telegramUsername ? `@${session.user.telegramUsername}` : null
+  const userLabel = displayName || session?.user?.name || telegramHandle || contactEmail || ''
 
   useEffect(() => {
     const el = headerRef.current
@@ -167,7 +171,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {displayName || (session.user.name ?? session.user.email)}
+                  {userLabel}
                 </button>
               )}
               {/* Mobile: кнопка входа в админку */}
@@ -218,7 +222,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                     flexShrink: 0,
                   }}
                 >
-                  {(displayName || session.user.name || session.user.email || '?')[0].toUpperCase()}
+                  {(userLabel || '?')[0].toUpperCase()}
                 </button>
               )}
             </>
