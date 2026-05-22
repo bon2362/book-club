@@ -13,6 +13,7 @@ jest.mock('@/lib/db', () => ({
 import { db } from '@/lib/db'
 import { accounts, userIdentities, users } from '@/lib/db/schema'
 import {
+  IdentityConflictError,
   linkIdentityToUser,
   normalizeIdentityProvider,
   normalizeTelegramContact,
@@ -132,6 +133,10 @@ describe('user identity helpers', () => {
       email: 'telegram:123@telegram.user',
       telegramUsername: 'ivan',
     }))
+    expect(insertChains[0].lastValues).toEqual(expect.not.objectContaining({
+      authProvider: expect.anything(),
+      lastSignInAt: expect.anything(),
+    }))
     expect(insertChains[1].table).toBe(userIdentities)
     expect(insertChains[1].lastValues).toEqual(expect.objectContaining({
       userId: 'generated-uuid',
@@ -151,7 +156,7 @@ describe('user identity helpers', () => {
       [{ id: 'user-uuid', email: 'user@test.com', name: 'User', image: null, telegramUsername: null }]
     )
     const insertChains = mockInserts()
-    mockUpdate()
+    const updateChain = mockUpdate()
 
     const result = await resolveOrCreateUserFromIdentity('google-one-tap', 'google-sub', {
       email: 'User@Test.COM',
@@ -167,6 +172,10 @@ describe('user identity helpers', () => {
       provider: 'google',
       providerAccountId: 'google-sub',
       email: 'user@test.com',
+    }))
+    expect(updateChain.set).toHaveBeenCalledWith(expect.not.objectContaining({
+      authProvider: expect.anything(),
+      lastSignInAt: expect.anything(),
     }))
     expect(insertChains[1].table).toBe(accounts)
     expect(insertChains[1].lastValues).toEqual(expect.objectContaining({
@@ -239,7 +248,7 @@ describe('user identity helpers', () => {
     await expect(linkIdentityToUser('canonical-uuid', 'google', 'oauth-sub', {
       email: 'oauth@test.com',
       emailVerified: true,
-    })).rejects.toThrow('already linked to another user')
+    })).rejects.toThrow(IdentityConflictError)
 
     expect(insertChains).toHaveLength(0)
     expect(db.update).not.toHaveBeenCalled()
@@ -255,7 +264,7 @@ describe('user identity helpers', () => {
     await expect(linkIdentityToUser('canonical-uuid', 'google', 'oauth-sub', {
       email: 'oauth@test.com',
       emailVerified: true,
-    })).rejects.toThrow('already linked to another user')
+    })).rejects.toThrow(IdentityConflictError)
 
     expect(insertChains).toHaveLength(0)
     expect(insertChains.some(chain => chain.table === accounts)).toBe(false)

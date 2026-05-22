@@ -11,7 +11,7 @@ export const users = pgTable('user', {
   image: text('image'),
   contacts: text('contacts'),
   telegramUsername: text('telegram_username'),
-  // Allowed values: 'google' | 'email' | 'google-one-tap' | 'telegram' | 'telegram-preauth'
+  // Legacy display/cache fields. New provider truth lives in user_identities.
   authProvider: text('auth_provider'),
   lastSignInAt: timestamp('last_sign_in_at', { mode: 'date' }),
   lastActivityAt: timestamp('last_activity_at', { mode: 'date' }),

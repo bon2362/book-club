@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { introSections } from '@/lib/db/schema'
-import { asc, eq, sql } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 
 export { bodyToParagraphs } from './intro-format'
 
@@ -47,57 +47,8 @@ export const DEFAULT_SECTIONS: { title: string; body: string }[] = [
   },
 ]
 
-let bootstrapPromise: Promise<void> | null = null
-
-async function bootstrap() {
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS intro_sections (
-      id text PRIMARY KEY,
-      kind text NOT NULL,
-      sort_order integer NOT NULL DEFAULT 0,
-      title text NOT NULL DEFAULT '',
-      body text NOT NULL DEFAULT '',
-      is_published boolean NOT NULL DEFAULT true,
-      updated_at timestamp NOT NULL DEFAULT now()
-    )
-  `)
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS intro_sections_kind_sort_idx
-    ON intro_sections (kind, sort_order)
-  `)
-  await seedIfEmpty()
-}
-
 export async function ensureIntroTable() {
-  if (!bootstrapPromise) {
-    bootstrapPromise = bootstrap().catch(err => {
-      bootstrapPromise = null
-      throw err
-    })
-  }
-  return bootstrapPromise
-}
-
-async function seedIfEmpty() {
-  const existing = await db.select({ id: introSections.id }).from(introSections).limit(1)
-  if (existing.length > 0) return
-
-  await db.insert(introSections).values({
-    kind: 'header',
-    sortOrder: 0,
-    title: DEFAULT_HEADER.title,
-    body: DEFAULT_HEADER.body,
-    isPublished: true,
-  })
-  await db.insert(introSections).values(
-    DEFAULT_SECTIONS.map((s, idx) => ({
-      kind: 'section',
-      sortOrder: idx,
-      title: s.title,
-      body: s.body,
-      isPublished: true,
-    }))
-  )
+  return Promise.resolve()
 }
 
 export async function getIntroData(opts: { onlyPublished?: boolean } = {}): Promise<IntroData> {
@@ -198,4 +149,3 @@ export async function deleteSection(id: string): Promise<{ ok: boolean; reason?:
   await db.delete(introSections).where(eq(introSections.id, id))
   return { ok: true }
 }
-

@@ -8,9 +8,9 @@ import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Resend as ResendClient } from 'resend'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
-import { consumeTelegramPreauthToken, verifyTelegramHash } from '@/lib/telegram-auth'
+import { consumeTelegramPreauthToken } from '@/lib/telegram-auth'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
-import { linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { IdentityConflictError, linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
@@ -31,6 +31,12 @@ async function bootstrapAdminFromEnv(userId: string, email?: string | null) {
 
 function normalizeAuthProvider(provider: string) {
   return provider === 'resend' ? 'email' : provider
+}
+
+function handleIdentitySyncError(error: unknown) {
+  if (error instanceof IdentityConflictError) throw error
+  const errorName = error instanceof Error ? error.name : typeof error
+  console.error('Failed to sync user identity during sign-in', { errorName })
 }
 
 async function sendMagicLinkEmail(email: string, url: string) {
@@ -123,28 +129,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return { id: user.id, email: user.email, name: user.name ?? '', telegramUsername: username || null }
       },
     }),
-    Credentials({
-      id: 'telegram',
-      credentials: {},
-      async authorize(credentials) {
-        const data = credentials as Record<string, string>
-        if (!verifyTelegramHash(data)) return null
-        const { id, first_name, last_name, username, photo_url } = data
-        const name = [first_name, last_name].filter(Boolean).join(' ') || username || String(id)
-        const user = await resolveOrCreateUserFromIdentity('telegram', id, {
-          name,
-          image: photo_url || null,
-          telegramUsername: username || null,
-          metadata: { source: 'telegram-credentials' },
-        })
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name ?? name,
-          telegramUsername: username || null,
-        }
-      },
-    }),
   ],
   session: { strategy: 'jwt' },
   callbacks: {
@@ -155,11 +139,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // account is null for email magic link (Resend doesn't create an accounts row)
         const provider = account?.provider ? normalizeAuthProvider(account.provider) : 'email'
         const now = new Date()
-        await db.update(users).set({
-          authProvider: provider,
-          lastSignInAt: now,
-          ...(user.telegramUsername ? { telegramUsername: user.telegramUsername } : {}),
-        }).where(userId ? eq(users.id, userId) : eq(users.email, user.email!))
+        if (user.telegramUsername) {
+          await db.update(users).set({
+            telegramUsername: user.telegramUsername,
+          }).where(userId ? eq(users.id, userId) : eq(users.email, user.email!))
+        }
         if (userId) {
           await bestEffortRecordUserActivity(userId, 'sign_in', {
             occurredAt: now,
@@ -169,33 +153,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           })
         }
         if (account?.provider === 'google' && account.providerAccountId && userId) {
-          await linkIdentityToUser(userId, 'google', account.providerAccountId, {
-            email: user.email,
-            emailVerified: true,
-            name: user.name,
-            image: user.image,
-            now,
-            metadata: { source: 'auth-sign-in' },
-          })
+          try {
+            await linkIdentityToUser(userId, 'google', account.providerAccountId, {
+              email: user.email,
+              emailVerified: true,
+              name: user.name,
+              image: user.image,
+              now,
+              metadata: { source: 'auth-sign-in' },
+            })
+          } catch (error) {
+            handleIdentitySyncError(error)
+          }
         } else if (provider === 'email' && user.email) {
-          if (userId) {
-            await linkIdentityToUser(userId, 'email', user.email, {
-              email: user.email,
-              emailVerified: true,
-              name: user.name,
-              image: user.image,
-              now,
-              metadata: { source: 'auth-sign-in' },
-            })
-          } else {
-            await resolveOrCreateUserFromIdentity('email', user.email, {
-              email: user.email,
-              emailVerified: true,
-              name: user.name,
-              image: user.image,
-              now,
-              metadata: { source: 'auth-sign-in' },
-            })
+          try {
+            if (userId) {
+              await linkIdentityToUser(userId, 'email', user.email, {
+                email: user.email,
+                emailVerified: true,
+                name: user.name,
+                image: user.image,
+                now,
+                metadata: { source: 'auth-sign-in' },
+              })
+            } else {
+              await resolveOrCreateUserFromIdentity('email', user.email, {
+                email: user.email,
+                emailVerified: true,
+                name: user.name,
+                image: user.image,
+                now,
+                metadata: { source: 'auth-sign-in' },
+              })
+            }
+          } catch (error) {
+            handleIdentitySyncError(error)
           }
         }
       }
