@@ -84,6 +84,7 @@ describe('/api/test/session guards', () => {
     ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
       id: 'canonical-test-uuid',
       email: 'user@test.com',
+      contactEmail: 'user@test.com',
       name: 'User',
     })
 
@@ -111,7 +112,8 @@ describe('/api/test/session guards', () => {
     process.env.NEXTAUTH_SECRET = 'secret'
     ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
       id: 'telegram-canonical-uuid',
-      email: 'tg@test.com',
+      email: null,
+      contactEmail: null,
       name: 'Telegram User',
     })
 
@@ -124,11 +126,11 @@ describe('/api/test/session guards', () => {
 
     expect(res.status).toBe(200)
     expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', 'reader_tg', expect.objectContaining({
-      email: 'tg@test.com',
+      email: null,
       telegramUsername: 'reader_tg',
     }))
     expect(encode).toHaveBeenCalledWith(expect.objectContaining({
-      token: expect.objectContaining({ sub: 'telegram-canonical-uuid' }),
+      token: expect.objectContaining({ sub: 'telegram-canonical-uuid', email: null, contactEmail: null }),
     }))
   })
 })

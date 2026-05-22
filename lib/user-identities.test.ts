@@ -112,10 +112,10 @@ describe('user identity helpers', () => {
     expect((db as unknown as { transaction: jest.Mock }).transaction).toHaveBeenCalled()
   })
 
-  it('создаёт нового Telegram user с UUID и technical placeholder email', async () => {
+  it('создаёт нового Telegram user с UUID без user.email/contactEmail', async () => {
     queueSelects(
       [],
-      [{ id: 'generated-uuid', email: 'telegram:123@telegram.user', name: 'Ivan', image: null, telegramUsername: 'ivan' }]
+      [{ id: 'generated-uuid', email: null, contactEmail: null, name: 'Ivan', image: null, telegramUsername: 'ivan' }]
     )
     const insertChains = mockInserts()
     mockUpdate()
@@ -130,7 +130,8 @@ describe('user identity helpers', () => {
     expect(insertChains[0].table).toBe(users)
     expect(insertChains[0].lastValues).toEqual(expect.objectContaining({
       id: 'generated-uuid',
-      email: 'telegram:123@telegram.user',
+      email: null,
+      contactEmail: null,
       telegramUsername: 'ivan',
     }))
     expect(insertChains[0].lastValues).toEqual(expect.not.objectContaining({

@@ -1,4 +1,4 @@
-import { getContactEmail, isSyntheticTelegramEmail } from './user-email'
+import { getContactEmail, getUserContactEmail, isSyntheticTelegramEmail } from './user-email'
 
 describe('user email helpers', () => {
   describe('isSyntheticTelegramEmail', () => {
@@ -23,6 +23,17 @@ describe('user email helpers', () => {
       expect(getContactEmail('')).toBeNull()
       expect(getContactEmail(null)).toBeNull()
       expect(getContactEmail('telegram:123456@telegram.user')).toBeNull()
+    })
+  })
+
+  describe('getUserContactEmail', () => {
+    it('предпочитает явный contactEmail', () => {
+      expect(getUserContactEmail({ contactEmail: 'contact@example.com', email: 'legacy@example.com' })).toBe('contact@example.com')
+    })
+
+    it('использует legacy email только если он реальный', () => {
+      expect(getUserContactEmail({ contactEmail: null, email: 'legacy@example.com' })).toBe('legacy@example.com')
+      expect(getUserContactEmail({ contactEmail: null, email: 'telegram:123@telegram.user' })).toBeNull()
     })
   })
 })

@@ -101,7 +101,7 @@ test.describe('админка — пользователи и фидбеки', (
     page.on('dialog', dialog => dialog.accept())
     await page.getByRole('dialog').getByRole('button', { name: /удалить пользователя/i }).click()
 
-    await expect(page.getByRole('dialog')).not.toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 10_000 })
     await expect(page.locator('tr').filter({ hasText: USER_NAME })).toHaveCount(0)
   })
 
@@ -110,8 +110,11 @@ test.describe('админка — пользователи и фидбеки', (
     await page.waitForLoadState('networkidle')
     const feedbackTab = page.locator('button').filter({ hasText: /фидбеки/i }).first()
     await expect(feedbackTab).toBeVisible()
-    const feedbackCount = Number((await feedbackTab.textContent())?.match(/Фидбеки \((\d+)\)/i)?.[1] ?? 0)
-    expect(feedbackCount).toBeGreaterThanOrEqual(2)
+    let feedbackCount = 0
+    await expect.poll(async () => {
+      feedbackCount = Number((await feedbackTab.textContent())?.match(/Фидбеки \((\d+)\)/i)?.[1] ?? 0)
+      return feedbackCount
+    }).toBeGreaterThanOrEqual(2)
     await expect(feedbackTab.getByLabel(`${feedbackCount} новых`)).toBeVisible()
 
     await page.getByRole('button', { name: /фидбеки/i }).click()

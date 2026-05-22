@@ -126,7 +126,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const existing = await db.select().from(users).where(eq(users.id, uid)).limit(1)
         if (existing.length === 0) return null
         const user = existing[0]
-        return { id: user.id, email: user.email, name: user.name ?? '', telegramUsername: username || null }
+        return { id: user.id, email: user.email, contactEmail: user.contactEmail, name: user.name ?? '', telegramUsername: username || null }
       },
     }),
   ],
@@ -197,6 +197,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.telegramUsername = user.telegramUsername ?? token.telegramUsername
         token.provider = account?.provider ?? token.provider
+        token.contactEmail = user.contactEmail ?? token.contactEmail
       }
 
       if (process.env.NEXTAUTH_TEST_MODE === 'true') {
@@ -208,17 +209,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const email = (user?.email ?? token.email) as string | undefined
       if (userId || email) {
         const existing = await db
-          .select({ id: users.id, isAdmin: users.isAdmin })
+          .select({ id: users.id, isAdmin: users.isAdmin, contactEmail: users.contactEmail, email: users.email })
           .from(users)
           .where(userId ? eq(users.id, userId) : eq(users.email, email!))
           .limit(1)
         if (existing.length === 0) return null
         token.isAdmin = existing[0].isAdmin
+        token.contactEmail = existing[0].contactEmail
+        const contactEmail = existing[0].contactEmail ?? existing[0].email ?? email
         if (!token.isAdmin) {
-          token.isAdmin = await bootstrapAdminFromEnv(existing[0].id, email)
+          token.isAdmin = await bootstrapAdminFromEnv(existing[0].id, contactEmail)
         }
         const ownerEmails = (process.env.POSTHOG_OWNER_EMAILS ?? '').split(',').map(s => s.trim()).filter(Boolean)
-        token.isExcludedFromAnalytics = ownerEmails.length > 0 && ownerEmails.includes(email ?? '')
+        token.isExcludedFromAnalytics = ownerEmails.length > 0 && ownerEmails.includes(contactEmail ?? '')
       }
       return token
     },
@@ -229,6 +232,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.isExcludedFromAnalytics = token.isExcludedFromAnalytics as boolean | undefined
         session.user.telegramUsername = token.telegramUsername
         session.user.provider = token.provider
+        session.user.contactEmail = token.contactEmail ?? null
       }
       return session
     },

@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
-import { getContactEmail } from '@/lib/user-email'
+import { getUserContactEmail } from '@/lib/user-email'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   if (result.addedBooks.length > 0 && process.env.NEXTAUTH_TEST_MODE !== 'true') {
     db.insert(notificationQueue).values({
       userName: name.trim(),
-      userEmail: getContactEmail(session.user.email) ?? '',
+      userEmail: getUserContactEmail(session.user) ?? '',
       contacts: contacts.trim(),
       addedBooks: JSON.stringify(result.addedBooks),
       isNew: result.isNew,

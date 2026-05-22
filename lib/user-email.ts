@@ -9,3 +9,7 @@ export function getContactEmail(email?: string | null): string | null {
   if (!normalized || isSyntheticTelegramEmail(normalized)) return null
   return normalized
 }
+
+export function getUserContactEmail(user?: { contactEmail?: string | null; email?: string | null } | null): string | null {
+  return getContactEmail(user?.contactEmail) ?? getContactEmail(user?.email)
+}

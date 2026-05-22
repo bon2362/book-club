@@ -17,6 +17,7 @@ export async function GET() {
       id: users.id,
       name: users.name,
       email: users.email,
+      contactEmail: users.contactEmail,
       contacts: users.contacts,
       telegramUsername: users.telegramUsername,
       legacyAuthProvider: users.authProvider,

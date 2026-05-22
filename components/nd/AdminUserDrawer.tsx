@@ -114,7 +114,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label={user ? `Карточка пользователя ${user.name || user.email}` : 'Карточка пользователя'}
+        aria-label={user ? `Карточка пользователя ${user.name || user.contactEmail || user.telegramDisplay || user.id}` : 'Карточка пользователя'}
         style={{
           position: 'fixed',
           top: 0,
@@ -139,7 +139,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
               <h2 style={{ fontFamily: serif, fontSize: '1.35rem', margin: 0, color: '#111' }}>
-                {loading ? 'Загрузка…' : user?.name || user?.email || 'Пользователь'}
+                {loading ? 'Загрузка…' : user?.name || user?.contactEmail || user?.telegramDisplay || 'Пользователь'}
               </h2>
               {user?.isAdmin && <span style={adminBadge}>Admin</span>}
             </div>
@@ -162,7 +162,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                 <dl style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.45rem 0.9rem', margin: 0, fontSize: '0.82rem' }}>
                   <dt style={{ color: '#999' }}>Имя</dt><dd style={{ margin: 0 }}>{user.name || '—'}</dd>
                   <dt style={{ color: '#999' }}>Telegram</dt><dd style={{ margin: 0 }}>{user.telegramDisplay || '—'}</dd>
-                  <dt style={{ color: '#999' }}>Email</dt><dd style={{ margin: 0 }}>{user.email}</dd>
+                  <dt style={{ color: '#999' }}>Email</dt><dd style={{ margin: 0 }}>{user.contactEmail || '—'}</dd>
                   <dt style={{ color: '#999' }}>Языки</dt><dd style={{ margin: 0 }}>{user.languages.length ? user.languages.join(', ') : '—'}</dd>
                   <dt style={{ color: '#999' }}>Последняя активность</dt><dd style={{ margin: 0 }}>{formatDate(user.lastActivityAt)}</dd>
                   <dt style={{ color: '#999' }}>Дата создания</dt><dd style={{ margin: 0 }}>{formatDate(user.createdAt)}</dd>

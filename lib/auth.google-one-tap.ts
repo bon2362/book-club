@@ -3,7 +3,7 @@ import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 export async function authorizeGoogleOneTap(
   credential: string
-): Promise<{ id: string; email: string; name: string } | null> {
+): Promise<{ id: string; email: string | null; contactEmail: string | null; name: string } | null> {
   try {
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
     const ticket = await client.verifyIdToken({
@@ -21,7 +21,7 @@ export async function authorizeGoogleOneTap(
       emailVerified: email_verified !== false,
       metadata: { source: 'google-one-tap' },
     })
-    return { id: user.id, email: user.email, name: user.name ?? email }
+    return { id: user.id, email: user.email, contactEmail: user.contactEmail, name: user.name ?? email }
   } catch {
     return null
   }

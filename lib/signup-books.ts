@@ -6,7 +6,8 @@ export interface UserSignup {
   timestamp: string
   userId: string
   name: string
-  email: string
+  email: string | null
+  contactEmail?: string | null
   contacts: string
   selectedBooks: string[]
   prioritiesSet?: boolean
@@ -23,6 +24,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       userId: users.id,
       name: users.name,
       email: users.email,
+      contactEmail: users.contactEmail,
       contacts: users.contacts,
       prioritiesSet: users.prioritiesSet,
       bookName: signupBooks.bookName,
@@ -45,6 +47,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       userId: row.userId,
       name: row.name ?? '',
       email: row.email,
+      contactEmail: row.contactEmail,
       contacts: row.contacts ?? '',
       selectedBooks: [row.bookName],
       prioritiesSet: row.prioritiesSet,

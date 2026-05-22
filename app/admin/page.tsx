@@ -20,7 +20,7 @@ export default async function AdminPage() {
     db.select().from(bookStatuses).catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
     db.select().from(bookNewFlags).catch(() => []),
-    db.select({ id: users.id, email: users.email, languages: users.languages, prioritiesSet: users.prioritiesSet }).from(users).catch(() => []),
+    db.select({ id: users.id, email: users.email, contactEmail: users.contactEmail, languages: users.languages, prioritiesSet: users.prioritiesSet }).from(users).catch(() => []),
     db.select({ userId: bookPriorities.userId, bookName: bookPriorities.bookName, rank: bookPriorities.rank }).from(bookPriorities).catch(() => []),
   ])
 

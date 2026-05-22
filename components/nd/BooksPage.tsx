@@ -20,7 +20,7 @@ import AboutBlock, { type AboutBlockHandle, type AboutBlockHeader, type AboutBlo
 import Footer from './Footer'
 import FeedbackForm from './FeedbackForm'
 import { useScrollHide } from '@/lib/scroll-hide-context'
-import { getContactEmail } from '@/lib/user-email'
+import { getUserContactEmail } from '@/lib/user-email'
 
 interface Props {
   books: BookWithCover[]
@@ -46,7 +46,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const isAdmin = !!session?.user?.isAdmin
   const telegramUsername = session?.user?.telegramUsername ?? null
   const telegramName = session?.user?.name ?? null
-  const contactEmail = getContactEmail(session?.user?.email)
+  const contactEmail = getUserContactEmail(session?.user)
 
   const [aboutVisible, setAboutVisible] = useState(true)
   const aboutRef = useRef<AboutBlockHandle>(null)

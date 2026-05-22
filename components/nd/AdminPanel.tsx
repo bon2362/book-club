@@ -698,7 +698,7 @@ export default function AdminPanel({
     if (feedbackFilter === 'anonymous' && item.userId) return false
     const q = feedbackSearch.trim().toLowerCase()
     if (!q) return true
-    return `${item.message} ${item.userName ?? item.name ?? ''} ${item.userEmail ?? item.email ?? ''}`.toLowerCase().includes(q)
+    return `${item.message} ${item.userName ?? item.name ?? ''} ${item.userContactEmail ?? item.userEmail ?? item.email ?? ''}`.toLowerCase().includes(q)
   })
 
   function setSort(key: UserSortKey) {
@@ -1330,7 +1330,7 @@ export default function AdminPanel({
               <div style={{ display: 'grid', gap: '0.6rem' }}>
                 {filteredFeedback.map(item => {
                   const displayName = item.userName ?? item.name ?? 'Аноним'
-                  const displayEmail = item.userEmail ?? item.email
+                  const displayEmail = item.userContactEmail ?? item.userEmail ?? item.email
                   return (
                     <article key={item.id} style={{ border: '1px solid #E5E5E5', background: '#fff', padding: '0.8rem 0.9rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.45rem', alignItems: 'baseline' }}>
@@ -1365,11 +1365,11 @@ export default function AdminPanel({
         onClose={closeUserDrawer}
         onRemoveSignup={(bookName) => {
           if (!selectedAdminUser) return
-          handleRemoveBook(selectedAdminUser.user.id, bookName, selectedAdminUser.user.name || selectedAdminUser.user.email)
+          handleRemoveBook(selectedAdminUser.user.id, bookName, selectedAdminUser.user.name || selectedAdminUser.user.contactEmail || selectedAdminUser.user.telegramDisplay)
         }}
         onDeleteUser={() => {
           if (!selectedAdminUser) return
-          handleDeleteUser(selectedAdminUser.user.id, selectedAdminUser.user.name || selectedAdminUser.user.email)
+          handleDeleteUser(selectedAdminUser.user.id, selectedAdminUser.user.name || selectedAdminUser.user.contactEmail || selectedAdminUser.user.telegramDisplay)
         }}
         onOpenSubmission={(submissionId) => {
           closeUserDrawer()

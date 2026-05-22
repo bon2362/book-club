@@ -17,13 +17,17 @@ export async function POST(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
   const { email, name, isAdmin, telegramUsername, provider, providerAccountId } = await req.json() as {
-    email: string; name: string; isAdmin?: boolean; telegramUsername?: string; provider?: string; providerAccountId?: string
+    email?: string; name: string; isAdmin?: boolean; telegramUsername?: string; provider?: string; providerAccountId?: string
   }
   const identityProvider = normalizeIdentityProvider(provider ?? 'email')
   const identityAccountId = providerAccountId ?? (identityProvider === 'telegram' ? telegramUsername ?? email : email)
+  const identityEmail = identityProvider === 'telegram' ? null : email
+  if (!identityAccountId) {
+    return NextResponse.json({ error: 'Missing identity account id' }, { status: 400 })
+  }
 
   const user = await resolveOrCreateUserFromIdentity(identityProvider, identityAccountId, {
-    email,
+    email: identityEmail,
     name,
     emailVerified: identityProvider !== 'telegram',
     telegramUsername: telegramUsername ?? null,
@@ -34,12 +38,12 @@ export async function POST(req: NextRequest) {
   await db.update(users).set({
     name,
     telegramUsername: telegramUsername ?? null,
-    emailVerified: new Date(),
+    emailVerified: identityProvider === 'telegram' ? null : new Date(),
     isAdmin: isAdmin ?? false,
   }).where(eq(users.id, user.id))
 
   const token = await encode({
-    token: { sub: user.id, email, name, isAdmin: isAdmin ?? false, telegramUsername: telegramUsername ?? null, provider: provider ?? null },
+    token: { sub: user.id, email: user.email ?? identityEmail ?? null, name, isAdmin: isAdmin ?? false, telegramUsername: telegramUsername ?? null, provider: provider ?? null, contactEmail: user.contactEmail },
     secret: (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET)!,
     salt: 'authjs.session-token',
   })
@@ -55,12 +59,26 @@ export async function DELETE(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
   const { email } = await req.json() as { email: string }
+  const userRows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(or(eq(users.email, email), eq(users.contactEmail, email)))
+    .limit(1)
+  const identityRows = await db
+    .select({ userId: userIdentities.userId })
+    .from(userIdentities)
+    .where(or(
+      eq(userIdentities.email, email),
+      eq(userIdentities.providerAccountId, email)
+    ))
+    .limit(1)
+  const userId = userRows[0]?.id ?? identityRows[0]?.userId ?? null
+
   await db.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
-  await db.delete(userIdentities).where(or(
-    eq(userIdentities.email, email),
-    eq(userIdentities.providerAccountId, email)
-  ))
-  await db.delete(users).where(eq(users.email, email))
+  if (userId) {
+    await db.delete(userIdentities).where(eq(userIdentities.userId, userId))
+    await db.delete(users).where(eq(users.id, userId))
+  }
 
   const res = NextResponse.json({ ok: true })
   res.cookies.delete('authjs.session-token')
