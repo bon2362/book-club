@@ -4,19 +4,35 @@
 import { GET } from './route'
 import * as authModule from '@/lib/auth'
 import * as signupsModule from '@/lib/signup-books'
-import * as sheetsModule from '@/lib/sheets'
+import * as booksModule from '@/lib/books'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signup-books', () => ({ getAllSignups: jest.fn() }))
-jest.mock('@/lib/sheets', () => ({ fetchBooks: jest.fn() }))
+jest.mock('@/lib/books', () => ({ fetchBooksForAdmin: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockGetAllSignups = signupsModule.getAllSignups as jest.Mock
-const mockFetchBooks = sheetsModule.fetchBooks as jest.Mock
+const mockFetchBooksForAdmin = booksModule.fetchBooksForAdmin as jest.Mock
 
 const sampleSignups = [
-  { userId: 'u1', name: 'Ivan', email: 'i@t.ru', contacts: '@ivan', timestamp: '', selectedBooks: ['Книга A', 'Книга B'] },
-  { userId: 'u2', name: 'Anna', email: 'a@t.ru', contacts: '@anna', timestamp: '', selectedBooks: ['Книга A'] },
+  {
+    userId: 'u1',
+    name: 'Ivan',
+    email: 'i@t.ru',
+    contacts: '@ivan',
+    timestamp: '',
+    selectedBooks: ['Книга A', 'Книга B'],
+    selectedBookIds: ['1', '2'],
+  },
+  {
+    userId: 'u2',
+    name: 'Anna',
+    email: 'a@t.ru',
+    contacts: '@anna',
+    timestamp: '',
+    selectedBooks: ['Книга A'],
+    selectedBookIds: ['1'],
+  },
 ]
 
 const sampleBooks = [
@@ -47,7 +63,7 @@ describe('GET /api/admin', () => {
   it('возвращает пользователей и группировку по книгам', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@t.ru', isAdmin: true } })
     mockGetAllSignups.mockResolvedValue(sampleSignups)
-    mockFetchBooks.mockResolvedValue(sampleBooks)
+    mockFetchBooksForAdmin.mockResolvedValue(sampleBooks)
 
     const res = await GET()
     const data = await res.json()
@@ -62,7 +78,7 @@ describe('GET /api/admin', () => {
   it('не включает в byBook книги без записей', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@t.ru', isAdmin: true } })
     mockGetAllSignups.mockResolvedValue([])
-    mockFetchBooks.mockResolvedValue(sampleBooks)
+    mockFetchBooksForAdmin.mockResolvedValue(sampleBooks)
 
     const res = await GET()
     const data = await res.json()

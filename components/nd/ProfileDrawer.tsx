@@ -41,7 +41,7 @@ interface Props {
   telegramLocked?: boolean
   onSaveContacts: (name: string, contacts: string) => Promise<void>
   onDeleteAccount: () => Promise<void>
-  onToggleBook: (bookName: string) => Promise<void>
+  onToggleBook: (bookId: string) => Promise<void>
 }
 
 type Tab = 'signup' | 'submitted' | 'profile'
@@ -99,7 +99,7 @@ function SortableBookItem({
   const isTop3 = prioritiesSet && rank <= 3 && !isUnsubscribed
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} data-testid="priority-book-row" data-book-id={id}>
       {isTop3 ? (
         <span style={{
           width: 24, height: 24,
@@ -224,7 +224,7 @@ export default function ProfileDrawer({
   const [localUnsubscribed, setLocalUnsubscribed] = useState<Set<string>>(new Set())
 
   // ── Book priorities (Записал:ась tab) ──
-  const [priorityOrder, setPriorityOrder] = useState<string[]>([]) // book names in rank order
+  const [priorityOrder, setPriorityOrder] = useState<string[]>([]) // book ids in rank order
   const [prioritiesLoaded, setPrioritiesLoaded] = useState(false)
   const [prioritiesSet, setPrioritiesSet] = useState(false) // true = user has sorted at least once
   const [prioritiesSaving, setPrioritiesSaving] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -257,10 +257,10 @@ export default function ProfileDrawer({
     if (!isOpen || activeTab !== 'signup' || prioritiesLoaded) return
     fetch('/api/priorities')
       .then(r => r.json())
-      .then((data: { bookName: string; rank: number }[]) => {
-        const rankedNames = data.map(d => d.bookName)
-        const unranked = selectedBooks.filter(b => !rankedNames.includes(b))
-        const merged = [...rankedNames.filter(b => selectedBooks.includes(b)), ...unranked]
+      .then((data: { bookId: string | null; bookName: string; rank: number }[]) => {
+        const rankedIds = data.map(d => d.bookId).filter((id): id is string => Boolean(id))
+        const unranked = selectedBooks.filter(id => !rankedIds.includes(id))
+        const merged = [...rankedIds.filter(id => selectedBooks.includes(id)), ...unranked]
         setPriorityOrder(merged.length > 0 ? merged : [...selectedBooks])
         setPrioritiesSet(data.length > 0)
         setPrioritiesLoaded(true)
@@ -317,17 +317,19 @@ export default function ProfileDrawer({
   }, [isOpen])
 
   // ── Unsubscribe / re-subscribe ──
-  async function handleToggle(bookName: string) {
-    const wasUnsubscribed = localUnsubscribed.has(bookName)
+  async function handleToggle(bookId: string) {
+    const book = books.find(b => b.id === bookId)
+    const bookName = book?.name ?? 'книгу'
+    const wasUnsubscribed = localUnsubscribed.has(bookId)
     // Optimistic update
     setLocalUnsubscribed(prev => {
       const next = new Set(prev)
-      if (wasUnsubscribed) next.delete(bookName)
-      else next.add(bookName)
+      if (wasUnsubscribed) next.delete(bookId)
+      else next.add(bookId)
       return next
     })
     try {
-      await onToggleBook(bookName)
+      await onToggleBook(bookId)
       const msg = wasUnsubscribed
         ? `Вы успешно записались на «${bookName}»`
         : `Вы успешно отписались от «${bookName}»`
@@ -336,8 +338,8 @@ export default function ProfileDrawer({
       // Rollback local state
       setLocalUnsubscribed(prev => {
         const next = new Set(prev)
-        if (wasUnsubscribed) next.add(bookName)
-        else next.delete(bookName)
+        if (wasUnsubscribed) next.add(bookId)
+        else next.delete(bookId)
         return next
       })
       const msg = wasUnsubscribed ? 'Не удалось записаться' : 'Не удалось отписаться'
@@ -355,7 +357,7 @@ export default function ProfileDrawer({
         await fetch('/api/priorities', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ books: booksToSave }),
+          body: JSON.stringify({ bookIds: booksToSave }),
         })
         setPrioritiesSet(true)
         setPrioritiesSaving('saved')
@@ -618,19 +620,19 @@ export default function ProfileDrawer({
                 ) : (
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={priorityOrder} strategy={verticalListSortingStrategy}>
-                      {priorityOrder.map((bookName, index) => {
-                        const book = books.find(b => b.name === bookName)
+                      {priorityOrder.map((bookId, index) => {
+                        const book = books.find(b => b.id === bookId)
                         if (!book) return null
                         return (
                           <SortableBookItem
-                            key={bookName}
-                            id={bookName}
+                            key={bookId}
+                            id={bookId}
                             rank={index + 1}
                             prioritiesSet={prioritiesSet}
-                            name={bookName}
+                            name={book.name}
                             author={book.author}
-                            isUnsubscribed={localUnsubscribed.has(bookName)}
-                            onToggle={() => handleToggle(bookName)}
+                            isUnsubscribed={localUnsubscribed.has(bookId)}
+                            onToggle={() => handleToggle(bookId)}
                           />
                         )
                       })}

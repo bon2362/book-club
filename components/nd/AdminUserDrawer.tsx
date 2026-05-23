@@ -8,7 +8,7 @@ interface Props {
   data: AdminUserDetails | null
   loading: boolean
   onClose: () => void
-  onRemoveSignup: (bookName: string) => void
+  onRemoveSignup: (bookId: string, bookName: string) => void
   onDeleteUser: () => void
   onOpenSubmission: (submissionId: string) => void
 }
@@ -90,11 +90,11 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
   }, [isOpen, onClose])
 
   const user = data?.user
-  const priorityMap = new Map((data?.priorities ?? []).map(row => [row.bookName, row.rank]))
+  const priorityMap = new Map((data?.priorities ?? []).map(row => [row.bookId ?? row.bookName, row.rank]))
   const ranked = (data?.signupBooks ?? [])
-    .filter(row => priorityMap.has(row.bookName))
-    .sort((a, b) => priorityMap.get(a.bookName)! - priorityMap.get(b.bookName)!)
-  const unranked = (data?.signupBooks ?? []).filter(row => !priorityMap.has(row.bookName))
+    .filter(row => priorityMap.has(row.bookId ?? row.bookName))
+    .sort((a, b) => priorityMap.get(a.bookId ?? a.bookName)! - priorityMap.get(b.bookId ?? b.bookName)!)
+  const unranked = (data?.signupBooks ?? []).filter(row => !priorityMap.has(row.bookId ?? row.bookName))
   const sortedBooks = user?.prioritiesSet ? [...ranked, ...unranked] : (data?.signupBooks ?? [])
 
   return (
@@ -184,14 +184,15 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                 {sortedBooks.length === 0 ? <p style={{ color: '#BBB', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет записей</p> : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                     {sortedBooks.map(row => {
-                      const rank = priorityMap.get(row.bookName)
+                      const rowKey = row.bookId ?? row.bookName
+                      const rank = priorityMap.get(rowKey)
                       const label = !user.prioritiesSet ? '?' : rank ?? '+'
                       const isRanked = user.prioritiesSet && rank !== undefined
                       return (
-                        <span key={row.bookName} style={{ display: 'inline-flex', alignItems: 'center', background: '#F5F5F5', borderRadius: 2, overflow: 'hidden', fontSize: '0.78rem' }}>
+                        <span key={rowKey} style={{ display: 'inline-flex', alignItems: 'center', background: '#F5F5F5', borderRadius: 2, overflow: 'hidden', fontSize: '0.78rem' }}>
                           <span style={{ background: isRanked ? '#111' : '#E5E5E5', color: isRanked ? '#fff' : '#AAA', padding: '0.22rem 0.45rem', fontWeight: 700 }}>{label}</span>
                           <span style={{ padding: '0.22rem 0.5rem' }}>{row.bookName}</span>
-                          <button onClick={() => onRemoveSignup(row.bookName)} title="Снять запись" style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
+                          <button onClick={() => row.bookId && onRemoveSignup(row.bookId, row.bookName)} disabled={!row.bookId} title="Снять запись" style={{ background: 'none', border: 'none', color: '#999', cursor: row.bookId ? 'pointer' : 'not-allowed', padding: '0 0.4rem' }}>×</button>
                         </span>
                       )
                     })}

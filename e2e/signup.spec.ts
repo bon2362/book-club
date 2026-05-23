@@ -100,4 +100,41 @@ test('повторный submit заменяет список книг, а не 
 
   const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(TEST_EMAIL)}`)).json()
   expect(userState.signupBooks.sort()).toEqual(['Тестовая книга 1', 'Тестовая книга 3'])
+  expect(userState.signupBookIds.sort()).toEqual(['__test_book_1__', '__test_book_3__'])
+})
+
+test('приоритеты сохраняются и после reload читаются по bookId', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByLabel(/имя/i)).toBeVisible()
+  await page.getByLabel(/имя/i).fill(TEST_NAME)
+  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
+  await page.getByRole('button', { name: /сохранить/i }).click()
+  await expect(page.getByLabel(/имя/i)).not.toBeVisible()
+
+  const book1 = page.locator('article').filter({ hasText: 'Тестовая книга 1' })
+  const book3 = page.locator('article').filter({ hasText: 'Тестовая книга 3' })
+  await book1.getByRole('button', { name: /хочу читать/i }).click()
+  await book3.getByRole('button', { name: /хочу читать/i }).click()
+
+  await expect.poll(async () => {
+    const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(TEST_EMAIL)}`)).json()
+    return userState.signupBookIds.sort()
+  }).toEqual(['__test_book_1__', '__test_book_3__'])
+
+  const savePriorities = await page.request.put('/api/priorities', {
+    data: { bookIds: ['__test_book_3__', '__test_book_1__'] },
+  })
+  expect(savePriorities.ok()).toBeTruthy()
+
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.waitForLoadState('networkidle')
+  await page.getByRole('button', { name: TEST_NAME }).click()
+  const dialog = page.getByRole('dialog', { name: /личный кабинет/i })
+  await expect(dialog).toBeVisible()
+
+  await expect.poll(async () =>
+    dialog.getByTestId('priority-book-row').evaluateAll(rows =>
+      rows.map(row => row.getAttribute('data-book-id'))
+    )
+  ).toEqual(['__test_book_3__', '__test_book_1__'])
 })

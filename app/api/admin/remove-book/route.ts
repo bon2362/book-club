@@ -13,18 +13,18 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { userId, bookName } = await req.json() as { userId: string; bookName: string }
-  if (!userId || !bookName) {
+  const { userId, bookId } = await req.json() as { userId: string; bookId: string }
+  if (!userId || !bookId) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  await removeBookFromSignup(userId, bookName)
+  await removeBookFromSignup(userId, bookId)
 
   // Find this book's current rank
   const existing = await db
     .select({ rank: bookPriorities.rank })
     .from(bookPriorities)
-    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookName, bookName)))
+    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
   const priorityRow = existing[0]
   if (!priorityRow) return NextResponse.json({ ok: true })
 
@@ -33,7 +33,7 @@ export async function DELETE(req: NextRequest) {
   // Delete the priority entry
   await db
     .delete(bookPriorities)
-    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookName, bookName)))
+    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
 
   // Re-rank: close the gap (rank > deletedRank → rank - 1)
   await db

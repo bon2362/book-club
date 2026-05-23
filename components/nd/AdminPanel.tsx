@@ -41,7 +41,7 @@ interface Props {
   tagDescriptions: Record<string, string>
   newFlags: Record<string, boolean>
   userLanguages?: Record<string, string[]>
-  bookPrioritiesMap: Record<string, { bookName: string; rank: number }[]>
+  bookPrioritiesMap: Record<string, { bookId?: string | null; bookName: string; rank: number }[]>
   prioritiesSetMap: Record<string, boolean>
 }
 
@@ -422,13 +422,13 @@ export default function AdminPanel({
     }
   }
 
-  async function handleRemoveBook(userId: string, bookName: string, userName: string) {
+  async function handleRemoveBook(userId: string, bookId: string, bookName: string, userName: string) {
     if (!window.confirm(`Снять ${userName} с книги «${bookName}»?`)) return
     try {
       const res = await fetch('/api/admin/signup-books', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, bookName }),
+        body: JSON.stringify({ userId, bookId }),
       })
       if (!res.ok) return
       setAdminUsers(prev => prev.map(u => u.id === userId ? { ...u, booksCount: Math.max(0, u.booksCount - 1) } : u))
@@ -437,8 +437,8 @@ export default function AdminPanel({
         return {
           ...prev,
           user: { ...prev.user, booksCount: Math.max(0, prev.user.booksCount - 1) },
-          signupBooks: prev.signupBooks.filter(b => b.bookName !== bookName),
-          priorities: prev.priorities.filter(p => p.bookName !== bookName),
+          signupBooks: prev.signupBooks.filter(b => b.bookId !== bookId),
+          priorities: prev.priorities.filter(p => p.bookId !== bookId),
         }
       })
     } catch {
@@ -996,7 +996,7 @@ export default function AdminPanel({
                       {(() => {
                         const withRanks = bookUsers.map(u => {
                           const userPriorities = bookPrioritiesMap[u.userId] ?? [] // uses original prop intentionally; По книгам is static server data
-                          const entry = userPriorities.find(p => p.bookName === book.name)
+                          const entry = userPriorities.find(p => p.bookId === book.id || (!p.bookId && p.bookName === book.name))
                           return { name: u.name, rank: entry?.rank ?? null, userId: u.userId }
                         })
                         withRanks.sort((a, b) => {
@@ -1365,9 +1365,9 @@ export default function AdminPanel({
         data={selectedAdminUser}
         loading={userDrawerLoading}
         onClose={closeUserDrawer}
-        onRemoveSignup={(bookName) => {
+        onRemoveSignup={(bookId, bookName) => {
           if (!selectedAdminUser) return
-          handleRemoveBook(selectedAdminUser.user.id, bookName, selectedAdminUser.user.name || selectedAdminUser.user.contactEmail || selectedAdminUser.user.telegramDisplay)
+          handleRemoveBook(selectedAdminUser.user.id, bookId, bookName, selectedAdminUser.user.name || selectedAdminUser.user.contactEmail || selectedAdminUser.user.telegramDisplay)
         }}
         onDeleteUser={() => {
           if (!selectedAdminUser) return

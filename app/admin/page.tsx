@@ -19,7 +19,7 @@ export default async function AdminPage() {
     fetchBooksForAdmin(),
     db.select().from(tagDescriptions).catch(() => []),
     db.select({ id: users.id, contactEmail: users.contactEmail, languages: users.languages, prioritiesSet: users.prioritiesSet }).from(users).catch(() => []),
-    db.select({ userId: bookPriorities.userId, bookName: bookPriorities.bookName, rank: bookPriorities.rank }).from(bookPriorities).catch(() => []),
+    db.select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, bookName: bookPriorities.bookName, rank: bookPriorities.rank }).from(bookPriorities).catch(() => []),
   ])
 
   const userLanguagesMap: Record<string, string[]> = {}
@@ -33,10 +33,10 @@ export default async function AdminPage() {
     }
   }
 
-  const bookPrioritiesMap: Record<string, { bookName: string; rank: number }[]> = {}
+  const bookPrioritiesMap: Record<string, { bookId: string | null; bookName: string; rank: number }[]> = {}
   for (const row of allPriorityRows) {
     if (!bookPrioritiesMap[row.userId]) bookPrioritiesMap[row.userId] = []
-    bookPrioritiesMap[row.userId].push({ bookName: row.bookName, rank: row.rank })
+    bookPrioritiesMap[row.userId].push({ bookId: row.bookId, bookName: row.bookName, rank: row.rank })
   }
   for (const pgId of Object.keys(bookPrioritiesMap)) {
     bookPrioritiesMap[pgId].sort((a, b) => a.rank - b.rank)
@@ -54,7 +54,10 @@ export default async function AdminPage() {
   const byBook = books
     .map(book => ({
       book,
-      users: signups.filter(s => s.selectedBooks.includes(book.name)),
+      users: signups.filter(s =>
+        (s.selectedBookIds ?? []).includes(book.id) ||
+        (!(s.selectedBookIds?.length) && s.selectedBooks.includes(book.name))
+      ),
     }))
 
   const sha = process.env.VERCEL_GIT_COMMIT_SHA

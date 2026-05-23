@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getAllSignups } from '@/lib/signup-books'
-import { fetchBooks } from '@/lib/sheets'
+import { fetchBooksForAdmin } from '@/lib/books'
 
 export async function GET() {
   const session = await auth()
@@ -9,12 +9,15 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const [signups, books] = await Promise.all([getAllSignups(), fetchBooks()])
+  const [signups, books] = await Promise.all([getAllSignups(), fetchBooksForAdmin()])
 
-  // Group by book: book name → list of users who selected it
+  // Group by book: book id → list of users who selected it
   const byBook: Record<string, typeof signups> = {}
   for (const book of books) {
-    const users = signups.filter(s => s.selectedBooks.includes(book.name))
+    const users = signups.filter(s =>
+      (s.selectedBookIds ?? []).includes(book.id) ||
+      (!(s.selectedBookIds?.length) && s.selectedBooks.includes(book.name))
+    )
     if (users.length > 0) byBook[book.name] = users
   }
 
