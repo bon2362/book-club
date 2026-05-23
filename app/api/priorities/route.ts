@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { bookPriorities, users } from '@/lib/db/schema'
-import { eq, asc, and, notInArray, sql } from 'drizzle-orm'
+import { bookPriorities, books as booksTable, users } from '@/lib/db/schema'
+import { eq, asc, inArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
 
 export async function GET() {
@@ -17,7 +17,7 @@ export async function GET() {
   const userId = (session!.user as { id: string }).id
 
   const rows = await db
-    .select({ bookName: bookPriorities.bookName, rank: bookPriorities.rank })
+    .select({ bookId: bookPriorities.bookId, bookName: bookPriorities.bookName, rank: bookPriorities.rank })
     .from(bookPriorities)
     .where(eq(bookPriorities.userId, userId))
     .orderBy(asc(bookPriorities.rank))
@@ -34,44 +34,52 @@ export async function PUT(req: NextRequest) {
   const userId = (session!.user as { id: string }).id
 
   const body = await req.json()
-  const { books } = body as { books: unknown }
+  const { bookIds, books } = body as { bookIds?: unknown; books?: unknown }
+  const rawSelection = Array.isArray(bookIds) ? bookIds : books
 
   if (
-    !Array.isArray(books) ||
-    books.length === 0 ||
-    books.some(b => typeof b !== 'string' || !b.trim())
+    !Array.isArray(rawSelection) ||
+    rawSelection.length === 0 ||
+    rawSelection.some(b => typeof b !== 'string' || !b.trim())
   ) {
-    return NextResponse.json({ error: 'books must be a non-empty array of strings' }, { status: 400 })
+    return NextResponse.json({ error: 'bookIds must be a non-empty array of strings' }, { status: 400 })
   }
 
-  const validBooks = (books as string[]).map(b => b.trim()).filter(Boolean)
+  const requested = Array.from(new Set((rawSelection as string[]).map(b => b.trim()).filter(Boolean)))
+  const bookRows = Array.isArray(bookIds)
+    ? await db
+      .select({ id: booksTable.id, title: booksTable.title })
+      .from(booksTable)
+      .where(inArray(booksTable.id, requested))
+    : await db
+      .select({ id: booksTable.id, title: booksTable.title })
+      .from(booksTable)
+      .where(inArray(booksTable.title, requested))
+  const rowsById = new Map(bookRows.map(row => [row.id, row]))
+  const rowsByTitle = new Map(bookRows.map(row => [row.title, row]))
+  const validBooks = requested.flatMap(value => {
+    const row = Array.isArray(bookIds) ? rowsById.get(value) : rowsByTitle.get(value)
+    return row ? [{ bookId: row.id, bookName: row.title }] : []
+  })
+  if (validBooks.length !== requested.length) {
+    return NextResponse.json({ error: 'Some books were not found' }, { status: 400 })
+  }
   const now = new Date()
+
+  await db
+    .delete(bookPriorities)
+    .where(eq(bookPriorities.userId, userId))
 
   await db
     .insert(bookPriorities)
     .values(
-      validBooks.map((bookName, index) => ({
+      validBooks.map((book, index) => ({
         userId,
-        bookName,
+        bookName: book.bookName,
+        bookId: book.bookId,
         rank: index + 1,
         updatedAt: now,
       }))
-    )
-    .onConflictDoUpdate({
-      target: [bookPriorities.userId, bookPriorities.bookName],
-      set: {
-        rank: sql`excluded.rank`,
-        updatedAt: now,
-      },
-    })
-
-  await db
-    .delete(bookPriorities)
-    .where(
-      and(
-        eq(bookPriorities.userId, userId),
-        notInArray(bookPriorities.bookName, validBooks)
-      )
     )
 
   await db
@@ -83,7 +91,7 @@ export async function PUT(req: NextRequest) {
     occurredAt: now,
     source: 'api',
     sourceId: userId,
-    dedupeKey: buildUserActivityDedupeKey(['api', 'priorities_updated', userId, JSON.stringify(validBooks)]),
+    dedupeKey: buildUserActivityDedupeKey(['api', 'priorities_updated', userId, JSON.stringify(validBooks.map(book => book.bookId))]),
     metadata: { booksCount: validBooks.length },
   })
 

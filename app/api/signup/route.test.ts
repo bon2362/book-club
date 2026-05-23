@@ -9,7 +9,7 @@ import * as dbModule from '@/lib/db'
 import * as activityModule from '@/lib/user-activity'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/signup-books', () => ({ upsertSignup: jest.fn() }))
+jest.mock('@/lib/signup-books', () => ({ upsertSignup: jest.fn(), upsertSignupByBookIds: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
     insert: jest.fn().mockReturnValue({ values: jest.fn().mockReturnValue({ catch: jest.fn() }) }),
@@ -33,6 +33,7 @@ jest.mock('@/lib/user-activity', () => ({
 
 const mockAuth = authModule.auth as jest.Mock
 const mockUpsertSignup = signups.upsertSignup as jest.Mock
+const mockUpsertSignupByBookIds = signups.upsertSignupByBookIds as jest.Mock
 const mockInsert = dbModule.db.insert as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 
@@ -44,59 +45,68 @@ function makeRequest(body: object) {
   })
 }
 
+function upsertResult(books: string[] = [], bookIds: string[] = books.map((_, i) => `book-${i + 1}`), isNew = false) {
+  return { isNew, addedBooks: books, addedBookIds: bookIds }
+}
+
 describe('POST /api/signup', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it('возвращает 401 без сессии', async () => {
     mockAuth.mockResolvedValue(null)
 
-    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBooks: [] }))
+    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBookIds: [] }))
     expect(res.status).toBe(401)
   })
 
   it('возвращает 401 если в сессии нет user.id', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
 
-    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBooks: [] }))
+    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBookIds: [] }))
     expect(res.status).toBe(401)
   })
 
   it('возвращает 400 при пустом name', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
-    const res = await POST(makeRequest({ name: '   ', contacts: 'tg', selectedBooks: [] }))
+    const res = await POST(makeRequest({ name: '   ', contacts: 'tg', selectedBookIds: [] }))
     expect(res.status).toBe(400)
   })
 
-  it('возвращает 400 при некорректном contacts (не строка)', async () => {
+  it('возвращает 400 при некорректном contacts', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
-    const res = await POST(makeRequest({ name: 'Test', contacts: 123, selectedBooks: [] }))
+    const res = await POST(makeRequest({ name: 'Test', contacts: 123, selectedBookIds: [] }))
     expect(res.status).toBe(400)
   })
 
-  it('возвращает 400 при отсутствии selectedBooks', async () => {
+  it('возвращает 400 при отсутствии selectedBookIds и selectedBooks', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
     const res = await POST(makeRequest({ name: 'Test', contacts: 'tg' }))
     expect(res.status).toBe(400)
   })
 
-  it('возвращает 400 если selectedBooks не массив', async () => {
+  it('возвращает 400 если selectedBookIds не массив', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
 
-    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBooks: 'Book A' }))
+    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBookIds: 'Book A' }))
     expect(res.status).toBe(400)
   })
 
-  it('возвращает 200 при успешной записи', async () => {
+  it('сохраняет запись по bookId', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: true, addedBooks: ['Book A'] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult(['Book A'], ['book-a'], true))
 
-    const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBooks: ['Book A'] }))
+    const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBookIds: ['book-a'] }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
-    expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', ['Book A'])
+    expect(signups.upsertSignupByBookIds).toHaveBeenCalledWith('user-1', ['book-a'])
+    expect(signups.upsertSignup).not.toHaveBeenCalled()
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_submitted', expect.objectContaining({
       source: 'api',
       metadata: expect.objectContaining({ selectedBooksCount: 1, addedBooksCount: 1 }),
@@ -107,13 +117,23 @@ describe('POST /api/signup', () => {
     }))
   })
 
+  it('поддерживает legacy selectedBooks по названиям на переходный период', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignup.mockResolvedValue(upsertResult(['Book A'], ['book-a'], true))
+
+    const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBooks: ['Book A'] }))
+
+    expect(res.status).toBe(200)
+    expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', ['Book A'])
+  })
+
   it('обрезает пробелы в name и contacts', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult())
 
-    await POST(makeRequest({ name: '  Test User  ', contacts: '  @test  ', selectedBooks: [] }))
+    await POST(makeRequest({ name: '  Test User  ', contacts: '  @test  ', selectedBookIds: [] }))
 
-    expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', [])
+    expect(signups.upsertSignupByBookIds).toHaveBeenCalledWith('user-1', [])
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_submitted', expect.any(Object))
   })
 
@@ -123,38 +143,38 @@ describe('POST /api/signup', () => {
     const mockSet = jest.fn().mockReturnValue({ where: mockWhere })
     ;(db.update as jest.Mock).mockReturnValue({ set: mockSet })
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult())
 
-    await POST(makeRequest({ name: '  Latest Name  ', contacts: '  @latest  ', selectedBooks: [] }))
+    await POST(makeRequest({ name: '  Latest Name  ', contacts: '  @latest  ', selectedBookIds: [] }))
 
     expect(db.update).toHaveBeenCalled()
     expect(mockSet).toHaveBeenCalledWith({ name: 'Latest Name', contacts: '@latest', prioritiesSet: false })
   })
 
-  it('сбрасывает prioritiesSet=false когда selectedBooks пустой', async () => {
+  it('сбрасывает prioritiesSet=false когда selectedBookIds пустой', async () => {
     const { db } = await import('@/lib/db')
     const mockWhere = jest.fn().mockResolvedValue(undefined)
     const mockSet = jest.fn().mockReturnValue({ where: mockWhere })
     ;(db.update as jest.Mock).mockReturnValue({ set: mockSet })
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult())
 
-    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: [] }))
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBookIds: [] }))
 
     expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
       prioritiesSet: false,
     }))
   })
 
-  it('не сбрасывает prioritiesSet если selectedBooks не пустой', async () => {
+  it('не сбрасывает prioritiesSet если selectedBookIds не пустой', async () => {
     const { db } = await import('@/lib/db')
     const mockWhere = jest.fn().mockResolvedValue(undefined)
     const mockSet = jest.fn().mockReturnValue({ where: mockWhere })
     ;(db.update as jest.Mock).mockReturnValue({ set: mockSet })
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult(['Книга А'], ['book-a']))
 
-    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А'] }))
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBookIds: ['book-a'] }))
 
     expect(mockSet).toHaveBeenCalledWith(expect.not.objectContaining({
       prioritiesSet: expect.anything(),
@@ -164,9 +184,9 @@ describe('POST /api/signup', () => {
   it('удаляет приоритеты для книг, которых нет в новом списке', async () => {
     const { db } = await import('@/lib/db')
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult(['Книга А'], ['book-a']))
 
-    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А'] }))
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBookIds: ['book-a'] }))
 
     expect(db.delete).toHaveBeenCalled()
   })
@@ -175,9 +195,9 @@ describe('POST /api/signup', () => {
     const mockValues = jest.fn().mockReturnValue({ catch: jest.fn() })
     mockInsert.mockReturnValue({ values: mockValues })
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: true, addedBooks: ['Книга А', 'Книга Б'] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult(['Книга А', 'Книга Б'], ['book-a', 'book-b'], true))
 
-    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А', 'Книга Б'] }))
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBookIds: ['book-a', 'book-b'] }))
 
     expect(mockInsert).toHaveBeenCalled()
     expect(mockValues).toHaveBeenCalledWith(
@@ -195,9 +215,9 @@ describe('POST /api/signup', () => {
     const mockValues = jest.fn().mockReturnValue({ catch: jest.fn() })
     mockInsert.mockReturnValue({ values: mockValues })
     mockAuth.mockResolvedValue({ user: { email: 'telegram:123456@telegram.user', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: true, addedBooks: ['Книга А'] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult(['Книга А'], ['book-a'], true))
 
-    await POST(makeRequest({ name: 'Test', contacts: '@telegram', selectedBooks: ['Книга А'] }))
+    await POST(makeRequest({ name: 'Test', contacts: '@telegram', selectedBookIds: ['book-a'] }))
 
     expect(mockValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -209,9 +229,9 @@ describe('POST /api/signup', () => {
 
   it('не добавляет в очередь если новых книг нет', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue({ isNew: false, addedBooks: [] })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult())
 
-    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBooks: ['Книга А'] }))
+    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBookIds: ['book-a'] }))
 
     expect(mockInsert).not.toHaveBeenCalled()
   })

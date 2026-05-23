@@ -63,8 +63,8 @@ describe('GET /api/priorities', () => {
   it('возвращает приоритеты отсортированные по rank', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
     const rows = [
-      { bookName: 'Книга А', rank: 1 },
-      { bookName: 'Книга Б', rank: 2 },
+      { bookId: 'book-a', bookName: 'Книга А', rank: 1 },
+      { bookId: 'book-b', bookName: 'Книга Б', rank: 2 },
     ]
     ;(db.select as jest.Mock).mockReturnValue(makeSelectMock(rows))
 
@@ -79,28 +79,35 @@ describe('GET /api/priorities', () => {
 describe('PUT /api/priorities', () => {
   it('возвращает 401 без сессии', async () => {
     mockAuth.mockResolvedValue(null)
-    const res = await PUT(makePut({ books: ['Книга А'] }))
+    const res = await PUT(makePut({ bookIds: ['book-a'] }))
     expect(res.status).toBe(401)
   })
 
   it('возвращает 400 если books не массив', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    const res = await PUT(makePut({ books: 'Книга А' }))
+    const res = await PUT(makePut({ bookIds: 'book-a' }))
     expect(res.status).toBe(400)
   })
 
   it('возвращает 400 если books пустой массив', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    const res = await PUT(makePut({ books: [] }))
+    const res = await PUT(makePut({ bookIds: [] }))
     expect(res.status).toBe(400)
   })
 
   it('сохраняет приоритеты и устанавливает prioritiesSet=true', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
+    ;(db.select as jest.Mock).mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue([
+          { id: 'book-a', title: 'Книга А' },
+          { id: 'book-b', title: 'Книга Б' },
+        ]),
+      }),
+    })
 
     const mockInsert = {
-      values: jest.fn().mockReturnThis(),
-      onConflictDoUpdate: jest.fn().mockResolvedValue(undefined),
+      values: jest.fn().mockResolvedValue(undefined),
     }
     const mockDelete = {
       where: jest.fn().mockResolvedValue(undefined),
@@ -113,12 +120,16 @@ describe('PUT /api/priorities', () => {
     ;(db.delete as jest.Mock).mockReturnValue(mockDelete)
     ;(db.update as jest.Mock).mockReturnValue(mockUpdate)
 
-    const res = await PUT(makePut({ books: ['Книга А', 'Книга Б'] }))
+    const res = await PUT(makePut({ bookIds: ['book-a', 'book-b'] }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(db.insert).toHaveBeenCalled()
+    expect(mockInsert.values).toHaveBeenCalledWith([
+      expect.objectContaining({ bookId: 'book-a', bookName: 'Книга А', rank: 1 }),
+      expect.objectContaining({ bookId: 'book-b', bookName: 'Книга Б', rank: 2 }),
+    ])
     expect(db.update).toHaveBeenCalled()
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'priorities_updated', expect.objectContaining({
       source: 'api',

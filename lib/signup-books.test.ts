@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { getAllSignups, removeBookFromSignup, upsertSignup } from './signup-books'
+import { getAllSignups, removeBookFromSignup, upsertSignup, upsertSignupByBookIds } from './signup-books'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/db', () => ({
@@ -29,6 +29,7 @@ describe('signup-books', () => {
           contacts: '@ivan',
           prioritiesSet: true,
           bookName: 'Книга A',
+          bookId: 'book-a',
           signedAt: new Date('2026-01-01T00:00:00Z'),
         },
         {
@@ -38,6 +39,7 @@ describe('signup-books', () => {
           contacts: '@ivan',
           prioritiesSet: true,
           bookName: 'Книга B',
+          bookId: 'book-b',
           signedAt: new Date('2026-01-01T00:00:00Z'),
         },
       ]),
@@ -54,6 +56,7 @@ describe('signup-books', () => {
         email: 'ivan@test.com',
         contacts: '@ivan',
         selectedBooks: ['Книга A', 'Книга B'],
+        selectedBookIds: ['book-a', 'book-b'],
         prioritiesSet: true,
       },
     ])
@@ -65,14 +68,39 @@ describe('signup-books', () => {
     ;(sql.transaction as jest.Mock).mockImplementation(async (fn) => fn(tx))
     // title→book_id lookup
     ;(db.select as jest.Mock).mockReturnValue({
-      from: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue([]) }),
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue([
+          { id: 'book-a', title: 'Книга A' },
+          { id: 'book-b', title: 'Книга B' },
+        ]),
+      }),
     })
 
     const result = await upsertSignup('user-1', [' Книга A ', 'Книга A', 'Книга B'])
 
     expect(sql.transaction).toHaveBeenCalled()
     expect(tx).toHaveBeenCalledTimes(3)
-    expect(result).toEqual({ isNew: false, addedBooks: ['Книга A', 'Книга B'] })
+    expect(result).toEqual({ isNew: false, addedBooks: ['Книга A', 'Книга B'], addedBookIds: ['book-a', 'book-b'] })
+  })
+
+  it('upsertSignupByBookIds пишет book_id и legacy book_name cache', async () => {
+    const { sql } = await import('@/lib/db')
+    const tx = jest.fn().mockReturnValue('query')
+    ;(sql.transaction as jest.Mock).mockImplementation(async (fn) => fn(tx))
+    ;(db.select as jest.Mock).mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue([
+          { id: 'book-a', title: 'Книга A' },
+          { id: 'book-b', title: 'Книга B' },
+        ]),
+      }),
+    })
+
+    const result = await upsertSignupByBookIds('user-1', ['book-a', 'book-a', 'book-b'])
+
+    expect(sql.transaction).toHaveBeenCalled()
+    expect(tx).toHaveBeenCalledTimes(3)
+    expect(result).toEqual({ isNew: false, addedBooks: ['Книга A', 'Книга B'], addedBookIds: ['book-a', 'book-b'] })
   })
 
   it('upsertSignup с пустым списком только очищает записи пользователя', async () => {
@@ -85,13 +113,14 @@ describe('signup-books', () => {
     expect(sql.transaction).toHaveBeenCalled()
     expect(tx).toHaveBeenCalledTimes(1)
     expect(result.addedBooks).toEqual([])
+    expect(result.addedBookIds).toEqual([])
   })
 
   it('removeBookFromSignup удаляет одну книгу пользователя', async () => {
     const where = jest.fn().mockResolvedValue(undefined)
     ;(db.delete as jest.Mock).mockReturnValue({ where })
 
-    await removeBookFromSignup('user-1', 'Книга A')
+    await removeBookFromSignup('user-1', 'book-a')
 
     expect(db.delete).toHaveBeenCalled()
     expect(where).toHaveBeenCalled()

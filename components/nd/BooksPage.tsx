@@ -30,11 +30,11 @@ interface Props {
   introSections: AboutBlockSection[]
 }
 
-async function saveSelection(name: string, contacts: string, books: string[]) {
+async function saveSelection(name: string, contacts: string, bookIds: string[]) {
   const res = await fetch('/api/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, contacts, selectedBooks: books }),
+    body: JSON.stringify({ name, contacts, selectedBookIds: bookIds }),
   })
   if (!res.ok) throw new Error(`Signup failed: ${res.status}`)
 }
@@ -110,7 +110,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const [showMyBooks, setShowMyBooks] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [selectedBooks, setSelectedBooks] = useState<string[]>(
-    currentUser?.selectedBooks ?? []
+    currentUser?.selectedBookIds ?? books.filter(book => currentUser?.selectedBooks.includes(book.name)).map(book => book.id)
   )
   const selectedBooksRef = useRef(selectedBooks)
   const saveSelectionQueueRef = useRef<Promise<void>>(Promise.resolve())
@@ -195,7 +195,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     if (filterTag) result = result.filter(b => b.tags.includes(filterTag))
     if (filterAuthor) result = result.filter(b => bookMatchesAuthor(b, filterAuthor))
     result = result.filter(b => showRead ? b.status === 'read' : b.status !== 'read')
-    if (showMyBooks) result = result.filter(b => selectedBooks.includes(b.name))
+    if (showMyBooks) result = result.filter(b => selectedBooks.includes(b.id))
     if (showNew) result = result.filter(b => b.isNew)
     return result
   }, [books, query, filterTag, filterAuthor, showRead, showMyBooks, showNew, selectedBooks])
@@ -217,10 +217,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     }
 
     const currentSelection = selectedBooksRef.current
-    const isAdding = !currentSelection.includes(book.name)
+    const isAdding = !currentSelection.includes(book.id)
     const next = isAdding
-      ? [...currentSelection, book.name]
-      : currentSelection.filter(n => n !== book.name)
+      ? [...currentSelection, book.id]
+      : currentSelection.filter(id => id !== book.id)
 
     track(isAdding ? 'book_signup' : 'book_unsignup', { bookName: book.name })
     selectedBooksRef.current = next
@@ -242,7 +242,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     }
 
     const booksList = pendingBook
-      ? [...selectedBooksRef.current, pendingBook.name]
+      ? [...selectedBooksRef.current, pendingBook.id]
       : selectedBooksRef.current
     await enqueueSaveSelection(name, contacts, booksList)
     setSavedUser({ name, contacts })
@@ -258,13 +258,14 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     await signOut()
   }
 
-  async function handleToggleByName(bookName: string): Promise<void> {
+  async function handleToggleById(bookId: string): Promise<void> {
     const original = selectedBooksRef.current
-    const isAdding = !original.includes(bookName)
+    const book = books.find(b => b.id === bookId)
+    const isAdding = !original.includes(bookId)
     const next = isAdding
-      ? [...original, bookName]
-      : original.filter(n => n !== bookName)
-    track(isAdding ? 'book_signup' : 'book_unsignup', { bookName })
+      ? [...original, bookId]
+      : original.filter(id => id !== bookId)
+    track(isAdding ? 'book_signup' : 'book_unsignup', { bookId, bookName: book?.name })
     selectedBooksRef.current = next
     setSelectedBooks(next)
     try {
@@ -470,7 +471,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
             <SubmitBookCard onClick={handleSubmitBookClick} />
             {filteredBooks.map(book => (
-              <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.name)} onToggle={handleToggle} />
+              <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} />
             ))}
           </div>
         ) : (
@@ -497,7 +498,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                 </td>
               </tr>
               {filteredBooks.map(book => (
-                <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.name)} onToggle={handleToggle} />
+                <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} />
               ))}
             </tbody>
           </table>
@@ -573,7 +574,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         savedUser={savedUser}
         onSaveContacts={handleSaveContacts}
         onDeleteAccount={handleDeleteAccount}
-        onToggleBook={handleToggleByName}
+        onToggleBook={handleToggleById}
       />
       {feedbackFormOpen && (
         <FeedbackForm

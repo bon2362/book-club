@@ -13,23 +13,23 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { userId, bookName } = await req.json() as { userId?: string; bookName?: string }
-  if (!userId || !bookName) {
+  const { userId, bookId } = await req.json() as { userId?: string; bookId?: string }
+  if (!userId || !bookId) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
   const [existing] = await db
     .select({ rank: bookPriorities.rank })
     .from(bookPriorities)
-    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookName, bookName)))
+    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
     .limit(1)
 
-  await removeBookFromSignup(userId, bookName)
+  await removeBookFromSignup(userId, bookId)
 
   if (existing) {
     await db
       .delete(bookPriorities)
-      .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookName, bookName)))
+      .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
 
     await db
       .update(bookPriorities)

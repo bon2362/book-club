@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { upsertSignup } from '@/lib/signup-books'
+import { upsertSignup, upsertSignupByBookIds } from '@/lib/signup-books'
+import type { UpsertResult } from '@/lib/signup-books'
 import { db } from '@/lib/db'
 import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
-import { and, eq, notInArray } from 'drizzle-orm'
+import { and, eq, isNull, notInArray, or } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
 import { getUserContactEmail } from '@/lib/user-email'
 
@@ -15,30 +16,44 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { name, contacts, selectedBooks } = body
+  const { name, contacts, selectedBooks, selectedBookIds } = body
 
-  if (!name?.trim() || typeof contacts !== 'string' || !Array.isArray(selectedBooks)) {
+  const hasBookIds = Array.isArray(selectedBookIds)
+  const hasLegacyBookNames = Array.isArray(selectedBooks)
+  if (!name?.trim() || typeof contacts !== 'string' || (!hasBookIds && !hasLegacyBookNames)) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const selectedBookNames = selectedBooks as string[]
+  const selectedBookIdsList = hasBookIds ? selectedBookIds as string[] : []
+  const selectedBookNames = hasLegacyBookNames ? selectedBooks as string[] : []
+  const selectedCount = hasBookIds ? selectedBookIdsList.length : selectedBookNames.length
+  let result: UpsertResult
+  try {
+    result = hasBookIds
+      ? await upsertSignupByBookIds(pgUserId, selectedBookIdsList)
+      : await upsertSignup(pgUserId, selectedBookNames)
+  } catch {
+    return NextResponse.json({ error: 'Some books were not found' }, { status: 400 })
+  }
+
   await db.update(users).set({
     name: name.trim(),
     contacts: contacts.trim(),
-    ...(selectedBookNames.length === 0 ? { prioritiesSet: false } : {}),
+    ...(selectedCount === 0 ? { prioritiesSet: false } : {}),
   }).where(eq(users.id, pgUserId))
 
-  const result = await upsertSignup(pgUserId, selectedBookNames)
-
-  // Clean up book_priorities for books no longer in selectedBooks.
+  // Clean up book_priorities for books no longer in selectedBookIds.
   // Uses session.user.id (Postgres user UUID), not session.user.email (Sheets userId).
-  if (selectedBookNames.length > 0) {
+  if (result.addedBookIds.length > 0) {
     await db
       .delete(bookPriorities)
       .where(
         and(
           eq(bookPriorities.userId, pgUserId),
-          notInArray(bookPriorities.bookName, selectedBookNames)
+          or(
+            isNull(bookPriorities.bookId),
+            notInArray(bookPriorities.bookId, result.addedBookIds)
+          )
         )
       )
       .catch(() => {}) // non-critical — don't fail the request
@@ -56,25 +71,25 @@ export async function POST(req: NextRequest) {
     pgUserId,
     name.trim(),
     contacts.trim(),
-    JSON.stringify(selectedBookNames),
+    JSON.stringify(result.addedBookIds),
   ])
   await bestEffortRecordUserActivity(pgUserId, 'profile_submitted', {
     source: 'api',
     sourceId: pgUserId,
     dedupeKey: profileDedupeKey,
     metadata: {
-      selectedBooksCount: selectedBookNames.length,
+      selectedBooksCount: result.addedBookIds.length,
       addedBooksCount: result.addedBooks.length,
     },
   })
 
-  if (selectedBookNames.length > 0) {
+  if (result.addedBookIds.length > 0) {
     await bestEffortRecordUserActivity(pgUserId, 'books_selected', {
       source: 'api',
       sourceId: pgUserId,
-      dedupeKey: buildUserActivityDedupeKey(['api', 'books_selected', pgUserId, JSON.stringify(selectedBookNames)]),
+      dedupeKey: buildUserActivityDedupeKey(['api', 'books_selected', pgUserId, JSON.stringify(result.addedBookIds)]),
       metadata: {
-        selectedBooksCount: selectedBookNames.length,
+        selectedBooksCount: result.addedBookIds.length,
         addedBooksCount: result.addedBooks.length,
       },
     })

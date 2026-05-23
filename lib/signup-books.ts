@@ -10,12 +10,19 @@ export interface UserSignup {
   contactEmail?: string | null
   contacts: string
   selectedBooks: string[]
+  selectedBookIds?: string[]
   prioritiesSet?: boolean
 }
 
 export interface UpsertResult {
   isNew: boolean
   addedBooks: string[]
+  addedBookIds: string[]
+}
+
+interface SignupBookInput {
+  id: string
+  title: string
 }
 
 export async function getAllSignups(): Promise<UserSignup[]> {
@@ -28,6 +35,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       contacts: users.contacts,
       prioritiesSet: users.prioritiesSet,
       bookName: signupBooks.bookName,
+      bookId: signupBooks.bookId,
       signedAt: signupBooks.signedAt,
     })
     .from(signupBooks)
@@ -39,6 +47,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
     const existing = byUser.get(row.userId)
     if (existing) {
       existing.selectedBooks.push(row.bookName)
+      if (row.bookId) (existing.selectedBookIds ??= []).push(row.bookId)
       continue
     }
 
@@ -50,6 +59,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       contactEmail: row.contactEmail,
       contacts: row.contacts ?? '',
       selectedBooks: [row.bookName],
+      selectedBookIds: row.bookId ? [row.bookId] : [],
       prioritiesSet: row.prioritiesSet,
     })
   }
@@ -57,40 +67,78 @@ export async function getAllSignups(): Promise<UserSignup[]> {
   return Array.from(byUser.values())
 }
 
-export async function upsertSignup(userId: string, bookNames: string[]): Promise<UpsertResult> {
-  const normalized = Array.from(new Set(bookNames.map(b => b.trim()).filter(Boolean)))
+function normalizeIds(bookIds: string[]): string[] {
+  return Array.from(new Set(bookIds.map(b => b.trim()).filter(Boolean)))
+}
 
-  // Best-effort title → book_id lookup so new rows get book_id populated.
-  // If the title matches multiple non-archived books, we deliberately leave book_id NULL —
-  // picking the first match would silently misroute the signup. Cleanup 0023 will block
-  // (and Stage 3 moves writes to bookId so titles stop being ambiguous on the wire).
-  const titleToBookId = new Map<string, string | null>()
-  if (normalized.length > 0) {
-    const rows = await db
-      .select({ id: books.id, title: books.title })
-      .from(books)
-      .where(inArray(books.title, normalized))
-    const countByTitle = new Map<string, number>()
-    for (const r of rows) countByTitle.set(r.title, (countByTitle.get(r.title) ?? 0) + 1)
-    for (const r of rows) {
-      if ((countByTitle.get(r.title) ?? 0) === 1) titleToBookId.set(r.title, r.id)
-      else titleToBookId.set(r.title, null)
-    }
+async function resolveBooksByIds(bookIds: string[]): Promise<SignupBookInput[]> {
+  const normalized = normalizeIds(bookIds)
+  if (normalized.length === 0) return []
+  const rows = await db
+    .select({ id: books.id, title: books.title })
+    .from(books)
+    .where(inArray(books.id, normalized))
+  const byId = new Map(rows.map(row => [row.id, row.title]))
+  const resolved = normalized.flatMap(id => {
+    const title = byId.get(id)
+    return title ? [{ id, title }] : []
+  })
+  if (resolved.length !== normalized.length) {
+    throw new Error('BOOK_ID_NOT_FOUND')
   }
+  return resolved
+}
+
+async function resolveBooksByNames(bookNames: string[]): Promise<SignupBookInput[]> {
+  const normalized = normalizeIds(bookNames)
+  if (normalized.length === 0) return []
+
+  const rows = await db
+    .select({ id: books.id, title: books.title })
+    .from(books)
+    .where(inArray(books.title, normalized))
+  const countByTitle = new Map<string, number>()
+  for (const r of rows) countByTitle.set(r.title, (countByTitle.get(r.title) ?? 0) + 1)
+  const uniqueByTitle = new Map<string, string>()
+  for (const r of rows) {
+    if ((countByTitle.get(r.title) ?? 0) === 1) uniqueByTitle.set(r.title, r.id)
+  }
+  return normalized.flatMap(title => {
+    const id = uniqueByTitle.get(title)
+    return id ? [{ id, title }] : []
+  })
+}
+
+async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInput[]): Promise<UpsertResult> {
+  const unique = new Map<string, SignupBookInput>()
+  for (const book of selectedBooks) unique.set(book.id, book)
+  const normalized = Array.from(unique.values())
 
   await sql.transaction(tx => [
     tx`DELETE FROM signup_books WHERE user_id = ${userId}`,
-    ...normalized.map(bookName => {
-      const bookId = titleToBookId.get(bookName) ?? null
-      return tx`INSERT INTO signup_books (user_id, book_name, book_id) VALUES (${userId}, ${bookName}, ${bookId}) ON CONFLICT DO NOTHING`
-    }),
+    ...normalized.map(book =>
+      tx`INSERT INTO signup_books (user_id, book_name, book_id) VALUES (${userId}, ${book.title}, ${book.id}) ON CONFLICT DO NOTHING`
+    ),
   ])
 
-  return { isNew: false, addedBooks: normalized }
+  return { isNew: false, addedBooks: normalized.map(book => book.title), addedBookIds: normalized.map(book => book.id) }
 }
 
-export async function removeBookFromSignup(userId: string, bookName: string): Promise<void> {
+export async function upsertSignupByBookIds(userId: string, bookIds: string[]): Promise<UpsertResult> {
+  return upsertResolvedSignup(userId, await resolveBooksByIds(bookIds))
+}
+
+export async function upsertSignup(userId: string, bookNames: string[]): Promise<UpsertResult> {
+  const normalized = normalizeIds(bookNames)
+  const resolved = await resolveBooksByNames(normalized)
+  if (resolved.length !== normalized.length) {
+    throw new Error('BOOK_NAME_NOT_FOUND')
+  }
+  return upsertResolvedSignup(userId, resolved)
+}
+
+export async function removeBookFromSignup(userId: string, bookId: string): Promise<void> {
   await db
     .delete(signupBooks)
-    .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookName, bookName)))
+    .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 }
