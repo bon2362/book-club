@@ -7,18 +7,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { books, signupBooks, bookPriorities } from '@/lib/db/schema'
-import { inArray } from 'drizzle-orm'
+import { inArray, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
+import { TEST_FIXTURE_BOOKS, TEST_FIXTURE_BOOK_IDS, TEST_FIXTURE_BOOK_TITLES } from '@/lib/test-books-fixtures'
 
 export const dynamic = 'force-dynamic'
-
-export const TEST_FIXTURE_BOOKS = [
-  { id: '__test_book_1__', title: 'Тестовая книга 1', author: 'Test Author A', tags: ['государство'], description: 'Книга для e2e-тестов', pages: 100, publishedDate: '2024' },
-  { id: '__test_book_2__', title: 'Тестовая книга 2', author: 'Test Author B', tags: [] as string[], description: 'Книга для e2e-тестов', pages: 200, publishedDate: '2024' },
-  { id: '__test_book_3__', title: 'Тестовая книга 3', author: 'Test Author C', tags: [] as string[], description: 'Книга для e2e-тестов', pages: 300, publishedDate: '2024' },
-]
-
-const TEST_FIXTURE_IDS = TEST_FIXTURE_BOOKS.map(b => b.id)
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -50,15 +43,21 @@ export async function POST() {
     legacySheetsRowId: null,
   }))).onConflictDoNothing()
 
-  return NextResponse.json({ ok: true, ids: TEST_FIXTURE_IDS })
+  return NextResponse.json({ ok: true, ids: TEST_FIXTURE_BOOK_IDS })
 }
 
 export async function DELETE() {
   if (!isTestEndpointAllowed()) return notAllowed()
 
-  await db.delete(signupBooks).where(inArray(signupBooks.bookId, TEST_FIXTURE_IDS))
-  await db.delete(bookPriorities).where(inArray(bookPriorities.bookId, TEST_FIXTURE_IDS))
-  await db.delete(books).where(inArray(books.id, TEST_FIXTURE_IDS))
+  await db.delete(signupBooks).where(or(
+    inArray(signupBooks.bookId, TEST_FIXTURE_BOOK_IDS),
+    inArray(signupBooks.bookName, TEST_FIXTURE_BOOK_TITLES)
+  ))
+  await db.delete(bookPriorities).where(or(
+    inArray(bookPriorities.bookId, TEST_FIXTURE_BOOK_IDS),
+    inArray(bookPriorities.bookName, TEST_FIXTURE_BOOK_TITLES)
+  ))
+  await db.delete(books).where(inArray(books.id, TEST_FIXTURE_BOOK_IDS))
 
   return NextResponse.json({ ok: true })
 }

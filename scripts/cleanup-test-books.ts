@@ -24,6 +24,7 @@ function loadEnv() {
 loadEnv()
 
 const TEST_IDS = ['__test_book_1__', '__test_book_2__', '__test_book_3__']
+const TEST_TITLES = ['Тестовая книга 1', 'Тестовая книга 2', 'Тестовая книга 3']
 
 async function main() {
   neonConfig.webSocketConstructor = ws
@@ -32,12 +33,12 @@ async function main() {
   try {
     const before = await client.query(`SELECT id, title FROM books WHERE id = ANY($1::text[])`, [TEST_IDS])
     console.log('Test books currently in DB:', before.rows)
-    const beforeSignups = await client.query(`SELECT user_id, book_name FROM signup_books WHERE book_id = ANY($1::text[]) OR book_name LIKE 'Тестовая книга %'`, [TEST_IDS])
+    const beforeSignups = await client.query(`SELECT user_id, book_name FROM signup_books WHERE book_id = ANY($1::text[]) OR book_name = ANY($2::text[])`, [TEST_IDS, TEST_TITLES])
     console.log('Signups against test books:', beforeSignups.rows)
 
     await client.query('BEGIN')
-    await client.query(`DELETE FROM signup_books WHERE book_id = ANY($1::text[])`, [TEST_IDS])
-    await client.query(`DELETE FROM book_priorities WHERE book_id = ANY($1::text[])`, [TEST_IDS])
+    await client.query(`DELETE FROM signup_books WHERE book_id = ANY($1::text[]) OR book_name = ANY($2::text[])`, [TEST_IDS, TEST_TITLES])
+    await client.query(`DELETE FROM book_priorities WHERE book_id = ANY($1::text[]) OR book_name = ANY($2::text[])`, [TEST_IDS, TEST_TITLES])
     await client.query(`DELETE FROM books WHERE id = ANY($1::text[])`, [TEST_IDS])
     await client.query('COMMIT')
 
