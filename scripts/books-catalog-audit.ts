@@ -141,13 +141,27 @@ async function main() {
   console.log(`  ${sheetsBooks.length} catalog rows`)
 
   console.log('Fetching DB tables...')
+  // book_statuses and book_new_flags were dropped in 0022 (after merge into books). Use raw SQL
+  // here because the typed schema no longer defines those tables — the audit script is kept
+  // around as a historical artifact of the snapshot used to seed 0021.
+  const { sql: rawSql } = await import('../lib/db')
   const [submissions, statuses, newFlags, signups, priorities] = await Promise.all([
     db.select().from(schema.bookSubmissions),
-    db.select().from(schema.bookStatuses),
-    db.select().from(schema.bookNewFlags),
+    rawSql`SELECT book_id, status FROM book_statuses` as unknown as Promise<Array<{ bookId: string; status: string }>>,
+    rawSql`SELECT book_id, is_new FROM book_new_flags` as unknown as Promise<Array<{ bookId: string; isNew: boolean }>>,
     db.select().from(schema.signupBooks),
     db.select().from(schema.bookPriorities),
-  ])
+  ]).catch(async () => {
+    // Tables already dropped — return empty arrays so re-running the audit post-cleanup
+    // doesn't fail.
+    return [
+      await db.select().from(schema.bookSubmissions),
+      [] as Array<{ bookId: string; status: string }>,
+      [] as Array<{ bookId: string; isNew: boolean }>,
+      await db.select().from(schema.signupBooks),
+      await db.select().from(schema.bookPriorities),
+    ] as const
+  })
   console.log(`  submissions=${submissions.length} statuses=${statuses.length} newFlags=${newFlags.length} signups=${signups.length} priorities=${priorities.length}`)
 
   const approvedSubs = submissions.filter(s => s.status === 'approved')

@@ -75,11 +75,6 @@ export const verificationTokens = pgTable('verificationToken', {
   pk: primaryKey({ columns: [t.identifier, t.token] }),
 }))
 
-export const bookStatuses = pgTable('book_statuses', {
-  bookId: text('book_id').primaryKey(),
-  status: text('status').notNull(), // 'reading' | 'read'
-})
-
 // New canonical books catalog (replaces Sheets + book_statuses + book_new_flags merge).
 // See docs/planning-artifacts/books-catalog-db-refactor-plan.md.
 export const books = pgTable('books', {
@@ -136,12 +131,6 @@ export const legacyBookMappings = pgTable('legacy_book_mappings', {
 export const tagDescriptions = pgTable('tag_descriptions', {
   tag: text('tag').primaryKey(),
   description: text('description').notNull(),
-})
-
-export const bookNewFlags = pgTable('book_new_flags', {
-  bookId:    text('book_id').primaryKey(),
-  isNew:     boolean('is_new').notNull(),
-  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 })
 
 export const bookSubmissions = pgTable('book_submissions', {
