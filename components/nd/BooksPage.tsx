@@ -44,8 +44,6 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const { isHidden } = useScrollHide()
   const isLoggedIn = !!session?.user?.id
   const isAdmin = !!session?.user?.isAdmin
-  const telegramUsername = session?.user?.telegramUsername ?? null
-  const telegramName = session?.user?.name ?? null
   const contactEmail = getUserContactEmail(session?.user)
 
   const [aboutVisible, setAboutVisible] = useState(true)
@@ -169,18 +167,9 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         sessionStorage.removeItem('reloading_after_onetap')
         return
       }
-      if (telegramUsername) {
-        // Telegram users already provided name and username — auto-save without showing the form
-        const name = telegramName || telegramUsername
-        const contacts = '@' + telegramUsername
-        enqueueSaveSelection(name, contacts, [])
-          .then(() => setSavedUser({ name, contacts }))
-          .catch(console.error)
-      } else {
-        setShowContactsForm(true)
-      }
+      setShowContactsForm(true)
     }
-  }, [isLoggedIn, currentUser, savedUser, isAdmin, telegramUsername, telegramName])
+  }, [isLoggedIn, currentUser, savedUser, isAdmin])
 
   const allTags = useMemo(() => {
     const s = new Set<string>()
@@ -554,8 +543,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       {showContactsForm && (
         <ContactsForm
           defaultName={effectiveUser?.name}
-          defaultContacts={effectiveUser?.contacts ?? (telegramUsername ? '@' + telegramUsername : undefined)}
-          telegramLocked={!!telegramUsername}
+          defaultContacts={effectiveUser?.contacts}
           onSave={handleSaveContacts}
           onClose={() => { setShowContactsForm(false); setPendingBook(null) }}
           onDelete={isLoggedIn ? handleDeleteAccount : undefined}
@@ -568,7 +556,6 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         books={books}
         currentUser={currentUser}
         savedUser={savedUser}
-        telegramLocked={!!telegramUsername}
         onSaveContacts={handleSaveContacts}
         onDeleteAccount={handleDeleteAccount}
         onToggleBook={handleToggleByName}

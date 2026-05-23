@@ -14,8 +14,7 @@ describe('telegram display helpers', () => {
     expect(normalizeTelegramContact('напишите мне в личку')).toBeNull()
   })
 
-  it('форматирует telegram_username раньше contacts', () => {
-    expect(formatTelegramDisplay({ telegramUsername: 'reader_main', contacts: '@reader_old' })).toBe('@reader_main')
+  it('форматирует user.contacts как preferred Telegram/contact', () => {
     expect(formatTelegramDisplay({ contacts: '@reader_old' })).toBe('@reader_old')
     expect(formatTelegramDisplay({ contacts: 'reader@test.com' })).toBe('')
   })

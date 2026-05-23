@@ -85,7 +85,7 @@ describe('user identity helpers', () => {
     ;(db as unknown as { transaction: jest.Mock }).transaction = jest.fn(async (callback) => callback(db))
     queueSelects(
       [{ userId: 'user-uuid' }],
-      [{ id: 'user-uuid', email: 'u@test.com', name: 'User', image: null, telegramUsername: null }]
+      [{ id: 'user-uuid', email: 'u@test.com', name: 'User', image: null }]
     )
     mockInserts()
     mockUpdate()
@@ -101,7 +101,7 @@ describe('user identity helpers', () => {
     })
     queueSelects(
       [{ userId: 'user-uuid' }],
-      [{ id: 'user-uuid', email: 'u@test.com', name: 'User', image: null, telegramUsername: null }]
+      [{ id: 'user-uuid', email: 'u@test.com', name: 'User', image: null }]
     )
     mockInserts()
     mockUpdate()
@@ -115,7 +115,7 @@ describe('user identity helpers', () => {
   it('создаёт нового Telegram user с UUID без user.email/contactEmail', async () => {
     queueSelects(
       [],
-      [{ id: 'generated-uuid', email: null, contactEmail: null, name: 'Ivan', image: null, telegramUsername: 'ivan' }]
+      [{ id: 'generated-uuid', email: null, contactEmail: null, name: 'Ivan', image: null }]
     )
     const insertChains = mockInserts()
     mockUpdate()
@@ -131,7 +131,7 @@ describe('user identity helpers', () => {
     expect(insertChains[0].lastValues).toEqual(expect.objectContaining({
       id: 'generated-uuid',
       contactEmail: null,
-      telegramUsername: 'ivan',
+      contacts: '@ivan',
     }))
     expect(insertChains[0].lastValues).not.toHaveProperty('email')
     expect(insertChains[0].lastValues).toEqual(expect.not.objectContaining({
@@ -167,7 +167,7 @@ describe('user identity helpers', () => {
       [],
       [{ id: 'user-uuid' }],
       [],
-      [{ id: 'user-uuid', email: 'user@test.com', name: 'User', image: null, telegramUsername: null }]
+      [{ id: 'user-uuid', email: 'user@test.com', name: 'User', image: null }]
     )
     const insertChains = mockInserts()
     const updateChain = mockUpdate()
@@ -205,7 +205,7 @@ describe('user identity helpers', () => {
       [],
       [{ userId: 'account-owner' }],
       [{ userId: 'account-owner' }],
-      [{ id: 'account-owner', email: 'owner@test.com', name: 'Owner', image: null, telegramUsername: null }]
+      [{ id: 'account-owner', email: 'owner@test.com', name: 'Owner', image: null }]
     )
     const insertChains = mockInserts()
     mockUpdate()
@@ -232,7 +232,7 @@ describe('user identity helpers', () => {
       [],
       [],
       [],
-      [{ id: 'canonical-uuid', email: 'oauth@test.com', name: 'OAuth', image: null, telegramUsername: null }]
+      [{ id: 'canonical-uuid', email: 'oauth@test.com', name: 'OAuth', image: null }]
     )
     const insertChains = mockInserts()
     mockUpdate()

@@ -19,9 +19,6 @@ export async function GET() {
       email: users.contactEmail,
       contactEmail: users.contactEmail,
       contacts: users.contacts,
-      telegramUsername: users.telegramUsername,
-      legacyAuthProvider: users.authProvider,
-      legacyLastSignInAt: users.lastSignInAt,
     })
     .from(users)
     .where(eq(users.id, session.user.id))
@@ -44,10 +41,8 @@ export async function GET() {
   return NextResponse.json({
     user: {
       ...rows[0],
-      authProvider: identities[0]?.authProvider ?? rows[0].legacyAuthProvider ?? null,
-      lastSignInAt: identities[0]?.lastSignInAt ?? rows[0].legacyLastSignInAt ?? null,
-      legacyAuthProvider: undefined,
-      legacyLastSignInAt: undefined,
+      authProvider: identities[0]?.authProvider ?? null,
+      lastSignInAt: identities[0]?.lastSignInAt ?? null,
     },
   })
 }

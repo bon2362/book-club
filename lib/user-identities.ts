@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { accounts, userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 
@@ -33,7 +33,6 @@ export interface ResolvedIdentityUser {
   contactEmail: string | null
   name: string | null
   image: string | null
-  telegramUsername: string | null
   isNew: boolean
 }
 
@@ -93,6 +92,11 @@ function normalizeProviderAccountId(provider: IdentityProvider, providerAccountI
 
 function userContactEmail(provider: IdentityProvider, email: string | null): string | null {
   return provider === 'telegram' ? null : email
+}
+
+function telegramContact(profile: IdentityProfile): string | null {
+  const username = normalizeTelegramContact(profile.telegramUsername)
+  return username ? `@${username}` : null
 }
 
 function metadataToText(metadata?: IdentityMetadata): string | null {
@@ -159,7 +163,6 @@ async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean
       contactEmail: users.contactEmail,
       name: users.name,
       image: users.image,
-      telegramUsername: users.telegramUsername,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -178,6 +181,7 @@ async function updateUserCache(
   now: Date
 ): Promise<void> {
   const contactEmail = userContactEmail(provider, normalizeEmail(profile.email))
+  const contact = provider === 'telegram' ? telegramContact(profile) : null
   await tx
     .update(users)
     .set({
@@ -185,7 +189,9 @@ async function updateUserCache(
       ...(contactEmail ? { contactEmail } : {}),
       ...(profile.name ? { name: profile.name } : {}),
       ...(profile.image ? { image: profile.image } : {}),
-      ...(normalizeTelegramContact(profile.telegramUsername) ? { telegramUsername: normalizeTelegramContact(profile.telegramUsername) } : {}),
+      ...(contact ? {
+        contacts: sql`case when nullif(trim(${users.contacts}), '') is null then ${contact} else ${users.contacts} end`,
+      } : {}),
       ...(profile.isAdmin !== undefined ? { isAdmin: profile.isAdmin } : {}),
     })
     .where(eq(users.id, userId))
@@ -322,13 +328,14 @@ export async function resolveOrCreateUserFromIdentity(
     const isNew = !profile.userId && !linkedByAccountUserId && !linkedByEmailUserId
 
     if (isNew) {
+      const contact = normalizedProvider === 'telegram' ? telegramContact(profile) : null
       await tx.insert(users).values({
         id: userId,
         contactEmail: userContactEmail(normalizedProvider, email),
         name: profile.name ?? email ?? normalizeTelegramContact(profile.telegramUsername) ?? normalizedProviderAccountId,
         emailVerified: email && normalizedProvider !== 'telegram' ? now : null,
         image: profile.image ?? null,
-        telegramUsername: normalizeTelegramContact(profile.telegramUsername),
+        ...(contact ? { contacts: contact } : {}),
         lastActivityAt: now,
         isAdmin: profile.isAdmin ?? false,
       })

@@ -57,7 +57,6 @@ describe('IdentityAwareDrizzleAdapter', () => {
       contactEmail: 'user@test.com',
       emailVerified: null,
       image: null,
-      telegramUsername: null,
     }
     const chain = insertChain(inserted)
     ;(db.insert as jest.Mock).mockReturnValue(chain)
@@ -86,7 +85,6 @@ describe('IdentityAwareDrizzleAdapter', () => {
         contactEmail: 'user@test.com',
         emailVerified: null,
         image: null,
-        telegramUsername: null,
       }]))
 
     const adapter = IdentityAwareDrizzleAdapter()
@@ -103,7 +101,6 @@ describe('IdentityAwareDrizzleAdapter', () => {
       contactEmail: 'new@test.com',
       emailVerified: null,
       image: null,
-      telegramUsername: null,
     }
     const chain = updateChain(updated)
     ;(db.update as jest.Mock).mockReturnValue(chain)

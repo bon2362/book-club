@@ -37,13 +37,12 @@ export async function POST(req: NextRequest) {
 
   await db.update(users).set({
     name,
-    telegramUsername: telegramUsername ?? null,
     emailVerified: identityProvider === 'telegram' ? null : new Date(),
     isAdmin: isAdmin ?? false,
   }).where(eq(users.id, user.id))
 
   const token = await encode({
-    token: { sub: user.id, email: user.email ?? identityEmail ?? null, name, isAdmin: isAdmin ?? false, telegramUsername: telegramUsername ?? null, provider: provider ?? null, contactEmail: user.contactEmail },
+    token: { sub: user.id, email: user.email ?? identityEmail ?? null, name, isAdmin: isAdmin ?? false, provider: identityProvider, contactEmail: user.contactEmail },
     secret: (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET)!,
     salt: 'authjs.session-token',
   })

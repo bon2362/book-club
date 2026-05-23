@@ -94,8 +94,9 @@ test('повторный submit заменяет список книг, а не 
     return userState.signupBooks.sort()
   }).toEqual(['Тестовая книга 1', 'Тестовая книга 3'])
 
-  await page.reload()
-  await page.waitForLoadState('networkidle')
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(book1.getByRole('button', { name: /вы записаны/i })).toBeVisible()
+  await expect(book3.getByRole('button', { name: /вы записаны/i })).toBeVisible()
 
   const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(TEST_EMAIL)}`)).json()
   expect(userState.signupBooks.sort()).toEqual(['Тестовая книга 1', 'Тестовая книга 3'])

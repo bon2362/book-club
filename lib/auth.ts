@@ -30,6 +30,8 @@ async function bootstrapAdminFromEnv(userId: string, email?: string | null) {
 }
 
 function normalizeAuthProvider(provider: string) {
+  if (provider === 'telegram-preauth') return 'telegram'
+  if (provider === 'google-one-tap') return 'google'
   return provider === 'resend' ? 'email' : provider
 }
 
@@ -116,7 +118,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       id: 'telegram-preauth',
       credentials: {},
       async authorize(credentials) {
-        const { uid, token, ts, username } = credentials as { uid: string; token: string; ts: string; username?: string }
+        const { uid, token, ts } = credentials as { uid: string; token: string; ts: string }
         if (!uid || !token || !ts) return null
         // ts is still checked to reject very old auth pages before the DB consume.
         const issuedAt = Number.parseInt(ts, 10)
@@ -126,7 +128,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const existing = await db.select().from(users).where(eq(users.id, uid)).limit(1)
         if (existing.length === 0) return null
         const user = existing[0]
-        return { id: user.id, email: user.contactEmail, contactEmail: user.contactEmail, name: user.name ?? '', telegramUsername: username || null }
+        return { id: user.id, email: user.contactEmail, contactEmail: user.contactEmail, name: user.name ?? '' }
       },
     }),
   ],
@@ -139,11 +141,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // account is null for email magic link (Resend doesn't create an accounts row)
         const provider = account?.provider ? normalizeAuthProvider(account.provider) : 'email'
         const now = new Date()
-        if (user.telegramUsername && userId) {
-          await db.update(users).set({
-            telegramUsername: user.telegramUsername,
-          }).where(eq(users.id, userId))
-        }
         if (userId) {
           await bestEffortRecordUserActivity(userId, 'sign_in', {
             occurredAt: now,
@@ -195,8 +192,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async jwt({ token, user, account }) {
       if (user) {
-        token.telegramUsername = user.telegramUsername ?? token.telegramUsername
-        token.provider = account?.provider ?? token.provider
+        token.provider = account?.provider ? normalizeAuthProvider(account.provider) : token.provider
         token.contactEmail = user.contactEmail ?? token.contactEmail
       }
 
@@ -245,7 +241,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (token.sub) session.user.id = token.sub
         session.user.isAdmin = token.isAdmin as boolean | undefined
         session.user.isExcludedFromAnalytics = token.isExcludedFromAnalytics as boolean | undefined
-        session.user.telegramUsername = token.telegramUsername
         session.user.provider = token.provider
         session.user.contactEmail = token.contactEmail ?? null
       }

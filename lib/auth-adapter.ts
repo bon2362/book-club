@@ -19,7 +19,6 @@ function toAdapterUser(user: DbUserRow): AdapterUser {
     emailVerified: user.emailVerified,
     image: user.image,
     contactEmail: user.contactEmail,
-    telegramUsername: user.telegramUsername,
   } as AdapterUser
 }
 
