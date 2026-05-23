@@ -58,3 +58,6 @@ AGENTS.md
 # Allure test results (generated in CI, not committed)
 /allure-results
 /allure-history
+
+# Local generated artifacts
+/output/
