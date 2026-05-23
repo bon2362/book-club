@@ -643,7 +643,7 @@ export default function AdminPanel({
     .filter(u => {
       const q = userSearch.trim().toLowerCase()
       if (!q) return true
-      return `${u.name} ${u.telegramDisplay} ${u.telegramUsername ?? ''} ${u.contacts ?? ''}`.toLowerCase().includes(q)
+      return `${u.name} ${u.telegramDisplay} ${u.contacts ?? ''}`.toLowerCase().includes(q)
     })
     .sort((a, b) => {
       const dir = userSort.dir === 'asc' ? 1 : -1

@@ -46,8 +46,8 @@ test.describe('Авторизация через Telegram', () => {
     // Открываем вкладку "Профиль" в личном кабинете
     await page.getByRole('dialog').getByRole('button', { name: 'Профиль' }).click()
 
-    // Должен показываться @username, не email
-    await expect(page.getByText('@' + TG_USERNAME)).toBeVisible()
+    // Preferred Telegram/contact comes from users.contacts and is shown as editable profile field.
+    await expect(page.getByLabel('Telegram')).toHaveValue('@' + TG_USERNAME)
     await expect(page.getByText(TG_EMAIL)).not.toBeVisible()
   })
 })

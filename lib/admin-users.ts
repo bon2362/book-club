@@ -16,7 +16,6 @@ export interface AdminUserSummary {
   email: string | null
   contactEmail: string | null
   contacts: string | null
-  telegramUsername: string | null
   telegramDisplay: string
   authProvider: string | null
   lastActivityAt: string | null
@@ -79,9 +78,6 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
         emailVerified: users.emailVerified,
         createdAt: users.createdAt,
         contacts: users.contacts,
-        telegramUsername: users.telegramUsername,
-        authProvider: users.authProvider,
-        lastSignInAt: users.lastSignInAt,
         lastActivityAt: users.lastActivityAt,
         languages: users.languages,
         isAdmin: users.isAdmin,
@@ -109,9 +105,6 @@ export function buildAdminUserSummaries(
     email: string | null
     contactEmail?: string | null
     contacts: string | null
-    telegramUsername: string | null
-    authProvider?: string | null
-    lastSignInAt?: Date | null
     lastActivityAt: Date | null
     emailVerified: Date | null
     createdAt: Date
@@ -139,9 +132,8 @@ export function buildAdminUserSummaries(
     email: row.email,
     contactEmail: row.contactEmail ?? null,
     contacts: row.contacts,
-    telegramUsername: row.telegramUsername,
     telegramDisplay: formatTelegramDisplay(row),
-    authProvider: latestProviders.get(row.id)?.provider ?? row.authProvider ?? null,
+    authProvider: latestProviders.get(row.id)?.provider ?? null,
     lastActivityAt: dateToIso(row.lastActivityAt),
     createdAt: dateToIso(row.createdAt),
     languages: parseLanguages(row.languages),
@@ -160,9 +152,6 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       emailVerified: users.emailVerified,
       createdAt: users.createdAt,
       contacts: users.contacts,
-      telegramUsername: users.telegramUsername,
-      authProvider: users.authProvider,
-      lastSignInAt: users.lastSignInAt,
       lastActivityAt: users.lastActivityAt,
       languages: users.languages,
       prioritiesSet: users.prioritiesSet,

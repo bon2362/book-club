@@ -2,8 +2,8 @@
  * @jest-environment node
  *
  * Tests for lib/auth.ts:
- * - jwt callback (isAdmin, telegramUsername, provider, deleted user)
- * - session callback (user.id, isAdmin, telegramUsername, provider)
+ * - jwt callback (isAdmin, provider, deleted user)
+ * - session callback (user.id, isAdmin, provider)
  * - telegram-preauth provider authorize (one-time token consume, freshness, DB lookup)
  * - signIn identity sync error handling
  */
@@ -225,23 +225,6 @@ describe('signIn callback', () => {
     expect(bestEffortRecordUserActivity).not.toHaveBeenCalled()
   })
 
-  it('пишет telegram_username если он пришёл из credentials user', async () => {
-    const updateChain = mockDbUpdate()
-
-    await signInCallback()({
-      user: { id: 'telegram:123', email: 'telegram:123@telegram.user', telegramUsername: 'ivan_tg' },
-      account: { provider: 'telegram-preauth' },
-    })
-
-    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-      telegramUsername: 'ivan_tg',
-    }))
-    expect(updateChain.set).toHaveBeenCalledWith(expect.not.objectContaining({
-      authProvider: expect.anything(),
-      lastSignInAt: expect.anything(),
-    }))
-  })
-
   it('нормализует resend provider в email для user_identities и activity', async () => {
     await signInCallback()({
       user: { id: 'user-uuid', email: 'user@test.com' },
@@ -283,7 +266,7 @@ describe('signIn callback', () => {
     }))
   })
 
-  it('не перетирает telegram_username пустым значением', async () => {
+  it('не пишет legacy auth cache на sign-in без identity sync', async () => {
     await signInCallback()({
       user: { id: 'user-uuid', email: 'user@test.com' },
       account: { provider: 'email' },
@@ -387,28 +370,6 @@ describe('jwt callback', () => {
     expect((token as Record<string, unknown>).provider).toBe('google')
   })
 
-  it('устанавливает telegramUsername из user', async () => {
-    mockDbSelect([{ id: 'user-id', isAdmin: false }])
-
-    const token = await jwtCallback()({
-      token: { sub: 'user-id' },
-      user: { id: 'user-id', email: 'u@t.com', telegramUsername: 'ivan_tg' },
-      account: { provider: 'telegram-preauth' },
-    })
-    expect((token as Record<string, unknown>).telegramUsername).toBe('ivan_tg')
-  })
-
-  it('сохраняет telegramUsername из токена если user не передаёт', async () => {
-    mockDbSelect([{ id: 'user-id', isAdmin: false }])
-
-    const token = await jwtCallback()({
-      token: { sub: 'user-id', telegramUsername: 'existing_tg' },
-      user: { id: 'user-id', email: 'u@t.com' },
-      account: { provider: 'google' },
-    })
-    expect((token as Record<string, unknown>).telegramUsername).toBe('existing_tg')
-  })
-
   it('возвращает null если пользователь удалён из DB (нет user, есть email)', async () => {
     delete process.env.NEXTAUTH_TEST_MODE
     mockDbSelect([]) // no user in DB
@@ -471,22 +432,13 @@ describe('session callback', () => {
     expect((result as { user: { isAdmin: boolean } }).user.isAdmin).toBe(true)
   })
 
-  it('проставляет telegramUsername из token', async () => {
-    const session = { user: { email: 'u@t.com' } }
-    const result = await sessionCallback()({
-      session,
-      token: { sub: 'uid', telegramUsername: 'my_tg' },
-    })
-    expect((result as { user: { telegramUsername: string } }).user.telegramUsername).toBe('my_tg')
-  })
-
   it('проставляет provider из token', async () => {
     const session = { user: { email: 'u@t.com' } }
     const result = await sessionCallback()({
       session,
-      token: { sub: 'uid', provider: 'telegram-preauth' },
+      token: { sub: 'uid', provider: 'telegram' },
     })
-    expect((result as { user: { provider: string } }).user.provider).toBe('telegram-preauth')
+    expect((result as { user: { provider: string } }).user.provider).toBe('telegram')
   })
 
   it('не падает если session.user отсутствует', async () => {
@@ -561,11 +513,10 @@ describe('telegram-preauth authorize', () => {
       id: uid,
       email: null,
       name: 'Ivan',
-      telegramUsername: 'ivan_tg',
     })
   })
 
-  it('возвращает telegramUsername=null если username не передан', async () => {
+  it('возвращает пользователя без технического telegramUsername если username не передан', async () => {
     const uid = 'user-no-username'
     const ts = String(Math.floor(Date.now() / 1000))
     const token = 'token'
@@ -574,6 +525,6 @@ describe('telegram-preauth authorize', () => {
     mockDbSelect([{ id: uid, email: 'tg@telegram.user', name: 'Ivan' }])
 
     const result = (await authorize({ uid, token, ts })) as Record<string, unknown>
-    expect(result.telegramUsername).toBeNull()
+    expect(result.telegramUsername).toBeUndefined()
   })
 })

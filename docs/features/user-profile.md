@@ -6,7 +6,7 @@
 ## Как работает
 - **ProfileDrawer** — client component (`components/nd/ProfileDrawer.tsx`); открывается кликом по аватарке в header
 - **ContactsForm** — автоматически открывается для авторизованных пользователей без данных профиля (`isLoggedIn && !currentUser && !savedUser`); собирает имя и контактную информацию, пишет напрямую в `users.name` и `users.contacts`
-- **Данные профиля** — все поля живут в таблице `users` каноном: `name`, `contacts`, `telegram_username`, `languages`, плюс служебные `auth_provider` и `last_sign_in_at` (заполняются в `signIn` callback при каждом входе)
+- **Данные профиля** — пользовательские поля живут в таблице `users`: `name`, `contacts`, `languages`, `image`, `contact_email`. Поле `contacts` является тем Telegram/contact, который пользователь хочет показывать в профиле и админке. Технические auth-данные живут отдельно в `user_identities`; `user_identities.telegram_username` нужен для Telegram identity/auth и не показывается на сайте.
 - **Приоритеты книг** — таблица `book_priorities` (`userId`, `bookName`, `rank`, `updatedAt`); обновляется через `POST /api/priorities`; отображается как числа ранга рядом с книгами (до первого ранжирования показывается `—`)
 - **Языки** — `users.languages` (JSON-массив), редактируется через `/api/profile`
 - **Фидбек** — `FeedbackForm` отправляет в `POST /api/feedback`, который и шлёт письмо админу через Resend, и сохраняет запись в таблицу `feedback` (`user_id` nullable — анонимные допустимы)
@@ -20,4 +20,4 @@
 - `app/api/profile/route.ts` — GET/PATCH данных профиля пользователя
 - `app/api/priorities/route.ts` — GET/POST ранжирования книг
 - `app/api/feedback/route.ts` — приём фидбека (email + БД)
-- `lib/db/schema.ts` — таблицы `users` (с полями contacts/telegram_username/auth_provider/last_sign_in_at), `book_priorities`, `signup_books`, `feedback`
+- `lib/db/schema.ts` — таблицы `users` (профиль и contacts), `user_identities` (способы входа), `book_priorities`, `signup_books`, `feedback`

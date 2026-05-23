@@ -10,10 +10,6 @@ export const users = pgTable('user', {
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   image: text('image'),
   contacts: text('contacts'),
-  telegramUsername: text('telegram_username'),
-  // Legacy display/cache fields. New provider truth lives in user_identities.
-  authProvider: text('auth_provider'),
-  lastSignInAt: timestamp('last_sign_in_at', { mode: 'date' }),
   lastActivityAt: timestamp('last_activity_at', { mode: 'date' }),
   languages: text('languages'),
   prioritiesSet: boolean('priorities_set').notNull().default(false),

@@ -23,8 +23,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
   const { isHidden } = useScrollHide()
   const headerRef = useRef<HTMLElement>(null)
   const contactEmail = getUserContactEmail(session?.user)
-  const telegramHandle = session?.user?.telegramUsername ? `@${session.user.telegramUsername}` : null
-  const userLabel = displayName || session?.user?.name || telegramHandle || contactEmail || ''
+  const userLabel = displayName || session?.user?.name || contactEmail || ''
 
   useEffect(() => {
     const el = headerRef.current

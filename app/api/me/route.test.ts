@@ -38,8 +38,8 @@ describe('GET /api/me', () => {
         id: 'user-1',
         name: 'User',
         email: 'user@test.com',
+        contactEmail: 'user@test.com',
         contacts: '@user',
-        telegramUsername: null,
       }],
       [{
         authProvider: 'google',

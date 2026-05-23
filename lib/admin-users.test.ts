@@ -20,7 +20,6 @@ describe('admin-users aggregations', () => {
         name: 'Анна',
         email: 'anna@test.com',
         contacts: '@anna_contact',
-        telegramUsername: 'anna',
         lastActivityAt: new Date('2026-01-06T10:00:00Z'),
         emailVerified: new Date('2026-01-01T10:00:00Z'),
         createdAt: new Date('2026-01-01T09:00:00Z'),
@@ -32,7 +31,6 @@ describe('admin-users aggregations', () => {
         name: null,
         email: 'b@test.com',
         contacts: null,
-        telegramUsername: null,
         lastActivityAt: null,
         emailVerified: null,
         createdAt: new Date('2026-01-03T10:00:00Z'),
@@ -59,7 +57,7 @@ describe('admin-users aggregations', () => {
         languages: ['ru', 'en'],
         booksCount: 2,
         isAdmin: true,
-        telegramDisplay: '@anna',
+        telegramDisplay: '@anna_contact',
         authProvider: 'telegram',
         lastActivityAt: '2026-01-06T10:00:00.000Z',
         createdAt: '2026-01-01T09:00:00.000Z',
@@ -84,7 +82,6 @@ describe('admin-users aggregations', () => {
         name: 'Анна',
         email: 'anna@test.com',
         contacts: null,
-        telegramUsername: null,
         lastActivityAt: new Date('2026-01-03T10:00:00Z'),
         emailVerified: null,
         createdAt: new Date('2026-01-01T10:00:00Z'),
@@ -97,7 +94,6 @@ describe('admin-users aggregations', () => {
   })
 
   it('форматирует Telegram единым formatter-ом', () => {
-    expect(getTelegramDisplay({ telegramUsername: 'reader', contacts: '@fallback' })).toBe('@reader')
     expect(getTelegramDisplay({ contacts: '@fallback' })).toBe('@fallback')
     expect(getTelegramDisplay({ contacts: 'email@test.com' })).toBe('')
   })

@@ -1,5 +1,4 @@
 export interface TelegramDisplayUser {
-  telegramUsername?: string | null
   contacts?: string | null
 }
 
@@ -20,6 +19,6 @@ export function normalizeTelegramContact(rawContact: string | null | undefined):
 }
 
 export function formatTelegramDisplay(user: TelegramDisplayUser): string {
-  const username = normalizeTelegramContact(user.telegramUsername) ?? normalizeTelegramContact(user.contacts)
+  const username = normalizeTelegramContact(user.contacts)
   return username ? `@${username}` : ''
 }
