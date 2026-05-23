@@ -61,13 +61,21 @@ export async function upsertSignup(userId: string, bookNames: string[]): Promise
   const normalized = Array.from(new Set(bookNames.map(b => b.trim()).filter(Boolean)))
 
   // Best-effort title → book_id lookup so new rows get book_id populated.
-  const titleToBookId = new Map<string, string>()
+  // If the title matches multiple non-archived books, we deliberately leave book_id NULL —
+  // picking the first match would silently misroute the signup. Cleanup 0023 will block
+  // (and Stage 3 moves writes to bookId so titles stop being ambiguous on the wire).
+  const titleToBookId = new Map<string, string | null>()
   if (normalized.length > 0) {
     const rows = await db
       .select({ id: books.id, title: books.title })
       .from(books)
       .where(inArray(books.title, normalized))
-    for (const r of rows) if (!titleToBookId.has(r.title)) titleToBookId.set(r.title, r.id)
+    const countByTitle = new Map<string, number>()
+    for (const r of rows) countByTitle.set(r.title, (countByTitle.get(r.title) ?? 0) + 1)
+    for (const r of rows) {
+      if ((countByTitle.get(r.title) ?? 0) === 1) titleToBookId.set(r.title, r.id)
+      else titleToBookId.set(r.title, null)
+    }
   }
 
   await sql.transaction(tx => [

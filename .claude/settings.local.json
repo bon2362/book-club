@@ -42,8 +42,7 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(mkdir -p ~/.claude/channels/telegram/approved)",
-      "Bash(~/.claude/channels/telegram/approved/3616992)",
-      "Bash(git checkout *)"
+      "Bash(~/.claude/channels/telegram/approved/3616992)"
     ]
   },
   "hooks": {

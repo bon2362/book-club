@@ -1,5 +1,5 @@
 import { db, sql } from '@/lib/db'
-import { books, bookSubmissions, signupBooks } from '@/lib/db/schema'
+import { books, bookSubmissions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
@@ -103,11 +103,14 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
     ON CONFLICT (user_id, book_name)
     DO UPDATE SET book_id = EXCLUDED.book_id
   `
-  // Older signups for this book (created before the row existed in `books`) get backfilled too.
-  await db
-    .update(signupBooks)
-    .set({ bookId })
-    .where(eq(signupBooks.bookName, submission.title))
+  // Older signups for this book that don't yet have a book_id get linked. We intentionally
+  // do NOT overwrite an existing book_id — if a duplicate title exists, an already-linked
+  // signup might point at the other book.
+  await sql`
+    UPDATE signup_books
+    SET book_id = ${bookId}
+    WHERE book_name = ${submission.title} AND book_id IS NULL
+  `
 
   return bookId
 }
