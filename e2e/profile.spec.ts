@@ -70,6 +70,13 @@ test.describe('ProfileDrawer — редактирование профиля', (
   })
 
   test('изменение имени отображается сразу в интерфейсе', async ({ page }) => {
+    const signupRequests: string[] = []
+    page.on('request', request => {
+      if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/signup') {
+        signupRequests.push(request.url())
+      }
+    })
+
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
@@ -92,5 +99,6 @@ test.describe('ProfileDrawer — редактирование профиля', (
 
     // После сохранения кнопка показывает "Сохранено ✓"
     await expect(page.getByRole('button', { name: /сохранено/i })).toBeVisible()
+    expect(signupRequests).toHaveLength(0)
   })
 })
