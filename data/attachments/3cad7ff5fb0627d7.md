@@ -1,0 +1,983 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Читательские круги
+      - link "Долгое наступление" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - button "Предложить книгу" [ref=e9] [cursor=pointer]
+        - button "E2E Signup User" [ref=e10] [cursor=pointer]
+  - region "Читательские круги" [ref=e11] [cursor=pointer]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: Что это
+      - generic [ref=e14]:
+        - paragraph [ref=e16]: Мы собираемся группами по 3-4 человека читать книги по демократии
+        - generic [ref=e17]:
+          - button "Подробнее ↓" [ref=e18]
+          - button "×" [ref=e19]
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - searchbox "Поиск по названию или автору…" [ref=e23]
+      - button "Переключить в таблицу" [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e29]:
+      - combobox [ref=e30] [cursor=pointer]:
+        - 'option "Тема: все" [selected]'
+        - option "Государство"
+        - option "Демократия"
+        - option "Капитализм"
+        - option "Левая идея"
+        - option "Народные движения"
+        - option "Путинизм"
+      - combobox [ref=e31] [cursor=pointer]:
+        - 'option "Автор: все" [selected]'
+        - option "Armin Schäfer"
+        - option "Benjamin R. Barber"
+        - option "Bernard Manin"
+        - option "C. B. Macpherson"
+        - option "Charles Mills"
+        - option "Charles Tilly"
+        - option "CrimethInc"
+        - option "Daniel Treisman"
+        - option "Daron Acemoglu"
+        - option "David Graeber"
+        - option "David Harvey"
+        - option "David Wengrow"
+        - option "E2E Автор"
+        - option "Giovanni Arrighi"
+        - option "Howard Zinn"
+        - option "Immanuel Wallerstein"
+        - option "James A. Robinson"
+        - option "James Scott"
+        - option "Jean Baudrillard"
+        - option "John Stuart Mill"
+        - option "Karl Polanyi"
+        - option "Marijana Macukato"
+        - option "Murray Bookchin"
+        - option "Naomi Klein"
+        - option "Patrick Champagne"
+        - option "Paul Krugman"
+        - option "Peter Gelderloos"
+        - option "Peter Mair"
+        - option "Pierre Bourdieu"
+        - option "Quentin Skinner"
+        - option "Robert Darnton"
+        - option "Schattschneider"
+        - option "Sidney Tarrow"
+        - option "Thomas Piketty"
+        - option "Wolfgang Streeck"
+        - option "Алексей Навальный"
+        - option "Артемий Магун"
+        - option "Борис Кагарлицкий"
+        - option "Вадим Волков"
+        - option "Владимир Гельман"
+        - option "Екатерина Шульман"
+        - option "Елена Костюченко"
+        - option "Роман Тиса"
+        - option "Сергей Гуриев"
+        - option "Теодор Шанин"
+      - button "Новинки" [ref=e32] [cursor=pointer]
+      - button "Прочитанные" [ref=e33] [cursor=pointer]
+  - main [ref=e34]:
+    - generic [ref=e35]:
+      - button "Предложить книгу" [ref=e36] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e47]:
+          - generic [ref=e48]: Предложить книгу
+          - generic [ref=e49]: Расскажите, что и почему стоит прочитать
+      - article [ref=e50]:
+        - 'generic "Обложка: E2E Auto Signup 1779572708337" [ref=e53]':
+          - generic [ref=e54]: EА
+        - generic [ref=e55]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e56] [cursor=pointer]:
+            - img [ref=e57]
+          - generic [ref=e59]: Новая
+        - heading "E2E Auto Signup 1779572708337" [level=2] [ref=e62]
+        - paragraph [ref=e63]: E2E Автор
+        - generic [ref=e65]:
+          - paragraph [ref=e66]: Почему предлагаю прочитать
+          - paragraph [ref=e67]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e70] [cursor=pointer]
+      - article [ref=e71]:
+        - 'img "Обложка: Диктаторы обмана. Новое лицо тирании в XXI веке" [ref=e74]'
+        - generic [ref=e75]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e76] [cursor=pointer]:
+            - img [ref=e77]
+          - generic [ref=e79]: Новая
+        - generic [ref=e80]:
+          - generic [ref=e81]: Путинизм
+          - generic [ref=e83]:
+            - img [ref=e84]
+            - text: "1"
+        - generic [ref=e88]:
+          - heading "Диктаторы обмана. Новое лицо тирании в XXI веке" [level=2] [ref=e89]
+          - generic [ref=e90]: "2022"
+        - paragraph [ref=e91]: Сергей Гуриев, Daniel Treisman
+        - generic [ref=e92]:
+          - generic [ref=e93]: 500 стр.
+          - link "читать" [ref=e94] [cursor=pointer]:
+            - /url: https://babook.org/drupal/sites/default/files/2023-07/Dictators1.pdf
+        - generic [ref=e95]:
+          - paragraph [ref=e96] [cursor=pointer]: "Авторы объясняют, как в XXI веке изменились авторитарные режимы: если раньше диктаторы удерживали власть через страх, насилие и открытые репрессии, то сегодня всё чаще появляются так называемые «диктаторы обмана», которые действуют иначе — через манипуляцию информацией, пропаганду и имитацию демократических институтов. Авторы показывают, что современные автократы стараются выглядеть законными и популярными, допускают ограниченную оппозицию и выборы, но при этом контролируют медиа и формируют нужную картину реальности, что позволяет им удерживать власть без массового насилия и даже с поддержкой части общества. Такие режимы оказываются не слабее, а часто устойчивее старых диктатур, поскольку люди подчиняются им не из страха, а потому что верят в созданную ими версию реальности и не воспринимают систему как откровенно репрессивную."
+          - button "Читать далее" [ref=e97] [cursor=pointer]
+        - button "Хочу читать" [ref=e100] [cursor=pointer]
+      - article [ref=e101]:
+        - 'img "Обложка: Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [ref=e104]'
+        - generic [ref=e105]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e106] [cursor=pointer]:
+            - img [ref=e107]
+          - generic [ref=e109]: Новая
+        - generic [ref=e110]:
+          - generic [ref=e111]: Государство
+          - generic [ref=e113]:
+            - img [ref=e114]
+            - text: "1"
+        - generic [ref=e118]:
+          - 'heading "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [level=2] [ref=e119]'
+          - generic [ref=e120]: "2012"
+        - paragraph [ref=e121]: Daron Acemoglu, James A. Robinson
+        - generic [ref=e122]:
+          - generic [ref=e123]: 510 стр.
+          - link "читать" [ref=e124] [cursor=pointer]:
+            - /url: https://webveblen.wordpress.com/wp-content/uploads/2018/06/acemoglu2.pdf
+        - generic [ref=e125]:
+          - paragraph [ref=e126] [cursor=pointer]: "Авторы предлагают объяснение мирового неравенства, которое выходит за рамки привычных факторов вроде географии или культуры, и показывают, что решающую роль играют политические и экономические институты — правила, определяющие, кто обладает властью и как распределяются ресурсы. Ключевая идея состоит в том, что богатые страны формируют инклюзивные институты, позволяющие широким слоям населения участвовать в экономике и получать выгоду от своей деятельности, тогда как бедные страны остаются в ловушке экстрактивных институтов, где узкая элита контролирует власть и ограничивает развитие. При этом менее очевидный тезис заключается в том, что такая ситуация часто поддерживается осознанно: правящие группы могут препятствовать реформам и экономическому росту, если эти изменения угрожают их позиции, то есть отсталость может быть не случайной, а логичным следствием структуры власти."
+          - button "Читать далее" [ref=e127] [cursor=pointer]
+        - button "Хочу читать" [ref=e129] [cursor=pointer]
+      - article [ref=e130]:
+        - 'img "Обложка: Contentious Politics" [ref=e133]'
+        - generic [ref=e134]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e135] [cursor=pointer]:
+            - img [ref=e136]
+          - generic [ref=e138]: Новая
+        - generic [ref=e139]:
+          - generic [ref=e140]: Государство
+          - generic [ref=e142]:
+            - img [ref=e143]
+            - text: "1"
+        - generic [ref=e147]:
+          - heading "Contentious Politics" [level=2] [ref=e148]
+          - generic [ref=e149]: "2015"
+        - paragraph [ref=e150]: Charles Tilly, Sidney Tarrow
+        - generic [ref=e151]:
+          - generic [ref=e152]: 288 стр.
+          - link "читать" [ref=e153] [cursor=pointer]:
+            - /url: https://books.apple.com/us/book/contentious-politics/id1024488233
+        - generic [ref=e154]:
+          - paragraph [ref=e155] [cursor=pointer]: Авторы предлагают рассматривать протесты, социальные движения и революции как единый процесс, в котором группы предъявляют требования друг другу и государству, а политика развивается через взаимные действия и реакции. Книга показывает, что за внешне разными событиями стоят сходные механизмы — мобилизация участников, ответ государства, эскалация или затухание конфликта. Эта динамика во многом определяет, во что в итоге выливается политическое противостояние. Работа стала одной из ключевых в изучении политических конфликтов и задала современный подход, сместив фокус с отдельных причин на механизмы их развития — как такие процессы возникают, разворачиваются и к чему приводят.
+          - button "Читать далее" [ref=e156] [cursor=pointer]
+        - button "Хочу читать" [ref=e159] [cursor=pointer]
+      - article [ref=e160]:
+        - 'img "Обложка: Возвращение государства. Россия в нулевые (2000-2012)" [ref=e163]'
+        - generic [ref=e164]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e165] [cursor=pointer]:
+            - img [ref=e166]
+          - generic [ref=e168]: Новая
+        - generic [ref=e169]:
+          - generic [ref=e170]: Путинизм
+          - generic [ref=e172]:
+            - img [ref=e173]
+            - text: "2"
+        - generic [ref=e177]:
+          - heading "Возвращение государства. Россия в нулевые (2000-2012)" [level=2] [ref=e178]
+          - generic [ref=e179]: "2023"
+        - paragraph [ref=e180]: Екатерина Шульман
+        - generic [ref=e181]:
+          - generic [ref=e182]: 208 стр.
+          - link "читать" [ref=e183] [cursor=pointer]:
+            - /url: https://flibusta.su/book/168011-vozvraschenie-gosudarstva-rossiya-v-nulevyie-2000-2012/
+        - generic [ref=e184]:
+          - paragraph [ref=e185] [cursor=pointer]: "«Возвращение государства» Екатерины Шульман — это исследование политической истории России в период 2000–2012 годов. Книга анализирует не столько события и фигуры, сколько изменение институтов: как перестраивались государственный аппарат, партийная система, суды, региональная политика, медиа и отношения между государством и обществом. Это попытка показать, как постепенно формируется и закрепляется политический режим и почему он начинает воспроизводить сам себя. Аудио: 6 часов"
+          - button "Читать далее" [ref=e186] [cursor=pointer]
+        - button "Хочу читать" [ref=e189] [cursor=pointer]
+      - article [ref=e190]:
+        - 'img "Обложка: Оружие слабых. Повседневные формы крестьянского сопротивления" [ref=e193]'
+        - generic [ref=e194]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e195] [cursor=pointer]:
+            - img [ref=e196]
+          - generic [ref=e198]: Новая
+        - generic [ref=e199]:
+          - generic [ref=e200]: Народные движения
+          - generic [ref=e202]:
+            - img [ref=e203]
+            - text: "1"
+        - generic [ref=e207]:
+          - heading "Оружие слабых. Повседневные формы крестьянского сопротивления" [level=2] [ref=e208]
+          - generic [ref=e209]: "1985"
+        - paragraph [ref=e210]: James Scott
+        - generic [ref=e211]:
+          - generic [ref=e212]: 390 стр.
+          - link "читать" [ref=e213] [cursor=pointer]:
+            - /url: https://flibusta.su/book/376190-oruzie-slabyh-povsednevnye-formy-krestanskogo-soprotivlenia/
+        - generic [ref=e214]:
+          - paragraph [ref=e215] [cursor=pointer]: "«Оружие слабых» Джеймса Скотта — исследование повседневных форм сопротивления среди сельских жителей в Малайзии. Книга основана на полевой работе автора в конце 1970‑х годов в деревне Седака. В ходе экономических изменений конца 1960‑х – 1970‑х годов (включая механизацию и внедрение новых аграрных технологий) усилилось неравенство в деревне: более обеспеченные хозяйства выигрывали, а бедные теряли доступ к земле и доходам. Вместо открытых протестов и восстаний Скотт показывает, как социально уязвимые группы используют скрытые и низко рискованные стратегии — саботаж, затягивание работы, притворное подчинение, мелкое присвоение ресурсов — чтобы противостоять неравенству и власти. Эта книга расширила понятие сопротивления, и этот подход оказался применимым к рабочим, студентам, мигрантам и другим социальным группам — поэтому работа Скотта остаётся фундаментальной для политологии, социологии и антропологии. Аудио: 17 часов"
+          - button "Читать далее" [ref=e216] [cursor=pointer]
+        - button "Хочу читать" [ref=e218] [cursor=pointer]
+      - article [ref=e219]:
+        - 'img "Обложка: Работа: Капитализм. Экономика. Сопротивление." [ref=e222]'
+        - generic [ref=e223]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e224] [cursor=pointer]:
+            - img [ref=e225]
+          - generic [ref=e227]: Новая
+        - generic [ref=e228]:
+          - generic [ref=e229]: Капитализм
+          - generic [ref=e231]:
+            - img [ref=e232]
+            - text: "3"
+        - generic [ref=e236]:
+          - 'heading "Работа: Капитализм. Экономика. Сопротивление." [level=2] [ref=e237]'
+          - generic [ref=e238]: "2021"
+        - paragraph [ref=e239]: CrimethInc
+        - generic [ref=e240]:
+          - generic [ref=e241]: 340 стр.
+          - link "читать" [ref=e242] [cursor=pointer]:
+            - /url: https://www.rtpbooks.info/product/rabota-crimethinc/
+        - generic [ref=e243]:
+          - paragraph [ref=e244] [cursor=pointer]: Почему во времена значительного технического прогресса нам приходится работать больше, чем когда-либо прежде? Почему, чем больше мы работаем, тем беднее становимся по сравнению с начальниками? Почему во времена кризисов люди так яро защищают свои рабочие места, если никто не любит работать? Сможет ли капитализм пережить ещё одно столетие кризисов? В книге «Работа» рассматриваются эти и многие другие вопросы. Чтобы ответить на них, нам пришлось пересмотреть наш прежний взгляд на трудовую деятельность и выработать более тонкое понимание экономики. Мы провели месяцы, изучая непонятную историю и сравнивая опыт эксплуатации в повседневной жизни, постепенно создавая великую единую теорию современного капитализма.
+          - button "Читать далее" [ref=e245] [cursor=pointer]
+        - button "Хочу читать" [ref=e248] [cursor=pointer]
+      - article [ref=e249]:
+        - 'img "Обложка: Консенсус: Принятие решений в свободном обществе" [ref=e252]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e254] [cursor=pointer]:
+          - img [ref=e255]
+        - generic [ref=e257]:
+          - generic [ref=e258]: Демократия
+          - generic [ref=e260]:
+            - img [ref=e261]
+            - text: "2"
+        - 'heading "Консенсус: Принятие решений в свободном обществе" [level=2] [ref=e266]'
+        - paragraph [ref=e267]: Peter Gelderloos
+        - generic [ref=e268]:
+          - generic [ref=e269]: 106 стр.
+          - link "читать" [ref=e270] [cursor=pointer]:
+            - /url: https://we.riseup.net/assets/64520/consensus.pdf
+        - generic [ref=e271]:
+          - paragraph [ref=e272] [cursor=pointer]: Это быстрое и лёгкое руководство по принятию коллективных решений описывает процесс прихода к консенсусу логично, шаг за шагом. Ясная форма позволяет этому пособию быть полезным не только в качестве инструкции для начинающих, но и как справочник для тех, кто уже знаком с принятием решений методом консенсуса. Будучи предназначенным в первую очередь для низовых политических и экологических групп, это руководство может быть полезно всякому, кто предпочитает сотрудничество, а не конфликт.
+          - button "Читать далее" [ref=e273] [cursor=pointer]
+        - button "Хочу читать" [ref=e276] [cursor=pointer]
+      - article [ref=e277]:
+        - 'img "Обложка: Авторитарная Россия" [ref=e280]'
+        - generic [ref=e281]:
+          - generic [ref=e282]: Путинизм
+          - generic [ref=e284]:
+            - img [ref=e285]
+            - text: "3"
+        - generic [ref=e289]:
+          - heading "Авторитарная Россия" [level=2] [ref=e290]
+          - generic [ref=e291]: "2021"
+        - paragraph [ref=e292]: Владимир Гельман
+        - generic [ref=e293]:
+          - generic [ref=e294]: 337 стр.
+          - link "читать" [ref=e295] [cursor=pointer]:
+            - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%90%D0%B2%D1%82%D0%BE%D1%80%D0%B8%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F%20%D0%A0%D0%BE%D1%81%202021%20336%D1%81.pdf
+        - generic [ref=e296]:
+          - paragraph [ref=e297] [cursor=pointer]: "В августе 1991 года казалось, что демократия вот-вот наступит. Однако спустя десятилетия стало ясно: страна лишь отдалилась от свободы. Владимир Гельман объясняет, как это произошло. Без детерминизма и демонизации автор пишет о важных вехах политической истории страны: правлении Ельцина, формировании иерархии власти в 2000-х, возрождении оппозиции и застое 2010-х. Кроме того, Владимир Гельман дает определения ключевым терминам и концепциям и сравнивает российский опыт с другими странами. А главное — автор дает развернутый ответ на вопрос «Что ждет Россию в будущем?» Станет ли автократический режим еще более жестким и репрессивным? Или нас ждет «ползучая демократизация»?"
+          - button "Читать далее" [ref=e298] [cursor=pointer]
+        - button "Хочу читать" [ref=e301] [cursor=pointer]
+      - article [ref=e302]:
+        - 'img "Обложка: Жизнь и времена либеральной" [ref=e305]'
+        - generic [ref=e306]:
+          - generic [ref=e307]: Демократия
+          - generic [ref=e309]:
+            - img [ref=e310]
+            - text: "1"
+        - generic [ref=e314]:
+          - heading "Жизнь и времена либеральной" [level=2] [ref=e315]
+          - generic [ref=e316]: "1977"
+        - paragraph [ref=e317]: C. B. Macpherson
+        - generic [ref=e318]:
+          - generic [ref=e319]: 173 стр.
+          - link "читать" [ref=e320] [cursor=pointer]:
+            - /url: https://www.klex.ru/zu1
+        - generic [ref=e321]:
+          - paragraph [ref=e322] [cursor=pointer]: Демократию ошибочно смешивать не только с выборами, но и с либерализмом. Макферсон даёт развёрнутый историко-теоретический анализ непростых отношений демократии и либерализма, которые привели к их несчастному браку во второй половине 20 века.
+          - button "Читать далее" [ref=e323] [cursor=pointer]
+        - button "Хочу читать" [ref=e326] [cursor=pointer]
+      - article [ref=e327]:
+        - 'img "Обложка: Принципы представительного правления" [ref=e330]'
+        - generic [ref=e331]:
+          - generic [ref=e332]: Демократия
+          - generic [ref=e334]:
+            - img [ref=e335]
+            - text: "2"
+        - generic [ref=e339]:
+          - heading "Принципы представительного правления" [level=2] [ref=e340]
+          - generic [ref=e341]: "1997"
+        - paragraph [ref=e342]: Bernard Manin
+        - generic [ref=e343]:
+          - generic [ref=e344]: 343 стр.
+          - link "читать" [ref=e345] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/8
+        - generic [ref=e346]:
+          - paragraph [ref=e347] [cursor=pointer]: "Манен критикует сложившуюся систему власти в современных демократиях, которая сложилась в результате принятия выборности власти как фундаментального принципа ее функционирования, что привело к формированию аристократической формы представительной системы. Принцип выборности заменил собой более эгалитарный – жребий, использовавшийся в классических республиках. Современная демократия как успешная политическая система, таким образом, стала возможна не столько благодаря этому принципу, сколько из-за действия других компонентов системы. От А. Замятина: «С этой книги следует начать всем, кто до сих пор считает, что сущностью демократии являются выборы и представительство»."
+          - button "Читать далее" [ref=e348] [cursor=pointer]
+          - paragraph [ref=e349]:
+            - text: "Ещё рекомендации:"
+            - link "Рекомендация Г. Юдина" [ref=e350] [cursor=pointer]:
+              - /url: https://openuni.io/course/8-course-7-1/lesson/1/material/752/
+        - button "Хочу читать" [ref=e352] [cursor=pointer]
+      - article [ref=e353]:
+        - 'img "Обложка: Моя любимая страна" [ref=e356]'
+        - generic [ref=e357]:
+          - generic [ref=e358]: Путинизм
+          - generic [ref=e360]:
+            - img [ref=e361]
+            - text: "3"
+        - generic [ref=e365]:
+          - heading "Моя любимая страна" [level=2] [ref=e366]
+          - generic [ref=e367]: "2023"
+        - paragraph [ref=e368]: Елена Костюченко
+        - generic [ref=e369]:
+          - generic [ref=e370]: 229 стр.
+          - link "читать" [ref=e371] [cursor=pointer]:
+            - /url: https://magaz.global/product/elena-kostyuchenko-moya-lyubimaya-strana
+        - generic [ref=e373]:
+          - paragraph [ref=e374]: Почему предлагаю прочитать
+          - paragraph [ref=e375]: Потому что важно для понимания России
+        - button "Хочу читать" [ref=e378] [cursor=pointer]
+      - article [ref=e379]:
+        - 'img "Обложка: Народная история США" [ref=e382]'
+        - generic [ref=e383]:
+          - generic [ref=e384]: Народные движения
+          - generic [ref=e386]:
+            - img [ref=e387]
+            - text: "1"
+        - generic [ref=e391]:
+          - heading "Народная история США" [level=2] [ref=e392]
+          - generic [ref=e393]: "1980"
+        - paragraph [ref=e394]: Howard Zinn
+        - generic [ref=e395]:
+          - generic [ref=e396]: 880 стр.
+          - link "читать" [ref=e397] [cursor=pointer]:
+            - /url: https://fb2.top/narodnaya-istoriya-ssha-s-1492-goda-do-nashih-dney-330349
+        - paragraph [ref=e399]: История американского рабочего и профсоюзного движения
+        - button "Хочу читать" [ref=e402] [cursor=pointer]
+      - article [ref=e403]:
+        - 'img "Обложка: Великая трансформация" [ref=e406]'
+        - generic [ref=e407]:
+          - generic [ref=e408]: Государство
+          - generic [ref=e410]:
+            - img [ref=e411]
+            - text: "1"
+        - generic [ref=e415]:
+          - heading "Великая трансформация" [level=2] [ref=e416]
+          - generic [ref=e417]: "1944"
+        - paragraph [ref=e418]: Karl Polanyi
+        - generic [ref=e419]:
+          - generic [ref=e420]: 312 стр.
+          - link "читать" [ref=e421] [cursor=pointer]:
+            - /url: http://rustem-nureev.ru/wp-content/uploads/2011/01/277.pdf
+        - generic [ref=e422]:
+          - paragraph [ref=e423] [cursor=pointer]: Исследование посвящено политическим и социальным процессам эпохи становления и развития капитализма. Поланьи утверждает, что рыночную экономику и национальное государство следует рассматривать не по отдельности, а как единое явление — общество рынка, или рыночное общество. Его возникновение разрушило традиционный социальный порядок — на протяжении большей части истории человечества экономическая деятельность не отделялась от социальных отношений, автор подчёркивал грандиозность перемен. Новый институциональный уклад породил контртенденции, которые привели к катаклизмам XX века
+          - button "Читать далее" [ref=e424] [cursor=pointer]
+          - paragraph [ref=e425]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв Г. Юдина" [ref=e426] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=D0pMpy1-Pjw
+        - button "Хочу читать" [ref=e428] [cursor=pointer]
+      - article [ref=e429]:
+        - 'img "Обложка: Делать мнение: новая политическая игра" [ref=e432]'
+        - generic [ref=e434]: Демократия
+        - generic [ref=e436]:
+          - 'heading "Делать мнение: новая политическая игра" [level=2] [ref=e437]'
+          - generic [ref=e438]: "1990"
+        - paragraph [ref=e439]: Patrick Champagne
+        - generic [ref=e440]:
+          - generic [ref=e441]: 317 стр.
+          - link "читать" [ref=e442] [cursor=pointer]:
+            - /url: https://scepsis.net/library/id_1093.html
+        - generic [ref=e443]:
+          - paragraph [ref=e444] [cursor=pointer]: Специалисты по опросам общественного мнения и телевидение — это не просто два новых игрока в политической игре. Они способствуют созданию системы «политика-медиа-опрос», в которой играют ведущую роль. Вездесущие специалисты по опросам общественного мнения официально претендуют на монополию на научное знание «народной воли» и неофициально предоставляют политическим партиям средства для манипулирования ею. Более того, освещение политики в СМИ, особенно уличных демонстраций, а также сопутствующие им опросы общественного мнения и барометры популярности, способствовали переосмыслению того, что мы сейчас понимаем под выражением «заниматься политикой».
+          - button "Читать далее" [ref=e445] [cursor=pointer]
+        - button "Хочу читать" [ref=e448] [cursor=pointer]
+      - article [ref=e449]:
+        - 'img "Обложка: Долгий двадцатый век" [ref=e452]'
+        - generic [ref=e453]:
+          - generic [ref=e454]: Капитализм
+          - generic [ref=e456]:
+            - img [ref=e457]
+            - text: "1"
+        - generic [ref=e461]:
+          - heading "Долгий двадцатый век" [level=2] [ref=e462]
+          - generic [ref=e463]: "2006"
+        - paragraph [ref=e464]: Giovanni Arrighi
+        - generic [ref=e465]:
+          - generic [ref=e466]: 727 стр.
+          - link "читать" [ref=e467] [cursor=pointer]:
+            - /url: https://crystalbook.ru/wp-content/uploads/2021/05/%D0%90%D1%80%D1%80%D0%B8%D0%B3%D0%B8-%D0%94%D0%B6.-%D0%94%D0%BE%D0%BB%D0%B3%D0%B8%D0%B9-%D0%B4%D0%B2%D0%B0%D0%B4%D1%86%D0%B0%D1%82%D1%8B%D0%B9-%D0%B2%D0%B5%D0%BA.pdf
+        - generic [ref=e468]:
+          - paragraph [ref=e469] [cursor=pointer]: Описывает капитализм как череду сменяющих друг друга гегемоний от Генуи и Голландии до Британии и США, каждая из которых в свое время управляла мировой системой. Гегемония это не просто силовое доминирование. Это способность устанавливать правила, которые через идеологические инструменты представляются общими интересами, хотя на деле служат укреплению власти лидера. Сегодня, по его мнению, завершается американский цикл гегемонии, и мир движется в сторону азиатского лидерства, возможно, с доминирующей ролью Китая.
+          - button "Читать далее" [ref=e470] [cursor=pointer]
+        - button "Хочу читать" [ref=e473] [cursor=pointer]
+      - article [ref=e474]:
+        - 'img "Обложка: Миросистемный анализ" [ref=e477]'
+        - generic [ref=e478]:
+          - generic [ref=e479]: Капитализм
+          - generic [ref=e481]:
+            - img [ref=e482]
+            - text: "1"
+        - generic [ref=e486]:
+          - heading "Миросистемный анализ" [level=2] [ref=e487]
+          - generic [ref=e488]: "2006"
+        - paragraph [ref=e489]: Immanuel Wallerstein
+        - generic [ref=e490]:
+          - generic [ref=e491]: 248 стр.
+          - link "читать" [ref=e492] [cursor=pointer]:
+            - /url: https://socioline.ru/files/5/48/vallerstain_i._-_analiz_mirovyh_sistem_i_situaciya_v_sovremennom_mire_-_2001.pdf
+        - generic [ref=e493]:
+          - paragraph [ref=e494] [cursor=pointer]: "Автор утверждает, что бедность стран третьего мира - это закономерность рыночной системы, а не ее отклонение. Объясняет, что такой порядок возможен из-за союза национальных государств и корпораций, где первые силой продвигают интересы вторых. Подчеркивает роль социальных наук в политике: они не только изучают реальность, но и формируются в историческом контексте, отражая интересы элит. Это понимание позволяет глубже осмыслить современные общественно-политические институты."
+          - button "Читать далее" [ref=e495] [cursor=pointer]
+        - button "Хочу читать" [ref=e498] [cursor=pointer]
+      - article [ref=e499]:
+        - 'img "Обложка: Капитал и идеология" [ref=e502]'
+        - generic [ref=e503]:
+          - generic [ref=e504]: Капитализм
+          - generic [ref=e506]:
+            - img [ref=e507]
+            - text: "2"
+        - generic [ref=e511]:
+          - heading "Капитал и идеология" [level=2] [ref=e512]
+          - generic [ref=e513]: "2019"
+        - paragraph [ref=e514]: Thomas Piketty
+        - generic [ref=e515]:
+          - generic [ref=e516]: 1150 стр.
+          - link "читать" [ref=e517] [cursor=pointer]:
+            - /url: https://fb2.top/kapital-i-ideologiya-749702
+        - generic [ref=e518]:
+          - paragraph [ref=e519] [cursor=pointer]: "Французский экономит Пикетти утверждает, что неравенство в большей степени является политическим и идеологическим феноменом, чем экономическим. Исторический прогресс, по его мнению, достигается через борьбу за равный доступ к благам, а не через оправдание иерархий и частной собственности. Он рассматривает примеры обществ, которые стремились к большему равенству, будь то социалистические проекты XX века или европейские социальные государства. Пикетти подчеркивает: справедливое общество - это не абсолютное равенство, а доступ каждого к как можно большему количеству общественных благ"
+          - button "Читать далее" [ref=e520] [cursor=pointer]
+        - button "Хочу читать" [ref=e523] [cursor=pointer]
+      - article [ref=e524]:
+        - 'img "Обложка: Размышления о представительном правлении" [ref=e527]'
+        - generic [ref=e529]: Демократия
+        - generic [ref=e531]:
+          - heading "Размышления о представительном правлении" [level=2] [ref=e532]
+          - generic [ref=e533]: "1861"
+        - paragraph [ref=e534]: John Stuart Mill
+        - generic [ref=e535]:
+          - generic [ref=e536]: 340 стр.
+          - link "читать" [ref=e537] [cursor=pointer]:
+            - /url: https://readli.net/rassuzhdeniya-o-predstavitelnom-pravlenii/
+        - generic [ref=e538]:
+          - paragraph [ref=e539] [cursor=pointer]: Одна из наиболее острых и прозорливых книг ведущего англоязычного мыслителя XIX века. В ней Милль обосновывает необходимость парламентской формы правления со всеобщим представительством от всех классов, что позволит избежать «тирании большинства», диктующей просвещенным меньшинствам свои средние, вернее, посредственные вкусы и представления
+          - button "Читать далее" [ref=e540] [cursor=pointer]
+          - paragraph [ref=e541]:
+            - text: "Ещё рекомендации:"
+            - link "Г. Юдин рекомендует" [ref=e542] [cursor=pointer]:
+              - /url: https://openuni.io/course/8-course-7-1/lesson/1/material/752/
+        - button "Хочу читать" [ref=e544] [cursor=pointer]
+      - article [ref=e545]:
+        - 'img "Обложка: Arguing with Zombies: Economics, Politics, and the Fight for a Better Future" [ref=e548]'
+        - generic [ref=e550]: Капитализм
+        - generic [ref=e552]:
+          - 'heading "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future" [level=2] [ref=e553]'
+          - generic [ref=e554]: "2020"
+        - paragraph [ref=e555]: Paul Krugman
+        - generic [ref=e556]:
+          - generic [ref=e557]: 464 стр.
+          - link "читать" [ref=e558] [cursor=pointer]:
+            - /url: https://dokumen.pub/arguing-with-zombies-economics-politics-and-the-fight-for-a-better-future-hardcovernbsped-1324005017-9781324005018.html
+        - generic [ref=e559]:
+          - paragraph [ref=e560] [cursor=pointer]: Врагами Кругмана являются «идеи зомби», высказанные в названии его книги, особенно вера в то, что бюджетный дефицит — это всегда плохо, и представление о том, что снижение налогов для богатых может принести пользу кому-либо, кроме плутократов, которые никогда не перестают за них просить
+          - button "Читать далее" [ref=e561] [cursor=pointer]
+          - paragraph [ref=e562]:
+            - text: "Ещё рекомендации:"
+            - link "Обзор в Guardian" [ref=e563] [cursor=pointer]:
+              - /url: https://www.theguardian.com/books/2020/may/03/arguing-with-zombies-review-paul-krugman-trump-republicans
+        - button "Хочу читать" [ref=e565] [cursor=pointer]
+      - article [ref=e566]:
+        - 'img "Обложка: Социологическое воображение" [ref=e569]'
+        - generic [ref=e570]:
+          - generic [ref=e571]: Демократия
+          - generic [ref=e573]:
+            - img [ref=e574]
+            - text: "1"
+        - generic [ref=e578]:
+          - heading "Социологическое воображение" [level=2] [ref=e579]
+          - generic [ref=e580]: "1959"
+        - paragraph [ref=e581]: Charles Mills
+        - generic [ref=e582]:
+          - generic [ref=e583]: 257 стр.
+          - link "читать" [ref=e584] [cursor=pointer]:
+            - /url: https://readli.net/sotsiologicheskoe-voobrazhenie/
+        - generic [ref=e585]:
+          - paragraph [ref=e586] [cursor=pointer]: "От Г. Юдина: «Социологическое воображение должно быть не только у социологов, но и у любого человека. Оно помогает видеть своё положение в обществе не как индивидуальную проблему, а как часть более широкой социальной структуры. Например, если человек работает изо всех сил, но не может обеспечить себе достойную жизнь, социологическое воображение позволяет осознать, что таких \"слабаков\" миллионы, и это не его личный недостаток, а системная проблема общества» Юдин также отмечает, что понимание того, что мир может быть устроен иначе, является важным элементом образования, особенно для молодых людей. Они должны воспринимать мир не как заранее предопределённый путь, а как пространство для проектирования, где они сами могут задавать вектор изменений"
+          - button "Читать далее" [ref=e587] [cursor=pointer]
+        - button "Хочу читать" [ref=e590] [cursor=pointer]
+      - article [ref=e591]:
+        - 'img "Обложка: Освобождение человека" [ref=e594]'
+        - generic [ref=e595]:
+          - generic [ref=e596]: Левая идея
+          - generic [ref=e598]:
+            - img [ref=e599]
+            - text: "1"
+        - generic [ref=e603]:
+          - heading "Освобождение человека" [level=2] [ref=e604]
+          - generic [ref=e605]: "2023"
+        - paragraph [ref=e606]: Роман Тиса
+        - generic [ref=e607]:
+          - generic [ref=e608]: 321 стр.
+          - link "читать" [ref=e609] [cursor=pointer]:
+            - /url: https://directiolibera.com/osvobozhdenie-cheloveka
+        - generic [ref=e610]:
+          - paragraph [ref=e611] [cursor=pointer]: Книга автора, переводчика и редактора марксистского веб-журнала «Вперед» Романа Тисы, в которой он рассуждает о творческом развитии идей Карла Маркса в XX веке, акцентируя внимание на странах «третьего мира»
+          - button "Читать далее" [ref=e612] [cursor=pointer]
+        - button "Хочу читать" [ref=e615] [cursor=pointer]
+      - article [ref=e616]:
+        - 'img "Обложка: Войны в Заливе не было" [ref=e619]'
+        - generic [ref=e620]:
+          - generic [ref=e621]: Демократия
+          - generic [ref=e623]:
+            - img [ref=e624]
+            - text: "1"
+        - generic [ref=e628]:
+          - heading "Войны в Заливе не было" [level=2] [ref=e629]
+          - generic [ref=e630]: "1991"
+        - paragraph [ref=e631]: Jean Baudrillard
+        - generic [ref=e632]:
+          - generic [ref=e633]: 82 стр.
+          - link "читать" [ref=e634] [cursor=pointer]:
+            - /url: https://books.google.rs/books?id=oc1FDQAAQBAJ&pg=PA5&source=gbs_selected_pages&cad=1#v=onepage&q&f=false
+        - generic [ref=e635]:
+          - paragraph [ref=e636] [cursor=pointer]: Легендарный текст, прославивший Бодрийяра на весь мир. Война в Персидском заливе осталась в истории не только благодаря участию самой широкой международной коалиции, но и благодаря планетарной телетрансляции в режиме реального времени. Однако Бодрийяр утверждает, что это «не-война», это «не-событие», это то, чего не было. Сама постановка вопроса о, казалось бы, совершенно очевидном факте, о том, что видели все в прямом эфире, поначалу вызвала большой скандал, но теперь заголовок превратился в поговорку, мем, даже своего рода мантру. Эта работа Бодрийяра легла в основу не менее культового, чем «Матрица» голливудского фильма «Хвост виляет собакой».
+          - button "Читать далее" [ref=e637] [cursor=pointer]
+        - button "Хочу читать" [ref=e640] [cursor=pointer]
+      - article [ref=e641]:
+        - 'img "Обложка: Истоки современной политической мысли" [ref=e644]'
+        - generic [ref=e645]:
+          - generic [ref=e646]: Государство
+          - generic [ref=e648]:
+            - img [ref=e649]
+            - text: "1"
+        - generic [ref=e653]:
+          - heading "Истоки современной политической мысли" [level=2] [ref=e654]
+          - generic [ref=e655]: "1978"
+        - paragraph [ref=e656]: Quentin Skinner
+        - generic [ref=e657]:
+          - generic [ref=e658]: 973 стр.
+          - link "читать" [ref=e659] [cursor=pointer]:
+            - /url: https://vse-svobodny.com/product/skinner-k-istoki-sovremennoy-politicheskoy-2-toma/
+        - generic [ref=e660]:
+          - paragraph [ref=e661] [cursor=pointer]: "В первом томе своего капитального исторического труда, проясняющего истоки политической мысли Нового времени, Квентин Скиннер излагает методологические принципы своего исследования и объясняет, чем они отличаются от традиционного «текстуалистского» подхода. В первой части тома речь идет об истории республиканского идеала свободы, который начал формироваться в XII — начале XIV века в городах Северной Италии благодаря местной правовой и риторической культуре, а также под влиянием схоластики. Вторая часть посвящена истории политической мысли XV века: Скиннера интересует вопрос о том, насколько она отличается от предшествующей традиции и, в частности, до какой степени Макиавелли наследует и трансформирует гуманистическое понятие добродетели. Распространение гуманистической учености, происходившее в XV — начале XVI века за пределами Италии, составляет содержание третьей части тома. На примере сочинений Эразма Роттердамского, Томаса Мора, английских теоретиков «общего блага» Скиннер показывает, как изменяется традиционное гуманистическое отношение к добродетелям правителя, войне и социальному неравенству. Второй том посвящен исследованию политической мысли Реформации и Контрреформации. Автор прослеживает основные этапы развития лютеранства и кальвинизма, показывая взаимосвязь их идей с томизмом и оккамизмом, а также с гуманистической мыслью и движением концилиаризма. В книге рассказывается история радикальных кальвинистских концепций сопротивления власти, в том числе принадлежавших французским и шотландским революционным теоретикам второй половины XVI в. Подробно рассматривается процесс зарождения теории абсолютной монархии. В заключении выдающийся английский историк и философ излагает концепцию возникновения современного понятия государства."
+          - button "Читать далее" [ref=e662] [cursor=pointer]
+        - button "Хочу читать" [ref=e665] [cursor=pointer]
+      - article [ref=e666]:
+        - 'img "Обложка: The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton" [ref=e669]'
+        - generic [ref=e670]:
+          - generic [ref=e671]: Демократия
+          - generic [ref=e673]:
+            - img [ref=e674]
+            - text: "2"
+        - generic [ref=e678]:
+          - 'heading "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton" [level=2] [ref=e679]'
+          - generic [ref=e680]: "1974"
+        - paragraph [ref=e681]: Benjamin R. Barber
+        - generic [ref=e682]:
+          - generic [ref=e683]: 314 стр.
+          - link "читать" [ref=e684] [cursor=pointer]:
+            - /url: https://dokumen.pub/qdownload/the-death-of-communal-liberty-a-history-of-freedom-in-a-swiss-mountain-canton-9781400867172.html
+        - generic [ref=e685]:
+          - paragraph [ref=e686] [cursor=pointer]: Сегодня Швейцария сталкивается с глубокой дилеммой-деревенская жизнь-это жизнь, пострадавшая от столкновения между общинным нормывалом и необходимостью национального выживания в промышленном, урбанизированном мире. Бенджамин Барбер прослеживает происхождение и эволюцию коммунальной свободы в группе альпийских деревень, которые составляют современный кантон Граубунден, и воссоздает свою острую тысячелетнюю борьбу за поддержание этой традиции перед лицом враждебной окружающей среды, иерархических феодальных институтов и европейской власти.
+          - button "Читать далее" [ref=e687] [cursor=pointer]
+        - button "Хочу читать" [ref=e689] [cursor=pointer]
+      - article [ref=e690]:
+        - 'img "Обложка: Государство или Цена порядка" [ref=e693]'
+        - generic [ref=e694]:
+          - generic [ref=e695]: Государство
+          - generic [ref=e697]:
+            - img [ref=e698]
+            - text: "1"
+        - generic [ref=e702]:
+          - heading "Государство или Цена порядка" [level=2] [ref=e703]
+          - generic [ref=e704]: "2018"
+        - paragraph [ref=e705]: Вадим Волков
+        - generic [ref=e706]:
+          - generic [ref=e707]: 160 стр.
+          - link "читать" [ref=e708] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/348
+        - generic [ref=e709]:
+          - paragraph [ref=e710] [cursor=pointer]: Как с нами случилось государство? Какова его генеалогия, какие социальные группы его создавали и видоизменяли? Природа государства раскрывается здесь через процессы становления монополии легитимного насилия, налогообложения и юстиции. Что государство дает взамен, изымая и перераспределяя ресурсы общества?
+          - button "Читать далее" [ref=e711] [cursor=pointer]
+        - button "Хочу читать" [ref=e714] [cursor=pointer]
+      - article [ref=e715]:
+        - 'img "Обложка: Управляя пустотой. Размывание западной демократии" [ref=e718]'
+        - generic [ref=e720]: Демократия
+        - generic [ref=e722]:
+          - heading "Управляя пустотой. Размывание западной демократии" [level=2] [ref=e723]
+          - generic [ref=e724]: "2019"
+        - paragraph [ref=e725]: Peter Mair
+        - generic [ref=e726]:
+          - generic [ref=e727]: 216 стр.
+          - link "читать" [ref=e728] [cursor=pointer]:
+            - /url: https://readli.net/upravlyaya-pustotoy-razmyivanie-zapadnoy-demokratii/
+        - generic [ref=e729]:
+          - paragraph [ref=e730] [cursor=pointer]: Во всех сложившихся демократиях Западной Европы происходит падение явки избирателей и сокращение числа членов ведущих партий. В книге ведущего ирландского политического ученого Питера Майра оценивается влияние этих изменений, которые свидетельствуют о том, что избиратели покидают политическую арену. Одновременно с этим политические элиты Европы превращаются в однородный профессиональный класс, тесно связанный с государственными институтами, которые предлагают относительную стабильность в мире таких непостоянных избирателей.
+          - button "Читать далее" [ref=e731] [cursor=pointer]
+        - button "Хочу читать" [ref=e734] [cursor=pointer]
+      - article [ref=e735]:
+        - 'img "Обложка: Краткая история равенства" [ref=e738]'
+        - generic [ref=e740]: Капитализм
+        - generic [ref=e742]:
+          - heading "Краткая история равенства" [level=2] [ref=e743]
+          - generic [ref=e744]: "2021"
+        - paragraph [ref=e745]: Thomas Piketty
+        - generic [ref=e746]:
+          - generic [ref=e747]: 394 стр.
+          - link "читать" [ref=e748] [cursor=pointer]:
+            - /url: https://books.yandex.ru/books/i1qwdSc2
+        - generic [ref=e749]:
+          - paragraph [ref=e750] [cursor=pointer]: "Ведущий мировой экономист и эксперт в вопросах неравенства представляет краткую и удивительно оптимистичную историю человеческого стремления к равенству, несмотря на кризисы и бедствия. Легко поддаться пессимизму, каждый день слыша о неравенстве. Однако в своей новой книге Тома Пикетти напоминает человечеству, что великий размах истории дает нам основания для оптимизма. Пикетти элегантно и лаконично анализирует великие идеи, которые определили современный мир и разукрасили его оттенками «плохо» и «хорошо»: рост капитализма, революции, империализм, рабство, войны и построение государства всеобщего благосостояния. История равенства — это история насилия и социальной борьбы, перемежающаяся регрессами и катастрофами. Но, несмотря на все это, как показывает Пикетти, человеческие общества неуклонно двигались к более справедливому распределению доходов и активов, сокращению расового и гендерного неравенства и более широкому доступу к здравоохранению, образованию и гражданским правам. Эта книга — одновременно и прекрасное введение в новаторские идеи, развитые в монументальной книге Тома Пикетти «Капитал в XXI веке», и невероятно ценное самостоятельное исследование."
+          - button "Читать далее" [ref=e751] [cursor=pointer]
+        - button "Хочу читать" [ref=e754] [cursor=pointer]
+      - article [ref=e755]:
+        - 'img "Обложка: Революция как момент истины" [ref=e758]'
+        - generic [ref=e759]:
+          - generic [ref=e760]: Народные движения
+          - generic [ref=e762]:
+            - img [ref=e763]
+            - text: "3"
+        - generic [ref=e767]:
+          - heading "Революция как момент истины" [level=2] [ref=e768]
+          - generic [ref=e769]: "1997"
+        - paragraph [ref=e770]: Теодор Шанин
+        - generic [ref=e771]:
+          - generic [ref=e772]: 555 стр.
+          - link "читать" [ref=e773] [cursor=pointer]:
+            - /url: https://rabkrin.org/shanin-teodor-revolyutsiya-kak-moment-istinyi-kniga/
+        - generic [ref=e774]:
+          - paragraph [ref=e775] [cursor=pointer]: "Революция 1905-1907 гг. стала для России моментом истины. Развиваясь в направлении, неожиданном и для ее сторонников, и для ее противников, эта революция драматически обнажила новые связки социальных характеристик и способствовала поиску неортодоксальных решений, как политических, так и теоретических. Введение от Шанина: «Первая попытка России понять саму себя с точки зрения современной социальной теории приняла форму спора между славянофилами и западниками. Россия представлялась им или абсолютно уникальным явлением, или же отсталой частью Европы, находящейся ступенькой ниже других европейских стран на единой эволюционной лестнице. Россия не была ни тем, ни другим»"
+          - button "Читать далее" [ref=e776] [cursor=pointer]
+          - paragraph [ref=e777]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв Г. Юдина" [ref=e778] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=Elb91KmxuCw
+        - button "Хочу читать" [ref=e781] [cursor=pointer]
+      - article [ref=e782]:
+        - 'img "Обложка: Принуждение, капитал и европейские государства" [ref=e785]'
+        - generic [ref=e786]:
+          - generic [ref=e787]: Государство
+          - generic [ref=e789]:
+            - img [ref=e790]
+            - text: "2"
+        - generic [ref=e794]:
+          - heading "Принуждение, капитал и европейские государства" [level=2] [ref=e795]
+          - generic [ref=e796]: "1992"
+        - paragraph [ref=e797]: Charles Tilly
+        - generic [ref=e798]:
+          - generic [ref=e799]: 360 стр.
+          - link "читать" [ref=e800] [cursor=pointer]:
+            - /url: http://kyiv-heritage-guide.com/sites/default/files/%D0%A2%D0%98%D0%9B%D0%9B%D0%98%20-%20%D0%9F%D1%80%D0%B8%D0%BD%D1%83%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5%202009%20328c.pdf
+        - generic [ref=e801]:
+          - paragraph [ref=e802] [cursor=pointer]: Цель данного исследования, по словам автора, при помощи подробного анализа истории Европы дать возможность понять истоки, характер и границы современной мировой системы. Принуждение и капитал являются основой для формирования государств. Начальная дата исследования определяется временем, когда после 990 г. европейские правители в отношении с подвластным населением все больше отходили от захвата необходимых для ведения войны средств в пользу их приобретения. Тем самым создавалась основа для соглашений между насилием и капиталом, обеспечивших участникам права и привилегии, а также форму современных государств.
+          - button "Читать далее" [ref=e803] [cursor=pointer]
+        - button "Хочу читать" [ref=e805] [cursor=pointer]
+      - article [ref=e806]:
+        - 'img "Обложка: Общественное мнение не существует" [ref=e809]'
+        - generic [ref=e810]:
+          - generic [ref=e811]: Демократия
+          - generic [ref=e813]:
+            - img [ref=e814]
+            - text: "1"
+        - generic [ref=e818]:
+          - heading "Общественное мнение не существует" [level=2] [ref=e819]
+          - generic [ref=e820]: "1972"
+        - paragraph [ref=e821]: Pierre Bourdieu
+        - link "читать" [ref=e823] [cursor=pointer]:
+          - /url: http://bourdieu.name/content/obshhestvennoe-mnenie-ne-sushhestvuet
+        - generic [ref=e824]:
+          - paragraph [ref=e825] [cursor=pointer]: "Статья утверждает, что опросы — это инструмент конструирования, а не отражения реальности. Он ставит под сомнение три постулата: что мнение есть у всех, что все мнения равнозначны и что существует единый консенсус. На деле опросы навязывают вопросы и игнорируют силовые отношения"
+          - button "Читать далее" [ref=e826] [cursor=pointer]
+        - button "Хочу читать" [ref=e829] [cursor=pointer]
+      - article [ref=e830]:
+        - 'img "Обложка: Предпринимательское государство" [ref=e833]'
+        - generic [ref=e834]:
+          - generic [ref=e835]: Капитализм
+          - generic [ref=e837]:
+            - img [ref=e838]
+            - text: "2"
+        - generic [ref=e842]:
+          - heading "Предпринимательское государство" [level=2] [ref=e843]
+          - generic [ref=e844]: "2023"
+        - paragraph [ref=e845]: Marijana Macukato
+        - generic [ref=e846]:
+          - generic [ref=e847]: 360 стр.
+          - link "читать" [ref=e848] [cursor=pointer]:
+            - /url: https://id.hse.ru/books/795933140.html
+        - generic [ref=e849]:
+          - paragraph [ref=e850] [cursor=pointer]: Показывает, что миф об атлантах, единолично создавших инновационную экономику в своих гаражах, не соответствует той роли, которую на самом деле играло государство в части технологических разработок и рискованных вложений. Даёт новый взгляд на проблемы развития зелёной экономики и показывает, что в господствующей экономической парадигме человечество не сможет создать прорывные инновационные решения для спасения окружающей среды и климата
+          - button "Читать далее" [ref=e851] [cursor=pointer]
+          - paragraph [ref=e852]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв А. Замятина" [ref=e853] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/194
+        - button "Хочу читать" [ref=e855] [cursor=pointer]
+      - article [ref=e856]:
+        - 'img "Обложка: Политика в эпоху жесткой экономии" [ref=e859]'
+        - generic [ref=e860]:
+          - generic [ref=e861]: Капитализм
+          - generic [ref=e863]:
+            - img [ref=e864]
+            - text: "2"
+        - generic [ref=e868]:
+          - heading "Политика в эпоху жесткой экономии" [level=2] [ref=e869]
+          - generic [ref=e870]: "2015"
+        - paragraph [ref=e871]: Wolfgang Streeck, Armin Schäfer
+        - generic [ref=e872]:
+          - generic [ref=e873]: 392 стр.
+          - link "читать" [ref=e874] [cursor=pointer]:
+            - /url: https://rabkrin.org/politika-v-epohu-zhestkoy-ekonomii-2015-kniga/
+        - generic [ref=e875]:
+          - paragraph [ref=e876] [cursor=pointer]: Многие зрелые демократии приближаются к ситуации фискального кризиса. На протяжении трех десятилетий странам ОЭСР приходится иметь дело с дефицитом бюджета и наращивать долг. В результате все меньшая доля доходов государства может идти на дискреционные расходы и социальные инвестиции, и независимо от того, какая партия находится у власти, ее руки оказываются связаны решениями, принятыми предыдущими правительствами. Текущий финансовый и бюджетный кризис усугубляется долгосрочным сокращением дискреционных расходов; проекты политических изменений больше не вызывают доверия. Многие граждане осознают это и отворачиваются от партийной политики, предпочитая не ходить на выборы
+          - button "Читать далее" [ref=e877] [cursor=pointer]
+        - button "Хочу читать" [ref=e880] [cursor=pointer]
+      - article [ref=e881]:
+        - 'img "Обложка: Недостойное правление" [ref=e884]'
+        - generic [ref=e885]:
+          - generic [ref=e886]: Путинизм
+          - generic [ref=e888]:
+            - img [ref=e889]
+            - text: "1"
+        - generic [ref=e893]:
+          - heading "Недостойное правление" [level=2] [ref=e894]
+          - generic [ref=e895]: "2019"
+        - paragraph [ref=e896]: Владимир Гельман
+        - generic [ref=e897]:
+          - generic [ref=e898]: 225 стр.
+          - link "читать" [ref=e899] [cursor=pointer]:
+            - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%9D%D0%B5%D0%B4%D0%BE%D1%81%D1%82%D0%BE%D0%B9%D0%BD%D0%BE%D0%B5%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%202019%20254c.pdf
+        - generic [ref=e900]:
+          - paragraph [ref=e901] [cursor=pointer]: "Описание с сайта ВЦИОМа: «Недостойное правление» — это русский вариант английского bad governance, чьими характеристиками являются извлечение ренты и коррупция как принципы государственного управления, низкое качество госрегулирования и фундаментальное нарушение/извращение принципов верховенства права. Однако в России «недостойное правление» является не дефектом, считает Гельман, а средством удержания политической власти и экономического господства в руках правящих групп, то есть функциональным механизмом управления страной. Этот механизм не достался Российской Федерации в наследство от СССР и/или Российской империи, а сформировался как результат рациональной стратегии правящих групп, направленной на максимизацию власти и господства в политике, богатства и ренты в экономике и на сохранение такого положения дел на возможно более длительную перспективу. Гельман связывает создание такого политического режима в нашей стране со слабостью российского гражданского общества, которое почти не проявляло своего неприятия «недостойного правления» в форме коллективных действий, способных стать сильным вызовом для правящих групп. Именно пассивность граждан позволила чиновникам и олигархам выстроить режим, который не удалось создать в большинстве других стран сопоставимого с нами (а значит, довольно высокого) уровня развития"
+          - button "Читать далее" [ref=e902] [cursor=pointer]
+        - button "Хочу читать" [ref=e905] [cursor=pointer]
+      - article [ref=e906]:
+        - 'img "Обложка: Свобода до либерализма" [ref=e909]'
+        - generic [ref=e911]: Демократия
+        - generic [ref=e913]:
+          - heading "Свобода до либерализма" [level=2] [ref=e914]
+          - generic [ref=e915]: "1998"
+        - paragraph [ref=e916]: Quentin Skinner
+        - generic [ref=e917]:
+          - generic [ref=e918]: 113 стр.
+          - link "читать" [ref=e919] [cursor=pointer]:
+            - /url: https://www.eupress.ru/books/index/item/id/9
+        - generic [ref=e920]:
+          - paragraph [ref=e921] [cursor=pointer]: "В первой части автор стремится извлечь из небытия и реабилитировать неоримскую теорию свободных граждан и свободных государств, как она была развита в Англии эпохи раннего Нового времени. Анализ переходит в убедительную апологию природы, целей и задач интеллектуальной истории и истории идей Как говорит профессор Скиннер: «Интеллектуальный историк способен помочь нам понять, в какой мере ценности, воплощенные в современном образе жизни и способе мыслить эти ценности, отражают серию выборов, сделанных между различными возможными мирами в различные исторические эпохи». Предлагаемый читателю очерк — одно из самых существенных современных высказываний о важности, актуальности и возможной радости от такого рода исторического исследования"
+          - button "Читать далее" [ref=e922] [cursor=pointer]
+        - button "Хочу читать" [ref=e925] [cursor=pointer]
+      - article [ref=e926]:
+        - 'img "Обложка: Долг: первые 5000 лет истории" [ref=e929]'
+        - generic [ref=e930]:
+          - generic [ref=e931]: Капитализм
+          - generic [ref=e933]:
+            - img [ref=e934]
+            - text: "1"
+        - generic [ref=e938]:
+          - 'heading "Долг: первые 5000 лет истории" [level=2] [ref=e939]'
+          - generic [ref=e940]: "2011"
+        - paragraph [ref=e941]: David Graeber
+        - generic [ref=e942]:
+          - generic [ref=e943]: 534 стр.
+          - link "читать" [ref=e944] [cursor=pointer]:
+            - /url: https://monoskop.org/images/c/cd/Greber_Devid_Dolg_pervyye_5000_let_istorii_2015.pdf
+        - generic [ref=e945]:
+          - paragraph [ref=e946] [cursor=pointer]: Масштабное и революционное исследование истории товарно-денежных отношений с древнейших времен до наших дней, предпринятое американским антропологом, профессором Лондонской школы экономики и одним из «антилидеров» движения “Occupy Wall street”, придумавшим слоган «Нас - 99%». Гребер, опираясь на антропологические методы, выдвигает тезис, что в основе того, что мы традиционно называем экономикой, лежит долг, который на разных этапах развития общества может принимать формы денег, бартера, залогов, кредитов, акций и так далее. Один из императивов книги — вырвать экономику из рук «профессиональных экономистов», доказавших свою несостоятельность во время последнего мирового кризиса, и поместить ее в более широкий контекст истории культуры, политологии, социологии и иных гуманитарных дисциплин. Для широкого круга читателей.
+          - button "Читать далее" [ref=e947] [cursor=pointer]
+        - button "Хочу читать" [ref=e950] [cursor=pointer]
+      - article [ref=e951]:
+        - 'img "Обложка: Купленное время. Отсроченный кризис демократического капитализма" [ref=e954]'
+        - generic [ref=e955]:
+          - generic [ref=e956]: Капитализм
+          - generic [ref=e958]:
+            - img [ref=e959]
+            - text: "1"
+        - generic [ref=e963]:
+          - heading "Купленное время. Отсроченный кризис демократического капитализма" [level=2] [ref=e964]
+          - generic [ref=e965]: "2019"
+        - paragraph [ref=e966]: Wolfgang Streeck
+        - generic [ref=e967]:
+          - generic [ref=e968]: 280 стр.
+          - link "читать" [ref=e969] [cursor=pointer]:
+            - /url: https://www.labirint.ru/books/683515/
+        - generic [ref=e970]:
+          - paragraph [ref=e971] [cursor=pointer]: Автор анализирует истоки последних финансового, налогового и экономического кризисов, рассматривая их как часть длительной неолиберальной трансформации послевоенного капитализма, начавшейся в 1970-х годах
+          - button "Читать далее" [ref=e972] [cursor=pointer]
+        - button "Хочу читать" [ref=e974] [cursor=pointer]
+      - article [ref=e975]:
+        - 'img "Обложка: Будущая революция" [ref=e978]'
+        - generic [ref=e979]:
+          - generic [ref=e980]: Левая идея
+          - generic [ref=e982]:
+            - img [ref=e983]
+            - text: "2"
+        - generic [ref=e987]:
+          - heading "Будущая революция" [level=2] [ref=e988]
+          - generic [ref=e989]: "2023"
+        - paragraph [ref=e990]: Murray Bookchin
+        - generic [ref=e991]:
+          - generic [ref=e992]: 248 стр.
+          - link "читать" [ref=e993] [cursor=pointer]:
+            - /url: https://www.rtpbooks.info/product/budushhaja-revoljucija-narodnye-assamblei-i-perspektiva-prjamoj-demokratii-mjurrej-bukchin/
+        - generic [ref=e994]:
+          - paragraph [ref=e995] [cursor=pointer]: "Девять коротких очерков, в которых автор рассуждает об актуальных проблемах современного революционного движения, критикует неудачи прошлых движений за социальные перемены и крупными мазками намечает контуры свободного общества будущего. Букчин показывает ошибочность прогнозов Маркса и считает классовый подход слишком узким для понимания современности и мобилизации широких масс. Большую мобилизующую силу он видит в проблемах разрушения окружающей среды, качества жилого пространства и участия в жизни общины. Букчин последовательно выстраивает критику государства и парламентской демократии, предлагая взамен конфедералистскую альтернативу, основанную на сети принимающих решения народных ассамблей, которые делегируют отзываемых депутатов для решения проблем на разных уровнях. Коммуналистский проект Букчина задает принципы будущего общества: муниципальная экономика взамен капиталистической, социальная экология и самое широкое использование прямой демократии посредством народных собраний, объединенных в конфедерации."
+          - button "Читать далее" [ref=e996] [cursor=pointer]
+        - button "Хочу читать" [ref=e999] [cursor=pointer]
+      - article [ref=e1000]:
+        - 'img "Обложка: Доктирна шока" [ref=e1003]'
+        - generic [ref=e1004]:
+          - generic [ref=e1005]: Капитализм
+          - generic [ref=e1007]:
+            - img [ref=e1008]
+            - text: "2"
+        - generic [ref=e1012]:
+          - heading "Доктирна шока" [level=2] [ref=e1013]
+          - generic [ref=e1014]: "2009"
+        - paragraph [ref=e1015]: Naomi Klein
+        - generic [ref=e1016]:
+          - generic [ref=e1017]: 656 стр.
+          - link "читать" [ref=e1018] [cursor=pointer]:
+            - /url: https://royallib.com/read/klyayn_naomi/doktrina_shoka_stanovlenie_kapitalizma_katastrof.html#0
+        - generic [ref=e1019]:
+          - paragraph [ref=e1020] [cursor=pointer]: История о том, как американская "свободная рыночная экномика" покоряет мир. Авторка считает, что экономисты Чикагской школы причастны к тому, что кризисные ситуации в разных странах мира оказались использованы для построения антидемократичских корпоратвных экономик. Наоми Кляйн называет это явление "доктриной шока". Она описывает, как полтики, экономисты и коммерсанты используют замешательство во вермя потрясений, чтобы проводить экономические реформы. Такие реформы известны как "шоковая терапия" - отсюда и название книги
+          - button "Читать далее" [ref=e1021] [cursor=pointer]
+        - button "Хочу читать" [ref=e1024] [cursor=pointer]
+      - article [ref=e1025]:
+        - 'img "Обложка: Краткая история неолиберализма" [ref=e1028]'
+        - generic [ref=e1029]:
+          - generic [ref=e1030]: Капитализм
+          - generic [ref=e1032]:
+            - img [ref=e1033]
+            - text: "3"
+        - generic [ref=e1037]:
+          - heading "Краткая история неолиберализма" [level=2] [ref=e1038]
+          - generic [ref=e1039]: "2007"
+        - paragraph [ref=e1040]: David Harvey
+        - generic [ref=e1041]:
+          - generic [ref=e1042]: 288 стр.
+          - link "читать" [ref=e1043] [cursor=pointer]:
+            - /url: https://royallib.com/read/harvi_devid/kratkaya_istoriya_neoliberalizma.html#0
+        - generic [ref=e1044]:
+          - paragraph [ref=e1045] [cursor=pointer]: Основа для тех, кто не очень понимает, что такое неолиберализм, но хочет разобраться. Автор рассказывает, как направление зарождалось и распространялось по всему миру. Харви не только критикует опасные последствия неолибрельаного порядка, но и описывает альтернативы
+          - button "Читать далее" [ref=e1046] [cursor=pointer]
+        - button "Хочу читать" [ref=e1049] [cursor=pointer]
+      - article [ref=e1050]:
+        - 'img "Обложка: The semisovereign people" [ref=e1053]'
+        - generic [ref=e1055]: Демократия
+        - generic [ref=e1057]:
+          - heading "The semisovereign people" [level=2] [ref=e1058]
+          - generic [ref=e1059]: "1960"
+        - paragraph [ref=e1060]: Schattschneider
+        - generic [ref=e1061]:
+          - generic [ref=e1062]: 180 стр.
+          - link "читать" [ref=e1063] [cursor=pointer]:
+            - /url: https://archive.org/details/semisovereignpeo00scha/mode/2up
+        - generic [ref=e1064]:
+          - paragraph [ref=e1065] [cursor=pointer]: Предполагается, что политики вынуждены балансировать между интересами общества и проводить компромиссную политику. Но это так не происходит. Если посмотреть на соц опросы о контроле над рождаемостью, бюджете, смертной казни, разводах, трудовых отношениях, налогах на сверхдоходы, свободе слова, рассовых отношения и так далее, то мы увидим, что общественное мнение по этим вопросам никак не влияет на политический курс, который реализуется в реальности. На самом деле группы с низкими доходами не представлены в этой конкуренции, в плюрализме мнений.
+          - button "Читать далее" [ref=e1066] [cursor=pointer]
+          - paragraph [ref=e1067]:
+            - text: "Ещё рекомендации:"
+            - link "Саммари от политолога" [ref=e1068] [cursor=pointer]:
+              - /url: https://adambrown.info/p/notes/schattschneider_the_semisovereign_people
+        - button "Хочу читать" [ref=e1070] [cursor=pointer]
+      - article [ref=e1071]:
+        - 'img "Обложка: Демократия, или Демон и Гегемон" [ref=e1074]'
+        - generic [ref=e1075]:
+          - generic [ref=e1076]: Демократия
+          - generic [ref=e1078]:
+            - img [ref=e1079]
+            - text: "2"
+        - generic [ref=e1083]:
+          - heading "Демократия, или Демон и Гегемон" [level=2] [ref=e1084]
+          - generic [ref=e1085]: "2016"
+        - paragraph [ref=e1086]: Артемий Магун
+        - generic [ref=e1087]:
+          - generic [ref=e1088]: 152 стр.
+          - link "читать" [ref=e1089] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/409
+        - generic [ref=e1090]:
+          - paragraph [ref=e1091] [cursor=pointer]: Самая обширная русскоязычная работа по политической теории демократии, по которой вы можете начать ориентироваться в сюжетах внутри этого огромного понятия
+          - button "Читать далее" [ref=e1092] [cursor=pointer]
+        - button "Хочу читать" [ref=e1095] [cursor=pointer]
+      - article [ref=e1096]:
+        - 'img "Обложка: Патриот" [ref=e1099]'
+        - generic [ref=e1100]:
+          - generic [ref=e1101]: Путинизм
+          - generic [ref=e1103]:
+            - img [ref=e1104]
+            - text: "5"
+        - generic [ref=e1108]:
+          - heading "Патриот" [level=2] [ref=e1109]
+          - generic [ref=e1110]: "2024"
+        - paragraph [ref=e1111]: Алексей Навальный
+        - generic [ref=e1112]:
+          - generic [ref=e1113]: 398 стр.
+          - link "читать" [ref=e1114] [cursor=pointer]:
+            - /url: https://www.onebookpublishing.org/products/patriot
+        - generic [ref=e1115]:
+          - paragraph [ref=e1116] [cursor=pointer]: Мемуары российского политика и оппозиционного лидера Алексея Навального, которые он начал писать в 2020 году после отравления «Новичком» и продолжил работу над ними в заключении
+          - button "Читать далее" [ref=e1117] [cursor=pointer]
+        - button "Хочу читать" [ref=e1120] [cursor=pointer]
+      - article [ref=e1121]:
+        - 'img "Обложка: Заря всего" [ref=e1124]'
+        - generic [ref=e1125]:
+          - generic [ref=e1126]: Государство
+          - generic [ref=e1128]:
+            - img [ref=e1129]
+            - text: "3"
+        - generic [ref=e1133]:
+          - heading "Заря всего" [level=2] [ref=e1134]
+          - generic [ref=e1135]: "2024"
+        - paragraph [ref=e1136]: David Wengrow, David Graeber
+        - generic [ref=e1137]:
+          - generic [ref=e1138]: 560 стр.
+          - link "читать" [ref=e1139] [cursor=pointer]:
+            - /url: "https://books.yandex.ru/books/VMifNlUI "
+        - generic [ref=e1140]:
+          - paragraph [ref=e1141] [cursor=pointer]: Авторы бросают вызов доминирующим представлениям о развитии общества как о движении от эгалитарных групп охотников-собирателей — через аграрную революцию и урбанизацию — к созданию иерархических государств. По их мнению, этот традиционный нарратив лишь воспроизводит мифы, укоренившиеся в исторической науке. Основываясь на данных археологии, антропологии и смежных дисциплин, полученных за последние десятилетия, Гребер и Уэнгроу предлагают посмотреть на социальную историю извне западного канона. «Заря всего» возникла как своего рода игра, неформальная дискуссия антрополога и археолога об истории человечества, и превратилась в захватывающее интеллектуальное путешествие
+          - button "Читать далее" [ref=e1142] [cursor=pointer]
+          - paragraph [ref=e1143]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв А. Замятина" [ref=e1144] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/88
+        - button "Хочу читать" [ref=e1147] [cursor=pointer]
+      - article [ref=e1148]:
+        - 'img "Обложка: Революционный темперамент. Париж в 1748–1789 годах" [ref=e1151]'
+        - generic [ref=e1153]: Новая
+        - generic [ref=e1154]:
+          - generic [ref=e1155]: Народные движения
+          - generic [ref=e1157]:
+            - img [ref=e1158]
+            - text: "1"
+        - generic [ref=e1162]:
+          - heading "Революционный темперамент. Париж в 1748–1789 годах" [level=2] [ref=e1163]
+          - generic [ref=e1164]: "2026"
+        - paragraph [ref=e1165]: Robert Darnton
+        - generic [ref=e1166]:
+          - generic [ref=e1167]: 242 стр.
+          - link "читать" [ref=e1168] [cursor=pointer]:
+            - /url: https://books.yandex.ru/books/OPaDWzEK
+        - generic [ref=e1169]:
+          - paragraph [ref=e1170] [cursor=pointer]: "Как Париж пришел к 1789 году? Что на самом деле думали и чувствовали парижане в десятилетия, предшествовавшие Великой французской революции? Выдающийся историк Р. Дарнтон в своей новой книге предлагает оригинальный ответ: он исследует не столько политико-экономические причины революции, сколько созревание особого «революционного темперамента» — коллективного умонастроения, которое сделало возможным взрыв 1789 года. Дарнтон погружает читателя в гущу парижской жизни 1748–1789 годов, прослеживая формирование нового общественного сознания через уникальную «мультимедийную систему» Старого порядка: как новости о войне, налогах, королевских любовницах и полетах на воздушном шаре превращались в песни, памфлеты, слухи и сплетни, распространяясь от салонов и кофеен до рынков и мастерских. Анализируя циркуляцию этих информационных потоков, автор реконструирует социальный опыт горожан и объясняет, как еще за сорок лет до взятия Бастилии в их сознании закрепилась готовность к радикальным переменам."
+          - button "Читать далее" [ref=e1171] [cursor=pointer]
+          - paragraph [ref=e1172]:
+            - text: "Ещё рекомендации:"
+            - link "Рекомендация А. Замятина" [ref=e1173] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/535
+        - button "Хочу читать" [ref=e1175] [cursor=pointer]
+  - contentinfo [ref=e1176]:
+    - button "Написать автору проекта" [ref=e1178] [cursor=pointer]
+  - dialog [ref=e1179]:
+    - generic [ref=e1180]:
+      - generic [ref=e1181]:
+        - generic [ref=e1182]: Личный кабинет
+        - generic [ref=e1183]: E2E Signup User
+      - button [ref=e1184] [cursor=pointer]: ×
+    - generic [ref=e1185]:
+      - button [ref=e1186] [cursor=pointer]: Записал:ась
+      - button [ref=e1187] [cursor=pointer]: Предложил:а
+      - button [ref=e1188] [cursor=pointer]: Профиль
+    - generic [ref=e1192]: Ты пока не записал:ась ни на одну книгу
+  - alert [ref=e1193]
+```
