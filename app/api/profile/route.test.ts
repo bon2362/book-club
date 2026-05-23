@@ -90,7 +90,7 @@ describe('PATCH /api/profile — auth', () => {
 describe('PATCH /api/profile — happy path', () => {
   it('сохраняет языки и возвращает обновлённый массив', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    mockUpdateResult.mockResolvedValue([{ languages: '["ru","en"]' }])
+    mockUpdateResult.mockResolvedValue([{ name: 'User', contacts: '@user', languages: '["ru","en"]' }])
     const req = new NextRequest('http://localhost/api/profile', {
       method: 'PATCH',
       body: JSON.stringify({ languages: ['ru', 'en'] }),
@@ -103,6 +103,24 @@ describe('PATCH /api/profile — happy path', () => {
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_updated', expect.objectContaining({
       source: 'api',
       metadata: { languages: ['ru', 'en'] },
+    }))
+  })
+
+  it('сохраняет имя и контакты без повторного выбора книг', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
+    mockUpdateResult.mockResolvedValue([{ name: 'User New', contacts: '@new', languages: null }])
+    const req = new NextRequest('http://localhost/api/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ name: ' User New ', contacts: ' @new ' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await PATCH(req)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toEqual({ name: 'User New', contacts: '@new', languages: null })
+    expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_updated', expect.objectContaining({
+      source: 'api',
+      metadata: { name: 'User New', contacts: '@new' },
     }))
   })
 })
@@ -119,6 +137,19 @@ describe('PATCH /api/profile — validation', () => {
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toBe('Invalid languages')
+  })
+
+  it('возвращает 400 если name/contacts невалидны', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
+    const req = new NextRequest('http://localhost/api/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ name: '', contacts: '@user' }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const res = await PATCH(req)
+    expect(res.status).toBe(400)
+    const data = await res.json()
+    expect(data.error).toBe('Invalid profile')
   })
 
   it('возвращает 400 если тело запроса невалидный JSON', async () => {

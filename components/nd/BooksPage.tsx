@@ -39,6 +39,15 @@ async function saveSelection(name: string, contacts: string, books: string[]) {
   if (!res.ok) throw new Error(`Signup failed: ${res.status}`)
 }
 
+async function saveProfile(name: string, contacts: string) {
+  const res = await fetch('/api/profile', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, contacts }),
+  })
+  if (!res.ok) throw new Error(`Profile save failed: ${res.status}`)
+}
+
 export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections }: Props) {
   const { data: session } = useSession()
   const { isHidden } = useScrollHide()
@@ -226,6 +235,12 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   }
 
   async function handleSaveContacts(name: string, contacts: string) {
+    if (currentUser && !pendingBook) {
+      await saveProfile(name, contacts)
+      setSavedUser({ name, contacts })
+      return
+    }
+
     const booksList = pendingBook
       ? [...selectedBooksRef.current, pendingBook.name]
       : selectedBooksRef.current

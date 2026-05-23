@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
+import { bestEffortRecordUserActivity, buildUserActivityDedupeKey, type UserActivityMetadata } from '@/lib/user-activity'
 
 export async function GET() {
   const session = await auth()
@@ -32,22 +32,51 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let languages: string[]
+  let body: { languages?: unknown; name?: unknown; contacts?: unknown }
   try {
-    const body = await req.json() as { languages: unknown }
-    if (!Array.isArray(body.languages) || !body.languages.every(x => typeof x === 'string')) {
-      return NextResponse.json({ error: 'Invalid languages' }, { status: 400 })
-    }
-    languages = body.languages
+    body = await req.json() as { languages?: unknown; name?: unknown; contacts?: unknown }
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
+  const updates: {
+    languages?: string
+    name?: string
+    contacts?: string
+  } = {}
+  const metadata: UserActivityMetadata = {}
+
+  if ('languages' in body) {
+    if (!Array.isArray(body.languages) || !body.languages.every(x => typeof x === 'string')) {
+      return NextResponse.json({ error: 'Invalid languages' }, { status: 400 })
+    }
+    updates.languages = JSON.stringify(body.languages)
+    metadata.languages = body.languages
+  }
+
+  if ('name' in body || 'contacts' in body) {
+    if (typeof body.name !== 'string' || !body.name.trim() || typeof body.contacts !== 'string') {
+      return NextResponse.json({ error: 'Invalid profile' }, { status: 400 })
+    }
+    updates.name = body.name.trim()
+    updates.contacts = body.contacts.trim()
+    metadata.name = updates.name
+    metadata.contacts = updates.contacts
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'No profile fields to update' }, { status: 400 })
+  }
+
   const updated = await db
     .update(users)
-    .set({ languages: JSON.stringify(languages) })
+    .set(updates)
     .where(eq(users.id, session.user.id))
-    .returning({ languages: users.languages })
+    .returning({
+      name: users.name,
+      contacts: users.contacts,
+      languages: users.languages,
+    })
 
   if (updated.length === 0) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -56,10 +85,14 @@ export async function PATCH(req: NextRequest) {
   await bestEffortRecordUserActivity(session.user.id, 'profile_updated', {
     source: 'api',
     sourceId: session.user.id,
-    dedupeKey: buildUserActivityDedupeKey(['api', 'profile_updated', session.user.id, JSON.stringify(languages)]),
-    metadata: { languages },
+    dedupeKey: buildUserActivityDedupeKey(['api', 'profile_updated', session.user.id, JSON.stringify(metadata)]),
+    metadata,
   })
 
-  const saved = updated[0].languages
-  return NextResponse.json({ languages: saved ? JSON.parse(saved) as string[] : languages })
+  const saved = updated[0]
+  return NextResponse.json({
+    name: saved.name,
+    contacts: saved.contacts,
+    languages: saved.languages ? JSON.parse(saved.languages) as string[] : null,
+  })
 }
