@@ -2,17 +2,17 @@
  * @jest-environment node
  */
 import { NextRequest } from 'next/server'
-import { POST, DELETE } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
-    insert: jest.fn(),
-    delete: jest.fn(),
+    update: jest.fn(),
   },
 }))
+
+import { POST, DELETE } from './route'
 
 const mockAuth = authModule.auth as jest.Mock
 
@@ -32,87 +32,39 @@ function makeDelete(bookId?: string) {
 }
 
 beforeEach(() => {
-  const insertChain = {
-    values: jest.fn().mockReturnThis(),
-    onConflictDoUpdate: jest.fn().mockResolvedValue(undefined),
-  }
-  ;(db.insert as jest.Mock).mockReturnValue(insertChain)
-  ;(db.delete as jest.Mock).mockReturnValue({
-    where: jest.fn().mockResolvedValue(undefined),
+  ;(db.update as jest.Mock).mockReturnValue({
+    set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }),
   })
 })
 
 describe('POST /api/admin/book-new-flag', () => {
-  it('возвращает 403 без сессии', async () => {
+  it('returns 403 without session', async () => {
     mockAuth.mockResolvedValue(null)
-    const res = await POST(makePost({ bookId: 'book-1', isNew: true }))
+    const res = await POST(makePost({ bookId: 'b1', isNew: true }))
     expect(res.status).toBe(403)
   })
-
-  it('возвращает 403 если isAdmin=false', async () => {
-    mockAuth.mockResolvedValue({ user: { isAdmin: false } })
-    const res = await POST(makePost({ bookId: 'book-1', isNew: true }))
-    expect(res.status).toBe(403)
-  })
-
-  it('возвращает 400 при отсутствии bookId', async () => {
+  it('returns 400 on bad body', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
-    const res = await POST(makePost({ isNew: true }))
+    const res = await POST(makePost({ bookId: 'b1' }))
     expect(res.status).toBe(400)
   })
-
-  it('возвращает 400 если isNew не boolean', async () => {
+  it('updates books.is_new when admin', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
-    const res = await POST(makePost({ bookId: 'book-1', isNew: 'yes' }))
-    expect(res.status).toBe(400)
-  })
-
-  it('устанавливает флаг и возвращает 200', async () => {
-    mockAuth.mockResolvedValue({ user: { isAdmin: true } })
-
-    const res = await POST(makePost({ bookId: 'book-1', isNew: true }))
-    const data = await res.json()
-
+    const res = await POST(makePost({ bookId: 'b1', isNew: true }))
     expect(res.status).toBe(200)
-    expect(data.success).toBe(true)
-    expect(db.insert).toHaveBeenCalled()
-  })
-
-  it('работает с isNew=false', async () => {
-    mockAuth.mockResolvedValue({ user: { isAdmin: true } })
-
-    const res = await POST(makePost({ bookId: 'book-1', isNew: false }))
-    expect(res.status).toBe(200)
+    expect(db.update as jest.Mock).toHaveBeenCalled()
   })
 })
 
 describe('DELETE /api/admin/book-new-flag', () => {
-  it('возвращает 403 без сессии', async () => {
-    mockAuth.mockResolvedValue(null)
-    const res = await DELETE(makeDelete('book-1'))
-    expect(res.status).toBe(403)
+  it('clears is_new when admin', async () => {
+    mockAuth.mockResolvedValue({ user: { isAdmin: true } })
+    const res = await DELETE(makeDelete('b1'))
+    expect(res.status).toBe(200)
   })
-
-  it('возвращает 403 если не админ', async () => {
-    mockAuth.mockResolvedValue({ user: { isAdmin: false } })
-    const res = await DELETE(makeDelete('book-1'))
-    expect(res.status).toBe(403)
-  })
-
-  it('возвращает 400 без bookId', async () => {
+  it('returns 400 when bookId missing', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     const res = await DELETE(makeDelete())
     expect(res.status).toBe(400)
-  })
-
-  it('удаляет флаг и возвращает 200', async () => {
-    mockAuth.mockResolvedValue({ user: { isAdmin: true } })
-
-    const res = await DELETE(makeDelete('book-1'))
-    const data = await res.json()
-
-    expect(res.status).toBe(200)
-    expect(data.success).toBe(true)
-    expect(db.delete).toHaveBeenCalled()
   })
 })

@@ -3,11 +3,12 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { bookSubmissions, signupBooks, bookPriorities, users } from '@/lib/db/schema'
+import { bookSubmissions, signupBooks, bookPriorities, users, books } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
 import { getUserContactEmail } from '@/lib/user-email'
+import { publishSubmissionAsBook } from '@/lib/book-publish'
 
 export async function DELETE(
   _req: NextRequest,
@@ -83,7 +84,28 @@ export async function PATCH(
 
   const titleChanged = title !== undefined && title !== existing.title
   const isApproved = submission.status === 'approved'
+
+  if (isApproved) {
+    // Promote (or sync) the approved submission to a row in `books` and
+    // record the submitter's signup via book_id.
+    await publishSubmissionAsBook({
+      id: submission.id,
+      userId: submission.userId,
+      title: submission.title,
+      author: submission.author,
+      topic: submission.topic,
+      pages: submission.pages,
+      publishedDate: submission.publishedDate,
+      textUrl: submission.textUrl,
+      description: submission.description,
+      coverUrl: submission.coverUrl,
+      whyRead: submission.whyRead,
+    })
+  }
+
   if (titleChanged && isApproved) {
+    // Update the cached title on `books` is handled inside publishSubmissionAsBook.
+    // Keep the legacy book_name caches in sync until cleanup migration 0022 runs.
     await Promise.all([
       db.update(signupBooks)
         .set({ bookName: title })
@@ -91,14 +113,10 @@ export async function PATCH(
       db.update(bookPriorities)
         .set({ bookName: title })
         .where(eq(bookPriorities.bookName, existing.title)),
+      db.update(books)
+        .set({ title })
+        .where(eq(books.sourceSubmissionId, submission.id)),
     ])
-  }
-
-  if (status === 'approved') {
-    await db.insert(signupBooks).values({
-      userId: submission.userId,
-      bookName: submission.title,
-    }).onConflictDoNothing()
   }
 
   if (status === 'approved' || status === 'rejected') {

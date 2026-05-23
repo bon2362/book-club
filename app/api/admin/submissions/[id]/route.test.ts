@@ -19,6 +19,11 @@ jest.mock('@/lib/email-templates/submission-status', () => ({
   rejectedEmail: jest.fn().mockReturnValue({ subject: 'Отклонено', html: '<p>no</p>' }),
 }))
 
+const mockPublishSubmissionAsBook = jest.fn().mockResolvedValue('mocked-book-id')
+jest.mock('@/lib/book-publish', () => ({
+  publishSubmissionAsBook: (...args: unknown[]) => mockPublishSubmissionAsBook(...args),
+}))
+
 const mockUpdate = jest.fn()
 const mockSelect = jest.fn()
 const mockDelete = jest.fn()
@@ -130,10 +135,12 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
     expect(mockSend).not.toHaveBeenCalled()
   })
 
-  it('записывает автора заявки на книгу при статусе approved', async () => {
+  it('публикует книгу и записывает автора при approved', async () => {
+    mockPublishSubmissionAsBook.mockClear()
     await PATCH(makeRequest('sub-1', { status: 'approved' }), { params: { id: 'sub-1' } })
-    expect(mockInsertValues).toHaveBeenCalledWith({ userId: 'user-1', bookName: 'Сапиенс' })
-    expect(mockOnConflictDoNothing).toHaveBeenCalled()
+    expect(mockPublishSubmissionAsBook).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'sub-1', userId: 'user-1', title: 'Сапиенс' })
+    )
   })
 
   it('отправляет email при статусе rejected', async () => {
