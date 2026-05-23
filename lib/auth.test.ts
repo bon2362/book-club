@@ -275,17 +275,50 @@ describe('signIn callback', () => {
     expect(db.update).not.toHaveBeenCalled()
   })
 
-  it('логирует transient identity sync error и не ломает вход', async () => {
+  it('прерывает вход на transient identity sync error для Google OAuth', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
     mockDbUpdate()
     ;(linkIdentityToUser as jest.Mock).mockRejectedValueOnce(new Error('temporary db timeout'))
 
-    const result = await signInCallback()({
+    await expect(signInCallback()({
       user: { id: 'user-uuid', email: 'user@test.com', name: 'User' },
       account: { provider: 'google', providerAccountId: 'google-sub-123' },
-    })
+    })).rejects.toThrow('temporary db timeout')
 
-    expect(result).toBe(true)
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Failed to sync user identity during sign-in',
+      { errorName: 'Error' }
+    )
+    errorSpy.mockRestore()
+  })
+
+  it('прерывает вход на transient identity sync error для email sign-in с userId', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockDbUpdate()
+    ;(linkIdentityToUser as jest.Mock).mockRejectedValueOnce(new Error('temporary db timeout'))
+
+    await expect(signInCallback()({
+      user: { id: 'email-user-uuid', email: 'magic@test.com', name: 'Magic User' },
+      account: { provider: 'resend' },
+    })).rejects.toThrow('temporary db timeout')
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Failed to sync user identity during sign-in',
+      { errorName: 'Error' }
+    )
+    errorSpy.mockRestore()
+  })
+
+  it('прерывает вход на transient identity sync error для magic link без userId', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockDbUpdate()
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockRejectedValueOnce(new Error('temporary db timeout'))
+
+    await expect(signInCallback()({
+      user: { email: 'magic@test.com' },
+      account: { provider: 'resend' },
+    })).rejects.toThrow('temporary db timeout')
+
     expect(errorSpy).toHaveBeenCalledWith(
       'Failed to sync user identity during sign-in',
       { errorName: 'Error' }
