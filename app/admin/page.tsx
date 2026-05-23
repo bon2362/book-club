@@ -1,9 +1,9 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getAllSignups } from '@/lib/signup-books'
-import { fetchBooksWithCovers } from '@/lib/books-with-covers'
+import { fetchBooksForAdmin } from '@/lib/books'
 import { db } from '@/lib/db'
-import { bookStatuses, tagDescriptions, bookNewFlags, users, bookPriorities } from '@/lib/db/schema'
+import { tagDescriptions, users, bookPriorities } from '@/lib/db/schema'
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminRefresh from '@/components/nd/AdminRefresh'
 import AdminFooter from '@/components/nd/AdminFooter'
@@ -14,12 +14,10 @@ export default async function AdminPage() {
   const session = await auth()
   if (!session?.user?.isAdmin) redirect('/')
 
-  const [signups, books, statuses, tagDescs, newFlags, languageRows, allPriorityRows] = await Promise.all([
+  const [signups, books, tagDescs, languageRows, allPriorityRows] = await Promise.all([
     getAllSignups(),
-    fetchBooksWithCovers(),
-    db.select().from(bookStatuses).catch(() => []),
+    fetchBooksForAdmin(),
     db.select().from(tagDescriptions).catch(() => []),
-    db.select().from(bookNewFlags).catch(() => []),
     db.select({ id: users.id, contactEmail: users.contactEmail, languages: users.languages, prioritiesSet: users.prioritiesSet }).from(users).catch(() => []),
     db.select({ userId: bookPriorities.userId, bookName: bookPriorities.bookName, rank: bookPriorities.rank }).from(bookPriorities).catch(() => []),
   ])
@@ -44,13 +42,14 @@ export default async function AdminPage() {
     bookPrioritiesMap[pgId].sort((a, b) => a.rank - b.rank)
   }
 
+  // reading_status and is_new are now first-class fields on `books`.
   const statusMap = Object.fromEntries(
-    statuses.map(s => [s.bookId, s.status as 'reading' | 'read'])
+    books.filter(b => b.status).map(b => [b.id, b.status as 'reading' | 'read'])
   )
+  const newFlagsMap = Object.fromEntries(books.map(b => [b.id, b.isNew]))
 
   const allTags = Array.from(new Set(books.flatMap(b => b.tags))).sort()
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
-  const newFlagsMap = Object.fromEntries(newFlags.map(f => [f.bookId, f.isNew]))
 
   const byBook = books
     .map(book => ({

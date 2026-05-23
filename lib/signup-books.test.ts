@@ -63,6 +63,10 @@ describe('signup-books', () => {
     const { sql } = await import('@/lib/db')
     const tx = jest.fn().mockReturnValue('query')
     ;(sql.transaction as jest.Mock).mockImplementation(async (fn) => fn(tx))
+    // title→book_id lookup
+    ;(db.select as jest.Mock).mockReturnValue({
+      from: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue([]) }),
+    })
 
     const result = await upsertSignup('user-1', [' Книга A ', 'Книга A', 'Книга B'])
 

@@ -50,6 +50,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/ws": "^8.18.1",
     "allure-playwright": "^3.6.0",
     "drizzle-kit": "^0.31.9",
     "eslint": "^8",

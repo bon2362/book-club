@@ -1,5 +1,5 @@
 import {
-  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex,
+  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -75,25 +75,68 @@ export const verificationTokens = pgTable('verificationToken', {
   pk: primaryKey({ columns: [t.identifier, t.token] }),
 }))
 
-export const bookStatuses = pgTable('book_statuses', {
-  bookId: text('book_id').primaryKey(),
-  status: text('status').notNull(), // 'reading' | 'read'
-})
+// New canonical books catalog (replaces Sheets + book_statuses + book_new_flags merge).
+// See docs/planning-artifacts/books-catalog-db-refactor-plan.md.
+export const books = pgTable('books', {
+  id: text('id').primaryKey(),
+  canonicalKey: text('canonical_key'),
+  title: text('title').notNull(),
+  author: text('author').notNull().default(''),
+  tags: jsonb('tags').$type<string[]>().notNull().default([]),
+  type: text('type').notNull().default('book'), // 'book' | 'article'
+  size: text('size').notNull().default(''),
+  pages: integer('pages'),
+  publishedDate: text('published_date').notNull().default(''),
+  textUrl: text('text_url').notNull().default(''),
+  description: text('description').notNull().default(''),
+  coverUrl: text('cover_url'),
+  whyRead: text('why_read'),
+  recommendationLink: text('recommendation_link'),
+  readingStatus: text('reading_status'), // null | 'reading' | 'read'
+  visibility: text('visibility').notNull().default('hidden'), // 'hidden' | 'published'
+  isNew: boolean('is_new').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  source: text('source').notNull().default('admin'), // 'admin' | 'submission' | 'sheets_import'
+  sourceSubmissionId: text('source_submission_id'),
+  legacySheetsRowId: text('legacy_sheets_row_id'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+  publishedAt: timestamp('published_at', { mode: 'date' }),
+  hiddenAt: timestamp('hidden_at', { mode: 'date' }),
+  archivedAt: timestamp('archived_at', { mode: 'date' }),
+}, (t) => ({
+  visibilityIdx: index('books_visibility_idx').on(t.visibility),
+  sourceSubmissionIdx: index('books_source_submission_id_idx').on(t.sourceSubmissionId),
+  // Partial unique index (source_submission_id IS NOT NULL) is created in the SQL migration directly,
+  // since drizzle-orm's typed builder does not expose a partial-where helper on uniqueIndex in this version.
+  canonicalKeyIdx: index('books_canonical_key_idx').on(t.canonicalKey),
+  sortOrderIdx: index('books_sort_order_idx').on(t.sortOrder),
+}))
+
+export const legacyBookMappings = pgTable('legacy_book_mappings', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  legacySource: text('legacy_source').notNull(), // 'sheets' | 'submission' | 'book_name'
+  legacyId: text('legacy_id').notNull(),
+  legacyTitle: text('legacy_title'),
+  legacyAuthor: text('legacy_author'),
+  bookId: text('book_id').references(() => books.id, { onDelete: 'set null' }),
+  confidence: text('confidence').notNull(), // 'exact' | 'normalized' | 'manual' | 'unmatched'
+  resolution: text('resolution'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  legacyLookupIdx: uniqueIndex('legacy_book_mappings_source_id_idx').on(t.legacySource, t.legacyId),
+  bookIdIdx: index('legacy_book_mappings_book_id_idx').on(t.bookId),
+}))
 
 export const tagDescriptions = pgTable('tag_descriptions', {
   tag: text('tag').primaryKey(),
   description: text('description').notNull(),
 })
 
-export const bookNewFlags = pgTable('book_new_flags', {
-  bookId:    text('book_id').primaryKey(),
-  isNew:     boolean('is_new').notNull(),
-  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
-})
-
 export const bookSubmissions = pgTable('book_submissions', {
   id:            text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId:        text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookId:        text('book_id').references(() => books.id, { onDelete: 'set null' }),
   title:         text('title').notNull(),
   topic:         text('topic'),
   author:        text('author').notNull(),
@@ -109,23 +152,32 @@ export const bookSubmissions = pgTable('book_submissions', {
   updatedAt:     timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   statusIdx: index('book_submissions_status_idx').on(t.status),
+  bookIdIdx: index('book_submissions_book_id_idx').on(t.bookId),
 }))
 
+// During the books-catalog migration these tables carry BOTH columns:
+//   - book_name (legacy, written by old code paths)
+//   - book_id   (new, populated by backfill + new code paths)
+// Cleanup migration 0022 removes book_name and switches the PK.
 export const bookPriorities = pgTable('book_priorities', {
   userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   bookName:  text('book_name').notNull(),
+  bookId:    text('book_id').references(() => books.id, { onDelete: 'cascade' }),
   rank:      integer('rank').notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.bookName] }),
+  bookIdIdx: index('book_priorities_book_id_idx').on(t.bookId),
 }))
 
 export const signupBooks = pgTable('signup_books', {
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId:   text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   bookName: text('book_name').notNull(),
+  bookId:   text('book_id').references(() => books.id, { onDelete: 'cascade' }),
   signedAt: timestamp('signed_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.bookName] }),
+  bookIdIdx: index('signup_books_book_id_idx').on(t.bookId),
 }))
 
 export const feedback = pgTable('feedback', {

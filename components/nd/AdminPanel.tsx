@@ -970,7 +970,9 @@ export default function AdminPanel({
               {sortedByBook.map(({ book, users: bookUsers }) => {
                 const currentStatus = statuses[book.id]
                 const isStatusLoading = statusLoading === book.id
-                const isSubmission = !book.id.match(/^\d+$/)
+                // After the books-catalog DB migration `book.source` is the source of truth.
+                // Falling back to the legacy heuristic only for old in-flight props.
+                const isSubmission = book.source ? book.source === 'submission' : !book.id.match(/^\d+$/)
                 const isNew = newFlags[book.id] ?? book.isNew
                 const isFlagLoading = newFlagLoading === book.id
                 return (
@@ -984,7 +986,7 @@ export default function AdminPanel({
                             {book.author || 'Автор не указан'}
                           </div>
                           <div style={{ fontSize: '0.65rem', color: '#999', marginTop: '0.15rem' }}>
-                            {isSubmission ? 'Заявка' : 'Google Sheets'}
+                            {isSubmission ? 'Заявка' : 'Каталог'}
                           </div>
                         </div>
                       </div>

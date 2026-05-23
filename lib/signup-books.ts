@@ -1,6 +1,6 @@
 import { db, sql } from '@/lib/db'
-import { signupBooks, users } from '@/lib/db/schema'
-import { asc, eq, and } from 'drizzle-orm'
+import { books, signupBooks, users } from '@/lib/db/schema'
+import { asc, eq, and, inArray } from 'drizzle-orm'
 
 export interface UserSignup {
   timestamp: string
@@ -60,11 +60,30 @@ export async function getAllSignups(): Promise<UserSignup[]> {
 export async function upsertSignup(userId: string, bookNames: string[]): Promise<UpsertResult> {
   const normalized = Array.from(new Set(bookNames.map(b => b.trim()).filter(Boolean)))
 
+  // Best-effort title → book_id lookup so new rows get book_id populated.
+  // If the title matches multiple non-archived books, we deliberately leave book_id NULL —
+  // picking the first match would silently misroute the signup. Cleanup 0023 will block
+  // (and Stage 3 moves writes to bookId so titles stop being ambiguous on the wire).
+  const titleToBookId = new Map<string, string | null>()
+  if (normalized.length > 0) {
+    const rows = await db
+      .select({ id: books.id, title: books.title })
+      .from(books)
+      .where(inArray(books.title, normalized))
+    const countByTitle = new Map<string, number>()
+    for (const r of rows) countByTitle.set(r.title, (countByTitle.get(r.title) ?? 0) + 1)
+    for (const r of rows) {
+      if ((countByTitle.get(r.title) ?? 0) === 1) titleToBookId.set(r.title, r.id)
+      else titleToBookId.set(r.title, null)
+    }
+  }
+
   await sql.transaction(tx => [
     tx`DELETE FROM signup_books WHERE user_id = ${userId}`,
-    ...normalized.map(bookName =>
-      tx`INSERT INTO signup_books (user_id, book_name) VALUES (${userId}, ${bookName}) ON CONFLICT DO NOTHING`
-    ),
+    ...normalized.map(bookName => {
+      const bookId = titleToBookId.get(bookName) ?? null
+      return tx`INSERT INTO signup_books (user_id, book_name, book_id) VALUES (${userId}, ${bookName}, ${bookId}) ON CONFLICT DO NOTHING`
+    }),
   ])
 
   return { isNew: false, addedBooks: normalized }
