@@ -104,19 +104,26 @@ export async function PATCH(
   }
 
   if (titleChanged && isApproved) {
-    // Update the cached title on `books` is handled inside publishSubmissionAsBook.
-    // Keep the legacy book_name caches in sync until cleanup migration 0022 runs.
-    await Promise.all([
-      db.update(signupBooks)
-        .set({ bookName: title })
-        .where(eq(signupBooks.bookName, existing.title)),
-      db.update(bookPriorities)
-        .set({ bookName: title })
-        .where(eq(bookPriorities.bookName, existing.title)),
-      db.update(books)
-        .set({ title })
-        .where(eq(books.sourceSubmissionId, submission.id)),
-    ])
+    // publishSubmissionAsBook already updated books.title for this submission.
+    // To keep the legacy book_name caches in sync, scope the rename strictly to
+    // rows linked to *this* submission's published book — never blanket-update
+    // by title, which would misroute signups for an unrelated book that
+    // happens to share the title.
+    const [pubBook] = await db
+      .select({ id: books.id })
+      .from(books)
+      .where(eq(books.sourceSubmissionId, submission.id))
+      .limit(1)
+    if (pubBook) {
+      await Promise.all([
+        db.update(signupBooks)
+          .set({ bookName: title })
+          .where(eq(signupBooks.bookId, pubBook.id)),
+        db.update(bookPriorities)
+          .set({ bookName: title })
+          .where(eq(bookPriorities.bookId, pubBook.id)),
+      ])
+    }
   }
 
   if (status === 'approved' || status === 'rejected') {

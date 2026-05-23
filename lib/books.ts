@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { books, signupBooks } from '@/lib/db/schema'
-import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 
 export interface BookWithCover {
   id: string
@@ -26,58 +26,10 @@ export interface BookWithCover {
   sortOrder?: number
 }
 
-// E2E fixtures — ensured to exist in the `books` table when NEXTAUTH_TEST_MODE is on.
-// Inserting them as real rows means /api/admin/book-status and friends work uniformly
-// for fixture books and prod books (no separate "is this fixture" code path needed).
-const TEST_FIXTURE_BOOKS = [
-  { id: '__test_book_1__', title: 'Тестовая книга 1', author: 'Test Author A', tags: ['государство'], description: 'Книга для e2e-тестов', pages: 100, publishedDate: '2024' },
-  { id: '__test_book_2__', title: 'Тестовая книга 2', author: 'Test Author B', tags: [] as string[], description: 'Книга для e2e-тестов', pages: 200, publishedDate: '2024' },
-  { id: '__test_book_3__', title: 'Тестовая книга 3', author: 'Test Author C', tags: [] as string[], description: 'Книга для e2e-тестов', pages: 300, publishedDate: '2024' },
-]
-
-let fixturesSeeded = false
-async function ensureTestFixturesPresent(): Promise<void> {
-  if (process.env.NEXTAUTH_TEST_MODE !== 'true') return
-  if (fixturesSeeded) return
-  fixturesSeeded = true
-  try {
-    const existing = await db
-      .select({ id: books.id })
-      .from(books)
-      .where(inArray(books.id, TEST_FIXTURE_BOOKS.map(b => b.id)))
-    const existingIds = new Set(existing.map(r => r.id))
-    const missing = TEST_FIXTURE_BOOKS.filter(b => !existingIds.has(b.id))
-    if (missing.length > 0) {
-      await db.insert(books).values(missing.map(b => ({
-        id: b.id,
-        title: b.title,
-        author: b.author,
-        tags: b.tags,
-        type: 'book',
-        size: '',
-        pages: b.pages,
-        publishedDate: b.publishedDate,
-        textUrl: '',
-        description: b.description,
-        coverUrl: null,
-        whyRead: null,
-        recommendationLink: null,
-        readingStatus: null,
-        visibility: 'published' as const,
-        isNew: false,
-        sortOrder: -100,
-        source: 'admin' as const,
-        sourceSubmissionId: null,
-        legacySheetsRowId: null,
-      }))).onConflictDoNothing()
-    }
-  } catch (err) {
-    // Don't crash the catalog if seeding the test fixtures fails — log only.
-    // eslint-disable-next-line no-console
-    console.warn('ensureTestFixturesPresent failed:', err)
-    fixturesSeeded = false
-  }
-}
+// Test fixtures used to live in this file and were auto-seeded on every read in
+// NEXTAUTH_TEST_MODE, but that wrote into the production database whenever CI ran.
+// Fixture lifecycle now belongs to the E2E suite — see e2e/global-setup.ts and
+// the /api/test/seed-books endpoint.
 
 function rowToBook(row: typeof books.$inferSelect, signupCount = 0): BookWithCover {
   return {
@@ -111,7 +63,6 @@ interface ListOptions {
 }
 
 async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
-  await ensureTestFixturesPresent()
   const { includeHidden = false, includeArchived = false } = options
   const conditions = []
   if (!includeHidden) conditions.push(eq(books.visibility, 'published'))
@@ -155,7 +106,6 @@ export async function fetchBooksForAdmin(): Promise<BookWithCover[]> {
 }
 
 export async function fetchBookById(id: string): Promise<BookWithCover | null> {
-  await ensureTestFixturesPresent()
   const [row] = await db.select().from(books).where(eq(books.id, id)).limit(1)
   return row ? rowToBook(row) : null
 }
