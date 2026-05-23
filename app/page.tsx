@@ -1,8 +1,8 @@
 import { auth } from '@/lib/auth'
-import { fetchBooksWithCovers } from '@/lib/books-with-covers'
+import { fetchBooksWithCovers } from '@/lib/books'
 import { getAllSignups } from '@/lib/signup-books'
 import { db } from '@/lib/db'
-import { bookStatuses, tagDescriptions, users } from '@/lib/db/schema'
+import { tagDescriptions, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import BooksPage from '@/components/nd/BooksPage'
 import GoogleOneTap from '@/components/nd/GoogleOneTap'
@@ -11,11 +11,10 @@ import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  const [session, books, signups, statuses, tagDescs, intro] = await Promise.all([
+  const [session, books, signups, tagDescs, intro] = await Promise.all([
     auth(),
     fetchBooksWithCovers(),
     getAllSignups().catch(() => []),
-    db.select().from(bookStatuses).catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
     getIntroData({ onlyPublished: true }).catch(() => ({ header: null, sections: [] })),
   ])
@@ -25,20 +24,7 @@ export default async function Home() {
     ? intro.sections.map(s => ({ id: s.id, title: s.title, body: s.body }))
     : DEFAULT_SECTIONS.map((s, idx) => ({ id: `default-${idx}`, title: s.title, body: s.body }))
 
-  const statusMap = new Map(statuses.map(s => [s.bookId, s.status as 'reading' | 'read']))
-
-  const signupCountByName = new Map<string, number>()
-  for (const signup of signups) {
-    for (const bookName of signup.selectedBooks) {
-      signupCountByName.set(bookName, (signupCountByName.get(bookName) ?? 0) + 1)
-    }
-  }
-
-  const booksWithStatus = books.map(b => ({
-    ...b,
-    status: statusMap.get(b.id) ?? null,
-    signupCount: signupCountByName.get(b.name) ?? 0,
-  }))
+  const booksWithStatus = books
 
   const signupUser = session?.user?.id
     ? signups.find(s => s.userId === session.user!.id) ?? null
