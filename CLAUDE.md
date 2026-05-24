@@ -22,7 +22,7 @@
 
 ## Devcontainer: firewall и ограничения
 - Firewall настроен в `.devcontainer/init-firewall.sh` — блокирует всё кроме allowlist
-- Разрешены: GitHub, npmjs.org, api.anthropic.com, googleapis.com, slowreading.club, book-club-slow-rising.vercel.app, vercel.com, api.vercel.com
+- Разрешены: GitHub, npmjs.org, api.anthropic.com, slowreading.club, book-club-slow-rising.vercel.app, vercel.com, api.vercel.com
 - Чтобы добавить новый сервис: отредактировать `init-firewall.sh`, затем Rebuild Container (Ctrl+Shift+P)
 - Exit code 7 от curl = заблокировано firewall (не сетевая ошибка)
 - После ребилда контейнера: Vercel-токен в auth.json сбрасывается, использовать `--token` флаг
@@ -138,7 +138,6 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 ## Архитектура каталога и обложек
 - Каталог книг хранится в таблице `books` (Postgres). Чтение через `lib/books.ts`.
 - Обложки: `books.cover_url`, редактируется в админской вкладке «Каталог».
-- `lib/sheets.ts` — DEPRECATED, остался только для `scripts/books-catalog-audit.ts`. В runtime не используется. ENV `GOOGLE_SHEETS_ID` / `GOOGLE_SERVICE_ACCOUNT_KEY` — optional.
 - `lib/books-with-covers.ts` — backward-compat shim, re-export из `lib/books.ts`.
 - `CoverImage.tsx` — client component, fallback на инициалы автора при `coverUrl=null`.
 - `BookCard.tsx` — кнопка «Читать далее» / «Свернуть» для описаний > 120 символов.

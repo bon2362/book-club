@@ -79,14 +79,14 @@ describe('GET /api/admin/books', () => {
 
   it('returns mapped books with signupCount when admin', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
-    // Three select queries in order: books rows, counts by id, counts by name.
+    // Two select queries in order: books rows, then signup counts by book id.
     // Our mock fixture returns the same rows for each call — simplest path: use empty counts.
     pushSelectResult([{
       id: 'b1', title: 'T', author: 'A', tags: ['x'], type: 'book', size: '',
       pages: 100, publishedDate: '', textUrl: '', description: '', coverUrl: null,
       whyRead: null, recommendationLink: null, readingStatus: null,
       visibility: 'published', isNew: false, sortOrder: 0, source: 'admin',
-      sourceSubmissionId: null, archivedAt: null, publishedAt: null, hiddenAt: null,
+      archivedAt: null, publishedAt: null, hiddenAt: null,
       createdAt: new Date(), updatedAt: new Date(),
     }])
     const res = await GET(makeGet())

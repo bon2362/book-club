@@ -50,12 +50,17 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     const createRes = page.waitForResponse(res =>
       res.url().endsWith('/api/admin/books') && res.request().method() === 'POST'
     )
+    const reloadAfterCreate = page.waitForResponse(res =>
+      res.url().includes('/api/admin/books?includeArchived=1') && res.request().method() === 'GET'
+    )
     await page.getByTestId('admin-books-create-submit').click()
     const created = await createRes
     expect(created.ok()).toBe(true)
     const createdBody = await created.json()
     createdBookId = createdBody.data.id as string
     expect(createdBookId).toBeTruthy()
+    await reloadAfterCreate
+    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
 
     // 2. Книга появляется в таблице, по умолчанию скрыта
     const row = page.getByTestId(`admin-book-row-${createdBookId}`)
@@ -69,6 +74,8 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await homePage.waitForLoadState('networkidle')
     await expect(homePage.getByText(BOOK_TITLE)).toHaveCount(0)
     await homePage.close()
+    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
+    await expect(row).toBeVisible()
 
     // 4. Публикуем книгу — раскрываем editor через precise testid
     await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
@@ -79,6 +86,7 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await page.reload()
     await page.waitForLoadState('networkidle')
     await page.getByTestId('admin-tab-catalog').click()
+    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
     const rowAfterPublish = page.getByTestId(`admin-book-row-${createdBookId}`)
     await expect(rowAfterPublish).toContainText('Опубликована')
 
@@ -98,6 +106,7 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await page.reload()
     await page.waitForLoadState('networkidle')
     await page.getByTestId('admin-tab-catalog').click()
+    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
     const rowAfterHide = page.getByTestId(`admin-book-row-${createdBookId}`)
     await expect(rowAfterHide).toContainText('Скрыта')
 

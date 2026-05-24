@@ -3,12 +3,6 @@ import { books, bookSubmissions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
-function normalizeKey(title: string, author: string): string {
-  const norm = (s: string) =>
-    s.toLowerCase().replace(/[ёе]/g, 'е').replace(/[^a-zа-я0-9]+/gi, ' ').trim()
-  return `${norm(title)}|${norm(author)}`
-}
-
 interface SubmissionForPublish {
   id: string
   userId: string
@@ -25,22 +19,22 @@ interface SubmissionForPublish {
 
 /**
  * Promote an approved submission to a published row in `books` and link the
- * submission via book_submissions.book_id. Idempotent: re-running on an
- * already-published submission returns the existing book_id.
+ * submission via book_submissions.book_id. Idempotent: re-running on an already
+ * linked submission updates and returns the existing book_id.
  *
  * Also writes the submission author into signup_books via book_id.
  */
 export async function publishSubmissionAsBook(submission: SubmissionForPublish): Promise<string> {
   // Already linked?
   const [existing] = await db
-    .select({ id: books.id })
-    .from(books)
-    .where(eq(books.sourceSubmissionId, submission.id))
+    .select({ bookId: bookSubmissions.bookId })
+    .from(bookSubmissions)
+    .where(eq(bookSubmissions.id, submission.id))
     .limit(1)
 
   let bookId: string
-  if (existing) {
-    bookId = existing.id
+  if (existing?.bookId) {
+    bookId = existing.bookId
     // Sync title/author/etc. so the catalog reflects post-approval edits.
     await db
       .update(books)
@@ -54,7 +48,6 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
         description: submission.description ?? '',
         coverUrl: submission.coverUrl ?? null,
         whyRead: submission.whyRead || null,
-        canonicalKey: normalizeKey(submission.title, submission.author),
         updatedAt: new Date(),
       })
       .where(eq(books.id, bookId))
@@ -63,7 +56,6 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
     const now = new Date()
     await db.insert(books).values({
       id: bookId,
-      canonicalKey: normalizeKey(submission.title, submission.author),
       title: submission.title,
       author: submission.author,
       tags: submission.topic ? [submission.topic] : [],
@@ -81,8 +73,6 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
       isNew: true,
       sortOrder: 0,
       source: 'submission',
-      sourceSubmissionId: submission.id,
-      legacySheetsRowId: null,
       createdAt: now,
       updatedAt: now,
       publishedAt: now,

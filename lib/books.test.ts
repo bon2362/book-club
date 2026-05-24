@@ -55,7 +55,6 @@ import {
 function bookRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'b1',
-    canonicalKey: null,
     title: 'Title',
     author: 'Author',
     tags: ['tag'],
@@ -73,8 +72,6 @@ function bookRow(overrides: Record<string, unknown> = {}) {
     isNew: false,
     sortOrder: 0,
     source: 'sheets_import',
-    sourceSubmissionId: null,
-    legacySheetsRowId: '1',
     createdAt: new Date(),
     updatedAt: new Date(),
     publishedAt: new Date(),
@@ -127,7 +124,6 @@ describe('lib/books — fetchBooksWithCovers', () => {
       title: 'Article Title',
       type: 'article',
       source: 'submission',
-      sourceSubmissionId: 'sub-1',
       readingStatus: 'reading',
       isNew: true,
     })])
@@ -300,13 +296,13 @@ describe('lib/books — updateBook', () => {
     expect((updateSetCalls[0] as Record<string, unknown>).readingStatus).toBeNull()
   })
 
-  it('recomputes canonicalKey when title or author changes', async () => {
+  it('updates title without migration-only canonical key bookkeeping', async () => {
     pushResult([bookRow({ id: 'b1', title: 'Old', author: 'A' })])
     pushResult([bookRow({ id: 'b1', title: 'New', author: 'A' })])
     await updateBook('b1', { title: 'New Title' })
     const patch = updateSetCalls[0] as Record<string, unknown>
-    expect(patch.canonicalKey).toBeDefined()
-    expect(typeof patch.canonicalKey).toBe('string')
+    expect(patch.title).toBe('New Title')
+    expect(patch).not.toHaveProperty('canonicalKey')
   })
 
   it('normalizes tags input', async () => {

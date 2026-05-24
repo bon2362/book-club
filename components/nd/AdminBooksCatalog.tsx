@@ -21,7 +21,6 @@ interface AdminBook {
   isNew: boolean
   sortOrder: number
   source: 'admin' | 'submission' | 'sheets_import'
-  sourceSubmissionId: string | null
   archivedAt: string | null
   publishedAt: string | null
   hiddenAt: string | null
@@ -117,7 +116,7 @@ const sourceColor: Record<string, string> = {
   sheets_import: '#666',
 }
 
-const EMPTY_FORM: Omit<AdminBook, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'publishedAt' | 'hiddenAt' | 'signupCount' | 'sourceSubmissionId'> = {
+const EMPTY_FORM: Omit<AdminBook, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'publishedAt' | 'hiddenAt' | 'signupCount'> = {
   title: '',
   author: '',
   tags: [],

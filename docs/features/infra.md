@@ -20,7 +20,6 @@
 - `RESEND_API_KEY` — отправка email (уведомления)
 - `CRON_SECRET` — защита cron-эндпоинтов
 - `GH_TOKEN` — виджет CI в админке
-- `GOOGLE_SERVICE_ACCOUNT_KEY` / `GOOGLE_SHEETS_ID` — больше не нужны для runtime (каталог теперь в БД); требуются только для исторического `scripts/books-catalog-audit.ts`
 - `VERCEL_TOKEN` — виджет деплоев в админке
 - `NEXTAUTH_TEST_MODE` — E2E-тесты
 

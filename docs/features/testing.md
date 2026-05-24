@@ -201,15 +201,13 @@ git push → GitHub Actions
   4. unit-тесты + coverage (DATABASE_URL=dummy)
   5. upload coverage → Codecov
   6. install playwright chromium
-  7. e2e-тесты (реальная БД + фикстурный каталог вместо Google Sheets)
+  7. e2e-тесты (реальная БД + фикстурный каталог через `/api/test/seed-books`)
   8. allure generate → publish gh-pages
   9. build
 ```
 
 **Секреты для E2E:**
 - `DATABASE_URL` — Neon Postgres
-- `GOOGLE_SERVICE_ACCOUNT_KEY` — JSON сервисного аккаунта Google
-- `GOOGLE_SHEETS_ID` — ID таблицы
 
 **Секреты для Codecov:**
 - `CODECOV_TOKEN` — токен (для публичного репо необязателен)

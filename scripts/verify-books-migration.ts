@@ -22,16 +22,25 @@ async function main() {
     (SELECT count(*) FROM books) AS books,
     (SELECT count(*) FROM books WHERE visibility='published') AS published,
     (SELECT count(*) FROM books WHERE visibility='hidden') AS hidden,
-    (SELECT count(*) FROM legacy_book_mappings) AS mappings,
     (SELECT count(*) FROM signup_books) AS signups_total,
     (SELECT count(*) FROM signup_books WHERE book_id IS NOT NULL) AS signups_with_book_id,
     (SELECT count(*) FROM book_priorities) AS priorities_total,
     (SELECT count(*) FROM book_priorities WHERE book_id IS NOT NULL) AS priorities_with_book_id,
-    (SELECT count(*) FROM book_submissions WHERE book_id IS NOT NULL) AS submissions_with_book_id` as Array<Record<string, string>>
+    (SELECT count(*) FROM book_submissions WHERE book_id IS NOT NULL) AS submissions_with_book_id,
+    (SELECT count(*) FROM book_submissions WHERE status='approved' AND book_id IS NULL) AS approved_submissions_without_book_id` as Array<Record<string, string>>
   console.log(counts[0])
 
-  const sample = await sql`SELECT title, source, legacy_sheets_row_id FROM books WHERE legacy_sheets_row_id IN ('2','38') ORDER BY legacy_sheets_row_id` as Array<Record<string, string>>
-  console.log('Spot check rows 2 & 38:', sample)
+  const removed = await sql`
+    SELECT table_name, column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND (
+        (table_name = 'books' AND column_name IN ('canonical_key', 'legacy_sheets_row_id', 'source_submission_id'))
+        OR table_name = 'legacy_book_mappings'
+      )
+    ORDER BY table_name, column_name
+  ` as Array<Record<string, string>>
+  console.log('Removed migration helpers still present:', removed)
 
   const unmatched = await sql`SELECT count(*) AS c FROM signup_books WHERE book_id IS NULL` as Array<Record<string, string>>
   console.log('Signup rows without book_id:', unmatched[0].c)

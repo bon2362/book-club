@@ -26,5 +26,5 @@
 - `lib/db/schema.ts` — таблица `books` (см. поля в `docs/planning-artifacts/books-catalog-db-refactor-plan.md`)
 
 ## Историческое
-- `lib/sheets.ts` сохранён только для `scripts/books-catalog-audit.ts` (audit при миграции). Из runtime не вызывается, env vars `GOOGLE_SHEETS_ID`/`GOOGLE_SERVICE_ACCOUNT_KEY` сделаны optional в `env.ts`.
+- Google Sheets helper и миграционные one-shot скрипты удалены после переноса каталога в БД.
 - `/api/sync` (ручная синхронизация с Google Sheets) удалён — каталог теперь полностью в БД, отдельная синхронизация не нужна.

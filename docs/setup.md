@@ -1,44 +1,6 @@
 # Настройка внешних сервисов
 
-## 1. Google Sheets — Service Account
-
-### Создать Service Account
-
-1. Перейти на https://console.cloud.google.com
-2. Создать проект или выбрать существующий
-3. Включить Google Sheets API: **APIs & Services → Enable APIs → Google Sheets API**
-4. Создать сервисный аккаунт: **IAM & Admin → Service Accounts → Create Service Account**
-   - Имя: `book-club-sheets`
-   - Роль: не обязательна на уровне проекта
-5. Войти в созданный аккаунт → **Keys → Add Key → JSON**
-6. Скачать JSON-файл — это и есть `GOOGLE_SERVICE_ACCOUNT_KEY`
-
-### Дать доступ к таблице
-
-1. Открыть вашу Google Таблицу с книгами
-2. Нажать **«Поделиться»**
-3. Добавить email сервисного аккаунта (поле `client_email` из JSON) с правами **Редактора**
-
-### Записи пользователей на книги
-
-Лист `signups` больше не используется приложением как источник данных.
-Записи пользователей хранятся в Postgres, в таблице `signup_books`.
-Если в старой Google Таблице ещё есть вкладка `signups`, она нужна только как legacy-архив или для разовой миграции через `scripts/migrate-signups.ts`.
-
-### Заполнить переменные окружения
-
-```bash
-# GOOGLE_SHEETS_ID — из URL таблицы:
-# https://docs.google.com/spreadsheets/d/ВОТ_ЭТОТ_ID/edit
-GOOGLE_SHEETS_ID=...
-
-# GOOGLE_SERVICE_ACCOUNT_KEY — полное содержимое JSON-файла (в одну строку или с \n)
-GOOGLE_SERVICE_ACCOUNT_KEY='{"type":"service_account","project_id":"...","private_key":"...","client_email":"...",...}'
-```
-
----
-
-## 2. Google OAuth (Sign in with Google)
+## 1. Google OAuth (Sign in with Google)
 
 1. Google Cloud Console → **APIs & Services → Credentials → Create Credentials → OAuth Client ID**
 2. Тип: **Web application**
@@ -53,7 +15,7 @@ GOOGLE_CLIENT_SECRET=...
 
 ---
 
-## 3. Resend (Email magic link)
+## 2. Resend (Email magic link)
 
 1. Зарегистрироваться на https://resend.com
 2. **API Keys → Create API Key**
@@ -67,7 +29,7 @@ RESEND_API_KEY=re_...
 
 ---
 
-## 4. NextAuth Secret
+## 3. NextAuth Secret
 
 Генерировать случайную строку:
 
@@ -81,7 +43,7 @@ NEXTAUTH_SECRET=<результат>
 
 ---
 
-## 5. Admin Email
+## 4. Admin Email
 
 ```bash
 # Email аккаунта, который будет иметь доступ к /admin
@@ -90,11 +52,9 @@ ADMIN_EMAIL=your@email.com
 
 ---
 
-## 6. Полный `.env.local`
+## 5. Полный `.env.local`
 
 ```bash
-GOOGLE_SHEETS_ID=1abc...xyz
-GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 NEXTAUTH_SECRET=<random-32-bytes>
 NEXTAUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=123...abc.apps.googleusercontent.com
@@ -105,7 +65,7 @@ RESEND_API_KEY=re_...
 
 ---
 
-## 7. Локальный запуск
+## 6. Локальный запуск
 
 ```bash
 cd book-club

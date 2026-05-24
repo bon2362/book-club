@@ -7,11 +7,6 @@ export const env = createEnv({
     NEXTAUTH_SECRET: z.string().min(1),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
-    // GOOGLE_SHEETS_* used to be required for the books catalog runtime.
-    // After Stage 6 the catalog lives entirely in Postgres (`books` table),
-    // so these are optional and only consumed by historical migration scripts.
-    GOOGLE_SERVICE_ACCOUNT_KEY: z.string().min(1).optional(),
-    GOOGLE_SHEETS_ID: z.string().min(1).optional(),
     TELEGRAM_BOT_TOKEN: z.string().min(1),
     ADMIN_EMAIL: z.string().email(),
     RESEND_API_KEY: z.string().min(1).optional(),
@@ -30,8 +25,6 @@ export const env = createEnv({
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    GOOGLE_SERVICE_ACCOUNT_KEY: process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-    GOOGLE_SHEETS_ID: process.env.GOOGLE_SHEETS_ID,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     ADMIN_EMAIL: process.env.ADMIN_EMAIL,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
