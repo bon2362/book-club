@@ -1,0 +1,860 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Читательские круги
+      - link "Долгое наступление" [ref=e6] [cursor=pointer]:
+        - /url: /
+  - main [ref=e7]:
+    - heading "Панель администратора" [level=1] [ref=e9]
+    - generic [ref=e10]:
+      - button "Участники (12)" [ref=e11] [cursor=pointer]
+      - button "Каталог (54)" [ref=e12] [cursor=pointer]
+      - button "Теги (7)" [ref=e13] [cursor=pointer]
+      - button "Заявки (7)" [ref=e14] [cursor=pointer]
+      - button "Фидбеки (1) 1 новых" [ref=e15] [cursor=pointer]:
+        - text: Фидбеки (1)
+        - generic "1 новых" [ref=e16]: "1"
+      - button "Интро" [ref=e17] [cursor=pointer]
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - textbox "Поиск книг" [ref=e20]:
+          - /placeholder: Поиск по названию, автору, тегам
+        - button "+ Новая книга" [ref=e21] [cursor=pointer]
+        - button "⇅ Режим перестановки" [ref=e22] [cursor=pointer]
+        - generic [ref=e23]: 55 из 55 · обновлено в 22:45
+      - generic [ref=e24]:
+        - button "Любой статус" [ref=e25] [cursor=pointer]
+        - button "Читаем" [ref=e26] [cursor=pointer]
+        - button "Прочитано" [ref=e27] [cursor=pointer]
+        - button "Без статуса" [ref=e28] [cursor=pointer]
+        - button "Все источники" [ref=e30] [cursor=pointer]
+        - button "Админ" [ref=e31] [cursor=pointer]
+        - button "Заявки" [ref=e32] [cursor=pointer]
+      - generic [ref=e33]:
+        - button "Опубликованные (49) видны участникам в каталоге ▲" [expanded] [ref=e34] [cursor=pointer]:
+          - heading "Опубликованные (49)" [level=2] [ref=e35]:
+            - text: Опубликованные
+            - generic [ref=e36]: (49)
+          - generic [ref=e37]: видны участникам в каталоге
+          - generic [ref=e38]: ▲
+        - table [ref=e39]:
+          - rowgroup [ref=e40]:
+            - row "№ Обложка Книга Записей Участники" [ref=e41]:
+              - columnheader "№" [ref=e42] [cursor=pointer]:
+                - generic [ref=e43]: №
+              - columnheader "Обложка" [ref=e44]
+              - columnheader "Книга" [ref=e45] [cursor=pointer]:
+                - generic [ref=e46]: Книга
+              - columnheader "Записей" [ref=e47] [cursor=pointer]:
+                - generic [ref=e48]:
+                  - text: Записей
+                  - generic [ref=e49]: ↓
+              - columnheader "Участники" [ref=e50] [cursor=pointer]:
+                - generic [ref=e51]: Участники
+          - rowgroup [ref=e52]:
+            - row "1 Патриот Reading Алексей Навальный 5 Julia Fell(#7), Ваня(#9), Евгений Кошкин(#18), Artem Zhiganov, Александр" [ref=e53]:
+              - cell "1" [ref=e54]
+              - cell [ref=e55]
+              - cell "Патриот Reading Алексей Навальный" [ref=e57]:
+                - button "Патриот Reading Алексей Навальный" [ref=e58] [cursor=pointer]:
+                  - generic [ref=e59]:
+                    - generic [ref=e60]: Патриот
+                    - generic [ref=e63]: Reading
+                  - generic [ref=e64]: Алексей Навальный
+              - cell "5" [ref=e65]
+              - cell "Julia Fell(#7), Ваня(#9), Евгений Кошкин(#18), Artem Zhiganov, Александр" [ref=e66]:
+                - generic [ref=e67]:
+                  - generic [ref=e68]:
+                    - text: Julia Fell
+                    - generic [ref=e69]: (#7)
+                  - generic [ref=e70]:
+                    - text: ", Ваня"
+                    - generic [ref=e71]: (#9)
+                  - generic [ref=e72]:
+                    - text: ", Евгений Кошкин"
+                    - generic [ref=e73]: (#18)
+                  - generic [ref=e74]: ", Artem Zhiganov"
+                  - generic [ref=e75]: ", Александр"
+            - 'row "2 Работа: Капитализм. Экономика. Сопротивление. Заявка CrimethInc 3 Julia Fell(🥈 #2), Ваня(#4), Евгений Кошкин(#6)" [ref=e76]':
+              - cell "2" [ref=e77]
+              - cell [ref=e78]
+              - 'cell "Работа: Капитализм. Экономика. Сопротивление. Заявка CrimethInc" [ref=e80]':
+                - 'button "Работа: Капитализм. Экономика. Сопротивление. Заявка CrimethInc" [ref=e81] [cursor=pointer]':
+                  - generic [ref=e82]:
+                    - generic [ref=e83]: "Работа: Капитализм. Экономика. Сопротивление."
+                    - generic [ref=e86]: Заявка
+                  - generic [ref=e87]: CrimethInc
+              - cell "3" [ref=e88]
+              - 'cell "Julia Fell(🥈 #2), Ваня(#4), Евгений Кошкин(#6)" [ref=e89]':
+                - generic [ref=e90]:
+                  - generic [ref=e91]:
+                    - text: Julia Fell
+                    - generic [ref=e92]: "(🥈 #2)"
+                  - generic [ref=e93]:
+                    - text: ", Ваня"
+                    - generic [ref=e94]: (#4)
+                  - generic [ref=e95]:
+                    - text: ", Евгений Кошкин"
+                    - generic [ref=e96]: (#6)
+            - row "3 Авторитарная Россия Владимир Гельман 3 Julia Fell(#4), Евгений Кошкин(#8), Александр" [ref=e97]:
+              - cell "3" [ref=e98]
+              - cell [ref=e99]
+              - cell "Авторитарная Россия Владимир Гельман" [ref=e101]:
+                - button "Авторитарная Россия Владимир Гельман" [ref=e102] [cursor=pointer]:
+                  - generic [ref=e104]: Авторитарная Россия
+                  - generic [ref=e105]: Владимир Гельман
+              - cell "3" [ref=e106]
+              - cell "Julia Fell(#4), Евгений Кошкин(#8), Александр" [ref=e107]:
+                - generic [ref=e108]:
+                  - generic [ref=e109]:
+                    - text: Julia Fell
+                    - generic [ref=e110]: (#4)
+                  - generic [ref=e111]:
+                    - text: ", Евгений Кошкин"
+                    - generic [ref=e112]: (#8)
+                  - generic [ref=e113]: ", Александр"
+            - 'row "4 Моя любимая страна Reading Елена Костюченко 3 Maria_K(🏆 #1), Ваня(#10), Евгений Кошкин(#10)" [ref=e114]':
+              - cell "4" [ref=e115]
+              - cell [ref=e116]
+              - cell "Моя любимая страна Reading Елена Костюченко" [ref=e118]:
+                - button "Моя любимая страна Reading Елена Костюченко" [ref=e119] [cursor=pointer]:
+                  - generic [ref=e120]:
+                    - generic [ref=e121]: Моя любимая страна
+                    - generic [ref=e124]: Reading
+                  - generic [ref=e125]: Елена Костюченко
+              - cell "3" [ref=e126]
+              - 'cell "Maria_K(🏆 #1), Ваня(#10), Евгений Кошкин(#10)" [ref=e127]':
+                - generic [ref=e128]:
+                  - generic [ref=e129]:
+                    - text: Maria_K
+                    - generic [ref=e130]: "(🏆 #1)"
+                  - generic [ref=e131]:
+                    - text: ", Ваня"
+                    - generic [ref=e132]: (#10)
+                  - generic [ref=e133]:
+                    - text: ", Евгений Кошкин"
+                    - generic [ref=e134]: (#10)
+            - row "5 Революция как момент истины Теодор Шанин 3 Julia Fell(#8), Ваня(#8), Александр" [ref=e135]:
+              - cell "5" [ref=e136]
+              - cell [ref=e137]
+              - cell "Революция как момент истины Теодор Шанин" [ref=e139]:
+                - button "Революция как момент истины Теодор Шанин" [ref=e140] [cursor=pointer]:
+                  - generic [ref=e142]: Революция как момент истины
+                  - generic [ref=e143]: Теодор Шанин
+              - cell "3" [ref=e144]
+              - cell "Julia Fell(#8), Ваня(#8), Александр" [ref=e145]:
+                - generic [ref=e146]:
+                  - generic [ref=e147]:
+                    - text: Julia Fell
+                    - generic [ref=e148]: (#8)
+                  - generic [ref=e149]:
+                    - text: ", Ваня"
+                    - generic [ref=e150]: (#8)
+                  - generic [ref=e151]: ", Александр"
+            - row "6 Краткая история неолиберализма David Harvey 3 Евгений Кошкин(#7), Artem Zhiganov, Александр" [ref=e152]:
+              - cell "6" [ref=e153]
+              - cell [ref=e154]
+              - cell "Краткая история неолиберализма David Harvey" [ref=e156]:
+                - button "Краткая история неолиберализма David Harvey" [ref=e157] [cursor=pointer]:
+                  - generic [ref=e159]: Краткая история неолиберализма
+                  - generic [ref=e160]: David Harvey
+              - cell "3" [ref=e161]
+              - cell "Евгений Кошкин(#7), Artem Zhiganov, Александр" [ref=e162]:
+                - generic [ref=e163]:
+                  - generic [ref=e164]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e165]: (#7)
+                  - generic [ref=e166]: ", Artem Zhiganov"
+                  - generic [ref=e167]: ", Александр"
+            - 'row "7 Заря всего David Wengrow, David Graeber 3 Евгений Кошкин(🏆 #1), Ваня(#6), Artem Zhiganov" [ref=e168]':
+              - cell "7" [ref=e169]
+              - cell [ref=e170]
+              - cell "Заря всего David Wengrow, David Graeber" [ref=e172]:
+                - button "Заря всего David Wengrow, David Graeber" [ref=e173] [cursor=pointer]:
+                  - generic [ref=e175]: Заря всего
+                  - generic [ref=e176]: David Wengrow, David Graeber
+              - cell "3" [ref=e177]
+              - 'cell "Евгений Кошкин(🏆 #1), Ваня(#6), Artem Zhiganov" [ref=e178]':
+                - generic [ref=e179]:
+                  - generic [ref=e180]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e181]: "(🏆 #1)"
+                  - generic [ref=e182]:
+                    - text: ", Ваня"
+                    - generic [ref=e183]: (#6)
+                  - generic [ref=e184]: ", Artem Zhiganov"
+            - 'row "8 Возвращение государства. Россия в нулевые (2000-2012) Заявка Екатерина Шульман 2 Maria_K(🥈 #2), Julia Fell(#10)" [ref=e185]':
+              - cell "8" [ref=e186]
+              - cell [ref=e187]
+              - cell "Возвращение государства. Россия в нулевые (2000-2012) Заявка Екатерина Шульман" [ref=e189]:
+                - button "Возвращение государства. Россия в нулевые (2000-2012) Заявка Екатерина Шульман" [ref=e190] [cursor=pointer]:
+                  - generic [ref=e191]:
+                    - generic [ref=e192]: Возвращение государства. Россия в нулевые (2000-2012)
+                    - generic [ref=e195]: Заявка
+                  - generic [ref=e196]: Екатерина Шульман
+              - cell "2" [ref=e197]
+              - 'cell "Maria_K(🥈 #2), Julia Fell(#10)" [ref=e198]':
+                - generic [ref=e199]:
+                  - generic [ref=e200]:
+                    - text: Maria_K
+                    - generic [ref=e201]: "(🥈 #2)"
+                  - generic [ref=e202]:
+                    - text: ", Julia Fell"
+                    - generic [ref=e203]: (#10)
+            - 'row "9 Консенсус: Принятие решений в свободном обществе Заявка Peter Gelderloos 2 Julia Fell(🏆 #1), Ваня(#7)" [ref=e204]':
+              - cell "9" [ref=e205]
+              - cell [ref=e206]
+              - 'cell "Консенсус: Принятие решений в свободном обществе Заявка Peter Gelderloos" [ref=e208]':
+                - 'button "Консенсус: Принятие решений в свободном обществе Заявка Peter Gelderloos" [ref=e209] [cursor=pointer]':
+                  - generic [ref=e210]:
+                    - generic [ref=e211]: "Консенсус: Принятие решений в свободном обществе"
+                    - generic [ref=e214]: Заявка
+                  - generic [ref=e215]: Peter Gelderloos
+              - cell "2" [ref=e216]
+              - 'cell "Julia Fell(🏆 #1), Ваня(#7)" [ref=e217]':
+                - generic [ref=e218]:
+                  - generic [ref=e219]:
+                    - text: Julia Fell
+                    - generic [ref=e220]: "(🏆 #1)"
+                  - generic [ref=e221]:
+                    - text: ", Ваня"
+                    - generic [ref=e222]: (#7)
+            - row "10 Принципы представительного правления Bernard Manin 2 Евгений Кошкин(#9), Александр" [ref=e223]:
+              - cell "10" [ref=e224]
+              - cell [ref=e225]
+              - cell "Принципы представительного правления Bernard Manin" [ref=e227]:
+                - button "Принципы представительного правления Bernard Manin" [ref=e228] [cursor=pointer]:
+                  - generic [ref=e230]: Принципы представительного правления
+                  - generic [ref=e231]: Bernard Manin
+              - cell "2" [ref=e232]
+              - cell "Евгений Кошкин(#9), Александр" [ref=e233]:
+                - generic [ref=e234]:
+                  - generic [ref=e235]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e236]: (#9)
+                  - generic [ref=e237]: ", Александр"
+            - row "11 Капитал и идеология Thomas Piketty 2 Julia Fell(#5), Александр" [ref=e238]:
+              - cell "11" [ref=e239]
+              - cell [ref=e240]
+              - cell "Капитал и идеология Thomas Piketty" [ref=e242]:
+                - button "Капитал и идеология Thomas Piketty" [ref=e243] [cursor=pointer]:
+                  - generic [ref=e245]: Капитал и идеология
+                  - generic [ref=e246]: Thomas Piketty
+              - cell "2" [ref=e247]
+              - cell "Julia Fell(#5), Александр" [ref=e248]:
+                - generic [ref=e249]:
+                  - generic [ref=e250]:
+                    - text: Julia Fell
+                    - generic [ref=e251]: (#5)
+                  - generic [ref=e252]: ", Александр"
+            - 'row "12 The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton Benjamin R. Barber 2 Евгений Кошкин(#15), Artem Zhiganov" [ref=e253]':
+              - cell "12" [ref=e254]
+              - cell [ref=e255]
+              - 'cell "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton Benjamin R. Barber" [ref=e257]':
+                - 'button "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton Benjamin R. Barber" [ref=e258] [cursor=pointer]':
+                  - generic [ref=e260]: "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton"
+                  - generic [ref=e261]: Benjamin R. Barber
+              - cell "2" [ref=e262]
+              - cell "Евгений Кошкин(#15), Artem Zhiganov" [ref=e263]:
+                - generic [ref=e264]:
+                  - generic [ref=e265]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e266]: (#15)
+                  - generic [ref=e267]: ", Artem Zhiganov"
+            - row "13 Принуждение, капитал и европейские государства Charles Tilly 2 Евгений Кошкин(#17), Александр" [ref=e268]:
+              - cell "13" [ref=e269]
+              - cell [ref=e270]
+              - cell "Принуждение, капитал и европейские государства Charles Tilly" [ref=e272]:
+                - button "Принуждение, капитал и европейские государства Charles Tilly" [ref=e273] [cursor=pointer]:
+                  - generic [ref=e275]: Принуждение, капитал и европейские государства
+                  - generic [ref=e276]: Charles Tilly
+              - cell "2" [ref=e277]
+              - cell "Евгений Кошкин(#17), Александр" [ref=e278]:
+                - generic [ref=e279]:
+                  - generic [ref=e280]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e281]: (#17)
+                  - generic [ref=e282]: ", Александр"
+            - row "14 Предпринимательское государство Marijana Macukato 2 Евгений Кошкин(#4), Александр" [ref=e283]:
+              - cell "14" [ref=e284]
+              - cell [ref=e285]
+              - cell "Предпринимательское государство Marijana Macukato" [ref=e287]:
+                - button "Предпринимательское государство Marijana Macukato" [ref=e288] [cursor=pointer]:
+                  - generic [ref=e290]: Предпринимательское государство
+                  - generic [ref=e291]: Marijana Macukato
+              - cell "2" [ref=e292]
+              - cell "Евгений Кошкин(#4), Александр" [ref=e293]:
+                - generic [ref=e294]:
+                  - generic [ref=e295]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e296]: (#4)
+                  - generic [ref=e297]: ", Александр"
+            - 'row "15 Политика в эпоху жесткой экономии Wolfgang Streeck, Armin Schäfer 2 Евгений Кошкин(🥉 #3), Julia Fell(#12)" [ref=e298]':
+              - cell "15" [ref=e299]
+              - cell [ref=e300]
+              - cell "Политика в эпоху жесткой экономии Wolfgang Streeck, Armin Schäfer" [ref=e302]:
+                - button "Политика в эпоху жесткой экономии Wolfgang Streeck, Armin Schäfer" [ref=e303] [cursor=pointer]:
+                  - generic [ref=e305]: Политика в эпоху жесткой экономии
+                  - generic [ref=e306]: Wolfgang Streeck, Armin Schäfer
+              - cell "2" [ref=e307]
+              - 'cell "Евгений Кошкин(🥉 #3), Julia Fell(#12)" [ref=e308]':
+                - generic [ref=e309]:
+                  - generic [ref=e310]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e311]: "(🥉 #3)"
+                  - generic [ref=e312]:
+                    - text: ", Julia Fell"
+                    - generic [ref=e313]: (#12)
+            - 'row "16 Будущая революция Murray Bookchin 2 Ваня(🥈 #2), Artem Zhiganov" [ref=e314]':
+              - cell "16" [ref=e315]
+              - cell [ref=e316]
+              - cell "Будущая революция Murray Bookchin" [ref=e318]:
+                - button "Будущая революция Murray Bookchin" [ref=e319] [cursor=pointer]:
+                  - generic [ref=e321]: Будущая революция
+                  - generic [ref=e322]: Murray Bookchin
+              - cell "2" [ref=e323]
+              - 'cell "Ваня(🥈 #2), Artem Zhiganov" [ref=e324]':
+                - generic [ref=e325]:
+                  - generic [ref=e326]:
+                    - text: Ваня
+                    - generic [ref=e327]: "(🥈 #2)"
+                  - generic [ref=e328]: ", Artem Zhiganov"
+            - row "17 Доктирна шока Naomi Klein 2 Евгений Кошкин(#5), Александр" [ref=e329]:
+              - cell "17" [ref=e330]
+              - cell [ref=e331]
+              - cell "Доктирна шока Naomi Klein" [ref=e333]:
+                - button "Доктирна шока Naomi Klein" [ref=e334] [cursor=pointer]:
+                  - generic [ref=e336]: Доктирна шока
+                  - generic [ref=e337]: Naomi Klein
+              - cell "2" [ref=e338]
+              - cell "Евгений Кошкин(#5), Александр" [ref=e339]:
+                - generic [ref=e340]:
+                  - generic [ref=e341]:
+                    - text: Евгений Кошкин
+                    - generic [ref=e342]: (#5)
+                  - generic [ref=e343]: ", Александр"
+            - row "18 Демократия, или Демон и Гегемон Артемий Магун 2 Ваня(#5), Александр" [ref=e344]:
+              - cell "18" [ref=e345]
+              - cell [ref=e346]
+              - cell "Демократия, или Демон и Гегемон Артемий Магун" [ref=e348]:
+                - button "Демократия, или Демон и Гегемон Артемий Магун" [ref=e349] [cursor=pointer]:
+                  - generic [ref=e351]: Демократия, или Демон и Гегемон
+                  - generic [ref=e352]: Артемий Магун
+              - cell "2" [ref=e353]
+              - cell "Ваня(#5), Александр" [ref=e354]:
+                - generic [ref=e355]:
+                  - generic [ref=e356]:
+                    - text: Ваня
+                    - generic [ref=e357]: (#5)
+                  - generic [ref=e358]: ", Александр"
+            - 'row "19 Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты Заявка Daron Acemoglu, James A. Robinson 1 Julia Fell(🥉 #3)" [ref=e359]':
+              - cell "19" [ref=e360]
+              - cell [ref=e361]
+              - 'cell "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты Заявка Daron Acemoglu, James A. Robinson" [ref=e363]':
+                - 'button "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты Заявка Daron Acemoglu, James A. Robinson" [ref=e364] [cursor=pointer]':
+                  - generic [ref=e365]:
+                    - generic [ref=e366]: "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты"
+                    - generic [ref=e369]: Заявка
+                  - generic [ref=e370]: Daron Acemoglu, James A. Robinson
+              - cell "1" [ref=e371]
+              - 'cell "Julia Fell(🥉 #3)" [ref=e372]':
+                - generic [ref=e374]:
+                  - text: Julia Fell
+                  - generic [ref=e375]: "(🥉 #3)"
+            - row "20 Диктаторы обмана. Новое лицо тирании в XXI веке Заявка Сергей Гуриев, Daniel Treisman 1 Julia Fell(#11)" [ref=e376]:
+              - cell "20" [ref=e377]
+              - cell [ref=e378]
+              - cell "Диктаторы обмана. Новое лицо тирании в XXI веке Заявка Сергей Гуриев, Daniel Treisman" [ref=e380]:
+                - button "Диктаторы обмана. Новое лицо тирании в XXI веке Заявка Сергей Гуриев, Daniel Treisman" [ref=e381] [cursor=pointer]:
+                  - generic [ref=e382]:
+                    - generic [ref=e383]: Диктаторы обмана. Новое лицо тирании в XXI веке
+                    - generic [ref=e386]: Заявка
+                  - generic [ref=e387]: Сергей Гуриев, Daniel Treisman
+              - cell "1" [ref=e388]
+              - cell "Julia Fell(#11)" [ref=e389]:
+                - generic [ref=e391]:
+                  - text: Julia Fell
+                  - generic [ref=e392]: (#11)
+            - row "21 Contentious Politics Заявка Charles Tilly, Sidney Tarrow 1 Julia Fell(#14)" [ref=e393]:
+              - cell "21" [ref=e394]
+              - cell [ref=e395]
+              - cell "Contentious Politics Заявка Charles Tilly, Sidney Tarrow" [ref=e397]:
+                - button "Contentious Politics Заявка Charles Tilly, Sidney Tarrow" [ref=e398] [cursor=pointer]:
+                  - generic [ref=e399]:
+                    - generic [ref=e400]: Contentious Politics
+                    - generic [ref=e403]: Заявка
+                  - generic [ref=e404]: Charles Tilly, Sidney Tarrow
+              - cell "1" [ref=e405]
+              - cell "Julia Fell(#14)" [ref=e406]:
+                - generic [ref=e408]:
+                  - text: Julia Fell
+                  - generic [ref=e409]: (#14)
+            - row "22 Оружие слабых. Повседневные формы крестьянского сопротивления Заявка James Scott 1 Julia Fell(#9)" [ref=e410]:
+              - cell "22" [ref=e411]
+              - cell [ref=e412]
+              - cell "Оружие слабых. Повседневные формы крестьянского сопротивления Заявка James Scott" [ref=e414]:
+                - button "Оружие слабых. Повседневные формы крестьянского сопротивления Заявка James Scott" [ref=e415] [cursor=pointer]:
+                  - generic [ref=e416]:
+                    - generic [ref=e417]: Оружие слабых. Повседневные формы крестьянского сопротивления
+                    - generic [ref=e420]: Заявка
+                  - generic [ref=e421]: James Scott
+              - cell "1" [ref=e422]
+              - cell "Julia Fell(#9)" [ref=e423]:
+                - generic [ref=e425]:
+                  - text: Julia Fell
+                  - generic [ref=e426]: (#9)
+            - row "23 Жизнь и времена либеральной C. B. Macpherson 1 Александр" [ref=e427]:
+              - cell "23" [ref=e428]
+              - cell [ref=e429]
+              - cell "Жизнь и времена либеральной C. B. Macpherson" [ref=e431]:
+                - button "Жизнь и времена либеральной C. B. Macpherson" [ref=e432] [cursor=pointer]:
+                  - generic [ref=e434]: Жизнь и времена либеральной
+                  - generic [ref=e435]: C. B. Macpherson
+              - cell "1" [ref=e436]
+              - cell "Александр" [ref=e437]:
+                - generic [ref=e438]: Александр
+            - row "24 Народная история США Howard Zinn 1 Julia Fell(#6)" [ref=e439]:
+              - cell "24" [ref=e440]
+              - cell [ref=e441]
+              - cell "Народная история США Howard Zinn" [ref=e443]:
+                - button "Народная история США Howard Zinn" [ref=e444] [cursor=pointer]:
+                  - generic [ref=e446]: Народная история США
+                  - generic [ref=e447]: Howard Zinn
+              - cell "1" [ref=e448]
+              - cell "Julia Fell(#6)" [ref=e449]:
+                - generic [ref=e451]:
+                  - text: Julia Fell
+                  - generic [ref=e452]: (#6)
+            - row "25 Великая трансформация Karl Polanyi 1 Евгений Кошкин(#11)" [ref=e453]:
+              - cell "25" [ref=e454]
+              - cell [ref=e455]
+              - cell "Великая трансформация Karl Polanyi" [ref=e457]:
+                - button "Великая трансформация Karl Polanyi" [ref=e458] [cursor=pointer]:
+                  - generic [ref=e460]: Великая трансформация
+                  - generic [ref=e461]: Karl Polanyi
+              - cell "1" [ref=e462]
+              - cell "Евгений Кошкин(#11)" [ref=e463]:
+                - generic [ref=e465]:
+                  - text: Евгений Кошкин
+                  - generic [ref=e466]: (#11)
+            - row "26 Долгий двадцатый век Giovanni Arrighi 1 Александр" [ref=e467]:
+              - cell "26" [ref=e468]
+              - cell [ref=e469]
+              - cell "Долгий двадцатый век Giovanni Arrighi" [ref=e471]:
+                - button "Долгий двадцатый век Giovanni Arrighi" [ref=e472] [cursor=pointer]:
+                  - generic [ref=e474]: Долгий двадцатый век
+                  - generic [ref=e475]: Giovanni Arrighi
+              - cell "1" [ref=e476]
+              - cell "Александр" [ref=e477]:
+                - generic [ref=e478]: Александр
+            - row "27 Миросистемный анализ Immanuel Wallerstein 1 Александр" [ref=e479]:
+              - cell "27" [ref=e480]
+              - cell [ref=e481]
+              - cell "Миросистемный анализ Immanuel Wallerstein" [ref=e483]:
+                - button "Миросистемный анализ Immanuel Wallerstein" [ref=e484] [cursor=pointer]:
+                  - generic [ref=e486]: Миросистемный анализ
+                  - generic [ref=e487]: Immanuel Wallerstein
+              - cell "1" [ref=e488]
+              - cell "Александр" [ref=e489]:
+                - generic [ref=e490]: Александр
+            - row "28 Социологическое воображение Charles Mills 1 Евгений Кошкин(#12)" [ref=e491]:
+              - cell "28" [ref=e492]
+              - cell [ref=e493]
+              - cell "Социологическое воображение Charles Mills" [ref=e495]:
+                - button "Социологическое воображение Charles Mills" [ref=e496] [cursor=pointer]:
+                  - generic [ref=e498]: Социологическое воображение
+                  - generic [ref=e499]: Charles Mills
+              - cell "1" [ref=e500]
+              - cell "Евгений Кошкин(#12)" [ref=e501]:
+                - generic [ref=e503]:
+                  - text: Евгений Кошкин
+                  - generic [ref=e504]: (#12)
+            - row "29 Освобождение человека Роман Тиса 1 Александр" [ref=e505]:
+              - cell "29" [ref=e506]
+              - cell [ref=e507]
+              - cell "Освобождение человека Роман Тиса" [ref=e509]:
+                - button "Освобождение человека Роман Тиса" [ref=e510] [cursor=pointer]:
+                  - generic [ref=e512]: Освобождение человека
+                  - generic [ref=e513]: Роман Тиса
+              - cell "1" [ref=e514]
+              - cell "Александр" [ref=e515]:
+                - generic [ref=e516]: Александр
+            - row "30 Войны в Заливе не было Jean Baudrillard 1 Евгений Кошкин(#13)" [ref=e517]:
+              - cell "30" [ref=e518]
+              - cell [ref=e519]
+              - cell "Войны в Заливе не было Jean Baudrillard" [ref=e521]:
+                - button "Войны в Заливе не было Jean Baudrillard" [ref=e522] [cursor=pointer]:
+                  - generic [ref=e524]: Войны в Заливе не было
+                  - generic [ref=e525]: Jean Baudrillard
+              - cell "1" [ref=e526]
+              - cell "Евгений Кошкин(#13)" [ref=e527]:
+                - generic [ref=e529]:
+                  - text: Евгений Кошкин
+                  - generic [ref=e530]: (#13)
+            - row "31 Истоки современной политической мысли Quentin Skinner 1 Евгений Кошкин(#14)" [ref=e531]:
+              - cell "31" [ref=e532]
+              - cell [ref=e533]
+              - cell "Истоки современной политической мысли Quentin Skinner" [ref=e535]:
+                - button "Истоки современной политической мысли Quentin Skinner" [ref=e536] [cursor=pointer]:
+                  - generic [ref=e538]: Истоки современной политической мысли
+                  - generic [ref=e539]: Quentin Skinner
+              - cell "1" [ref=e540]
+              - cell "Евгений Кошкин(#14)" [ref=e541]:
+                - generic [ref=e543]:
+                  - text: Евгений Кошкин
+                  - generic [ref=e544]: (#14)
+            - row "32 Государство или Цена порядка Вадим Волков 1 Евгений Кошкин(#16)" [ref=e545]:
+              - cell "32" [ref=e546]
+              - cell [ref=e547]
+              - cell "Государство или Цена порядка Вадим Волков" [ref=e549]:
+                - button "Государство или Цена порядка Вадим Волков" [ref=e550] [cursor=pointer]:
+                  - generic [ref=e552]: Государство или Цена порядка
+                  - generic [ref=e553]: Вадим Волков
+              - cell "1" [ref=e554]
+              - cell "Евгений Кошкин(#16)" [ref=e555]:
+                - generic [ref=e557]:
+                  - text: Евгений Кошкин
+                  - generic [ref=e558]: (#16)
+            - 'row "33 Общественное мнение не существует Pierre Bourdieu 1 Ваня(🥉 #3)" [ref=e559]':
+              - cell "33" [ref=e560]
+              - cell [ref=e561]
+              - cell "Общественное мнение не существует Pierre Bourdieu" [ref=e563]:
+                - button "Общественное мнение не существует Pierre Bourdieu" [ref=e564] [cursor=pointer]:
+                  - generic [ref=e566]: Общественное мнение не существует
+                  - generic [ref=e567]: Pierre Bourdieu
+              - cell "1" [ref=e568]
+              - 'cell "Ваня(🥉 #3)" [ref=e569]':
+                - generic [ref=e571]:
+                  - text: Ваня
+                  - generic [ref=e572]: "(🥉 #3)"
+            - row "34 Недостойное правление Владимир Гельман 1 Julia Fell(#13)" [ref=e573]:
+              - cell "34" [ref=e574]
+              - cell [ref=e575]
+              - cell "Недостойное правление Владимир Гельман" [ref=e577]:
+                - button "Недостойное правление Владимир Гельман" [ref=e578] [cursor=pointer]:
+                  - generic [ref=e580]: Недостойное правление
+                  - generic [ref=e581]: Владимир Гельман
+              - cell "1" [ref=e582]
+              - cell "Julia Fell(#13)" [ref=e583]:
+                - generic [ref=e585]:
+                  - text: Julia Fell
+                  - generic [ref=e586]: (#13)
+            - 'row "35 Долг: первые 5000 лет истории David Graeber 1 Ваня(🏆 #1)" [ref=e587]':
+              - cell "35" [ref=e588]
+              - cell [ref=e589]
+              - 'cell "Долг: первые 5000 лет истории David Graeber" [ref=e591]':
+                - 'button "Долг: первые 5000 лет истории David Graeber" [ref=e592] [cursor=pointer]':
+                  - generic [ref=e594]: "Долг: первые 5000 лет истории"
+                  - generic [ref=e595]: David Graeber
+              - cell "1" [ref=e596]
+              - 'cell "Ваня(🏆 #1)" [ref=e597]':
+                - generic [ref=e599]:
+                  - text: Ваня
+                  - generic [ref=e600]: "(🏆 #1)"
+            - row "36 Долгое отступление Read Борис Кагарлицкий 1 Ваня(#11)" [ref=e601]:
+              - cell "36" [ref=e602]
+              - cell [ref=e603]
+              - cell "Долгое отступление Read Борис Кагарлицкий" [ref=e605]:
+                - button "Долгое отступление Read Борис Кагарлицкий" [ref=e606] [cursor=pointer]:
+                  - generic [ref=e607]:
+                    - generic [ref=e608]: Долгое отступление
+                    - generic [ref=e611]: Read
+                  - generic [ref=e612]: Борис Кагарлицкий
+              - cell "1" [ref=e613]
+              - cell "Ваня(#11)" [ref=e614]:
+                - generic [ref=e616]:
+                  - text: Ваня
+                  - generic [ref=e617]: (#11)
+            - 'row "37 Купленное время. Отсроченный кризис демократического капитализма Wolfgang Streeck 1 Евгений Кошкин(🥈 #2)" [ref=e618]':
+              - cell "37" [ref=e619]
+              - cell [ref=e620]
+              - cell "Купленное время. Отсроченный кризис демократического капитализма Wolfgang Streeck" [ref=e622]:
+                - button "Купленное время. Отсроченный кризис демократического капитализма Wolfgang Streeck" [ref=e623] [cursor=pointer]:
+                  - generic [ref=e625]: Купленное время. Отсроченный кризис демократического капитализма
+                  - generic [ref=e626]: Wolfgang Streeck
+              - cell "1" [ref=e627]
+              - 'cell "Евгений Кошкин(🥈 #2)" [ref=e628]':
+                - generic [ref=e630]:
+                  - text: Евгений Кошкин
+                  - generic [ref=e631]: "(🥈 #2)"
+            - row "38 Революционный темперамент. Париж в 1748–1789 годах Robert Darnton 1 Евгений Кошкин(#19)" [ref=e632]:
+              - cell "38" [ref=e633]
+              - cell [ref=e634]
+              - cell "Революционный темперамент. Париж в 1748–1789 годах Robert Darnton" [ref=e636]:
+                - button "Революционный темперамент. Париж в 1748–1789 годах Robert Darnton" [ref=e637] [cursor=pointer]:
+                  - generic [ref=e639]: Революционный темперамент. Париж в 1748–1789 годах
+                  - generic [ref=e640]: Robert Darnton
+              - cell "1" [ref=e641]
+              - cell "Евгений Кошкин(#19)" [ref=e642]:
+                - generic [ref=e644]:
+                  - text: Евгений Кошкин
+                  - generic [ref=e645]: (#19)
+            - row "39 TA Тестовая книга 3 Test Author C 0 —" [ref=e646]:
+              - cell "39" [ref=e647]
+              - cell "TA" [ref=e648]:
+                - generic [ref=e650]: TA
+              - cell "Тестовая книга 3 Test Author C" [ref=e651]:
+                - button "Тестовая книга 3 Test Author C" [ref=e652] [cursor=pointer]:
+                  - generic [ref=e654]: Тестовая книга 3
+                  - generic [ref=e655]: Test Author C
+              - cell "0" [ref=e656]
+              - cell "—" [ref=e657]
+            - row "40 TA Тестовая книга 1 Test Author A 0 —" [ref=e658]:
+              - cell "40" [ref=e659]
+              - cell "TA" [ref=e660]:
+                - generic [ref=e662]: TA
+              - cell "Тестовая книга 1 Test Author A" [ref=e663]:
+                - button "Тестовая книга 1 Test Author A" [ref=e664] [cursor=pointer]:
+                  - generic [ref=e666]: Тестовая книга 1
+                  - generic [ref=e667]: Test Author A
+              - cell "0" [ref=e668]
+              - cell "—" [ref=e669]
+            - row "41 TA Тестовая книга 2 Test Author B 0 —" [ref=e670]:
+              - cell "41" [ref=e671]
+              - cell "TA" [ref=e672]:
+                - generic [ref=e674]: TA
+              - cell "Тестовая книга 2 Test Author B" [ref=e675]:
+                - button "Тестовая книга 2 Test Author B" [ref=e676] [cursor=pointer]:
+                  - generic [ref=e678]: Тестовая книга 2
+                  - generic [ref=e679]: Test Author B
+              - cell "0" [ref=e680]
+              - cell "—" [ref=e681]
+            - row "42 EА E2E Auto Signup 1779662603825 New Заявка E2E Автор 0 —" [ref=e682]:
+              - cell "42" [ref=e683]
+              - cell "EА" [ref=e684]:
+                - generic [ref=e686]: EА
+              - cell "E2E Auto Signup 1779662603825 New Заявка E2E Автор" [ref=e687]:
+                - button "E2E Auto Signup 1779662603825 New Заявка E2E Автор" [ref=e688] [cursor=pointer]:
+                  - generic [ref=e689]:
+                    - generic [ref=e690]: E2E Auto Signup 1779662603825
+                    - generic [ref=e692]:
+                      - generic [ref=e693]: New
+                      - generic [ref=e694]: Заявка
+                  - generic [ref=e695]: E2E Автор
+              - cell "0" [ref=e696]
+              - cell "—" [ref=e697]
+            - 'row "43 Делать мнение: новая политическая игра Patrick Champagne 0 —" [ref=e698]':
+              - cell "43" [ref=e699]
+              - cell [ref=e700]
+              - 'cell "Делать мнение: новая политическая игра Patrick Champagne" [ref=e702]':
+                - 'button "Делать мнение: новая политическая игра Patrick Champagne" [ref=e703] [cursor=pointer]':
+                  - generic [ref=e705]: "Делать мнение: новая политическая игра"
+                  - generic [ref=e706]: Patrick Champagne
+              - cell "0" [ref=e707]
+              - cell "—" [ref=e708]
+            - row "44 Размышления о представительном правлении John Stuart Mill 0 —" [ref=e709]:
+              - cell "44" [ref=e710]
+              - cell [ref=e711]
+              - cell "Размышления о представительном правлении John Stuart Mill" [ref=e713]:
+                - button "Размышления о представительном правлении John Stuart Mill" [ref=e714] [cursor=pointer]:
+                  - generic [ref=e716]: Размышления о представительном правлении
+                  - generic [ref=e717]: John Stuart Mill
+              - cell "0" [ref=e718]
+              - cell "—" [ref=e719]
+            - 'row "45 Arguing with Zombies: Economics, Politics, and the Fight for a Better Future Paul Krugman 0 —" [ref=e720]':
+              - cell "45" [ref=e721]
+              - cell [ref=e722]
+              - 'cell "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future Paul Krugman" [ref=e724]':
+                - 'button "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future Paul Krugman" [ref=e725] [cursor=pointer]':
+                  - generic [ref=e727]: "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future"
+                  - generic [ref=e728]: Paul Krugman
+              - cell "0" [ref=e729]
+              - cell "—" [ref=e730]
+            - row "46 Управляя пустотой. Размывание западной демократии Peter Mair 0 —" [ref=e731]:
+              - cell "46" [ref=e732]
+              - cell [ref=e733]
+              - cell "Управляя пустотой. Размывание западной демократии Peter Mair" [ref=e735]:
+                - button "Управляя пустотой. Размывание западной демократии Peter Mair" [ref=e736] [cursor=pointer]:
+                  - generic [ref=e738]: Управляя пустотой. Размывание западной демократии
+                  - generic [ref=e739]: Peter Mair
+              - cell "0" [ref=e740]
+              - cell "—" [ref=e741]
+            - row "47 Краткая история равенства Thomas Piketty 0 —" [ref=e742]:
+              - cell "47" [ref=e743]
+              - cell [ref=e744]
+              - cell "Краткая история равенства Thomas Piketty" [ref=e746]:
+                - button "Краткая история равенства Thomas Piketty" [ref=e747] [cursor=pointer]:
+                  - generic [ref=e749]: Краткая история равенства
+                  - generic [ref=e750]: Thomas Piketty
+              - cell "0" [ref=e751]
+              - cell "—" [ref=e752]
+            - row "48 Свобода до либерализма Quentin Skinner 0 —" [ref=e753]:
+              - cell "48" [ref=e754]
+              - cell [ref=e755]
+              - cell "Свобода до либерализма Quentin Skinner" [ref=e757]:
+                - button "Свобода до либерализма Quentin Skinner" [ref=e758] [cursor=pointer]:
+                  - generic [ref=e760]: Свобода до либерализма
+                  - generic [ref=e761]: Quentin Skinner
+              - cell "0" [ref=e762]
+              - cell "—" [ref=e763]
+            - row "49 The semisovereign people Schattschneider 0 —" [ref=e764]:
+              - cell "49" [ref=e765]
+              - cell [ref=e766]
+              - cell "The semisovereign people Schattschneider" [ref=e768]:
+                - button "The semisovereign people Schattschneider" [ref=e769] [cursor=pointer]:
+                  - generic [ref=e771]: The semisovereign people
+                  - generic [ref=e772]: Schattschneider
+              - cell "0" [ref=e773]
+              - cell "—" [ref=e774]
+            - status [ref=e775]
+      - generic [ref=e776]:
+        - button "Не опубликованные (1) добавлены, но скрыты от участников ▲" [expanded] [ref=e777] [cursor=pointer]:
+          - heading "Не опубликованные (1)" [level=2] [ref=e778]:
+            - text: Не опубликованные
+            - generic [ref=e779]: (1)
+          - generic [ref=e780]: добавлены, но скрыты от участников
+          - generic [ref=e781]: ▲
+        - table [ref=e782]:
+          - rowgroup [ref=e783]:
+            - row "№ Обложка Книга Записей Участники" [ref=e784]:
+              - columnheader "№" [ref=e785] [cursor=pointer]:
+                - generic [ref=e786]: №
+              - columnheader "Обложка" [ref=e787]
+              - columnheader "Книга" [ref=e788] [cursor=pointer]:
+                - generic [ref=e789]:
+                  - text: Книга
+                  - generic [ref=e790]: ↑
+              - columnheader "Записей" [ref=e791] [cursor=pointer]:
+                - generic [ref=e792]: Записей
+              - columnheader "Участники" [ref=e793] [cursor=pointer]:
+                - generic [ref=e794]: Участники
+          - rowgroup [ref=e795]:
+            - row "1 — UI Layout Book 1779662747664 Автор не указан 0 —" [ref=e796]:
+              - cell "1" [ref=e797]
+              - cell "—" [ref=e798]:
+                - generic [ref=e800]: —
+              - cell "UI Layout Book 1779662747664 Автор не указан" [ref=e801]:
+                - button "UI Layout Book 1779662747664 Автор не указан" [active] [ref=e802] [cursor=pointer]:
+                  - generic [ref=e804]: UI Layout Book 1779662747664
+                  - generic [ref=e805]: Автор не указан
+              - cell "0" [ref=e806]
+              - cell "—" [ref=e807]
+            - row "Состояние ID 3c38c5d9-670a-4258-9bab-e2b60c1dd754 ⧉ Видимость Скрыта Статус Без статуса Reading Read Бейдж NEW Архив Архивировать Название UI Layout Book 1779662747664 Автор Теги (через запятую) Тип Книга Страниц Дата публикации (текст) Ссылка на текст Ссылка на обложку Описание Зачем читать Ссылка на рекомендацию Системные поля · read-only Источник Админ Created at 24.05.2026 22:45 Updated at 24.05.2026 22:45 Published at — Hidden at 24.05.2026 22:45 Archived at — Нет несохранённых изменений" [ref=e808]:
+              - cell "Состояние ID 3c38c5d9-670a-4258-9bab-e2b60c1dd754 ⧉ Видимость Скрыта Статус Без статуса Reading Read Бейдж NEW Архив Архивировать Название UI Layout Book 1779662747664 Автор Теги (через запятую) Тип Книга Страниц Дата публикации (текст) Ссылка на текст Ссылка на обложку Описание Зачем читать Ссылка на рекомендацию Системные поля · read-only Источник Админ Created at 24.05.2026 22:45 Updated at 24.05.2026 22:45 Published at — Hidden at 24.05.2026 22:45 Archived at — Нет несохранённых изменений" [ref=e809]:
+                - generic [ref=e810]:
+                  - generic [ref=e811]:
+                    - generic [ref=e812]: Состояние
+                    - generic [ref=e813]:
+                      - generic [ref=e814]:
+                        - generic [ref=e815]: ID
+                        - button "3c38c5d9-670a-4258-9bab-e2b60c1dd754 ⧉" [ref=e816] [cursor=pointer]
+                      - generic [ref=e817]:
+                        - generic [ref=e818]: Видимость
+                        - switch "Скрыта" [ref=e819] [cursor=pointer]:
+                          - generic [ref=e822]: Скрыта
+                      - generic [ref=e823]:
+                        - generic [ref=e824]: Статус
+                        - generic [ref=e825]:
+                          - button "Без статуса" [ref=e826] [cursor=pointer]
+                          - button "Reading" [ref=e827] [cursor=pointer]
+                          - button "Read" [ref=e828] [cursor=pointer]
+                      - generic [ref=e829]:
+                        - generic [ref=e830]: Бейдж
+                        - switch "NEW" [ref=e831] [cursor=pointer]:
+                          - generic [ref=e834]: NEW
+                      - generic [ref=e835]:
+                        - generic [ref=e836]: Архив
+                        - button "Архивировать" [ref=e837] [cursor=pointer]
+                  - generic [ref=e838]:
+                    - generic [ref=e839]:
+                      - generic [ref=e840]: Название
+                      - textbox [ref=e841]: UI Layout Book 1779662747664
+                    - generic [ref=e842]:
+                      - generic [ref=e843]: Автор
+                      - textbox [ref=e844]
+                    - generic [ref=e845]:
+                      - generic [ref=e846]: Теги (через запятую)
+                      - textbox [ref=e847]
+                    - generic [ref=e848]:
+                      - generic [ref=e849]: Тип
+                      - combobox "Тип" [ref=e850]:
+                        - option "Книга" [selected]
+                        - option "Статья"
+                    - generic [ref=e851]:
+                      - generic [ref=e852]: Страниц
+                      - spinbutton [ref=e853]
+                    - generic [ref=e854]:
+                      - generic [ref=e855]: Дата публикации (текст)
+                      - textbox [ref=e856]
+                    - generic [ref=e857]:
+                      - generic [ref=e858]: Ссылка на текст
+                      - textbox [ref=e859]
+                    - generic [ref=e860]:
+                      - generic [ref=e861]: Ссылка на обложку
+                      - textbox [ref=e862]
+                    - generic [ref=e863]:
+                      - generic [ref=e864]: Описание
+                      - textbox [ref=e865]
+                    - generic [ref=e866]:
+                      - generic [ref=e867]: Зачем читать
+                      - textbox [ref=e868]
+                    - generic [ref=e869]:
+                      - generic [ref=e870]: Ссылка на рекомендацию
+                      - textbox [ref=e871]
+                  - generic [ref=e872]:
+                    - generic [ref=e873]: Системные поля · read-only
+                    - generic [ref=e874]:
+                      - generic [ref=e875]:
+                        - generic [ref=e876]: Источник
+                        - generic [ref=e877]: Админ
+                      - generic [ref=e878]:
+                        - generic [ref=e879]: Created at
+                        - generic [ref=e880]: 24.05.2026 22:45
+                      - generic [ref=e881]:
+                        - generic [ref=e882]: Updated at
+                        - generic [ref=e883]: 24.05.2026 22:45
+                      - generic [ref=e884]:
+                        - generic [ref=e885]: Published at
+                        - generic [ref=e886]: —
+                      - generic [ref=e887]:
+                        - generic [ref=e888]: Hidden at
+                        - generic [ref=e889]: 24.05.2026 22:45
+                      - generic [ref=e890]:
+                        - generic [ref=e891]: Archived at
+                        - generic [ref=e892]: —
+                  - generic [ref=e894]: Нет несохранённых изменений
+            - status [ref=e895]
+      - button "Архив (5) удалены из активного каталога ▼" [ref=e897] [cursor=pointer]:
+        - heading "Архив (5)" [level=2] [ref=e898]:
+          - text: Архив
+          - generic [ref=e899]: (5)
+        - generic [ref=e900]: удалены из активного каталога
+        - generic [ref=e901]: ▼
+  - contentinfo [ref=e902]:
+    - generic [ref=e903]:
+      - generic [ref=e904]:
+        - text: "Деплой:"
+        - generic [ref=e905]: 25.05.2026, 00:29 CET
+      - button "Обновить виджеты" [ref=e906] [cursor=pointer]
+    - generic [ref=e908]: статусы недоступны
+    - generic [ref=e909]:
+      - generic [ref=e910]: ●
+      - generic [ref=e911]: "Отправка писем: очередь пуста"
+    - generic [ref=e912]:
+      - generic [ref=e913]: ●
+      - generic [ref=e914]: "Allure:"
+      - generic [ref=e915]: "[]"
+      - generic [ref=e916]: 0/0
+      - generic [ref=e917]: ·
+      - generic [ref=e918]: NaNд назад
+      - generic [ref=e919]: ·
+      - link "отчёт ↗" [ref=e920] [cursor=pointer]:
+        - /url: https://bon2362.github.io/book-club/
+    - generic [ref=e921]:
+      - generic [ref=e922]: PostHog · события за месяц
+      - generic [ref=e923]:
+        - text: Не настроены env-переменные
+        - code [ref=e924]: POSTHOG_PERSONAL_API_KEY
+        - text: и
+        - code [ref=e925]: POSTHOG_PROJECT_ID
+    - generic [ref=e926]:
+      - generic [ref=e927]: PostHog · этот браузер
+      - generic [ref=e928]:
+        - generic [ref=e929]: ✗ Аналитика включена — визиты с этого браузера попадают в статистику
+        - button "Отключить для этого браузера" [ref=e930] [cursor=pointer]
+      - generic [ref=e931]: После отключения статус сохраняется навсегда в этом браузере — даже без логина и при смене аккаунта. При очистке кэша/куки нужно нажать снова.
+  - alert [ref=e932]
+```
