@@ -107,7 +107,7 @@ npm run test:e2e
 | `POST /api/test/signup` | Записать выбранные книги напрямую в `signup_books` |
 | `DELETE /api/test/signup` | Удалить тестовые записи пользователя из `signup_books` |
 
-В этом режиме `lib/sheets.ts` возвращает фикстурные книги (`__test_book_1__`, `__test_book_2__`, `__test_book_3__`) без обращения к Google Sheets.
+В этом режиме `/api/test/seed-books` создаёт фикстурные книги (`__test_book_1__`, `__test_book_2__`, `__test_book_3__`) в таблице `books`, а global teardown удаляет их после E2E.
 
 ### Покрытие E2E
 

@@ -50,7 +50,7 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 
 ## Unit-тесты (Jest)
 - Компоненты с `useRouter` требуют мока: `jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))`
-- Тесты на порядок книг: `fetchBooksWithCovers` делает `.reverse()` — `result[0]` это последняя книга из sheets, не первая
+- Тесты на порядок книг: каталог читается из таблицы `books`; порядок задаётся `sort_order` / `published_at`, а не Google Sheets.
 
 ## E2E-тесты (Playwright)
 - **Dev server для E2E**: запускать вручную с `NEXTAUTH_TEST_MODE=true npx next dev` перед тестами, тогда `reuseExistingServer: true` его переиспользует. Без этого флага `/api/test/session` вернёт 403.
@@ -61,7 +61,7 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - `session.user.id` нужно явно устанавливать в `session` callback (`session.user.id = token.sub`) — без этого API-эндпоинты с `auth()` вернут 401
 - **Live locators и кнопки-тогглы**: после клика кнопка "Хочу читать" меняется на "Записан" — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика используй `.first()` снова (не `.nth(1)`), предварительно дождавшись появления "Записан"
 - **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для уникальной идентификации собственных тостов/статусов использовать `data-testid`
-- **Тестовые фикстуры книг**: в `NEXTAUTH_TEST_MODE` в Google Sheets может быть мало данных. Фикстурные книги добавлены в `lib/books-with-covers.ts` (`__test_book_1__` и др.) — они появляются только в тестовом окружении
+- **Тестовые фикстуры книг**: в `NEXTAUTH_TEST_MODE` фикстурные книги создаются через `/api/test/seed-books` в таблице `books` (`__test_book_1__` и др.) и удаляются global teardown.
 
 ## UI Layout Tests (Playwright)
 

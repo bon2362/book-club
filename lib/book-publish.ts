@@ -28,9 +28,7 @@ interface SubmissionForPublish {
  * submission via book_submissions.book_id. Idempotent: re-running on an
  * already-published submission returns the existing book_id.
  *
- * Also writes the submission author into signup_books with both legacy
- * book_name and new book_id so the runtime stays consistent during the
- * transition.
+ * Also writes the submission author into signup_books via book_id.
  */
 export async function publishSubmissionAsBook(submission: SubmissionForPublish): Promise<string> {
   // Already linked?
@@ -96,9 +94,7 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
     .set({ bookId })
     .where(eq(bookSubmissions.id, submission.id))
 
-  // Sign up the submitter. Stage 3 finalize: signup_books PK is (user_id, book_id);
-  // the legacy book_name column still exists in the DB but is no longer written
-  // and will be dropped by 0024.
+  // Sign up the submitter. signup_books PK is (user_id, book_id).
   await sql`
     INSERT INTO signup_books (user_id, book_id)
     VALUES (${submission.userId}, ${bookId})

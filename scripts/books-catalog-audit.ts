@@ -2,6 +2,10 @@
 /**
  * Stage 0 audit for the books catalog refactor.
  *
+ * DEPRECATED one-shot script. It documents the pre-0021 migration input and
+ * expects legacy tables/columns that no longer exist after the catalog moved
+ * to books/book_id. Do not run this against the current production schema.
+ *
  * Reads production-like data from:
  *   - Google Sheets (current canonical catalog)
  *   - book_submissions, book_statuses, book_new_flags

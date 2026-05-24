@@ -448,10 +448,10 @@ export default function AdminPanel({
   async function setBookStatus(bookId: string, status: 'reading' | 'read') {
     setStatusLoading(bookId)
     try {
-      await fetch('/api/admin/book-status', {
-        method: 'POST',
+      await fetch(`/api/admin/books/${encodeURIComponent(bookId)}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId, status }),
+        body: JSON.stringify({ readingStatus: status }),
       })
       setStatuses(prev => ({ ...prev, [bookId]: status }))
     } finally {
@@ -462,7 +462,11 @@ export default function AdminPanel({
   async function resetBookStatus(bookId: string) {
     setStatusLoading(bookId)
     try {
-      await fetch(`/api/admin/book-status?bookId=${encodeURIComponent(bookId)}`, { method: 'DELETE' })
+      await fetch(`/api/admin/books/${encodeURIComponent(bookId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ readingStatus: null }),
+      })
       setStatuses(prev => {
         const next = { ...prev }
         delete next[bookId]
@@ -515,10 +519,10 @@ export default function AdminPanel({
     setNewFlagLoading(bookId)
     try {
       const next = !currentIsNew
-      await fetch('/api/admin/book-new-flag', {
-        method: 'POST',
+      await fetch(`/api/admin/books/${encodeURIComponent(bookId)}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId, isNew: next }),
+        body: JSON.stringify({ isNew: next }),
       })
       setNewFlags(prev => ({ ...prev, [bookId]: next }))
     } finally {

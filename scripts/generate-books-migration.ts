@@ -1,6 +1,11 @@
 /* eslint-disable no-console */
 /**
  * Generates drizzle/0021_books_catalog.sql from data/books-catalog-snapshot.json.
+ *
+ * DEPRECATED one-shot generator for the original Sheets -> books migration.
+ * It references legacy columns such as signup_books.book_name and must not be
+ * used against the current schema.
+ *
  * Run after scripts/books-catalog-audit.ts to keep migration in sync with prod snapshot.
  */
 
