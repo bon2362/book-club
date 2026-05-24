@@ -8,11 +8,10 @@ jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 
 interface UpdateCall { id: string; sortOrder: number }
 const updateCalls: UpdateCall[] = []
-const transactionCalls: number[] = []
 
 jest.mock('@/lib/db', () => {
-  function makeTx() {
-    return {
+  return {
+    db: {
       update: jest.fn(() => ({
         set: jest.fn((patch: { sortOrder?: number }) => ({
           where: jest.fn((cond: { __id?: string }) => {
@@ -23,14 +22,6 @@ jest.mock('@/lib/db', () => {
           }),
         })),
       })),
-    }
-  }
-  return {
-    db: {
-      transaction: jest.fn(async (fn: (tx: ReturnType<typeof makeTx>) => Promise<void>) => {
-        transactionCalls.push(transactionCalls.length + 1)
-        await fn(makeTx())
-      }),
     },
   }
 })
@@ -55,7 +46,6 @@ function makeReq(body: unknown) {
 
 beforeEach(() => {
   updateCalls.length = 0
-  transactionCalls.length = 0
   mockAuth.mockReset()
 })
 
@@ -64,7 +54,7 @@ describe('PUT /api/admin/books/reorder', () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: false } })
     const res = await PUT(makeReq({ ids: ['a'] }))
     expect(res.status).toBe(403)
-    expect(transactionCalls.length).toBe(0)
+    expect(updateCalls.length).toBe(0)
   })
 
   it('returns 403 without any session', async () => {
@@ -102,11 +92,10 @@ describe('PUT /api/admin/books/reorder', () => {
     expect(res.status).toBe(400)
   })
 
-  it('writes 1-based sort_order to each id inside a single transaction', async () => {
+  it('writes 1-based sort_order to each id sequentially', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     const res = await PUT(makeReq({ ids: ['c', 'a', 'b'] }))
     expect(res.status).toBe(200)
-    expect(transactionCalls).toEqual([1])
     expect(updateCalls).toEqual([
       { id: 'c', sortOrder: 1 },
       { id: 'a', sortOrder: 2 },
