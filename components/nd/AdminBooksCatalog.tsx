@@ -47,6 +47,8 @@ interface AdminBook {
   createdAt: string
   updatedAt: string
   signupCount: number
+  submittedByName: string | null
+  submittedByEmail: string | null
 }
 
 type StatusFilter = 'all' | 'reading' | 'read' | 'none'
@@ -62,7 +64,7 @@ const TOP_PRIORITY_EMOJI = ['🏆', '🥈', '🥉']
 
 const EMPTY_FORM: Omit<
   AdminBook,
-  'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'publishedAt' | 'hiddenAt' | 'signupCount'
+  'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'publishedAt' | 'hiddenAt' | 'signupCount' | 'submittedByName' | 'submittedByEmail'
 > = {
   title: '',
   author: '',
@@ -588,6 +590,12 @@ function ControlRow({ label, children }: { label: string; children: React.ReactN
 }
 
 // ─────────────────────────── book editor ───────────────────────────
+function autoHeight(el: HTMLTextAreaElement | null) {
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = el.scrollHeight + 'px'
+}
+
 function BookEditor({
   book,
   hasEdits,
@@ -604,8 +612,13 @@ function BookEditor({
   onArchive: () => void
 }) {
   const isArchived = !!book.archivedAt
+  // Auto-adjust all textareas when editor opens or book switches
+  const editorRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    editorRef.current?.querySelectorAll('textarea').forEach(autoHeight)
+  }, [book.id])
   return (
-    <div style={{ padding: '1rem 1rem 1.25rem', background: '#FAF8F4', borderBottom: '2px solid #111' }}>
+    <div ref={editorRef} style={{ padding: '1rem 1rem 1.25rem', background: '#FAF8F4', borderBottom: '2px solid #111' }}>
       {/* State panel */}
       <div
         style={{
@@ -719,16 +732,16 @@ function BookEditor({
           <textarea
             value={book.description || ''}
             onChange={e => onChange('description', e.target.value)}
-            rows={3}
-            style={{ ...inputStyle, resize: 'vertical' }}
+            onInput={e => autoHeight(e.currentTarget)}
+            style={{ ...inputStyle, resize: 'none', overflow: 'hidden', minHeight: '4.5rem' }}
           />
         </Field>
         <Field label="Зачем читать" full>
           <textarea
             value={book.whyRead || ''}
             onChange={e => onChange('whyRead', e.target.value || null)}
-            rows={3}
-            style={{ ...inputStyle, resize: 'vertical' }}
+            onInput={e => autoHeight(e.currentTarget)}
+            style={{ ...inputStyle, resize: 'none', overflow: 'hidden', minHeight: '4.5rem' }}
           />
         </Field>
         <Field label="Ссылка на рекомендацию" full>
@@ -772,6 +785,12 @@ function BookEditor({
           <ReadOnlyField label="Published at" value={formatDateTime(book.publishedAt)} />
           <ReadOnlyField label="Hidden at" value={formatDateTime(book.hiddenAt)} />
           <ReadOnlyField label="Archived at" value={formatDateTime(book.archivedAt)} />
+          {book.source === 'submission' && (
+            <ReadOnlyField
+              label="Загрузил"
+              value={book.submittedByName ?? book.submittedByEmail ?? '—'}
+            />
+          )}
         </div>
       </div>
 

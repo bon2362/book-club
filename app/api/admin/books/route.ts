@@ -3,8 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { books, signupBooks } from '@/lib/db/schema'
-import { asc, desc, eq, isNull, sql } from 'drizzle-orm'
+import { books, signupBooks, bookSubmissions, users } from '@/lib/db/schema'
+import { asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { createBook, BookValidationError } from '@/lib/books'
 
 export async function GET(req: NextRequest) {
@@ -22,12 +22,28 @@ export async function GET(req: NextRequest) {
     .where(whereClause as never)
     .orderBy(asc(books.sortOrder), desc(books.publishedAt))
 
-  const countsByBookId = await db
-    .select({ bookId: signupBooks.bookId, count: sql<number>`count(*)::int` })
-    .from(signupBooks)
-    .groupBy(signupBooks.bookId)
+  const [countsByBookId, submitterRows] = await Promise.all([
+    db
+      .select({ bookId: signupBooks.bookId, count: sql<number>`count(*)::int` })
+      .from(signupBooks)
+      .groupBy(signupBooks.bookId),
+    db
+      .select({
+        bookId: bookSubmissions.bookId,
+        submittedByName: users.name,
+        submittedByEmail: users.contactEmail,
+      })
+      .from(bookSubmissions)
+      .innerJoin(users, eq(users.id, bookSubmissions.userId))
+      .where(isNotNull(bookSubmissions.bookId)),
+  ])
 
   const countById = new Map(countsByBookId.map(c => [c.bookId, Number(c.count)]))
+  const submitterByBookId = new Map(
+    submitterRows
+      .filter(r => r.bookId != null)
+      .map(r => [r.bookId as string, { name: r.submittedByName, email: r.submittedByEmail }])
+  )
 
   const data = rows.map(row => ({
     id: row.id,
@@ -53,6 +69,8 @@ export async function GET(req: NextRequest) {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     signupCount: countById.get(row.id) ?? 0,
+    submittedByName: submitterByBookId.get(row.id)?.name ?? null,
+    submittedByEmail: submitterByBookId.get(row.id)?.email ?? null,
   }))
 
   return NextResponse.json({ success: true, data })

@@ -9,12 +9,14 @@ import { eq } from 'drizzle-orm'
 /**
  * PUT /api/admin/books/reorder
  *
- * Body: { ids: string[] } — full list of book ids in the desired order. The
- * client sends the published-section ids only; this endpoint rewrites
- * `sort_order` for each id in the list to its 1-based position, inside a single
- * transaction so partial failures cannot leave the catalog in a torn state.
+ * Body: { ids: string[] } — full ordered list of published book ids.
+ * Rewrites `sort_order` for each id to its 1-based position.
+ * Books not in the list are left untouched.
  *
- * Books whose ids are not in the list are left untouched.
+ * Note: drizzle-orm/neon-http does not support interactive transactions,
+ * so updates are issued sequentially without a transaction wrapper.
+ * A partial failure leaves an inconsistent sort order that the user can
+ * fix by reordering again — acceptable for a cosmetic ordering operation.
  */
 export async function PUT(req: NextRequest) {
   const session = await auth()
@@ -37,15 +39,17 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: '`ids` must contain only non-empty strings' }, { status: 400 })
   }
 
-  const now = new Date()
-  await db.transaction(async tx => {
+  try {
+    const now = new Date()
     for (let i = 0; i < ids.length; i++) {
-      await tx
+      await db
         .update(books)
         .set({ sortOrder: i + 1, updatedAt: now })
         .where(eq(books.id, ids[i] as string))
     }
-  })
-
-  return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('[reorder] failed:', err)
+    return NextResponse.json({ error: 'Internal error while reordering' }, { status: 500 })
+  }
 }

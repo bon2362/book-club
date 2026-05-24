@@ -41,6 +41,7 @@ interface Props {
   userLanguages?: Record<string, string[]>
   bookPrioritiesMap: Record<string, { bookId: string; bookName: string; rank: number }[]>
   prioritiesSetMap: Record<string, boolean>
+  catalogCount: number
 }
 
 type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'feedback' | 'intro'
@@ -230,6 +231,7 @@ export default function AdminPanel({
   allTags,
   tagDescriptions: initialTagDescriptions,
   bookPrioritiesMap,
+  catalogCount,
 }: Props) {
   const [adminUsers, setAdminUsers] = useState<AdminUserSummary[]>([])
   const [adminUsersLoaded, setAdminUsersLoaded] = useState(false)
@@ -602,7 +604,7 @@ export default function AdminPanel({
             Участники ({adminUsersLoaded ? adminUsers.length : users.length})
           </button>
           <button style={tabStyle(view === 'catalog')} onClick={() => setView('catalog')} data-testid="admin-tab-catalog">
-            Каталог
+            Каталог ({catalogCount})
           </button>
           <button style={tabStyle(view === 'tags')} onClick={() => setView('tags')}>
             Теги ({allTags.length})

@@ -24,6 +24,7 @@ const defaultProps = {
   tagDescriptions: {},
   bookPrioritiesMap: {},
   prioritiesSetMap: {},
+  catalogCount: 0,
 }
 
 const mockSubmissions = [

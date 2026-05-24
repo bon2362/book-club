@@ -4,7 +4,7 @@ import { getAllSignups } from '@/lib/signup-books'
 import { fetchBooksForAdmin } from '@/lib/books'
 import { db } from '@/lib/db'
 import { tagDescriptions, users, bookPriorities, books as booksTable } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, sql as sqlExpr } from 'drizzle-orm'
 import AdminPanel from '@/components/nd/AdminPanel'
 import AdminRefresh from '@/components/nd/AdminRefresh'
 import AdminFooter from '@/components/nd/AdminFooter'
@@ -15,7 +15,7 @@ export default async function AdminPage() {
   const session = await auth()
   if (!session?.user?.isAdmin) redirect('/')
 
-  const [signups, books, tagDescs, languageRows, allPriorityRows] = await Promise.all([
+  const [signups, books, tagDescs, languageRows, allPriorityRows, catalogCountRows] = await Promise.all([
     getAllSignups(),
     fetchBooksForAdmin(),
     db.select().from(tagDescriptions).catch(() => []),
@@ -25,6 +25,7 @@ export default async function AdminPage() {
       .from(bookPriorities)
       .innerJoin(booksTable, eq(bookPriorities.bookId, booksTable.id))
       .catch(() => []),
+    db.select({ count: sqlExpr<number>`count(*)::int` }).from(booksTable).catch(() => [{ count: 0 }]),
   ])
 
   const userLanguagesMap: Record<string, string[]> = {}
@@ -47,6 +48,7 @@ export default async function AdminPage() {
     bookPrioritiesMap[pgId].sort((a, b) => a.rank - b.rank)
   }
 
+  const catalogCount = catalogCountRows[0]?.count ?? 0
   const allTags = Array.from(new Set(books.flatMap(b => b.tags))).sort()
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
 
@@ -78,6 +80,7 @@ export default async function AdminPage() {
         userLanguages={userLanguagesMap}
         bookPrioritiesMap={bookPrioritiesMap}
         prioritiesSetMap={prioritiesSetMap}
+        catalogCount={catalogCount}
       />
       <AdminFooter
         buildTime={buildTime}
