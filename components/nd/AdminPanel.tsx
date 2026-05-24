@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, Fragment, useMemo, useLayoutEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
@@ -291,7 +290,6 @@ export default function AdminPanel({
   newFlags: initialNewFlags,
   bookPrioritiesMap,
 }: Props) {
-  const router = useRouter()
   const [adminUsers, setAdminUsers] = useState<AdminUserSummary[]>([])
   const [adminUsersLoaded, setAdminUsersLoaded] = useState(false)
   const [userSearch, setUserSearch] = useState('')
@@ -300,7 +298,7 @@ export default function AdminPanel({
   const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
   const [userDrawerLoading, setUserDrawerLoading] = useState(false)
   const [view, setView] = useState<View>('users')
-  const [syncing, setSyncing] = useState(false)
+  // Generic transient status message used by various admin actions (e.g. delete-user errors).
   const [syncMsg, setSyncMsg] = useState('')
   const [statuses, setStatuses] = useState<Record<string, 'reading' | 'read'>>(initialStatuses)
   const [statusLoading, setStatusLoading] = useState<string | null>(null)
@@ -444,20 +442,6 @@ export default function AdminPanel({
       })
     } catch {
       // silently ignore
-    }
-  }
-
-  async function handleSync() {
-    setSyncing(true)
-    setSyncMsg('')
-    try {
-      const res = await fetch('/api/sync', { method: 'POST' })
-      setSyncMsg(res.ok ? 'Синхронизировано' : 'Ошибка синхронизации')
-      if (res.ok) router.refresh()
-    } catch {
-      setSyncMsg('Ошибка синхронизации')
-    } finally {
-      setSyncing(false)
     }
   }
 
@@ -758,23 +742,6 @@ export default function AdminPanel({
                 {syncMsg}
               </span>
             )}
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              style={{
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                padding: '0.4rem 0.875rem',
-                border: '1px solid #111',
-                background: syncing ? '#E5E5E5' : 'transparent',
-                color: syncing ? '#999' : '#111',
-                cursor: syncing ? 'default' : 'pointer',
-              }}
-            >
-              {syncing ? 'Синхронизация…' : 'Sync'}
-            </button>
           </div>
         </div>
 
