@@ -14,15 +14,12 @@ export async function GET(req: NextRequest) {
   }
 
   const bookId = req.nextUrl.searchParams.get('bookId')
-  const bookName = req.nextUrl.searchParams.get('book')
-  if (!bookId && !bookName) {
+  if (!bookId) {
     return NextResponse.json({ error: 'Missing bookId parameter' }, { status: 400 })
   }
 
   const signups = await getAllSignups()
-  const bookSignups = bookId
-    ? signups.filter(s => (s.selectedBookIds ?? []).includes(bookId))
-    : signups.filter(s => s.selectedBooks.includes(bookName!))
+  const bookSignups = signups.filter(s => s.selectedBookIds.includes(bookId))
 
   if (bookSignups.length === 0) {
     return NextResponse.json({ users: [] })
@@ -41,7 +38,7 @@ export async function GET(req: NextRequest) {
         .from(bookPriorities)
         .where(
           and(
-            bookId ? eq(bookPriorities.bookId, bookId) : eq(bookPriorities.bookName, bookName!),
+            eq(bookPriorities.bookId, bookId),
             inArray(bookPriorities.userId, userIds)
           )
         )

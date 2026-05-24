@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { accounts, sessions, signupBooks, userIdentities, users } from '@/lib/db/schema'
+import { accounts, sessions, signupBooks, userIdentities, users, books } from '@/lib/db/schema'
 import { eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
@@ -47,7 +47,11 @@ export async function GET(req: NextRequest) {
   const [accountRows, sessionRows, signupBookRows, identityRows] = await Promise.all([
     db.select({ userId: accounts.userId }).from(accounts).where(eq(accounts.userId, userId)),
     db.select({ userId: sessions.userId }).from(sessions).where(eq(sessions.userId, userId)),
-    db.select({ bookId: signupBooks.bookId, bookName: signupBooks.bookName }).from(signupBooks).where(eq(signupBooks.userId, userId)),
+    db
+      .select({ bookId: signupBooks.bookId, bookTitle: books.title })
+      .from(signupBooks)
+      .innerJoin(books, eq(signupBooks.bookId, books.id))
+      .where(eq(signupBooks.userId, userId)),
     db
       .select({
         provider: userIdentities.provider,
@@ -66,7 +70,7 @@ export async function GET(req: NextRequest) {
     identities: identityRows,
     sessionCount: sessionRows.length,
     signupBookCount: signupBookRows.length,
-    signupBooks: signupBookRows.map(row => row.bookName),
-    signupBookIds: signupBookRows.map(row => row.bookId).filter(Boolean),
+    signupBooks: signupBookRows.map(row => row.bookTitle),
+    signupBookIds: signupBookRows.map(row => row.bookId),
   })
 }

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { books, signupBooks } from '@/lib/db/schema'
-import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import { createBook, BookValidationError } from '@/lib/books'
 
 export async function GET(req: NextRequest) {
@@ -25,17 +25,9 @@ export async function GET(req: NextRequest) {
   const countsByBookId = await db
     .select({ bookId: signupBooks.bookId, count: sql<number>`count(*)::int` })
     .from(signupBooks)
-    .where(isNotNull(signupBooks.bookId))
     .groupBy(signupBooks.bookId)
 
-  const countsByName = await db
-    .select({ bookName: signupBooks.bookName, count: sql<number>`count(*)::int` })
-    .from(signupBooks)
-    .where(and(isNull(signupBooks.bookId), isNotNull(signupBooks.bookName)) as never)
-    .groupBy(signupBooks.bookName)
-
-  const countById = new Map(countsByBookId.map(c => [c.bookId ?? '', Number(c.count)]))
-  const countByName = new Map(countsByName.map(c => [c.bookName, Number(c.count)]))
+  const countById = new Map(countsByBookId.map(c => [c.bookId, Number(c.count)]))
 
   const data = rows.map(row => ({
     id: row.id,
@@ -62,7 +54,7 @@ export async function GET(req: NextRequest) {
     hiddenAt: row.hiddenAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    signupCount: (countById.get(row.id) ?? 0) + (countByName.get(row.title) ?? 0),
+    signupCount: countById.get(row.id) ?? 0,
   }))
 
   return NextResponse.json({ success: true, data })

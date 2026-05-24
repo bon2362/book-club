@@ -6,6 +6,7 @@ import {
   feedback,
   users,
   userIdentities,
+  books,
 } from '@/lib/db/schema'
 import { asc, desc, eq } from 'drizzle-orm'
 import { formatTelegramDisplay } from '@/lib/telegram-display'
@@ -27,8 +28,8 @@ export interface AdminUserSummary {
 
 export interface AdminUserDetails {
   user: AdminUserSummary & { prioritiesSet: boolean }
-  signupBooks: { bookId: string | null; bookName: string; signedAt: string }[]
-  priorities: { bookId: string | null; bookName: string; rank: number }[]
+  signupBooks: { bookId: string; bookName: string; signedAt: string }[]
+  priorities: { bookId: string; bookName: string; rank: number }[]
   submissions: {
     id: string
     title: string
@@ -165,13 +166,15 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
 
   const [signupRows, priorityRows, submissionRows, feedbackRows, identityRows] = await Promise.all([
     db
-      .select({ bookId: signupBooks.bookId, bookName: signupBooks.bookName, signedAt: signupBooks.signedAt })
+      .select({ bookId: signupBooks.bookId, bookName: books.title, signedAt: signupBooks.signedAt })
       .from(signupBooks)
+      .innerJoin(books, eq(signupBooks.bookId, books.id))
       .where(eq(signupBooks.userId, userId))
-      .orderBy(asc(signupBooks.signedAt), asc(signupBooks.bookName)),
+      .orderBy(asc(signupBooks.signedAt), asc(books.title)),
     db
-      .select({ bookId: bookPriorities.bookId, bookName: bookPriorities.bookName, rank: bookPriorities.rank, updatedAt: bookPriorities.updatedAt })
+      .select({ bookId: bookPriorities.bookId, bookName: books.title, rank: bookPriorities.rank, updatedAt: bookPriorities.updatedAt })
       .from(bookPriorities)
+      .innerJoin(books, eq(bookPriorities.bookId, books.id))
       .where(eq(bookPriorities.userId, userId))
       .orderBy(asc(bookPriorities.rank)),
     db
@@ -222,7 +225,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
   return {
     user: { ...summary, prioritiesSet: userRow.prioritiesSet ?? false },
     signupBooks: signupRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, signedAt: row.signedAt.toISOString() })),
-    priorities: priorityRows,
+    priorities: priorityRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, rank: row.rank })),
     submissions: submissionRows.map(row => ({
       id: row.id,
       title: row.title,

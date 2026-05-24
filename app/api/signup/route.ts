@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { upsertSignup, upsertSignupByBookIds } from '@/lib/signup-books'
-import type { UpsertResult } from '@/lib/signup-books'
+import { upsertSignupByBookIds } from '@/lib/signup-books'
 import { db } from '@/lib/db'
 import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
-import { and, eq, isNull, notInArray, or } from 'drizzle-orm'
+import { and, eq, notInArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
 import { getUserContactEmail } from '@/lib/user-email'
 
@@ -16,22 +15,15 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { name, contacts, selectedBooks, selectedBookIds } = body
+  const { name, contacts, selectedBookIds } = body
 
-  const hasBookIds = Array.isArray(selectedBookIds)
-  const hasLegacyBookNames = Array.isArray(selectedBooks)
-  if (!name?.trim() || typeof contacts !== 'string' || (!hasBookIds && !hasLegacyBookNames)) {
+  if (!name?.trim() || typeof contacts !== 'string' || !Array.isArray(selectedBookIds)) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const selectedBookIdsList = hasBookIds ? selectedBookIds as string[] : []
-  const selectedBookNames = hasLegacyBookNames ? selectedBooks as string[] : []
-  const selectedCount = hasBookIds ? selectedBookIdsList.length : selectedBookNames.length
-  let result: UpsertResult
+  let result
   try {
-    result = hasBookIds
-      ? await upsertSignupByBookIds(pgUserId, selectedBookIdsList)
-      : await upsertSignup(pgUserId, selectedBookNames)
+    result = await upsertSignupByBookIds(pgUserId, selectedBookIds as string[])
   } catch {
     return NextResponse.json({ error: 'Some books were not found' }, { status: 400 })
   }
@@ -39,26 +31,21 @@ export async function POST(req: NextRequest) {
   await db.update(users).set({
     name: name.trim(),
     contacts: contacts.trim(),
-    ...(selectedCount === 0 ? { prioritiesSet: false } : {}),
+    ...(result.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
   }).where(eq(users.id, pgUserId))
 
   // Clean up book_priorities for books no longer in selectedBookIds.
-  // Uses session.user.id (Postgres user UUID), not session.user.email (Sheets userId).
   if (result.addedBookIds.length > 0) {
     await db
       .delete(bookPriorities)
       .where(
         and(
           eq(bookPriorities.userId, pgUserId),
-          or(
-            isNull(bookPriorities.bookId),
-            notInArray(bookPriorities.bookId, result.addedBookIds)
-          )
+          notInArray(bookPriorities.bookId, result.addedBookIds)
         )
       )
-      .catch(() => {}) // non-critical — don't fail the request
+      .catch(() => {}) // non-critical
   } else {
-    // All books removed — delete all priorities for this user
     await db
       .delete(bookPriorities)
       .where(eq(bookPriorities.userId, pgUserId))

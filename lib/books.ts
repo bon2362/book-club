@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { books, signupBooks } from '@/lib/db/schema'
-import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
 export const ALLOWED_VISIBILITIES = ['hidden', 'published'] as const
@@ -84,26 +84,16 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
     .where(whereClause as never)
     .orderBy(asc(books.sortOrder), desc(books.publishedAt))
 
-  // signup counts in a single grouped query (joins both legacy book_name and new book_id rows).
+  // Signup counts grouped by book_id. After Stage 3 finalize, every signup row
+  // has a non-null book_id (PK).
   const countsByBookId = await db
     .select({ bookId: signupBooks.bookId, count: sql<number>`count(*)::int` })
     .from(signupBooks)
-    .where(isNotNull(signupBooks.bookId))
     .groupBy(signupBooks.bookId)
 
-  const countsByName = await db
-    .select({ bookName: signupBooks.bookName, count: sql<number>`count(*)::int` })
-    .from(signupBooks)
-    .where(isNull(signupBooks.bookId))
-    .groupBy(signupBooks.bookName)
+  const countById = new Map(countsByBookId.map(c => [c.bookId, Number(c.count)]))
 
-  const countById = new Map(countsByBookId.map(c => [c.bookId ?? '', Number(c.count)]))
-  const countByName = new Map(countsByName.map(c => [c.bookName, Number(c.count)]))
-
-  return rows.map(row => {
-    const cnt = (countById.get(row.id) ?? 0) + (countByName.get(row.title) ?? 0)
-    return rowToBook(row, cnt)
-  })
+  return rows.map(row => rowToBook(row, countById.get(row.id) ?? 0))
 }
 
 export async function fetchBooksWithCovers(): Promise<BookWithCover[]> {

@@ -12,6 +12,7 @@ const mockUser: UserSignup = {
   contacts: '@ivan',
   email: 'ivan@test.com',
   selectedBooks: [],
+  selectedBookIds: [],
 }
 
 function renderForm(overrides?: Partial<React.ComponentProps<typeof FeedbackForm>>) {
