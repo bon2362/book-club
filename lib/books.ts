@@ -93,7 +93,11 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
 
   const countById = new Map(countsByBookId.map(c => [c.bookId, Number(c.count)]))
 
-  return rows.map(row => rowToBook(row, countById.get(row.id) ?? 0))
+  const safeRows = process.env.NODE_ENV === 'production'
+    ? rows.filter(row => !row.id.startsWith('__test_book_') && !row.title.startsWith('E2E '))
+    : rows
+
+  return safeRows.map(row => rowToBook(row, countById.get(row.id) ?? 0))
 }
 
 export async function fetchBooksWithCovers(): Promise<BookWithCover[]> {

@@ -11,6 +11,14 @@ function pullResult(): Promise<unknown[]> {
 
 const insertValuesCalls: unknown[] = []
 const updateSetCalls: unknown[] = []
+const originalNodeEnv = process.env.NODE_ENV
+
+function setNodeEnv(value: string) {
+  Object.defineProperty(process.env, 'NODE_ENV', {
+    value,
+    configurable: true,
+  })
+}
 
 jest.mock('@/lib/db', () => {
   function buildChain() {
@@ -86,6 +94,7 @@ beforeEach(() => {
   insertValuesCalls.length = 0
   updateSetCalls.length = 0
   delete process.env.NEXTAUTH_TEST_MODE
+  setNodeEnv(originalNodeEnv)
 })
 
 describe('lib/books — fetchBooksWithCovers', () => {
@@ -116,6 +125,19 @@ describe('lib/books — fetchBooksWithCovers', () => {
     pushResult([])
     pushResult([])
     expect(await fetchBooksWithCovers()).toEqual([])
+  })
+
+  it('filters accidental E2E fixture books in production', async () => {
+    setNodeEnv('production')
+    pushResult([
+      bookRow({ id: '__test_book_1__', title: 'Тестовая книга 1' }),
+      bookRow({ id: 'e2e-book', title: 'E2E Auto Signup 123' }),
+      bookRow({ id: 'real-book', title: 'Real Book' }),
+    ])
+    pushResult([])
+
+    const result = await fetchBooksWithCovers()
+    expect(result.map(book => book.id)).toEqual(['real-book'])
   })
 
   it('maps DB row to BookWithCover shape (article type capitalised, source preserved)', async () => {
