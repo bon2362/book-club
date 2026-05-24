@@ -275,7 +275,10 @@ export default function AdminBooksCatalog() {
       setCreating(false)
       setCreateForm({ ...EMPTY_FORM })
       await reload()
-      setSelectedId(d.data.id)
+      // NOTE: intentionally do NOT auto-expand the editor. The list scrolls and
+      // the user clicks the row to edit. Auto-expand caused E2E flakiness because
+      // the editor's "Опубликовать" testid would appear/disappear depending on whether
+      // the row was clicked again to toggle.
     } finally {
       setCreateSaving(false)
     }
@@ -372,6 +375,7 @@ export default function AdminBooksCatalog() {
                   <td style={{ ...cell, opacity: isArchived ? 0.5 : 1 }}>
                     <button
                       onClick={() => setSelectedId(isSelected ? null : book.id)}
+                      data-testid={`admin-book-expand-${book.id}`}
                       style={{ background: 'none', border: 'none', textAlign: 'left', padding: 0, cursor: 'pointer', fontFamily: 'var(--nd-sans), system-ui, sans-serif', color: '#111', fontSize: '0.8rem' }}
                     >
                       <div style={{ fontWeight: 700 }}>{book.title}</div>

@@ -70,8 +70,8 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await expect(homePage.getByText(BOOK_TITLE)).toHaveCount(0)
     await homePage.close()
 
-    // 4. Публикуем книгу
-    await row.locator('button').first().click()
+    // 4. Публикуем книгу — раскрываем editor через precise testid
+    await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
     await page.getByTestId('admin-book-toggle-publish').click()
     await expect(row).toContainText('Опубликована', { timeout: 5000 })
 
@@ -89,8 +89,8 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await expect(homePage2.getByText(BOOK_TITLE).first()).toBeVisible()
     await homePage2.close()
 
-    // 6. Скрываем
-    await rowAfterPublish.locator('button').first().click()
+    // 6. Скрываем — раскрываем editor заново после reload
+    await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
     await page.getByTestId('admin-book-toggle-publish').click()
     await expect(rowAfterPublish).toContainText('Скрыта', { timeout: 5000 })
 
@@ -108,9 +108,9 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await expect(homePage3.getByText(BOOK_TITLE)).toHaveCount(0)
     await homePage3.close()
 
-    // 7. Архивируем (soft delete)
+    // 7. Архивируем (soft delete) — раскрываем editor
     page.on('dialog', d => d.accept())
-    await rowAfterHide.locator('button').first().click()
+    await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
     await page.getByTestId('admin-book-archive-toggle').click()
 
     // Книга пропала из активного фильтра по умолчанию
