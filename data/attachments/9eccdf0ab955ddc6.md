@@ -1,0 +1,189 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Читательские круги
+      - link "Долгое наступление" [ref=e6] [cursor=pointer]:
+        - /url: /
+  - main [ref=e7]:
+    - heading "Панель администратора" [level=1] [ref=e9]
+    - generic [ref=e10]:
+      - button "Участники (12)" [ref=e11] [cursor=pointer]
+      - button "Каталог" [ref=e12] [cursor=pointer]
+      - button "Теги (7)" [ref=e13] [cursor=pointer]
+      - button "Заявки (7)" [ref=e14] [cursor=pointer]
+      - button "Фидбеки (1) 1 новых" [ref=e15] [cursor=pointer]:
+        - text: Фидбеки (1)
+        - generic "1 новых" [ref=e16]: "1"
+      - button "Интро" [ref=e17] [cursor=pointer]
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - textbox "Поиск пользователей" [ref=e20]:
+          - /placeholder: Поиск по имени или Telegram
+        - generic [ref=e21]: 12 из 12
+      - table [ref=e22]:
+        - rowgroup [ref=e23]:
+          - row "Книг Имя Telegram Последняя активность Дата создания Языки" [ref=e24]:
+            - columnheader "Книг" [ref=e25] [cursor=pointer]:
+              - generic [ref=e27]: Книг
+            - columnheader "Имя" [ref=e28] [cursor=pointer]:
+              - generic [ref=e30]: Имя
+            - columnheader "Telegram" [ref=e31] [cursor=pointer]:
+              - generic [ref=e33]: Telegram
+            - columnheader "Последняя активность" [ref=e34] [cursor=pointer]:
+              - generic [ref=e35]:
+                - generic [ref=e36]: Последняя активность
+                - generic [ref=e37]: ↓
+            - columnheader "Дата создания" [ref=e38] [cursor=pointer]:
+              - generic [ref=e40]: Дата создания
+            - columnheader "Языки" [ref=e41] [cursor=pointer]:
+              - generic [ref=e43]: Языки
+        - rowgroup [ref=e44]:
+          - row "0 E2E UI Admin Tabs Admin New — 24.05.2026 24.05.2026 —" [ref=e45] [cursor=pointer]:
+            - cell "0" [ref=e46]
+            - cell "E2E UI Admin Tabs Admin New" [ref=e47]:
+              - generic [ref=e48]:
+                - text: E2E UI Admin Tabs
+                - generic [ref=e49]: Admin
+                - generic [ref=e50]: New
+            - cell "—" [ref=e51]
+            - cell "24.05.2026" [ref=e52]
+            - cell "24.05.2026" [ref=e53]
+            - cell "—" [ref=e54]
+          - row "19 Евгений Кошкин Admin @Evgenii_Koshkin 23.05.2026 16.05.2026 —" [ref=e55] [cursor=pointer]:
+            - cell "19" [ref=e56]
+            - cell "Евгений Кошкин Admin" [ref=e57]:
+              - generic [ref=e58]:
+                - text: Евгений Кошкин
+                - generic [ref=e59]: Admin
+            - cell "@Evgenii_Koshkin" [ref=e60]
+            - cell "23.05.2026" [ref=e61]
+            - cell "16.05.2026" [ref=e62]
+            - cell "—" [ref=e63]
+          - row "14 Julia Fell @julia555x 22.05.2026 18.05.2026 ru en de" [ref=e64] [cursor=pointer]:
+            - cell "14" [ref=e65]
+            - cell "Julia Fell" [ref=e66]:
+              - generic [ref=e67]: Julia Fell
+            - cell "@julia555x" [ref=e68]
+            - cell "22.05.2026" [ref=e69]
+            - cell "18.05.2026" [ref=e70]
+            - cell "ru en de" [ref=e71]:
+              - generic [ref=e72]: ru
+              - generic [ref=e73]: en
+              - generic [ref=e74]: de
+          - row "0 Galiya Ibragimova New @galiyaIG 22.05.2026 22.05.2026 —" [ref=e75] [cursor=pointer]:
+            - cell "0" [ref=e76]
+            - cell "Galiya Ibragimova New" [ref=e77]:
+              - generic [ref=e78]:
+                - text: Galiya Ibragimova
+                - generic [ref=e79]: New
+            - cell "@galiyaIG" [ref=e80]
+            - cell "22.05.2026" [ref=e81]
+            - cell "22.05.2026" [ref=e82]
+            - cell "—" [ref=e83]
+          - row "2 Maria_K @pjkyrrvbjyyda 21.05.2026 21.05.2026 —" [ref=e84] [cursor=pointer]:
+            - cell "2" [ref=e85]
+            - cell "Maria_K" [ref=e86]:
+              - generic [ref=e87]: Maria_K
+            - cell "@pjkyrrvbjyyda" [ref=e88]
+            - cell "21.05.2026" [ref=e89]
+            - cell "21.05.2026" [ref=e90]
+            - cell "—" [ref=e91]
+          - row "0 Катя Вахрамеева @postoronnim_villi 19.05.2026 19.05.2026 —" [ref=e92] [cursor=pointer]:
+            - cell "0" [ref=e93]
+            - cell "Катя Вахрамеева" [ref=e94]:
+              - generic [ref=e95]: Катя Вахрамеева
+            - cell "@postoronnim_villi" [ref=e96]
+            - cell "19.05.2026" [ref=e97]
+            - cell "19.05.2026" [ref=e98]
+            - cell "—" [ref=e99]
+          - row "11 Ваня @ivan 18.05.2026 23.03.2026 ru en de" [ref=e100] [cursor=pointer]:
+            - cell "11" [ref=e101]
+            - cell "Ваня" [ref=e102]:
+              - generic [ref=e103]: Ваня
+            - cell "@ivan" [ref=e104]
+            - cell "18.05.2026" [ref=e105]
+            - cell "23.03.2026" [ref=e106]
+            - cell "ru en de" [ref=e107]:
+              - generic [ref=e108]: ru
+              - generic [ref=e109]: en
+              - generic [ref=e110]: de
+          - row "0 Игорь Макаренко — 18.05.2026 18.05.2026 —" [ref=e111] [cursor=pointer]:
+            - cell "0" [ref=e112]
+            - cell "Игорь Макаренко" [ref=e113]:
+              - generic [ref=e114]: Игорь Макаренко
+            - cell "—" [ref=e115]
+            - cell "18.05.2026" [ref=e116]
+            - cell "18.05.2026" [ref=e117]
+            - cell "—" [ref=e118]
+          - row "0 Полина @polinakurban 18.05.2026 18.05.2026 —" [ref=e119] [cursor=pointer]:
+            - cell "0" [ref=e120]
+            - cell "Полина" [ref=e121]:
+              - generic [ref=e122]: Полина
+            - cell "@polinakurban" [ref=e123]
+            - cell "18.05.2026" [ref=e124]
+            - cell "18.05.2026" [ref=e125]
+            - cell "—" [ref=e126]
+          - row "14 Александр @XanderZhu 08.03.2026 08.03.2026 —" [ref=e127] [cursor=pointer]:
+            - cell "14" [ref=e128]
+            - cell "Александр" [ref=e129]:
+              - generic [ref=e130]: Александр
+            - cell "@XanderZhu" [ref=e131]
+            - cell "08.03.2026" [ref=e132]
+            - cell "08.03.2026" [ref=e133]
+            - cell "—" [ref=e134]
+          - row "5 Artem Zhiganov @zhigaanov 23.02.2026 23.02.2026 —" [ref=e135] [cursor=pointer]:
+            - cell "5" [ref=e136]
+            - cell "Artem Zhiganov" [ref=e137]:
+              - generic [ref=e138]: Artem Zhiganov
+            - cell "@zhigaanov" [ref=e139]
+            - cell "23.02.2026" [ref=e140]
+            - cell "23.02.2026" [ref=e141]
+            - cell "—" [ref=e142]
+          - row "0 tutu1520@protonmail.com New — — 23.05.2026 —" [ref=e143] [cursor=pointer]:
+            - cell "0" [ref=e144]
+            - cell "tutu1520@protonmail.com New" [ref=e145]:
+              - generic [ref=e146]:
+                - text: tutu1520@protonmail.com
+                - generic [ref=e147]: New
+            - cell "—" [ref=e148]
+            - cell "—" [ref=e149]
+            - cell "23.05.2026" [ref=e150]
+            - cell "—" [ref=e151]
+  - contentinfo [ref=e152]:
+    - generic [ref=e153]:
+      - generic [ref=e154]:
+        - text: "Деплой:"
+        - generic [ref=e155]: 24.05.2026, 22:53 CET
+      - button "Обновить виджеты" [ref=e156] [cursor=pointer]
+    - generic [ref=e158]: статусы недоступны
+    - generic [ref=e159]:
+      - generic [ref=e160]: ●
+      - generic [ref=e161]: "Отправка писем: очередь пуста"
+    - generic [ref=e162]:
+      - generic [ref=e163]: ●
+      - generic [ref=e164]: "Allure:"
+      - generic [ref=e165]: "[████████████]"
+      - generic [ref=e166]: 71/71
+      - generic [ref=e167]: ·
+      - generic [ref=e168]: 1ч назад
+      - generic [ref=e169]: ·
+      - link "отчёт ↗" [ref=e170] [cursor=pointer]:
+        - /url: https://bon2362.github.io/book-club/
+    - generic [ref=e171]:
+      - generic [ref=e172]: PostHog · события за месяц
+      - generic [ref=e173]:
+        - text: Не настроены env-переменные
+        - code [ref=e174]: POSTHOG_PERSONAL_API_KEY
+        - text: и
+        - code [ref=e175]: POSTHOG_PROJECT_ID
+    - generic [ref=e176]:
+      - generic [ref=e177]: PostHog · этот браузер
+      - generic [ref=e178]:
+        - generic [ref=e179]: ✗ Аналитика включена — визиты с этого браузера попадают в статистику
+        - button "Отключить для этого браузера" [ref=e180] [cursor=pointer]
+      - generic [ref=e181]: После отключения статус сохраняется навсегда в этом браузере — даже без логина и при смене аккаунта. При очистке кэша/куки нужно нажать снова.
+  - alert [ref=e182]
+```
