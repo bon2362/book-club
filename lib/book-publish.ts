@@ -60,7 +60,6 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
       author: submission.author,
       tags: submission.topic ? [submission.topic] : [],
       type: 'book',
-      size: '',
       pages: submission.pages,
       publishedDate: submission.publishedDate ?? '',
       textUrl: submission.textUrl ?? '',

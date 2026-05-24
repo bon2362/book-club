@@ -7,6 +7,14 @@ const ADMIN_NAME = 'E2E Books Catalog Admin'
 const BOOK_TITLE = `E2E Catalog Book ${Date.now()}`
 const BOOK_AUTHOR = 'E2E Author'
 
+async function ensureEditorOpen(page: import('@playwright/test').Page, bookId: string) {
+  const editor = page.getByTestId(`admin-book-editor-${bookId}`)
+  if (!(await editor.isVisible().catch(() => false))) {
+    await page.getByTestId(`admin-book-expand-${bookId}`).click()
+    await expect(editor).toBeVisible()
+  }
+}
+
 test.describe('AdminPanel — вкладка «Каталог»', () => {
   test.setTimeout(120_000)
   let createdBookId: string | null = null
@@ -24,7 +32,6 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
       data: { email: ADMIN_EMAIL, name: ADMIN_NAME, isAdmin: true },
     })
     if (createdBookId) {
-      // Soft-archive instead of hard delete to keep history; cleanup script may purge later.
       await page.request.patch(`/api/admin/books/${createdBookId}`, {
         data: { archived: true, visibility: 'hidden' },
       })
@@ -50,23 +57,17 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     const createRes = page.waitForResponse(res =>
       res.url().endsWith('/api/admin/books') && res.request().method() === 'POST'
     )
-    const reloadAfterCreate = page.waitForResponse(res =>
-      res.url().includes('/api/admin/books?includeArchived=1') && res.request().method() === 'GET'
-    )
     await page.getByTestId('admin-books-create-submit').click()
     const created = await createRes
     expect(created.ok()).toBe(true)
     const createdBody = await created.json()
     createdBookId = createdBody.data.id as string
     expect(createdBookId).toBeTruthy()
-    await reloadAfterCreate
-    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
 
-    // 2. Книга появляется в таблице, по умолчанию скрыта
+    // 2. Книга появляется в секции «Не опубликованные»
     const row = page.getByTestId(`admin-book-row-${createdBookId}`)
     await expect(row).toBeVisible()
     await expect(row).toContainText(BOOK_TITLE)
-    await expect(row).toContainText('Скрыта')
 
     // 3. На главной hidden книги нет
     const homePage = await page.context().newPage()
@@ -74,21 +75,26 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await homePage.waitForLoadState('networkidle')
     await expect(homePage.getByText(BOOK_TITLE)).toHaveCount(0)
     await homePage.close()
-    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
-    await expect(row).toBeVisible()
 
-    // 4. Публикуем книгу — раскрываем editor через precise testid
-    await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
+    // 4. Публикуем книгу — раскрываем editor и кликаем visibility toggle
+    const togglePublishRes = page.waitForResponse(res =>
+      res.url().includes(`/api/admin/books/${createdBookId}`) && res.request().method() === 'PATCH'
+    )
+    await ensureEditorOpen(page, createdBookId)
     await page.getByTestId('admin-book-toggle-publish').click()
-    await expect(row).toContainText('Опубликована', { timeout: 5000 })
+    await togglePublishRes
+
+    // После публикации книга переезжает в секцию «Опубликованные»
+    const publishedSection = page.getByTestId('admin-catalog-section-published')
+    await expect(publishedSection.getByTestId(`admin-book-row-${createdBookId}`)).toBeVisible({ timeout: 5000 })
 
     // Reload — должна остаться опубликованной
     await page.reload()
     await page.waitForLoadState('networkidle')
     await page.getByTestId('admin-tab-catalog').click()
-    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
-    const rowAfterPublish = page.getByTestId(`admin-book-row-${createdBookId}`)
-    await expect(rowAfterPublish).toContainText('Опубликована')
+    await expect(
+      page.getByTestId('admin-catalog-section-published').getByTestId(`admin-book-row-${createdBookId}`)
+    ).toBeVisible({ timeout: 5000 })
 
     // 5. На главной книга появилась
     const homePage2 = await page.context().newPage()
@@ -98,17 +104,25 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await homePage2.close()
 
     // 6. Скрываем — раскрываем editor заново после reload
-    await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
+    await ensureEditorOpen(page, createdBookId)
+    const hideRes = page.waitForResponse(res =>
+      res.url().includes(`/api/admin/books/${createdBookId}`) && res.request().method() === 'PATCH'
+    )
     await page.getByTestId('admin-book-toggle-publish').click()
-    await expect(rowAfterPublish).toContainText('Скрыта', { timeout: 5000 })
+    await hideRes
+
+    // Книга переехала в «Не опубликованные»
+    await expect(
+      page.getByTestId('admin-catalog-section-hidden').getByTestId(`admin-book-row-${createdBookId}`)
+    ).toBeVisible({ timeout: 5000 })
 
     // Reload — скрыта осталась
     await page.reload()
     await page.waitForLoadState('networkidle')
     await page.getByTestId('admin-tab-catalog').click()
-    await page.getByLabel('Поиск книг').fill(BOOK_TITLE)
-    const rowAfterHide = page.getByTestId(`admin-book-row-${createdBookId}`)
-    await expect(rowAfterHide).toContainText('Скрыта')
+    await expect(
+      page.getByTestId('admin-catalog-section-hidden').getByTestId(`admin-book-row-${createdBookId}`)
+    ).toBeVisible({ timeout: 5000 })
 
     // На главной снова нет
     const homePage3 = await page.context().newPage()
@@ -119,15 +133,61 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
 
     // 7. Архивируем (soft delete) — раскрываем editor
     page.on('dialog', d => d.accept())
-    await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
+    await ensureEditorOpen(page, createdBookId)
+    const archiveRes = page.waitForResponse(res =>
+      res.url().includes(`/api/admin/books/${createdBookId}`) && res.request().method() === 'PATCH'
+    )
     await page.getByTestId('admin-book-archive-toggle').click()
+    await archiveRes
 
-    // Книга пропала из активного фильтра по умолчанию
-    await expect(page.getByTestId(`admin-book-row-${createdBookId}`)).toHaveCount(0, { timeout: 5000 })
+    // Книга пропала из активных секций
+    await expect(
+      page.getByTestId('admin-catalog-section-hidden').getByTestId(`admin-book-row-${createdBookId}`)
+    ).toHaveCount(0, { timeout: 5000 })
+    await expect(
+      page.getByTestId('admin-catalog-section-published').getByTestId(`admin-book-row-${createdBookId}`)
+    ).toHaveCount(0)
 
-    // Но видна в фильтре «Архив»
-    await page.getByRole('button', { name: 'Архив' }).click()
-    await expect(page.getByTestId(`admin-book-row-${createdBookId}`)).toBeVisible()
+    // Раскрываем секцию «Архив» (свёрнута по умолчанию) и видим книгу там
+    const archiveSection = page.getByTestId('admin-catalog-section-archived')
+    await archiveSection.getByRole('button', { name: /Архив/ }).click()
+    await expect(archiveSection.getByTestId(`admin-book-row-${createdBookId}`)).toBeVisible()
+  })
+
+  test('закрытие inline-редактора с несохранёнными правками показывает confirm', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByTestId('admin-tab-catalog').click()
+    await expect(page.getByTestId('admin-books-catalog')).toBeVisible()
+
+    // Создаём книгу, чтобы было что редактировать
+    await page.getByTestId('admin-books-create-toggle').click()
+    const form = page.getByTestId('admin-books-create-form')
+    await form.getByLabel('Название').fill(`${BOOK_TITLE} confirm`)
+    const createRes = page.waitForResponse(res =>
+      res.url().endsWith('/api/admin/books') && res.request().method() === 'POST'
+    )
+    await page.getByTestId('admin-books-create-submit').click()
+    const created = await createRes
+    createdBookId = (await created.json()).data.id as string
+
+    // Открываем editor, меняем «Название», пытаемся закрыть — должен прийти confirm
+    await ensureEditorOpen(page, createdBookId)
+    const titleInput = page
+      .getByTestId(`admin-book-editor-${createdBookId}`)
+      .locator('input')
+      .first()
+    await titleInput.fill(`${BOOK_TITLE} confirm edited`)
+
+    let dialogMessage = ''
+    page.once('dialog', async d => {
+      dialogMessage = d.message()
+      await d.dismiss()
+    })
+    await page.getByTestId(`admin-book-expand-${createdBookId}`).click()
+    await expect.poll(() => dialogMessage, { timeout: 3000 }).toContain('сохранения')
+    // Editor остался открыт после dismiss
+    await expect(page.getByTestId(`admin-book-editor-${createdBookId}`)).toBeVisible()
   })
 
   test('[SEC] не-админ не может вызвать /api/admin/books', async ({ page }) => {
@@ -141,6 +201,13 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
       data: { title: 'Sneaky' },
     })
     expect(postRes.status()).toBe(403)
+
+    // [SEC] reorder endpoint also admin-only
+    const reorderRes = await page.request.put('/api/admin/books/reorder', {
+      data: { ids: ['some-id'] },
+    })
+    expect(reorderRes.status()).toBe(403)
+
     await page.request.delete('/api/test/session', { data: { email: userEmail } })
   })
 })

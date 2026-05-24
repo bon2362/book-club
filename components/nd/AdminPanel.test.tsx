@@ -20,12 +20,11 @@ jest.mock('./Header', () => ({
 const defaultProps = {
   users: [],
   byBook: [],
-  statuses: {},
   allTags: [],
   tagDescriptions: {},
-  newFlags: {},
   bookPrioritiesMap: {},
   prioritiesSetMap: {},
+  catalogCount: 0,
 }
 
 const mockSubmissions = [
@@ -73,7 +72,6 @@ const mockByBook = [
       author: 'Автор А',
       tags: [],
       type: 'Book',
-      size: '',
       pages: '',
       date: '',
       link: '',
@@ -94,7 +92,6 @@ const mockByBook = [
       author: 'Автор Б',
       tags: [],
       type: 'Book',
-      size: '',
       pages: '',
       date: '',
       link: '',
@@ -458,62 +455,15 @@ describe('AdminPanel — Заявки таб', () => {
   })
 })
 
-describe('AdminPanel — По книгам таб', () => {
-  it('по умолчанию сортирует книги по числу записей по убыванию', () => {
+describe('AdminPanel — таб-бар', () => {
+  it('таб "По книгам" удалён', () => {
     render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
-    fireEvent.click(screen.getByText(/по книгам/i))
-
-    const rows = screen.getAllByRole('row')
-    expect(within(rows[1]).getByText('Книга с тремя записями')).toBeInTheDocument()
-    expect(within(rows[2]).getByText('Книга с одной записью')).toBeInTheDocument()
+    expect(screen.queryByText(/по книгам/i)).not.toBeInTheDocument()
   })
 
-  it('показывает автора в ячейке книги и не показывает отдельный столбец автора', () => {
-    render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
-    fireEvent.click(screen.getByText(/по книгам/i))
-
-    expect(screen.queryByRole('columnheader', { name: /^автор$/i })).not.toBeInTheDocument()
-    expect(screen.getByText('Автор А')).toBeInTheDocument()
-    expect(screen.getByText('Автор Б')).toBeInTheDocument()
-  })
-
-  it('показывает миниатюру обложки, если coverUrl задан', () => {
-    render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
-    fireEvent.click(screen.getByText(/по книгам/i))
-
-    const cover = screen.getByAltText('Обложка: Книга с одной записью')
-    expect(cover).toHaveAttribute('src', 'https://example.com/cover-a.jpg')
-    expect(cover).toHaveAttribute('loading', 'lazy')
-  })
-
-  it('переключает сортировку по названию книги', () => {
-    render(<AdminPanel {...defaultProps} byBook={mockByBook} />)
-    fireEvent.click(screen.getByText(/по книгам/i))
-
-    fireEvent.click(screen.getByRole('columnheader', { name: /^книга$/i }))
-
-    const rows = screen.getAllByRole('row')
-    expect(within(rows[1]).getByText('Книга с одной записью')).toBeInTheDocument()
-    expect(within(rows[2]).getByText('Книга с тремя записями')).toBeInTheDocument()
-  })
-
-  it('показывает эмодзи топ-3 рядом с номером приоритета участника', () => {
-    render(
-      <AdminPanel
-        {...defaultProps}
-        byBook={mockByBook}
-        bookPrioritiesMap={{
-          'user-2': [{ bookId: '2', bookName: 'Книга с тремя записями', rank: 1 }],
-          'user-3': [{ bookId: '2', bookName: 'Книга с тремя записями', rank: 2 }],
-          'user-4': [{ bookId: '2', bookName: 'Книга с тремя записями', rank: 3 }],
-        }}
-      />
-    )
-    fireEvent.click(screen.getByText(/по книгам/i))
-
-    expect(screen.getByText(/\(🏆 #1\)/)).toBeInTheDocument()
-    expect(screen.getByText(/\(🥈 #2\)/)).toBeInTheDocument()
-    expect(screen.getByText(/\(🥉 #3\)/)).toBeInTheDocument()
+  it('таб "Каталог" присутствует', () => {
+    render(<AdminPanel {...defaultProps} />)
+    expect(screen.getByTestId('admin-tab-catalog')).toBeInTheDocument()
   })
 })
 

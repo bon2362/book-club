@@ -36,9 +36,9 @@ const sampleSignups = [
 ]
 
 const sampleBooks = [
-  { id: '1', name: 'Книга A', author: 'Author', tags: [], type: 'Book', size: '', pages: '', date: '', link: '', description: '', coverUrl: null, whyForClub: null, recommendationLink: null },
-  { id: '2', name: 'Книга B', author: 'Author', tags: [], type: 'Book', size: '', pages: '', date: '', link: '', description: '', coverUrl: null, whyForClub: null, recommendationLink: null },
-  { id: '3', name: 'Книга C', author: 'Author', tags: [], type: 'Book', size: '', pages: '', date: '', link: '', description: '', coverUrl: null, whyForClub: null, recommendationLink: null },
+  { id: '1', name: 'Книга A', author: 'Author', tags: [], type: 'Book', pages: '', date: '', link: '', description: '', coverUrl: null, whyForClub: null, recommendationLink: null },
+  { id: '2', name: 'Книга B', author: 'Author', tags: [], type: 'Book', pages: '', date: '', link: '', description: '', coverUrl: null, whyForClub: null, recommendationLink: null },
+  { id: '3', name: 'Книга C', author: 'Author', tags: [], type: 'Book', pages: '', date: '', link: '', description: '', coverUrl: null, whyForClub: null, recommendationLink: null },
 ]
 
 describe('GET /api/admin', () => {

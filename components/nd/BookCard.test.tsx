@@ -20,7 +20,6 @@ const book: BookWithCover = {
   pages: '500',
   link: '',
   type: 'Book',
-  size: '',
   coverUrl: null,
   whyRead: null,
   recommendationLink: null,

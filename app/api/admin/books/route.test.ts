@@ -82,7 +82,7 @@ describe('GET /api/admin/books', () => {
     // Two select queries in order: books rows, then signup counts by book id.
     // Our mock fixture returns the same rows for each call — simplest path: use empty counts.
     pushSelectResult([{
-      id: 'b1', title: 'T', author: 'A', tags: ['x'], type: 'book', size: '',
+      id: 'b1', title: 'T', author: 'A', tags: ['x'], type: 'book',
       pages: 100, publishedDate: '', textUrl: '', description: '', coverUrl: null,
       whyRead: null, recommendationLink: null, readingStatus: null,
       visibility: 'published', isNew: false, sortOrder: 0, source: 'admin',

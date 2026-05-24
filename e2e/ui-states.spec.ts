@@ -170,3 +170,72 @@ test.describe('Admin tab layout states', () => {
     expect(after!.height).toBeGreaterThan(before!.height)
   })
 })
+
+test.describe('Admin Catalog: section + editor layout', () => {
+  const ADMIN_EMAIL = 'e2e-catalog-layout-admin@test.invalid'
+  const ADMIN_NAME = 'E2E Catalog Layout Admin'
+  let createdId: string | null = null
+
+  test.beforeEach(async ({ page }) => {
+    await page.request.post('/api/test/session', {
+      data: { email: ADMIN_EMAIL, name: ADMIN_NAME, isAdmin: true },
+    })
+  })
+
+  test.afterEach(async ({ page }) => {
+    await page.request.post('/api/test/session', {
+      data: { email: ADMIN_EMAIL, name: ADMIN_NAME, isAdmin: true },
+    })
+    if (createdId) {
+      await page.request.patch(`/api/admin/books/${createdId}`, {
+        data: { archived: true, visibility: 'hidden' },
+      })
+      createdId = null
+    }
+    await page.request.delete('/api/test/session', { data: { email: ADMIN_EMAIL } })
+  })
+
+  test('inline-редактор раскрывается ниже строки книги и имеет ненулевой размер', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByTestId('admin-tab-catalog').click()
+
+    // Создаём книгу-фикстуру, чтобы тест был детерминирован.
+    await page.getByTestId('admin-books-create-toggle').click()
+    const form = page.getByTestId('admin-books-create-form')
+    const title = `UI Layout Book ${Date.now()}`
+    await form.getByLabel('Название').fill(title)
+    const createRes = page.waitForResponse(
+      r => r.url().endsWith('/api/admin/books') && r.request().method() === 'POST'
+    )
+    await page.getByTestId('admin-books-create-submit').click()
+    createdId = (await (await createRes).json()).data.id as string
+
+    const row = page.getByTestId(`admin-book-row-${createdId}`)
+    await expect(row).toBeVisible()
+    const rowBox = await row.boundingBox()
+    expect(rowBox).not.toBeNull()
+
+    // Открываем editor — он должен оказаться визуально под строкой и иметь ненулевую высоту.
+    await page.getByTestId(`admin-book-expand-${createdId}`).click()
+    const editor = page.getByTestId(`admin-book-editor-${createdId}`)
+    await expect(editor).toBeVisible()
+    const editorBox = await editor.boundingBox()
+    expect(editorBox).not.toBeNull()
+    expect(editorBox!.height).toBeGreaterThan(100)
+    // editor.y должен быть ниже row.y + row.height (или хотя бы не выше row.y).
+    expect(editorBox!.y).toBeGreaterThanOrEqual(rowBox!.y)
+  })
+
+  test('секция «Архив» свёрнута по умолчанию', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+    await page.getByTestId('admin-tab-catalog').click()
+    await expect(page.getByTestId('admin-books-catalog')).toBeVisible()
+
+    const section = page.getByTestId('admin-catalog-section-archived')
+    await expect(section).toBeVisible()
+    // У свёрнутой секции внутри нет видимой таблицы.
+    await expect(section.locator('table')).toHaveCount(0)
+  })
+})

@@ -67,7 +67,6 @@ function bookRow(overrides: Record<string, unknown> = {}) {
     author: 'Author',
     tags: ['tag'],
     type: 'book',
-    size: '',
     pages: 100,
     publishedDate: '2024',
     textUrl: '',
