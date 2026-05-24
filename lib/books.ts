@@ -109,12 +109,6 @@ export async function fetchBookById(id: string): Promise<BookWithCover | null> {
   return row ? rowToBook(row) : null
 }
 
-function normalizeKey(title: string, author: string): string {
-  const norm = (s: string) =>
-    s.toLowerCase().replace(/[ёе]/g, 'е').replace(/[^a-zа-я0-9]+/gi, ' ').trim()
-  return `${norm(title)}|${norm(author)}`
-}
-
 function normalizeTags(input: unknown): string[] {
   if (Array.isArray(input)) {
     return input.map(t => String(t).trim()).filter(Boolean)
@@ -178,7 +172,6 @@ export async function createBook(input: CreateBookInput): Promise<BookWithCover>
   const now = new Date()
   await db.insert(books).values({
     id,
-    canonicalKey: normalizeKey(title, author),
     title,
     author,
     tags: normalizeTags(input.tags),
@@ -196,8 +189,6 @@ export async function createBook(input: CreateBookInput): Promise<BookWithCover>
     isNew: input.isNew ?? false,
     sortOrder: typeof input.sortOrder === 'number' ? input.sortOrder : 0,
     source: 'admin',
-    sourceSubmissionId: null,
-    legacySheetsRowId: null,
     createdAt: now,
     updatedAt: now,
     publishedAt: visibility === 'published' ? now : null,
@@ -285,13 +276,6 @@ export async function updateBook(id: string, input: UpdateBookInput): Promise<Bo
   if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder
   if (input.archived !== undefined) {
     patch.archivedAt = input.archived ? new Date() : null
-  }
-
-  if (patch.title !== undefined || input.author !== undefined) {
-    patch.canonicalKey = normalizeKey(
-      (patch.title ?? current.title) as string,
-      (patch.author ?? current.author) as string,
-    )
   }
 
   await db.update(books).set(patch).where(eq(books.id, id))

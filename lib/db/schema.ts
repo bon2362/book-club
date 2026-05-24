@@ -57,7 +57,6 @@ export const verificationTokens = pgTable('verificationToken', {
 // See docs/planning-artifacts/books-catalog-db-refactor-plan.md.
 export const books = pgTable('books', {
   id: text('id').primaryKey(),
-  canonicalKey: text('canonical_key'),
   title: text('title').notNull(),
   author: text('author').notNull().default(''),
   tags: jsonb('tags').$type<string[]>().notNull().default([]),
@@ -75,8 +74,6 @@ export const books = pgTable('books', {
   isNew: boolean('is_new').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
   source: text('source').notNull().default('admin'), // 'admin' | 'submission' | 'sheets_import'
-  sourceSubmissionId: text('source_submission_id'),
-  legacySheetsRowId: text('legacy_sheets_row_id'),
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
   publishedAt: timestamp('published_at', { mode: 'date' }),
@@ -84,26 +81,7 @@ export const books = pgTable('books', {
   archivedAt: timestamp('archived_at', { mode: 'date' }),
 }, (t) => ({
   visibilityIdx: index('books_visibility_idx').on(t.visibility),
-  sourceSubmissionIdx: index('books_source_submission_id_idx').on(t.sourceSubmissionId),
-  // Partial unique index (source_submission_id IS NOT NULL) is created in the SQL migration directly,
-  // since drizzle-orm's typed builder does not expose a partial-where helper on uniqueIndex in this version.
-  canonicalKeyIdx: index('books_canonical_key_idx').on(t.canonicalKey),
   sortOrderIdx: index('books_sort_order_idx').on(t.sortOrder),
-}))
-
-export const legacyBookMappings = pgTable('legacy_book_mappings', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  legacySource: text('legacy_source').notNull(), // 'sheets' | 'submission' | 'book_name'
-  legacyId: text('legacy_id').notNull(),
-  legacyTitle: text('legacy_title'),
-  legacyAuthor: text('legacy_author'),
-  bookId: text('book_id').references(() => books.id, { onDelete: 'set null' }),
-  confidence: text('confidence').notNull(), // 'exact' | 'normalized' | 'manual' | 'unmatched'
-  resolution: text('resolution'),
-  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
-}, (t) => ({
-  legacyLookupIdx: uniqueIndex('legacy_book_mappings_source_id_idx').on(t.legacySource, t.legacyId),
-  bookIdIdx: index('legacy_book_mappings_book_id_idx').on(t.bookId),
 }))
 
 export const tagDescriptions = pgTable('tag_descriptions', {

@@ -48,7 +48,6 @@ export async function GET(req: NextRequest) {
     isNew: row.isNew,
     sortOrder: row.sortOrder,
     source: row.source,
-    sourceSubmissionId: row.sourceSubmissionId,
     archivedAt: row.archivedAt,
     publishedAt: row.publishedAt,
     hiddenAt: row.hiddenAt,

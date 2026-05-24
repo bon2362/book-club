@@ -1,7 +1,6 @@
 import { searchBooks } from './search'
-import type { Book } from './sheets'
 
-const books: Book[] = [
+const books = [
   { id: '1', name: 'Кредо либерала', author: 'Paul Krugman', tags: ['неолиберализм'],
     type: 'Book', size: 'L', pages: '368', date: '2007', link: '', description: '', coverUrl: null, whyForClub: null, recommendationLink: null },
   { id: '2', name: 'Как богатые страны стали богатыми', author: 'Erik S. Reinert', tags: ['модернизация'],

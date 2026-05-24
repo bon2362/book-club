@@ -39,8 +39,6 @@ export async function POST() {
     isNew: false,
     sortOrder: -100,
     source: 'admin' as const,
-    sourceSubmissionId: null,
-    legacySheetsRowId: null,
   }))).onConflictDoNothing()
 
   return NextResponse.json({ ok: true, ids: TEST_FIXTURE_BOOK_IDS })

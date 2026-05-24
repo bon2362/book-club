@@ -16,7 +16,7 @@
 ## API каталога книг
 - `GET /api/admin/books?includeArchived=1` — список всех книг (включая hidden/archived) с `signupCount`
 - `POST /api/admin/books` — создать книгу. Серверная нормализация: `tags` (string|array → string[]), `pages` (string → int|null), валидация `type`/`visibility`/`readingStatus`. Default: `source='admin'`, `visibility='hidden'`. Возвращает 400 при невалидных полях.
-- `PATCH /api/admin/books/:id` — обновить любые поля + `archived: true|false` (soft delete). При смене visibility выставляет `publishedAt`/`hiddenAt`. canonicalKey пересчитывается при изменении title/author.
+- `PATCH /api/admin/books/:id` — обновить любые поля + `archived: true|false` (soft delete). При смене visibility выставляет `publishedAt`/`hiddenAt`.
 
 ## Записи пользователей на книги
 
