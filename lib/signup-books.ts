@@ -9,14 +9,14 @@ export interface UserSignup {
   email: string | null
   contactEmail?: string | null
   contacts: string
-  selectedBooks: string[]
-  selectedBookIds?: string[]
+  selectedBooks: string[]       // titles joined from books.title (for legacy UI)
+  selectedBookIds: string[]
   prioritiesSet?: boolean
 }
 
 export interface UpsertResult {
   isNew: boolean
-  addedBooks: string[]
+  addedBooks: string[]    // titles
   addedBookIds: string[]
 }
 
@@ -34,20 +34,21 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       contactEmail: users.contactEmail,
       contacts: users.contacts,
       prioritiesSet: users.prioritiesSet,
-      bookName: signupBooks.bookName,
       bookId: signupBooks.bookId,
+      bookTitle: books.title,
       signedAt: signupBooks.signedAt,
     })
     .from(signupBooks)
     .innerJoin(users, eq(signupBooks.userId, users.id))
-    .orderBy(asc(users.name), asc(signupBooks.signedAt), asc(signupBooks.bookName))
+    .innerJoin(books, eq(signupBooks.bookId, books.id))
+    .orderBy(asc(users.name), asc(signupBooks.signedAt), asc(books.title))
 
   const byUser = new Map<string, UserSignup>()
   for (const row of rows) {
     const existing = byUser.get(row.userId)
     if (existing) {
-      existing.selectedBooks.push(row.bookName)
-      if (row.bookId) (existing.selectedBookIds ??= []).push(row.bookId)
+      existing.selectedBooks.push(row.bookTitle)
+      existing.selectedBookIds.push(row.bookId)
       continue
     }
 
@@ -58,8 +59,8 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       email: row.email,
       contactEmail: row.contactEmail,
       contacts: row.contacts ?? '',
-      selectedBooks: [row.bookName],
-      selectedBookIds: row.bookId ? [row.bookId] : [],
+      selectedBooks: [row.bookTitle],
+      selectedBookIds: [row.bookId],
       prioritiesSet: row.prioritiesSet,
     })
   }
@@ -89,26 +90,6 @@ async function resolveBooksByIds(bookIds: string[]): Promise<SignupBookInput[]> 
   return resolved
 }
 
-async function resolveBooksByNames(bookNames: string[]): Promise<SignupBookInput[]> {
-  const normalized = normalizeIds(bookNames)
-  if (normalized.length === 0) return []
-
-  const rows = await db
-    .select({ id: books.id, title: books.title })
-    .from(books)
-    .where(inArray(books.title, normalized))
-  const countByTitle = new Map<string, number>()
-  for (const r of rows) countByTitle.set(r.title, (countByTitle.get(r.title) ?? 0) + 1)
-  const uniqueByTitle = new Map<string, string>()
-  for (const r of rows) {
-    if ((countByTitle.get(r.title) ?? 0) === 1) uniqueByTitle.set(r.title, r.id)
-  }
-  return normalized.flatMap(title => {
-    const id = uniqueByTitle.get(title)
-    return id ? [{ id, title }] : []
-  })
-}
-
 async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInput[]): Promise<UpsertResult> {
   const unique = new Map<string, SignupBookInput>()
   for (const book of selectedBooks) unique.set(book.id, book)
@@ -117,7 +98,7 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
   await sql.transaction(tx => [
     tx`DELETE FROM signup_books WHERE user_id = ${userId}`,
     ...normalized.map(book =>
-      tx`INSERT INTO signup_books (user_id, book_name, book_id) VALUES (${userId}, ${book.title}, ${book.id}) ON CONFLICT DO NOTHING`
+      tx`INSERT INTO signup_books (user_id, book_id) VALUES (${userId}, ${book.id}) ON CONFLICT DO NOTHING`
     ),
   ])
 
@@ -126,15 +107,6 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
 
 export async function upsertSignupByBookIds(userId: string, bookIds: string[]): Promise<UpsertResult> {
   return upsertResolvedSignup(userId, await resolveBooksByIds(bookIds))
-}
-
-export async function upsertSignup(userId: string, bookNames: string[]): Promise<UpsertResult> {
-  const normalized = normalizeIds(bookNames)
-  const resolved = await resolveBooksByNames(normalized)
-  if (resolved.length !== normalized.length) {
-    throw new Error('BOOK_NAME_NOT_FOUND')
-  }
-  return upsertResolvedSignup(userId, resolved)
 }
 
 export async function removeBookFromSignup(userId: string, bookId: string): Promise<void> {

@@ -97,8 +97,10 @@ describe('lib/books — fetchBooksWithCovers', () => {
       bookRow({ id: 'b1', title: 'Book One' }),
       bookRow({ id: 'b2', title: 'Book Two' }),
     ])
-    pushResult([{ bookId: 'b1', count: 3 }])
-    pushResult([{ bookName: 'Book Two', count: 5 }])
+    pushResult([
+      { bookId: 'b1', count: 3 },
+      { bookId: 'b2', count: 5 },
+    ])
 
     const result = await fetchBooksWithCovers()
     expect(result).toHaveLength(2)
@@ -106,16 +108,14 @@ describe('lib/books — fetchBooksWithCovers', () => {
     expect(result[1]).toMatchObject({ id: 'b2', name: 'Book Two', signupCount: 5 })
   })
 
-  it('sums book_id count and legacy book_name count for the same title', async () => {
-    pushResult([bookRow({ id: 'b1', title: 'Shared' })])
-    pushResult([{ bookId: 'b1', count: 2 }])
-    pushResult([{ bookName: 'Shared', count: 4 }])
+  it('reports signupCount=0 when no signups exist for a book', async () => {
+    pushResult([bookRow({ id: 'b1', title: 'Lonely' })])
+    pushResult([])
     const [book] = await fetchBooksWithCovers()
-    expect(book.signupCount).toBe(6)
+    expect(book.signupCount).toBe(0)
   })
 
   it('returns an empty list when no books are published', async () => {
-    pushResult([])
     pushResult([])
     pushResult([])
     expect(await fetchBooksWithCovers()).toEqual([])
@@ -132,7 +132,6 @@ describe('lib/books — fetchBooksWithCovers', () => {
       isNew: true,
     })])
     pushResult([])
-    pushResult([])
     const [book] = await fetchBooksWithCovers()
     expect(book.type).toBe('Article')
     expect(book.submittedByMember).toBe(true)
@@ -148,7 +147,6 @@ describe('lib/books — fetchBooksForAdmin', () => {
       bookRow({ id: 'h1', visibility: 'hidden', title: 'Hidden Book' }),
       bookRow({ id: 'p1', visibility: 'published', title: 'Public Book' }),
     ])
-    pushResult([])
     pushResult([])
     const result = await fetchBooksForAdmin()
     expect(result.map(b => b.id)).toEqual(['h1', 'p1'])

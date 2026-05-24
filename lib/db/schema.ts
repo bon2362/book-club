@@ -155,29 +155,24 @@ export const bookSubmissions = pgTable('book_submissions', {
   bookIdIdx: index('book_submissions_book_id_idx').on(t.bookId),
 }))
 
-// During the books-catalog migration these tables carry BOTH columns:
-//   - book_name (legacy, written by old code paths)
-//   - book_id   (new, populated by backfill + new code paths)
-// Cleanup migration 0022 removes book_name and switches the PK.
+// After migration 0023, book_id is the source of truth and the primary key.
+// The legacy book_name column still exists in the DB for one more rollout
+// window (no runtime writes/reads), and will be dropped by 0024.
 export const bookPriorities = pgTable('book_priorities', {
   userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  bookName:  text('book_name').notNull(),
-  bookId:    text('book_id').references(() => books.id, { onDelete: 'cascade' }),
+  bookId:    text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
   rank:      integer('rank').notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
-  pk: primaryKey({ columns: [t.userId, t.bookName] }),
-  bookIdIdx: index('book_priorities_book_id_idx').on(t.bookId),
+  pk: primaryKey({ columns: [t.userId, t.bookId] }),
 }))
 
 export const signupBooks = pgTable('signup_books', {
   userId:   text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  bookName: text('book_name').notNull(),
-  bookId:   text('book_id').references(() => books.id, { onDelete: 'cascade' }),
+  bookId:   text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
   signedAt: timestamp('signed_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
-  pk: primaryKey({ columns: [t.userId, t.bookName] }),
-  bookIdIdx: index('signup_books_book_id_idx').on(t.bookId),
+  pk: primaryKey({ columns: [t.userId, t.bookId] }),
 }))
 
 export const feedback = pgTable('feedback', {

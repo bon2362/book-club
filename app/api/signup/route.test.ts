@@ -9,7 +9,7 @@ import * as dbModule from '@/lib/db'
 import * as activityModule from '@/lib/user-activity'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/signup-books', () => ({ upsertSignup: jest.fn(), upsertSignupByBookIds: jest.fn() }))
+jest.mock('@/lib/signup-books', () => ({ upsertSignupByBookIds: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
     insert: jest.fn().mockReturnValue({ values: jest.fn().mockReturnValue({ catch: jest.fn() }) }),
@@ -32,7 +32,6 @@ jest.mock('@/lib/user-activity', () => ({
 }))
 
 const mockAuth = authModule.auth as jest.Mock
-const mockUpsertSignup = signups.upsertSignup as jest.Mock
 const mockUpsertSignupByBookIds = signups.upsertSignupByBookIds as jest.Mock
 const mockInsert = dbModule.db.insert as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
@@ -106,7 +105,6 @@ describe('POST /api/signup', () => {
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(signups.upsertSignupByBookIds).toHaveBeenCalledWith('user-1', ['book-a'])
-    expect(signups.upsertSignup).not.toHaveBeenCalled()
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_submitted', expect.objectContaining({
       source: 'api',
       metadata: expect.objectContaining({ selectedBooksCount: 1, addedBooksCount: 1 }),
@@ -117,14 +115,13 @@ describe('POST /api/signup', () => {
     }))
   })
 
-  it('поддерживает legacy selectedBooks по названиям на переходный период', async () => {
+  it('не принимает legacy selectedBooks по названиям', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignup.mockResolvedValue(upsertResult(['Book A'], ['book-a'], true))
 
     const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBooks: ['Book A'] }))
 
-    expect(res.status).toBe(200)
-    expect(signups.upsertSignup).toHaveBeenCalledWith('user-1', ['Book A'])
+    expect(res.status).toBe(400)
+    expect(mockUpsertSignupByBookIds).not.toHaveBeenCalled()
   })
 
   it('обрезает пробелы в name и contacts', async () => {

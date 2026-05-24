@@ -84,7 +84,7 @@ const mockByBook = [
       isNew: false,
     },
     users: [
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-1', name: 'Анна', email: 'anna@test.com', contacts: '', selectedBooks: ['Книга с одной записью'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-1', name: 'Анна', email: 'anna@test.com', contacts: '', selectedBooks: ['Книга с одной записью'], selectedBookIds: ['1'] },
     ],
   },
   {
@@ -105,9 +105,9 @@ const mockByBook = [
       isNew: false,
     },
     users: [
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-2', name: 'Борис', email: 'boris@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'] },
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-3', name: 'Вера', email: 'vera@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'] },
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-4', name: 'Глеб', email: 'gleb@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-2', name: 'Борис', email: 'boris@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-3', name: 'Вера', email: 'vera@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-4', name: 'Глеб', email: 'gleb@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'] },
     ],
   },
 ]
@@ -503,9 +503,9 @@ describe('AdminPanel — По книгам таб', () => {
         {...defaultProps}
         byBook={mockByBook}
         bookPrioritiesMap={{
-          'user-2': [{ bookName: 'Книга с тремя записями', rank: 1 }],
-          'user-3': [{ bookName: 'Книга с тремя записями', rank: 2 }],
-          'user-4': [{ bookName: 'Книга с тремя записями', rank: 3 }],
+          'user-2': [{ bookId: '2', bookName: 'Книга с тремя записями', rank: 1 }],
+          'user-3': [{ bookId: '2', bookName: 'Книга с тремя записями', rank: 2 }],
+          'user-4': [{ bookId: '2', bookName: 'Книга с тремя записями', rank: 3 }],
         }}
       />
     )

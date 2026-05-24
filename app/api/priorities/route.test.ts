@@ -28,6 +28,7 @@ const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as je
 function makeSelectMock(rows: unknown[]) {
   const chain = {
     from: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockResolvedValue(rows),
   }
@@ -127,8 +128,8 @@ describe('PUT /api/priorities', () => {
     expect(data.ok).toBe(true)
     expect(db.insert).toHaveBeenCalled()
     expect(mockInsert.values).toHaveBeenCalledWith([
-      expect.objectContaining({ bookId: 'book-a', bookName: 'Книга А', rank: 1 }),
-      expect.objectContaining({ bookId: 'book-b', bookName: 'Книга Б', rank: 2 }),
+      expect.objectContaining({ bookId: 'book-a', rank: 1 }),
+      expect.objectContaining({ bookId: 'book-b', rank: 2 }),
     ])
     expect(db.update).toHaveBeenCalled()
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'priorities_updated', expect.objectContaining({

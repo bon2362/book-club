@@ -41,7 +41,7 @@ interface Props {
   tagDescriptions: Record<string, string>
   newFlags: Record<string, boolean>
   userLanguages?: Record<string, string[]>
-  bookPrioritiesMap: Record<string, { bookId?: string | null; bookName: string; rank: number }[]>
+  bookPrioritiesMap: Record<string, { bookId: string; bookName: string; rank: number }[]>
   prioritiesSetMap: Record<string, boolean>
 }
 
@@ -969,7 +969,7 @@ export default function AdminPanel({
                       {(() => {
                         const withRanks = bookUsers.map(u => {
                           const userPriorities = bookPrioritiesMap[u.userId] ?? [] // uses original prop intentionally; По книгам is static server data
-                          const entry = userPriorities.find(p => p.bookId === book.id || (!p.bookId && p.bookName === book.name))
+                          const entry = userPriorities.find(p => p.bookId === book.id)
                           return { name: u.name, rank: entry?.rank ?? null, userId: u.userId }
                         })
                         withRanks.sort((a, b) => {

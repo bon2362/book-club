@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { getAllSignups, removeBookFromSignup, upsertSignup, upsertSignupByBookIds } from './signup-books'
+import { getAllSignups, removeBookFromSignup, upsertSignupByBookIds } from './signup-books'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/db', () => ({
@@ -26,20 +26,22 @@ describe('signup-books', () => {
           userId: 'user-1',
           name: 'Иван',
           email: 'ivan@test.com',
+          contactEmail: 'ivan@test.com',
           contacts: '@ivan',
           prioritiesSet: true,
-          bookName: 'Книга A',
           bookId: 'book-a',
+          bookTitle: 'Книга A',
           signedAt: new Date('2026-01-01T00:00:00Z'),
         },
         {
           userId: 'user-1',
           name: 'Иван',
           email: 'ivan@test.com',
+          contactEmail: 'ivan@test.com',
           contacts: '@ivan',
           prioritiesSet: true,
-          bookName: 'Книга B',
           bookId: 'book-b',
+          bookTitle: 'Книга B',
           signedAt: new Date('2026-01-01T00:00:00Z'),
         },
       ]),
@@ -54,6 +56,7 @@ describe('signup-books', () => {
         userId: 'user-1',
         name: 'Иван',
         email: 'ivan@test.com',
+        contactEmail: 'ivan@test.com',
         contacts: '@ivan',
         selectedBooks: ['Книга A', 'Книга B'],
         selectedBookIds: ['book-a', 'book-b'],
@@ -62,28 +65,7 @@ describe('signup-books', () => {
     ])
   })
 
-  it('upsertSignup одной транзакцией удаляет старые книги и вставляет новые уникальные', async () => {
-    const { sql } = await import('@/lib/db')
-    const tx = jest.fn().mockReturnValue('query')
-    ;(sql.transaction as jest.Mock).mockImplementation(async (fn) => fn(tx))
-    // title→book_id lookup
-    ;(db.select as jest.Mock).mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([
-          { id: 'book-a', title: 'Книга A' },
-          { id: 'book-b', title: 'Книга B' },
-        ]),
-      }),
-    })
-
-    const result = await upsertSignup('user-1', [' Книга A ', 'Книга A', 'Книга B'])
-
-    expect(sql.transaction).toHaveBeenCalled()
-    expect(tx).toHaveBeenCalledTimes(3)
-    expect(result).toEqual({ isNew: false, addedBooks: ['Книга A', 'Книга B'], addedBookIds: ['book-a', 'book-b'] })
-  })
-
-  it('upsertSignupByBookIds пишет book_id и legacy book_name cache', async () => {
+  it('upsertSignupByBookIds одной транзакцией удаляет старые и вставляет новые уникальные', async () => {
     const { sql } = await import('@/lib/db')
     const tx = jest.fn().mockReturnValue('query')
     ;(sql.transaction as jest.Mock).mockImplementation(async (fn) => fn(tx))
@@ -103,17 +85,28 @@ describe('signup-books', () => {
     expect(result).toEqual({ isNew: false, addedBooks: ['Книга A', 'Книга B'], addedBookIds: ['book-a', 'book-b'] })
   })
 
-  it('upsertSignup с пустым списком только очищает записи пользователя', async () => {
+  it('upsertSignupByBookIds с пустым списком только очищает записи пользователя', async () => {
     const { sql } = await import('@/lib/db')
     const tx = jest.fn().mockReturnValue('query')
     ;(sql.transaction as jest.Mock).mockImplementation(async (fn) => fn(tx))
 
-    const result = await upsertSignup('user-1', [])
+    const result = await upsertSignupByBookIds('user-1', [])
 
     expect(sql.transaction).toHaveBeenCalled()
     expect(tx).toHaveBeenCalledTimes(1)
     expect(result.addedBooks).toEqual([])
     expect(result.addedBookIds).toEqual([])
+  })
+
+  it('upsertSignupByBookIds бросает BOOK_ID_NOT_FOUND если книги нет в каталоге', async () => {
+    ;(db.select as jest.Mock).mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue([]),
+      }),
+    })
+
+    await expect(upsertSignupByBookIds('user-1', ['missing']))
+      .rejects.toThrow('BOOK_ID_NOT_FOUND')
   })
 
   it('removeBookFromSignup удаляет одну книгу пользователя', async () => {

@@ -96,20 +96,13 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
     .set({ bookId })
     .where(eq(bookSubmissions.id, submission.id))
 
-  // Sign up the submitter (dual-write for the transition: both legacy book_name and new book_id).
+  // Sign up the submitter. Stage 3 finalize: signup_books PK is (user_id, book_id);
+  // the legacy book_name column still exists in the DB but is no longer written
+  // and will be dropped by 0024.
   await sql`
-    INSERT INTO signup_books (user_id, book_name, book_id)
-    VALUES (${submission.userId}, ${submission.title}, ${bookId})
-    ON CONFLICT (user_id, book_name)
-    DO UPDATE SET book_id = EXCLUDED.book_id
-  `
-  // Older signups for this book that don't yet have a book_id get linked. We intentionally
-  // do NOT overwrite an existing book_id — if a duplicate title exists, an already-linked
-  // signup might point at the other book.
-  await sql`
-    UPDATE signup_books
-    SET book_id = ${bookId}
-    WHERE book_name = ${submission.title} AND book_id IS NULL
+    INSERT INTO signup_books (user_id, book_id)
+    VALUES (${submission.userId}, ${bookId})
+    ON CONFLICT (user_id, book_id) DO NOTHING
   `
 
   return bookId

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { bookSubmissions, signupBooks, bookPriorities, users, books } from '@/lib/db/schema'
+import { bookSubmissions, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
@@ -82,7 +82,6 @@ export async function PATCH(
 
   const submission = updated[0]
 
-  const titleChanged = title !== undefined && title !== existing.title
   const isApproved = submission.status === 'approved'
 
   if (isApproved) {
@@ -103,28 +102,11 @@ export async function PATCH(
     })
   }
 
-  if (titleChanged && isApproved) {
-    // publishSubmissionAsBook already updated books.title for this submission.
-    // To keep the legacy book_name caches in sync, scope the rename strictly to
-    // rows linked to *this* submission's published book — never blanket-update
-    // by title, which would misroute signups for an unrelated book that
-    // happens to share the title.
-    const [pubBook] = await db
-      .select({ id: books.id })
-      .from(books)
-      .where(eq(books.sourceSubmissionId, submission.id))
-      .limit(1)
-    if (pubBook) {
-      await Promise.all([
-        db.update(signupBooks)
-          .set({ bookName: title })
-          .where(eq(signupBooks.bookId, pubBook.id)),
-        db.update(bookPriorities)
-          .set({ bookName: title })
-          .where(eq(bookPriorities.bookId, pubBook.id)),
-      ])
-    }
-  }
+  // After Stage 3 finalize: signup_books and book_priorities are joined to
+  // `books` by book_id, so a rename of an approved submission's published
+  // book is automatically reflected in admin/profile views via the JOIN.
+  // No legacy book_name cache update needed.
+
 
   if (status === 'approved' || status === 'rejected') {
     const [userRow] = await db

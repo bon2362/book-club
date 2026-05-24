@@ -16,9 +16,9 @@ jest.mock('@/lib/db', () => ({
 const mockAuth = authModule.auth as jest.Mock
 const mockGetAllSignups = signupsModule.getAllSignups as jest.Mock
 
-function makeGet(book?: string) {
-  const url = book
-    ? `http://localhost/api/admin/priorities?book=${encodeURIComponent(book)}`
+function makeGet(bookId?: string) {
+  const url = bookId
+    ? `http://localhost/api/admin/priorities?bookId=${encodeURIComponent(bookId)}`
     : 'http://localhost/api/admin/priorities'
   return new NextRequest(url, { method: 'GET' })
 }
@@ -26,11 +26,11 @@ function makeGet(book?: string) {
 describe('GET /api/admin/priorities', () => {
   it('возвращает 403 без isAdmin', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: false } })
-    const res = await GET(makeGet('Книга А'))
+    const res = await GET(makeGet('book-a'))
     expect(res.status).toBe(403)
   })
 
-  it('возвращает 400 без параметра book', async () => {
+  it('возвращает 400 без параметра bookId', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     const res = await GET(makeGet())
     expect(res.status).toBe(400)
@@ -39,7 +39,7 @@ describe('GET /api/admin/priorities', () => {
   it('возвращает участников с priority=null если не расставляли', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockGetAllSignups.mockResolvedValue([
-      { userId: 'user-1', name: 'Иван', email: 'a@a.com', contacts: '@ivan', selectedBooks: ['Книга А'], timestamp: '', prioritiesSet: false },
+      { userId: 'user-1', name: 'Иван', email: 'a@a.com', contacts: '@ivan', selectedBooks: ['Книга А'], selectedBookIds: ['book-a'], timestamp: '', prioritiesSet: false },
     ])
 
     const mockSelectPriorities = {
@@ -48,7 +48,7 @@ describe('GET /api/admin/priorities', () => {
     }
     ;(db.select as jest.Mock).mockReturnValueOnce(mockSelectPriorities)
 
-    const res = await GET(makeGet('Книга А'))
+    const res = await GET(makeGet('book-a'))
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -59,10 +59,10 @@ describe('GET /api/admin/priorities', () => {
   it('возвращает пустой массив если нет записей на книгу', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockGetAllSignups.mockResolvedValue([
-      { userId: 'user-2', name: 'Мария', email: 'b@b.com', contacts: '@maria', selectedBooks: ['Книга Б'], timestamp: '' },
+      { userId: 'user-2', name: 'Мария', email: 'b@b.com', contacts: '@maria', selectedBooks: ['Книга Б'], selectedBookIds: ['book-b'], timestamp: '' },
     ])
 
-    const res = await GET(makeGet('Книга А'))
+    const res = await GET(makeGet('book-a'))
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -72,7 +72,7 @@ describe('GET /api/admin/priorities', () => {
   it('возвращает priority из bookPriorities если расставляли', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     mockGetAllSignups.mockResolvedValue([
-      { userId: 'user-pg-1', name: 'Пётр', email: 'c@c.com', contacts: '@petr', selectedBooks: ['Книга А', 'Книга Б'], timestamp: '', prioritiesSet: true },
+      { userId: 'user-pg-1', name: 'Пётр', email: 'c@c.com', contacts: '@petr', selectedBooks: ['Книга А', 'Книга Б'], selectedBookIds: ['book-a', 'book-b'], timestamp: '', prioritiesSet: true },
     ])
 
     const updatedAt = new Date('2026-01-01T00:00:00Z')
@@ -84,7 +84,7 @@ describe('GET /api/admin/priorities', () => {
     }
     ;(db.select as jest.Mock).mockReturnValueOnce(mockSelectPriorities)
 
-    const res = await GET(makeGet('Книга А'))
+    const res = await GET(makeGet('book-a'))
     const data = await res.json()
 
     expect(res.status).toBe(200)

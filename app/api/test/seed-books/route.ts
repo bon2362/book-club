@@ -7,9 +7,9 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { books, signupBooks, bookPriorities, bookSubmissions } from '@/lib/db/schema'
-import { inArray, or, sql } from 'drizzle-orm'
+import { inArray, sql } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
-import { TEST_FIXTURE_BOOKS, TEST_FIXTURE_BOOK_IDS, TEST_FIXTURE_BOOK_TITLES } from '@/lib/test-books-fixtures'
+import { TEST_FIXTURE_BOOKS, TEST_FIXTURE_BOOK_IDS } from '@/lib/test-books-fixtures'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,14 +56,8 @@ export async function DELETE() {
   const autoSignupBookIds = autoSignupBooks.map(book => book.id)
   const cleanupBookIds = [...TEST_FIXTURE_BOOK_IDS, ...autoSignupBookIds]
 
-  await db.delete(signupBooks).where(or(
-    inArray(signupBooks.bookId, cleanupBookIds),
-    inArray(signupBooks.bookName, TEST_FIXTURE_BOOK_TITLES)
-  ))
-  await db.delete(bookPriorities).where(or(
-    inArray(bookPriorities.bookId, cleanupBookIds),
-    inArray(bookPriorities.bookName, TEST_FIXTURE_BOOK_TITLES)
-  ))
+  await db.delete(signupBooks).where(inArray(signupBooks.bookId, cleanupBookIds))
+  await db.delete(bookPriorities).where(inArray(bookPriorities.bookId, cleanupBookIds))
   await db.delete(books).where(inArray(books.id, cleanupBookIds))
   await db.delete(bookSubmissions).where(sql`${bookSubmissions.title} ILIKE 'E2E Auto Signup %' AND ${bookSubmissions.author} = 'E2E Автор'`)
 

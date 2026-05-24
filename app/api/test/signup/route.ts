@@ -4,20 +4,37 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { signupBooks, userIdentities, users } from '@/lib/db/schema'
-import { upsertSignup } from '@/lib/signup-books'
-import { eq, or } from 'drizzle-orm'
+import { signupBooks, userIdentities, users, books } from '@/lib/db/schema'
+import { upsertSignupByBookIds } from '@/lib/signup-books'
+import { eq, inArray, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
 }
 
+// E2E suite passes book titles for convenience (test fixtures are seeded with
+// stable titles). Resolve them to book_id here so the runtime stays book_id-only.
+async function resolveTitlesToIds(titles: string[]): Promise<string[]> {
+  const unique = Array.from(new Set(titles.map(t => t.trim()).filter(Boolean)))
+  if (unique.length === 0) return []
+  const rows = await db
+    .select({ id: books.id, title: books.title })
+    .from(books)
+    .where(inArray(books.title, unique))
+  const byTitle = new Map(rows.map(r => [r.title, r.id]))
+  return unique.flatMap(t => {
+    const id = byTitle.get(t)
+    return id ? [id] : []
+  })
+}
+
 export async function POST(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
-  const { userId, name, email, contacts, selectedBooks } = await req.json() as {
-    userId: string; name: string; email: string; contacts: string; selectedBooks: string[]
+  const { userId, name, email, contacts, selectedBooks, selectedBookIds } = await req.json() as {
+    userId: string; name: string; email: string; contacts: string
+    selectedBooks?: string[]; selectedBookIds?: string[]
   }
   const rows = await db
     .select({ id: users.id })
@@ -32,7 +49,10 @@ export async function POST(req: NextRequest) {
   const canonicalUserId = rows[0]?.id ?? identityRows[0]?.userId ?? userId
 
   await db.update(users).set({ name, contacts }).where(eq(users.id, canonicalUserId))
-  await upsertSignup(canonicalUserId, selectedBooks)
+  const bookIds = Array.isArray(selectedBookIds) && selectedBookIds.length > 0
+    ? selectedBookIds
+    : await resolveTitlesToIds(selectedBooks ?? [])
+  await upsertSignupByBookIds(canonicalUserId, bookIds)
 
   return NextResponse.json({ ok: true, userId: canonicalUserId })
 }
