@@ -139,7 +139,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (email?.verificationRequest) return true
       const userId = user.id
       if (userId || user.email) {
-        // account is null for email magic link (Resend doesn't create an accounts row)
+        // account is null for email magic link; email identity is synced explicitly below.
         const provider = account?.provider ? normalizeAuthProvider(account.provider) : 'email'
         const now = new Date()
         if (userId) {

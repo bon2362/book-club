@@ -11,7 +11,7 @@ jest.mock('@/lib/db', () => ({
 }))
 
 import { db } from '@/lib/db'
-import { accounts, userActivityEvents, userIdentities, users } from '@/lib/db/schema'
+import { userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 import {
   IdentityConflictError,
   linkIdentityToUser,
@@ -161,12 +161,10 @@ describe('user identity helpers', () => {
     }))
   })
 
-  it('линкует trusted Google identity к существующему user by email и синхронизирует account', async () => {
+  it('линкует trusted Google identity к существующему user by email без legacy account', async () => {
     queueSelects(
       [],
-      [],
       [{ id: 'user-uuid' }],
-      [],
       [{ id: 'user-uuid', email: 'user@test.com', name: 'User', image: null }]
     )
     const insertChains = mockInserts()
@@ -192,20 +190,13 @@ describe('user identity helpers', () => {
       authProvider: expect.anything(),
       lastSignInAt: expect.anything(),
     }))
-    expect(insertChains[1].table).toBe(accounts)
-    expect(insertChains[1].lastValues).toEqual(expect.objectContaining({
-      userId: 'user-uuid',
-      provider: 'google',
-      providerAccountId: 'google-sub',
-    }))
+    expect(insertChains).toHaveLength(1)
   })
 
-  it('при существующем Google account выбирает владельца account, а не user по email', async () => {
+  it('при существующей Google identity выбирает её владельца, а не user по email', async () => {
     queueSelects(
-      [],
-      [{ userId: 'account-owner' }],
-      [{ userId: 'account-owner' }],
-      [{ id: 'account-owner', email: 'owner@test.com', name: 'Owner', image: null }]
+      [{ userId: 'identity-owner' }],
+      [{ id: 'identity-owner', email: 'owner@test.com', name: 'Owner', image: null }]
     )
     const insertChains = mockInserts()
     mockUpdate()
@@ -216,12 +207,12 @@ describe('user identity helpers', () => {
       name: 'Other',
     })
 
-    expect(result.id).toBe('account-owner')
+    expect(result.id).toBe('identity-owner')
     expect(insertChains.some(chain => chain.table === users)).toBe(false)
     expect(insertChains.some(chain => chain.table === userActivityEvents)).toBe(false)
     expect(insertChains[0].table).toBe(userIdentities)
     expect(insertChains[0].lastValues).toEqual(expect.objectContaining({
-      userId: 'account-owner',
+      userId: 'identity-owner',
       provider: 'google',
       providerAccountId: 'google-sub',
     }))
@@ -229,8 +220,6 @@ describe('user identity helpers', () => {
 
   it('linkIdentityToUser upsert-ит Google identity для canonical Auth.js user id', async () => {
     queueSelects(
-      [],
-      [],
       [],
       [{ id: 'canonical-uuid', email: 'oauth@test.com', name: 'OAuth', image: null }]
     )
@@ -248,15 +237,11 @@ describe('user identity helpers', () => {
       provider: 'google',
       providerAccountId: 'oauth-sub',
     }))
-    expect(insertChains[1].table).toBe(accounts)
-    expect(insertChains[1].onConflictDoNothing).toHaveBeenCalledWith({
-      target: [accounts.provider, accounts.providerAccountId],
-    })
+    expect(insertChains).toHaveLength(1)
   })
 
   it('linkIdentityToUser падает при попытке привязать identity другого пользователя', async () => {
     queueSelects(
-      [],
       [{ userId: 'other-user' }]
     )
     const insertChains = mockInserts()
@@ -270,19 +255,4 @@ describe('user identity helpers', () => {
     expect(db.update).not.toHaveBeenCalled()
   })
 
-  it('linkIdentityToUser не переносит существующий Google account на другого пользователя', async () => {
-    queueSelects(
-      [{ userId: 'other-user' }]
-    )
-    const insertChains = mockInserts()
-    mockUpdate()
-
-    await expect(linkIdentityToUser('canonical-uuid', 'google', 'oauth-sub', {
-      email: 'oauth@test.com',
-      emailVerified: true,
-    })).rejects.toThrow(IdentityConflictError)
-
-    expect(insertChains).toHaveLength(0)
-    expect(insertChains.some(chain => chain.table === accounts)).toBe(false)
-  })
 })

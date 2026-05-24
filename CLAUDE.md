@@ -154,4 +154,4 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - `components/nd/AdminBooksCatalog.tsx` — админская вкладка «Каталог»
 - `components/nd/CoverImage.tsx` — client component, onError fallback
 - `components/nd/BookCard.tsx` — expand/collapse описания
-- `lib/db/schema.ts` — схема БД: users, accounts, sessions, books, bookPriorities и др.
+- `lib/db/schema.ts` — схема БД: users, userIdentities, verificationTokens, books, bookPriorities и др.

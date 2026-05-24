@@ -11,7 +11,7 @@
 - **Языки** — `users.languages` (JSON-массив), редактируется через `/api/profile`
 - **Фидбек** — `FeedbackForm` отправляет в `POST /api/feedback`, который и шлёт письмо админу через Resend, и сохраняет запись в таблицу `feedback` (`user_id` nullable — анонимные допустимы)
 - **Выход** — доступен из drawer; вызывает `signOut()` из NextAuth
-- **Удаление аккаунта** — `DELETE /api/profile` через `db.delete(users)` каскадом удаляет всё связанное (`accounts`, `sessions`, `book_priorities`, `book_submissions`, `signup_books`); поле `feedback.user_id` обнуляется (`onDelete: 'set null'`), записи остаются
+- **Удаление аккаунта** — `DELETE /api/profile` через `db.delete(users)` каскадом удаляет всё связанное (`user_identities`, `book_priorities`, `book_submissions`, `signup_books`); поле `feedback.user_id` обнуляется (`onDelete: 'set null'`), записи остаются
 
 ## Ключевые файлы
 - `components/nd/ProfileDrawer.tsx` — оболочка drawer (вкладки, открытие/закрытие)

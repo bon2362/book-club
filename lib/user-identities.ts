@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { accounts, userActivityEvents, userIdentities, users } from '@/lib/db/schema'
+import { userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 
 export const IDENTITY_PROVIDERS = ['google', 'email', 'telegram'] as const
 
@@ -142,19 +142,6 @@ async function findIdentityUserId(
   return rows[0]?.userId ?? null
 }
 
-async function findGoogleAccountUserId(tx: IdentityDb, provider: IdentityProvider, providerAccountId: string): Promise<string | null> {
-  if (provider !== 'google') return null
-  const rows = await tx
-    .select({ userId: accounts.userId })
-    .from(accounts)
-    .where(and(
-      eq(accounts.provider, 'google'),
-      eq(accounts.providerAccountId, providerAccountId)
-    ))
-    .limit(1)
-  return rows[0]?.userId ?? null
-}
-
 async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean): Promise<ResolvedIdentityUser> {
   const rows = await tx
     .select({
@@ -254,26 +241,6 @@ async function upsertIdentity(
   return rows[0]?.userId ?? userId
 }
 
-async function syncGoogleAccount(tx: IdentityDb, userId: string, provider: IdentityProvider, providerAccountId: string): Promise<void> {
-  if (provider !== 'google') return
-  const existingAccountUserId = await findGoogleAccountUserId(tx, provider, providerAccountId)
-  if (existingAccountUserId && existingAccountUserId !== userId) {
-    throw new IdentityConflictError(`Google account ${providerAccountId} is already linked to another user`)
-  }
-
-  await tx
-    .insert(accounts)
-    .values({
-      userId,
-      type: 'oidc',
-      provider: 'google',
-      providerAccountId,
-    })
-    .onConflictDoNothing({
-      target: [accounts.provider, accounts.providerAccountId],
-    })
-}
-
 export async function linkIdentityToUser(
   userId: string,
   provider: RawIdentityProvider | string,
@@ -284,17 +251,12 @@ export async function linkIdentityToUser(
     const normalizedProvider = normalizeIdentityProvider(provider)
     const normalizedProviderAccountId = normalizeProviderAccountId(normalizedProvider, providerAccountId)
     const now = profile.now ?? new Date()
-    const existingGoogleAccountUserId = await findGoogleAccountUserId(tx, normalizedProvider, normalizedProviderAccountId)
-    if (existingGoogleAccountUserId && existingGoogleAccountUserId !== userId) {
-      throw new IdentityConflictError(`Google account ${normalizedProviderAccountId} is already linked to another user`)
-    }
     const existingIdentityUserId = await findIdentityUserId(tx, normalizedProvider, normalizedProviderAccountId)
     if (existingIdentityUserId && existingIdentityUserId !== userId) {
       throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
     }
     const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
     await updateUserCache(tx, identityUserId, normalizedProvider, profile, now)
-    await syncGoogleAccount(tx, identityUserId, normalizedProvider, normalizedProviderAccountId)
     return selectResolvedUser(tx, identityUserId, false)
   })
 }
@@ -316,16 +278,14 @@ export async function resolveOrCreateUserFromIdentity(
       const userId = existingIdentityUserId
       await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
       await updateUserCache(tx, userId, normalizedProvider, profile, now)
-      await syncGoogleAccount(tx, userId, normalizedProvider, normalizedProviderAccountId)
       return selectResolvedUser(tx, userId, false)
     }
 
-    const linkedByAccountUserId = await findGoogleAccountUserId(tx, normalizedProvider, normalizedProviderAccountId)
-    const linkedByEmailUserId = !linkedByAccountUserId && canLinkByEmail(normalizedProvider, profile, email)
+    const linkedByEmailUserId = canLinkByEmail(normalizedProvider, profile, email)
       ? await findUserIdByEmail(tx, email)
       : null
-    const userId = profile.userId ?? linkedByAccountUserId ?? linkedByEmailUserId ?? crypto.randomUUID()
-    const isNew = !profile.userId && !linkedByAccountUserId && !linkedByEmailUserId
+    const userId = profile.userId ?? linkedByEmailUserId ?? crypto.randomUUID()
+    const isNew = !profile.userId && !linkedByEmailUserId
 
     if (isNew) {
       const contact = normalizedProvider === 'telegram' ? telegramContact(profile) : null
@@ -345,7 +305,6 @@ export async function resolveOrCreateUserFromIdentity(
     }
 
     const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
-    await syncGoogleAccount(tx, identityUserId, normalizedProvider, normalizedProviderAccountId)
     return selectResolvedUser(tx, identityUserId, isNew && identityUserId === userId)
   })
 }
