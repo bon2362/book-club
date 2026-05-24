@@ -84,10 +84,12 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
     .set({ bookId })
     .where(eq(bookSubmissions.id, submission.id))
 
-  // Sign up the submitter. signup_books PK is (user_id, book_id).
+  // Sign up the submitter when the author account still exists.
+  // Admin approval should not fail if a test or deleted account removed it first.
   await sql`
     INSERT INTO signup_books (user_id, book_id)
-    VALUES (${submission.userId}, ${bookId})
+    SELECT ${submission.userId}, ${bookId}
+    WHERE EXISTS (SELECT 1 FROM "user" WHERE id = ${submission.userId})
     ON CONFLICT (user_id, book_id) DO NOTHING
   `
 
