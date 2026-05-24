@@ -8,6 +8,7 @@ import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/li
 import Header from './Header'
 import IntroEditor from './IntroEditor'
 import AdminUserDrawer from './AdminUserDrawer'
+import AdminBooksCatalog from './AdminBooksCatalog'
 
 interface Submission {
   id: string
@@ -45,7 +46,7 @@ interface Props {
   prioritiesSetMap: Record<string, boolean>
 }
 
-type View = 'users' | 'books' | 'tags' | 'submissions' | 'feedback' | 'intro'
+type View = 'users' | 'books' | 'catalog' | 'tags' | 'submissions' | 'feedback' | 'intro'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastActivityAt' | 'createdAt'
@@ -785,6 +786,9 @@ export default function AdminPanel({
           <button style={tabStyle(view === 'books')} onClick={() => setView('books')}>
             По книгам ({byBook.length})
           </button>
+          <button style={tabStyle(view === 'catalog')} onClick={() => setView('catalog')} data-testid="admin-tab-catalog">
+            Каталог
+          </button>
           <button style={tabStyle(view === 'tags')} onClick={() => setView('tags')}>
             Теги ({allTags.length})
           </button>
@@ -802,6 +806,8 @@ export default function AdminPanel({
         </div>
 
         {view === 'intro' && <IntroEditor />}
+
+        {view === 'catalog' && <AdminBooksCatalog />}
 
         {/* Users table */}
         {view === 'users' && (
