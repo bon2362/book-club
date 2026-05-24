@@ -10,6 +10,7 @@ export async function GET() {
     return NextResponse.json({ books }, {
       headers: {
         'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+        'X-Books-Catalog-Source': 'db',
       },
     })
   } catch (e) {
@@ -20,6 +21,7 @@ export async function GET() {
         status: 500,
         headers: {
           'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+          'X-Books-Catalog-Source': 'db',
         },
       }
     )
