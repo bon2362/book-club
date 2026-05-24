@@ -7,6 +7,6 @@ FILE=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); prin
 case "$FILE" in
   *.ts|*.tsx)
     echo "=== TypeCheck ==="
-    cd /workspace && npx tsc --noEmit --skipLibCheck 2>&1 | head -20
+    cd "${CLAUDE_PROJECT_DIR:-$(pwd)}" && npx tsc --noEmit --skipLibCheck 2>&1 | head -20
     ;;
 esac

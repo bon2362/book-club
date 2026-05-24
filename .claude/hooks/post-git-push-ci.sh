@@ -1,5 +1,8 @@
 #!/bin/bash
-# PostToolUse hook: after git push — wait for CI and print result
+# PostToolUse hook: after git push — wait for CI and print result.
+# Works in both the devcontainer (project root = /workspace) and on a
+# host machine via ${CLAUDE_PROJECT_DIR} (the project directory Claude
+# Code injects for every hook invocation).
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null)
@@ -8,13 +11,15 @@ if ! echo "$COMMAND" | grep -q "git push"; then
   exit 0
 fi
 
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+
 # Load GH_TOKEN if not set
-if [ -z "$GH_TOKEN" ] && [ -f /workspace/.env.local ]; then
-  export GH_TOKEN=$(grep '^GH_TOKEN=' /workspace/.env.local | cut -d= -f2)
+if [ -z "$GH_TOKEN" ] && [ -f "$PROJECT_DIR/.env.local" ]; then
+  export GH_TOKEN=$(grep '^GH_TOKEN=' "$PROJECT_DIR/.env.local" | cut -d= -f2)
 fi
 
 # Get the SHA we just pushed
-PUSHED_SHA=$(git -C /workspace rev-parse HEAD 2>/dev/null)
+PUSHED_SHA=$(git -C "$PROJECT_DIR" rev-parse HEAD 2>/dev/null)
 
 # Wait for GitHub to register the run
 sleep 5
