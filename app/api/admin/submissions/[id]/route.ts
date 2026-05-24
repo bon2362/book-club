@@ -105,7 +105,7 @@ export async function PATCH(
   // After Stage 3 finalize: signup_books and book_priorities are joined to
   // `books` by book_id, so a rename of an approved submission's published
   // book is automatically reflected in admin/profile views via the JOIN.
-  // No legacy book_name cache update needed.
+      // User signups are keyed by book_id, so title edits do not need cascades.
 
 
   if (status === 'approved' || status === 'rejected') {

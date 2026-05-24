@@ -11,7 +11,7 @@ const USER_CONTACT = '@e2e_bookstatus_user'
 const SORT_USER_A_EMAIL = 'e2e-bookstatus-sort-a@test.invalid'
 const SORT_USER_B_EMAIL = 'e2e-bookstatus-sort-b@test.invalid'
 const SORT_EXTRA_EMAIL_PREFIX = 'e2e-bookstatus-sort-extra'
-// Фикстурная книга из lib/books-with-covers.ts (только в NEXTAUTH_TEST_MODE)
+// Фикстурная книга из тестового seed endpoint (только в NEXTAUTH_TEST_MODE)
 const TEST_BOOK_NAME = 'Тестовая книга 1'
 const TEST_BOOK_ID = '__test_book_1__'
 const TEST_BOOK_3_NAME = 'Тестовая книга 3'
@@ -52,7 +52,9 @@ test.describe('AdminPanel — изменение статуса книги', () 
     })
 
     // Сбрасываем статус книги (чтобы не влиять на другие тесты)
-    await page.request.delete(`/api/admin/book-status?bookId=${encodeURIComponent(TEST_BOOK_ID)}`)
+    await page.request.patch(`/api/admin/books/${encodeURIComponent(TEST_BOOK_ID)}`, {
+      data: { readingStatus: null },
+    })
 
     // Чистим signup_books запись пользователя
     await page.request.delete('/api/test/signup', { data: { userId: USER_ID } })
@@ -133,8 +135,8 @@ test.describe('AdminPanel — изменение статуса книги', () 
       data: { email: USER_EMAIL, name: USER_NAME },
     })
 
-    const res = await page.request.post('/api/admin/book-status', {
-      data: { bookId: TEST_BOOK_ID, status: 'reading' },
+    const res = await page.request.patch(`/api/admin/books/${encodeURIComponent(TEST_BOOK_ID)}`, {
+      data: { readingStatus: 'reading' },
     })
 
     expect(res.status()).toBe(403)

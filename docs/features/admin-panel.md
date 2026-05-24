@@ -8,8 +8,8 @@
 - **Вкладка «Участники»** — показывает пользователей и их записи из Postgres (`user` + `signup_books`); администратор может удалить пользователя через `DELETE /api/admin/delete-user`
 - **Вкладка «По книгам»** — каждая книга → список записавшихся, кнопки `reading`/`read` и тоггл `NEW`
 - **Вкладка «Каталог»** — CRUD-управление таблицей `books`. Список с поиском и фильтрами по видимости (`published`/`hidden`), статусу прочтения, источнику (`admin`/`submission`/`sheets_import`) и архиву. Форма создания: новая книга по умолчанию `visibility='hidden'`, `source='admin'`, `is_new=false`. Inline-редактор позволяет менять все поля, переключать публикацию (`Опубликовать`/`Скрыть`) и архивировать (soft delete через `archived_at`).
-- **Статусы книг** — поле `books.reading_status` (`reading`/`read`/null); legacy `POST /api/admin/book-status` или PATCH через каталог
-- **Флаги new** — поле `books.is_new`; legacy `POST /api/admin/book-new-flag` или PATCH через каталог
+- **Статусы книг** — поле `books.reading_status` (`reading`/`read`/null); обновляется через `PATCH /api/admin/books/:id`
+- **Флаги new** — поле `books.is_new`; обновляется через `PATCH /api/admin/books/:id`
 - **Описания тегов** — таблица `tag_descriptions`; редактируются inline через `PATCH /api/admin/tag-description`
 - **Отображение приоритетов** — `AdminStatusBar` показывает размер очереди digest и топ приоритетных книг по каждому пользователю
 
@@ -35,7 +35,7 @@ Google Sheets лист `signups` больше не участвует в runtime
 - `components/nd/AdminBooksCatalog.tsx` — вкладка «Каталог»: список, фильтры, форма создания, inline-редактор
 - `components/nd/AdminStatusBar.tsx` — статистика очереди digest
 - `app/api/admin/books/route.ts`, `app/api/admin/books/[id]/route.ts` — CRUD API каталога
-- `app/api/admin/` — остальные API routes (book-status, book-new-flag, delete-user, tag-description, priorities, submissions и др.)
+- `app/api/admin/` — остальные API routes (delete-user, tag-description, priorities, submissions и др.)
 - `lib/books.ts` — `fetchBooksWithCovers`, `fetchBooksForAdmin`, `createBook`, `updateBook`, `BookValidationError`
 - `lib/signup-books.ts` — `getAllSignups()`, `upsertSignup()`, `removeBookFromSignup()`, тип `UserSignup`
 - `lib/admin-users.ts` — агрегирует карточку пользователя, записи на книги, предложения и фидбеки

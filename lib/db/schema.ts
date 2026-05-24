@@ -155,9 +155,6 @@ export const bookSubmissions = pgTable('book_submissions', {
   bookIdIdx: index('book_submissions_book_id_idx').on(t.bookId),
 }))
 
-// After migration 0023, book_id is the source of truth and the primary key.
-// The legacy book_name column still exists in the DB for one more rollout
-// window (no runtime writes/reads), and will be dropped by 0024.
 export const bookPriorities = pgTable('book_priorities', {
   userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   bookId:    text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
