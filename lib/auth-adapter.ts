@@ -1,8 +1,8 @@
-import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import type { Adapter, AdapterAccount, AdapterUser } from '@auth/core/adapters'
 import { and, eq, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { accounts, sessions, userIdentities, users, verificationTokens } from '@/lib/db/schema'
+import { userIdentities, users, verificationTokens } from '@/lib/db/schema'
+import { normalizeIdentityProvider } from '@/lib/user-identities'
 
 type DbUserRow = typeof users.$inferSelect
 
@@ -50,15 +50,7 @@ async function getUserIdByEmail(email: string): Promise<string | null> {
 }
 
 export function IdentityAwareDrizzleAdapter(): Adapter {
-  const base = (DrizzleAdapter as (client: typeof db, schema: unknown) => Adapter)(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-  })
-
   return {
-    ...base,
     async createUser(data) {
       const email = normalizeEmail(data.email)
       const id = data.id ?? crypto.randomUUID()
@@ -91,15 +83,7 @@ export function IdentityAwareDrizzleAdapter(): Adapter {
       const identityUser = identityRows[0]?.userId ? await getUserById(identityRows[0].userId) : null
       if (identityUser) return identityUser
 
-      const accountRows = await db
-        .select({ userId: accounts.userId })
-        .from(accounts)
-        .where(and(
-          eq(accounts.provider, account.provider),
-          eq(accounts.providerAccountId, account.providerAccountId)
-        ))
-        .limit(1)
-      return accountRows[0]?.userId ? getUserById(accountRows[0].userId) : null
+      return null
     },
     async updateUser(data) {
       const { id, email, name, image, emailVerified } = data
@@ -116,6 +100,74 @@ export function IdentityAwareDrizzleAdapter(): Adapter {
         .returning()
       if (!updated) throw new Error('No user found.')
       return toAdapterUser(updated)
+    },
+    async linkAccount(account) {
+      const provider = normalizeIdentityProvider(account.provider)
+      const now = new Date()
+      const metadata = JSON.stringify({ source: 'auth-adapter-link-account', type: account.type })
+      await db
+        .insert(userIdentities)
+        .values({
+          userId: account.userId,
+          provider,
+          providerAccountId: account.providerAccountId,
+          lastSeenAt: now,
+          metadata,
+        })
+        .onConflictDoUpdate({
+          target: [userIdentities.provider, userIdentities.providerAccountId],
+          set: {
+            userId: account.userId,
+            lastSeenAt: now,
+            metadata,
+          },
+        })
+      return account
+    },
+    async getAccount(providerAccountId, provider) {
+      const normalizedProvider = normalizeIdentityProvider(provider)
+      const rows = await db
+        .select({ userId: userIdentities.userId })
+        .from(userIdentities)
+        .where(and(
+          eq(userIdentities.provider, normalizedProvider),
+          eq(userIdentities.providerAccountId, providerAccountId)
+        ))
+        .limit(1)
+      if (!rows[0]?.userId) return null
+      return {
+        userId: rows[0].userId,
+        type: normalizedProvider === 'google' ? 'oidc' : 'oauth',
+        provider: normalizedProvider,
+        providerAccountId,
+      } as AdapterAccount
+    },
+    async unlinkAccount(account) {
+      const provider = normalizeIdentityProvider(account.provider)
+      await db
+        .delete(userIdentities)
+        .where(and(
+          eq(userIdentities.provider, provider),
+          eq(userIdentities.providerAccountId, account.providerAccountId)
+        ))
+      return undefined
+    },
+    async createVerificationToken(data) {
+      const [created] = await db
+        .insert(verificationTokens)
+        .values(data)
+        .returning()
+      return created
+    },
+    async useVerificationToken(params) {
+      const [used] = await db
+        .delete(verificationTokens)
+        .where(and(
+          eq(verificationTokens.identifier, params.identifier),
+          eq(verificationTokens.token, params.token)
+        ))
+        .returning()
+      return used ?? null
     },
   }
 }

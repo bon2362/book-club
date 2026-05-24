@@ -5,8 +5,8 @@
 
 ## Как работает
 - **NextAuth v5** (`lib/auth.ts`) — серверная функция `auth()` используется в Server Components и API routes
-- **Google One Tap** — Credentials provider (`google-one-tap`); `lib/auth.google-one-tap.ts` верифицирует JWT credential через `google-auth-library`, находит или создаёт пользователя в таблицах `users` + `accounts`. Рендерится как `<GoogleOneTap />` на главной странице для неавторизованных пользователей. После входа используется `window.location.reload()` (не `router.refresh()`) для избежания race condition, при котором `useSession()` обновляется раньше, чем server props перерендерятся
-- **Google OAuth** — стандартный provider; профиль пользователя сохраняется в таблицах `users` + `accounts` при первом входе
+- **Google One Tap** — Credentials provider (`google-one-tap`); `lib/auth.google-one-tap.ts` верифицирует JWT credential через `google-auth-library`, находит или создаёт пользователя в таблицах `users` + `user_identities`. Рендерится как `<GoogleOneTap />` на главной странице для неавторизованных пользователей. После входа используется `window.location.reload()` (не `router.refresh()`) для избежания race condition, при котором `useSession()` обновляется раньше, чем server props перерендерятся
+- **Google OAuth** — стандартный provider; профиль пользователя сохраняется в `users`, а внешний Google `sub` хранится в `user_identities`
 - **Magic link (Resend provider)** — отправляет ссылку для входа на 24 часа через `noreply@slowreading.club`; кастомный HTML-email в `sendMagicLinkEmail()`
 - **Telegram Login** — использует flow с `data-auth-url` (НЕ callback `data-onauth` — Telegram использует `eval` внутри, который браузеры блокируют). Flow: виджет → `/api/auth/telegram/callback` (верифицирует HMAC, upserts пользователя, генерирует подписанный pre-auth токен) → `/auth/telegram` (client-страница вызывает `signIn('telegram-preauth', ...)`) → главная. Два Credentials provider: `telegram` (прямая HMAC-верификация, legacy) и `telegram-preauth` (валидирует краткоживущий HMAC-токен из callback route). Credentials providers НЕ используют DrizzleAdapter — пользователь должен быть вставлен вручную в `authorize` через `db.insert(users).onConflictDoUpdate(...)`. Требования BotFather: точное совпадение домена (с `www` и без — разные домены) + у бота должна быть фотография профиля
 - **Флаг isAdmin** — устанавливается в `jwt` callback проверкой env-переменной `ADMIN_EMAIL`; хранится в JWT-токене, доступен как `session.user.isAdmin`
@@ -27,7 +27,7 @@
 - `lib/auth.ts` — конфигурация NextAuth, providers, JWT/session callbacks, magic link email
 - `lib/auth.google-one-tap.ts` — верификация Google One Tap credential и upsert пользователя
 - `components/nd/GoogleOneTap.tsx` — client component, рендерится на главной для неавторизованных пользователей
-- `lib/db/schema.ts` — таблицы `users` (профиль и пользовательские контакты), `user_identities` (способы входа и provider-specific ids), `accounts`, `sessions`, `verificationTokens`
+- `lib/db/schema.ts` — таблицы `users` (профиль и пользовательские контакты), `user_identities` (способы входа и provider-specific ids), `verificationTokens`
 - `app/api/auth/[...nextauth]/route.ts` — handler NextAuth
 - `app/api/auth/telegram/callback/route.ts` — Telegram redirect handler: верифицирует hash, делает upsert пользователя, создаёт HMAC pre-auth токен
 - `app/auth/telegram/page.tsx` — client-страница, вызывает `signIn('telegram-preauth', ...)` и редиректит на главную
