@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, Fragment, useMemo, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, Fragment, useLayoutEffect, useRef, useMemo } from 'react'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
 import Header from './Header'
 import IntroEditor from './IntroEditor'
 import AdminUserDrawer from './AdminUserDrawer'
-import AdminBooksCatalog from './AdminBooksCatalog'
+import AdminBooksCatalog, { type CatalogParticipant } from './AdminBooksCatalog'
 
 interface Submission {
   id: string
@@ -36,20 +36,17 @@ interface BookEntry {
 interface Props {
   users: UserSignup[]
   byBook: BookEntry[]
-  statuses: Record<string, 'reading' | 'read'>
   allTags: string[]
   tagDescriptions: Record<string, string>
-  newFlags: Record<string, boolean>
   userLanguages?: Record<string, string[]>
   bookPrioritiesMap: Record<string, { bookId: string; bookName: string; rank: number }[]>
   prioritiesSetMap: Record<string, boolean>
 }
 
-type View = 'users' | 'books' | 'catalog' | 'tags' | 'submissions' | 'feedback' | 'intro'
+type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'feedback' | 'intro'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastActivityAt' | 'createdAt'
-type BookSortKey = 'name' | 'signups' | 'participants' | 'status' | 'new'
 
 const READ_SUBMISSIONS_STORAGE_KEY = 'admin_read_submission_ids'
 const READ_FEEDBACK_STORAGE_KEY = 'admin_read_feedback_ids'
@@ -174,60 +171,6 @@ function AutoHeightTextarea({
   )
 }
 
-function getBookInitials(author: string): string {
-  return author
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(word => word[0]?.toUpperCase() ?? '')
-    .join('')
-}
-
-function BookCoverThumb({ book }: { book: BookWithCover }) {
-  const [imgError, setImgError] = useState(false)
-  const initials = getBookInitials(book.author)
-
-  return (
-    <div
-      style={{
-        width: 34,
-        height: 50,
-        flex: '0 0 34px',
-        border: '1px solid #DDD',
-        background: '#F5F5F5',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {book.coverUrl && !imgError ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={book.coverUrl}
-          alt={`Обложка: ${book.name}`}
-          loading="lazy"
-          decoding="async"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <span
-          aria-label={`Обложка: ${book.name}`}
-          style={{
-            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-            fontSize: '0.65rem',
-            color: '#999',
-            userSelect: 'none',
-          }}
-        >
-          {initials || '—'}
-        </span>
-      )}
-    </div>
-  )
-}
-
 function formatAdminDate(value: string | null): string {
   if (!value) return '—'
   return new Date(value).toLocaleDateString('ru-RU')
@@ -284,10 +227,8 @@ function CountBadge({ count }: { count: number }) {
 export default function AdminPanel({
   users,
   byBook,
-  statuses: initialStatuses,
   allTags,
   tagDescriptions: initialTagDescriptions,
-  newFlags: initialNewFlags,
   bookPrioritiesMap,
 }: Props) {
   const [adminUsers, setAdminUsers] = useState<AdminUserSummary[]>([])
@@ -300,8 +241,6 @@ export default function AdminPanel({
   const [view, setView] = useState<View>('users')
   // Generic transient status message used by various admin actions (e.g. delete-user errors).
   const [syncMsg, setSyncMsg] = useState('')
-  const [statuses, setStatuses] = useState<Record<string, 'reading' | 'read'>>(initialStatuses)
-  const [statusLoading, setStatusLoading] = useState<string | null>(null)
   const [tagDescEdits, setTagDescEdits] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {}
     for (const tag of allTags) initial[tag] = initialTagDescriptions[tag] ?? ''
@@ -309,9 +248,6 @@ export default function AdminPanel({
   })
   const [tagSaving, setTagSaving] = useState<string | null>(null)
   const [tagSavedSet, setTagSavedSet] = useState<Set<string>>(new Set())
-
-  const [newFlags, setNewFlags] = useState<Record<string, boolean>>(initialNewFlags)
-  const [newFlagLoading, setNewFlagLoading] = useState<string | null>(null)
 
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [submissionsLoaded, setSubmissionsLoaded] = useState(false)
@@ -326,7 +262,6 @@ export default function AdminPanel({
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
   const [feedbackSearch, setFeedbackSearch] = useState('')
   const [readFeedbackIds, setReadFeedbackIds] = useState<Set<string>>(() => readStoredIdSet(READ_FEEDBACK_STORAGE_KEY))
-  const [bookSort, setBookSort] = useState<{ key: BookSortKey; dir: 'asc' | 'desc' }>({ key: 'signups', dir: 'desc' })
 
   useEffect(() => {
     fetch('/api/admin/submissions')
@@ -445,38 +380,6 @@ export default function AdminPanel({
     }
   }
 
-  async function setBookStatus(bookId: string, status: 'reading' | 'read') {
-    setStatusLoading(bookId)
-    try {
-      await fetch(`/api/admin/books/${encodeURIComponent(bookId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ readingStatus: status }),
-      })
-      setStatuses(prev => ({ ...prev, [bookId]: status }))
-    } finally {
-      setStatusLoading(null)
-    }
-  }
-
-  async function resetBookStatus(bookId: string) {
-    setStatusLoading(bookId)
-    try {
-      await fetch(`/api/admin/books/${encodeURIComponent(bookId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ readingStatus: null }),
-      })
-      setStatuses(prev => {
-        const next = { ...prev }
-        delete next[bookId]
-        return next
-      })
-    } finally {
-      setStatusLoading(null)
-    }
-  }
-
   async function saveTagDescription(tag: string) {
     setTagSaving(tag)
     try {
@@ -513,21 +416,6 @@ export default function AdminPanel({
       }
     } catch { /* silently ignore */ }
     finally { setSubmissionActionLoading(null) }
-  }
-
-  async function handleToggleNew(bookId: string, currentIsNew: boolean) {
-    setNewFlagLoading(bookId)
-    try {
-      const next = !currentIsNew
-      await fetch(`/api/admin/books/${encodeURIComponent(bookId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isNew: next }),
-      })
-      setNewFlags(prev => ({ ...prev, [bookId]: next }))
-    } finally {
-      setNewFlagLoading(null)
-    }
   }
 
   async function handleDeleteSubmission(id: string) {
@@ -587,19 +475,6 @@ export default function AdminPanel({
     marginRight: '1.5rem',
   })
 
-  const btnStyle = (active: boolean, color: string): React.CSSProperties => ({
-    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-    fontSize: '0.65rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    padding: '0.2rem 0.5rem',
-    border: `1px solid ${color}`,
-    background: active ? color : 'transparent',
-    color: active ? '#fff' : color,
-    cursor: 'pointer',
-    marginRight: '0.375rem',
-  })
-
   const actionBtnStyle = (color: string, disabled: boolean): React.CSSProperties => ({
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.65rem',
@@ -650,31 +525,6 @@ export default function AdminPanel({
       return String(av).localeCompare(String(bv), 'ru') * dir
     })
 
-  const sortedByBook = useMemo(() => {
-    const statusRank = { reading: 2, read: 1, none: 0 }
-    const value = ({ book, users: bookUsers }: BookEntry) => {
-      if (bookSort.key === 'signups') return bookUsers.length
-      if (bookSort.key === 'participants') return bookUsers.map(u => u.name).join(', ')
-      if (bookSort.key === 'status') return statusRank[statuses[book.id] ?? 'none']
-      if (bookSort.key === 'new') return (newFlags[book.id] ?? book.isNew) ? 1 : 0
-      return `${book.name} ${book.author}`
-    }
-
-    return [...byBook].sort((a, b) => {
-      const dir = bookSort.dir === 'asc' ? 1 : -1
-      const av = value(a)
-      const bv = value(b)
-      let result: number
-      if (typeof av === 'number' && typeof bv === 'number') {
-        result = av - bv
-      } else {
-        result = String(av).localeCompare(String(bv), 'ru')
-      }
-      if (result !== 0) return result * dir
-      return a.book.name.localeCompare(b.book.name, 'ru')
-    })
-  }, [bookSort, byBook, statuses, newFlags])
-
   const feedbackCounts = {
     all: feedbackItems.length,
     registered: feedbackItems.filter(f => f.userId).length,
@@ -697,16 +547,24 @@ export default function AdminPanel({
     })
   }
 
-  function setBookTableSort(key: BookSortKey) {
-    setBookSort(prev => {
-      if (prev.key === key) return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-      return { key, dir: key === 'signups' ? 'desc' : 'asc' }
-    })
-  }
-
-  function bookSortMark(key: BookSortKey) {
-    return <SortHeader label={bookSortLabel[key]} active={bookSort.key === key} dir={bookSort.dir} />
-  }
+  const participantsByBookId = useMemo<Record<string, CatalogParticipant[]>>(() => {
+    const map: Record<string, CatalogParticipant[]> = {}
+    for (const { book, users: bookUsers } of byBook) {
+      const list: CatalogParticipant[] = bookUsers.map(u => {
+        const userPriorities = bookPrioritiesMap[u.userId] ?? []
+        const entry = userPriorities.find(p => p.bookId === book.id)
+        return { userId: u.userId, name: u.name, rank: entry?.rank ?? null }
+      })
+      list.sort((a, b) => {
+        if (a.rank !== null && b.rank !== null) return a.rank - b.rank
+        if (a.rank !== null) return -1
+        if (b.rank !== null) return 1
+        return 0
+      })
+      map[book.id] = list
+    }
+    return map
+  }, [byBook, bookPrioritiesMap])
 
   const userSortLabel: Record<UserSortKey, string> = {
     name: 'Имя',
@@ -716,21 +574,10 @@ export default function AdminPanel({
     lastActivityAt: 'Последняя активность',
     createdAt: 'Дата создания',
   }
-  const bookSortLabel: Record<BookSortKey, string> = {
-    name: 'Книга',
-    signups: 'Записались',
-    participants: 'Участники',
-    status: 'Статус',
-    new: 'Новая',
-  }
-  const topPriorityEmoji = ['🏆', '🥈', '🥉']
 
   const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
   const submissionStatusColor: Record<string, string> = { pending: '#C0603A', approved: '#2E7D32', rejected: '#999' }
 
-  // We want all books, not just those with signups
-  // byBook only contains books with signups — we need all books
-  // We'll use a combined set: all byBook books + render status controls there
   return (
     <>
       <Header />
@@ -754,9 +601,6 @@ export default function AdminPanel({
           <button style={tabStyle(view === 'users')} onClick={() => setView('users')}>
             Участники ({adminUsersLoaded ? adminUsers.length : users.length})
           </button>
-          <button style={tabStyle(view === 'books')} onClick={() => setView('books')}>
-            По книгам ({byBook.length})
-          </button>
           <button style={tabStyle(view === 'catalog')} onClick={() => setView('catalog')} data-testid="admin-tab-catalog">
             Каталог
           </button>
@@ -778,7 +622,7 @@ export default function AdminPanel({
 
         {view === 'intro' && <IntroEditor />}
 
-        {view === 'catalog' && <AdminBooksCatalog />}
+        {view === 'catalog' && <AdminBooksCatalog participantsByBookId={participantsByBookId} />}
 
         {/* Users table */}
         {view === 'users' && (
@@ -931,123 +775,6 @@ export default function AdminPanel({
           </div>
         )}
 
-        {/* Books table */}
-        {view === 'books' && (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('name')}>{bookSortMark('name')}</th>
-                <th style={{ ...headCell, textAlign: 'right', cursor: 'pointer' }} onClick={() => setBookTableSort('signups')}>{bookSortMark('signups')}</th>
-                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('participants')}>{bookSortMark('participants')}</th>
-                <th style={{ ...headCell, cursor: 'pointer' }} onClick={() => setBookTableSort('status')}>{bookSortMark('status')}</th>
-                <th style={{ ...headCell, textAlign: 'center', width: '80px', cursor: 'pointer' }} onClick={() => setBookTableSort('new')}>{bookSortMark('new')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedByBook.map(({ book, users: bookUsers }) => {
-                const currentStatus = statuses[book.id]
-                const isStatusLoading = statusLoading === book.id
-                // After the books-catalog DB migration `book.source` is the source of truth.
-                // Falling back to the legacy heuristic only for old in-flight props.
-                const isSubmission = book.source ? book.source === 'submission' : !book.id.match(/^\d+$/)
-                const isNew = newFlags[book.id] ?? book.isNew
-                const isFlagLoading = newFlagLoading === book.id
-                return (
-                  <tr key={book.id}>
-                    <td style={cell}>
-                      <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', minWidth: 0 }}>
-                        <BookCoverThumb book={book} />
-                        <div style={{ minWidth: 0 }}>
-                          <div>{book.name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#666', fontStyle: 'italic', marginTop: '0.12rem' }}>
-                            {book.author || 'Автор не указан'}
-                          </div>
-                          <div style={{ fontSize: '0.65rem', color: '#999', marginTop: '0.15rem' }}>
-                            {isSubmission ? 'Заявка' : 'Каталог'}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ ...cell, textAlign: 'right', fontWeight: 700 }}>{bookUsers.length}</td>
-                    <td style={{ ...cell, color: '#666' }}>
-                      {(() => {
-                        const withRanks = bookUsers.map(u => {
-                          const userPriorities = bookPrioritiesMap[u.userId] ?? [] // uses original prop intentionally; По книгам is static server data
-                          const entry = userPriorities.find(p => p.bookId === book.id)
-                          return { name: u.name, rank: entry?.rank ?? null, userId: u.userId }
-                        })
-                        withRanks.sort((a, b) => {
-                          if (a.rank !== null && b.rank !== null) return a.rank - b.rank
-                          if (a.rank !== null) return -1
-                          if (b.rank !== null) return 1
-                          return 0
-                        })
-                        return withRanks.map(({ name, rank, userId }, i) => (
-                          <span key={userId}>
-                            {i > 0 && ', '}
-                            {name}
-                            {rank !== null && (
-                              <span style={{ fontSize: '0.65rem', color: '#aaa', whiteSpace: 'nowrap' }}>
-                                ({topPriorityEmoji[rank - 1] ? `${topPriorityEmoji[rank - 1]} ` : ''}#{rank})
-                              </span>
-                            )}
-                          </span>
-                        ))
-                      })()}
-                    </td>
-                    <td style={cell}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                        <button
-                          disabled={isStatusLoading}
-                          onClick={() => setBookStatus(book.id, 'reading')}
-                          style={btnStyle(currentStatus === 'reading', '#C0603A')}
-                        >
-                          Читаем
-                        </button>
-                        <button
-                          disabled={isStatusLoading}
-                          onClick={() => setBookStatus(book.id, 'read')}
-                          style={btnStyle(currentStatus === 'read', '#666')}
-                        >
-                          Прочитано
-                        </button>
-                        {currentStatus && (
-                          <button
-                            disabled={isStatusLoading}
-                            onClick={() => resetBookStatus(book.id)}
-                            style={btnStyle(false, '#999')}
-                          >
-                            Сброс
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ ...cell, textAlign: 'center' }}>
-                      <button
-                        disabled={isFlagLoading}
-                        onClick={() => handleToggleNew(book.id, isNew)}
-                        style={{
-                          fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                          fontSize: '0.65rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.06em',
-                          padding: '0.2rem 0.6rem',
-                          border: `1px solid ${isNew ? '#C0603A' : '#E5E5E5'}`,
-                          background: isNew ? '#C0603A' : 'transparent',
-                          color: isNew ? '#fff' : '#999',
-                          cursor: isFlagLoading ? 'default' : 'pointer',
-                          transition: 'background 0.15s, color 0.15s',
-                        }}
-                      >
-                        {isNew ? 'Новая' : '—'}
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
         {/* Submissions */}
         {view === 'submissions' && (
           <div>

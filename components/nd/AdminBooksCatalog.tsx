@@ -2,6 +2,12 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 
+export interface CatalogParticipant {
+  userId: string
+  name: string
+  rank: number | null
+}
+
 interface AdminBook {
   id: string
   title: string
@@ -134,7 +140,14 @@ const EMPTY_FORM: Omit<AdminBook, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt
   source: 'admin',
 }
 
-export default function AdminBooksCatalog() {
+interface AdminBooksCatalogProps {
+  participantsByBookId?: Record<string, CatalogParticipant[]>
+}
+
+export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBooksCatalogProps = {}) {
+  // participantsByBookId is consumed in the new section table (stage 4); reference it here
+  // so the linter does not flag it during the interim refactor.
+  void participantsByBookId
   const [books, setBooks] = useState<AdminBook[]>([])
   const [loaded, setLoaded] = useState(false)
   const [search, setSearch] = useState('')

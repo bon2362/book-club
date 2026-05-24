@@ -47,12 +47,6 @@ export default async function AdminPage() {
     bookPrioritiesMap[pgId].sort((a, b) => a.rank - b.rank)
   }
 
-  // reading_status and is_new are now first-class fields on `books`.
-  const statusMap = Object.fromEntries(
-    books.filter(b => b.status).map(b => [b.id, b.status as 'reading' | 'read'])
-  )
-  const newFlagsMap = Object.fromEntries(books.map(b => [b.id, b.isNew]))
-
   const allTags = Array.from(new Set(books.flatMap(b => b.tags))).sort()
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
 
@@ -79,10 +73,8 @@ export default async function AdminPage() {
       <AdminPanel
         users={signups}
         byBook={byBook}
-        statuses={statusMap}
         allTags={allTags}
         tagDescriptions={tagDescMap}
-        newFlags={newFlagsMap}
         userLanguages={userLanguagesMap}
         bookPrioritiesMap={bookPrioritiesMap}
         prioritiesSetMap={prioritiesSetMap}
