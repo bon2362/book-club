@@ -1,3 +1,8 @@
+// DEPRECATED: not used by runtime code after Stage 6 of the books-catalog refactor.
+// The public catalog now reads exclusively from the `books` table via `lib/books.ts`.
+// This module is kept only for the historical audit script in
+// `scripts/books-catalog-audit.ts` and may be removed once that script is
+// archived. Do not re-introduce as a runtime dependency.
 import { google } from 'googleapis'
 import { unstable_cache } from 'next/cache'
 

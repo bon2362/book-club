@@ -13,8 +13,6 @@
 - `DATABASE_URL` — Neon Postgres
 - `NEXTAUTH_SECRET` — NextAuth
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — OAuth
-- `GOOGLE_SERVICE_ACCOUNT_KEY` — Google Sheets доступ
-- `GOOGLE_SHEETS_ID` — ID таблицы с книгами
 - `TELEGRAM_BOT_TOKEN` — Telegram Login Widget
 - `ADMIN_EMAIL` — email администратора
 
@@ -22,6 +20,7 @@
 - `RESEND_API_KEY` — отправка email (уведомления)
 - `CRON_SECRET` — защита cron-эндпоинтов
 - `GH_TOKEN` — виджет CI в админке
+- `GOOGLE_SERVICE_ACCOUNT_KEY` / `GOOGLE_SHEETS_ID` — больше не нужны для runtime (каталог теперь в БД); требуются только для исторического `scripts/books-catalog-audit.ts`
 - `VERCEL_TOKEN` — виджет деплоев в админке
 - `NEXTAUTH_TEST_MODE` — E2E-тесты
 

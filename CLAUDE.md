@@ -3,7 +3,7 @@
 ## Проект
 "Долгое наступление" — сайт книжного клуба.
 - **Live:** https://www.slowreading.club (резерв: https://book-club-slow-rising.vercel.app)
-- **Стек:** Next.js 14, NextAuth v5, Neon Postgres + Drizzle ORM, Google Sheets, Resend, Vercel
+- **Стек:** Next.js 14, NextAuth v5, Neon Postgres + Drizzle ORM, Resend, Vercel
 - **Repo:** github.com/bon2362/book-club
 
 ## Управление задачами
@@ -135,21 +135,23 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 - Бот **обязан иметь фото профиля** — без него виджет падает с "Bot domain invalid"
 - Виджет не работает без third-party cookies (incognito, Safari strict mode)
 
-## Архитектура обложек
-- Обложки берутся напрямую из **колонки N Google Sheets** (`coverUrl` = `row[13]`)
-- `lib/covers.ts` удалён (был Google Books API + DB cache — убран из-за 429 rate limits)
-- `lib/books-with-covers.ts` — объединяет книги из sheets и approved-заявки из БД, добавляет флаги новинок
-- `lib/sheets.ts` — читает `coverUrl` из колонки N таблицы
-- `CoverImage.tsx` — client component, fallback на инициалы автора при `coverUrl=null`
-- `BookCard.tsx` — кнопка «Читать далее» / «Свернуть» для описаний > 120 символов
-- Чтобы обложки появились — нужно заполнить колонку N в Google Sheets вручную
+## Архитектура каталога и обложек
+- Каталог книг хранится в таблице `books` (Postgres). Чтение через `lib/books.ts`.
+- Обложки: `books.cover_url`, редактируется в админской вкладке «Каталог».
+- `lib/sheets.ts` — DEPRECATED, остался только для `scripts/books-catalog-audit.ts`. В runtime не используется. ENV `GOOGLE_SHEETS_ID` / `GOOGLE_SERVICE_ACCOUNT_KEY` — optional.
+- `lib/books-with-covers.ts` — backward-compat shim, re-export из `lib/books.ts`.
+- `CoverImage.tsx` — client component, fallback на инициалы автора при `coverUrl=null`.
+- `BookCard.tsx` — кнопка «Читать далее» / «Свернуть» для описаний > 120 символов.
 
 ## Документация по фичам
 `docs/features/` — краткое описание реализации каждой области (auth, books-catalog, admin-panel, notifications, user-profile). Читай перед работой с соответствующим кодом.
 
 ## Ключевые файлы
-- `lib/books-with-covers.ts` — объединение sheets + approved-заявок + флагов новинок
-- `lib/sheets.ts` — Google Sheets (каталог книг + coverUrl из колонки N)
+- `lib/books.ts` — чтение каталога из БД + CRUD-хелперы (`fetchBooksWithCovers`, `createBook`, `updateBook`)
+- `lib/books-with-covers.ts` — re-export shim из `lib/books.ts`
+- `lib/book-publish.ts` — promote approved submission → published book
+- `app/api/admin/books/` — admin CRUD API
+- `components/nd/AdminBooksCatalog.tsx` — админская вкладка «Каталог»
 - `components/nd/CoverImage.tsx` — client component, onError fallback
 - `components/nd/BookCard.tsx` — expand/collapse описания
-- `lib/db/schema.ts` — схема БД: users, accounts, sessions, bookPriorities и др.
+- `lib/db/schema.ts` — схема БД: users, accounts, sessions, books, bookPriorities и др.

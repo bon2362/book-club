@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { fetchBooks } from '@/lib/sheets'
+import { fetchBooksWithCovers } from '@/lib/books'
 
 export const runtime = 'nodejs'
 
@@ -16,7 +16,7 @@ export async function GET() {
   let coverUrls: string[] = []
 
   try {
-    const books = await fetchBooks()
+    const books = await fetchBooksWithCovers()
     const withCovers = books.filter(b => b.coverUrl)
     coverUrls = pickRandom(withCovers, 6).map(b => b.coverUrl!)
   } catch {
