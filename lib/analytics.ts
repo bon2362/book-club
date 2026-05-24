@@ -34,16 +34,11 @@ export function capturePageview(url: string): void {
   posthog.capture('$pageview', { $current_url: url })
 }
 
-export function identifyUser(userId: string, isExcluded?: boolean): void {
+export function identifyUser(userId: string): void {
   if (typeof window === 'undefined') return
   initPostHog() // ensure init before identify, even if parent useEffect hasn't fired yet
   if (!initialized) return
   if (currentIdentity === userId) return
-  if (isExcluded) {
-    posthog.opt_out_capturing()
-    currentIdentity = userId // prevent duplicate calls on re-render
-    return
-  }
   posthog.identify(userId)
   currentIdentity = userId
 }
@@ -53,9 +48,6 @@ export function resetIdentity(): void {
   if (currentIdentity === null) return
   posthog.reset()
   currentIdentity = null
-  // Intentionally NOT calling opt_in_capturing() here.
-  // Once a browser is opted out (owner's browser), it stays opted out
-  // permanently regardless of which account is used next.
 }
 
 export function __resetForTesting(): void {

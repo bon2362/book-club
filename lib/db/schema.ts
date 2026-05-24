@@ -72,12 +72,11 @@ export const books = pgTable('books', {
   visibility: text('visibility').notNull().default('hidden'), // 'hidden' | 'published'
   isNew: boolean('is_new').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
-  source: text('source').notNull().default('admin'), // 'admin' | 'submission' | 'sheets_import'
+  source: text('source').notNull().default('admin'), // 'admin' | 'submission'
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
   publishedAt: timestamp('published_at', { mode: 'date' }),
   hiddenAt: timestamp('hidden_at', { mode: 'date' }),
-  archivedAt: timestamp('archived_at', { mode: 'date' }),
 }, (t) => ({
   visibilityIdx: index('books_visibility_idx').on(t.visibility),
   sortOrderIdx: index('books_sort_order_idx').on(t.sortOrder),

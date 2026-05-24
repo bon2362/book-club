@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Fragment, useLayoutEffect, useRef, useMemo } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
@@ -49,8 +50,17 @@ type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastActivityAt' | 'createdAt'
 
+const ADMIN_VIEWS: View[] = ['users', 'catalog', 'tags', 'submissions', 'feedback', 'intro']
 const READ_SUBMISSIONS_STORAGE_KEY = 'admin_read_submission_ids'
 const READ_FEEDBACK_STORAGE_KEY = 'admin_read_feedback_ids'
+
+function isAdminView(value: string | null): value is View {
+  return value !== null && ADMIN_VIEWS.includes(value as View)
+}
+
+function parseAdminView(value: string | null): View {
+  return isAdminView(value) ? value : 'users'
+}
 
 function readStoredIdSet(key: string) {
   if (typeof window === 'undefined') return new Set<string>()
@@ -233,6 +243,11 @@ export default function AdminPanel({
   bookPrioritiesMap,
   catalogCount,
 }: Props) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const searchParamsString = searchParams.toString()
   const [adminUsers, setAdminUsers] = useState<AdminUserSummary[]>([])
   const [adminUsersLoaded, setAdminUsersLoaded] = useState(false)
   const [userSearch, setUserSearch] = useState('')
@@ -240,7 +255,7 @@ export default function AdminPanel({
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
   const [userDrawerLoading, setUserDrawerLoading] = useState(false)
-  const [view, setView] = useState<View>('users')
+  const [view, setView] = useState<View>(() => parseAdminView(tabParam))
   // Generic transient status message used by various admin actions (e.g. delete-user errors).
   const [syncMsg, setSyncMsg] = useState('')
   const [tagDescEdits, setTagDescEdits] = useState<Record<string, string>>(() => {
@@ -264,6 +279,17 @@ export default function AdminPanel({
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
   const [feedbackSearch, setFeedbackSearch] = useState('')
   const [readFeedbackIds, setReadFeedbackIds] = useState<Set<string>>(() => readStoredIdSet(READ_FEEDBACK_STORAGE_KEY))
+
+  useEffect(() => {
+    const nextView = parseAdminView(tabParam)
+    setView(nextView)
+
+    if (tabParam !== null && !isAdminView(tabParam)) {
+      const params = new URLSearchParams(searchParamsString)
+      params.set('tab', 'users')
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    }
+  }, [pathname, router, searchParamsString, tabParam])
 
   useEffect(() => {
     fetch('/api/admin/submissions')
@@ -549,6 +575,13 @@ export default function AdminPanel({
     })
   }
 
+  function selectView(nextView: View) {
+    setView(nextView)
+    const params = new URLSearchParams(searchParamsString)
+    params.set('tab', nextView)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
   const participantsByBookId = useMemo<Record<string, CatalogParticipant[]>>(() => {
     const map: Record<string, CatalogParticipant[]> = {}
     for (const { book, users: bookUsers } of byBook) {
@@ -600,24 +633,24 @@ export default function AdminPanel({
 
         {/* Tabs */}
         <div style={{ borderBottom: '1px solid #E5E5E5', marginBottom: '1.5rem' }}>
-          <button style={tabStyle(view === 'users')} onClick={() => setView('users')}>
+          <button style={tabStyle(view === 'users')} onClick={() => selectView('users')}>
             Участники ({adminUsersLoaded ? adminUsers.length : users.length})
           </button>
-          <button style={tabStyle(view === 'catalog')} onClick={() => setView('catalog')} data-testid="admin-tab-catalog">
+          <button style={tabStyle(view === 'catalog')} onClick={() => selectView('catalog')} data-testid="admin-tab-catalog">
             Каталог ({catalogCount})
           </button>
-          <button style={tabStyle(view === 'tags')} onClick={() => setView('tags')}>
+          <button style={tabStyle(view === 'tags')} onClick={() => selectView('tags')}>
             Теги ({allTags.length})
           </button>
-          <button style={tabStyle(view === 'submissions')} onClick={() => setView('submissions')}>
+          <button style={tabStyle(view === 'submissions')} onClick={() => selectView('submissions')}>
             Заявки ({submissions.length})
             <CountBadge count={unreadSubmissionsCount} />
           </button>
-          <button style={tabStyle(view === 'feedback')} onClick={() => setView('feedback')}>
+          <button style={tabStyle(view === 'feedback')} onClick={() => selectView('feedback')}>
             Фидбеки ({feedbackItems.length})
             <CountBadge count={feedbackNotificationCount} />
           </button>
-          <button style={tabStyle(view === 'intro')} onClick={() => setView('intro')}>
+          <button style={tabStyle(view === 'intro')} onClick={() => selectView('intro')}>
             Интро
           </button>
         </div>

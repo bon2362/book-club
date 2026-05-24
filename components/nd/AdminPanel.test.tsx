@@ -5,10 +5,17 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import AdminPanel from './AdminPanel'
 
+const mockRouterReplace = jest.fn()
+const mockRouterPush = jest.fn()
+const mockRouterRefresh = jest.fn()
+const mockRouter = { push: mockRouterPush, refresh: mockRouterRefresh, replace: mockRouterReplace }
+let mockPathname = '/admin'
+let mockSearchParams = new URLSearchParams()
+
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
-  usePathname: () => '/',
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => mockRouter,
+  usePathname: () => mockPathname,
+  useSearchParams: () => mockSearchParams,
 }))
 
 jest.mock('./Header', () => ({
@@ -163,6 +170,11 @@ const mockFeedback = [
 
 beforeEach(() => {
   window.localStorage.clear()
+  mockRouterReplace.mockClear()
+  mockRouterPush.mockClear()
+  mockRouterRefresh.mockClear()
+  mockPathname = '/admin'
+  mockSearchParams = new URLSearchParams()
   global.fetch = jest.fn().mockResolvedValue({
     json: () => Promise.resolve({ success: true, data: [] }),
     ok: true,
@@ -464,6 +476,35 @@ describe('AdminPanel — таб-бар', () => {
   it('таб "Каталог" присутствует', () => {
     render(<AdminPanel {...defaultProps} />)
     expect(screen.getByTestId('admin-tab-catalog')).toBeInTheDocument()
+  })
+
+  it('открывает активную вкладку из query-параметра tab', () => {
+    mockSearchParams = new URLSearchParams('tab=tags')
+
+    render(<AdminPanel {...defaultProps} allTags={['История']} />)
+
+    expect(screen.getByTestId('tag-block-История')).toBeInTheDocument()
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+
+  it('при клике сохраняет активную вкладку в URL без скролла', () => {
+    mockSearchParams = new URLSearchParams('from=digest')
+
+    render(<AdminPanel {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('admin-tab-catalog'))
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/admin?from=digest&tab=catalog', { scroll: false })
+  })
+
+  it('некорректный query-параметр tab сбрасывает на users', async () => {
+    mockSearchParams = new URLSearchParams('tab=unknown&from=digest')
+
+    render(<AdminPanel {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(mockRouterReplace).toHaveBeenCalledWith('/admin?tab=users&from=digest', { scroll: false })
+    })
+    expect(screen.getByLabelText('Поиск пользователей')).toBeInTheDocument()
   })
 })
 

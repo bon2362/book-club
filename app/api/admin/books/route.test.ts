@@ -47,10 +47,6 @@ import { GET, POST } from './route'
 
 const mockAuth = authModule.auth as jest.Mock
 
-function makeGet(query = '') {
-  return new NextRequest(`http://localhost/api/admin/books${query}`)
-}
-
 function makePost(body: object) {
   return new NextRequest('http://localhost/api/admin/books', {
     method: 'POST',
@@ -68,13 +64,13 @@ beforeEach(() => {
 describe('GET /api/admin/books', () => {
   it('returns 403 without admin', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: false } })
-    const res = await GET(makeGet())
+    const res = await GET()
     expect(res.status).toBe(403)
   })
 
   it('returns 403 without session', async () => {
     mockAuth.mockResolvedValue(null)
-    const res = await GET(makeGet())
+    const res = await GET()
     expect(res.status).toBe(403)
   })
 
@@ -87,10 +83,10 @@ describe('GET /api/admin/books', () => {
       pages: 100, publishedDate: '', textUrl: '', description: '', coverUrl: null,
       whyRead: null, recommendationLink: null, readingStatus: null,
       visibility: 'published', isNew: false, sortOrder: 0, source: 'admin',
-      archivedAt: null, publishedAt: null, hiddenAt: null,
+      publishedAt: null, hiddenAt: null,
       createdAt: new Date(), updatedAt: new Date(),
     }])
-    const res = await GET(makeGet())
+    const res = await GET()
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.success).toBe(true)

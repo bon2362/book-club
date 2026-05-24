@@ -78,12 +78,11 @@ function bookRow(overrides: Record<string, unknown> = {}) {
     visibility: 'published',
     isNew: false,
     sortOrder: 0,
-    source: 'sheets_import',
+    source: 'admin',
     createdAt: new Date(),
     updatedAt: new Date(),
     publishedAt: new Date(),
     hiddenAt: null,
-    archivedAt: null,
     ...overrides,
   }
 }
@@ -295,19 +294,6 @@ describe('lib/books — updateBook', () => {
     const patch = updateSetCalls[0] as Record<string, unknown>
     expect(patch.visibility).toBe('published')
     expect(patch.publishedAt).toBeUndefined()
-  })
-
-  it('archived=true sets archivedAt, archived=false clears it', async () => {
-    pushResult([bookRow({ id: 'b1' })])
-    pushResult([bookRow({ id: 'b1' })])
-    await updateBook('b1', { archived: true })
-    expect((updateSetCalls[0] as Record<string, unknown>).archivedAt).toBeInstanceOf(Date)
-
-    updateSetCalls.length = 0
-    pushResult([bookRow({ id: 'b1', archivedAt: new Date() })])
-    pushResult([bookRow({ id: 'b1' })])
-    await updateBook('b1', { archived: false })
-    expect((updateSetCalls[0] as Record<string, unknown>).archivedAt).toBeNull()
   })
 
   it('readingStatus null clears the field', async () => {

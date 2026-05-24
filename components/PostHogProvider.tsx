@@ -23,13 +23,12 @@ function PageviewTracker() {
 function IdentityTracker() {
   const { data: session, status } = useSession()
   const userId = session?.user?.id
-  const isExcluded = session?.user?.isExcludedFromAnalytics
 
   useEffect(() => {
     if (status === 'loading') return
-    if (userId) identifyUser(userId, isExcluded)
+    if (userId) identifyUser(userId)
     else resetIdentity()
-  }, [userId, isExcluded, status])
+  }, [userId, status])
 
   return null
 }

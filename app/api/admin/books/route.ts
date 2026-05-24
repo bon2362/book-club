@@ -4,22 +4,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { books, signupBooks, bookSubmissions, users } from '@/lib/db/schema'
-import { asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { asc, desc, eq, isNotNull, sql } from 'drizzle-orm'
 import { createBook, BookValidationError } from '@/lib/books'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await auth()
   if (!session?.user?.isAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const includeArchived = req.nextUrl.searchParams.get('includeArchived') === '1'
-  const whereClause = includeArchived ? undefined : isNull(books.archivedAt)
-
   const rows = await db
     .select()
     .from(books)
-    .where(whereClause as never)
     .orderBy(asc(books.sortOrder), desc(books.publishedAt))
 
   const [countsByBookId, submitterRows] = await Promise.all([
@@ -63,7 +59,6 @@ export async function GET(req: NextRequest) {
     isNew: row.isNew,
     sortOrder: row.sortOrder,
     source: row.source,
-    archivedAt: row.archivedAt,
     publishedAt: row.publishedAt,
     hiddenAt: row.hiddenAt,
     createdAt: row.createdAt,
