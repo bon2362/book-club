@@ -36,7 +36,7 @@ check "eyJ[A-Za-z0-9_-]{20,}\." "JWT токен"
 check "npg_[A-Za-z0-9]{10,}" "Neon postgres пароль (npg_...)"
 
 # Проверяем наличие значений из .env.local напрямую
-if [ -f /workspace/.env.local ]; then
+if [ -f ${CLAUDE_PROJECT_DIR:-$(pwd)}/.env.local ]; then
   while IFS='=' read -r key value; do
     # Пропускаем комментарии, пустые строки и публичные значения
     [[ "$key" =~ ^# ]] && continue
@@ -47,7 +47,7 @@ if [ -f /workspace/.env.local ]; then
     if [ -n "$value" ] && echo "$CMD" | grep -qF "$value"; then
       FOUND="$FOUND\n  ⚠ Значение переменной $key из .env.local"
     fi
-  done < /workspace/.env.local
+  done < ${CLAUDE_PROJECT_DIR:-$(pwd)}/.env.local
 fi
 
 if [ -n "$FOUND" ]; then
