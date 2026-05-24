@@ -1,6 +1,15 @@
 import { db } from '@/lib/db'
 import { books, signupBooks } from '@/lib/db/schema'
 import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import crypto from 'node:crypto'
+
+export const ALLOWED_VISIBILITIES = ['hidden', 'published'] as const
+export const ALLOWED_READING_STATUSES = ['reading', 'read'] as const
+export const ALLOWED_TYPES = ['book', 'article'] as const
+
+export type Visibility = (typeof ALLOWED_VISIBILITIES)[number]
+export type ReadingStatus = (typeof ALLOWED_READING_STATUSES)[number]
+export type BookType = (typeof ALLOWED_TYPES)[number]
 
 export interface BookWithCover {
   id: string
@@ -108,4 +117,193 @@ export async function fetchBooksForAdmin(): Promise<BookWithCover[]> {
 export async function fetchBookById(id: string): Promise<BookWithCover | null> {
   const [row] = await db.select().from(books).where(eq(books.id, id)).limit(1)
   return row ? rowToBook(row) : null
+}
+
+function normalizeKey(title: string, author: string): string {
+  const norm = (s: string) =>
+    s.toLowerCase().replace(/[ёе]/g, 'е').replace(/[^a-zа-я0-9]+/gi, ' ').trim()
+  return `${norm(title)}|${norm(author)}`
+}
+
+function normalizeTags(input: unknown): string[] {
+  if (Array.isArray(input)) {
+    return input.map(t => String(t).trim()).filter(Boolean)
+  }
+  if (typeof input === 'string') {
+    return input.split(',').map(t => t.trim()).filter(Boolean)
+  }
+  return []
+}
+
+function normalizePages(input: unknown): number | null {
+  if (input === null || input === undefined || input === '') return null
+  const n = typeof input === 'number' ? input : parseInt(String(input), 10)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+export class BookValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'BookValidationError'
+  }
+}
+
+export interface CreateBookInput {
+  title: string
+  author?: string
+  tags?: unknown
+  type?: unknown
+  size?: string
+  pages?: unknown
+  publishedDate?: string
+  textUrl?: string
+  description?: string
+  coverUrl?: string | null
+  whyRead?: string | null
+  recommendationLink?: string | null
+  readingStatus?: unknown
+  visibility?: unknown
+  isNew?: boolean
+  sortOrder?: number
+}
+
+export async function createBook(input: CreateBookInput): Promise<BookWithCover> {
+  const title = (input.title ?? '').trim()
+  if (!title) throw new BookValidationError('title is required')
+
+  const author = (input.author ?? '').trim()
+  const type: BookType = ALLOWED_TYPES.includes(input.type as BookType)
+    ? (input.type as BookType)
+    : 'book'
+  const visibility: Visibility = ALLOWED_VISIBILITIES.includes(input.visibility as Visibility)
+    ? (input.visibility as Visibility)
+    : 'hidden'
+  const readingStatus = input.readingStatus == null || input.readingStatus === ''
+    ? null
+    : ALLOWED_READING_STATUSES.includes(input.readingStatus as ReadingStatus)
+      ? (input.readingStatus as ReadingStatus)
+      : null
+
+  const id = crypto.randomUUID()
+  const now = new Date()
+  await db.insert(books).values({
+    id,
+    canonicalKey: normalizeKey(title, author),
+    title,
+    author,
+    tags: normalizeTags(input.tags),
+    type,
+    size: input.size ?? '',
+    pages: normalizePages(input.pages),
+    publishedDate: input.publishedDate ?? '',
+    textUrl: input.textUrl ?? '',
+    description: input.description ?? '',
+    coverUrl: input.coverUrl ?? null,
+    whyRead: input.whyRead ?? null,
+    recommendationLink: input.recommendationLink ?? null,
+    readingStatus,
+    visibility,
+    isNew: input.isNew ?? false,
+    sortOrder: typeof input.sortOrder === 'number' ? input.sortOrder : 0,
+    source: 'admin',
+    sourceSubmissionId: null,
+    legacySheetsRowId: null,
+    createdAt: now,
+    updatedAt: now,
+    publishedAt: visibility === 'published' ? now : null,
+    hiddenAt: visibility === 'hidden' ? now : null,
+  })
+
+  const created = await fetchBookById(id)
+  if (!created) throw new Error('Failed to load created book')
+  return created
+}
+
+export interface UpdateBookInput {
+  title?: string
+  author?: string
+  tags?: unknown
+  type?: unknown
+  size?: string
+  pages?: unknown
+  publishedDate?: string
+  textUrl?: string
+  description?: string
+  coverUrl?: string | null
+  whyRead?: string | null
+  recommendationLink?: string | null
+  readingStatus?: unknown
+  visibility?: unknown
+  isNew?: boolean
+  sortOrder?: number
+  archived?: boolean
+}
+
+export async function updateBook(id: string, input: UpdateBookInput): Promise<BookWithCover | null> {
+  const [current] = await db.select().from(books).where(eq(books.id, id)).limit(1)
+  if (!current) return null
+
+  const patch: Partial<typeof books.$inferInsert> = { updatedAt: new Date() }
+
+  if (input.title !== undefined) {
+    const title = input.title.trim()
+    if (!title) throw new BookValidationError('title cannot be empty')
+    patch.title = title
+  }
+  if (input.author !== undefined) patch.author = input.author.trim()
+  if (input.tags !== undefined) patch.tags = normalizeTags(input.tags)
+  if (input.type !== undefined) {
+    if (!ALLOWED_TYPES.includes(input.type as BookType)) {
+      throw new BookValidationError(`invalid type: ${String(input.type)}`)
+    }
+    patch.type = input.type as BookType
+  }
+  if (input.size !== undefined) patch.size = input.size
+  if (input.pages !== undefined) patch.pages = normalizePages(input.pages)
+  if (input.publishedDate !== undefined) patch.publishedDate = input.publishedDate
+  if (input.textUrl !== undefined) patch.textUrl = input.textUrl
+  if (input.description !== undefined) patch.description = input.description
+  if (input.coverUrl !== undefined) patch.coverUrl = input.coverUrl
+  if (input.whyRead !== undefined) patch.whyRead = input.whyRead
+  if (input.recommendationLink !== undefined) patch.recommendationLink = input.recommendationLink
+  if (input.readingStatus !== undefined) {
+    if (input.readingStatus === null || input.readingStatus === '') {
+      patch.readingStatus = null
+    } else if (ALLOWED_READING_STATUSES.includes(input.readingStatus as ReadingStatus)) {
+      patch.readingStatus = input.readingStatus as ReadingStatus
+    } else {
+      throw new BookValidationError(`invalid reading_status: ${String(input.readingStatus)}`)
+    }
+  }
+  if (input.visibility !== undefined) {
+    if (!ALLOWED_VISIBILITIES.includes(input.visibility as Visibility)) {
+      throw new BookValidationError(`invalid visibility: ${String(input.visibility)}`)
+    }
+    const nextVisibility = input.visibility as Visibility
+    patch.visibility = nextVisibility
+    if (nextVisibility !== current.visibility) {
+      const now = new Date()
+      if (nextVisibility === 'published') {
+        patch.publishedAt = now
+        patch.hiddenAt = null
+      } else {
+        patch.hiddenAt = now
+      }
+    }
+  }
+  if (input.isNew !== undefined) patch.isNew = input.isNew
+  if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder
+  if (input.archived !== undefined) {
+    patch.archivedAt = input.archived ? new Date() : null
+  }
+
+  if (patch.title !== undefined || input.author !== undefined) {
+    patch.canonicalKey = normalizeKey(
+      (patch.title ?? current.title) as string,
+      (patch.author ?? current.author) as string,
+    )
+  }
+
+  await db.update(books).set(patch).where(eq(books.id, id))
+  return fetchBookById(id)
 }
