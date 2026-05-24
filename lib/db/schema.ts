@@ -61,7 +61,6 @@ export const books = pgTable('books', {
   author: text('author').notNull().default(''),
   tags: jsonb('tags').$type<string[]>().notNull().default([]),
   type: text('type').notNull().default('book'), // 'book' | 'article'
-  size: text('size').notNull().default(''),
   pages: integer('pages'),
   publishedDate: text('published_date').notNull().default(''),
   textUrl: text('text_url').notNull().default(''),

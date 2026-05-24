@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
     author: row.author,
     tags: Array.isArray(row.tags) ? row.tags : [],
     type: row.type,
-    size: row.size,
     pages: row.pages,
     publishedDate: row.publishedDate,
     textUrl: row.textUrl,

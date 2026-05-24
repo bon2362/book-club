@@ -17,7 +17,6 @@ export interface BookWithCover {
   tags: string[]
   author: string
   type: string
-  size: string
   pages: string
   date: string
   link: string
@@ -47,7 +46,6 @@ function rowToBook(row: typeof books.$inferSelect, signupCount = 0): BookWithCov
     tags: Array.isArray(row.tags) ? row.tags : [],
     author: row.author,
     type: row.type === 'article' ? 'Article' : 'Book',
-    size: row.size,
     pages: row.pages != null ? String(row.pages) : '',
     date: row.publishedDate,
     link: row.textUrl,
@@ -141,7 +139,6 @@ export interface CreateBookInput {
   author?: string
   tags?: unknown
   type?: unknown
-  size?: string
   pages?: unknown
   publishedDate?: string
   textUrl?: string
@@ -180,7 +177,6 @@ export async function createBook(input: CreateBookInput): Promise<BookWithCover>
     author,
     tags: normalizeTags(input.tags),
     type,
-    size: input.size ?? '',
     pages: normalizePages(input.pages),
     publishedDate: input.publishedDate ?? '',
     textUrl: input.textUrl ?? '',
@@ -209,7 +205,6 @@ export interface UpdateBookInput {
   author?: string
   tags?: unknown
   type?: unknown
-  size?: string
   pages?: unknown
   publishedDate?: string
   textUrl?: string
@@ -243,7 +238,6 @@ export async function updateBook(id: string, input: UpdateBookInput): Promise<Bo
     }
     patch.type = input.type as BookType
   }
-  if (input.size !== undefined) patch.size = input.size
   if (input.pages !== undefined) patch.pages = normalizePages(input.pages)
   if (input.publishedDate !== undefined) patch.publishedDate = input.publishedDate
   if (input.textUrl !== undefined) patch.textUrl = input.textUrl

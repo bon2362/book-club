@@ -8,7 +8,6 @@ interface AdminBook {
   author: string
   tags: string[]
   type: string
-  size: string
   pages: number | null
   publishedDate: string
   textUrl: string
@@ -121,7 +120,6 @@ const EMPTY_FORM: Omit<AdminBook, 'id' | 'createdAt' | 'updatedAt' | 'archivedAt
   author: '',
   tags: [],
   type: 'book',
-  size: '',
   pages: null,
   publishedDate: '',
   textUrl: '',
@@ -470,9 +468,6 @@ function CreateBookForm({
             <option value="article">Статья</option>
           </select>
         </Field>
-        <Field label="Размер">
-          <input value={form.size} onChange={e => setForm(f => ({ ...f, size: e.target.value }))} style={fieldInput} />
-        </Field>
         <Field label="Страниц">
           <input
             type="number"
@@ -552,9 +547,6 @@ function BookEditor({
           <option value="book">Книга</option>
           <option value="article">Статья</option>
         </select>
-      </Field>
-      <Field label="Размер">
-        <input value={book.size} onChange={e => onChange('size', e.target.value)} style={fieldInput} />
       </Field>
       <Field label="Страниц">
         <input
