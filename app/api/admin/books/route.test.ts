@@ -21,6 +21,7 @@ jest.mock('@/lib/db', () => {
       groupBy: jest.fn(() => chain),
       orderBy: jest.fn(() => chain),
       limit: jest.fn(() => chain),
+      innerJoin: jest.fn(() => chain),
       then: <T,>(onFulfilled: (value: unknown) => T) => Promise.resolve(selectChainState.rows).then(onFulfilled),
     } as unknown as Record<string, jest.Mock>
     return chain
