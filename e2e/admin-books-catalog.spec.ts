@@ -33,14 +33,14 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     })
     if (createdBookId) {
       await page.request.patch(`/api/admin/books/${createdBookId}`, {
-        data: { archived: true, visibility: 'hidden' },
+        data: { visibility: 'hidden' },
       })
       createdBookId = null
     }
     await page.request.delete('/api/test/session', { data: { email: ADMIN_EMAIL } })
   })
 
-  test('создание скрытой книги, публикация, скрытие и архив сохраняются после перезагрузки', async ({ page }) => {
+  test('создание скрытой книги, публикация и скрытие сохраняются после перезагрузки', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
@@ -131,27 +131,8 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     await expect(homePage3.getByText(BOOK_TITLE)).toHaveCount(0)
     await homePage3.close()
 
-    // 7. Архивируем (soft delete) — раскрываем editor
-    page.on('dialog', d => d.accept())
-    await ensureEditorOpen(page, createdBookId)
-    const archiveRes = page.waitForResponse(res =>
-      res.url().includes(`/api/admin/books/${createdBookId}`) && res.request().method() === 'PATCH'
-    )
-    await page.getByTestId('admin-book-archive-toggle').click()
-    await archiveRes
-
-    // Книга пропала из активных секций
-    await expect(
-      page.getByTestId('admin-catalog-section-hidden').getByTestId(`admin-book-row-${createdBookId}`)
-    ).toHaveCount(0, { timeout: 5000 })
-    await expect(
-      page.getByTestId('admin-catalog-section-published').getByTestId(`admin-book-row-${createdBookId}`)
-    ).toHaveCount(0)
-
-    // Раскрываем секцию «Архив» (свёрнута по умолчанию) и видим книгу там
-    const archiveSection = page.getByTestId('admin-catalog-section-archived')
-    await archiveSection.getByRole('button', { name: /Архив/ }).click()
-    await expect(archiveSection.getByTestId(`admin-book-row-${createdBookId}`)).toBeVisible()
+    // Архива больше нет: hidden — единственное состояние скрытия книги от каталога.
+    await expect(page.getByTestId('admin-catalog-section-archived')).toHaveCount(0)
   })
 
   test('закрытие inline-редактора с несохранёнными правками показывает confirm', async ({ page }) => {

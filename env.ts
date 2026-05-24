@@ -14,7 +14,6 @@ export const env = createEnv({
     GH_TOKEN: z.string().min(1).optional(),
     VERCEL_TOKEN: z.string().min(1).optional(),
     NEXTAUTH_TEST_MODE: z.string().optional(),
-    POSTHOG_OWNER_EMAILS: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().min(1),
@@ -32,7 +31,6 @@ export const env = createEnv({
     GH_TOKEN: process.env.GH_TOKEN,
     VERCEL_TOKEN: process.env.VERCEL_TOKEN,
     NEXTAUTH_TEST_MODE: process.env.NEXTAUTH_TEST_MODE,
-    POSTHOG_OWNER_EMAILS: process.env.POSTHOG_OWNER_EMAILS,
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     NEXT_PUBLIC_TELEGRAM_BOT_NAME: process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME,
   },

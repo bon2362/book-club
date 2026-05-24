@@ -93,12 +93,12 @@ describe('PATCH /api/admin/books/[id]', () => {
     expect(json.data.id).toBe('b1')
   })
 
-  it('passes archived flag through', async () => {
+  it('passes visibility changes through', async () => {
     mockAuth.mockResolvedValue({ user: { isAdmin: true } })
     updateBookMock.mockResolvedValue({ id: 'b1' })
-    pushSelectResult([{ id: 'b1', archivedAt: new Date() }])
-    const res = await PATCH(makePatch('b1', { archived: true }), { params: { id: 'b1' } })
+    pushSelectResult([{ id: 'b1', visibility: 'hidden' }])
+    const res = await PATCH(makePatch('b1', { visibility: 'hidden' }), { params: { id: 'b1' } })
     expect(res.status).toBe(200)
-    expect(updateBookMock).toHaveBeenCalledWith('b1', { archived: true })
+    expect(updateBookMock).toHaveBeenCalledWith('b1', { visibility: 'hidden' })
   })
 })

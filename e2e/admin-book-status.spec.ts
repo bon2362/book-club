@@ -91,9 +91,9 @@ test.describe('AdminPanel — изменение статуса книги', () 
   }
 
   async function getBookSignupCount(page: import('@playwright/test').Page, bookName: string) {
-    const row = page.locator('tbody tr').filter({ hasText: bookName })
+    const row = page.getByTestId('admin-catalog-section-published').locator('tbody tr').filter({ hasText: bookName })
     await expect(row).toBeVisible()
-    const text = await row.locator('td').nth(1).innerText()
+    const text = await row.locator('td').nth(3).innerText()
     return Number.parseInt(text, 10)
   }
 
@@ -101,32 +101,33 @@ test.describe('AdminPanel — изменение статуса книги', () 
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Переключаемся на вкладку "По книгам"
-    await page.getByRole('button', { name: /по книгам/i }).click()
+    // Переключаемся на вкладку "Каталог"
+    await page.getByTestId('admin-tab-catalog').click()
     await page.waitForLoadState('networkidle')
 
     // Находим строку тестовой книги
-    const bookRow = page.locator('tr').filter({ hasText: TEST_BOOK_NAME })
+    const bookRow = page.getByTestId(`admin-book-row-${TEST_BOOK_ID}`)
     await expect(bookRow).toBeVisible()
 
-    // Кликаем "Читаем" в строке книги
-    await bookRow.getByRole('button', { name: 'Читаем' }).click()
+    // Открываем inline-editor и кликаем Reading
+    await page.getByTestId(`admin-book-expand-${TEST_BOOK_ID}`).click()
+    const editor = page.getByTestId(`admin-book-editor-${TEST_BOOK_ID}`)
+    await expect(editor).toBeVisible()
+    await editor.getByRole('button', { name: 'Reading' }).click()
 
-    // Ждём появления кнопки "Сброс" — она появляется только после того,
-    // как API-вызов завершился и React-стейт обновился (currentStatus установлен)
-    await expect(bookRow.getByRole('button', { name: 'Сброс' })).toBeVisible()
+    await expect(bookRow).toContainText('Reading')
 
     // Ключевая проверка: перезагрузка → статус должен сохраниться
     await page.reload()
     await page.waitForLoadState('networkidle')
 
-    // Переходим на вкладку "По книгам" снова
-    await page.getByRole('button', { name: /по книгам/i }).click()
+    // Переходим на вкладку "Каталог" снова
+    await page.getByTestId('admin-tab-catalog').click()
 
-    // Строка книги всё ещё видна, "Сброс" присутствует → статус сохранён в БД
-    const bookRowAfterReload = page.locator('tr').filter({ hasText: TEST_BOOK_NAME })
+    // Строка книги всё ещё видна, Reading присутствует → статус сохранён в БД
+    const bookRowAfterReload = page.getByTestId(`admin-book-row-${TEST_BOOK_ID}`)
     await expect(bookRowAfterReload).toBeVisible()
-    await expect(bookRowAfterReload.getByRole('button', { name: 'Сброс' })).toBeVisible()
+    await expect(bookRowAfterReload).toContainText('Reading')
   })
 
   test('[SEC] обычный пользователь не может изменить статус книги', async ({ page }) => {
@@ -173,7 +174,7 @@ test.describe('AdminPanel — изменение статуса книги', () 
 
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
-    await page.getByRole('button', { name: /по книгам/i }).click()
+    await page.getByTestId('admin-tab-catalog').click()
 
     const book1Count = await getBookSignupCount(page, TEST_BOOK_NAME)
     const book3Count = await getBookSignupCount(page, TEST_BOOK_3_NAME)
@@ -190,16 +191,20 @@ test.describe('AdminPanel — изменение статуса книги', () 
       })
       await page.reload()
       await page.waitForLoadState('networkidle')
-      await page.getByRole('button', { name: /по книгам/i }).click()
+      await page.getByTestId('admin-tab-catalog').click()
     }
 
-    const dataRows = page.locator('tbody tr')
+    const dataRows = page.getByTestId('admin-catalog-section-published').locator('tbody tr')
     await expect.poll(async () => {
       const rows = await dataRows.allTextContents()
       return rows.findIndex(row => row.includes(TEST_BOOK_3_NAME)) < rows.findIndex(row => row.includes(TEST_BOOK_NAME))
     }).toBe(true)
 
-    await page.getByRole('columnheader', { name: /^книга/i }).click()
+    await page
+      .getByTestId('admin-catalog-section-published')
+      .getByRole('columnheader', { name: /^книга/i })
+      .first()
+      .click()
     await expect.poll(async () => {
       const rows = await dataRows.allTextContents()
       return rows.findIndex(row => row.includes(TEST_BOOK_NAME)) < rows.findIndex(row => row.includes(TEST_BOOK_3_NAME))

@@ -26,7 +26,6 @@ export async function POST() {
     author: b.author,
     tags: b.tags,
     type: 'book' as const,
-    size: '',
     pages: b.pages,
     publishedDate: b.publishedDate,
     textUrl: '',

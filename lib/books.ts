@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { books, signupBooks } from '@/lib/db/schema'
-import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
 export const ALLOWED_VISIBILITIES = ['hidden', 'published'] as const
@@ -29,8 +29,7 @@ export interface BookWithCover {
   signupCount?: number
   submittedByMember?: boolean
   visibility?: 'hidden' | 'published'
-  source?: 'admin' | 'submission' | 'sheets_import'
-  archived?: boolean
+  source?: 'admin' | 'submission'
   sortOrder?: number
 }
 
@@ -56,9 +55,8 @@ function rowToBook(row: typeof books.$inferSelect, signupCount = 0): BookWithCov
     isNew: row.isNew,
     status: (row.readingStatus as 'reading' | 'read' | null) ?? null,
     visibility: row.visibility as 'hidden' | 'published',
-    source: row.source as 'admin' | 'submission' | 'sheets_import',
+    source: row.source as 'admin' | 'submission',
     submittedByMember: row.source === 'submission',
-    archived: row.archivedAt != null,
     sortOrder: row.sortOrder,
     signupCount,
   }
@@ -66,14 +64,12 @@ function rowToBook(row: typeof books.$inferSelect, signupCount = 0): BookWithCov
 
 interface ListOptions {
   includeHidden?: boolean
-  includeArchived?: boolean
 }
 
 async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
-  const { includeHidden = false, includeArchived = false } = options
+  const { includeHidden = false } = options
   const conditions = []
   if (!includeHidden) conditions.push(eq(books.visibility, 'published'))
-  if (!includeArchived) conditions.push(isNull(books.archivedAt))
   const whereClause = conditions.length ? and(...conditions) : undefined
 
   const rows = await db
@@ -99,11 +95,11 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
 }
 
 export async function fetchBooksWithCovers(): Promise<BookWithCover[]> {
-  return loadBooks({ includeHidden: false, includeArchived: false })
+  return loadBooks({ includeHidden: false })
 }
 
 export async function fetchBooksForAdmin(): Promise<BookWithCover[]> {
-  return loadBooks({ includeHidden: true, includeArchived: false })
+  return loadBooks({ includeHidden: true })
 }
 
 export async function fetchBookById(id: string): Promise<BookWithCover | null> {
@@ -216,7 +212,6 @@ export interface UpdateBookInput {
   visibility?: unknown
   isNew?: boolean
   sortOrder?: number
-  archived?: boolean
 }
 
 export async function updateBook(id: string, input: UpdateBookInput): Promise<BookWithCover | null> {
@@ -272,9 +267,6 @@ export async function updateBook(id: string, input: UpdateBookInput): Promise<Bo
   }
   if (input.isNew !== undefined) patch.isNew = input.isNew
   if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder
-  if (input.archived !== undefined) {
-    patch.archivedAt = input.archived ? new Date() : null
-  }
 
   await db.update(books).set(patch).where(eq(books.id, id))
   return fetchBookById(id)

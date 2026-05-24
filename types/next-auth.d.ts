@@ -5,7 +5,6 @@ declare module 'next-auth' {
     user: {
       id?: string
       isAdmin?: boolean
-      isExcludedFromAnalytics?: boolean
       provider?: string | null
       contactEmail?: string | null
     } & DefaultSession['user']
@@ -18,7 +17,6 @@ declare module 'next-auth' {
 declare module '@auth/core/jwt' {
   interface JWT {
     isAdmin?: boolean
-    isExcludedFromAnalytics?: boolean
     provider?: string | null
     contactEmail?: string | null
   }

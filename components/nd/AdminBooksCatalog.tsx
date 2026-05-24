@@ -40,8 +40,7 @@ interface AdminBook {
   visibility: 'hidden' | 'published'
   isNew: boolean
   sortOrder: number
-  source: 'admin' | 'submission' | 'sheets_import'
-  archivedAt: string | null
+  source: 'admin' | 'submission'
   publishedAt: string | null
   hiddenAt: string | null
   createdAt: string
@@ -64,7 +63,7 @@ const TOP_PRIORITY_EMOJI = ['🏆', '🥈', '🥉']
 
 const EMPTY_FORM: Omit<
   AdminBook,
-  'id' | 'createdAt' | 'updatedAt' | 'archivedAt' | 'publishedAt' | 'hiddenAt' | 'signupCount' | 'submittedByName' | 'submittedByEmail'
+  'id' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'hiddenAt' | 'signupCount' | 'submittedByName' | 'submittedByEmail'
 > = {
   title: '',
   author: '',
@@ -295,7 +294,7 @@ function SortTh({
       }}
     >
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-        {label}
+        <span>{label}</span>
         {active && <span aria-hidden>{arrow}</span>}
       </span>
     </th>
@@ -602,16 +601,13 @@ function BookEditor({
   saving,
   onChange,
   onSave,
-  onArchive,
 }: {
   book: AdminBook
   hasEdits: boolean
   saving: boolean
   onChange: (field: keyof AdminBook, value: unknown) => void
   onSave: () => void
-  onArchive: () => void
 }) {
-  const isArchived = !!book.archivedAt
   // Auto-adjust all textareas when editor opens or book switches
   const editorRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -650,38 +646,13 @@ function BookEditor({
             <CopyableId id={book.id} />
           </ControlRow>
           <ControlRow label="Видимость">
-            <VisibilityToggle value={book.visibility} onChange={v => onChange('visibility', v)} disabled={isArchived} />
+            <VisibilityToggle value={book.visibility} onChange={v => onChange('visibility', v)} />
           </ControlRow>
           <ControlRow label="Статус">
             <ReadingStatusSegmented value={book.readingStatus} onChange={v => onChange('readingStatus', v)} />
           </ControlRow>
           <ControlRow label="Бейдж">
             <NewBadgeToggle value={book.isNew} onChange={v => onChange('isNew', v)} />
-          </ControlRow>
-          <ControlRow label="Архив">
-            <button
-              type="button"
-              data-testid="admin-book-archive-toggle"
-              onClick={onArchive}
-              style={{
-                fontFamily: SANS,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                padding: '0.32rem 0.7rem',
-                cursor: 'pointer',
-                border: '1px solid #C0603A',
-                background: isArchived ? '#C0603A' : 'transparent',
-                color: isArchived ? '#fff' : '#C0603A',
-              }}
-            >
-              {isArchived ? 'Восстановить из архива' : 'Архивировать'}
-            </button>
-            {isArchived && (
-              <span style={{ fontFamily: SANS, fontSize: '0.72rem', color: '#C0603A' }}>
-                в архиве с {formatDateTime(book.archivedAt)}
-              </span>
-            )}
           </ControlRow>
         </div>
       </div>
@@ -775,16 +746,13 @@ function BookEditor({
                 ? 'Админ'
                 : book.source === 'submission'
                   ? 'Заявка'
-                  : book.source === 'sheets_import'
-                    ? 'Админ'
-                    : book.source
+                  : book.source
             }
           />
           <ReadOnlyField label="Created at" value={formatDateTime(book.createdAt)} />
           <ReadOnlyField label="Updated at" value={formatDateTime(book.updatedAt)} />
           <ReadOnlyField label="Published at" value={formatDateTime(book.publishedAt)} />
           <ReadOnlyField label="Hidden at" value={formatDateTime(book.hiddenAt)} />
-          <ReadOnlyField label="Archived at" value={formatDateTime(book.archivedAt)} />
           {book.source === 'submission' && (
             <ReadOnlyField
               label="Загрузил"
@@ -859,7 +827,6 @@ function SortableRow({
     transform: CSS.Transform.toString(transform),
     transition,
     background: isDragging ? '#FFF8EE' : expanded ? '#FAF8F4' : 'transparent',
-    opacity: book.archivedAt ? 0.55 : 1,
   }
   return (
     <Fragment>
@@ -1251,8 +1218,6 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
   const [reorderMode, setReorderMode] = useState(false)
   const [sortPublished, setSortPublished] = useState<SortState>({ key: 'signups', dir: 'desc' })
   const [sortHidden, setSortHidden] = useState<SortState>({ key: 'title', dir: 'asc' })
-  const [sortArchived, setSortArchived] = useState<SortState>({ key: 'title', dir: 'asc' })
-
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [edits, setEdits] = useState<Record<string, Partial<AdminBook>>>({})
   const [saving, setSaving] = useState<string | null>(null)
@@ -1268,7 +1233,7 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
     if (silent) setRefreshing(true)
     else setLoading(true)
     try {
-      const res = await fetch('/api/admin/books?includeArchived=1')
+      const res = await fetch('/api/admin/books')
       const d = await res.json()
       if (d.success && Array.isArray(d.data)) {
         catalogCache.data = d.data
@@ -1389,31 +1354,6 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
     updateEdit(id, field, value)
   }
 
-  async function handleArchive(id: string) {
-    const book = books.find(b => b.id === id)
-    if (!book) return
-    const archived = !book.archivedAt
-    if (archived && !window.confirm('Архивировать книгу? Она перестанет показываться в каталоге, но запись о ней сохранится.')) {
-      return
-    }
-    setErrorMsg('')
-    try {
-      const res = await fetch(`/api/admin/books/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ archived }),
-      })
-      const d = await res.json()
-      if (!res.ok) {
-        setErrorMsg(d.error || 'Ошибка')
-        return
-      }
-      applyBookUpdate(id, d.data)
-    } catch {
-      setErrorMsg('Ошибка сети')
-    }
-  }
-
   async function handleReorder(orderedIds: string[]) {
     // Optimistic: update sortOrder locally first.
     const orderMap = new Map(orderedIds.map((id, i) => [id, i + 1]))
@@ -1477,7 +1417,7 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
     if (statusFilter === 'reading' && b.readingStatus !== 'reading') return false
     if (statusFilter === 'read' && b.readingStatus !== 'read') return false
     if (statusFilter === 'none' && b.readingStatus) return false
-    if (sourceFilter === 'admin' && b.source !== 'admin' && b.source !== 'sheets_import') return false
+    if (sourceFilter === 'admin' && b.source !== 'admin') return false
     if (sourceFilter === 'submission' && b.source !== 'submission') return false
     return true
   }
@@ -1510,22 +1450,16 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
   const published = useMemo(
     () =>
       allFiltered
-        .filter(b => !b.archivedAt && b.visibility === 'published')
+        .filter(b => b.visibility === 'published')
         .sort(reorderMode ? sortFn({ key: 'sortOrder', dir: 'asc' }) : sortFn(sortPublished)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allFiltered, reorderMode, sortPublished, participantsByBookId],
   )
   const hidden = useMemo(
-    () => allFiltered.filter(b => !b.archivedAt && b.visibility === 'hidden').sort(sortFn(sortHidden)),
+    () => allFiltered.filter(b => b.visibility === 'hidden').sort(sortFn(sortHidden)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allFiltered, sortHidden, participantsByBookId],
   )
-  const archived = useMemo(
-    () => allFiltered.filter(b => !!b.archivedAt).sort(sortFn(sortArchived)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allFiltered, sortArchived, participantsByBookId],
-  )
-
   function makeSorter(setter: React.Dispatch<React.SetStateAction<SortState>>) {
     return (key: SortKey) =>
       setter(prev =>
@@ -1545,7 +1479,6 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
         saving={saving === b.id}
         onChange={(field, value) => handleInlineEditorChange(b.id, field, value)}
         onSave={() => saveBook(b.id)}
-        onArchive={() => handleArchive(b.id)}
       />
     )
   }
@@ -1688,21 +1621,6 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
             onToggleExpand={handleToggleExpand}
             participantsByBookId={participantsByBookId}
             renderEditor={renderEditor}
-          />
-          <SectionTable
-            title="Архив"
-            subtitle="удалены из активного каталога"
-            sectionId="archived"
-            books={archived}
-            allowDnD={false}
-            reorderMode={false}
-            sort={sortArchived}
-            onSort={makeSorter(setSortArchived)}
-            selectedId={selectedId}
-            onToggleExpand={handleToggleExpand}
-            participantsByBookId={participantsByBookId}
-            renderEditor={renderEditor}
-            defaultOpen={false}
           />
         </Fragment>
       )}

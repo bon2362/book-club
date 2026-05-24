@@ -5,8 +5,8 @@
 
 ## Как работает
 - **Источник данных** — таблица `books` в Postgres (Neon). Чтение через `lib/books.ts` (`fetchBooksWithCovers`, `fetchBooksForAdmin`, `fetchBookById`). Google Sheets больше не участвует в runtime каталога.
-- **Видимость** — публичный каталог показывает только `visibility='published'` и `archived_at IS NULL`. Админка показывает все неархивные книги.
-- **Управление каталогом** — админская вкладка «Каталог» (`AdminBooksCatalog.tsx` + `/api/admin/books`): создание, редактирование, публикация/скрытие, soft delete через `archived_at`.
+- **Видимость** — публичный каталог показывает только `visibility='published'`. Админка показывает все книги, включая `hidden`.
+- **Управление каталогом** — админская вкладка «Каталог» (`AdminBooksCatalog.tsx` + `/api/admin/books`): создание, редактирование, публикация/скрытие.
 - **Approved-заявки** — при approval в `/api/admin/submissions/:id` создаётся `books` row с `source='submission'`, `visibility='published'` (см. `lib/book-publish.ts`).
 - **Обложки** — `cover_url` хранится прямо на `books`. Загружается админом при создании/редактировании.
 - **CoverImage** — client component (`components/nd/CoverImage.tsx`); показывает обложку если задан `coverUrl`, при ошибке загрузки показывает инициалы автора (`onError`).

@@ -15,7 +15,6 @@ const mockBook = {
   tags: ['test'],
   author: 'Author',
   type: 'Book',
-  size: 'M',
   pages: '200',
   date: '2024',
   link: '',

@@ -1,22 +1,21 @@
 # Панель администратора
 
 ## Что делает
-Позволяет администраторам управлять участниками клуба и каталогом книг. Вкладки: «Участники», «По книгам» (signups × books), «Каталог» (CRUD книг), «Теги», «Заявки», «Фидбеки», «Интро».
+Позволяет администраторам управлять участниками клуба и каталогом книг. Вкладки: «Участники», «Каталог» (CRUD книг), «Теги», «Заявки», «Фидбеки», «Интро».
 
 ## Как работает
 - **Контроль доступа** — `session.user.isAdmin` проверяется на сервере; не-администраторы получают 403 от всех роутов `/api/admin/*`
 - **Вкладка «Участники»** — показывает пользователей и их записи из Postgres (`user` + `signup_books`); администратор может удалить пользователя через `DELETE /api/admin/delete-user`
-- **Вкладка «По книгам»** — каждая книга → список записавшихся, кнопки `reading`/`read` и тоггл `NEW`
-- **Вкладка «Каталог»** — CRUD-управление таблицей `books`. Список с поиском и фильтрами по видимости (`published`/`hidden`), статусу прочтения, источнику (`admin`/`submission`/`sheets_import`) и архиву. Форма создания: новая книга по умолчанию `visibility='hidden'`, `source='admin'`, `is_new=false`. Inline-редактор позволяет менять все поля, переключать публикацию (`Опубликовать`/`Скрыть`) и архивировать (soft delete через `archived_at`).
+- **Вкладка «Каталог»** — CRUD-управление таблицей `books`. Список с поиском и фильтрами по видимости (`published`/`hidden`), статусу прочтения и источнику (`admin`/`submission`). Форма создания: новая книга по умолчанию `visibility='hidden'`, `source='admin'`, `is_new=false`. Inline-редактор позволяет менять все поля и переключать публикацию (`Опубликовать`/`Скрыть`).
 - **Статусы книг** — поле `books.reading_status` (`reading`/`read`/null); обновляется через `PATCH /api/admin/books/:id`
 - **Флаги new** — поле `books.is_new`; обновляется через `PATCH /api/admin/books/:id`
 - **Описания тегов** — таблица `tag_descriptions`; редактируются inline через `PATCH /api/admin/tag-description`
 - **Отображение приоритетов** — `AdminStatusBar` показывает размер очереди digest и топ приоритетных книг по каждому пользователю
 
 ## API каталога книг
-- `GET /api/admin/books?includeArchived=1` — список всех книг (включая hidden/archived) с `signupCount`
+- `GET /api/admin/books` — список всех книг с `signupCount`
 - `POST /api/admin/books` — создать книгу. Серверная нормализация: `tags` (string|array → string[]), `pages` (string → int|null), валидация `type`/`visibility`/`readingStatus`. Default: `source='admin'`, `visibility='hidden'`. Возвращает 400 при невалидных полях.
-- `PATCH /api/admin/books/:id` — обновить любые поля + `archived: true|false` (soft delete). При смене visibility выставляет `publishedAt`/`hiddenAt`.
+- `PATCH /api/admin/books/:id` — обновить поля книги. При смене visibility выставляет `publishedAt`/`hiddenAt`.
 
 ## Записи пользователей на книги
 

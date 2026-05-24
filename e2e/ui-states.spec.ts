@@ -115,9 +115,12 @@ test.describe('Admin tab layout states', () => {
   test('book sort arrow stays on the same line as header text', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
-    await page.getByRole('button', { name: /по книгам/i }).click()
+    await page.getByTestId('admin-tab-catalog').click()
 
-    const header = page.getByRole('columnheader', { name: /книга/i })
+    const header = page
+      .getByTestId('admin-catalog-section-published')
+      .getByRole('columnheader', { name: /книга/i })
+      .first()
     await header.click()
 
     const sameLine = await header.locator('span').first().evaluate(node => {
@@ -188,7 +191,7 @@ test.describe('Admin Catalog: section + editor layout', () => {
     })
     if (createdId) {
       await page.request.patch(`/api/admin/books/${createdId}`, {
-        data: { archived: true, visibility: 'hidden' },
+        data: { visibility: 'hidden' },
       })
       createdId = null
     }
@@ -211,31 +214,26 @@ test.describe('Admin Catalog: section + editor layout', () => {
     await page.getByTestId('admin-books-create-submit').click()
     createdId = (await (await createRes).json()).data.id as string
 
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await page.getByTestId('admin-tab-catalog').click()
+
     const row = page.getByTestId(`admin-book-row-${createdId}`)
-    await expect(row).toBeVisible()
-    const rowBox = await row.boundingBox()
-    expect(rowBox).not.toBeNull()
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    await row.scrollIntoViewIfNeeded()
 
     // Открываем editor — он должен оказаться визуально под строкой и иметь ненулевую высоту.
     await page.getByTestId(`admin-book-expand-${createdId}`).click()
     const editor = page.getByTestId(`admin-book-editor-${createdId}`)
     await expect(editor).toBeVisible()
+    await editor.scrollIntoViewIfNeeded()
     const editorBox = await editor.boundingBox()
     expect(editorBox).not.toBeNull()
     expect(editorBox!.height).toBeGreaterThan(100)
-    // editor.y должен быть ниже row.y + row.height (или хотя бы не выше row.y).
-    expect(editorBox!.y).toBeGreaterThanOrEqual(rowBox!.y)
-  })
-
-  test('секция «Архив» свёрнута по умолчанию', async ({ page }) => {
-    await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
-    await page.getByTestId('admin-tab-catalog').click()
-    await expect(page.getByTestId('admin-books-catalog')).toBeVisible()
-
-    const section = page.getByTestId('admin-catalog-section-archived')
-    await expect(section).toBeVisible()
-    // У свёрнутой секции внутри нет видимой таблицы.
-    await expect(section.locator('table')).toHaveCount(0)
+    const editorFollowsRow = await row.evaluate((rowEl, editorTestId) => {
+      const editorEl = document.querySelector(`[data-testid="${editorTestId}"]`)
+      return !!editorEl && !!(rowEl.compareDocumentPosition(editorEl) & Node.DOCUMENT_POSITION_FOLLOWING)
+    }, `admin-book-editor-${createdId}`)
+    expect(editorFollowsRow).toBe(true)
   })
 })

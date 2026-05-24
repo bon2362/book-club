@@ -232,8 +232,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!token.isAdmin) {
           token.isAdmin = await bootstrapAdminFromEnv(existing[0].id, contactEmail)
         }
-        const ownerEmails = (process.env.POSTHOG_OWNER_EMAILS ?? '').split(',').map(s => s.trim()).filter(Boolean)
-        token.isExcludedFromAnalytics = ownerEmails.length > 0 && ownerEmails.includes(contactEmail ?? '')
       }
       return token
     },
@@ -241,7 +239,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         if (token.sub) session.user.id = token.sub
         session.user.isAdmin = token.isAdmin as boolean | undefined
-        session.user.isExcludedFromAnalytics = token.isExcludedFromAnalytics as boolean | undefined
         session.user.provider = token.provider
         session.user.contactEmail = token.contactEmail ?? null
       }
