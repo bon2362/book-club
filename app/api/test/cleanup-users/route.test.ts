@@ -46,7 +46,9 @@ describe('DELETE /api/test/cleanup-users', () => {
   it('удаляет E2E-хвосты в test mode', async () => {
     setNodeEnv('test')
     process.env.NEXTAUTH_TEST_MODE = 'true'
-    ;(db.execute as jest.Mock).mockResolvedValue([{ users: 2, identities: 2, feedback: 1, notifications: 0 }])
+    ;(db.execute as jest.Mock).mockResolvedValue({
+      rows: [{ users: 2, identities: 2, feedback: 1, notifications: 0 }],
+    })
 
     const res = await DELETE()
 

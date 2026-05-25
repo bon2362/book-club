@@ -10,6 +10,26 @@ function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
 }
 
+type CleanupCounts = {
+  users: number
+  identities: number
+  feedback: number
+  notifications: number
+}
+
+function firstRow(result: unknown): CleanupCounts | null {
+  if (Array.isArray(result)) {
+    return (result[0] as CleanupCounts | undefined) ?? null
+  }
+
+  if (result && typeof result === 'object' && 'rows' in result) {
+    const rows = (result as { rows?: unknown[] }).rows
+    return (rows?.[0] as CleanupCounts | undefined) ?? null
+  }
+
+  return null
+}
+
 export async function DELETE() {
   if (!isTestEndpointAllowed()) return notAllowed()
 
@@ -63,12 +83,5 @@ export async function DELETE() {
       (SELECT count(*)::int FROM deleted_notifications) AS "notifications"
   `)
 
-  const [deleted] = result as unknown as Array<{
-    users: number
-    identities: number
-    feedback: number
-    notifications: number
-  }>
-
-  return NextResponse.json({ ok: true, deleted: deleted ?? null })
+  return NextResponse.json({ ok: true, deleted: firstRow(result) })
 }
