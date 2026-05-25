@@ -6,6 +6,7 @@ import { tagDescriptions, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import BooksPage from '@/components/nd/BooksPage'
 import GoogleOneTap from '@/components/nd/GoogleOneTap'
+import SiteVisitTracker from '@/components/nd/SiteVisitTracker'
 import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
 
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,7 @@ export default async function Home() {
   return (
     <>
       {!session && <GoogleOneTap />}
+      {session?.user?.id && <SiteVisitTracker />}
       <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} />
     </>
   )

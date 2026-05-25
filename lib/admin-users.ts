@@ -6,6 +6,7 @@ import {
   feedback,
   users,
   userIdentities,
+  userActivityEvents,
   books,
 } from '@/lib/db/schema'
 import { asc, desc, eq } from 'drizzle-orm'
@@ -20,6 +21,7 @@ export interface AdminUserSummary {
   telegramDisplay: string
   authProvider: string | null
   lastActivityAt: string | null
+  lastActivityType: string | null
   createdAt: string | null
   languages: string[]
   booksCount: number
@@ -69,7 +71,7 @@ function dateToIso(value: Date | null | undefined): string | null {
 export { formatTelegramDisplay as getTelegramDisplay }
 
 export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
-  const [userRows, signupRows, identityRows] = await Promise.all([
+  const [userRows, signupRows, identityRows, activityRows] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -94,9 +96,17 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
       })
       .from(userIdentities)
       .orderBy(desc(userIdentities.lastSeenAt)),
+    db
+      .select({
+        userId: userActivityEvents.userId,
+        type: userActivityEvents.type,
+        occurredAt: userActivityEvents.occurredAt,
+      })
+      .from(userActivityEvents)
+      .orderBy(desc(userActivityEvents.occurredAt)),
   ])
 
-  return buildAdminUserSummaries(userRows, signupRows, identityRows)
+  return buildAdminUserSummaries(userRows, signupRows, identityRows, activityRows)
 }
 
 export function buildAdminUserSummaries(
@@ -113,7 +123,8 @@ export function buildAdminUserSummaries(
     isAdmin?: boolean | null
   }[],
   signupRows: { userId: string; activityAt?: Date }[],
-  identityRows: { userId: string; provider: string; lastSeenAt: Date }[] = []
+  identityRows: { userId: string; provider: string; lastSeenAt: Date }[] = [],
+  activityRows: { userId: string; type: string; occurredAt: Date }[] = []
 ): AdminUserSummary[] {
   const counts = new Map<string, number>()
   for (const row of signupRows) {
@@ -126,6 +137,13 @@ export function buildAdminUserSummaries(
       latestProviders.set(row.userId, { provider: row.provider, lastSeenAt: row.lastSeenAt })
     }
   }
+  const latestActivityTypes = new Map<string, { type: string; occurredAt: Date }>()
+  for (const row of activityRows) {
+    const current = latestActivityTypes.get(row.userId)
+    if (!current || current.occurredAt < row.occurredAt) {
+      latestActivityTypes.set(row.userId, { type: row.type, occurredAt: row.occurredAt })
+    }
+  }
 
   return userRows.map(row => ({
     id: row.id,
@@ -136,6 +154,7 @@ export function buildAdminUserSummaries(
     telegramDisplay: formatTelegramDisplay(row),
     authProvider: latestProviders.get(row.id)?.provider ?? null,
     lastActivityAt: dateToIso(row.lastActivityAt),
+    lastActivityType: latestActivityTypes.get(row.id)?.type ?? null,
     createdAt: dateToIso(row.createdAt),
     languages: parseLanguages(row.languages),
     booksCount: counts.get(row.id) ?? 0,
@@ -219,7 +238,8 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
   const summary = buildAdminUserSummaries(
     [userRow],
     signupRows.map(row => ({ userId, activityAt: row.signedAt })),
-    identityRows
+    identityRows,
+    []
   )[0]
 
   return {

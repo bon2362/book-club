@@ -5,6 +5,7 @@ import { userActivityEvents, users } from '@/lib/db/schema'
 
 export const USER_ACTIVITY_TYPES = [
   'user_created',
+  'site_visit',
   'sign_in',
   'profile_submitted',
   'profile_updated',

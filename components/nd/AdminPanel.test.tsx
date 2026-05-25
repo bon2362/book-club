@@ -125,6 +125,7 @@ const mockAdminUsers = [
     telegramDisplay: '@old_reader',
     authProvider: 'telegram',
     lastActivityAt: '2026-01-01T10:00:00.000Z',
+    lastActivityType: 'sign_in',
     createdAt: '2025-12-01T10:00:00.000Z',
     languages: ['ru'],
     booksCount: 1,
@@ -138,6 +139,7 @@ const mockAdminUsers = [
     telegramDisplay: '@new_reader',
     authProvider: 'telegram',
     lastActivityAt: '2026-05-18T10:00:00.000Z',
+    lastActivityType: 'site_visit',
     createdAt: new Date().toISOString(),
     languages: ['en'],
     booksCount: 3,
@@ -533,6 +535,7 @@ describe('AdminPanel — Участники таб', () => {
     expect(screen.getByRole('columnheader', { name: /дата создания/i })).toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: /^email$/i })).not.toBeInTheDocument()
     expect(within(rows[1]).getByText('Новый участник')).toBeInTheDocument()
+    expect(within(rows[1]).getByLabelText(/Пользователь заходил на сайт/)).toBeInTheDocument()
     expect(screen.getByText('New')).toBeInTheDocument()
   })
 })

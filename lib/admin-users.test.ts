@@ -47,6 +47,9 @@ describe('admin-users aggregations', () => {
       { userId: 'u1', provider: 'email', lastSeenAt: new Date('2026-01-01T10:00:00Z') },
       { userId: 'u1', provider: 'telegram', lastSeenAt: new Date('2026-01-02T10:00:00Z') },
       { userId: 'u2', provider: 'google', lastSeenAt: new Date('2026-01-03T10:00:00Z') },
+    ], [
+      { userId: 'u1', type: 'books_selected', occurredAt: new Date('2026-01-05T10:00:00Z') },
+      { userId: 'u1', type: 'site_visit', occurredAt: new Date('2026-01-06T10:00:00Z') },
     ])
 
     expect(result).toEqual([
@@ -60,6 +63,7 @@ describe('admin-users aggregations', () => {
         telegramDisplay: '@anna_contact',
         authProvider: 'telegram',
         lastActivityAt: '2026-01-06T10:00:00.000Z',
+        lastActivityType: 'site_visit',
         createdAt: '2026-01-01T09:00:00.000Z',
       }),
       expect.objectContaining({
@@ -70,6 +74,7 @@ describe('admin-users aggregations', () => {
         isAdmin: false,
         authProvider: 'google',
         lastActivityAt: null,
+        lastActivityType: null,
         createdAt: '2026-01-03T10:00:00.000Z',
       }),
     ])
@@ -91,6 +96,7 @@ describe('admin-users aggregations', () => {
     ], [])
 
     expect(result[0].lastActivityAt).toBe('2026-01-03T10:00:00.000Z')
+    expect(result[0].lastActivityType).toBeNull()
   })
 
   it('форматирует Telegram единым formatter-ом', () => {

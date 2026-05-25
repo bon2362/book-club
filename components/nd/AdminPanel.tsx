@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
+import { getUserActivityDisplay } from '@/lib/user-activity-display'
 import Header from './Header'
 import IntroEditor from './IntroEditor'
 import AdminUserDrawer from './AdminUserDrawer'
@@ -185,6 +186,30 @@ function AutoHeightTextarea({
 function formatAdminDate(value: string | null): string {
   if (!value) return '—'
   return new Date(value).toLocaleDateString('ru-RU')
+}
+
+function formatAdminDateTime(value: string | null): string {
+  if (!value) return ''
+  return new Date(value).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function LastActivityCell({ type, value }: { type: string | null; value: string | null }) {
+  if (!value) return <span>—</span>
+  const display = getUserActivityDisplay(type)
+  const date = formatAdminDate(value)
+  const tooltip = `${display.label} · ${formatAdminDateTime(value)}`
+  return (
+    <span title={tooltip} aria-label={tooltip} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+      <span aria-hidden="true">{display.emoji}</span>
+      <span>{date}</span>
+    </span>
+  )
 }
 
 function dateValue(value: string | null): number {
@@ -723,7 +748,9 @@ export default function AdminPanel({
                         </span>
                       </td>
                       <td style={cell}>{telegram}</td>
-                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.lastActivityAt)}</td>
+                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>
+                        <LastActivityCell type={u.lastActivityType} value={u.lastActivityAt} />
+                      </td>
                       <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.createdAt)}</td>
                       <td style={{ ...cell, color: '#666' }}>
                         {u.languages.length === 0 ? <span style={{ color: '#ccc' }}>—</span> : u.languages.map(lang => (
