@@ -1,56 +1,16 @@
-name: Wiki Sync
+name: Wiki Sync Disabled
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'docs/features/**'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  sync:
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Clone wiki repo
+      - name: Explain current wiki process
         run: |
-          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/bon2362/book-club.wiki.git" wiki
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Copy feature docs to wiki
-        run: |
-          cp docs/features/*.md wiki/
-
-      - name: Generate Home.md
-        run: |
-          DATE=$(date +%Y-%m-%d)
-          {
-            echo "# Book Club — Feature Documentation"
-            echo ""
-            echo "> Auto-generated from \`docs/features/\`. To edit, modify files in \`docs/features/\` and push to \`main\`."
-            echo ""
-            echo "## Features"
-            echo ""
-            echo "- [Authentication](auth) — Google OAuth, magic link, NextAuth v5"
-            echo "- [Books Catalog](books-catalog) — Google Sheets, covers, BookCard"
-            echo "- [Admin Panel](admin-panel) — moderation, priorities, stats"
-            echo "- [Notifications](notifications) — digest queue, cron, Resend"
-            echo "- [User Profile](user-profile) — drawer, tabs, priorities"
-            echo ""
-            echo "_Last updated: ${DATE}_"
-          } > wiki/Home.md
-
-      - name: Commit and push wiki
-        run: |
-          cd wiki
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git diff --staged --quiet || git commit -m "docs: sync from docs/features/ [skip ci]"
-          git push
+          echo "GitHub Wiki is maintained directly in bon2362/book-club.wiki.git."
+          echo "The old docs/features auto-sync is disabled because it can overwrite owner-facing Wiki pages with stale feature docs."
