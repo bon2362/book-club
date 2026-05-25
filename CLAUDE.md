@@ -145,6 +145,21 @@ Husky pre-commit: запускает `lint-staged` (eslint + tsc на измен
 ## Документация по фичам
 `docs/features/` — краткое описание реализации каждой области (auth, books-catalog, admin-panel, notifications, user-profile). Читай перед работой с соответствующим кодом.
 
+## Wiki-документация владельца проекта
+`docs/wiki/` — исходники GitHub Wiki. На `push` в `main` workflow `.github/workflows/wiki-sync.yml` полностью синхронизирует эту папку в `bon2362/book-club.wiki.git`.
+
+Wiki пишется для владельца проекта: без лишнего кода, но с понятными связями между фичами, БД, интеграциями, хостингом, тестами и внешними сервисами.
+
+Перед каждым коммитом Claude Code обязан оценить, нужна ли правка Wiki. Обновлять `docs/wiki/` обязательно, если меняются:
+- пользовательская фича или админский workflow;
+- БД-схема, миграции, связи данных;
+- API endpoints или `public/openapi.json`;
+- auth/session/provider логика;
+- внешние сервисы, env vars, деплой, CI, Allure, Codecov, PostHog, Resend, Vercel, Neon;
+- операционные сценарии, privacy/data handling или ресурсы проекта.
+
+В финальном ответе перед коммитом явно писать: _"Wiki: нужна / не нужна — [причина]"_.
+
 ## Ключевые файлы
 - `lib/books.ts` — чтение каталога из БД + CRUD-хелперы (`fetchBooksWithCovers`, `createBook`, `updateBook`)
 - `lib/books-with-covers.ts` — re-export shim из `lib/books.ts`

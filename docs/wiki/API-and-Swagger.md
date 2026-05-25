@@ -1,0 +1,74 @@
+# API и Swagger
+
+API проекта описан в OpenAPI-файле и доступен через Swagger UI.
+
+![Swagger UI](images/swagger-api-docs.png)
+
+## Где открыть
+
+- Production Swagger UI: [www.slowreading.club/api-docs](https://www.slowreading.club/api-docs)
+- OpenAPI JSON: [www.slowreading.club/openapi.json](https://www.slowreading.club/openapi.json)
+- Файл в репозитории: `public/openapi.json`
+
+## Группы API
+
+| Группа | Назначение |
+| --- | --- |
+| Public | Публичные данные: книги, intro, feedback, Telegram callback. |
+| Auth | Действия авторизованного пользователя: профиль, запись, приоритеты, заявки. |
+| Admin | Панель администратора и управление данными. |
+| Cron | Внутренние cron-эндпоинты. |
+| Testing | Эндпоинты только для `NEXTAUTH_TEST_MODE=true` вне production. |
+| Media | Генерируемые медиа-ответы, например Open Graph image. |
+
+## Основные публичные endpoints
+
+| Метод | Путь | Зачем |
+| --- | --- | --- |
+| GET | `/api/books` | Список опубликованных книг. |
+| GET | `/api/intro` | Опубликованные intro-блоки. |
+| POST | `/api/feedback` | Отправить обратную связь. |
+| GET | `/api/auth/telegram/callback` | Telegram Login Widget callback. |
+
+## Основные пользовательские endpoints
+
+| Метод | Путь | Зачем |
+| --- | --- | --- |
+| GET | `/api/me` | Текущий пользователь. |
+| GET/PATCH | `/api/profile` | Чтение и обновление профиля. |
+| POST | `/api/signup` | Записаться на выбранные книги. |
+| GET/PUT | `/api/priorities` | Читать и сохранять приоритеты. |
+| GET/POST | `/api/submissions` | Читать и создавать свои заявки. |
+| DELETE | `/api/submissions/{id}` | Удалить свою заявку. |
+
+## Основные admin endpoints
+
+| Метод | Путь | Зачем |
+| --- | --- | --- |
+| GET | `/api/admin/status` | CI и Vercel deploy status. |
+| GET | `/api/admin/users` | Сводка пользователей. |
+| GET | `/api/admin/users/{id}` | Детали пользователя. |
+| GET/POST | `/api/admin/books` | Каталог книг. |
+| PATCH | `/api/admin/books/{id}` | Обновить книгу. |
+| PUT | `/api/admin/books/reorder` | Обновить порядок книг. |
+| GET | `/api/admin/feedback` | Фидбек-сообщения. |
+| GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |
+
+## Безопасность API
+
+| Тип API | Требование |
+| --- | --- |
+| Public | Без сессии. |
+| Auth | Нужна session cookie NextAuth. |
+| Admin | Нужна session cookie и `session.user.isAdmin=true`. |
+| Cron | Нужен Bearer `CRON_SECRET`. |
+| Testing | Работает только в test mode и не должен быть доступен в production. |
+
+## Что важно владельцу
+
+Swagger полезен не только разработчику. Через него можно быстро увидеть:
+
+- какие возможности уже есть на уровне API;
+- какие действия защищены админскими правами;
+- какие endpoint-ы существуют для cron и тестов;
+- не забылась ли документация при добавлении новой функции.
