@@ -2,18 +2,48 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Долгое наступление — Book Club API",
-    "description": "API для сайта книжного клуба «Долгое наступление». Аутентификация через NextAuth v5 (сессионные куки). Эндпоинты /api/admin/* требуют isAdmin=true в сессии.",
-    "version": "1.0.0"
+    "description": "API сайта книжного клуба «Долгое наступление». Runtime-каталог хранится в Postgres. Авторизация через NextAuth v5 с session cookie; /api/admin/* требуют session.user.isAdmin=true; /api/cron/* требуют Bearer CRON_SECRET; /api/test/* доступны только в NEXTAUTH_TEST_MODE=true вне production.",
+    "version": "1.1.0"
   },
   "servers": [
-    { "url": "https://www.slowreading.club", "description": "Production" },
-    { "url": "http://localhost:3000", "description": "Local dev" }
+    {
+      "url": "https://www.slowreading.club",
+      "description": "Production"
+    },
+    {
+      "url": "https://book-club-slow-rising.vercel.app",
+      "description": "Vercel fallback"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local dev"
+    }
   ],
   "tags": [
-    { "name": "Public", "description": "Публичные эндпоинты" },
-    { "name": "Auth", "description": "Требуют авторизации (сессионные куки)" },
-    { "name": "Admin", "description": "Только для администраторов (isAdmin=true)" },
-    { "name": "Cron", "description": "Вызываются GitHub Actions (Bearer CRON_SECRET)" }
+    {
+      "name": "Public",
+      "description": "Публичные эндпоинты"
+    },
+    {
+      "name": "Auth",
+      "description": "Эндпоинты для авторизованного пользователя"
+    },
+    {
+      "name": "Admin",
+      "description": "Только для администраторов"
+    },
+    {
+      "name": "Cron",
+      "description": "Внутренние cron-эндпоинты с Bearer CRON_SECRET"
+    },
+    {
+      "name": "Testing",
+      "description": "Test-only endpoints, включены только при NEXTAUTH_TEST_MODE=true вне production"
+    },
+    {
+      "name": "Media",
+      "description": "Генерируемые медиа-ответы"
+    }
   ],
   "components": {
     "securitySchemes": {
@@ -21,61 +51,622 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "authjs.session-token",
-        "description": "NextAuth сессионный куки"
+        "description": "NextAuth session cookie"
       },
       "cronBearer": {
         "type": "http",
         "scheme": "bearer",
-        "description": "CRON_SECRET для cron-эндпоинтов"
+        "description": "CRON_SECRET для cron endpoints"
       }
     },
     "schemas": {
       "Error": {
         "type": "object",
         "properties": {
-          "error": { "type": "string" }
-        }
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
       },
-      "Book": {
+      "Ok": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "author": { "type": "string" },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "description": { "type": "string" },
-          "coverUrl": { "type": "string", "nullable": true },
-          "status": { "type": "string", "enum": ["reading", "read"], "nullable": true },
-          "isNew": { "type": "boolean", "nullable": true }
-        }
+          "ok": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "ok"
+        ]
       },
-      "UserSignup": {
+      "Success": {
         "type": "object",
         "properties": {
-          "userId": { "type": "string" },
-          "name": { "type": "string" },
-          "email": { "type": "string" },
-          "contacts": { "type": "string" },
-          "selectedBooks": { "type": "array", "items": { "type": "string" } }
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "DateTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "PublicBook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "Book",
+              "Article"
+            ]
+          },
+          "pages": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "whyRead": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommendationLink": {
+            "type": "string",
+            "nullable": true
+          },
+          "isNew": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "reading",
+              "read"
+            ],
+            "nullable": true
+          },
+          "signupCount": {
+            "type": "integer"
+          },
+          "submittedByMember": {
+            "type": "boolean"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "hidden",
+              "published"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "submission"
+            ]
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "author",
+          "tags",
+          "type",
+          "pages",
+          "date",
+          "link",
+          "description",
+          "coverUrl",
+          "isNew"
+        ]
+      },
+      "AdminBook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "book",
+              "article"
+            ]
+          },
+          "pages": {
+            "type": "integer",
+            "nullable": true
+          },
+          "publishedDate": {
+            "type": "string"
+          },
+          "textUrl": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "whyRead": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommendationLink": {
+            "type": "string",
+            "nullable": true
+          },
+          "readingStatus": {
+            "type": "string",
+            "enum": [
+              "reading",
+              "read"
+            ],
+            "nullable": true
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "hidden",
+              "published"
+            ]
+          },
+          "isNew": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "submission"
+            ]
+          },
+          "signupCount": {
+            "type": "integer"
+          },
+          "submittedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedByEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "publishedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "nullable": true
+          },
+          "hiddenAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "BookInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "tags": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "book",
+              "article"
+            ]
+          },
+          "pages": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "nullable": true
+          },
+          "publishedDate": {
+            "type": "string"
+          },
+          "textUrl": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "whyRead": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommendationLink": {
+            "type": "string",
+            "nullable": true
+          },
+          "readingStatus": {
+            "type": "string",
+            "enum": [
+              "reading",
+              "read"
+            ],
+            "nullable": true
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "hidden",
+              "published"
+            ]
+          },
+          "isNew": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "contactEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "contacts": {
+            "type": "string",
+            "nullable": true
+          },
+          "authProvider": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSignInAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "Signup": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "contacts": {
+            "type": "string",
+            "nullable": true
+          },
+          "selectedBooks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "selectedBookIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prioritiesSet": {
+            "type": "boolean"
+          }
         }
       },
       "BookPriority": {
         "type": "object",
         "properties": {
-          "bookName": { "type": "string" },
-          "rank": { "type": "integer" }
-        }
+          "bookId": {
+            "type": "string"
+          },
+          "bookName": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bookId",
+          "bookName",
+          "rank"
+        ]
       },
       "BookSubmission": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "title": { "type": "string" },
-          "author": { "type": "string" },
-          "topic": { "type": "string", "nullable": true },
-          "tags": { "type": "string" },
-          "type": { "type": "string" },
-          "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "bookId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "type": "string"
+          },
+          "pages": {
+            "type": "integer",
+            "nullable": true
+          },
+          "publishedDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "textUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "whyRead": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        }
+      },
+      "BookSubmissionInput": {
+        "type": "object",
+        "required": [
+          "title",
+          "author",
+          "whyRead"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "whyRead": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "pages": {
+            "type": "integer"
+          },
+          "publishedDate": {
+            "type": "string"
+          },
+          "textUrl": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "IntroHeader": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "IntroSection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "isPublished": {
+            "type": "boolean"
+          }
+        }
+      },
+      "IntroData": {
+        "type": "object",
+        "properties": {
+          "header": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IntroHeader"
+              }
+            ],
+            "nullable": true
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntroSection"
+            }
+          }
+        }
+      },
+      "Feedback": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/DateTime"
+          }
         }
       }
     }
@@ -83,9 +674,11 @@
   "paths": {
     "/api/books": {
       "get": {
-        "tags": ["Public"],
-        "summary": "Список книг",
-        "description": "Возвращает все книги из Google Sheets + статусы из БД + одобренные заявки",
+        "tags": [
+          "Public"
+        ],
+        "summary": "Список опубликованных книг",
+        "description": "Возвращает опубликованные книги из Postgres-каталога.",
         "responses": {
           "200": {
             "description": "Список книг",
@@ -94,8 +687,46 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "books": { "type": "array", "items": { "$ref": "#/components/schemas/Book" } }
-                  }
+                    "books": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PublicBook"
+                      }
+                    }
+                  },
+                  "required": [
+                    "books"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/intro": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Опубликованные intro-блоки",
+        "responses": {
+          "200": {
+            "description": "Intro data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntroData"
                 }
               }
             }
@@ -105,231 +736,1889 @@
     },
     "/api/feedback": {
       "post": {
-        "tags": ["Public"],
-        "summary": "Отправить сообщение автору",
+        "tags": [
+          "Public"
+        ],
+        "summary": "Отправить обратную связь",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message"],
+                "required": [
+                  "message"
+                ],
                 "properties": {
-                  "message": { "type": "string" },
-                  "name": { "type": "string" },
-                  "email": { "type": "string" }
+                  "message": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
-        "responses": {
-          "200": { "description": "Отправлено" },
-          "400": { "description": "Нет сообщения", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      }
-    },
-    "/api/signup": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Зарегистрироваться на книги",
-        "description": "Создаёт или обновляет запись участника. Обновляет приоритеты книг. Добавляет уведомления в очередь.",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name", "contacts", "selectedBooks"],
-                "properties": {
-                  "name": { "type": "string" },
-                  "contacts": { "type": "string" },
-                  "selectedBooks": { "type": "array", "items": { "type": "string" } }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Успешно" },
-          "400": { "description": "Некорректные данные" },
-          "401": { "description": "Не авторизован" }
-        }
-      }
-    },
-    "/api/profile": {
-      "get": {
-        "tags": ["Auth"],
-        "summary": "Получить профиль пользователя",
-        "security": [{ "sessionCookie": [] }],
         "responses": {
           "200": {
-            "description": "Данные профиля",
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/og": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Open Graph image",
+        "responses": {
+          "200": {
+            "description": "PNG image",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/telegram/callback": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Telegram Login Widget callback",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "description": "Telegram user id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hash",
+            "in": "query",
+            "required": false,
+            "description": "Telegram HMAC hash",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "first_name",
+            "in": "query",
+            "required": false,
+            "description": "First name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "last_name",
+            "in": "query",
+            "required": false,
+            "description": "Last name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "description": "Telegram username",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to /auth/telegram or /?auth=failed"
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Текущий пользователь",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "languages": { "type": "string", "nullable": true }
-                  }
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "required": [
+                    "user"
+                  ]
                 }
               }
             }
           },
-          "401": { "description": "Не авторизован" }
-        }
-      },
-      "patch": {
-        "tags": ["Auth"],
-        "summary": "Обновить профиль пользователя",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "languages": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Обновлено" },
-          "401": { "description": "Не авторизован" }
-        }
-      }
-    },
-    "/api/priorities": {
-      "get": {
-        "tags": ["Auth"],
-        "summary": "Получить приоритеты книг пользователя",
-        "security": [{ "sessionCookie": [] }],
-        "responses": {
-          "200": {
-            "description": "Список приоритетов",
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BookPriority" } }
-              }
-            }
-          },
-          "401": { "description": "Не авторизован" }
-        }
-      },
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Установить приоритеты книг",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "priorities": { "type": "array", "items": { "$ref": "#/components/schemas/BookPriority" } }
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
-          }
-        },
-        "responses": {
-          "200": { "description": "Обновлено" },
-          "401": { "description": "Не авторизован" }
-        }
-      }
-    },
-    "/api/submissions": {
-      "get": {
-        "tags": ["Auth"],
-        "summary": "Мои заявки на книги",
-        "security": [{ "sessionCookie": [] }],
-        "responses": {
-          "200": {
-            "description": "Список заявок",
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BookSubmission" } }
-              }
-            }
-          },
-          "401": { "description": "Не авторизован" }
-        }
-      },
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Подать заявку на книгу",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["title", "author"],
-                "properties": {
-                  "title": { "type": "string" },
-                  "author": { "type": "string" },
-                  "topic": { "type": "string" },
-                  "tags": { "type": "string" },
-                  "type": { "type": "string" }
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
           }
-        },
-        "responses": {
-          "200": { "description": "Заявка создана" },
-          "401": { "description": "Не авторизован" }
-        }
-      }
-    },
-    "/api/submissions/{id}": {
-      "delete": {
-        "tags": ["Auth"],
-        "summary": "Удалить свою заявку",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Удалено" },
-          "401": { "description": "Не авторизован" },
-          "403": { "description": "Нет прав" }
         }
       }
     },
     "/api/user": {
       "delete": {
-        "tags": ["Auth"],
-        "summary": "Удалить аккаунт пользователя",
-        "security": [{ "sessionCookie": [] }],
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Удалить текущий аккаунт",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Аккаунт удалён" },
-          "401": { "description": "Не авторизован" }
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/admin": {
+    "/api/profile": {
       "get": {
-        "tags": ["Admin"],
-        "summary": "Все участники и книги",
-        "security": [{ "sessionCookie": [] }],
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Профиль: языки",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Участники и книги",
+            "description": "Profile fields",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "users": { "type": "array", "items": { "$ref": "#/components/schemas/UserSignup" } },
-                    "byBook": {
+                    "languages": {
                       "type": "array",
                       "items": {
-                        "type": "object",
+                        "type": "string"
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Обновить профиль",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "languages": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "contacts": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "contacts": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "languages": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/signup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Записаться на выбранные книги",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "contacts",
+                  "selectedBookIds"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "contacts": {
+                    "type": "string"
+                  },
+                  "selectedBookIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/priorities": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Приоритеты книг пользователя",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Priorities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookPriority"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Сохранить порядок приоритетов",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bookIds"
+                ],
+                "properties": {
+                  "bookIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/submissions": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Мои заявки книг",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "submissions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BookSubmission"
+                      }
+                    }
+                  },
+                  "required": [
+                    "submissions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Создать заявку книги",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookSubmissionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BookSubmission"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/submissions/{id}": {
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Удалить свою заявку",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Submission id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/site-visit": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Записать визит пользователя",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin dashboard data",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signups grouped by users and books",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Signup"
+                      }
+                    },
+                    "byBook": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Signup"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "users",
+                    "byBook"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "CI и Vercel deploy status",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ci": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "deploy": {
+                      "type": "object",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/digest-status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Статус очереди digest-уведомлений",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Digest queue status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "empty",
+                        "cooling",
+                        "ready"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "sendAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/posthog-usage": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Использование PostHog за месяц",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "eventsThisMonth": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "eventsThisMonth",
+                    "limit"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/feedback": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Список feedback-сообщений",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feedback rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Feedback"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Сводка пользователей",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Детали пользователя",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/delete-user": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Удалить пользователя администратором",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/books": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin catalog books",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Books",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminBook"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Создать книгу в каталоге",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BookInput"
+                  }
+                ],
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminBook"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/books/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Обновить книгу каталога",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Book id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminBook"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/books/reorder": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Обновить порядок книг",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/priorities": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Пользователи и приоритеты по книге",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "query",
+            "required": true,
+            "description": "Book id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users for book",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Signup"
+                          }
+                        ],
                         "properties": {
-                          "book": { "$ref": "#/components/schemas/Book" },
-                          "users": { "type": "array", "items": { "$ref": "#/components/schemas/UserSignup" } }
+                          "priority": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "totalBooks": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "priorityUpdatedAt": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/DateTime"
+                              }
+                            ],
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "users"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/remove-book": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Удалить книгу из записи пользователя",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "bookId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "bookId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/signup-books": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Удалить книгу из signup_books пользователя",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "bookId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "bookId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tag-description": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Создать/обновить или удалить описание тега",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tag",
+                  "description"
+                ],
+                "properties": {
+                  "tag": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Пустая строка удаляет описание"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intro": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Все intro-блоки",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Intro data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntroData"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Обновить intro-блоки",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "patches"
+                ],
+                "properties": {
+                  "patches": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "body": {
+                          "type": "string"
+                        },
+                        "sortOrder": {
+                          "type": "integer"
+                        },
+                        "isPublished": {
+                          "type": "boolean"
                         }
                       }
                     }
@@ -337,330 +2626,1025 @@
                 }
               }
             }
-          },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/book-status": {
-      "post": {
-        "tags": ["Admin"],
-        "summary": "Установить статус книги",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["bookId", "status"],
-                "properties": {
-                  "bookId": { "type": "string" },
-                  "status": { "type": "string", "enum": ["reading", "read"] }
-                }
-              }
-            }
           }
         },
-        "responses": {
-          "200": { "description": "Статус установлен" },
-          "403": { "description": "Нет прав" }
-        }
-      },
-      "delete": {
-        "tags": ["Admin"],
-        "summary": "Удалить статус книги",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["bookId"],
-                "properties": {
-                  "bookId": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Статус удалён" },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/book-new-flag": {
-      "post": {
-        "tags": ["Admin"],
-        "summary": "Пометить книгу как новую",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["bookId", "isNew"],
-                "properties": {
-                  "bookId": { "type": "string" },
-                  "isNew": { "type": "boolean" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Флаг установлен" },
-          "403": { "description": "Нет прав" }
-        }
-      },
-      "delete": {
-        "tags": ["Admin"],
-        "summary": "Удалить флаг новой книги",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["bookId"],
-                "properties": {
-                  "bookId": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Флаг удалён" },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/delete-user": {
-      "delete": {
-        "tags": ["Admin"],
-        "summary": "Удалить пользователя",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["userId"],
-                "properties": {
-                  "userId": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Пользователь удалён" },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/digest-status": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Статус очереди дайджеста",
-        "security": [{ "sessionCookie": [] }],
         "responses": {
           "200": {
-            "description": "Размер очереди и время последней отправки",
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Создать intro-секцию",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Created section",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "pendingCount": { "type": "integer" },
-                    "lastSentAt": { "type": "string", "format": "date-time", "nullable": true }
-                  }
+                    "section": {
+                      "$ref": "#/components/schemas/IntroSection"
+                    }
+                  },
+                  "required": [
+                    "section"
+                  ]
                 }
               }
             }
           },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/priorities": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Приоритеты всех пользователей",
-        "security": [{ "sessionCookie": [] }],
-        "responses": {
-          "200": {
-            "description": "Приоритеты всех участников",
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "userId": { "type": "string" },
-                      "bookName": { "type": "string" },
-                      "rank": { "type": "integer" }
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intro/{id}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Удалить intro-секцию",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Section id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
                 }
               }
             }
           },
-          "403": { "description": "Нет прав" }
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/admin/submissions": {
       "get": {
-        "tags": ["Admin"],
-        "summary": "Все заявки на книги (модерация)",
-        "security": [{ "sessionCookie": [] }],
-        "responses": {
-          "200": {
-            "description": "Все заявки",
-            "content": {
-              "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BookSubmission" } }
-              }
-            }
-          },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/submissions/{id}": {
-      "patch": {
-        "tags": ["Admin"],
-        "summary": "Одобрить или отклонить заявку",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        "tags": [
+          "Admin"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["status"],
-                "properties": {
-                  "status": { "type": "string", "enum": ["approved", "rejected"] }
-                }
-              }
-            }
+        "summary": "Все заявки книг",
+        "security": [
+          {
+            "sessionCookie": []
           }
-        },
-        "responses": {
-          "200": { "description": "Статус обновлён" },
-          "403": { "description": "Нет прав" }
-        }
-      },
-      "delete": {
-        "tags": ["Admin"],
-        "summary": "Удалить заявку",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
-          "200": { "description": "Удалено" },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/tag-description": {
-      "post": {
-        "tags": ["Admin"],
-        "summary": "Установить описание тега",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["tag", "description"],
-                "properties": {
-                  "tag": { "type": "string" },
-                  "description": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Описание сохранено" },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/remove-book": {
-      "delete": {
-        "tags": ["Admin"],
-        "summary": "Удалить данные книги из БД",
-        "security": [{ "sessionCookie": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["bookId"],
-                "properties": {
-                  "bookId": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Данные удалены" },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/admin/status": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Системный статус (кэш, БД)",
-        "security": [{ "sessionCookie": [] }],
-        "responses": {
-          "200": { "description": "Статус системы" },
-          "403": { "description": "Нет прав" }
-        }
-      }
-    },
-    "/api/sync": {
-      "post": {
-        "tags": ["Admin"],
-        "summary": "Принудительная синхронизация с Google Sheets",
-        "security": [{ "sessionCookie": [] }],
-        "responses": {
           "200": {
-            "description": "Синхронизировано",
+            "description": "Submissions",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "books": { "type": "integer" }
-                  }
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BookSubmission"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
                 }
               }
             }
           },
-          "403": { "description": "Нет прав" }
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/submissions/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Обновить/модерировать заявку книги",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Submission id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BookSubmissionInput"
+                  }
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "approved",
+                      "rejected"
+                    ]
+                  },
+                  "rejectionReason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BookSubmission"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Удалить заявку книги",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Submission id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/cron/digest": {
       "get": {
-        "tags": ["Cron"],
-        "summary": "Обработать очередь уведомлений",
-        "description": "Вызывается GitHub Actions каждые 10 минут. Отправляет pending-уведомления через Resend.",
-        "security": [{ "cronBearer": [] }],
+        "tags": [
+          "Cron"
+        ],
+        "summary": "Отправить digest новых записей",
+        "security": [
+          {
+            "cronBearer": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Обработано" },
-          "401": { "description": "Неверный CRON_SECRET" }
+          "200": {
+            "description": "Digest result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "sent": {
+                          "type": "integer"
+                        },
+                        "books": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "skipped": {
+                          "type": "string",
+                          "enum": [
+                            "no-admin-email",
+                            "empty",
+                            "cooling"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cron/telegram-preauth-cleanup": {
+      "get": {
+        "tags": [
+          "Cron"
+        ],
+        "summary": "Очистить Telegram preauth tokens",
+        "security": [
+          {
+            "cronBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test/session": {
+      "post": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Создать test session cookie",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "isAdmin": {
+                    "type": "boolean"
+                  },
+                  "telegramUsername": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  },
+                  "providerAccountId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "userId"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Удалить test session/user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  },
+                  "providerAccountId": {
+                    "type": "string"
+                  },
+                  "telegramUsername": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test/user": {
+      "get": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Проверить test user и связанные записи",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "User email",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test user state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test/signup": {
+      "post": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Создать signup_books для E2E",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "name",
+                  "email",
+                  "contacts"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "contacts": {
+                    "type": "string"
+                  },
+                  "selectedBooks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "selectedBookIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "userId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Удалить signup_books test user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test/seed-books": {
+      "post": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Засеять E2E fixture books",
+        "responses": {
+          "200": {
+            "description": "Seeded ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "ids"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Удалить E2E fixture books",
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "deletedE2EBooks": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "deletedE2EBooks"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test/cleanup-users": {
+      "delete": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Удалить E2E пользователей и хвосты",
+        "responses": {
+          "200": {
+            "description": "Cleanup counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "deleted": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "users": {
+                          "type": "integer"
+                        },
+                        "identities": {
+                          "type": "integer"
+                        },
+                        "feedback": {
+                          "type": "integer"
+                        },
+                        "notifications": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test/feedback": {
+      "post": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Создать feedback fixture",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Testing"
+        ],
+        "summary": "Удалить feedback fixtures",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
         }
       }
     }
