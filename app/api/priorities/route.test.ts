@@ -15,6 +15,7 @@ jest.mock('@/lib/db', () => ({
     insert: jest.fn(),
     delete: jest.fn(),
     update: jest.fn(),
+    transaction: jest.fn(),
   },
 }))
 jest.mock('@/lib/user-activity', () => ({
@@ -24,6 +25,11 @@ jest.mock('@/lib/user-activity', () => ({
 
 const mockAuth = authModule.auth as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  ;(db.transaction as jest.Mock).mockImplementation(async (callback) => callback(db))
+})
 
 function makeSelectMock(rows: unknown[]) {
   const chain = {

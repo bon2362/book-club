@@ -7,6 +7,7 @@ jest.mock('@/lib/db', () => ({
     select: jest.fn(),
     insert: jest.fn(),
     update: jest.fn(),
+    transaction: jest.fn(),
   },
 }))
 
@@ -70,7 +71,7 @@ describe('user identity helpers', () => {
   beforeEach(() => {
     jest.restoreAllMocks()
     jest.clearAllMocks()
-    delete (db as unknown as { transaction?: unknown }).transaction
+    ;(db.transaction as jest.Mock).mockImplementation(async (callback) => callback(db))
   })
 
   it('нормализует provider aliases и Telegram contact', () => {
@@ -81,8 +82,7 @@ describe('user identity helpers', () => {
     expect(normalizeTelegramContact('')).toBeNull()
   })
 
-  it('использует transaction если DB client её поддерживает', async () => {
-    ;(db as unknown as { transaction: jest.Mock }).transaction = jest.fn(async (callback) => callback(db))
+  it('использует transaction для identity sync', async () => {
     queueSelects(
       [{ userId: 'user-uuid' }],
       [{ id: 'user-uuid', email: 'u@test.com', name: 'User', image: null }]
@@ -92,13 +92,11 @@ describe('user identity helpers', () => {
 
     await resolveOrCreateUserFromIdentity('email', 'u@test.com', { email: 'u@test.com' })
 
-    expect((db as unknown as { transaction: jest.Mock }).transaction).toHaveBeenCalled()
+    expect(db.transaction).toHaveBeenCalled()
   })
 
-  it('откатывается на обычные запросы если neon-http объявляет transaction, но не поддерживает её', async () => {
-    ;(db as unknown as { transaction: jest.Mock }).transaction = jest.fn(async () => {
-      throw new Error('No transactions support in neon-http driver')
-    })
+  it('пробрасывает ошибку transaction вместо fallback без atomicity', async () => {
+    ;(db.transaction as jest.Mock).mockRejectedValueOnce(new Error('transaction failed'))
     queueSelects(
       [{ userId: 'user-uuid' }],
       [{ id: 'user-uuid', email: 'u@test.com', name: 'User', image: null }]
@@ -106,10 +104,10 @@ describe('user identity helpers', () => {
     mockInserts()
     mockUpdate()
 
-    const result = await resolveOrCreateUserFromIdentity('email', 'u@test.com', { email: 'u@test.com' })
+    await expect(resolveOrCreateUserFromIdentity('email', 'u@test.com', { email: 'u@test.com' }))
+      .rejects.toThrow('transaction failed')
 
-    expect(result.id).toBe('user-uuid')
-    expect((db as unknown as { transaction: jest.Mock }).transaction).toHaveBeenCalled()
+    expect(db.transaction).toHaveBeenCalled()
   })
 
   it('создаёт нового Telegram user с UUID без user.email/contactEmail', async () => {

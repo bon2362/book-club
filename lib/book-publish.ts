@@ -1,6 +1,6 @@
-import { db, sql } from '@/lib/db'
+import { db } from '@/lib/db'
 import { books, bookSubmissions } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
 interface SubmissionForPublish {
@@ -85,12 +85,12 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
 
   // Sign up the submitter when the author account still exists.
   // Admin approval should not fail if a test or deleted account removed it first.
-  await sql`
+  await db.execute(sql`
     INSERT INTO signup_books (user_id, book_id)
     SELECT ${submission.userId}, ${bookId}
     WHERE EXISTS (SELECT 1 FROM "user" WHERE id = ${submission.userId})
     ON CONFLICT (user_id, book_id) DO NOTHING
-  `
+  `)
 
   return bookId
 }

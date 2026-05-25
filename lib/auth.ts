@@ -35,11 +35,9 @@ function normalizeAuthProvider(provider: string) {
   return provider === 'resend' ? 'email' : provider
 }
 
-function handleIdentitySyncError(error: unknown): never {
+function handleIdentitySyncError(error: unknown): void {
   if (error instanceof IdentityConflictError) throw error
-  const errorName = error instanceof Error ? error.name : typeof error
-  console.error('Failed to sync user identity during sign-in', { errorName })
-  throw error
+  console.error('Failed to sync user identity during sign-in', error)
 }
 
 async function sendMagicLinkEmail(email: string, url: string) {

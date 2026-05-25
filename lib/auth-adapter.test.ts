@@ -77,6 +77,23 @@ describe('IdentityAwareDrizzleAdapter', () => {
     expect(user.email).toBe('user@test.com')
   })
 
+  it('createUser propagates duplicate lower(contact_email) constraint errors', async () => {
+    const chain = insertChain(undefined)
+    chain.returning.mockRejectedValueOnce(new Error('duplicate key value violates unique constraint "user_contact_email_lower_idx"'))
+    ;(db.insert as jest.Mock).mockReturnValue(chain)
+
+    const adapter = IdentityAwareDrizzleAdapter()
+    await expect(adapter.createUser!({
+      id: 'user-id',
+      name: 'User',
+      email: 'Alice@Gmail.com',
+      emailVerified: null,
+      image: null,
+    })).rejects.toThrow('user_contact_email_lower_idx')
+
+    expect(chain.values).toHaveBeenCalledWith(expect.objectContaining({ contactEmail: 'alice@gmail.com' }))
+  })
+
   it('getUserByEmail resolves by contact_email before identities', async () => {
     ;(db.select as jest.Mock)
       .mockReturnValueOnce(selectChain([{ id: 'user-id' }]))

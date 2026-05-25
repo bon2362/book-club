@@ -18,24 +18,26 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  const [existing] = await db
-    .select({ rank: bookPriorities.rank })
-    .from(bookPriorities)
-    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
-    .limit(1)
-
-  await removeBookFromSignup(userId, bookId)
-
-  if (existing) {
-    await db
-      .delete(bookPriorities)
+  await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ rank: bookPriorities.rank })
+      .from(bookPriorities)
       .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
+      .limit(1)
 
-    await db
-      .update(bookPriorities)
-      .set({ rank: sql`${bookPriorities.rank} - 1` })
-      .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, existing.rank)))
-  }
+    await removeBookFromSignup(userId, bookId, tx)
+
+    if (existing) {
+      await tx
+        .delete(bookPriorities)
+        .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
+
+      await tx
+        .update(bookPriorities)
+        .set({ rank: sql`${bookPriorities.rank} - 1` })
+        .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, existing.rank)))
+    }
+  })
 
   return NextResponse.json({ ok: true })
 }

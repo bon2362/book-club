@@ -21,25 +21,26 @@ export async function GET(req: Request) {
     return NextResponse.json({ skipped: 'no-admin-email' })
   }
 
-  // 3. Release stale locks (processing_at set > 5 min ago, not yet sent)
+  // 3. Release stale locks and atomically claim pending rows.
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-  await db
-    .update(notificationQueue)
-    .set({ processingAt: null })
-    .where(
-      and(
-        isNotNull(notificationQueue.processingAt),
-        isNull(notificationQueue.sentAt),
-        lt(notificationQueue.processingAt, fiveMinutesAgo)
+  const captured = await db.transaction(async (tx) => {
+    await tx
+      .update(notificationQueue)
+      .set({ processingAt: null })
+      .where(
+        and(
+          isNotNull(notificationQueue.processingAt),
+          isNull(notificationQueue.sentAt),
+          lt(notificationQueue.processingAt, fiveMinutesAgo)
+        )
       )
-    )
 
-  // 4. Atomically claim pending rows
-  const captured = await db
-    .update(notificationQueue)
-    .set({ processingAt: new Date() })
-    .where(and(isNull(notificationQueue.sentAt), isNull(notificationQueue.processingAt)))
-    .returning()
+    return tx
+      .update(notificationQueue)
+      .set({ processingAt: new Date() })
+      .where(and(isNull(notificationQueue.sentAt), isNull(notificationQueue.processingAt)))
+      .returning()
+  })
 
   // 5. Empty queue
   if (captured.length === 0) {
@@ -98,10 +99,12 @@ export async function GET(req: Request) {
   }
 
   // 10. Mark as sent
-  await db
-    .update(notificationQueue)
-    .set({ sentAt: new Date(), processingAt: null })
-    .where(inArray(notificationQueue.id, capturedIds))
+  await db.transaction(async (tx) => {
+    await tx
+      .update(notificationQueue)
+      .set({ sentAt: new Date(), processingAt: null })
+      .where(inArray(notificationQueue.id, capturedIds))
+  })
 
   return NextResponse.json({ sent: captured.length, books: totalBooks })
 }

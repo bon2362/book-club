@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb,
 } from 'drizzle-orm/pg-core'
@@ -14,7 +15,11 @@ export const users = pgTable('user', {
   languages: text('languages'),
   prioritiesSet: boolean('priorities_set').notNull().default(false),
   isAdmin: boolean('is_admin').notNull().default(false),
-})
+}, (t) => ({
+  contactEmailLowerUnique: uniqueIndex('user_contact_email_lower_idx')
+    .on(sql`lower(${t.contactEmail})`)
+    .where(sql`${t.contactEmail} IS NOT NULL`),
+}))
 
 export const userActivityEvents = pgTable('user_activity_events', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -43,6 +48,9 @@ export const userIdentities = pgTable('user_identities', {
 }, (t) => ({
   providerAccountUnique: uniqueIndex('user_identities_provider_account_id_idx').on(t.provider, t.providerAccountId),
   userIdIdx: index('user_identities_user_id_idx').on(t.userId),
+  emailLowerIdx: index('user_identities_email_lower_idx')
+    .on(sql`lower(${t.email})`)
+    .where(sql`${t.email} IS NOT NULL`),
 }))
 
 export const verificationTokens = pgTable('verificationToken', {

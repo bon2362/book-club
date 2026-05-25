@@ -14,6 +14,7 @@ jest.mock('@/lib/db', () => ({
     select: jest.fn(),
     delete: jest.fn(),
     update: jest.fn(),
+    transaction: jest.fn(),
   },
 }))
 
@@ -29,10 +30,12 @@ function makeRequest(body: object) {
 }
 
 beforeEach(() => {
+  ;(db.transaction as jest.Mock).mockImplementation(async (callback) => callback(db))
   // Default: no priority row found → priority step is skipped
   const defaultChain = {
     from: jest.fn().mockReturnThis(),
-    where: jest.fn().mockResolvedValue([]),
+    where: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockResolvedValue([]),
   }
   ;(db.select as jest.Mock).mockReturnValue(defaultChain)
   ;(db.delete as jest.Mock).mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) })
@@ -112,7 +115,7 @@ describe('DELETE /api/admin/remove-book', () => {
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
-    expect(signups.removeBookFromSignup).toHaveBeenCalledWith('pg-user-1', 'book-a')
+    expect(signups.removeBookFromSignup).toHaveBeenCalledWith('pg-user-1', 'book-a', db)
   })
 })
 
@@ -123,7 +126,8 @@ describe('DELETE /api/admin/remove-book — priority re-rank', () => {
 
     const selectPriorityChain = {
       from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockResolvedValue([{ rank: 2 }]),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ rank: 2 }]),
     }
     ;(db.select as jest.Mock).mockReturnValueOnce(selectPriorityChain)
 
@@ -152,7 +156,11 @@ describe('DELETE /api/admin/remove-book — priority re-rank', () => {
     mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
     mockRemoveBook.mockResolvedValue(undefined)
 
-    const selectNoPriorityChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    const selectNoPriorityChain = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]),
+    }
     ;(db.select as jest.Mock).mockReturnValueOnce(selectNoPriorityChain)
 
     const res = await DELETE(makeRequest({ userId: 'pg-user-1', bookId: 'book-a' }))

@@ -57,25 +57,27 @@ export async function PUT(req: NextRequest) {
   }
   const now = new Date()
 
-  await db
-    .delete(bookPriorities)
-    .where(eq(bookPriorities.userId, userId))
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(bookPriorities)
+      .where(eq(bookPriorities.userId, userId))
 
-  await db
-    .insert(bookPriorities)
-    .values(
-      validBookIds.map((bookId, index) => ({
-        userId,
-        bookId,
-        rank: index + 1,
-        updatedAt: now,
-      }))
-    )
+    await tx
+      .insert(bookPriorities)
+      .values(
+        validBookIds.map((bookId, index) => ({
+          userId,
+          bookId,
+          rank: index + 1,
+          updatedAt: now,
+        }))
+      )
 
-  await db
-    .update(users)
-    .set({ prioritiesSet: true })
-    .where(eq(users.id, userId))
+    await tx
+      .update(users)
+      .set({ prioritiesSet: true })
+      .where(eq(users.id, userId))
+  })
 
   await bestEffortRecordUserActivity(userId, 'priorities_updated', {
     occurredAt: now,

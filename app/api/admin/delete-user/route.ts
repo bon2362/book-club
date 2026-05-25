@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { users } from '@/lib/db/schema'
+import { notificationQueue, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 function isValidUserId(value: string) {
@@ -19,6 +19,18 @@ export async function DELETE(req: NextRequest) {
   const { userId } = await req.json() as { userId: string }
   if (!userId || !isValidUserId(userId)) {
     return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+  }
+
+  const [targetUser] = await db
+    .select({ contactEmail: users.contactEmail })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  if (targetUser?.contactEmail) {
+    await db
+      .delete(notificationQueue)
+      .where(eq(notificationQueue.userEmail, targetUser.contactEmail))
   }
 
   await db.delete(users).where(eq(users.id, userId))

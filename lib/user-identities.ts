@@ -44,26 +44,9 @@ export class IdentityConflictError extends Error {
 }
 
 type IdentityDb = Pick<typeof db, 'select' | 'insert' | 'update'>
-type TransactionalIdentityDb = IdentityDb & {
-  transaction?: <T>(callback: (tx: IdentityDb) => Promise<T>) => Promise<T>
-}
-
-function getIdentityDb(): TransactionalIdentityDb {
-  return db as unknown as TransactionalIdentityDb
-}
 
 async function withIdentityTransaction<T>(callback: (tx: IdentityDb) => Promise<T>): Promise<T> {
-  const client = getIdentityDb()
-  if (typeof client.transaction === 'function') {
-    try {
-      return await client.transaction(callback)
-    } catch (error) {
-      if (!(error instanceof Error) || !error.message.includes('No transactions support in neon-http driver')) {
-        throw error
-      }
-    }
-  }
-  return callback(client)
+  return db.transaction(callback)
 }
 
 export function normalizeIdentityProvider(provider: RawIdentityProvider | string): IdentityProvider {

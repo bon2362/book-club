@@ -8,7 +8,7 @@ interface DbMocks {
   update: jest.Mock
   insertValues: jest.Mock
   insert: jest.Mock
-  sql: jest.Mock
+  execute: jest.Mock
 }
 
 jest.mock('@/lib/db', () => {
@@ -19,7 +19,7 @@ jest.mock('@/lib/db', () => {
     update: jest.fn(),
     insertValues: jest.fn(),
     insert: jest.fn(),
-    sql: jest.fn(),
+    execute: jest.fn(),
   }
   const mockWhere = jest.fn(() => ({ limit: mocks.limit }))
   mocks.from.mockImplementation(() => ({ where: mockWhere }))
@@ -32,8 +32,8 @@ jest.mock('@/lib/db', () => {
       select: mockSelect,
       update: mocks.update,
       insert: mocks.insert,
+      execute: mocks.execute,
     },
-    sql: (...args: unknown[]) => mocks.sql(...args),
     __bookPublishDbMocks: mocks,
   }
 })
@@ -63,7 +63,7 @@ describe('publishSubmissionAsBook', () => {
     jest.clearAllMocks()
     dbMocks.updateWhere.mockResolvedValue(undefined)
     dbMocks.insertValues.mockResolvedValue(undefined)
-    dbMocks.sql.mockResolvedValue(undefined)
+    dbMocks.execute.mockResolvedValue(undefined)
   })
 
   it('reuses linked book_submissions.book_id for idempotent approvals', async () => {

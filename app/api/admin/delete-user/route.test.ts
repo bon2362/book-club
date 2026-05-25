@@ -9,6 +9,7 @@ import * as dbModule from '@/lib/db'
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
+    select: jest.fn(),
     delete: jest.fn().mockReturnValue({
       where: jest.fn().mockResolvedValue(undefined),
     }),
@@ -16,8 +17,18 @@ jest.mock('@/lib/db', () => ({
 }))
 
 const mockAuth = authModule.auth as jest.Mock
+const mockSelect = dbModule.db.select as jest.Mock
 const mockDelete = dbModule.db.delete as jest.Mock
 const UUID = '123e4567-e89b-42d3-a456-426614174000'
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  mockSelect.mockReturnValue({
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockResolvedValue([{ contactEmail: 'user@test.com' }]),
+  })
+})
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/admin/delete-user', {
@@ -104,5 +115,15 @@ describe('DELETE /api/admin/delete-user', () => {
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(mockDelete).toHaveBeenCalled()
+  })
+
+  it('чистит notification_queue по contact_email перед удалением пользователя', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'admin@test.com', isAdmin: true } })
+
+    const res = await DELETE(makeRequest({ userId: UUID }))
+
+    expect(res.status).toBe(200)
+    expect(mockSelect).toHaveBeenCalled()
+    expect(mockDelete).toHaveBeenCalledTimes(2)
   })
 })

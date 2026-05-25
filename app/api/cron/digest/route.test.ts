@@ -18,11 +18,18 @@ jest.mock('resend', () => ({
 //   2. Atomic capture    — awaited via .returning()
 //   3. Release / mark-sent — awaited directly (no .returning())
 jest.mock('@/lib/db', () => ({
-  db: { update: jest.fn() },
+  db: (() => {
+    const mockDb: { update: jest.Mock; transaction: jest.Mock } = {
+      update: jest.fn(),
+      transaction: jest.fn(async (callback) => callback(mockDb)),
+    }
+    return mockDb
+  })(),
 }))
 jest.mock('@/lib/db/schema', () => ({ notificationQueue: {} }))
 
 const mockDbUpdate = db.update as jest.Mock
+const mockDbTransaction = db.transaction as jest.Mock
 
 // Build a mock return value for one db.update() call.
 // The returned object is both thenable (for await-without-returning)
@@ -89,6 +96,7 @@ describe('GET /api/cron/digest', () => {
     process.env.ADMIN_EMAIL = 'admin@test.com'
     process.env.RESEND_API_KEY = 'test-key'
     mockEmailSend.mockResolvedValue({})
+    mockDbTransaction.mockImplementation(async (callback) => callback(db))
   })
 
   afterEach(() => {

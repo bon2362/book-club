@@ -1,4 +1,4 @@
-import { db, sql } from '@/lib/db'
+import { db } from '@/lib/db'
 import { books, signupBooks, users } from '@/lib/db/schema'
 import { asc, eq, and, inArray } from 'drizzle-orm'
 
@@ -24,6 +24,8 @@ interface SignupBookInput {
   id: string
   title: string
 }
+
+type SignupWriteDb = Pick<typeof db, 'delete' | 'insert'>
 
 export async function getAllSignups(): Promise<UserSignup[]> {
   const rows = await db
@@ -95,12 +97,16 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
   for (const book of selectedBooks) unique.set(book.id, book)
   const normalized = Array.from(unique.values())
 
-  await sql.transaction(tx => [
-    tx`DELETE FROM signup_books WHERE user_id = ${userId}`,
-    ...normalized.map(book =>
-      tx`INSERT INTO signup_books (user_id, book_id) VALUES (${userId}, ${book.id}) ON CONFLICT DO NOTHING`
-    ),
-  ])
+  await db.transaction(async (tx) => {
+    await tx.delete(signupBooks).where(eq(signupBooks.userId, userId))
+
+    if (normalized.length > 0) {
+      await tx
+        .insert(signupBooks)
+        .values(normalized.map(book => ({ userId, bookId: book.id })))
+        .onConflictDoNothing()
+    }
+  })
 
   return { isNew: false, addedBooks: normalized.map(book => book.title), addedBookIds: normalized.map(book => book.id) }
 }
@@ -109,8 +115,12 @@ export async function upsertSignupByBookIds(userId: string, bookIds: string[]): 
   return upsertResolvedSignup(userId, await resolveBooksByIds(bookIds))
 }
 
-export async function removeBookFromSignup(userId: string, bookId: string): Promise<void> {
-  await db
+export async function removeBookFromSignup(
+  userId: string,
+  bookId: string,
+  client: SignupWriteDb = db
+): Promise<void> {
+  await client
     .delete(signupBooks)
     .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 }

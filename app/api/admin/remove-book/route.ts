@@ -18,28 +18,25 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  await removeBookFromSignup(userId, bookId)
+  await db.transaction(async (tx) => {
+    await removeBookFromSignup(userId, bookId, tx)
 
-  // Find this book's current rank
-  const existing = await db
-    .select({ rank: bookPriorities.rank })
-    .from(bookPriorities)
-    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
-  const priorityRow = existing[0]
-  if (!priorityRow) return NextResponse.json({ ok: true })
+    const [priorityRow] = await tx
+      .select({ rank: bookPriorities.rank })
+      .from(bookPriorities)
+      .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
+      .limit(1)
+    if (!priorityRow) return
 
-  const deletedRank = priorityRow.rank
+    await tx
+      .delete(bookPriorities)
+      .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
 
-  // Delete the priority entry
-  await db
-    .delete(bookPriorities)
-    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
-
-  // Re-rank: close the gap (rank > deletedRank → rank - 1)
-  await db
-    .update(bookPriorities)
-    .set({ rank: sql`${bookPriorities.rank} - 1` })
-    .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, deletedRank)))
+    await tx
+      .update(bookPriorities)
+      .set({ rank: sql`${bookPriorities.rank} - 1` })
+      .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, priorityRow.rank)))
+  })
 
   return NextResponse.json({ ok: true })
 }
