@@ -49,7 +49,11 @@ export async function DELETE() {
   const autoSignupBooks = await db
     .select({ id: books.id })
     .from(books)
-    .where(sql`${books.title} ILIKE 'E2E Auto Signup %' AND ${books.author} = 'E2E Автор'`)
+    .where(sql`
+      (${books.title} ILIKE 'E2E Auto Signup %' AND ${books.author} = 'E2E Автор')
+      OR ${books.title} ILIKE 'E2E Catalog Book %'
+      OR ${books.title} ILIKE 'UI Layout Book %'
+    `)
   const autoSignupBookIds = autoSignupBooks.map(book => book.id)
   const cleanupBookIds = [...TEST_FIXTURE_BOOK_IDS, ...autoSignupBookIds]
 
@@ -58,5 +62,5 @@ export async function DELETE() {
   await db.delete(books).where(inArray(books.id, cleanupBookIds))
   await db.delete(bookSubmissions).where(sql`${bookSubmissions.title} ILIKE 'E2E Auto Signup %' AND ${bookSubmissions.author} = 'E2E Автор'`)
 
-  return NextResponse.json({ ok: true, deletedAutoSignupBooks: autoSignupBookIds.length })
+  return NextResponse.json({ ok: true, deletedE2EBooks: autoSignupBookIds.length })
 }
