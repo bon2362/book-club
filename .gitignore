@@ -54,6 +54,7 @@ next-env.d.ts
 .agents/
 .codex/
 AGENTS.md
+CLAUDE.md
 
 # Allure test results (generated in CI, not committed)
 /allure-results
