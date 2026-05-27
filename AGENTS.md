@@ -46,7 +46,11 @@
 - **post-git-push-ci** — ждёт результат GitHub Actions после `git push` (до 5 мин), выводит ошибки при падении
 - **block-env-local** — блокирует правку `.env.local`
 
-Husky pre-commit: запускает `lint-staged` (eslint + tsc на изменённых файлах) перед каждым коммитом.
+Husky pre-commit запускает `lint-staged` перед каждым коммитом:
+- **eslint + tsc** на изменённых `.ts/.tsx`
+- **secretlint** на всех staged-файлах (`.secretlintrc.json`) — блокирует коммит если найден database connection string, AWS key, GitHub token и др. Это hard-защита от утечек секретов в публичный репо (поверх правила «не встраивать секреты в bash-команды» из общих инструкций).
+
+Если secretlint ругается на легитимный плейсхолдер (например `dummy:dummy@dummy/dummy` в CI fixture) — добавить точечный allow-паттерн в `.secretlintrc.json`, не глобально отключать правило.
 
 ## Unit-тесты (Jest)
 - Компоненты с `useRouter` требуют мока: `jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))`

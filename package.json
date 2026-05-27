@@ -40,10 +40,14 @@
     "*.{ts,tsx}": [
       "eslint --max-warnings 0",
       "bash -c 'tsc --noEmit'"
+    ],
+    "*": [
+      "secretlint --secretlintignore .gitignore"
     ]
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/google-one-tap": "^1.2.7",
@@ -61,6 +65,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "lint-staged": "^16.4.0",
     "postcss": "^8",
+    "secretlint": "^13.0.2",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
