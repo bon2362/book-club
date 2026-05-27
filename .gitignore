@@ -49,6 +49,8 @@ next-env.d.ts
 # Claude Code worktrees (created on demand, not part of repo state)
 .claude/worktrees/
 .claude/scheduled_tasks.lock
+# Local-only Claude Code config — может содержать секреты в allowlist Bash-команд
+.claude/settings.local.json
 
 # Local agent/Codex workspace config
 .agents/
