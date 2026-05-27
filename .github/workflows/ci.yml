@@ -58,7 +58,12 @@ jobs:
       - name: E2E tests
         run: npm run test:e2e
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # E2E job бьёт в изолированную Neon-ветку `e2e`, НЕ в прод.
+          # Guard в lib/test-mode.ts отказывается работать, если DATABASE_URL
+          # содержит PROD_DB_HOST_MARKER или не содержит E2E_REQUIRE_DB_MARKER.
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+          PROD_DB_HOST_MARKER: ${{ secrets.PROD_DB_HOST_MARKER }}
+          E2E_REQUIRE_DB_MARKER: ${{ secrets.E2E_REQUIRE_DB_MARKER }}
           AUTH_SECRET: 'e2e-test-secret-only-used-for-signing-test-sessions'
           NEXTAUTH_TEST_MODE: 'true'
           NEXTAUTH_URL: 'http://localhost:3000'
