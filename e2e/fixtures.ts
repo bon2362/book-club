@@ -27,6 +27,19 @@ type IntroSection = {
 
 type IntroSectionOverrides = Partial<Pick<IntroSection, 'title' | 'body' | 'isPublished'>>
 
+type TestBook = {
+  id: string
+  title: string
+  author: string
+  tags: string[]
+  description: string
+  pages: number
+  publishedDate: string
+  visibility: 'published' | 'draft' | 'hidden'
+}
+
+type TestBookOverrides = Partial<Pick<TestBook, 'id' | 'title' | 'author' | 'tags' | 'description' | 'pages' | 'publishedDate' | 'visibility'>>
+
 interface AdminSession {
   email: string
   name: string
@@ -48,6 +61,17 @@ interface E2EHelpers {
    * Requires an active admin session (call loginAsAdmin first or pass admin=true beforeAll).
    */
   createIntroSection: (overrides?: IntroSectionOverrides) => Promise<IntroSection>
+
+  /**
+   * Create a per-test book through /api/test/books. The book is deleted
+   * in teardown (cascade removes associated signups/priorities).
+   *
+   * Unlike the shared seed books (__test_book_1__ etc.) this one is unique
+   * per test — parallel specs do not collide.
+   *
+   * Does NOT require an admin session.
+   */
+  createTestBook: (overrides?: TestBookOverrides) => Promise<TestBook>
 }
 
 type CleanupFn = () => Promise<void>
@@ -125,6 +149,35 @@ export const test = base.extend<E2EHelpers>({
       try {
         await page.request.delete(`/api/admin/intro/${id}`)
       } catch { /* best-effort — DB cleanup is the safety net */ }
+    }
+  },
+
+  createTestBook: async ({ page }, use, testInfo) => {
+    const created: string[] = []
+    // Stable short suffix per test, plus an index per book within the test
+    const seed = testInfo.testId.slice(0, 8)
+
+    const create: E2EHelpers['createTestBook'] = async (overrides) => {
+      const index = created.length
+      const id = overrides?.id ?? `__e2e_book_${seed}_${index}__`
+      const title = overrides?.title ?? `E2E Book ${seed} #${index}`
+      const res = await page.request.post('/api/test/books', {
+        data: { ...overrides, id, title },
+      })
+      if (!res.ok()) {
+        throw new Error(`POST /api/test/books failed: ${res.status()} ${await res.text()}`)
+      }
+      const body = (await res.json()) as { book: TestBook }
+      created.push(body.book.id)
+      return body.book
+    }
+
+    await use(create)
+
+    for (const id of created.reverse()) {
+      try {
+        await page.request.delete('/api/test/books', { data: { id } })
+      } catch { /* best-effort — cleanup hooks would still mop up next run */ }
     }
   },
 })

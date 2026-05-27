@@ -64,16 +64,16 @@ export default defineConfig({
   // fullyParallel: false — внутри одного спека тесты идут серийно
   // (часть спеков шарит TEST_EMAIL между тестами), а воркеры
   // параллелятся на уровне спеков. У каждого спека уникальный
-  // email-префикс — конфликта между спеками нет.
+  // email-префикс и (для книг) per-test фикстура через createTestBook —
+  // конфликта между спеками нет.
   fullyParallel: false,
   // retries: 1 — страховка от редких flaky-моментов (overload
   // dev-сервера, медленный Neon-compute, networkidle промахи).
   retries: 1,
-  // workers: 2 — компромисс. Workers: 4 даёт race condition
-  // между спеками, которые читают каталог пока другие меняют
-  // статусы seed-books. Workers: 2 стабилен. Чтобы поднять
-  // дальше — нужно изолировать seed-books в фикстуру per-spec.
-  workers: 2,
+  // workers: 4 — после изоляции seed-books через createTestBook фикстуру
+  // спеки больше не дерутся за одни и те же книги. Если поднимешь выше —
+  // упрётся в bandwidth dev-сервера и Neon-compute (0.25 vCPU).
+  workers: 4,
   reporter: process.env.CI
     ? [['list'], ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: false }]]
     : 'list',
