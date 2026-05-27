@@ -51,6 +51,20 @@ Codecov показывает покрытие unit-тестами:
 
 E2E работают в `NEXTAUTH_TEST_MODE=true`. Это включает тестовые endpoints, чтобы создавать пользователей и сессии без реального OAuth.
 
+### Изоляция от прод-БД
+
+E2E **никогда не пишут в продакшен Neon**. Изоляция держится на трёх слоях:
+
+1. **Отдельная Neon-ветка `e2e`.** Создаётся как child branch от `production` в Neon Console. Connection string лежит в локальном `.env.test.local` (см. `.env.test.local.example`); файл в `.gitignore`, в репо не попадает.
+2. **`playwright.config.ts`** грузит `.env.test.local` и пробрасывает `DATABASE_URL` + safety-маркеры (`PROD_DB_HOST_MARKER`, `E2E_REQUIRE_DB_MARKER`) в `webServer.env`, чтобы Next.js не использовал прод-БД из `.env.local`.
+3. **Guard в `lib/test-mode.ts`**: `/api/test/*` возвращает 403, если `DATABASE_URL` содержит `PROD_DB_HOST_MARKER` или не содержит `E2E_REQUIRE_DB_MARKER`. Покрыто 8 unit-тестами в `lib/test-mode.test.ts`.
+
+### Фикстуры с автоматическим cleanup
+
+Любая мутация — через фикстуру в `e2e/fixtures.ts` (`loginAsAdmin`, `createIntroSection`). Фикстура регистрирует cleanup в teardown — данные удаляются даже при падении ассерта. Тесты не редактируют существующие записи; вместо этого создают свою сущность, проверяют, фикстура удаляет.
+
+Когда нужна новая сущность — добавь фикстуру, не пиши inline-cleanup в теле теста.
+
 Ключевые сценарии:
 
 - вход;
