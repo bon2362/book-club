@@ -1,0 +1,182 @@
+# Book Club Project
+
+## Проект
+"Долгое наступление" — сайт книжного клуба.
+- **Live:** https://www.slowreading.club (резерв: https://book-club-slow-rising.vercel.app)
+- **Стек:** Next.js 14, NextAuth v5, Neon Postgres + Drizzle ORM, Resend, Vercel
+- **Repo:** github.com/bon2362/book-club
+
+## Управление задачами
+- Задачи ведутся в **GitHub Issues**: https://github.com/bon2362/book-club/issues
+- Labels: `epic:*` (auth/ui/feature/infra/process), `priority:P1/P2/P3`, `size:XS/S/M/L`, `status:todo/in-progress/blocked`
+- Перед началом задачи из бэклога — использовать skill `github-tasks` для получения issue и перевода в `status:in-progress`
+- После выполнения — закрыть issue с комментарием о коммите
+- Скрипт первоначальной инициализации: `.claude/scripts/setup-github-issues.sh`
+
+## Деплой
+- **Стандартный процесс: `git commit` + `git push` → Vercel автоматически деплоит и обновляет алиас** ✓
+- Vercel project живёт в team `bon2362-5067s-projects`, `projectId: "prj_ZwWgPCcLf8RyrxeMJDI5zCX08dEp"`
+- `book-club-slow-rising.vercel.app` добавлен как домен проекта в настройках Vercel — обновляется автоматически
+- auto-alias — `book-club-lilac.vercel.app`
+- При проблемах с деплоем сразу проверять статус через Vercel API
+
+## Devcontainer: firewall и ограничения
+- Firewall настроен в `.devcontainer/init-firewall.sh` — блокирует всё кроме allowlist
+- Разрешены: GitHub, npmjs.org, api.anthropic.com, slowreading.club, book-club-slow-rising.vercel.app, vercel.com, api.vercel.com
+- Чтобы добавить новый сервис: отредактировать `init-firewall.sh`, затем Rebuild Container (Ctrl+Shift+P)
+- Exit code 7 от curl = заблокировано firewall (не сетевая ошибка)
+- После ребилда контейнера: Vercel-токен в auth.json сбрасывается, использовать `--token` флаг
+- Firewall резолвит IP доменов при старте — Vercel CDN может отдавать с других IP (curl на vercel.app может не работать из контейнера)
+- `GH_TOKEN` берётся из `/workspace/.env.local` — если `gh` не работает: `export GH_TOKEN=$(grep GH_TOKEN /workspace/.env.local | cut -d= -f2)`
+
+## Правила работы с кодом
+- Перед удалением/переименованием поля из интерфейса/типа — сначала искать все его вхождения в проекте (Grep), чтобы не пропустить дублирующие интерфейсы в других файлах
+- **Перед каждым `git commit`:** убедиться что `npm run lint` и `npm run typecheck` проходят без ошибок. Husky запускает lint-staged автоматически, но лучше проверить заранее.
+- **Субагенты** перед коммитом обязаны запускать: `npm run lint && npm run typecheck && npm test`
+
+## Типичные lint-ошибки (учить на ошибках CI)
+- Неиспользуемые хелперы в тестах (`makeGet`, `makeRequest` и т.п.) ломают `no-unused-vars` — удалять вместе с вызовами
+- GET-хэндлеры без параметров: если роут не использует `req`, сигнатура `GET()` без аргументов, тест вызывает `GET()` без аргументов. Не добавлять `_req: NextRequest` если он не нужен — это сломает либо typecheck, либо lint
+- `_` префикс не спасает от lint если переменная реально нигде не используется
+
+## Hooks (автоматика при разработке)
+Настроены в `.claude/settings.local.json`:
+- **lint-on-edit** — ESLint после каждого Edit/Write `.ts/.tsx`
+- **typecheck-on-edit** — tsc после каждого Edit/Write `.ts/.tsx`
+- **post-git-push-ci** — ждёт результат GitHub Actions после `git push` (до 5 мин), выводит ошибки при падении
+- **block-env-local** — блокирует правку `.env.local`
+
+Husky pre-commit: запускает `lint-staged` (eslint + tsc на изменённых файлах) перед каждым коммитом.
+
+## Unit-тесты (Jest)
+- Компоненты с `useRouter` требуют мока: `jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))`
+- Тесты на порядок книг: каталог читается из таблицы `books`; порядок задаётся `sort_order` / `published_at`, а не Google Sheets.
+
+## E2E-тесты (Playwright)
+
+### Изоляция от прод-БД (КРИТИЧНО)
+E2E **никогда не должны писать в прод-БД**. Архитектура защиты — три слоя:
+
+1. **Отдельная Neon-ветка `e2e`**. Параметры подключения лежат в `.env.test.local` (см. `.env.test.local.example`). `playwright.config.ts` грузит этот файл и пробрасывает `DATABASE_URL` в `webServer.env`, чтобы Next.js не использовал прод-БД из `.env.local`.
+2. **Guard в `lib/test-mode.ts`**: `/api/test/*` возвращает 403 если `DATABASE_URL` содержит `PROD_DB_HOST_MARKER` или НЕ содержит `E2E_REQUIRE_DB_MARKER`. Оба маркера задаются в `.env.test.local`.
+3. **Фикстуры в `e2e/fixtures.ts`**: любая мутация — через фикстуру (`createIntroSection`, `loginAsAdmin`), которая регистрирует cleanup в teardown. Cleanup гарантирован даже при падении ассерта.
+
+**Правило**: новый E2E-тест не редактирует существующие записи прод-данных. Создаёт свои через фикстуру, проверяет, фикстура удаляет. Если для теста нужна новая сущность — добавь фикстуру в `e2e/fixtures.ts`, не пиши inline-cleanup в теле теста.
+
+### Запуск
+- `playwright.config.ts` сам прокидывает `NEXTAUTH_TEST_MODE=true` в `webServer.env`. Ручной `NEXTAUTH_TEST_MODE=true npx next dev` нужен **только** если уже запущен dev-сервер без флага (тогда `reuseExistingServer: true` переиспользует его). Лучше остановить ранее запущенный dev-сервер и дать Playwright поднять свой.
+- **OOM в devcontainer**: держать запущенным только один dev server. Несколько параллельных процессов (Next.js + Chrome) при нехватке памяти вызывают OOM kill сервера.
+- **`waitForLoadState('networkidle')`** — надёжный способ дождаться React-гидрации в Next.js перед взаимодействием с client-side компонентами
+- **ContactsForm** автоматически открывается для залогиненных пользователей без профиля (`isLoggedIn && !currentUser && !savedUser`) — её оверлей перехватывает все клики, поэтому в тестах сначала заполняй форму, потом взаимодействуй с остальным UI
+- Все модальные компоненты должны иметь `role="dialog"` и обработчик Escape — иначе тесты не смогут их найти и закрыть
+- `session.user.id` нужно явно устанавливать в `session` callback (`session.user.id = token.sub`) — без этого API-эндпоинты с `auth()` вернут 401
+- **Live locators и кнопки-тогглы**: после клика кнопка "Хочу читать" меняется на "Записан" — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика используй `.first()` снова (не `.nth(1)`), предварительно дождавшись появления "Записан"
+- **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для уникальной идентификации собственных тостов/статусов использовать `data-testid`
+- **Тестовые фикстуры книг**: в `NEXTAUTH_TEST_MODE` фикстурные книги создаются через `/api/test/seed-books` в таблице `books` (`__test_book_1__` и др.) и удаляются global teardown.
+
+## UI Layout Tests (Playwright)
+
+Для задач, затрагивающих CSS-поведение (скрытие, позиционирование, анимации):
+- Добавить тест в `e2e/ui-states.spec.ts` с проверкой `boundingBox()` элемента в нужном стейте
+- Субагент не может коммитить UI-задачу без этого теста
+- Запуск: `npm run playwright test e2e/ui-states.spec.ts`
+
+**Субагенты перед коммитом UI-задач обязаны запускать:**
+`npm run lint && npm run typecheck && npm test && npm run playwright test e2e/ui-states.spec.ts`
+
+**Математическое доказательство CSS-формул:**
+Для transform/position расчётов — писать комментарий с выводом формулы:
+`final_pos = start_pos + transform` → проверить знак, что результат за границей экрана.
+
+## Тесты: обязательные случаи
+
+### Unit-тест обязателен если:
+- Функция **фильтрует или трансформирует** данные из внешнего источника (Google Sheets, DB, API)
+- Добавлен новый **edge case** в существующую data-функцию (новый статус, флаг, поле)
+- Функция содержит **условную логику** (if/filter/map) над данными из внешнего источника
+
+### E2E-тест обязателен если:
+- Новый **UI-флоу** (форма, модал, навигация, переход между состояниями)
+- Действие меняет **персистентное состояние** (signup, delete, profile edit) — тест обязан включать **перезагрузку страницы** и проверку что состояние сохранилось
+- **Условный рендер** компонента по бизнес-логике (показать/скрыть по условию входа, роли, данным)
+- Изменение **auth chain** (любой провайдер, JWT callback, session callback) — проверить что нужные поля присутствуют в сессии после входа
+- CSS-поведение (скрытие, анимация, позиционирование — см. UI Layout Tests выше)
+- Изменение существующего флоу, который уже покрыт e2e-тестом
+
+### Правило reload
+Любой тест на "действие сохраняется" должен делать `page.reload()` после действия и проверять состояние заново. Это ловит класс багов "визуально работает, но не персистится после перезагрузки".
+
+### Telegram auth
+При изменении auth/telegram цепочки — запускать E2E тест `e2e/telegram-auth.spec.ts`. Тест использует `/api/test/session` с параметрами `telegramUsername` и `provider: 'telegram-preauth'` — никакого отдельного mock endpoint не нужно.
+
+Если неочевидно — **спросить пользователя** перед коммитом.
+
+**Обязательно:** перед каждым `git commit` явно написать в ответе: _"E2E: нужен / не нужен — [причина]"_. Это видимый артефакт, который не даёт пропустить чеклист молча.
+
+## E2E-тесты: чеклист перед коммитом (краткий)
+
+Перед каждым коммитом — задать себе вопрос: **нужно ли добавить или обновить e2e-тесты?**
+(полные критерии — в разделе "Тесты: обязательные случаи" выше)
+
+## Telegram-авторизация: архитектура и уроки
+
+### Итоговая архитектура (правильная)
+1. Виджет с `data-auth-url="/api/auth/telegram/callback"` — Telegram редиректит с данными
+2. Route handler верифицирует HMAC, создаёт пользователя в БД, создаёт подписанный pre-auth токен
+3. Редирект на `/auth/telegram?uid=...&token=...&ts=...`
+4. Client страница вызывает `signIn('telegram-preauth', ...)` — провайдер валидирует токен, возвращает юзера
+
+### Чего НЕ делать (и почему)
+- **`data-onauth` (JS callback)** — Telegram вызывает callback через `eval()`, который браузеры блокируют. Всегда использовать `data-auth-url`.
+- **Отдельный `useEffect` для `window.onTelegramAuth`** — при условном рендере (`authModalOpen && <AuthModal>`) была потенциальная гонка. Если используется callback-подход — ставить callback в тот же эффект, что загружает скрипт.
+- **`router.refresh()` после auth** — не обновляет серверные компоненты (header остаётся "ВОЙТИ"). Нужен `window.location.reload()`.
+- **Server-side `signIn('credentials', ...)` в GET route handler** — в NextAuth v5 beta не работает надёжно. Использовать client-side `signIn` через промежуточную страницу.
+
+### Credentials провайдер + DrizzleAdapter
+`Credentials` провайдер **не создаёт пользователей в БД автоматически** — это делает только адаптер для OAuth (Google). JWT callback `if (existing.length === 0) return null` убивает сессию. Решение: `db.insert(users).onConflictDoUpdate(...)` внутри `authorize`.
+
+### ENV vars
+`NEXTAUTH_SECRET` (старое название) и `AUTH_SECRET` (NextAuth v5) — в этом проекте задан `NEXTAUTH_SECRET`. При ручном использовании секрета за пределами NextAuth: `process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET`.
+
+### Next.js 14: `useSearchParams()` требует `<Suspense>`
+Всегда оборачивать компонент с `useSearchParams()` в `<Suspense>` — иначе сборка падает при генерации статических страниц.
+
+### Требования Telegram Login Widget
+- Домен в BotFather должен совпадать **точно** с доменом сайта (с `www` или без — разные домены)
+- Бот **обязан иметь фото профиля** — без него виджет падает с "Bot domain invalid"
+- Виджет не работает без third-party cookies (incognito, Safari strict mode)
+
+## Архитектура каталога и обложек
+- Каталог книг хранится в таблице `books` (Postgres). Чтение через `lib/books.ts`.
+- Обложки: `books.cover_url`, редактируется в админской вкладке «Каталог».
+- `lib/books-with-covers.ts` — backward-compat shim, re-export из `lib/books.ts`.
+- `CoverImage.tsx` — client component, fallback на инициалы автора при `coverUrl=null`.
+- `BookCard.tsx` — кнопка «Читать далее» / «Свернуть» для описаний > 120 символов.
+
+## Документация по фичам
+`docs/features/` — краткое описание реализации каждой области (auth, books-catalog, admin-panel, notifications, user-profile). Читай перед работой с соответствующим кодом.
+
+## Wiki-документация владельца проекта
+`docs/wiki/` — исходники GitHub Wiki. На `push` в `main` workflow `.github/workflows/wiki-sync.yml` полностью синхронизирует эту папку в `bon2362/book-club.wiki.git`.
+
+Wiki пишется для владельца проекта: без лишнего кода, но с понятными связями между фичами, БД, интеграциями, хостингом, тестами и внешними сервисами.
+
+Перед каждым коммитом Claude Code обязан оценить, нужна ли правка Wiki. Обновлять `docs/wiki/` обязательно, если меняются:
+- пользовательская фича или админский workflow;
+- БД-схема, миграции, связи данных;
+- API endpoints или `public/openapi.json`;
+- auth/session/provider логика;
+- внешние сервисы, env vars, деплой, CI, Allure, Codecov, PostHog, Resend, Vercel, Neon;
+- операционные сценарии, privacy/data handling или ресурсы проекта.
+
+В финальном ответе перед коммитом явно писать: _"Wiki: нужна / не нужна — [причина]"_.
+
+## Ключевые файлы
+- `lib/books.ts` — чтение каталога из БД + CRUD-хелперы (`fetchBooksWithCovers`, `createBook`, `updateBook`)
+- `lib/books-with-covers.ts` — re-export shim из `lib/books.ts`
+- `lib/book-publish.ts` — promote approved submission → published book
+- `app/api/admin/books/` — admin CRUD API
+- `components/nd/AdminBooksCatalog.tsx` — админская вкладка «Каталог»
+- `components/nd/CoverImage.tsx` — client component, onError fallback
+- `components/nd/BookCard.tsx` — expand/collapse описания
+- `lib/db/schema.ts` — схема БД: users, userIdentities, verificationTokens, books, bookPriorities и др.

@@ -55,8 +55,6 @@ next-env.d.ts
 # Local agent/Codex workspace config
 .agents/
 .codex/
-AGENTS.md
-CLAUDE.md
 
 # Allure test results (generated in CI, not committed)
 /allure-results
