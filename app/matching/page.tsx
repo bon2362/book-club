@@ -11,6 +11,7 @@ import { fetchMyMoves } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 import MatchingScenarios from '@/components/nd/MatchingScenarios'
 import MatchingMyMoves from '@/components/nd/MatchingMyMoves'
+import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
 
 function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
   const now = Date.now()
@@ -133,6 +134,9 @@ export default async function MatchingPage() {
         <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
           Мой список
         </h2>
+        <MatchingRankNudge
+          show={personalBooks.length > 0 && personalBooks.every(b => b.rank === null)}
+        />
         <MatchingPersonalList
           books={personalBooks}
           frozen={activeSession.status === 'frozen'}
