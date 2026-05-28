@@ -10,6 +10,14 @@ on:
   pull_request:
     branches: [main]
 
+# Если PR обновился (новый push или gh pr update-branch после strict-mode
+# конфликта), старый CI run отменяется — auto-merge ждёт run на актуальном
+# SHA, неактуальный результат никому не нужен. Экономит ~5 минут CI-времени
+# на каждое обновление PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
