@@ -88,6 +88,37 @@
 - `NEXT_PUBLIC_POSTHOG_HOST`;
 - права API key.
 
+## Прод лежит, срочный фикс минуя CI
+
+В нормальном цикле любой коммит в `main` идёт через PR и ждёт зелёного CI (~5 минут). Когда прод реально лежит и пять минут — много, можно временно снять branch protection, push'нуть прямо, **вернуть защиту**:
+
+```bash
+# 1. Снять защиту (мгновенно)
+gh api repos/bon2362/book-club/branches/main/protection -X DELETE
+
+# 2. Сделать прямой push
+git push origin main
+
+# 3. ВЕРНУТЬ защиту обратно — это критично, иначе следующий
+#    случайный коммит уйдёт без проверок и без CI gate
+gh api repos/bon2362/book-club/branches/main/protection -X PUT --input - <<'JSON'
+{
+  "required_status_checks": {"strict": false, "checks": [{"context": "ci"}]},
+  "enforce_admins": true,
+  "required_pull_request_reviews": {"required_approving_review_count": 0, "dismiss_stale_reviews": false, "require_code_owner_reviews": false},
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": false,
+  "required_linear_history": false
+}
+JSON
+```
+
+Шаг 3 обязателен. Поставьте напоминание сразу после шага 1.
+
+**Не использовать** для удобства разработки — только когда нет другого выхода. Каждый emergency push минует все проверки: ESLint, secretlint, typecheck, unit-тесты, e2e, build. Это и есть его суть, но и его риск.
+
 ## Что не делать без отдельного плана
 
 - Не менять структуру `user.id` и identity без миграционного плана.
