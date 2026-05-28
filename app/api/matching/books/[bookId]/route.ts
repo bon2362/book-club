@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, signupBooks, bookPriorities } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
+import { broadcast } from '@/lib/matching/realtime/hub'
 
 type Params = { params: { bookId: string } }
 
@@ -44,6 +45,8 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       .set({ rank: i + 1 })
       .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, remaining[i].bookId)))
   }
+
+  broadcast(activeSession.id, 'state_changed', { userId, kind: 'book_removed', bookId })
 
   return NextResponse.json({ ok: true }, { status: 200 })
 }
