@@ -84,4 +84,34 @@ describe('withMatchingGuards', () => {
     const res = await handler(makeReq(baseUrl), { params: {} })
     expect(res.status).toBe(404)
   })
+
+  it('writes audit log for successful impersonated read by admin', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const valuesChain = { values: jest.fn().mockReturnValue({ catch: jest.fn() }) }
+    mockDb.insert = jest.fn().mockReturnValue(valuesChain)
+    const handler = withMatchingGuards(async () => new Response('ok', { status: 200 }))
+    const res = await handler(makeReq(`${baseUrl}?as=u2`), { params: {} })
+    expect(res.status).toBe(200)
+    expect(mockDb.insert).toHaveBeenCalled()
+    expect(valuesChain.values).toHaveBeenCalledWith(
+      expect.objectContaining({ adminId: 'admin1', viewedUserId: 'u2' })
+    )
+  })
+
+  it('does not write audit log when admin reads without impersonation', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    mockDb.insert = jest.fn()
+    const handler = withMatchingGuards(async () => new Response('ok', { status: 200 }))
+    await handler(makeReq(baseUrl), { params: {} })
+    expect(mockDb.insert).not.toHaveBeenCalled()
+  })
+
+  it('does not write audit log when impersonated handler returns error', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    mockDb.insert = jest.fn()
+    const handler = withMatchingGuards(async () => new Response('err', { status: 500 }))
+    const res = await handler(makeReq(`${baseUrl}?as=u2`), { params: {} })
+    expect(res.status).toBe(500)
+    expect(mockDb.insert).not.toHaveBeenCalled()
+  })
 })
