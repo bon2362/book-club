@@ -34,6 +34,7 @@ gh pr merge --auto --squash --delete-branch
 - Прод **не задеплоится**, если упали: lint, secret scan, typecheck, unit-tests, E2E, build.
 - `gh pr merge --auto` — мерж происходит автоматически в момент когда CI станет зелёным; не надо сидеть и кликать.
 - Vercel preview каждой feature-ветки публикуется на уникальном URL (виден в PR).
+- **`strict: true`** в branch protection: PR обязан быть up-to-date с main перед мержем. Если другой PR смержился раньше — GitHub потребует `gh pr update-branch`, CI перезапустится на актуальной комбинации. Это закрывает дыру «два PR от одного base, оба зелёные по отдельности, но сломанные вместе». Особенно важно при параллельной работе нескольких агентов.
 
 ### Emergency push
 `enforce_admins: true` — gate работает **и для админа**. `git push origin main` отказывается даже у владельца репо. Это намеренно: «можно обойти» = «когда-нибудь обойдётся случайно».
@@ -80,6 +81,14 @@ JSON
 6. **`--no-verify` запрещён.** Husky pre-commit (lint + secretlint) — твоя проверка качества. CI secret scan ловит то же самое позже, но коммит уже в истории git — секрет утёк, даже если поймали.
 
 7. **Проверь осиротевшие ветки в начале сессии.** Пользователь работает то с Claude, то с Codex — другой агент мог оставить незакрытый PR. Перед началом: `gh pr list` и `git branch --remote | grep -v main`. Если есть feature-ветки без открытого PR или зависший PR — спроси у пользователя, что с ним делать (продолжить, домержить, закрыть).
+
+8. **PR заблокирован «out of date with base branch» — подтяни main, не создавай новый PR.** Branch protection требует `strict: true`: PR должен быть up-to-date с main перед мержем. Если другой агент смержился раньше тебя, GitHub откажется мержить твой PR, пока не подтянешь свежий main. Делается одной командой:
+   ```bash
+   gh pr update-branch <pr-number>      # GitHub сделает merge main → твоя ветка
+   # или вручную:
+   # git fetch origin main && git rebase origin/main && git push --force-with-lease
+   ```
+   После этого CI перезапустится на актуальной комбинации (свежий main + твой diff). Когда зелёный — auto-merge сработает. Это нормальный путь параллельной работы нескольких агентов, не баг.
 
 ## Деплой (через PR-merge)
 - После merge PR в `main` Vercel автоматически деплоит в production. Это не меняется.
