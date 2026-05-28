@@ -3,10 +3,12 @@ export const dynamic = 'force-dynamic'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
-import { matchingSessions, matchingSessionParticipants, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { matchingSessions, matchingSessionParticipants, users, signupBooks, bookPriorities, books } from '@/lib/db/schema'
+import { eq, inArray, and } from 'drizzle-orm'
 import { fetchPersonalList } from '@/lib/matching/personal-list'
+import { generateScenarios } from '@/lib/matching/scenarios'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
+import MatchingScenarios from '@/components/nd/MatchingScenarios'
 
 function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
   const now = Date.now()
@@ -22,9 +24,8 @@ function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
 
 export default async function MatchingPage() {
   const session = await auth()
-  if (!session?.user?.isAdmin) redirect('/')
+  if (!session?.user?.id) redirect('/')
 
-  // Load active session
   const [activeSession] = await db
     .select()
     .from(matchingSessions)
@@ -40,7 +41,6 @@ export default async function MatchingPage() {
     )
   }
 
-  // Load participants and personal list in parallel
   const [participants, personalBooks] = await Promise.all([
     db
       .select({
@@ -57,6 +57,23 @@ export default async function MatchingPage() {
   ])
 
   const isAdmin = session.user.isAdmin
+  const participantUserIds = participants.map(p => p.userId)
+
+  // Fetch scenario data only when enough participants
+  const scenarios =
+    participantUserIds.length >= activeSession.targetGroupSize
+      ? await fetchAndGenerateScenarios(participantUserIds, activeSession.targetGroupSize)
+      : []
+
+  // Fetch book details for scenario cards
+  const scenarioBookIds = Array.from(new Set(scenarios.map(s => s.bookId)))
+  const scenarioBooks =
+    scenarioBookIds.length > 0
+      ? await db.select({ id: books.id, title: books.title, author: books.author, coverUrl: books.coverUrl })
+          .from(books)
+          .where(inArray(books.id, scenarioBookIds))
+      : []
+  const bookById = new Map(scenarioBooks.map(b => [b.id, b]))
 
   return (
     <main style={{ fontFamily: 'var(--nd-mono), monospace', padding: '2rem', maxWidth: 720, margin: '0 auto' }}>
@@ -113,7 +130,17 @@ export default async function MatchingPage() {
         <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
           Мой список
         </h2>
-        <MatchingPersonalList books={personalBooks} />
+        <MatchingPersonalList
+          books={personalBooks}
+          frozen={activeSession.status === 'frozen'}
+        />
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Сценарии групп
+        </h2>
+        <MatchingScenarios scenarios={scenarios} bookById={bookById} />
       </section>
 
       {isAdmin && (
@@ -126,4 +153,36 @@ export default async function MatchingPage() {
       )}
     </main>
   )
+}
+
+async function fetchAndGenerateScenarios(participantUserIds: string[], targetGroupSize: number) {
+  const [allSignups, allRanks, allBooks] = await Promise.all([
+    db.select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+      .from(signupBooks)
+      .where(inArray(signupBooks.userId, participantUserIds)),
+    db.select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+      .from(bookPriorities)
+      .where(inArray(bookPriorities.userId, participantUserIds)),
+    db.select({ id: books.id, readingStatus: books.readingStatus })
+      .from(books)
+      .where(and(eq(books.visibility, 'published'))),
+  ])
+
+  // Only include books that are signed up by at least one session participant
+  const signedUpBookIds = new Set(allSignups.map(s => s.bookId))
+  const sessionBooks = allBooks
+    .filter(b => signedUpBookIds.has(b.id))
+    .map(b => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
+
+  // Build participant list from userIds (pseudonyms not needed for engine)
+  const scenarioParticipants = participantUserIds.map(userId => ({ userId, pseudonym: userId }))
+
+  return generateScenarios({
+    participants: scenarioParticipants,
+    books: sessionBooks,
+    signups: allSignups.map(s => ({ userId: s.userId, bookId: s.bookId })),
+    ranks: allRanks.map(r => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),
+    targetGroupSize,
+    maxResults: 10,
+  })
 }
