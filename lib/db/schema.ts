@@ -179,3 +179,43 @@ export const telegramPreauthTokens = pgTable('telegram_preauth_tokens', {
   userIdIdx: index('telegram_preauth_tokens_user_id_idx').on(t.userId),
   expiresAtIdx: index('telegram_preauth_tokens_expires_at_idx').on(t.expiresAt),
 }))
+
+// Group Matching Mode tables — see docs/planning-artifacts/group-matching-mode-plan.md
+
+export const matchingSessions = pgTable('matching_sessions', {
+  id:                 text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name:               text('name').notNull(),
+  createdBy:          text('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt:          timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  deadlineAt:         timestamp('deadline_at', { mode: 'date' }),
+  status:             text('status').notNull().default('active'), // 'active' | 'frozen'
+  targetGroupSize:    integer('target_group_size').notNull().default(3),
+  frozenAt:           timestamp('frozen_at', { mode: 'date' }),
+  frozenScenarioJson: jsonb('frozen_scenario_json'),
+}, (t) => ({
+  // Enforces at most one active session at a time
+  singleActiveIdx: uniqueIndex('matching_sessions_single_active_idx')
+    .on(t.status)
+    .where(sql`${t.status} = 'active'`),
+}))
+
+export const matchingSessionParticipants = pgTable('matching_session_participants', {
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  pseudonym: text('pseudonym').notNull(),
+  joinedAt:  timestamp('joined_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  pk:                primaryKey({ columns: [t.sessionId, t.userId] }),
+  sessionPseudoUniq: uniqueIndex('matching_session_participants_session_pseudo_idx').on(t.sessionId, t.pseudonym),
+}))
+
+export const adminViews = pgTable('admin_views', {
+  id:           text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  adminId:      text('admin_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  viewedUserId: text('viewed_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  sessionId:    text('session_id').references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  ts:           timestamp('ts', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  adminIdIdx: index('admin_views_admin_id_idx').on(t.adminId),
+  tsIdx:      index('admin_views_ts_idx').on(t.ts),
+}))

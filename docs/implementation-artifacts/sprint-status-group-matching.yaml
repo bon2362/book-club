@@ -1,0 +1,85 @@
+# generated: 2026-05-28
+# last_updated: 2026-05-28
+# project: Group Matching Mode
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: docs/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-05-28
+last_updated: 2026-05-28
+project: Group Matching Mode
+project_key: NOKEY
+tracking_system: file-system
+story_location: docs/implementation-artifacts
+epics_source: docs/planning-artifacts/epics-group-matching.md
+
+development_status:
+  # Epic 1: Coordination foundation — sessions, participation, pseudonyms
+  epic-1: in-progress
+  1-1-drizzle-migration-matching-sessions-and-participants: review
+  1-2-pseudonym-dictionary-and-assignment-utility: backlog
+  1-3-admin-creates-a-matching-session: backlog
+  1-4-participant-joins-active-session-and-receives-pseudonym: backlog
+  1-5-matching-page-with-admin-gated-route-header-and-participant-list: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Personal list, scenarios, and freeze
+  epic-2: backlog
+  2-1-render-personal-list-with-current-signups-and-ranks: backlog
+  2-2-add-and-remove-books-in-matching-mode: backlog
+  2-3-reorder-ranks-via-drag-and-drop-with-keyboard-and-touch-alternatives: backlog
+  2-4-pure-scenario-engine-utility-with-sorting-and-color-tiers: backlog
+  2-5-render-scenarios-section-with-color-tiers: backlog
+  2-6-render-moi-hody-section: backlog
+  2-7-ui-nudge-for-participants-without-ranks: backlog
+  2-8-admin-freezes-session-capture-leader-and-lock-mutations: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Realtime collaboration and presence
+  epic-3: backlog
+  3-1-sse-endpoint-with-heartbeat-and-per-session-broadcast-hub: backlog
+  3-2-broadcast-state-changed-events-on-every-mutation: backlog
+  3-3-server-side-scenario-recomputation-pushed-to-clients: backlog
+  3-4-presence-indicators-via-heartbeat-aggregation: backlog
+  3-5-polling-fallback-when-sse-fails-or-unsupported: backlog
+  3-6-realtime-feed-with-classification-and-dedup: backlog
+  3-7-broadcast-session-frozen-to-all-clients: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Admin observability — impersonated read-only view
+  epic-4: backlog
+  4-1-shared-middleware-role-check-as-handling-mutation-block: backlog
+  4-2-admin-view-of-arbitrary-participant-via-as: backlog
+  4-3-audit-log-record-every-successful-impersonated-read: backlog
+  4-4-admin-audit-panel-for-current-session: backlog
+  4-5-admin-as-sse-silent-subscription: backlog
+  epic-4-retrospective: optional
