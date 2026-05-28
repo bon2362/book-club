@@ -7,8 +7,10 @@ import { matchingSessions, matchingSessionParticipants, users, signupBooks, book
 import { eq, inArray, and } from 'drizzle-orm'
 import { fetchPersonalList } from '@/lib/matching/personal-list'
 import { generateScenarios } from '@/lib/matching/scenarios'
+import { fetchMyMoves } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 import MatchingScenarios from '@/components/nd/MatchingScenarios'
+import MatchingMyMoves from '@/components/nd/MatchingMyMoves'
 
 function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
   const now = Date.now()
@@ -41,7 +43,7 @@ export default async function MatchingPage() {
     )
   }
 
-  const [participants, personalBooks] = await Promise.all([
+  const [participants, personalBooks, myMoves] = await Promise.all([
     db
       .select({
         userId: matchingSessionParticipants.userId,
@@ -54,6 +56,7 @@ export default async function MatchingPage() {
       .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
       .orderBy(matchingSessionParticipants.joinedAt),
     fetchPersonalList(session.user.id!),
+    fetchMyMoves(session.user.id!, activeSession.id, activeSession.targetGroupSize),
   ])
 
   const isAdmin = session.user.isAdmin
@@ -134,6 +137,13 @@ export default async function MatchingPage() {
           books={personalBooks}
           frozen={activeSession.status === 'frozen'}
         />
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Мои ходы
+        </h2>
+        <MatchingMyMoves moves={myMoves} />
       </section>
 
       <section style={{ marginTop: '2rem' }}>
