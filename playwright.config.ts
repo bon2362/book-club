@@ -70,11 +70,12 @@ export default defineConfig({
   // retries: 1 — страховка от редких flaky-моментов (overload
   // dev-сервера, медленный Neon-compute, networkidle промахи).
   retries: 1,
-  // workers: 4 — каждая спека создаёт свои книги/секции через фикстуры
-  // (createTestBook, createIntroSection), параллельные спеки не дерутся.
-  // Если поднимешь выше — упрётся в bandwidth dev-сервера и Neon-compute
-  // (0.25 vCPU на free tier).
-  workers: 4,
+  // workers: локально 4 — спеки изолированы через createTestBook/
+  // createIntroSection, не дерутся за общие данные. На CI снижаем до 2:
+  // GitHub Actions runner делит 4 vCPU с системой, плюс Neon free tier
+  // (0.25 vCPU) — при 4 параллельных Playwright contexts admin-страница
+  // не успевает гидратироваться за 120s, тесты флачат с timeout.
+  workers: process.env.CI ? 2 : 4,
   reporter: process.env.CI
     ? [['list'], ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: false }]]
     : 'list',
