@@ -14,9 +14,9 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
@@ -26,6 +26,13 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      # Secret scan: defence-in-depth поверх pre-commit secretlint hook.
+      # Если кто-то закоммитил с --no-verify или Husky был не установлен —
+      # этот шаг ловит секреты до того, как Vercel задеплоит код на прод.
+      # Тот же конфиг (.secretlintrc.json), что и в pre-commit.
+      - name: Secret scan
+        run: npx secretlint "**/*" --secretlintignore .gitignore
 
       - name: Typecheck
         run: npm run typecheck
@@ -37,7 +44,7 @@ jobs:
           SKIP_ENV_VALIDATION: 'true'
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
@@ -48,7 +55,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Get Allure history from gh-pages
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         if: always()
         continue-on-error: true
         with:
@@ -84,7 +91,7 @@ jobs:
         run: allure generate allure-results --clean -o allure-report
 
       - name: Publish Allure report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         if: always()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
