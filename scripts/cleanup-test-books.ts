@@ -1,7 +1,9 @@
 /* eslint-disable no-console */
 /**
- * One-shot cleanup of E2E test fixtures that leaked into the production DB
- * because earlier revisions of lib/books.ts auto-seeded them on every read.
+ * One-shot cleanup of E2E test fixtures that may have leaked into the
+ * production DB. Targets both legacy global seed books (`__test_book_*`,
+ * no longer used) and per-test books (`__e2e_book_*`, created by the
+ * createTestBook fixture). Safe to run any time — uses LIKE patterns.
  *
  *   npx ts-node --transpile-only -P tsconfig.scripts.json scripts/cleanup-test-books.ts
  */
@@ -23,25 +25,32 @@ function loadEnv() {
 }
 loadEnv()
 
-const TEST_IDS = ['__test_book_1__', '__test_book_2__', '__test_book_3__']
+const PATTERNS = ['__test_book_%', '__e2e_book_%']
+const WHERE_CLAUSE = `id LIKE ANY($1::text[])`
 
 async function main() {
   neonConfig.webSocketConstructor = ws
   const client = new Client(process.env.DATABASE_URL!)
   await client.connect()
   try {
-    const before = await client.query(`SELECT id, title FROM books WHERE id = ANY($1::text[])`, [TEST_IDS])
+    const before = await client.query(`SELECT id, title FROM books WHERE ${WHERE_CLAUSE}`, [PATTERNS])
     console.log('Test books currently in DB:', before.rows)
-    const beforeSignups = await client.query(`SELECT user_id, book_id FROM signup_books WHERE book_id = ANY($1::text[])`, [TEST_IDS])
+    const beforeSignups = await client.query(
+      `SELECT user_id, book_id FROM signup_books WHERE book_id LIKE ANY($1::text[])`,
+      [PATTERNS],
+    )
     console.log('Signups against test books:', beforeSignups.rows)
 
     await client.query('BEGIN')
-    await client.query(`DELETE FROM signup_books WHERE book_id = ANY($1::text[])`, [TEST_IDS])
-    await client.query(`DELETE FROM book_priorities WHERE book_id = ANY($1::text[])`, [TEST_IDS])
-    await client.query(`DELETE FROM books WHERE id = ANY($1::text[])`, [TEST_IDS])
+    // FKs from signup_books / book_priorities to books are ON DELETE CASCADE,
+    // so deleting from books is enough — but we delete signups/priorities
+    // explicitly to log what got cleaned up.
+    await client.query(`DELETE FROM signup_books WHERE book_id LIKE ANY($1::text[])`, [PATTERNS])
+    await client.query(`DELETE FROM book_priorities WHERE book_id LIKE ANY($1::text[])`, [PATTERNS])
+    await client.query(`DELETE FROM books WHERE ${WHERE_CLAUSE}`, [PATTERNS])
     await client.query('COMMIT')
 
-    const after = await client.query(`SELECT id FROM books WHERE id = ANY($1::text[])`, [TEST_IDS])
+    const after = await client.query(`SELECT id FROM books WHERE ${WHERE_CLAUSE}`, [PATTERNS])
     console.log('Remaining test books after cleanup:', after.rows.length)
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {})

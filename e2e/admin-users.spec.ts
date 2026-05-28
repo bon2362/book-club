@@ -4,8 +4,6 @@ import { epic, feature } from 'allure-js-commons'
 const ADMIN_NAME = 'E2E Admin Users Admin'
 const USER_NAME = 'E2E Admin Users Reader'
 const USER_CONTACT = '@e2e_admin_users'
-const BOOK_A = 'Тестовая книга 1'
-const BOOK_B = 'Тестовая книга 2'
 const REGISTERED_FEEDBACK_BASE = 'E2E registered feedback for admin users'
 const ANON_FEEDBACK_BASE = 'E2E anonymous feedback for admin users'
 
@@ -18,8 +16,10 @@ test.describe('админка — пользователи и фидбеки', (
   let registeredFeedback = ''
   let anonFeedback = ''
   let feedbackIds: string[] = []
+  let bookATitle = ''
+  let bookBTitle = ''
 
-  test.beforeEach(async ({ page }, testInfo) => {
+  test.beforeEach(async ({ page, createTestBook }, testInfo) => {
     await epic('Администрирование')
     await feature('Карточка пользователя')
     feedbackIds = []
@@ -29,12 +29,17 @@ test.describe('админка — пользователи и фидбеки', (
     registeredFeedback = `${REGISTERED_FEEDBACK_BASE} ${runId}`
     anonFeedback = `${ANON_FEEDBACK_BASE} ${runId}`
 
+    const bookA = await createTestBook({ title: `E2E Admin Users Book A ${runId}` })
+    const bookB = await createTestBook({ title: `E2E Admin Users Book B ${runId}` })
+    bookATitle = bookA.title
+    bookBTitle = bookB.title
+
     const userSession = await page.request.post('/api/test/session', {
       data: { email: userEmail, name: USER_NAME },
     })
     userId = (await userSession.json()).userId
     await page.request.post('/api/test/signup', {
-      data: { userId, name: USER_NAME, email: userEmail, contacts: USER_CONTACT, selectedBooks: [BOOK_A, BOOK_B] },
+      data: { userId, name: USER_NAME, email: userEmail, contacts: USER_CONTACT, selectedBookIds: [bookA.id, bookB.id] },
     })
     const registered = await page.request.post('/api/test/feedback', {
       data: { userId, name: USER_NAME, email: userEmail, message: registeredFeedback },
@@ -73,7 +78,7 @@ test.describe('админка — пользователи и фидбеки', (
     await expect(page.getByRole('dialog')).toContainText('Записи на книги')
     await expect(page.getByRole('dialog')).toContainText('Предложения книг')
     await expect(page.getByRole('dialog')).toContainText('Фидбеки')
-    await expect(page.getByRole('dialog')).toContainText(BOOK_A)
+    await expect(page.getByRole('dialog')).toContainText(bookATitle)
     await expect(page.getByRole('dialog')).toContainText(registeredFeedback)
   })
 
@@ -81,13 +86,13 @@ test.describe('админка — пользователи и фидбеки', (
     await openUserDrawer(page)
 
     page.on('dialog', dialog => dialog.accept())
-    const bookPill = page.getByRole('dialog').locator('span').filter({ hasText: BOOK_B }).first()
+    const bookPill = page.getByRole('dialog').locator('span').filter({ hasText: bookBTitle }).first()
     await bookPill.getByTitle('Снять запись').click()
 
     await expect.poll(async () => {
       const state = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(userEmail)}`)).json()
       return state.signupBooks.sort()
-    }).toEqual([BOOK_A])
+    }).toEqual([bookATitle])
 
     await page.reload()
     await page.waitForLoadState('networkidle')

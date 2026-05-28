@@ -11,20 +11,26 @@ const VICTIM_ID = `test:${VICTIM_EMAIL}`
 test.describe('Удаление пользователя в админке', () => {
   test.setTimeout(120_000) // Админка и e2e setup могут быть медленными в CI
 
-  test.beforeEach(async ({ page }) => {
+  let victimBookId = ''
+
+  test.beforeEach(async ({ page, createTestBook }) => {
     await epic('Администрирование')
     await feature('Удаление пользователей')
-    // 1. Создаём жертву в БД
+
+    // 1. Книга, на которую запишется жертва (фикстура удалит в teardown)
+    const book = await createTestBook({ title: `E2E Victim Book ${Date.now()}` })
+    victimBookId = book.id
+
+    // 2. Создаём жертву в БД
     await page.request.post('/api/test/session', {
       data: { email: VICTIM_EMAIL, name: VICTIM_NAME },
     })
-    // 2. Пишем signup жертвы напрямую в signup_books (обычный /api/signup
-    //    работает через UI-флоу, а здесь нужна компактная фикстура)
+    // 3. Пишем signup жертвы напрямую в signup_books
     await page.request.post('/api/test/signup', {
-      data: { userId: VICTIM_ID, name: VICTIM_NAME, email: VICTIM_EMAIL, contacts: VICTIM_CONTACT, selectedBooks: ['Тестовая книга 1'] },
+      data: { userId: VICTIM_ID, name: VICTIM_NAME, email: VICTIM_EMAIL, contacts: VICTIM_CONTACT, selectedBookIds: [victimBookId] },
     })
 
-    // 3. Переключаемся на сессию администратора
+    // 4. Переключаемся на сессию администратора
     await page.request.post('/api/test/session', {
       data: { email: ADMIN_EMAIL, name: ADMIN_NAME, isAdmin: true },
     })

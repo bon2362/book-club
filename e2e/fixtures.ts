@@ -66,8 +66,8 @@ interface E2EHelpers {
    * Create a per-test book through /api/test/books. The book is deleted
    * in teardown (cascade removes associated signups/priorities).
    *
-   * Unlike the shared seed books (__test_book_1__ etc.) this one is unique
-   * per test — parallel specs do not collide.
+   * Each test gets a unique id (`__e2e_book_<testId>_<index>__`) so
+   * parallel specs do not collide.
    *
    * Does NOT require an admin session.
    */

@@ -40,6 +40,23 @@ export function buildUserActivityDedupeKey(parts: Array<string | number | boolea
   return createHash('sha256').update(value).digest('hex')
 }
 
+// Postgres SQLSTATE for foreign_key_violation.
+// Raised when we try to insert an activity event for a user that was deleted
+// between resolving the userId and this INSERT — typically a parallel-test
+// race (admin-delete-user vs another spec writing a sign_in event). It's not
+// a real error: the user is gone, the activity has no owner. Silent no-op.
+const FK_VIOLATION_SQLSTATE = '23503'
+
+function isForeignKeyViolation(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const code = (err as { code?: unknown }).code
+  if (code === FK_VIOLATION_SQLSTATE) return true
+  // Drizzle/postgres-js wrap original errors — peek at .cause / .original
+  const cause = (err as { cause?: unknown }).cause
+  if (cause && typeof cause === 'object' && (cause as { code?: unknown }).code === FK_VIOLATION_SQLSTATE) return true
+  return false
+}
+
 export async function recordUserActivity(
   userId: string,
   type: UserActivityType,
@@ -47,19 +64,25 @@ export async function recordUserActivity(
 ): Promise<void> {
   const occurredAt = options.occurredAt ?? new Date()
 
-  const inserted = await db
-    .insert(userActivityEvents)
-    .values({
-      userId,
-      type,
-      occurredAt,
-      source: options.source ?? null,
-      sourceId: options.sourceId ?? null,
-      dedupeKey: options.dedupeKey ?? null,
-      metadata: options.metadata ? JSON.stringify(options.metadata) : null,
-    })
-    .onConflictDoNothing({ target: userActivityEvents.dedupeKey })
-    .returning({ id: userActivityEvents.id })
+  let inserted: { id: string }[]
+  try {
+    inserted = await db
+      .insert(userActivityEvents)
+      .values({
+        userId,
+        type,
+        occurredAt,
+        source: options.source ?? null,
+        sourceId: options.sourceId ?? null,
+        dedupeKey: options.dedupeKey ?? null,
+        metadata: options.metadata ? JSON.stringify(options.metadata) : null,
+      })
+      .onConflictDoNothing({ target: userActivityEvents.dedupeKey })
+      .returning({ id: userActivityEvents.id })
+  } catch (err) {
+    if (isForeignKeyViolation(err)) return // user vanished — nothing to record
+    throw err
+  }
 
   if (inserted.length > 0) {
     await updateUserActivityCache(userId, occurredAt)

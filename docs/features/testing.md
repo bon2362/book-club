@@ -107,7 +107,7 @@ npm run test:e2e
 | `POST /api/test/signup` | Записать выбранные книги напрямую в `signup_books` |
 | `DELETE /api/test/signup` | Удалить тестовые записи пользователя из `signup_books` |
 
-В этом режиме `/api/test/seed-books` создаёт фикстурные книги (`__test_book_1__`, `__test_book_2__`, `__test_book_3__`) в таблице `books`, а global teardown удаляет их после E2E.
+Каждый E2E-тест создаёт нужные ему книги через `createTestBook` фикстуру (см. `e2e/fixtures.ts`). Id'шники имеют префикс `__e2e_book_<testId>_<index>__`, фикстура удаляет книгу в teardown (FK signup_books/book_priorities → cascade). Глобального seed-каталога больше нет — каждая спека работает только со своими данными.
 
 ### Покрытие E2E
 
@@ -201,7 +201,7 @@ git push → GitHub Actions
   4. unit-тесты + coverage (DATABASE_URL=dummy)
   5. upload coverage → Codecov
   6. install playwright chromium
-  7. e2e-тесты (реальная БД + фикстурный каталог через `/api/test/seed-books`)
+  7. e2e-тесты (изолированная Neon-ветка `e2e`, книги создаются per-test через `createTestBook` фикстуру)
   8. allure generate → publish gh-pages
   9. build
 ```

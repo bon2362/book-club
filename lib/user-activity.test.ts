@@ -100,4 +100,46 @@ describe('user activity helper', () => {
     expect(errorSpy).toHaveBeenCalledWith('Failed to record user activity:', expect.any(Error))
     errorSpy.mockRestore()
   })
+
+  it('тихо игнорирует FK violation (юзер удалён в гонке) — без логов и без cache update', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const fkError = Object.assign(new Error('foreign key violation'), { code: '23503' })
+    const insertChain = {
+      values: jest.fn().mockReturnThis(),
+      onConflictDoNothing: jest.fn().mockReturnThis(),
+      returning: jest.fn().mockRejectedValue(fkError),
+    }
+    ;(db.insert as jest.Mock).mockReturnValue(insertChain)
+
+    await expect(recordUserActivity('user-1', 'sign_in', { source: 'auth' })).resolves.toBeUndefined()
+
+    expect(db.update).not.toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('распаковывает FK violation из обёртки err.cause (drizzle wrap)', async () => {
+    const cause = Object.assign(new Error('inner'), { code: '23503' })
+    const wrapper = Object.assign(new Error('wrapped'), { cause })
+    const insertChain = {
+      values: jest.fn().mockReturnThis(),
+      onConflictDoNothing: jest.fn().mockReturnThis(),
+      returning: jest.fn().mockRejectedValue(wrapper),
+    }
+    ;(db.insert as jest.Mock).mockReturnValue(insertChain)
+
+    await expect(recordUserActivity('user-1', 'sign_in')).resolves.toBeUndefined()
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
+  it('пробрасывает все НЕ-FK ошибки (например db down)', async () => {
+    const insertChain = {
+      values: jest.fn().mockReturnThis(),
+      onConflictDoNothing: jest.fn().mockReturnThis(),
+      returning: jest.fn().mockRejectedValue(new Error('connection refused')),
+    }
+    ;(db.insert as jest.Mock).mockReturnValue(insertChain)
+
+    await expect(recordUserActivity('user-1', 'sign_in')).rejects.toThrow('connection refused')
+  })
 })

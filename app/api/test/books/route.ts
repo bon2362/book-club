@@ -1,10 +1,10 @@
 // Test-only endpoint: creates/deletes a single throwaway book on demand.
 // Guarded by isTestEndpointAllowed() so it never runs in production.
 //
-// Sister to /api/test/seed-books — that endpoint manages global fixture
-// books (__test_book_1__ etc.) that are shared by the whole suite. This
-// endpoint creates per-test books that the e2e fixture wires up to a
-// teardown handler, so parallel specs don't fight for the same rows.
+// Called by the `createTestBook` fixture (see e2e/fixtures.ts). Each test
+// gets its own book with a unique id (`__e2e_book_<testId>_<index>__`) so
+// parallel specs don't fight for the same rows. The fixture removes the
+// book in teardown (cascade clears signups / priorities).
 
 export const dynamic = 'force-dynamic'
 

@@ -3391,87 +3391,50 @@
         }
       }
     },
-    "/api/test/seed-books": {
+    "/api/test/books": {
       "post": {
-        "tags": [
-          "Testing"
-        ],
-        "summary": "Засеять E2E fixture books",
+        "tags": ["Testing"],
+        "summary": "Создать per-test книгу для E2E (createTestBook fixture)",
         "responses": {
           "200": {
-            "description": "Seeded ids",
+            "description": "Created book",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "ids": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
+                    "book": { "type": "object" }
                   },
-                  "required": [
-                    "ok",
-                    "ids"
-                  ]
+                  "required": ["book"]
                 }
               }
             }
           },
           "403": {
             "description": "Ошибка",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }
       },
       "delete": {
-        "tags": [
-          "Testing"
-        ],
-        "summary": "Удалить E2E fixture books",
+        "tags": ["Testing"],
+        "summary": "Удалить per-test книгу по id (cascade удалит signups/priorities)",
         "responses": {
           "200": {
-            "description": "Deleted",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "deletedE2EBooks": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "ok",
-                    "deletedE2EBooks"
-                  ]
+                  "properties": { "ok": { "type": "boolean" } },
+                  "required": ["ok"]
                 }
               }
             }
           },
           "403": {
             "description": "Ошибка",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }
       }

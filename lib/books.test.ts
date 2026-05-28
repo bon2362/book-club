@@ -128,8 +128,9 @@ describe('lib/books — fetchBooksWithCovers', () => {
   it('filters accidental E2E fixture books in production', async () => {
     setNodeEnv('production')
     pushResult([
-      bookRow({ id: '__test_book_1__', title: 'Тестовая книга 1' }),
-      bookRow({ id: 'e2e-book', title: 'E2E Auto Signup 123' }),
+      bookRow({ id: '__test_book_1__', title: 'Тестовая книга 1' }), // legacy seed
+      bookRow({ id: '__e2e_book_abc12345_0__', title: 'Whatever' }),  // createTestBook fixture
+      bookRow({ id: 'e2e-book', title: 'E2E Auto Signup 123' }),     // free-form E2E title
       bookRow({ id: 'real-book', title: 'Real Book' }),
     ])
     pushResult([])

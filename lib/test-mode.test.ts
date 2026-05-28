@@ -5,6 +5,12 @@ describe('isTestEndpointAllowed', () => {
 
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV }
+    // Guard env vars: clear all of them so each test only sees what it sets.
+    // Otherwise a developer's local .env.test.local can leak into Jest via the
+    // shell environment and make tests non-deterministic.
+    delete process.env.PROD_DB_HOST_MARKER
+    delete process.env.E2E_REQUIRE_DB_MARKER
+    delete process.env.NEXTAUTH_TEST_MODE
   })
 
   afterAll(() => {

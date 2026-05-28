@@ -20,15 +20,6 @@
 - auto-alias — `book-club-lilac.vercel.app`
 - При проблемах с деплоем сразу проверять статус через Vercel API
 
-## Devcontainer: firewall и ограничения
-- Firewall настроен в `.devcontainer/init-firewall.sh` — блокирует всё кроме allowlist
-- Полный allowlist разрешённых доменов — в самом `init-firewall.sh` (GitHub, npmjs, Anthropic, Google APIs, Neon, Vercel, Telegram, Playwright и т.д.). При добавлении сервиса править этот скрипт, а не дублировать список здесь.
-- Чтобы добавить новый сервис: отредактировать `init-firewall.sh`, затем Rebuild Container (Ctrl+Shift+P)
-- Exit code 7 от curl = заблокировано firewall (не сетевая ошибка)
-- После ребилда контейнера: Vercel-токен в auth.json сбрасывается, использовать `--token` флаг
-- Firewall резолвит IP доменов при старте — Vercel CDN может отдавать с других IP (curl на vercel.app может не работать из контейнера)
-- `GH_TOKEN` берётся из `/workspace/.env.local` — если `gh` не работает: `export GH_TOKEN=$(grep GH_TOKEN /workspace/.env.local | cut -d= -f2)`
-
 ## Правила работы с кодом
 - Перед удалением/переименованием поля из интерфейса/типа — сначала искать все его вхождения в проекте (Grep), чтобы не пропустить дублирующие интерфейсы в других файлах
 - **Перед каждым `git commit`:** убедиться что `npm run lint` и `npm run typecheck` проходят без ошибок. Husky запускает lint-staged автоматически, но лучше проверить заранее.
@@ -69,14 +60,14 @@ E2E **никогда не должны писать в прод-БД**. Архи
 
 ### Запуск
 - `playwright.config.ts` сам прокидывает `NEXTAUTH_TEST_MODE=true` в `webServer.env`. Ручной `NEXTAUTH_TEST_MODE=true npx next dev` нужен **только** если уже запущен dev-сервер без флага (тогда `reuseExistingServer: true` переиспользует его). Лучше остановить ранее запущенный dev-сервер и дать Playwright поднять свой.
-- **OOM в devcontainer**: держать запущенным только один dev server. Несколько параллельных процессов (Next.js + Chrome) при нехватке памяти вызывают OOM kill сервера.
+- **OOM на машинах с малой памятью**: держать запущенным только один dev server. Несколько параллельных процессов (Next.js + Chrome) при нехватке памяти вызывают OOM kill сервера.
 - **`waitForLoadState('networkidle')`** — надёжный способ дождаться React-гидрации в Next.js перед взаимодействием с client-side компонентами
 - **ContactsForm** автоматически открывается для залогиненных пользователей без профиля (`isLoggedIn && !currentUser && !savedUser`) — её оверлей перехватывает все клики, поэтому в тестах сначала заполняй форму, потом взаимодействуй с остальным UI
 - Все модальные компоненты должны иметь `role="dialog"` и обработчик Escape — иначе тесты не смогут их найти и закрыть
 - `session.user.id` нужно явно устанавливать в `session` callback (`session.user.id = token.sub`) — без этого API-эндпоинты с `auth()` вернут 401
 - **Live locators и кнопки-тогглы**: после клика кнопка "Хочу читать" меняется на "Записан" — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика используй `.first()` снова (не `.nth(1)`), предварительно дождавшись появления "Записан"
 - **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для уникальной идентификации собственных тостов/статусов использовать `data-testid`
-- **Тестовые фикстуры книг**: в `NEXTAUTH_TEST_MODE` фикстурные книги создаются через `/api/test/seed-books` в таблице `books` (`__test_book_1__` и др.) и удаляются global teardown.
+- **Тестовые фикстуры книг**: каждый тест создаёт свои книги через `createTestBook` фикстуру (см. `e2e/fixtures.ts`). id'шники имеют префикс `__e2e_book_<testId>_<index>__`, фикстура удаляет книгу в teardown (FK signup_books/book_priorities → cascade). Глобального seed больше нет.
 
 ## UI Layout Tests (Playwright)
 

@@ -38,7 +38,11 @@ test.describe('Редактирование тега в админке', () => {
     })
   })
 
-  test(`изменение описания тега "${TARGET_TAG}" отображается в каталоге`, async ({ page }) => {
+  test(`изменение описания тега "${TARGET_TAG}" отображается в каталоге`, async ({ page, createTestBook }) => {
+    // Тег появляется в админке/фильтре только если им помечена хотя бы одна
+    // опубликованная книга. Создаём такую через фикстуру (auto-удалится).
+    await createTestBook({ tags: [TARGET_TAG] })
+
     // ── Шаг 1: Admin panel → вкладка "Теги" ─────────────────────────────
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')

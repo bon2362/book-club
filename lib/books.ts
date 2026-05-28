@@ -33,10 +33,11 @@ export interface BookWithCover {
   sortOrder?: number
 }
 
-// Test fixtures used to live in this file and were auto-seeded on every read in
-// NEXTAUTH_TEST_MODE, but that wrote into the production database whenever CI ran.
-// Fixture lifecycle now belongs to the E2E suite — see e2e/global-setup.ts and
-// the /api/test/seed-books endpoint.
+// Test fixtures used to live in this file and were auto-seeded on every read
+// in NEXTAUTH_TEST_MODE, but that wrote into the production database whenever
+// CI ran. Fixture lifecycle now belongs to the E2E suite — each test creates
+// its own book via the `createTestBook` fixture (see e2e/fixtures.ts), and the
+// fixture removes it in teardown.
 
 function rowToBook(row: typeof books.$inferSelect, signupCount = 0): BookWithCover {
   return {
@@ -87,8 +88,18 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
 
   const countById = new Map(countsByBookId.map(c => [c.bookId, Number(c.count)]))
 
+  // Defence-in-depth: even if an e2e-test-created book somehow leaks into the
+  // production DB (e.g. someone runs e2e against the wrong DATABASE_URL),
+  // never show it on the live site. Hides:
+  //   - legacy global seed books `__test_book_*` (no longer created, kept as guard)
+  //   - per-test books `__e2e_book_*` (createTestBook fixture)
+  //   - any title that starts with "E2E " (free-form fixture content)
   const safeRows = process.env.NODE_ENV === 'production'
-    ? rows.filter(row => !row.id.startsWith('__test_book_') && !row.title.startsWith('E2E '))
+    ? rows.filter(row =>
+        !row.id.startsWith('__test_book_') &&
+        !row.id.startsWith('__e2e_book_') &&
+        !row.title.startsWith('E2E ')
+      )
     : rows
 
   return safeRows.map(row => rowToBook(row, countById.get(row.id) ?? 0))

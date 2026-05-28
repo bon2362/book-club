@@ -70,9 +70,10 @@ export default defineConfig({
   // retries: 1 — страховка от редких flaky-моментов (overload
   // dev-сервера, медленный Neon-compute, networkidle промахи).
   retries: 1,
-  // workers: 4 — после изоляции seed-books через createTestBook фикстуру
-  // спеки больше не дерутся за одни и те же книги. Если поднимешь выше —
-  // упрётся в bandwidth dev-сервера и Neon-compute (0.25 vCPU).
+  // workers: 4 — каждая спека создаёт свои книги/секции через фикстуры
+  // (createTestBook, createIntroSection), параллельные спеки не дерутся.
+  // Если поднимешь выше — упрётся в bandwidth dev-сервера и Neon-compute
+  // (0.25 vCPU на free tier).
   workers: 4,
   reporter: process.env.CI
     ? [['list'], ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: false }]]
