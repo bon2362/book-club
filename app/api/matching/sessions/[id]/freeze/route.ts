@@ -12,6 +12,7 @@ import {
 } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { generateScenarios } from '@/lib/matching/scenarios'
+import { broadcast } from '@/lib/matching/realtime/hub'
 
 type Params = { params: { id: string } }
 
@@ -91,6 +92,8 @@ export async function POST(_req: NextRequest, { params }: Params) {
       metricTop3HitRate,
     })
     .where(eq(matchingSessions.id, params.id))
+
+  broadcast(params.id, 'session_frozen', { frozen_at: frozenAt.toISOString(), frozen_scenario: leader })
 
   return NextResponse.json({ ok: true, frozen_at: frozenAt.toISOString(), leader }, { status: 200 })
 }

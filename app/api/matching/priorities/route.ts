@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, bookPriorities } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { broadcast } from '@/lib/matching/realtime/hub'
 
 export async function PATCH(req: NextRequest) {
   const session = await auth()
@@ -44,6 +45,8 @@ export async function PATCH(req: NextRequest) {
     .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank })
     .from(bookPriorities)
     .where(eq(bookPriorities.userId, userId))
+
+  broadcast(activeSession.id, 'state_changed', { userId, kind: 'ranks_updated' })
 
   return NextResponse.json({ ranks: canonical }, { status: 200 })
 }

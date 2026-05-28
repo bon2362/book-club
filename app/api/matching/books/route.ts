@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, signupBooks } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { broadcast } from '@/lib/matching/realtime/hub'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -27,6 +28,8 @@ export async function POST(req: NextRequest) {
     .insert(signupBooks)
     .values({ userId: session.user.id, bookId })
     .onConflictDoNothing()
+
+  broadcast(activeSession.id, 'state_changed', { userId: session.user.id, kind: 'book_added', bookId })
 
   return NextResponse.json({ ok: true }, { status: 200 })
 }
