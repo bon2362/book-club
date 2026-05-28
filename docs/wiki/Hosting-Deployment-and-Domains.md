@@ -1,6 +1,6 @@
 # Хостинг, деплой и домены
 
-Проект хостится на Vercel. Код живет в GitHub. Push в `main` запускает проверки и production-деплой.
+Проект хостится на Vercel. Код живет в GitHub. Изменения идут через Pull Request — прямой push в `main` запрещён branch protection. После merge PR в `main` Vercel автоматически деплоит в production.
 
 ## Ресурсы
 
@@ -18,14 +18,24 @@
 
 ```mermaid
 flowchart LR
-    Commit["git commit"] --> Push["git push main"]
-    Push --> CI["GitHub Actions CI"]
-    CI --> Tests["lint + typecheck + Jest + Playwright"]
-    Tests --> Vercel["Vercel build/deploy"]
+    Branch["git checkout -b fix/x"] --> Commit["git commit"]
+    Commit --> Push["git push -u origin fix/x"]
+    Push --> PR["gh pr create + gh pr merge --auto"]
+    PR --> CI["GitHub Actions CI<br/>lint + secret scan + typecheck<br/>Jest + Playwright + build"]
+    CI --> Merge["squash-merge в main<br/>auto-merge ждал зелёного CI"]
+    Merge --> Vercel["Vercel build/deploy"]
     Vercel --> Domain["www.slowreading.club"]
-    Tests --> Allure["Allure report on gh-pages"]
-    Tests --> Codecov["Codecov coverage"]
+    CI --> Allure["Allure report on gh-pages"]
+    CI --> Codecov["Codecov coverage"]
 ```
+
+Branch protection на `main`:
+- Прямой push запрещён даже для admin (`enforce_admins: true`).
+- PR обязателен, status check `ci` должен пройти до мержа.
+- `gh pr merge --auto --squash --delete-branch` — стандартный путь.
+- Feature-ветка удаляется автоматически после мержа.
+
+Если прод лежит и надо обойти gate — см. [Operations Runbook](Operations-Runbook.md) → «Прод лежит, срочный фикс минуя CI».
 
 ## Домены и DNS
 
