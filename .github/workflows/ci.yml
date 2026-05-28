@@ -9,6 +9,13 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # Принудительно гоняем все JS-actions (включая transitive — например
+    # actions/github-script внутри codecov-action@v5 и peaceiris/actions-gh-pages@v4,
+    # которые сами ещё не обновились) на Node 24. Иначе GitHub Actions runner
+    # ругается deprecation warning'ами; с сентября 2026 Node 20 будет удалён.
+    # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     permissions:
       contents: write
       pull-requests: write
