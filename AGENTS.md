@@ -13,12 +13,43 @@
 - После выполнения — закрыть issue с комментарием о коммите
 - Скрипт первоначальной инициализации: `.claude/scripts/setup-github-issues.sh`
 
-## Деплой
-- **Стандартный процесс: `git commit` + `git push` → Vercel автоматически деплоит и обновляет алиас** ✓
-- Vercel project живёт в team `bon2362-5067s-projects`, `projectId: "prj_ZwWgPCcLf8RyrxeMJDI5zCX08dEp"`
-- `book-club-slow-rising.vercel.app` добавлен как домен проекта в настройках Vercel — обновляется автоматически
-- auto-alias — `book-club-lilac.vercel.app`
-- При проблемах с деплоем сразу проверять статус через Vercel API
+## Workflow: PR flow с CI-gate
+
+**Прямой push в `main` запрещён.** Любое изменение идёт через Pull Request, который автомержится после зелёного CI. Branch protection настроена на ветке `main` (см. `gh api repos/bon2362/book-club/branches/main/protection`).
+
+### Стандартный цикл
+```bash
+git checkout -b fix/коротко-о-чём        # имя ветки в kebab-case
+# ... делаешь изменения, локально lint/typecheck проходят ...
+git commit -am "тип: что"                 # Husky запустит lint-staged + secretlint
+git push -u origin fix/коротко-о-чём
+gh pr create --fill                       # title/body заполнятся из коммита
+gh pr merge --auto --squash --delete-branch
+# Дальше — CI крутится 4-5 минут → squash-merge в main → Vercel деплоит prod
+```
+
+Для совсем быстрых правок есть shell-функция `qpr "msg"` (если настроен алиас) — объединяет всё в одну команду.
+
+### Что гарантирует CI-gate
+- Прод **не задеплоится**, если упали: lint, secret scan, typecheck, unit-tests, E2E, build.
+- `gh pr merge --auto` — мерж происходит автоматически в момент когда CI станет зелёным; не надо сидеть и кликать.
+- Vercel preview каждой feature-ветки публикуется на уникальном URL (виден в PR).
+
+### Emergency push
+Если **нужно срочно** обойти gate (например, прод лежит и фикс должен уйти за 30 секунд):
+```bash
+gh api repos/bon2362/book-club/branches/main/protection -X DELETE   # снять защиту
+git push origin main                                                 # прямой push
+# применить защиту обратно через gh api ... -X PUT (см. шаблон в коммит-истории)
+```
+Использовать только когда не остаётся другого выхода.
+
+## Деплой (через PR-merge)
+- После merge PR в `main` Vercel автоматически деплоит в production. Это не меняется.
+- Vercel project: team `bon2362-5067s-projects`, `projectId: "prj_ZwWgPCcLf8RyrxeMJDI5zCX08dEp"`.
+- `book-club-slow-rising.vercel.app` добавлен как домен проекта — обновляется автоматически.
+- auto-alias: `book-club-lilac.vercel.app`.
+- При проблемах с деплоем — статус через Vercel API.
 
 ## Правила работы с кодом
 - Перед удалением/переименованием поля из интерфейса/типа — сначала искать все его вхождения в проекте (Grep), чтобы не пропустить дублирующие интерфейсы в других файлах
