@@ -36,13 +36,32 @@ gh pr merge --auto --squash --delete-branch
 - Vercel preview каждой feature-ветки публикуется на уникальном URL (виден в PR).
 
 ### Emergency push
-Если **нужно срочно** обойти gate (например, прод лежит и фикс должен уйти за 30 секунд):
+`enforce_admins: true` — gate работает **и для админа**. `git push origin main` отказывается даже у владельца репо. Это намеренно: «можно обойти» = «когда-нибудь обойдётся случайно».
+
+Если прод реально лежит и фикс должен уйти срочно:
 ```bash
-gh api repos/bon2362/book-club/branches/main/protection -X DELETE   # снять защиту
-git push origin main                                                 # прямой push
-# применить защиту обратно через gh api ... -X PUT (см. шаблон в коммит-истории)
+# 1. Снять защиту (~5 секунд)
+gh api repos/bon2362/book-club/branches/main/protection -X DELETE
+
+# 2. Сделать прямой push с фиксом
+git push origin main
+
+# 3. ВЕРНУТЬ защиту обратно — иначе следующий случайный коммит уйдёт без CI
+gh api repos/bon2362/book-club/branches/main/protection -X PUT --input - <<'JSON'
+{
+  "required_status_checks": {"strict": false, "checks": [{"context": "ci"}]},
+  "enforce_admins": true,
+  "required_pull_request_reviews": {"required_approving_review_count": 0, "dismiss_stale_reviews": false, "require_code_owner_reviews": false},
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": false,
+  "required_linear_history": false
+}
+JSON
 ```
-Использовать только когда не остаётся другого выхода.
+
+Шаг 3 ВАЖЕН. Поставь напоминание сразу после шага 1.
 
 ## Деплой (через PR-merge)
 - После merge PR в `main` Vercel автоматически деплоит в production. Это не меняется.
