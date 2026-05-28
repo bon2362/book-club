@@ -12,6 +12,7 @@ import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 import MatchingScenarios from '@/components/nd/MatchingScenarios'
 import MatchingMyMoves from '@/components/nd/MatchingMyMoves'
 import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
+import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 
 function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
   const now = Date.now()
@@ -226,6 +227,8 @@ export default async function MatchingPage({
           </a>
         </section>
       )}
+
+      <MatchingRealtimeWrapper sessionId={activeSession.id} />
     </main>
   )
 }
