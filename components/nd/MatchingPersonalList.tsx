@@ -97,7 +97,7 @@ function SortableRow({ book, index, total, frozen, onMoveUp, onMoveDown }: Sorta
         {book.rank ?? '—'}
       </span>
 
-      <div style={{ width: 32, height: 32, flexShrink: 0 }}>
+      <div style={{ width: 32, height: 32, flexShrink: 0, position: 'relative' }}>
         <CoverImage
           coverUrl={book.coverUrl}
           title={book.title}
