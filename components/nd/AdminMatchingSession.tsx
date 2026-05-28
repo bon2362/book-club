@@ -12,6 +12,14 @@ interface MatchingSession {
   frozenAt: string | null
 }
 
+interface AuditEntry {
+  id: string
+  adminId: string
+  viewedUserId: string
+  ts: string
+  adminName: string | null
+}
+
 const fieldInput: React.CSSProperties = {
   fontFamily: 'var(--nd-mono), monospace',
   fontSize: '0.8rem',
@@ -37,6 +45,8 @@ export default function AdminMatchingSession() {
   const [sessions, setSessions] = useState<MatchingSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
+  const [auditLoading, setAuditLoading] = useState(false)
 
   // Form state
   const [name, setName] = useState('')
@@ -61,6 +71,22 @@ export default function AdminMatchingSession() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  const loadAudit = useCallback(async (sessionId: string) => {
+    setAuditLoading(true)
+    try {
+      const res = await fetch(`/api/matching/sessions/${sessionId}/audit-log`)
+      const json = await res.json()
+      if (res.ok) setAuditLog(json.data ?? [])
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const active = sessions.find(s => s.status === 'active')
+    if (active) loadAudit(active.id)
+  }, [sessions, loadAudit])
 
   const activeSession = sessions.find(s => s.status === 'active')
   const [freezing, setFreezing] = useState(false)
@@ -214,6 +240,56 @@ export default function AdminMatchingSession() {
           </button>
         </form>
       </div>
+
+      {activeSession && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            Журнал просмотров (admin_views)
+            <button onClick={() => loadAudit(activeSession.id)} style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}>
+              ↺
+            </button>
+          </div>
+          {auditLoading && <p style={{ color: '#999', fontSize: '0.78rem' }}>Загрузка…</p>}
+          {!auditLoading && auditLog.length === 0 && (
+            <p style={{ color: '#999', fontSize: '0.78rem' }}>Просмотров за других участников не было.</p>
+          )}
+          {!auditLoading && auditLog.length > 0 && (
+            <table
+              data-testid="admin-audit-log"
+              style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}
+            >
+              <thead>
+                <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
+                  <th style={{ padding: '3px 8px 3px 0' }}>Когда</th>
+                  <th style={{ padding: '3px 8px' }}>Администратор</th>
+                  <th style={{ padding: '3px 8px' }}>Просматривал</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditLog.map(entry => (
+                  <tr key={entry.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '3px 8px 3px 0', color: '#999', whiteSpace: 'nowrap' }}>
+                      {new Date(entry.ts).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td style={{ padding: '3px 8px', color: '#555' }}>
+                      {entry.adminName ?? entry.adminId.slice(0, 8)}
+                    </td>
+                    <td style={{ padding: '3px 8px' }}>
+                      <a
+                        href={`/matching?as=${entry.viewedUserId}`}
+                        style={{ color: '#333', textDecoration: 'underline' }}
+                        title={entry.viewedUserId}
+                      >
+                        {entry.viewedUserId.slice(0, 12)}…
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       {sessions.filter(s => s.status !== 'active').length > 0 && (
         <div>
