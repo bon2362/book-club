@@ -77,6 +77,9 @@ erDiagram
 | `notification_queue` | Очередь email-уведомлений. | Позволяет отправлять digest, а не письмо на каждое действие. |
 | `intro_sections` | Редактируемые блоки intro на главной. | Позволяет менять объяснение сайта из админки. |
 | `telegram_preauth_tokens` | Короткоживущие токены Telegram-входа. | Нужны для безопасного Telegram redirect flow. |
+| `matching_sessions` | Matching-сессии (имя, статус, дедлайн, метрики заморозки). | Координирует выбор читательских групп. |
+| `matching_session_participants` | Участники каждой сессии с псевдонимами. | Псевдоним стабилен в рамках сессии, новый в каждой следующей. |
+| `admin_views` | Аудит-лог: когда и кого просматривал администратор через `?as=`. | Прозрачность admin impersonation. |
 
 ## Как связаны пользователь и способ входа
 
@@ -106,6 +109,9 @@ erDiagram
 - `0018_contact_email_nullable_user_email.sql` и `0019_drop_user_email.sql` — переход от обязательного `users.email` к `contact_email`.
 - `0021_books_catalog.sql` и последующие cleanup-миграции — перенос каталога в Postgres.
 - `0028_unique_contact_email.sql` — уникальность контактного email без учета регистра.
+- `0028_matching_tables.sql` — таблицы `matching_sessions`, `matching_session_participants`, `admin_views`.
+- `0029_matching_signup_books.sql` — FK-связь `signup_books` с matching.
+- `0030_matching_freeze_metrics.sql` — колонки метрик заморозки в `matching_sessions`.
 
 ## Практический вывод
 
