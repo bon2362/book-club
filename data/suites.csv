@@ -1,4 +1,0 @@
-"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
-"","6394","[SEC] не-админ не может вызвать /api/admin/books","chromium","2026-05-28","passed","2026-05-28","AdminPanel — вкладка «Каталог»","","",""
-"","8639","закрытие inline-редактора с несохранёнными правками показывает confirm","chromium","2026-05-28","passed","2026-05-28","AdminPanel — вкладка «Каталог»","","",""
-"","36954","создание скрытой книги, публикация и скрытие сохраняются после перезагрузки","chromium","2026-05-28","passed","2026-05-28","AdminPanel — вкладка «Каталог»","","",""
