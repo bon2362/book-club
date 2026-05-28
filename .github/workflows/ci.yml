@@ -1,8 +1,12 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
+  # Только pull_request. Прямой push в main запрещён branch protection
+  # (enforce_admins: true), значит push в main = squash-merge от PR,
+  # который CI уже проверил. Дублирующий run на main-SHA только тратит
+  # CI-время и шумит в UI.
+  # Если когда-нибудь нужен emergency push (см. AGENTS.md), CI на него
+  # не запустится — это норма, emergency edits идут без gate по определению.
   pull_request:
     branches: [main]
 
