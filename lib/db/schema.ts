@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
-  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb,
+  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb, real,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -190,8 +190,13 @@ export const matchingSessions = pgTable('matching_sessions', {
   deadlineAt:         timestamp('deadline_at', { mode: 'date' }),
   status:             text('status').notNull().default('active'), // 'active' | 'frozen'
   targetGroupSize:    integer('target_group_size').notNull().default(3),
-  frozenAt:           timestamp('frozen_at', { mode: 'date' }),
-  frozenScenarioJson: jsonb('frozen_scenario_json'),
+  frozenAt:                        timestamp('frozen_at', { mode: 'date' }),
+  frozenScenarioJson:              jsonb('frozen_scenario_json'),
+  metricGroupsCount:               integer('metric_groups_count'),
+  metricCoverage:                  integer('metric_coverage'),
+  metricTimeToFreezeSeconds:       integer('metric_time_to_freeze_seconds'),
+  metricTimeSinceLastMutationSeconds: integer('metric_time_since_last_mutation_seconds'),
+  metricTop3HitRate:               real('metric_top3_hit_rate'),
 }, (t) => ({
   // Enforces at most one active session at a time
   singleActiveIdx: uniqueIndex('matching_sessions_single_active_idx')

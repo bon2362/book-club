@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
+import { broadcast } from '@/lib/matching/realtime/hub'
 
 interface Params { params: { id: string } }
 
@@ -61,6 +62,8 @@ export async function POST(_req: NextRequest, { params }: Params) {
     userId,
     pseudonym,
   })
+
+  broadcast(sessionId, 'state_changed', { userId, kind: 'participant_joined' })
 
   return NextResponse.json({ success: true, pseudonym }, { status: 201 })
 }
