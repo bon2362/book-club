@@ -13,6 +13,7 @@ import MatchingScenarios from '@/components/nd/MatchingScenarios'
 import MatchingMyMoves from '@/components/nd/MatchingMyMoves'
 import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
+import { assignPseudonym } from '@/lib/matching/pseudonyms'
 
 function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
   const now = Date.now()
@@ -54,6 +55,32 @@ export default async function MatchingPage({
         <p style={{ color: '#999' }}>Нет активной сессии. Создайте её в <a href="/admin?tab=matching" style={{ color: '#333' }}>Админ-панели → Матчинг</a>.</p>
       </main>
     )
+  }
+
+  // Auto-join: if not impersonating and session is active, ensure user is a participant
+  if (!isImpersonating && activeSession.status === 'active') {
+    const existing = await db
+      .select({ userId: matchingSessionParticipants.userId })
+      .from(matchingSessionParticipants)
+      .where(and(
+        eq(matchingSessionParticipants.sessionId, activeSession.id),
+        eq(matchingSessionParticipants.userId, session.user.id!),
+      ))
+      .limit(1)
+
+    if (existing.length === 0) {
+      const taken = await db
+        .select({ pseudonym: matchingSessionParticipants.pseudonym })
+        .from(matchingSessionParticipants)
+        .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
+      const takenSet = new Set(taken.map(r => r.pseudonym))
+      const pseudonym = assignPseudonym(takenSet)
+      await db.insert(matchingSessionParticipants).values({
+        sessionId: activeSession.id,
+        userId: session.user.id!,
+        pseudonym,
+      }).onConflictDoNothing()
+    }
   }
 
   const [participants, personalBooks, myMoves] = await Promise.all([
