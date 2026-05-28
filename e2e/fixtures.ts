@@ -66,8 +66,9 @@ interface E2EHelpers {
    * Create a per-test book through /api/test/books. The book is deleted
    * in teardown (cascade removes associated signups/priorities).
    *
-   * Each test gets a unique id (`__e2e_book_<testId>_<index>__`) so
-   * parallel specs do not collide.
+   * Each test gets a unique id (`__e2e_book_<testId+random>_<index>__`)
+   * so parallel specs do not collide — and so two concurrent CI runs
+   * against the same e2e DB do not race on the same primary key.
    *
    * Does NOT require an admin session.
    */
@@ -154,8 +155,12 @@ export const test = base.extend<E2EHelpers>({
 
   createTestBook: async ({ page }, use, testInfo) => {
     const created: string[] = []
-    // Stable short suffix per test, plus an index per book within the test
-    const seed = testInfo.testId.slice(0, 8)
+    // Suffix должен быть уникален per-test И per-run. testInfo.testId сам
+    // по себе детерминирован (один и тот же для теста между запусками),
+    // поэтому два параллельных CI run одного теста против одной e2e ветки
+    // конфликтуют по primary key `books.id`. Добавляем случайный compо-
+    // нент, чтобы это исключить.
+    const seed = `${testInfo.testId.slice(0, 6)}${Math.random().toString(36).slice(2, 8)}`
 
     const create: E2EHelpers['createTestBook'] = async (overrides) => {
       const index = created.length
