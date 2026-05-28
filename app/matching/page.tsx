@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { fetchPersonalList } from '@/lib/matching/personal-list'
+import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 
 function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
   const now = Date.now()
@@ -38,18 +40,21 @@ export default async function MatchingPage() {
     )
   }
 
-  // Load participants with user info
-  const participants = await db
-    .select({
-      userId: matchingSessionParticipants.userId,
-      pseudonym: matchingSessionParticipants.pseudonym,
-      joinedAt: matchingSessionParticipants.joinedAt,
-      name: users.name,
-    })
-    .from(matchingSessionParticipants)
-    .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
-    .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
-    .orderBy(matchingSessionParticipants.joinedAt)
+  // Load participants and personal list in parallel
+  const [participants, personalBooks] = await Promise.all([
+    db
+      .select({
+        userId: matchingSessionParticipants.userId,
+        pseudonym: matchingSessionParticipants.pseudonym,
+        joinedAt: matchingSessionParticipants.joinedAt,
+        name: users.name,
+      })
+      .from(matchingSessionParticipants)
+      .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
+      .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
+      .orderBy(matchingSessionParticipants.joinedAt),
+    fetchPersonalList(session.user.id!),
+  ])
 
   const isAdmin = session.user.isAdmin
 
@@ -102,6 +107,13 @@ export default async function MatchingPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section style={{ marginTop: '2rem' }}>
+        <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Мой список
+        </h2>
+        <MatchingPersonalList books={personalBooks} />
       </section>
 
       {isAdmin && (
