@@ -63,6 +63,25 @@ export default function AdminMatchingSession() {
   useEffect(() => { load() }, [load])
 
   const activeSession = sessions.find(s => s.status === 'active')
+  const [freezing, setFreezing] = useState(false)
+  const [freezeError, setFreezeError] = useState<string | null>(null)
+
+  async function handleFreeze() {
+    if (!activeSession) return
+    if (!window.confirm(`Зафиксировать сессию «${activeSession.name}»? Это действие необратимо.`)) return
+    setFreezing(true)
+    setFreezeError(null)
+    try {
+      const res = await fetch(`/api/matching/sessions/${activeSession.id}/freeze`, { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Ошибка заморозки')
+      await load()
+    } catch (e) {
+      setFreezeError(e instanceof Error ? e.message : 'Неизвестная ошибка')
+    } finally {
+      setFreezing(false)
+    }
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -108,14 +127,23 @@ export default function AdminMatchingSession() {
           {activeSession.deadlineAt && (
             <div>Дедлайн: {new Date(activeSession.deadlineAt).toLocaleString('ru-RU')}</div>
           )}
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <a
               href="/matching"
               style={{ color: '#333', textDecoration: 'underline', fontSize: '0.78rem' }}
             >
               Открыть страницу матчинга →
             </a>
+            <button
+              onClick={handleFreeze}
+              disabled={freezing}
+              style={{ ...btn, borderColor: '#c00', color: '#c00' }}
+              data-testid="admin-freeze-session"
+            >
+              {freezing ? 'Фиксирую…' : 'Зафиксировать'}
+            </button>
           </div>
+          {freezeError && <p style={{ color: '#c00', fontSize: '0.75rem', marginTop: 4 }}>{freezeError}</p>}
         </div>
       )}
 

@@ -92,7 +92,13 @@ export default async function MatchingPage() {
               Дедлайн: <DeadlineCountdown deadlineAt={new Date(activeSession.deadlineAt)} />
             </span>
           )}
-          <span style={{ color: '#4a7' }}>● активна</span>
+          {activeSession.status === 'frozen' ? (
+            <span style={{ color: '#888', background: '#f0f0f0', padding: '1px 8px', borderRadius: 3, fontSize: '0.72rem' }}>
+              Зафиксирована
+            </span>
+          ) : (
+            <span style={{ color: '#4a7' }}>● активна</span>
+          )}
         </div>
       </header>
 
