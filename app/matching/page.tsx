@@ -25,9 +25,20 @@ function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
   return <span>{minutes} мин</span>
 }
 
-export default async function MatchingPage() {
+export default async function MatchingPage({
+  searchParams,
+}: {
+  searchParams: { as?: string }
+}) {
   const session = await auth()
   if (!session?.user?.id) redirect('/')
+
+  const isAdmin = session.user.isAdmin ?? false
+
+  // Admin impersonation: ?as=userId silently ignored for non-admins
+  const asParam = isAdmin && searchParams.as ? searchParams.as : null
+  const isImpersonating = asParam !== null
+  const viewingUserId = isImpersonating ? asParam : session.user.id!
 
   const [activeSession] = await db
     .select()
@@ -56,12 +67,14 @@ export default async function MatchingPage() {
       .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
       .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
       .orderBy(matchingSessionParticipants.joinedAt),
-    fetchPersonalList(session.user.id!),
-    fetchMyMoves(session.user.id!, activeSession.id, activeSession.targetGroupSize),
+    fetchPersonalList(viewingUserId),
+    fetchMyMoves(viewingUserId, activeSession.id, activeSession.targetGroupSize),
   ])
 
-  const isAdmin = session.user.isAdmin
   const participantUserIds = participants.map(p => p.userId)
+  const viewedParticipant = isImpersonating
+    ? participants.find(p => p.userId === asParam)
+    : null
 
   // Fetch scenario data only when enough participants
   const scenarios =
@@ -79,8 +92,43 @@ export default async function MatchingPage() {
       : []
   const bookById = new Map(scenarioBooks.map(b => [b.id, b]))
 
+  // When impersonating, list and moves are read-only
+  const isFrozenOrImpersonating = activeSession.status === 'frozen' || isImpersonating
+
   return (
     <main style={{ fontFamily: 'var(--nd-mono), monospace', padding: '2rem', maxWidth: 720, margin: '0 auto' }}>
+      {isImpersonating && (
+        <div
+          data-testid="admin-impersonation-banner"
+          role="status"
+          style={{
+            background: '#fffbea',
+            border: '1px solid #f0d060',
+            borderRadius: 4,
+            padding: '0.6rem 1rem',
+            marginBottom: '1.5rem',
+            fontSize: '0.8rem',
+            color: '#7a5c00',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}
+        >
+          <span>👁 Просмотр за</span>
+          <strong>{viewedParticipant?.pseudonym ?? asParam}</strong>
+          {viewedParticipant?.name && (
+            <span style={{ color: '#a07800' }}>({viewedParticipant.name})</span>
+          )}
+          <span style={{ marginLeft: 'auto', opacity: 0.7 }}>только чтение</span>
+          <a
+            href="/matching"
+            style={{ color: '#7a5c00', textDecoration: 'underline', fontSize: '0.75rem' }}
+          >
+            ← вернуться к своему виду
+          </a>
+        </div>
+      )}
+
       <header style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
           {activeSession.name}
@@ -117,7 +165,8 @@ export default async function MatchingPage() {
               >
                 <span
                   style={{
-                    background: '#f3f3f3',
+                    background: isImpersonating && p.userId === asParam ? '#fffbea' : '#f3f3f3',
+                    border: isImpersonating && p.userId === asParam ? '1px solid #f0d060' : '1px solid transparent',
                     padding: '2px 8px',
                     borderRadius: 3,
                     fontWeight: 500,
@@ -126,9 +175,13 @@ export default async function MatchingPage() {
                   {p.pseudonym}
                 </span>
                 {isAdmin && p.name && (
-                  <span style={{ color: '#999', fontSize: '0.75rem' }}>
+                  <a
+                    href={`/matching?as=${p.userId}`}
+                    style={{ color: '#999', fontSize: '0.75rem', textDecoration: 'none' }}
+                    title="Посмотреть за этого участника"
+                  >
                     {p.name}
-                  </span>
+                  </a>
                 )}
               </li>
             ))}
@@ -138,20 +191,22 @@ export default async function MatchingPage() {
 
       <section style={{ marginTop: '2rem' }}>
         <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          Мой список
+          {isImpersonating ? `Список участника` : `Мой список`}
         </h2>
-        <MatchingRankNudge
-          show={personalBooks.length > 0 && personalBooks.every(b => b.rank === null)}
-        />
+        {!isImpersonating && (
+          <MatchingRankNudge
+            show={personalBooks.length > 0 && personalBooks.every(b => b.rank === null)}
+          />
+        )}
         <MatchingPersonalList
           books={personalBooks}
-          frozen={activeSession.status === 'frozen'}
+          frozen={isFrozenOrImpersonating}
         />
       </section>
 
       <section style={{ marginTop: '2rem' }}>
         <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          Мои ходы
+          {isImpersonating ? `Ходы участника` : `Мои ходы`}
         </h2>
         <MatchingMyMoves moves={myMoves} />
       </section>
@@ -163,7 +218,7 @@ export default async function MatchingPage() {
         <MatchingScenarios scenarios={scenarios} bookById={bookById} />
       </section>
 
-      {isAdmin && (
+      {isAdmin && !isImpersonating && (
         <section style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #eee' }}>
           <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Управление</h2>
           <a href="/admin?tab=matching" style={{ fontSize: '0.78rem', color: '#333', textDecoration: 'underline' }}>
