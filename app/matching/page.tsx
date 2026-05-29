@@ -9,23 +9,13 @@ import { fetchPersonalList } from '@/lib/matching/personal-list'
 import { generateScenarios } from '@/lib/matching/scenarios'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
+import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import MatchingScenarios from '@/components/nd/MatchingScenarios'
 import MatchingMyMoves from '@/components/nd/MatchingMyMoves'
 import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
+import MatchingHeader from '@/components/nd/MatchingHeader'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
-
-function DeadlineCountdown({ deadlineAt }: { deadlineAt: Date }) {
-  const now = Date.now()
-  const delta = deadlineAt.getTime() - now
-  if (delta <= 0) return <span style={{ color: '#c00' }}>Дедлайн истёк</span>
-  const days = Math.floor(delta / 86_400_000)
-  const hours = Math.floor((delta % 86_400_000) / 3_600_000)
-  const minutes = Math.floor((delta % 3_600_000) / 60_000)
-  if (days > 0) return <span>{days} д {hours} ч</span>
-  if (hours > 0) return <span>{hours} ч {minutes} мин</span>
-  return <span>{minutes} мин</span>
-}
 
 export default async function MatchingPage({
   searchParams,
@@ -50,9 +40,15 @@ export default async function MatchingPage({
 
   if (!activeSession) {
     return (
-      <main style={{ fontFamily: 'var(--nd-mono), monospace', padding: '2rem', maxWidth: 720, margin: '0 auto' }}>
-        <h1 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Матчинг</h1>
-        <p style={{ color: '#999' }}>Нет активной сессии. Создайте её в <a href="/admin?tab=matching" style={{ color: '#333' }}>Админ-панели → Матчинг</a>.</p>
+      <main className="font-mono p-8 max-w-2xl mx-auto">
+        <h1 className="text-lg font-semibold mb-4">Матчинг</h1>
+        <p className="text-[#999]">
+          Нет активной сессии. Создайте её в{' '}
+          <a href="/admin?tab=matching" className="text-[#333] underline">
+            Админ-панели → Матчинг
+          </a>
+          .
+        </p>
       </main>
     )
   }
@@ -62,10 +58,12 @@ export default async function MatchingPage({
     const existing = await db
       .select({ userId: matchingSessionParticipants.userId })
       .from(matchingSessionParticipants)
-      .where(and(
-        eq(matchingSessionParticipants.sessionId, activeSession.id),
-        eq(matchingSessionParticipants.userId, session.user.id!),
-      ))
+      .where(
+        and(
+          eq(matchingSessionParticipants.sessionId, activeSession.id),
+          eq(matchingSessionParticipants.userId, session.user.id!),
+        ),
+      )
       .limit(1)
 
     if (existing.length === 0) {
@@ -73,13 +71,16 @@ export default async function MatchingPage({
         .select({ pseudonym: matchingSessionParticipants.pseudonym })
         .from(matchingSessionParticipants)
         .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
-      const takenSet = new Set(taken.map(r => r.pseudonym))
+      const takenSet = new Set(taken.map((r) => r.pseudonym))
       const pseudonym = assignPseudonym(takenSet)
-      await db.insert(matchingSessionParticipants).values({
-        sessionId: activeSession.id,
-        userId: session.user.id!,
-        pseudonym,
-      }).onConflictDoNothing()
+      await db
+        .insert(matchingSessionParticipants)
+        .values({
+          sessionId: activeSession.id,
+          userId: session.user.id!,
+          pseudonym,
+        })
+        .onConflictDoNothing()
     }
   }
 
@@ -99,10 +100,46 @@ export default async function MatchingPage({
     fetchMyMoves(viewingUserId, activeSession.id, activeSession.targetGroupSize),
   ])
 
-  const participantUserIds = participants.map(p => p.userId)
+  const participantUserIds = participants.map((p) => p.userId)
   const viewedParticipant = isImpersonating
-    ? participants.find(p => p.userId === asParam)
+    ? participants.find((p) => p.userId === asParam)
     : null
+
+  // Fetch per-book participant signups for chips in the personal list
+  const bookParticipants: BookParticipant[] =
+    personalBooks.length > 0 && participantUserIds.length > 0
+      ? await db
+          .select({
+            userId: signupBooks.userId,
+            bookId: signupBooks.bookId,
+            rank: bookPriorities.rank,
+          })
+          .from(signupBooks)
+          .leftJoin(
+            bookPriorities,
+            and(
+              eq(bookPriorities.userId, signupBooks.userId),
+              eq(bookPriorities.bookId, signupBooks.bookId),
+            ),
+          )
+          .where(
+            and(
+              inArray(signupBooks.bookId, personalBooks.map((b) => b.bookId)),
+              inArray(signupBooks.userId, participantUserIds),
+            ),
+          )
+          .then((rows) =>
+            rows.map((row) => {
+              const participant = participants.find((p) => p.userId === row.userId)
+              return {
+                userId: row.userId,
+                bookId: row.bookId,
+                pseudonym: participant?.pseudonym ?? row.userId,
+                rank: row.rank,
+              }
+            }),
+          )
+      : []
 
   // Fetch scenario data only when enough participants
   const scenarios =
@@ -111,182 +148,148 @@ export default async function MatchingPage({
       : []
 
   // Fetch book details for scenario cards
-  const scenarioBookIds = Array.from(new Set(scenarios.map(s => s.bookId)))
+  const scenarioBookIds = Array.from(new Set(scenarios.map((s) => s.bookId)))
   const scenarioBooks =
     scenarioBookIds.length > 0
-      ? await db.select({ id: books.id, title: books.title, author: books.author, coverUrl: books.coverUrl })
+      ? await db
+          .select({ id: books.id, title: books.title, author: books.author, coverUrl: books.coverUrl })
           .from(books)
           .where(inArray(books.id, scenarioBookIds))
       : []
-  const bookById = new Map(scenarioBooks.map(b => [b.id, b]))
+  const bookById = new Map(scenarioBooks.map((b) => [b.id, b]))
 
-  // When impersonating, list and moves are read-only
+  // Frozen or impersonating = read-only
   const isFrozenOrImpersonating = activeSession.status === 'frozen' || isImpersonating
 
   return (
-    <main style={{ fontFamily: 'var(--nd-mono), monospace', padding: '2rem', maxWidth: 720, margin: '0 auto' }}>
-      {isImpersonating && (
-        <div
-          data-testid="admin-impersonation-banner"
-          role="status"
-          style={{
-            background: '#fffbea',
-            border: '1px solid #f0d060',
-            borderRadius: 4,
-            padding: '0.6rem 1rem',
-            marginBottom: '1.5rem',
-            fontSize: '0.8rem',
-            color: '#7a5c00',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-          }}
-        >
-          <span>👁 Просмотр за</span>
-          <strong>{viewedParticipant?.pseudonym ?? asParam}</strong>
-          {viewedParticipant?.name && (
-            <span style={{ color: '#a07800' }}>({viewedParticipant.name})</span>
-          )}
-          <span style={{ marginLeft: 'auto', opacity: 0.7 }}>только чтение</span>
-          <a
-            href="/matching"
-            style={{ color: '#7a5c00', textDecoration: 'underline', fontSize: '0.75rem' }}
-          >
-            ← вернуться к своему виду
-          </a>
-        </div>
-      )}
+    <div className="flex flex-col bg-[#f6f2e8]" style={{ height: '100svh', overflow: 'hidden' }}>
+      <MatchingHeader
+        sessionName={activeSession.name}
+        sessionStatus={activeSession.status}
+        targetGroupSize={activeSession.targetGroupSize}
+        deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
+        participants={participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym, name: p.name ?? null }))}
+        isAdmin={isAdmin}
+        isImpersonating={isImpersonating}
+        viewedPseudonym={viewedParticipant?.pseudonym ?? null}
+        viewedName={viewedParticipant?.name ?? null}
+        asParam={asParam}
+      />
 
-      <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-          {activeSession.name}
-        </h1>
-        <div style={{ fontSize: '0.78rem', color: '#666', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-          <span>Группы по {activeSession.targetGroupSize}</span>
-          {activeSession.deadlineAt && (
-            <span>
-              Дедлайн: <DeadlineCountdown deadlineAt={new Date(activeSession.deadlineAt)} />
-            </span>
+      {/* Two-column workspace */}
+      <div
+        className="flex-1 min-h-0 p-4 gap-4 grid"
+        style={{ gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)' }}
+      >
+        {/* Left: personal book list */}
+        <div className="flex flex-col bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_4px_24px_rgba(25,24,23,0.08)] overflow-hidden min-h-0">
+          <div className="px-4 py-3 border-b border-[#ded6c8] shrink-0">
+            <h2 className="text-base font-semibold m-0 text-[#191817]">
+              {isImpersonating ? 'Список участника' : 'Мой список'}
+            </h2>
+            {!isImpersonating && (
+              <p className="text-xs text-[#6d675f] mt-0.5 m-0">
+                Перетащи книги, чтобы расставить приоритеты
+              </p>
+            )}
+          </div>
+          {!isImpersonating && (
+            <MatchingRankNudge
+              show={personalBooks.length > 0 && personalBooks.every((b) => b.rank === null)}
+            />
           )}
-          {activeSession.status === 'frozen' ? (
-            <span style={{ color: '#888', background: '#f0f0f0', padding: '1px 8px', borderRadius: 3, fontSize: '0.72rem' }}>
-              Зафиксирована
-            </span>
-          ) : (
-            <span style={{ color: '#4a7' }}>● активна</span>
-          )}
-        </div>
-      </header>
-
-      <section>
-        <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          Участники ({participants.length})
-        </h2>
-        {participants.length === 0 ? (
-          <p style={{ color: '#999', fontSize: '0.8rem' }}>Пока никто не присоединился.</p>
-        ) : (
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            {participants.map(p => (
-              <li
-                key={p.userId}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.82rem' }}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <MatchingPersonalList
+              books={personalBooks}
+              bookParticipants={bookParticipants}
+              viewingUserId={viewingUserId}
+              frozen={isFrozenOrImpersonating}
+            />
+          </div>
+          {isAdmin && !isImpersonating && (
+            <div className="px-4 py-2.5 border-t border-[#ded6c8] shrink-0">
+              <a
+                href="/admin?tab=matching"
+                className="text-xs text-[#6d675f] underline hover:text-[#191817]"
               >
-                <span
-                  style={{
-                    background: isImpersonating && p.userId === asParam ? '#fffbea' : '#f3f3f3',
-                    border: isImpersonating && p.userId === asParam ? '1px solid #f0d060' : '1px solid transparent',
-                    padding: '2px 8px',
-                    borderRadius: 3,
-                    fontWeight: 500,
-                  }}
-                >
-                  {p.pseudonym}
-                </span>
-                {isAdmin && p.name && (
-                  <a
-                    href={`/matching?as=${p.userId}`}
-                    style={{ color: '#999', fontSize: '0.75rem', textDecoration: 'none' }}
-                    title="Посмотреть за этого участника"
-                  >
-                    {p.name}
-                  </a>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                Перейти в Админ-панель → Матчинг
+              </a>
+            </div>
+          )}
+        </div>
 
-      <section style={{ marginTop: '2rem' }}>
-        <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          {isImpersonating ? `Список участника` : `Мой список`}
-        </h2>
-        {!isImpersonating && (
-          <MatchingRankNudge
-            show={personalBooks.length > 0 && personalBooks.every(b => b.rank === null)}
-          />
-        )}
-        <MatchingPersonalList
-          books={personalBooks}
-          frozen={isFrozenOrImpersonating}
-        />
-      </section>
+        {/* Right column: scenarios + moves stacked */}
+        <div className="flex flex-col gap-4 min-h-0 overflow-hidden">
+          {/* Scenarios */}
+          <div className="flex flex-col flex-1 bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_4px_24px_rgba(25,24,23,0.08)] overflow-hidden min-h-0">
+            <div className="px-4 py-3 border-b border-[#ded6c8] shrink-0">
+              <h2
+                className="text-base font-semibold m-0 text-[#191817]"
+                title="Сортировка: макс. участников → больше топ-3 книг → ниже средний ранг"
+              >
+                Сценарии групп
+              </h2>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-3">
+              <MatchingScenarios scenarios={scenarios} bookById={bookById} />
+            </div>
+          </div>
 
-      <section style={{ marginTop: '2rem' }}>
-        <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          {isImpersonating ? `Ходы участника` : `Мои ходы`}
-        </h2>
-        <MatchingMyMoves moves={myMoves} />
-      </section>
-
-      <section style={{ marginTop: '2rem' }}>
-        <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          Сценарии групп
-        </h2>
-        <MatchingScenarios scenarios={scenarios} bookById={bookById} />
-      </section>
-
-      {isAdmin && !isImpersonating && (
-        <section style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #eee' }}>
-          <h2 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Управление</h2>
-          <a href="/admin?tab=matching" style={{ fontSize: '0.78rem', color: '#333', textDecoration: 'underline' }}>
-            Перейти в Админ-панель → Матчинг
-          </a>
-        </section>
-      )}
+          {/* My moves */}
+          <div className="flex flex-col flex-1 bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_4px_24px_rgba(25,24,23,0.08)] overflow-hidden min-h-0">
+            <div className="px-4 py-3 border-b border-[#ded6c8] shrink-0">
+              <h2 className="text-base font-semibold m-0 text-[#191817]">
+                {isImpersonating ? 'Ходы участника' : 'Мои ходы'}
+              </h2>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-3">
+              <MatchingMyMoves moves={myMoves} frozen={isFrozenOrImpersonating} />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <MatchingRealtimeWrapper sessionId={activeSession.id} />
-    </main>
+    </div>
   )
 }
 
-async function fetchAndGenerateScenarios(participantUserIds: string[], targetGroupSize: number) {
+async function fetchAndGenerateScenarios(
+  participantUserIds: string[],
+  targetGroupSize: number,
+) {
   const [allSignups, allRanks, allBooks] = await Promise.all([
-    db.select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+    db
+      .select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
       .from(signupBooks)
       .where(inArray(signupBooks.userId, participantUserIds)),
-    db.select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+    db
+      .select({
+        userId: bookPriorities.userId,
+        bookId: bookPriorities.bookId,
+        rank: bookPriorities.rank,
+      })
       .from(bookPriorities)
       .where(inArray(bookPriorities.userId, participantUserIds)),
-    db.select({ id: books.id, readingStatus: books.readingStatus })
+    db
+      .select({ id: books.id, readingStatus: books.readingStatus })
       .from(books)
       .where(and(eq(books.visibility, 'published'))),
   ])
 
-  // Only include books that are signed up by at least one session participant
-  const signedUpBookIds = new Set(allSignups.map(s => s.bookId))
+  // Only include books signed up by at least one session participant
+  const signedUpBookIds = new Set(allSignups.map((s) => s.bookId))
   const sessionBooks = allBooks
-    .filter(b => signedUpBookIds.has(b.id))
-    .map(b => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
+    .filter((b) => signedUpBookIds.has(b.id))
+    .map((b) => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
 
-  // Build participant list from userIds (pseudonyms not needed for engine)
-  const scenarioParticipants = participantUserIds.map(userId => ({ userId, pseudonym: userId }))
+  const scenarioParticipants = participantUserIds.map((userId) => ({ userId, pseudonym: userId }))
 
   return generateScenarios({
     participants: scenarioParticipants,
     books: sessionBooks,
-    signups: allSignups.map(s => ({ userId: s.userId, bookId: s.bookId })),
-    ranks: allRanks.map(r => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),
+    signups: allSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
+    ranks: allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),
     targetGroupSize,
     maxResults: 10,
   })
