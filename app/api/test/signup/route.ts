@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { signupBooks, userIdentities, users, books } from '@/lib/db/schema'
 import { upsertSignupByBookIds } from '@/lib/signup-books'
-import { eq, inArray, or } from 'drizzle-orm'
+import { and, eq, inArray, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
@@ -32,9 +32,9 @@ async function resolveTitlesToIds(titles: string[]): Promise<string[]> {
 export async function POST(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
-  const { userId, name, email, contacts, selectedBooks, selectedBookIds } = await req.json() as {
+  const { userId, name, email, contacts, selectedBooks, selectedBookIds, telegramUsername } = await req.json() as {
     userId: string; name: string; email: string; contacts: string
-    selectedBooks?: string[]; selectedBookIds?: string[]
+    selectedBooks?: string[]; selectedBookIds?: string[]; telegramUsername?: string
   }
   const rows = await db
     .select({ id: users.id })
@@ -46,7 +46,13 @@ export async function POST(req: NextRequest) {
     .from(userIdentities)
     .where(or(eq(userIdentities.email, email), eq(userIdentities.providerAccountId, email)))
     .limit(1)
-  const canonicalUserId = rows[0]?.id ?? identityRows[0]?.userId ?? userId
+  // Telegram users have contactEmail=null and identity email=null — look up by telegram username
+  const telegramRows = rows[0]?.id || identityRows[0]?.userId || !telegramUsername ? [] : await db
+    .select({ userId: userIdentities.userId })
+    .from(userIdentities)
+    .where(and(eq(userIdentities.provider, 'telegram'), eq(userIdentities.providerAccountId, telegramUsername)))
+    .limit(1)
+  const canonicalUserId = rows[0]?.id ?? identityRows[0]?.userId ?? telegramRows[0]?.userId ?? userId
 
   await db.update(users).set({ name, contacts }).where(eq(users.id, canonicalUserId))
   const bookIds = Array.isArray(selectedBookIds) && selectedBookIds.length > 0

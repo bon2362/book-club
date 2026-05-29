@@ -34,6 +34,7 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
         name: NAME,
         email: EMAIL,
         contacts: '@' + TG_USERNAME,
+        telegramUsername: TG_USERNAME,
         selectedBookIds: [bookA.id, bookB.id, bookC.id],
       },
     })
@@ -95,6 +96,7 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
         name: NAME,
         email: EMAIL,
         contacts: '@' + TG_USERNAME,
+        telegramUsername: TG_USERNAME,
         selectedBookIds: [b1.id, b2.id],
       },
     })
