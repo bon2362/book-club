@@ -2,6 +2,15 @@ import { db } from '@/lib/db'
 import { books, signupBooks, users } from '@/lib/db/schema'
 import { asc, eq, and, inArray } from 'drizzle-orm'
 
+export type PersonalBookStatus = 'reading' | 'read' | null
+
+export interface UserSignupBook {
+  bookId: string
+  personalStatus: PersonalBookStatus
+  statusUpdatedAt: string | null
+  signedAt: string
+}
+
 export interface UserSignup {
   timestamp: string
   userId: string
@@ -11,6 +20,7 @@ export interface UserSignup {
   contacts: string
   selectedBooks: string[]       // titles joined from books.title (for legacy UI)
   selectedBookIds: string[]
+  signups: UserSignupBook[]     // per-book personal_status + timestamps
   prioritiesSet?: boolean
 }
 
@@ -39,6 +49,8 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       bookId: signupBooks.bookId,
       bookTitle: books.title,
       signedAt: signupBooks.signedAt,
+      personalStatus: signupBooks.personalStatus,
+      personalStatusUpdatedAt: signupBooks.personalStatusUpdatedAt,
     })
     .from(signupBooks)
     .innerJoin(users, eq(signupBooks.userId, users.id))
@@ -47,10 +59,17 @@ export async function getAllSignups(): Promise<UserSignup[]> {
 
   const byUser = new Map<string, UserSignup>()
   for (const row of rows) {
+    const signupBook: UserSignupBook = {
+      bookId: row.bookId,
+      personalStatus: (row.personalStatus as PersonalBookStatus) ?? null,
+      statusUpdatedAt: row.personalStatusUpdatedAt ? row.personalStatusUpdatedAt.toISOString() : null,
+      signedAt: row.signedAt.toISOString(),
+    }
     const existing = byUser.get(row.userId)
     if (existing) {
       existing.selectedBooks.push(row.bookTitle)
       existing.selectedBookIds.push(row.bookId)
+      existing.signups.push(signupBook)
       continue
     }
 
@@ -63,6 +82,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
       contacts: row.contacts ?? '',
       selectedBooks: [row.bookTitle],
       selectedBookIds: [row.bookId],
+      signups: [signupBook],
       prioritiesSet: row.prioritiesSet,
     })
   }

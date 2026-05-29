@@ -40,7 +40,7 @@ export async function PATCH(
 
   await db
     .update(signupBooks)
-    .set({ personalStatus: status ?? null })
+    .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
     .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 
   return NextResponse.json({ ok: true })

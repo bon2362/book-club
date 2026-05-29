@@ -569,6 +569,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         isOpen={profileDrawerOpen}
         onClose={() => setProfileDrawerOpen(false)}
         selectedBooks={selectedBooks}
+        initialSignups={currentUser?.signups ?? []}
         books={books}
         currentUser={currentUser}
         savedUser={savedUser}

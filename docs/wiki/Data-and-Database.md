@@ -53,6 +53,8 @@ erDiagram
       text user_id
       text book_id
       timestamp signed_at
+      text personal_status
+      timestamp personal_status_updated_at
     }
 
     book_priorities {

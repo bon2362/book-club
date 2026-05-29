@@ -131,6 +131,7 @@ export const signupBooks = pgTable('signup_books', {
   bookId:         text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
   signedAt:       timestamp('signed_at', { mode: 'date' }).notNull().defaultNow(),
   personalStatus: text('personal_status'), // null | 'reading' | 'read'
+  personalStatusUpdatedAt: timestamp('personal_status_updated_at', { mode: 'date', withTimezone: true }),
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.bookId] }),
 }))

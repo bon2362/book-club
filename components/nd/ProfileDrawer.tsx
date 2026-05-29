@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
-import type { UserSignup } from '@/lib/signup-books'
+import type { UserSignup, UserSignupBook, PersonalBookStatus } from '@/lib/signup-books'
 import {
   DndContext,
   PointerSensor,
@@ -35,6 +35,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   selectedBooks: string[]
+  initialSignups: UserSignupBook[]
   books: BookWithCover[]
   currentUser: UserSignup | null
   savedUser: { name: string; contacts: string } | null
@@ -52,7 +53,6 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: 'Отклонена',
 }
 
-// All languages available for selection
 const LANGUAGES_PRIMARY = [
   { code: 'ru', label: 'На русском' },
   { code: 'en', label: 'In English' },
@@ -64,91 +64,216 @@ const LANGUAGES_EXTRA = [
   { code: 'pt', label: 'Português' },
 ]
 
+const STATUS_LABEL: Record<'null' | 'reading' | 'read', string> = {
+  null: 'Записал:ась',
+  reading: 'Читаю',
+  read: 'Прочитал:а',
+}
+
+type LocalStatus = { personalStatus: PersonalBookStatus; statusUpdatedAt: string | null }
+
+function StatusMenu({
+  current,
+  onChange,
+}: {
+  current: PersonalBookStatus
+  onChange: (s: PersonalBookStatus) => void
+}) {
+  const opts: Array<{ value: PersonalBookStatus; label: string }> = [
+    { value: null, label: STATUS_LABEL.null },
+    { value: 'reading', label: STATUS_LABEL.reading },
+    { value: 'read', label: STATUS_LABEL.read },
+  ]
+  return (
+    <div
+      role="menu"
+      data-testid="status-menu"
+      style={{
+        display: 'flex',
+        gap: 6,
+        padding: '10px 16px 12px',
+        background: '#fafaf7',
+        borderBottom: '1px solid #f3f4f6',
+        flexWrap: 'wrap',
+      }}
+    >
+      {opts.map(o => {
+        const isCurrent = o.value === current
+        return (
+          <button
+            key={String(o.value)}
+            type="button"
+            role="menuitem"
+            data-testid={`status-option-${o.value ?? 'null'}`}
+            disabled={isCurrent}
+            onClick={() => onChange(o.value)}
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.62rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              padding: '0.32rem 0.6rem',
+              background: isCurrent ? '#111' : '#fff',
+              color: isCurrent ? '#fff' : '#666',
+              border: `1px solid ${isCurrent ? '#111' : '#e5e7eb'}`,
+              cursor: isCurrent ? 'default' : 'pointer',
+            }}
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function SortableBookItem({
   id,
   rank,
   prioritiesSet,
+  isUnranked,
   name,
   author,
   isUnsubscribed,
+  isMenuOpen,
+  onRowTap,
   onToggle,
+  onStatusChange,
 }: {
   id: string
   rank: number
   prioritiesSet: boolean
+  isUnranked: boolean
   name: string
   author: string
   isUnsubscribed: boolean
+  isMenuOpen: boolean
+  onRowTap: () => void
   onToggle: () => void
+  onStatusChange: (s: PersonalBookStatus) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    display: 'flex',
-    alignItems: 'center',
-    padding: '10px 16px',
-    borderBottom: '1px solid #f3f4f6',
-    background: '#fff',
-    userSelect: 'none',
-  }
-
   const topEmojis = ['🏆', '🥈', '🥉']
-  const isTop3 = prioritiesSet && rank <= 3 && !isUnsubscribed
+  const showRank = prioritiesSet && !isUnranked && !isUnsubscribed
+  const isTop3 = showRank && rank <= 3
 
   return (
-    <div ref={setNodeRef} style={style} data-testid="priority-book-row" data-book-id={id}>
-      {isTop3 ? (
-        <span style={{
-          width: 24, height: 24,
-          fontSize: 18,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, marginRight: 10,
-        }}>
-          {topEmojis[rank - 1]}
-        </span>
-      ) : (
-        <span style={{
-          width: 24, height: 24, borderRadius: '50%',
-          background: '#e5e7eb',
-          color: '#6b7280',
-          fontSize: 11, fontWeight: 700,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, marginRight: 10,
-        }}>
-          {prioritiesSet ? rank : '—'}
-        </span>
-      )}
-      <span
-        {...attributes}
-        {...listeners}
-        style={{ color: '#d1d5db', fontSize: 18, marginRight: 10, cursor: 'grab', lineHeight: 1, touchAction: 'none' }}
-        aria-label="Перетащить"
-      >
-        ⠿
-      </span>
-      <span style={{
-        flex: 1, fontSize: 14,
-        fontWeight: isUnsubscribed ? 'normal' : 500,
-        textDecoration: isUnsubscribed ? 'line-through' : 'none',
-        color: isUnsubscribed ? '#9ca3af' : '#111',
-      }}>
-        {name}
-      </span>
-      <span style={{ fontSize: 11, color: '#9ca3af', marginRight: 8 }}>{author}</span>
-      <button
-        onClick={onToggle}
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}>
+      <div
+        data-testid="priority-book-row"
+        data-book-id={id}
+        onClick={onRowTap}
         style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: isUnsubscribed ? '#22c55e' : '#9ca3af',
-          fontSize: 13, padding: '0 4px',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '10px 16px',
+          borderBottom: '1px solid #f3f4f6',
+          background: isMenuOpen ? '#fafaf7' : '#fff',
+          userSelect: 'none',
+          cursor: 'pointer',
         }}
-        title={isUnsubscribed ? 'Вернуть' : 'Отписаться'}
       >
-        {isUnsubscribed ? '↩' : '×'}
-      </button>
+        {isTop3 ? (
+          <span style={{
+            width: 24, height: 24,
+            fontSize: 18,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, marginRight: 10,
+          }}>
+            {topEmojis[rank - 1]}
+          </span>
+        ) : (
+          <span style={{
+            width: 24, height: 24, borderRadius: '50%',
+            background: '#e5e7eb',
+            color: '#6b7280',
+            fontSize: 11, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, marginRight: 10,
+          }}>
+            {showRank ? rank : '—'}
+          </span>
+        )}
+        <span
+          {...attributes}
+          {...listeners}
+          onClick={e => e.stopPropagation()}
+          style={{ color: '#d1d5db', fontSize: 18, marginRight: 10, cursor: 'grab', lineHeight: 1, touchAction: 'none' }}
+          aria-label="Перетащить"
+        >
+          ⠿
+        </span>
+        <span style={{
+          flex: 1, fontSize: 14,
+          fontWeight: isUnsubscribed ? 'normal' : 500,
+          textDecoration: isUnsubscribed ? 'line-through' : 'none',
+          color: isUnsubscribed ? '#9ca3af' : '#111',
+        }}>
+          {name}
+        </span>
+        <span style={{ fontSize: 11, color: '#9ca3af', marginRight: 8 }}>{author}</span>
+        <button
+          onClick={e => { e.stopPropagation(); onToggle() }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: isUnsubscribed ? '#22c55e' : '#9ca3af',
+            fontSize: 13, padding: '0 4px',
+          }}
+          title={isUnsubscribed ? 'Вернуть' : 'Отписаться'}
+        >
+          {isUnsubscribed ? '↩' : '×'}
+        </button>
+      </div>
+      {isMenuOpen && <StatusMenu current={null} onChange={onStatusChange} />}
+    </div>
+  )
+}
+
+function StatusBookItem({
+  id,
+  name,
+  author,
+  current,
+  isMenuOpen,
+  onRowTap,
+  onStatusChange,
+}: {
+  id: string
+  name: string
+  author: string
+  current: PersonalBookStatus
+  isMenuOpen: boolean
+  onRowTap: () => void
+  onStatusChange: (s: PersonalBookStatus) => void
+}) {
+  return (
+    <div>
+      <div
+        data-testid="status-book-row"
+        data-book-id={id}
+        onClick={onRowTap}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '10px 16px',
+          borderBottom: '1px solid #f3f4f6',
+          background: isMenuOpen ? '#fafaf7' : '#fff',
+          userSelect: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{
+          width: 24, height: 24, marginRight: 10, flexShrink: 0,
+          fontSize: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {current === 'reading' ? '📖' : '✓'}
+        </span>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#111' }}>{name}</span>
+        <span style={{ fontSize: 11, color: '#9ca3af' }}>{author}</span>
+      </div>
+      {isMenuOpen && <StatusMenu current={current} onChange={onStatusChange} />}
     </div>
   )
 }
@@ -157,6 +282,7 @@ export default function ProfileDrawer({
   isOpen,
   onClose,
   selectedBooks,
+  initialSignups,
   books,
   currentUser,
   savedUser,
@@ -172,7 +298,7 @@ export default function ProfileDrawer({
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [submissionsLoaded, setSubmissionsLoaded] = useState(false)
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null)
-  const [withdrawFailedId, setWithdrawFailedId] = useState<string | null>(null) // stores submission ID of failed withdrawal
+  const [withdrawFailedId, setWithdrawFailedId] = useState<string | null>(null)
 
   // ── Profile form ──
   const effectiveUser = currentUser ?? savedUser
@@ -183,7 +309,7 @@ export default function ProfileDrawer({
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   // ── Language preferences ──
-  const [languages, setLanguages] = useState<string[] | null>(null) // null = not loaded yet
+  const [languages, setLanguages] = useState<string[] | null>(null)
   const [languagesNeverSaved, setLanguagesNeverSaved] = useState(false)
   const [languagesLoaded, setLanguagesLoaded] = useState(false)
   const [showExtraLanguages, setShowExtraLanguages] = useState(false)
@@ -193,44 +319,41 @@ export default function ProfileDrawer({
   // ── Toast ──
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
+  // ── Book toggle state (optimistic) ──
+  const [localUnsubscribed, setLocalUnsubscribed] = useState<Set<string>>(new Set())
+
+  // ── My books tab state ──
+  // Local copy of per-book status (optimistic). Initialized from initialSignups when tab is opened.
+  const [statuses, setStatuses] = useState<Map<string, LocalStatus>>(new Map())
+  const [priorityOrder, setPriorityOrder] = useState<string[]>([])
+  const [unrankedBooks, setUnrankedBooks] = useState<Set<string>>(new Set())
+  const [prioritiesLoaded, setPrioritiesLoaded] = useState(false)
+  const [prioritiesSet, setPrioritiesSet] = useState(false)
+  const [prioritiesSaving, setPrioritiesSaving] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const prioritiesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Accordion menu ──
+  const [openMenuBookId, setOpenMenuBookId] = useState<string | null>(null)
+
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 3000)
     return () => clearTimeout(t)
   }, [toast])
 
-  // Cleanup lang debounce timer on unmount to prevent state update after unmount
   useEffect(() => {
-    return () => {
-      if (langDebounceRef.current) clearTimeout(langDebounceRef.current)
-    }
+    return () => { if (langDebounceRef.current) clearTimeout(langDebounceRef.current) }
   }, [])
 
   useEffect(() => {
-    return () => {
-      if (prioritiesDebounceRef.current) clearTimeout(prioritiesDebounceRef.current)
-    }
+    return () => { if (prioritiesDebounceRef.current) clearTimeout(prioritiesDebounceRef.current) }
   }, [])
 
-  // Cleanup saveSuccess timer on unmount
   useEffect(() => {
-    return () => {
-      if (saveSuccessTimerRef.current) clearTimeout(saveSuccessTimerRef.current)
-    }
+    return () => { if (saveSuccessTimerRef.current) clearTimeout(saveSuccessTimerRef.current) }
   }, [])
 
-  // ── Book toggle state (optimistic) ──
-  // Tracks locally-toggled books within this drawer session
-  const [localUnsubscribed, setLocalUnsubscribed] = useState<Set<string>>(new Set())
-
-  // ── Book priorities (Записал:ась tab) ──
-  const [priorityOrder, setPriorityOrder] = useState<string[]>([]) // book ids in rank order
-  const [prioritiesLoaded, setPrioritiesLoaded] = useState(false)
-  const [prioritiesSet, setPrioritiesSet] = useState(false) // true = user has sorted at least once
-  const [prioritiesSaving, setPrioritiesSaving] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const prioritiesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // ── Sync profile form when user data changes ──
+  // ── Sync profile form ──
   useEffect(() => {
     if (effectiveUser) {
       setName(effectiveUser.name)
@@ -252,34 +375,76 @@ export default function ProfileDrawer({
     }
   }, [isOpen, activeTab, submissionsLoaded])
 
-  // ── Load priorities on signup tab activation ──
+  // ── Initialize My Books state on tab activation ──
   useEffect(() => {
     if (!isOpen || activeTab !== 'signup' || prioritiesLoaded) return
+
+    // Build status map from initialSignups + selectedBooks (book may be in selectedBooks but
+    // not yet in initialSignups if just added in this session — treat as status=null).
+    const map = new Map<string, LocalStatus>()
+    for (const s of initialSignups) {
+      map.set(s.bookId, { personalStatus: s.personalStatus, statusUpdatedAt: s.statusUpdatedAt })
+    }
+    for (const bookId of selectedBooks) {
+      if (!map.has(bookId)) map.set(bookId, { personalStatus: null, statusUpdatedAt: null })
+    }
+
     fetch('/api/priorities')
       .then(r => r.json())
       .then((data: { bookId: string | null; bookName: string; rank: number }[]) => {
         const rankedIds = data.map(d => d.bookId).filter((id): id is string => Boolean(id))
-        const unranked = selectedBooks.filter(id => !rankedIds.includes(id))
-        const merged = [...rankedIds.filter(id => selectedBooks.includes(id)), ...unranked]
-        setPriorityOrder(merged.length > 0 ? merged : [...selectedBooks])
+        // priorityOrder = only null-status books
+        const nullBooks = selectedBooks.filter(id => (map.get(id)?.personalStatus ?? null) === null)
+        const rankedNull = rankedIds.filter(id => nullBooks.includes(id))
+        const unranked = nullBooks.filter(id => !rankedIds.includes(id))
+        setStatuses(map)
+        setPriorityOrder([...rankedNull, ...unranked])
+        setUnrankedBooks(new Set(unranked))
         setPrioritiesSet(data.length > 0)
         setPrioritiesLoaded(true)
       })
       .catch(() => {
-        setPriorityOrder([...selectedBooks])
+        setStatuses(map)
+        const nullBooks = selectedBooks.filter(id => (map.get(id)?.personalStatus ?? null) === null)
+        setPriorityOrder(nullBooks)
+        setUnrankedBooks(new Set(nullBooks))
         setPrioritiesLoaded(true)
       })
-  }, [isOpen, activeTab, prioritiesLoaded, selectedBooks])
+  }, [isOpen, activeTab, prioritiesLoaded, selectedBooks, initialSignups])
 
-  // ── Append newly added books to priorityOrder ──
-  // Runs when selectedBooks changes after initial load. New books go to the end.
+  // ── Sync local state when selectedBooks changes (parent toggled signup) ──
   useEffect(() => {
     if (!prioritiesLoaded) return
-    setPriorityOrder(prev => {
-      const added = selectedBooks.filter(b => !prev.includes(b))
-      if (added.length === 0) return prev
-      return [...prev, ...added]
+    setStatuses(prev => {
+      const next = new Map(prev)
+      // remove signups for books no longer selected
+      for (const bookId of Array.from(next.keys())) {
+        if (!selectedBooks.includes(bookId)) next.delete(bookId)
+      }
+      // add fresh ones as null
+      for (const bookId of selectedBooks) {
+        if (!next.has(bookId)) next.set(bookId, { personalStatus: null, statusUpdatedAt: null })
+      }
+      return next
     })
+    // Only null-status books belong in priorityOrder. New books from selectedBooks
+    // default to status=null and go to the end as unranked.
+    setPriorityOrder(prev => {
+      const kept = prev.filter(b => selectedBooks.includes(b) && (statuses.get(b)?.personalStatus ?? null) === null)
+      const added = selectedBooks.filter(b => !kept.includes(b) && (statuses.get(b)?.personalStatus ?? null) === null)
+      if (added.length === 0) return kept
+      return [...kept, ...added]
+    })
+    setUnrankedBooks(prev => {
+      const next = new Set<string>()
+      prev.forEach(id => { if (selectedBooks.includes(id) && (statuses.get(id)?.personalStatus ?? null) === null) next.add(id) })
+      // newly added books (in selectedBooks but not yet in priorityOrder) are unranked
+      for (const id of selectedBooks) {
+        if ((statuses.get(id)?.personalStatus ?? null) === null && !priorityOrder.includes(id)) next.add(id)
+      }
+      return next
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBooks, prioritiesLoaded])
 
   // ── Load language preferences on Profile tab activation ──
@@ -305,23 +470,25 @@ export default function ProfileDrawer({
   useEffect(() => {
     if (!isOpen) return
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (openMenuBookId) setOpenMenuBookId(null)
+        else onClose()
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, openMenuBookId])
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  // ── Unsubscribe / re-subscribe ──
+  // ── Unsubscribe / re-subscribe (× in записал:ась) ──
   async function handleToggle(bookId: string) {
     const book = books.find(b => b.id === bookId)
     const bookName = book?.name ?? 'книгу'
     const wasUnsubscribed = localUnsubscribed.has(bookId)
-    // Optimistic update
     setLocalUnsubscribed(prev => {
       const next = new Set(prev)
       if (wasUnsubscribed) next.delete(bookId)
@@ -335,7 +502,6 @@ export default function ProfileDrawer({
         : `Вы успешно отписались от «${bookName}»`
       setToast({ message: msg, type: 'success' })
     } catch {
-      // Rollback local state
       setLocalUnsubscribed(prev => {
         const next = new Set(prev)
         if (wasUnsubscribed) next.add(bookId)
@@ -375,10 +541,84 @@ export default function ProfileDrawer({
     const newIndex = priorityOrder.indexOf(over.id as string)
     const newOrder = arrayMove(priorityOrder, oldIndex, newIndex)
     setPriorityOrder(newOrder)
+    // user manually placed books — clear unranked flag for all books in newOrder
+    setUnrankedBooks(new Set())
     savePriorities(newOrder, localUnsubscribed)
   }
 
-  // ── Withdraw submission ──
+  async function patchStatus(bookId: string, status: PersonalBookStatus) {
+    const res = await fetch(`/api/signup-books/${bookId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    if (!res.ok) throw new Error('Failed to update status')
+  }
+
+  async function handleStatusChange(bookId: string, newStatus: PersonalBookStatus) {
+    const prev = statuses.get(bookId)?.personalStatus ?? null
+    if (prev === newStatus) {
+      setOpenMenuBookId(null)
+      return
+    }
+
+    // Optimistic update
+    const now = new Date().toISOString()
+    setStatuses(prevMap => {
+      const next = new Map(prevMap)
+      next.set(bookId, { personalStatus: newStatus, statusUpdatedAt: now })
+      return next
+    })
+
+    let nextOrder = priorityOrder
+    let nextUnranked = unrankedBooks
+    if (prev === null && newStatus !== null) {
+      // leaving "записал:ась" — drop from priorityOrder and unranked
+      nextOrder = priorityOrder.filter(id => id !== bookId)
+      nextUnranked = new Set(unrankedBooks)
+      nextUnranked.delete(bookId)
+      setPriorityOrder(nextOrder)
+      setUnrankedBooks(nextUnranked)
+    } else if (prev !== null && newStatus === null) {
+      // returning to "записал:ась" — append to end, mark unranked
+      nextOrder = [...priorityOrder, bookId]
+      nextUnranked = new Set(unrankedBooks)
+      nextUnranked.add(bookId)
+      setPriorityOrder(nextOrder)
+      setUnrankedBooks(nextUnranked)
+    }
+
+    setOpenMenuBookId(null)
+
+    try {
+      await patchStatus(bookId, newStatus)
+      // If we modified the "записал:ась" set and user already had priorities set,
+      // re-save priorities so the server-side rank list stays consistent with what
+      // the user sees. We exclude unranked books to preserve "no priority" semantics.
+      if (prioritiesSet && prev === null && newStatus !== null) {
+        const rankedOnly = nextOrder.filter(id => !nextUnranked.has(id) && !localUnsubscribed.has(id))
+        if (rankedOnly.length > 0) {
+          await fetch('/api/priorities', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookIds: rankedOnly }),
+          })
+        }
+      }
+      setToast({ message: 'Статус обновлён', type: 'success' })
+    } catch {
+      // Rollback
+      setStatuses(prevMap => {
+        const next = new Map(prevMap)
+        next.set(bookId, { personalStatus: prev, statusUpdatedAt: prevMap.get(bookId)?.statusUpdatedAt ?? null })
+        return next
+      })
+      setPriorityOrder(priorityOrder)
+      setUnrankedBooks(unrankedBooks)
+      setToast({ message: 'Не удалось обновить статус', type: 'error' })
+    }
+  }
+
   async function handleWithdraw(sub: Submission) {
     setWithdrawingId(sub.id)
     if (!window.confirm(`Отозвать предложение «${sub.title}»?`)) {
@@ -397,7 +637,6 @@ export default function ProfileDrawer({
     }
   }
 
-  // ── Save contacts (Profile tab) ──
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
@@ -416,7 +655,6 @@ export default function ProfileDrawer({
     }
   }
 
-  // ── Language toggle ──
   function handleLanguageToggle(code: string) {
     if (!languagesLoaded) return
     const current = languages ?? []
@@ -425,7 +663,6 @@ export default function ProfileDrawer({
       : [...current, code]
     setLanguages(next)
     setLanguagesNeverSaved(false)
-    // Debounced auto-save
     if (langDebounceRef.current) clearTimeout(langDebounceRef.current)
     langDebounceRef.current = setTimeout(async () => {
       try {
@@ -452,18 +689,35 @@ export default function ProfileDrawer({
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 5 },
-    })
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   )
 
   const contactEmail = getUserContactEmail(session?.user)
   const displayName = effectiveUser?.name?.trim() || session?.user?.name || contactEmail || ''
   const profileUnchanged = name.trim() === (effectiveUser?.name ?? '') && contacts.trim() === (effectiveUser?.contacts ?? '')
 
-  // ─────────────────────────────────────────────
-  // Shared styles
-  // ─────────────────────────────────────────────
+  // ── Derived: section book lists ──
+  const { readingBooks, readBooks } = useMemo(() => {
+    const reading: Array<{ bookId: string; statusUpdatedAt: string | null }> = []
+    const read: Array<{ bookId: string; statusUpdatedAt: string | null }> = []
+    for (const bookId of selectedBooks) {
+      const st = statuses.get(bookId)
+      if (!st) continue
+      if (st.personalStatus === 'reading') reading.push({ bookId, statusUpdatedAt: st.statusUpdatedAt })
+      else if (st.personalStatus === 'read') read.push({ bookId, statusUpdatedAt: st.statusUpdatedAt })
+    }
+    const byTimeDesc = (a: { statusUpdatedAt: string | null }, b: { statusUpdatedAt: string | null }) => {
+      const ta = a.statusUpdatedAt ? Date.parse(a.statusUpdatedAt) : 0
+      const tb = b.statusUpdatedAt ? Date.parse(b.statusUpdatedAt) : 0
+      return tb - ta
+    }
+    reading.sort(byTimeDesc)
+    read.sort(byTimeDesc)
+    return { readingBooks: reading, readBooks: read }
+  }, [selectedBooks, statuses])
+
+  const hasAnyBook = priorityOrder.length > 0 || readingBooks.length > 0 || readBooks.length > 0
+
   const sectionLabel: React.CSSProperties = {
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.55rem',
@@ -473,9 +727,19 @@ export default function ProfileDrawer({
     marginBottom: '0.9rem',
   }
 
+  const subsectionHeader: React.CSSProperties = {
+    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+    fontSize: '0.55rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.14em',
+    color: '#666',
+    padding: '14px 16px 8px',
+    borderTop: '1px solid #f3f4f6',
+    background: '#fff',
+  }
+
   return (
     <>
-      {/* Overlay */}
       <div
         onClick={onClose}
         style={{
@@ -488,7 +752,6 @@ export default function ProfileDrawer({
         }}
       />
 
-      {/* Drawer */}
       <div
         role="dialog"
         aria-label="Личный кабинет"
@@ -510,7 +773,6 @@ export default function ProfileDrawer({
           transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        {/* Drawer Header */}
         <div style={{
           padding: '1.25rem 1.5rem 1rem',
           borderBottom: '1px solid #E5E5E5',
@@ -560,11 +822,10 @@ export default function ProfileDrawer({
           </button>
         </div>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid #E5E5E5', flexShrink: 0 }}>
           {(['signup', 'submitted', 'profile'] as Tab[]).map(tab => {
             const labels: Record<Tab, string> = {
-              signup: 'Записал:ась',
+              signup: 'Мои книги',
               submitted: 'Предложил:а',
               profile: 'Профиль',
             }
@@ -594,14 +855,13 @@ export default function ProfileDrawer({
           })}
         </div>
 
-        {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
 
-          {/* ── Tab: Записал:ась ── */}
+          {/* ── Tab: Мои книги ── */}
           {activeTab === 'signup' && (
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              {/* Banner — shown until user has sorted at least once */}
-              {prioritiesLoaded && !prioritiesSet && selectedBooks.length > 0 && (
+              {/* Banner — shown until user has sorted at least once and there are signup books */}
+              {prioritiesLoaded && !prioritiesSet && priorityOrder.length > 0 && (
                 <div style={{
                   padding: '10px 16px', background: '#fff7ed',
                   borderBottom: '1px solid #fed7aa',
@@ -611,38 +871,94 @@ export default function ProfileDrawer({
                 </div>
               )}
 
-              {/* Sortable list */}
               <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-                {priorityOrder.length === 0 && selectedBooks.length === 0 ? (
+                {!hasAnyBook && prioritiesLoaded ? (
                   <div style={{ padding: '24px 16px', color: '#9ca3af', fontSize: 14, textAlign: 'center' }}>
                     Ты пока не записал:ась ни на одну книгу
                   </div>
                 ) : (
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={priorityOrder} strategy={verticalListSortingStrategy}>
-                      {priorityOrder.map((bookId, index) => {
-                        const book = books.find(b => b.id === bookId)
-                        if (!book) return null
-                        return (
-                          <SortableBookItem
-                            key={bookId}
-                            id={bookId}
-                            rank={index + 1}
-                            prioritiesSet={prioritiesSet}
-                            name={book.name}
-                            author={book.author}
-                            isUnsubscribed={localUnsubscribed.has(bookId)}
-                            onToggle={() => handleToggle(bookId)}
-                          />
-                        )
-                      })}
-                    </SortableContext>
-                  </DndContext>
+                  <>
+                    {/* Секция «Читаю» */}
+                    {readingBooks.length > 0 && (
+                      <section data-testid="section-reading">
+                        <div style={subsectionHeader}>Читаю</div>
+                        {readingBooks.map(({ bookId }) => {
+                          const book = books.find(b => b.id === bookId)
+                          if (!book) return null
+                          return (
+                            <StatusBookItem
+                              key={bookId}
+                              id={bookId}
+                              name={book.name}
+                              author={book.author}
+                              current="reading"
+                              isMenuOpen={openMenuBookId === bookId}
+                              onRowTap={() => setOpenMenuBookId(prev => prev === bookId ? null : bookId)}
+                              onStatusChange={s => handleStatusChange(bookId, s)}
+                            />
+                          )
+                        })}
+                      </section>
+                    )}
+
+                    {/* Секция «Записал:ась» */}
+                    {priorityOrder.length > 0 && (
+                      <section data-testid="section-signup">
+                        <div style={subsectionHeader}>Записал:ась</div>
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                          <SortableContext items={priorityOrder} strategy={verticalListSortingStrategy}>
+                            {priorityOrder.map((bookId, index) => {
+                              const book = books.find(b => b.id === bookId)
+                              if (!book) return null
+                              return (
+                                <SortableBookItem
+                                  key={bookId}
+                                  id={bookId}
+                                  rank={index + 1}
+                                  prioritiesSet={prioritiesSet}
+                                  isUnranked={unrankedBooks.has(bookId)}
+                                  name={book.name}
+                                  author={book.author}
+                                  isUnsubscribed={localUnsubscribed.has(bookId)}
+                                  isMenuOpen={openMenuBookId === bookId}
+                                  onRowTap={() => setOpenMenuBookId(prev => prev === bookId ? null : bookId)}
+                                  onToggle={() => handleToggle(bookId)}
+                                  onStatusChange={s => handleStatusChange(bookId, s)}
+                                />
+                              )
+                            })}
+                          </SortableContext>
+                        </DndContext>
+                      </section>
+                    )}
+
+                    {/* Секция «Прочитал:а» */}
+                    {readBooks.length > 0 && (
+                      <section data-testid="section-read">
+                        <div style={subsectionHeader}>Прочитал:а</div>
+                        {readBooks.map(({ bookId }) => {
+                          const book = books.find(b => b.id === bookId)
+                          if (!book) return null
+                          return (
+                            <StatusBookItem
+                              key={bookId}
+                              id={bookId}
+                              name={book.name}
+                              author={book.author}
+                              current="read"
+                              isMenuOpen={openMenuBookId === bookId}
+                              onRowTap={() => setOpenMenuBookId(prev => prev === bookId ? null : bookId)}
+                              onStatusChange={s => handleStatusChange(bookId, s)}
+                            />
+                          )
+                        })}
+                      </section>
+                    )}
+                  </>
                 )}
               </div>
 
-              {/* Autosave indicator */}
-              {prioritiesLoaded && selectedBooks.length > 0 && (
+              {prioritiesLoaded && priorityOrder.length > 0 && (
                 <div style={{
                   padding: '10px 16px', borderTop: '1px solid #e5e7eb',
                   fontSize: 12, color: '#9ca3af',
@@ -662,22 +978,14 @@ export default function ProfileDrawer({
               {!submissionsLoaded ? (
                 <p style={{
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.78rem',
-                  color: '#bbb',
-                  fontStyle: 'italic',
-                  textAlign: 'center',
-                  padding: '1rem 0',
+                  fontSize: '0.78rem', color: '#bbb', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0',
                 }}>
                   Загружаем…
                 </p>
               ) : submissions.length === 0 ? (
                 <p style={{
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.78rem',
-                  color: '#bbb',
-                  fontStyle: 'italic',
-                  textAlign: 'center',
-                  padding: '1rem 0',
+                  fontSize: '0.78rem', color: '#bbb', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0',
                 }}>
                   Ты ещё не предлагал:а книги
                 </p>
@@ -691,20 +999,15 @@ export default function ProfileDrawer({
                     }}>
                       <div style={{
                         fontFamily: 'var(--nd-serif), Georgia, serif',
-                        fontSize: '0.875rem',
-                        color: '#111',
-                        fontWeight: 700,
-                        letterSpacing: '-0.01em',
-                        lineHeight: 1.3,
+                        fontSize: '0.875rem', color: '#111', fontWeight: 700,
+                        letterSpacing: '-0.01em', lineHeight: 1.3,
                       }}>
                         {sub.title}
                       </div>
                       <div style={{
                         fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                        fontSize: '0.7rem',
-                        color: '#666',
-                        marginTop: '0.15rem',
-                        marginBottom: '0.5rem',
+                        fontSize: '0.7rem', color: '#666',
+                        marginTop: '0.15rem', marginBottom: '0.5rem',
                       }}>
                         {sub.author}{sub.pages ? ` · ${sub.pages} стр.` : ''}
                       </div>
@@ -712,11 +1015,8 @@ export default function ProfileDrawer({
                       {sub.status === 'rejected' && sub.rejectionReason && (
                         <div style={{
                           fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                          fontSize: '0.68rem',
-                          color: '#999',
-                          marginTop: '0.4rem',
-                          fontStyle: 'italic',
-                          lineHeight: 1.4,
+                          fontSize: '0.68rem', color: '#999',
+                          marginTop: '0.4rem', fontStyle: 'italic', lineHeight: 1.4,
                         }}>
                           {sub.rejectionReason}
                         </div>
@@ -730,11 +1030,9 @@ export default function ProfileDrawer({
                               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                               fontSize: '0.65rem',
                               color: withdrawingId === sub.id ? '#ccc' : '#bbb',
-                              background: 'none',
-                              border: 'none',
+                              background: 'none', border: 'none',
                               cursor: withdrawingId === sub.id ? 'default' : 'pointer',
-                              padding: 0,
-                              textDecoration: 'underline',
+                              padding: 0, textDecoration: 'underline',
                             }}
                           >
                             {withdrawingId === sub.id ? 'Отзываем…' : 'Отозвать'}
@@ -742,9 +1040,7 @@ export default function ProfileDrawer({
                           {withdrawFailedId === sub.id && (
                             <span style={{
                               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                              fontSize: '0.65rem',
-                              color: '#c00',
-                              marginLeft: '0.5rem',
+                              fontSize: '0.65rem', color: '#c00', marginLeft: '0.5rem',
                             }}>
                               Не удалось отозвать
                             </span>
@@ -761,8 +1057,6 @@ export default function ProfileDrawer({
           {/* ── Tab: Профиль ── */}
           {activeTab === 'profile' && (
             <div style={{ padding: '1.25rem 1.5rem' }}>
-
-              {/* Contacts form */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={sectionLabel}>Контактные данные</div>
                 <form onSubmit={handleSaveProfile} noValidate>
@@ -785,17 +1079,13 @@ export default function ProfileDrawer({
                       onChange={e => setName(e.target.value)}
                       required
                       style={{
-                        display: 'block',
-                        width: '100%',
+                        display: 'block', width: '100%',
                         padding: '0.55rem 0.7rem',
                         fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                        fontSize: '0.85rem',
-                        color: '#111',
-                        background: '#fff',
+                        fontSize: '0.85rem', color: '#111', background: '#fff',
                         border: '1px solid #E5E5E5',
                         borderBottom: '2px solid #111',
-                        outline: 'none',
-                        boxSizing: 'border-box',
+                        outline: 'none', boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -819,8 +1109,7 @@ export default function ProfileDrawer({
                       readOnly={telegramLocked}
                       placeholder={telegramLocked ? '@username (привязан к аккаунту)' : '@username'}
                       style={{
-                        display: 'block',
-                        width: '100%',
+                        display: 'block', width: '100%',
                         padding: '0.55rem 0.7rem',
                         fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                         fontSize: '0.85rem',
@@ -835,10 +1124,8 @@ export default function ProfileDrawer({
                     />
                     <div style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.62rem',
-                      color: '#aaa',
-                      marginTop: '0.3rem',
-                      fontStyle: 'italic',
+                      fontSize: '0.62rem', color: '#aaa',
+                      marginTop: '0.3rem', fontStyle: 'italic',
                     }}>
                       Организатор свяжется с вами для записи в группу
                     </div>
@@ -846,9 +1133,7 @@ export default function ProfileDrawer({
                   {saveError && (
                     <p style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.8rem',
-                      color: '#c00',
-                      marginBottom: '1rem',
+                      fontSize: '0.8rem', color: '#c00', marginBottom: '1rem',
                     }}>
                       {saveError}
                     </p>
@@ -857,12 +1142,9 @@ export default function ProfileDrawer({
                     type="submit"
                     disabled={saving || profileUnchanged}
                     style={{
-                      width: '100%',
-                      padding: '0.65rem 1rem',
+                      width: '100%', padding: '0.65rem 1rem',
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.65rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
+                      fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em',
                       background: saving ? '#E5E5E5' : saveSuccess ? '#2A6E2A' : profileUnchanged ? '#E5E5E5' : '#111',
                       color: (saving || profileUnchanged) ? '#999' : '#fff',
                       border: `1px solid ${profileUnchanged ? '#ccc' : '#111'}`,
@@ -875,15 +1157,12 @@ export default function ProfileDrawer({
                 </form>
               </div>
 
-              {/* Language preferences */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={sectionLabel}>Языки чтения</div>
                 {languagesNeverSaved && languagesLoaded && (
                   <p style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.72rem',
-                    color: '#aaa',
-                    fontStyle: 'italic',
+                    fontSize: '0.72rem', color: '#aaa', fontStyle: 'italic',
                     marginBottom: '0.75rem',
                   }}>
                     Выберите языки чтения
@@ -891,35 +1170,26 @@ export default function ProfileDrawer({
                 )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                   {LANGUAGES_PRIMARY.map(lang => (
-                    <LangButton
-                      key={lang.code}
-                      lang={lang}
+                    <LangButton key={lang.code} lang={lang}
                       active={(languages ?? []).includes(lang.code)}
                       disabled={!languagesLoaded}
-                      onToggle={handleLanguageToggle}
-                    />
+                      onToggle={handleLanguageToggle} />
                   ))}
                   {LANGUAGES_EXTRA.filter(lang =>
                     showExtraLanguages || (languages ?? []).includes(lang.code)
                   ).map(lang => (
-                    <LangButton
-                      key={lang.code}
-                      lang={lang}
+                    <LangButton key={lang.code} lang={lang}
                       active={(languages ?? []).includes(lang.code)}
                       disabled={!languagesLoaded}
-                      onToggle={handleLanguageToggle}
-                    />
+                      onToggle={handleLanguageToggle} />
                   ))}
                   <button
                     onClick={() => setShowExtraLanguages(v => !v)}
                     style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.72rem',
-                      color: '#999',
-                      background: 'none',
-                      border: '1px dashed #ccc',
-                      padding: '0.3rem 0.65rem',
-                      cursor: 'pointer',
+                      fontSize: '0.72rem', color: '#999',
+                      background: 'none', border: '1px dashed #ccc',
+                      padding: '0.3rem 0.65rem', cursor: 'pointer',
                     }}
                   >
                     {showExtraLanguages ? 'скрыть' : '+ ещё'}
@@ -927,14 +1197,9 @@ export default function ProfileDrawer({
                 </div>
               </div>
 
-              {/* Sign out */}
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.65rem 0',
-                marginBottom: '0.75rem',
-                gap: '0.75rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0.65rem 0', marginBottom: '0.75rem', gap: '0.75rem',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                   {session?.user?.provider === 'google' ? (
@@ -956,11 +1221,8 @@ export default function ProfileDrawer({
                   )}
                   <span style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.78rem',
-                    color: '#666',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    fontSize: '0.78rem', color: '#666',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {contactEmail ?? '—'}
                   </span>
@@ -969,21 +1231,15 @@ export default function ProfileDrawer({
                   onClick={() => signOut({ callbackUrl: '/' })}
                   style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.65rem',
-                    color: '#999',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                    textDecoration: 'underline',
+                    fontSize: '0.65rem', color: '#999',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    flexShrink: 0, whiteSpace: 'nowrap', textDecoration: 'underline',
                   }}
                 >
                   Выйти
                 </button>
               </div>
 
-              {/* Delete account */}
               {effectiveUser && (
                 <div style={{ textAlign: 'center' }}>
                   <button
@@ -991,11 +1247,8 @@ export default function ProfileDrawer({
                     onClick={handleDeleteAccount}
                     style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.7rem',
-                      color: '#999',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
+                      fontSize: '0.7rem', color: '#999',
+                      background: 'none', border: 'none', cursor: 'pointer',
                       textDecoration: 'underline',
                     }}
                   >
@@ -1006,23 +1259,18 @@ export default function ProfileDrawer({
             </div>
           )}
         </div>
-        {/* No footer — sign-out moved to Profile tab */}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed',
-          bottom: '1.5rem',
-          right: '1.5rem',
-          zIndex: 9999,
+          bottom: '1.5rem', right: '1.5rem', zIndex: 9999,
           background: toast.type === 'error' ? '#c00' : '#111',
           color: '#fff',
           fontFamily: 'var(--nd-sans), system-ui, sans-serif',
           fontSize: '0.8rem',
           padding: '0.65rem 1rem',
-          maxWidth: '300px',
-          lineHeight: 1.4,
+          maxWidth: '300px', lineHeight: 1.4,
           boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
         }}>
           {toast.message}

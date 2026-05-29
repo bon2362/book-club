@@ -237,3 +237,49 @@ test.describe('Admin Catalog: section + editor layout', () => {
     expect(editorFollowsRow).toBe(true)
   })
 })
+
+test.describe('ProfileDrawer: status accordion menu', () => {
+  const EMAIL = 'e2e-mybooks-ui@test.invalid'
+  const NAME = 'E2E MyBooks UI'
+  const TG = 'e2e_mybooks_ui_tg'
+
+  test('menu opens below tapped row and toggles closed on second tap', async ({ page, createTestBook }) => {
+    await page.request.post('/api/test/session', {
+      data: { email: EMAIL, name: NAME, telegramUsername: TG, provider: 'telegram-preauth' },
+    })
+    try {
+      const book = await createTestBook({ title: 'E2E Accordion Book' })
+      await page.request.post('/api/test/signup', {
+        data: { userId: 'p', name: NAME, email: EMAIL, contacts: '@' + TG, selectedBookIds: [book.id] },
+      })
+      await page.goto('/')
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: NAME }).click()
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible()
+
+      const row = dialog.locator(`[data-book-id="${book.id}"]`)
+      await expect(row).toBeVisible()
+      await expect(dialog.locator('[data-testid="status-menu"]')).toHaveCount(0)
+
+      const rowBox = await row.boundingBox()
+      expect(rowBox).not.toBeNull()
+
+      await row.click()
+      const menu = dialog.locator('[data-testid="status-menu"]')
+      await expect(menu).toBeVisible()
+      const menuBox = await menu.boundingBox()
+      expect(menuBox).not.toBeNull()
+      // menu is positioned BELOW the row (its top edge is >= row's bottom edge)
+      expect(menuBox!.y).toBeGreaterThanOrEqual(rowBox!.y + rowBox!.height - 1)
+
+      // Second tap on same row closes the menu
+      await row.click()
+      await expect(menu).toHaveCount(0)
+    } finally {
+      await page.request.delete('/api/test/session', {
+        data: { email: EMAIL, provider: 'telegram-preauth', telegramUsername: TG },
+      })
+    }
+  })
+})

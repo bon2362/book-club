@@ -48,6 +48,7 @@ export default async function Home() {
     contacts: dbUser.contacts,
     selectedBooks: [],
     selectedBookIds: [],
+    signups: [],
   } : null)
 
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
