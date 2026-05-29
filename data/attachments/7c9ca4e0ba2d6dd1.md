@@ -1,0 +1,1733 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Читательские круги
+      - link "Долгое наступление" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - button "Предложить книгу" [ref=e9] [cursor=pointer]
+        - button "E2E Submit Auto 1780095329673" [ref=e10] [cursor=pointer]
+  - region "Читательские круги" [ref=e11] [cursor=pointer]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: Что это
+      - generic [ref=e14]:
+        - paragraph [ref=e16]: Мы собираемся группами по 3-4 человека читать книги по демократии
+        - generic [ref=e17]:
+          - button "Подробнее ↓" [ref=e18]
+          - button "×" [ref=e19]
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - searchbox "Поиск по названию или автору…" [ref=e23]
+      - button "Переключить в таблицу" [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e29]:
+      - combobox [ref=e30] [cursor=pointer]:
+        - 'option "Тема: все" [selected]'
+        - option "Государство"
+        - option "Демократия"
+        - option "Капитализм"
+        - option "Левая идея"
+        - option "Народные движения"
+        - option "Путинизм"
+        - option "государство"
+      - combobox [ref=e31] [cursor=pointer]:
+        - 'option "Автор: все" [selected]'
+        - option "Armin Schäfer"
+        - option "Benjamin R. Barber"
+        - option "Bernard Manin"
+        - option "C. B. Macpherson"
+        - option "Charles Mills"
+        - option "Charles Tilly"
+        - option "CrimethInc"
+        - option "Daniel Treisman"
+        - option "Daron Acemoglu"
+        - option "David Graeber"
+        - option "David Harvey"
+        - option "David Wengrow"
+        - option "E2E Author"
+        - option "E2E Автор"
+        - option "Giovanni Arrighi"
+        - option "Howard Zinn"
+        - option "Immanuel Wallerstein"
+        - option "James A. Robinson"
+        - option "James Scott"
+        - option "Jean Baudrillard"
+        - option "John Stuart Mill"
+        - option "Karl Polanyi"
+        - option "Marijana Macukato"
+        - option "Murray Bookchin"
+        - option "Naomi Klein"
+        - option "Patrick Champagne"
+        - option "Paul Krugman"
+        - option "Peter Gelderloos"
+        - option "Peter Mair"
+        - option "Pierre Bourdieu"
+        - option "Quentin Skinner"
+        - option "Robert Darnton"
+        - option "Schattschneider"
+        - option "Sidney Tarrow"
+        - option "Thomas Piketty"
+        - option "Wolfgang Streeck"
+        - option "Алексей Навальный"
+        - option "Артемий Магун"
+        - option "Борис Кагарлицкий"
+        - option "Вадим Волков"
+        - option "Владимир Гельман"
+        - option "Екатерина Шульман"
+        - option "Елена Костюченко"
+        - option "Роман Тиса"
+        - option "Сергей Гуриев"
+        - option "Теодор Шанин"
+      - button "Новинки" [ref=e32] [cursor=pointer]
+      - button "Прочитанные" [ref=e33] [cursor=pointer]
+  - main [ref=e34]:
+    - generic [ref=e35]:
+      - button "Предложить книгу" [ref=e36] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e47]:
+          - generic [ref=e48]: Предложить книгу
+          - generic [ref=e49]: Расскажите, что и почему стоит прочитать
+      - article [ref=e50]:
+        - 'generic "Обложка: E2E Admin Users Book A 0-0-1779991072799" [ref=e53]':
+          - generic [ref=e54]: EA
+        - generic [ref=e56]:
+          - heading "E2E Admin Users Book A 0-0-1779991072799" [level=2] [ref=e57]
+          - generic [ref=e58]: "2024"
+        - paragraph [ref=e59]: E2E Author
+        - generic [ref=e61]: 100 стр.
+        - paragraph [ref=e63]: E2E test book
+        - button "Хочу читать" [ref=e66] [cursor=pointer]
+      - article [ref=e67]:
+        - 'generic "Обложка: E2E Admin Users Book B 33-0-1780095316215" [ref=e70]':
+          - generic [ref=e71]: EA
+        - generic [ref=e73]:
+          - heading "E2E Admin Users Book B 33-0-1780095316215" [level=2] [ref=e74]
+          - generic [ref=e75]: "2024"
+        - paragraph [ref=e76]: E2E Author
+        - generic [ref=e78]: 100 стр.
+        - paragraph [ref=e80]: E2E test book
+        - button "Хочу читать" [ref=e82] [cursor=pointer]
+      - article [ref=e83]:
+        - 'generic "Обложка: E2E Admin Users Book A 33-0-1780095316215" [ref=e86]':
+          - generic [ref=e87]: EA
+        - generic [ref=e89]:
+          - heading "E2E Admin Users Book A 33-0-1780095316215" [level=2] [ref=e90]
+          - generic [ref=e91]: "2024"
+        - paragraph [ref=e92]: E2E Author
+        - generic [ref=e94]: 100 стр.
+        - paragraph [ref=e96]: E2E test book
+        - button "Хочу читать" [ref=e98] [cursor=pointer]
+      - article [ref=e99]:
+        - 'generic "Обложка: E2E Book be9949n7dfi8 #0" [ref=e102]':
+          - generic [ref=e103]: EA
+        - generic [ref=e105]: государство
+        - generic [ref=e107]:
+          - 'heading "E2E Book be9949n7dfi8 #0" [level=2] [ref=e108]'
+          - generic [ref=e109]: "2024"
+        - paragraph [ref=e110]: E2E Author
+        - generic [ref=e112]: 100 стр.
+        - paragraph [ref=e114]: E2E test book
+        - button "Хочу читать" [ref=e116] [cursor=pointer]
+      - article [ref=e117]:
+        - 'generic "Обложка: E2E Victim Book 1779992008528" [ref=e120]':
+          - generic [ref=e121]: EA
+        - generic [ref=e123]:
+          - heading "E2E Victim Book 1779992008528" [level=2] [ref=e124]
+          - generic [ref=e125]: "2024"
+        - paragraph [ref=e126]: E2E Author
+        - generic [ref=e128]: 100 стр.
+        - paragraph [ref=e130]: E2E test book
+        - button "Хочу читать" [ref=e133] [cursor=pointer]
+      - article [ref=e134]:
+        - 'generic "Обложка: E2E Book be994998p02p #0" [ref=e137]':
+          - generic [ref=e138]: EA
+        - generic [ref=e140]: государство
+        - generic [ref=e142]:
+          - 'heading "E2E Book be994998p02p #0" [level=2] [ref=e143]'
+          - generic [ref=e144]: "2024"
+        - paragraph [ref=e145]: E2E Author
+        - generic [ref=e147]: 100 стр.
+        - paragraph [ref=e149]: E2E test book
+        - button "Хочу читать" [ref=e151] [cursor=pointer]
+      - article [ref=e152]:
+        - 'generic "Обложка: E2E Book be9949tafu7p #0" [ref=e155]':
+          - generic [ref=e156]: EA
+        - generic [ref=e158]: государство
+        - generic [ref=e160]:
+          - 'heading "E2E Book be9949tafu7p #0" [level=2] [ref=e161]'
+          - generic [ref=e162]: "2024"
+        - paragraph [ref=e163]: E2E Author
+        - generic [ref=e165]: 100 стр.
+        - paragraph [ref=e167]: E2E test book
+        - button "Хочу читать" [ref=e169] [cursor=pointer]
+      - article [ref=e170]:
+        - 'generic "Обложка: ZZZ Book sort-high" [ref=e173]':
+          - generic [ref=e174]: EA
+        - generic [ref=e176]:
+          - heading "ZZZ Book sort-high" [level=2] [ref=e177]
+          - generic [ref=e178]: "2024"
+        - paragraph [ref=e179]: E2E Author
+        - generic [ref=e181]: 100 стр.
+        - paragraph [ref=e183]: E2E test book
+        - button "Хочу читать" [ref=e186] [cursor=pointer]
+      - article [ref=e187]:
+        - 'generic "Обложка: AAA Book sort-low" [ref=e190]':
+          - generic [ref=e191]: EA
+        - generic [ref=e193]:
+          - heading "AAA Book sort-low" [level=2] [ref=e194]
+          - generic [ref=e195]: "2024"
+        - paragraph [ref=e196]: E2E Author
+        - generic [ref=e198]: 100 стр.
+        - paragraph [ref=e200]: E2E test book
+        - button "Хочу читать" [ref=e203] [cursor=pointer]
+      - article [ref=e204]:
+        - 'generic "Обложка: AAA Book sort-low" [ref=e207]':
+          - generic [ref=e208]: EA
+        - generic [ref=e210]:
+          - heading "AAA Book sort-low" [level=2] [ref=e211]
+          - generic [ref=e212]: "2024"
+        - paragraph [ref=e213]: E2E Author
+        - generic [ref=e215]: 100 стр.
+        - paragraph [ref=e217]: E2E test book
+        - button "Хочу читать" [ref=e220] [cursor=pointer]
+      - article [ref=e221]:
+        - 'generic "Обложка: E2E Book be99490zvcau #0" [ref=e224]':
+          - generic [ref=e225]: EA
+        - generic [ref=e227]: государство
+        - generic [ref=e229]:
+          - 'heading "E2E Book be99490zvcau #0" [level=2] [ref=e230]'
+          - generic [ref=e231]: "2024"
+        - paragraph [ref=e232]: E2E Author
+        - generic [ref=e234]: 100 стр.
+        - paragraph [ref=e236]: E2E test book
+        - button "Хочу читать" [ref=e238] [cursor=pointer]
+      - article [ref=e239]:
+        - 'generic "Обложка: AAA Book sort-low" [ref=e242]':
+          - generic [ref=e243]: EA
+        - generic [ref=e245]:
+          - heading "AAA Book sort-low" [level=2] [ref=e246]
+          - generic [ref=e247]: "2024"
+        - paragraph [ref=e248]: E2E Author
+        - generic [ref=e250]: 100 стр.
+        - paragraph [ref=e252]: E2E test book
+        - button "Хочу читать" [ref=e255] [cursor=pointer]
+      - article [ref=e256]:
+        - 'generic "Обложка: ZZZ Book sort-high" [ref=e259]':
+          - generic [ref=e260]: EA
+        - generic [ref=e262]:
+          - heading "ZZZ Book sort-high" [level=2] [ref=e263]
+          - generic [ref=e264]: "2024"
+        - paragraph [ref=e265]: E2E Author
+        - generic [ref=e267]: 100 стр.
+        - paragraph [ref=e269]: E2E test book
+        - button "Хочу читать" [ref=e272] [cursor=pointer]
+      - article [ref=e273]:
+        - 'generic "Обложка: ZZZ Book sort-high" [ref=e276]':
+          - generic [ref=e277]: EA
+        - generic [ref=e279]:
+          - heading "ZZZ Book sort-high" [level=2] [ref=e280]
+          - generic [ref=e281]: "2024"
+        - paragraph [ref=e282]: E2E Author
+        - generic [ref=e284]: 100 стр.
+        - paragraph [ref=e286]: E2E test book
+        - button "Хочу читать" [ref=e289] [cursor=pointer]
+      - article [ref=e290]:
+        - 'generic "Обложка: E2E Admin Users Book B 0-0-1779991072799" [ref=e293]':
+          - generic [ref=e294]: EA
+        - generic [ref=e296]:
+          - heading "E2E Admin Users Book B 0-0-1779991072799" [level=2] [ref=e297]
+          - generic [ref=e298]: "2024"
+        - paragraph [ref=e299]: E2E Author
+        - generic [ref=e301]: 100 стр.
+        - paragraph [ref=e303]: E2E test book
+        - button "Хочу читать" [ref=e305] [cursor=pointer]
+      - article [ref=e306]:
+        - 'generic "Обложка: E2E Auto Signup 1780095329673" [ref=e309]':
+          - generic [ref=e310]: EА
+        - generic [ref=e311]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e312] [cursor=pointer]:
+            - img [ref=e313]
+          - generic [ref=e315]: Новая
+        - generic [ref=e318]:
+          - img [ref=e319]
+          - text: "1"
+        - heading "E2E Auto Signup 1780095329673" [level=2] [ref=e324]
+        - paragraph [ref=e325]: E2E Автор
+        - generic [ref=e327]:
+          - paragraph [ref=e328]: Почему предлагаю прочитать
+          - paragraph [ref=e329]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e331] [cursor=pointer]
+      - article [ref=e332]:
+        - 'generic "Обложка: E2E Auto Signup 1780095304103" [ref=e335]':
+          - generic [ref=e336]: EА
+        - generic [ref=e337]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e338] [cursor=pointer]:
+            - img [ref=e339]
+          - generic [ref=e341]: Новая
+        - heading "E2E Auto Signup 1780095304103" [level=2] [ref=e344]
+        - paragraph [ref=e345]: E2E Автор
+        - generic [ref=e347]:
+          - paragraph [ref=e348]: Почему предлагаю прочитать
+          - paragraph [ref=e349]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e352] [cursor=pointer]
+      - article [ref=e353]:
+        - 'generic "Обложка: E2E Auto Signup 1780092010621" [ref=e356]':
+          - generic [ref=e357]: EА
+        - generic [ref=e358]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e359] [cursor=pointer]:
+            - img [ref=e360]
+          - generic [ref=e362]: Новая
+        - heading "E2E Auto Signup 1780092010621" [level=2] [ref=e365]
+        - paragraph [ref=e366]: E2E Автор
+        - generic [ref=e368]:
+          - paragraph [ref=e369]: Почему предлагаю прочитать
+          - paragraph [ref=e370]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e373] [cursor=pointer]
+      - article [ref=e374]:
+        - 'generic "Обложка: E2E Auto Signup 1780067131186" [ref=e377]':
+          - generic [ref=e378]: EА
+        - generic [ref=e379]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e380] [cursor=pointer]:
+            - img [ref=e381]
+          - generic [ref=e383]: Новая
+        - heading "E2E Auto Signup 1780067131186" [level=2] [ref=e386]
+        - paragraph [ref=e387]: E2E Автор
+        - generic [ref=e389]:
+          - paragraph [ref=e390]: Почему предлагаю прочитать
+          - paragraph [ref=e391]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e394] [cursor=pointer]
+      - article [ref=e395]:
+        - 'generic "Обложка: E2E Auto Signup 1780066671162" [ref=e398]':
+          - generic [ref=e399]: EА
+        - generic [ref=e400]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e401] [cursor=pointer]:
+            - img [ref=e402]
+          - generic [ref=e404]: Новая
+        - heading "E2E Auto Signup 1780066671162" [level=2] [ref=e407]
+        - paragraph [ref=e408]: E2E Автор
+        - generic [ref=e410]:
+          - paragraph [ref=e411]: Почему предлагаю прочитать
+          - paragraph [ref=e412]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e414] [cursor=pointer]
+      - article [ref=e415]:
+        - 'generic "Обложка: E2E Auto Signup 1780043502410" [ref=e418]':
+          - generic [ref=e419]: EА
+        - generic [ref=e420]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e421] [cursor=pointer]:
+            - img [ref=e422]
+          - generic [ref=e424]: Новая
+        - heading "E2E Auto Signup 1780043502410" [level=2] [ref=e427]
+        - paragraph [ref=e428]: E2E Автор
+        - generic [ref=e430]:
+          - paragraph [ref=e431]: Почему предлагаю прочитать
+          - paragraph [ref=e432]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e434] [cursor=pointer]
+      - article [ref=e435]:
+        - 'generic "Обложка: E2E Auto Signup 1780043192002" [ref=e438]':
+          - generic [ref=e439]: EА
+        - generic [ref=e440]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e441] [cursor=pointer]:
+            - img [ref=e442]
+          - generic [ref=e444]: Новая
+        - heading "E2E Auto Signup 1780043192002" [level=2] [ref=e447]
+        - paragraph [ref=e448]: E2E Автор
+        - generic [ref=e450]:
+          - paragraph [ref=e451]: Почему предлагаю прочитать
+          - paragraph [ref=e452]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e454] [cursor=pointer]
+      - article [ref=e455]:
+        - 'generic "Обложка: E2E Auto Signup 1780042969979" [ref=e458]':
+          - generic [ref=e459]: EА
+        - generic [ref=e460]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e461] [cursor=pointer]:
+            - img [ref=e462]
+          - generic [ref=e464]: Новая
+        - heading "E2E Auto Signup 1780042969979" [level=2] [ref=e467]
+        - paragraph [ref=e468]: E2E Автор
+        - generic [ref=e470]:
+          - paragraph [ref=e471]: Почему предлагаю прочитать
+          - paragraph [ref=e472]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e474] [cursor=pointer]
+      - article [ref=e475]:
+        - 'generic "Обложка: E2E Auto Signup 1780041384770" [ref=e478]':
+          - generic [ref=e479]: EА
+        - generic [ref=e480]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e481] [cursor=pointer]:
+            - img [ref=e482]
+          - generic [ref=e484]: Новая
+        - heading "E2E Auto Signup 1780041384770" [level=2] [ref=e487]
+        - paragraph [ref=e488]: E2E Автор
+        - generic [ref=e490]:
+          - paragraph [ref=e491]: Почему предлагаю прочитать
+          - paragraph [ref=e492]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e494] [cursor=pointer]
+      - article [ref=e495]:
+        - 'generic "Обложка: E2E Auto Signup 1780004622261" [ref=e498]':
+          - generic [ref=e499]: EА
+        - generic [ref=e500]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e501] [cursor=pointer]:
+            - img [ref=e502]
+          - generic [ref=e504]: Новая
+        - heading "E2E Auto Signup 1780004622261" [level=2] [ref=e507]
+        - paragraph [ref=e508]: E2E Автор
+        - generic [ref=e510]:
+          - paragraph [ref=e511]: Почему предлагаю прочитать
+          - paragraph [ref=e512]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e514] [cursor=pointer]
+      - article [ref=e515]:
+        - 'generic "Обложка: E2E Auto Signup 1780003954799" [ref=e518]':
+          - generic [ref=e519]: EА
+        - generic [ref=e520]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e521] [cursor=pointer]:
+            - img [ref=e522]
+          - generic [ref=e524]: Новая
+        - heading "E2E Auto Signup 1780003954799" [level=2] [ref=e527]
+        - paragraph [ref=e528]: E2E Автор
+        - generic [ref=e530]:
+          - paragraph [ref=e531]: Почему предлагаю прочитать
+          - paragraph [ref=e532]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e534] [cursor=pointer]
+      - article [ref=e535]:
+        - 'generic "Обложка: E2E Auto Signup 1779998807256" [ref=e538]':
+          - generic [ref=e539]: EА
+        - generic [ref=e540]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e541] [cursor=pointer]:
+            - img [ref=e542]
+          - generic [ref=e544]: Новая
+        - heading "E2E Auto Signup 1779998807256" [level=2] [ref=e547]
+        - paragraph [ref=e548]: E2E Автор
+        - generic [ref=e550]:
+          - paragraph [ref=e551]: Почему предлагаю прочитать
+          - paragraph [ref=e552]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e554] [cursor=pointer]
+      - article [ref=e555]:
+        - 'generic "Обложка: E2E Auto Signup 1779998350682" [ref=e558]':
+          - generic [ref=e559]: EА
+        - generic [ref=e560]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e561] [cursor=pointer]:
+            - img [ref=e562]
+          - generic [ref=e564]: Новая
+        - heading "E2E Auto Signup 1779998350682" [level=2] [ref=e567]
+        - paragraph [ref=e568]: E2E Автор
+        - generic [ref=e570]:
+          - paragraph [ref=e571]: Почему предлагаю прочитать
+          - paragraph [ref=e572]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e574] [cursor=pointer]
+      - article [ref=e575]:
+        - 'generic "Обложка: E2E Auto Signup 1779997661584" [ref=e578]':
+          - generic [ref=e579]: EА
+        - generic [ref=e580]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e581] [cursor=pointer]:
+            - img [ref=e582]
+          - generic [ref=e584]: Новая
+        - heading "E2E Auto Signup 1779997661584" [level=2] [ref=e587]
+        - paragraph [ref=e588]: E2E Автор
+        - generic [ref=e590]:
+          - paragraph [ref=e591]: Почему предлагаю прочитать
+          - paragraph [ref=e592]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e594] [cursor=pointer]
+      - article [ref=e595]:
+        - 'generic "Обложка: E2E Auto Signup 1779997569167" [ref=e598]':
+          - generic [ref=e599]: EА
+        - generic [ref=e600]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e601] [cursor=pointer]:
+            - img [ref=e602]
+          - generic [ref=e604]: Новая
+        - heading "E2E Auto Signup 1779997569167" [level=2] [ref=e607]
+        - paragraph [ref=e608]: E2E Автор
+        - generic [ref=e610]:
+          - paragraph [ref=e611]: Почему предлагаю прочитать
+          - paragraph [ref=e612]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e614] [cursor=pointer]
+      - article [ref=e615]:
+        - 'generic "Обложка: E2E Auto Signup 1779996390658" [ref=e618]':
+          - generic [ref=e619]: EА
+        - generic [ref=e620]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e621] [cursor=pointer]:
+            - img [ref=e622]
+          - generic [ref=e624]: Новая
+        - heading "E2E Auto Signup 1779996390658" [level=2] [ref=e627]
+        - paragraph [ref=e628]: E2E Автор
+        - generic [ref=e630]:
+          - paragraph [ref=e631]: Почему предлагаю прочитать
+          - paragraph [ref=e632]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e634] [cursor=pointer]
+      - article [ref=e635]:
+        - 'generic "Обложка: E2E Auto Signup 1779996306714" [ref=e638]':
+          - generic [ref=e639]: EА
+        - generic [ref=e640]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e641] [cursor=pointer]:
+            - img [ref=e642]
+          - generic [ref=e644]: Новая
+        - heading "E2E Auto Signup 1779996306714" [level=2] [ref=e647]
+        - paragraph [ref=e648]: E2E Автор
+        - generic [ref=e650]:
+          - paragraph [ref=e651]: Почему предлагаю прочитать
+          - paragraph [ref=e652]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e654] [cursor=pointer]
+      - article [ref=e655]:
+        - 'generic "Обложка: E2E Auto Signup 1779995759889" [ref=e658]':
+          - generic [ref=e659]: EА
+        - generic [ref=e660]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e661] [cursor=pointer]:
+            - img [ref=e662]
+          - generic [ref=e664]: Новая
+        - heading "E2E Auto Signup 1779995759889" [level=2] [ref=e667]
+        - paragraph [ref=e668]: E2E Автор
+        - generic [ref=e670]:
+          - paragraph [ref=e671]: Почему предлагаю прочитать
+          - paragraph [ref=e672]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e674] [cursor=pointer]
+      - article [ref=e675]:
+        - 'generic "Обложка: E2E Auto Signup 1779993538685" [ref=e678]':
+          - generic [ref=e679]: EА
+        - generic [ref=e680]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e681] [cursor=pointer]:
+            - img [ref=e682]
+          - generic [ref=e684]: Новая
+        - heading "E2E Auto Signup 1779993538685" [level=2] [ref=e687]
+        - paragraph [ref=e688]: E2E Автор
+        - generic [ref=e690]:
+          - paragraph [ref=e691]: Почему предлагаю прочитать
+          - paragraph [ref=e692]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e694] [cursor=pointer]
+      - article [ref=e695]:
+        - 'generic "Обложка: E2E Auto Signup 1779993423456" [ref=e698]':
+          - generic [ref=e699]: EА
+        - generic [ref=e700]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e701] [cursor=pointer]:
+            - img [ref=e702]
+          - generic [ref=e704]: Новая
+        - heading "E2E Auto Signup 1779993423456" [level=2] [ref=e707]
+        - paragraph [ref=e708]: E2E Автор
+        - generic [ref=e710]:
+          - paragraph [ref=e711]: Почему предлагаю прочитать
+          - paragraph [ref=e712]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e714] [cursor=pointer]
+      - article [ref=e715]:
+        - 'generic "Обложка: E2E Auto Signup 1779992460023" [ref=e718]':
+          - generic [ref=e719]: EА
+        - generic [ref=e720]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e721] [cursor=pointer]:
+            - img [ref=e722]
+          - generic [ref=e724]: Новая
+        - heading "E2E Auto Signup 1779992460023" [level=2] [ref=e727]
+        - paragraph [ref=e728]: E2E Автор
+        - generic [ref=e730]:
+          - paragraph [ref=e731]: Почему предлагаю прочитать
+          - paragraph [ref=e732]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e734] [cursor=pointer]
+      - article [ref=e735]:
+        - 'generic "Обложка: E2E Auto Signup 1779990451810" [ref=e738]':
+          - generic [ref=e739]: EА
+        - generic [ref=e740]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e741] [cursor=pointer]:
+            - img [ref=e742]
+          - generic [ref=e744]: Новая
+        - heading "E2E Auto Signup 1779990451810" [level=2] [ref=e747]
+        - paragraph [ref=e748]: E2E Автор
+        - generic [ref=e750]:
+          - paragraph [ref=e751]: Почему предлагаю прочитать
+          - paragraph [ref=e752]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e754] [cursor=pointer]
+      - article [ref=e755]:
+        - 'generic "Обложка: E2E Auto Signup 1779990387022" [ref=e758]':
+          - generic [ref=e759]: EА
+        - generic [ref=e760]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e761] [cursor=pointer]:
+            - img [ref=e762]
+          - generic [ref=e764]: Новая
+        - heading "E2E Auto Signup 1779990387022" [level=2] [ref=e767]
+        - paragraph [ref=e768]: E2E Автор
+        - generic [ref=e770]:
+          - paragraph [ref=e771]: Почему предлагаю прочитать
+          - paragraph [ref=e772]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e774] [cursor=pointer]
+      - article [ref=e775]:
+        - 'generic "Обложка: E2E Auto Signup 1779990374800" [ref=e778]':
+          - generic [ref=e779]: EА
+        - generic [ref=e780]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e781] [cursor=pointer]:
+            - img [ref=e782]
+          - generic [ref=e784]: Новая
+        - heading "E2E Auto Signup 1779990374800" [level=2] [ref=e787]
+        - paragraph [ref=e788]: E2E Автор
+        - generic [ref=e790]:
+          - paragraph [ref=e791]: Почему предлагаю прочитать
+          - paragraph [ref=e792]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e794] [cursor=pointer]
+      - article [ref=e795]:
+        - 'generic "Обложка: E2E Auto Signup 1779990306491" [ref=e798]':
+          - generic [ref=e799]: EА
+        - generic [ref=e800]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e801] [cursor=pointer]:
+            - img [ref=e802]
+          - generic [ref=e804]: Новая
+        - heading "E2E Auto Signup 1779990306491" [level=2] [ref=e807]
+        - paragraph [ref=e808]: E2E Автор
+        - generic [ref=e810]:
+          - paragraph [ref=e811]: Почему предлагаю прочитать
+          - paragraph [ref=e812]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e814] [cursor=pointer]
+      - article [ref=e815]:
+        - 'generic "Обложка: E2E Auto Signup 1779989887244" [ref=e818]':
+          - generic [ref=e819]: EА
+        - generic [ref=e820]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e821] [cursor=pointer]:
+            - img [ref=e822]
+          - generic [ref=e824]: Новая
+        - heading "E2E Auto Signup 1779989887244" [level=2] [ref=e827]
+        - paragraph [ref=e828]: E2E Автор
+        - generic [ref=e830]:
+          - paragraph [ref=e831]: Почему предлагаю прочитать
+          - paragraph [ref=e832]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e834] [cursor=pointer]
+      - article [ref=e835]:
+        - 'generic "Обложка: E2E Auto Signup 1779989819895" [ref=e838]':
+          - generic [ref=e839]: EА
+        - generic [ref=e840]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e841] [cursor=pointer]:
+            - img [ref=e842]
+          - generic [ref=e844]: Новая
+        - heading "E2E Auto Signup 1779989819895" [level=2] [ref=e847]
+        - paragraph [ref=e848]: E2E Автор
+        - generic [ref=e850]:
+          - paragraph [ref=e851]: Почему предлагаю прочитать
+          - paragraph [ref=e852]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e854] [cursor=pointer]
+      - article [ref=e855]:
+        - 'generic "Обложка: E2E Auto Signup 1779970584847" [ref=e858]':
+          - generic [ref=e859]: EА
+        - generic [ref=e860]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e861] [cursor=pointer]:
+            - img [ref=e862]
+          - generic [ref=e864]: Новая
+        - heading "E2E Auto Signup 1779970584847" [level=2] [ref=e867]
+        - paragraph [ref=e868]: E2E Автор
+        - generic [ref=e870]:
+          - paragraph [ref=e871]: Почему предлагаю прочитать
+          - paragraph [ref=e872]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e874] [cursor=pointer]
+      - article [ref=e875]:
+        - 'generic "Обложка: E2E Auto Signup 1779970016346" [ref=e878]':
+          - generic [ref=e879]: EА
+        - generic [ref=e880]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e881] [cursor=pointer]:
+            - img [ref=e882]
+          - generic [ref=e884]: Новая
+        - heading "E2E Auto Signup 1779970016346" [level=2] [ref=e887]
+        - paragraph [ref=e888]: E2E Автор
+        - generic [ref=e890]:
+          - paragraph [ref=e891]: Почему предлагаю прочитать
+          - paragraph [ref=e892]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e894] [cursor=pointer]
+      - article [ref=e895]:
+        - 'generic "Обложка: E2E Auto Signup 1779969471814" [ref=e898]':
+          - generic [ref=e899]: EА
+        - generic [ref=e900]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e901] [cursor=pointer]:
+            - img [ref=e902]
+          - generic [ref=e904]: Новая
+        - heading "E2E Auto Signup 1779969471814" [level=2] [ref=e907]
+        - paragraph [ref=e908]: E2E Автор
+        - generic [ref=e910]:
+          - paragraph [ref=e911]: Почему предлагаю прочитать
+          - paragraph [ref=e912]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e914] [cursor=pointer]
+      - article [ref=e915]:
+        - 'generic "Обложка: E2E Auto Signup 1779969037047" [ref=e918]':
+          - generic [ref=e919]: EА
+        - generic [ref=e920]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e921] [cursor=pointer]:
+            - img [ref=e922]
+          - generic [ref=e924]: Новая
+        - heading "E2E Auto Signup 1779969037047" [level=2] [ref=e927]
+        - paragraph [ref=e928]: E2E Автор
+        - generic [ref=e930]:
+          - paragraph [ref=e931]: Почему предлагаю прочитать
+          - paragraph [ref=e932]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e934] [cursor=pointer]
+      - article [ref=e935]:
+        - 'generic "Обложка: E2E Auto Signup 1779968990922" [ref=e938]':
+          - generic [ref=e939]: EА
+        - generic [ref=e940]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e941] [cursor=pointer]:
+            - img [ref=e942]
+          - generic [ref=e944]: Новая
+        - heading "E2E Auto Signup 1779968990922" [level=2] [ref=e947]
+        - paragraph [ref=e948]: E2E Автор
+        - generic [ref=e950]:
+          - paragraph [ref=e951]: Почему предлагаю прочитать
+          - paragraph [ref=e952]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e954] [cursor=pointer]
+      - article [ref=e955]:
+        - 'generic "Обложка: E2E Auto Signup 1779968100835" [ref=e958]':
+          - generic [ref=e959]: EА
+        - generic [ref=e960]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e961] [cursor=pointer]:
+            - img [ref=e962]
+          - generic [ref=e964]: Новая
+        - heading "E2E Auto Signup 1779968100835" [level=2] [ref=e967]
+        - paragraph [ref=e968]: E2E Автор
+        - generic [ref=e970]:
+          - paragraph [ref=e971]: Почему предлагаю прочитать
+          - paragraph [ref=e972]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e974] [cursor=pointer]
+      - article [ref=e975]:
+        - 'generic "Обложка: E2E Auto Signup 1779967846403" [ref=e978]':
+          - generic [ref=e979]: EА
+        - generic [ref=e980]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e981] [cursor=pointer]:
+            - img [ref=e982]
+          - generic [ref=e984]: Новая
+        - heading "E2E Auto Signup 1779967846403" [level=2] [ref=e987]
+        - paragraph [ref=e988]: E2E Автор
+        - generic [ref=e990]:
+          - paragraph [ref=e991]: Почему предлагаю прочитать
+          - paragraph [ref=e992]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e994] [cursor=pointer]
+      - article [ref=e995]:
+        - 'generic "Обложка: E2E Auto Signup 1779967253345" [ref=e998]':
+          - generic [ref=e999]: EА
+        - generic [ref=e1000]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1001] [cursor=pointer]:
+            - img [ref=e1002]
+          - generic [ref=e1004]: Новая
+        - heading "E2E Auto Signup 1779967253345" [level=2] [ref=e1007]
+        - paragraph [ref=e1008]: E2E Автор
+        - generic [ref=e1010]:
+          - paragraph [ref=e1011]: Почему предлагаю прочитать
+          - paragraph [ref=e1012]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1014] [cursor=pointer]
+      - article [ref=e1015]:
+        - 'generic "Обложка: E2E Auto Signup 1779966815175" [ref=e1018]':
+          - generic [ref=e1019]: EА
+        - generic [ref=e1020]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1021] [cursor=pointer]:
+            - img [ref=e1022]
+          - generic [ref=e1024]: Новая
+        - heading "E2E Auto Signup 1779966815175" [level=2] [ref=e1027]
+        - paragraph [ref=e1028]: E2E Автор
+        - generic [ref=e1030]:
+          - paragraph [ref=e1031]: Почему предлагаю прочитать
+          - paragraph [ref=e1032]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1034] [cursor=pointer]
+      - article [ref=e1035]:
+        - 'generic "Обложка: E2E Auto Signup 1779965173747" [ref=e1038]':
+          - generic [ref=e1039]: EА
+        - generic [ref=e1040]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1041] [cursor=pointer]:
+            - img [ref=e1042]
+          - generic [ref=e1044]: Новая
+        - heading "E2E Auto Signup 1779965173747" [level=2] [ref=e1047]
+        - paragraph [ref=e1048]: E2E Автор
+        - generic [ref=e1050]:
+          - paragraph [ref=e1051]: Почему предлагаю прочитать
+          - paragraph [ref=e1052]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1054] [cursor=pointer]
+      - article [ref=e1055]:
+        - 'generic "Обложка: E2E Auto Signup 1779964735382" [ref=e1058]':
+          - generic [ref=e1059]: EА
+        - generic [ref=e1060]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1061] [cursor=pointer]:
+            - img [ref=e1062]
+          - generic [ref=e1064]: Новая
+        - heading "E2E Auto Signup 1779964735382" [level=2] [ref=e1067]
+        - paragraph [ref=e1068]: E2E Автор
+        - generic [ref=e1070]:
+          - paragraph [ref=e1071]: Почему предлагаю прочитать
+          - paragraph [ref=e1072]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1074] [cursor=pointer]
+      - article [ref=e1075]:
+        - 'generic "Обложка: E2E Auto Signup 1779964199094" [ref=e1078]':
+          - generic [ref=e1079]: EА
+        - generic [ref=e1080]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1081] [cursor=pointer]:
+            - img [ref=e1082]
+          - generic [ref=e1084]: Новая
+        - heading "E2E Auto Signup 1779964199094" [level=2] [ref=e1087]
+        - paragraph [ref=e1088]: E2E Автор
+        - generic [ref=e1090]:
+          - paragraph [ref=e1091]: Почему предлагаю прочитать
+          - paragraph [ref=e1092]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1094] [cursor=pointer]
+      - article [ref=e1095]:
+        - 'generic "Обложка: E2E Auto Signup 1779964107106" [ref=e1098]':
+          - generic [ref=e1099]: EА
+        - generic [ref=e1100]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1101] [cursor=pointer]:
+            - img [ref=e1102]
+          - generic [ref=e1104]: Новая
+        - heading "E2E Auto Signup 1779964107106" [level=2] [ref=e1107]
+        - paragraph [ref=e1108]: E2E Автор
+        - generic [ref=e1110]:
+          - paragraph [ref=e1111]: Почему предлагаю прочитать
+          - paragraph [ref=e1112]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1114] [cursor=pointer]
+      - article [ref=e1115]:
+        - 'generic "Обложка: E2E Auto Signup 1779964049064" [ref=e1118]':
+          - generic [ref=e1119]: EА
+        - generic [ref=e1120]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1121] [cursor=pointer]:
+            - img [ref=e1122]
+          - generic [ref=e1124]: Новая
+        - heading "E2E Auto Signup 1779964049064" [level=2] [ref=e1127]
+        - paragraph [ref=e1128]: E2E Автор
+        - generic [ref=e1130]:
+          - paragraph [ref=e1131]: Почему предлагаю прочитать
+          - paragraph [ref=e1132]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1134] [cursor=pointer]
+      - article [ref=e1135]:
+        - 'generic "Обложка: E2E Auto Signup 1779963660414" [ref=e1138]':
+          - generic [ref=e1139]: EА
+        - generic [ref=e1140]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1141] [cursor=pointer]:
+            - img [ref=e1142]
+          - generic [ref=e1144]: Новая
+        - heading "E2E Auto Signup 1779963660414" [level=2] [ref=e1147]
+        - paragraph [ref=e1148]: E2E Автор
+        - generic [ref=e1150]:
+          - paragraph [ref=e1151]: Почему предлагаю прочитать
+          - paragraph [ref=e1152]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1154] [cursor=pointer]
+      - article [ref=e1155]:
+        - 'generic "Обложка: E2E Auto Signup 1779963481910" [ref=e1158]':
+          - generic [ref=e1159]: EА
+        - generic [ref=e1160]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1161] [cursor=pointer]:
+            - img [ref=e1162]
+          - generic [ref=e1164]: Новая
+        - heading "E2E Auto Signup 1779963481910" [level=2] [ref=e1167]
+        - paragraph [ref=e1168]: E2E Автор
+        - generic [ref=e1170]:
+          - paragraph [ref=e1171]: Почему предлагаю прочитать
+          - paragraph [ref=e1172]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1174] [cursor=pointer]
+      - article [ref=e1175]:
+        - 'generic "Обложка: E2E Auto Signup 1779948174499" [ref=e1178]':
+          - generic [ref=e1179]: EА
+        - generic [ref=e1180]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1181] [cursor=pointer]:
+            - img [ref=e1182]
+          - generic [ref=e1184]: Новая
+        - heading "E2E Auto Signup 1779948174499" [level=2] [ref=e1187]
+        - paragraph [ref=e1188]: E2E Автор
+        - generic [ref=e1190]:
+          - paragraph [ref=e1191]: Почему предлагаю прочитать
+          - paragraph [ref=e1192]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1194] [cursor=pointer]
+      - article [ref=e1195]:
+        - 'generic "Обложка: E2E Auto Signup 1779947795463" [ref=e1198]':
+          - generic [ref=e1199]: EА
+        - generic [ref=e1200]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1201] [cursor=pointer]:
+            - img [ref=e1202]
+          - generic [ref=e1204]: Новая
+        - heading "E2E Auto Signup 1779947795463" [level=2] [ref=e1207]
+        - paragraph [ref=e1208]: E2E Автор
+        - generic [ref=e1210]:
+          - paragraph [ref=e1211]: Почему предлагаю прочитать
+          - paragraph [ref=e1212]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1215] [cursor=pointer]
+      - article [ref=e1216]:
+        - 'generic "Обложка: E2E Auto Signup 1779947244856" [ref=e1219]':
+          - generic [ref=e1220]: EА
+        - generic [ref=e1221]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1222] [cursor=pointer]:
+            - img [ref=e1223]
+          - generic [ref=e1225]: Новая
+        - heading "E2E Auto Signup 1779947244856" [level=2] [ref=e1228]
+        - paragraph [ref=e1229]: E2E Автор
+        - generic [ref=e1231]:
+          - paragraph [ref=e1232]: Почему предлагаю прочитать
+          - paragraph [ref=e1233]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1236] [cursor=pointer]
+      - article [ref=e1237]:
+        - generic [ref=e1238]:
+          - 'img "Обложка: Моя любимая страна" [ref=e1240]'
+          - generic [ref=e1241]: Сейчас читаем
+        - generic [ref=e1242]:
+          - generic [ref=e1243]: Путинизм
+          - generic [ref=e1245]:
+            - img [ref=e1246]
+            - text: "3"
+        - generic [ref=e1250]: Сейчас читаем
+        - generic [ref=e1251]:
+          - heading "Моя любимая страна" [level=2] [ref=e1252]
+          - generic [ref=e1253]: "2023"
+        - paragraph [ref=e1254]: Елена Костюченко
+        - generic [ref=e1255]:
+          - generic [ref=e1256]: 229 стр.
+          - link "читать" [ref=e1257] [cursor=pointer]:
+            - /url: https://magaz.global/product/elena-kostyuchenko-moya-lyubimaya-strana
+        - generic [ref=e1259]:
+          - paragraph [ref=e1260]: Почему предлагаю прочитать
+          - paragraph [ref=e1261]: Потому что важно для понимания России
+        - button "Хочу читать" [ref=e1263] [cursor=pointer]
+      - article [ref=e1264]:
+        - generic [ref=e1265]:
+          - 'img "Обложка: Патриот" [ref=e1267]'
+          - generic [ref=e1268]: Сейчас читаем
+        - generic [ref=e1269]:
+          - generic [ref=e1270]: Путинизм
+          - generic [ref=e1272]:
+            - img [ref=e1273]
+            - text: "5"
+        - generic [ref=e1277]: Сейчас читаем
+        - generic [ref=e1278]:
+          - heading "Патриот" [level=2] [ref=e1279]
+          - generic [ref=e1280]: "2024"
+        - paragraph [ref=e1281]: Алексей Навальный
+        - generic [ref=e1282]:
+          - generic [ref=e1283]: 398 стр.
+          - link "читать" [ref=e1284] [cursor=pointer]:
+            - /url: https://www.onebookpublishing.org/products/patriot
+        - generic [ref=e1285]:
+          - paragraph [ref=e1286] [cursor=pointer]: Мемуары российского политика и оппозиционного лидера Алексея Навального, которые он начал писать в 2020 году после отравления «Новичком» и продолжил работу над ними в заключении
+          - button "Читать далее" [ref=e1287] [cursor=pointer]
+        - button "Хочу читать" [ref=e1290] [cursor=pointer]
+      - article [ref=e1291]:
+        - 'img "Обложка: Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [ref=e1294]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e1296] [cursor=pointer]:
+          - img [ref=e1297]
+        - generic [ref=e1299]:
+          - generic [ref=e1300]: Государство
+          - generic [ref=e1302]:
+            - img [ref=e1303]
+            - text: "1"
+        - generic [ref=e1307]:
+          - 'heading "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [level=2] [ref=e1308]'
+          - generic [ref=e1309]: "2012"
+        - paragraph [ref=e1310]: Daron Acemoglu, James A. Robinson
+        - generic [ref=e1311]:
+          - generic [ref=e1312]: 510 стр.
+          - link "читать" [ref=e1313] [cursor=pointer]:
+            - /url: https://webveblen.wordpress.com/wp-content/uploads/2018/06/acemoglu2.pdf
+        - generic [ref=e1314]:
+          - paragraph [ref=e1315] [cursor=pointer]: "Авторы предлагают объяснение мирового неравенства, которое выходит за рамки привычных факторов вроде географии или культуры, и показывают, что решающую роль играют политические и экономические институты — правила, определяющие, кто обладает властью и как распределяются ресурсы. Ключевая идея состоит в том, что богатые страны формируют инклюзивные институты, позволяющие широким слоям населения участвовать в экономике и получать выгоду от своей деятельности, тогда как бедные страны остаются в ловушке экстрактивных институтов, где узкая элита контролирует власть и ограничивает развитие. При этом менее очевидный тезис заключается в том, что такая ситуация часто поддерживается осознанно: правящие группы могут препятствовать реформам и экономическому росту, если эти изменения угрожают их позиции, то есть отсталость может быть не случайной, а логичным следствием структуры власти."
+          - button "Читать далее" [ref=e1316] [cursor=pointer]
+        - button "Хочу читать" [ref=e1318] [cursor=pointer]
+      - article [ref=e1319]:
+        - 'img "Обложка: Диктаторы обмана. Новое лицо тирании в XXI веке" [ref=e1322]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e1324] [cursor=pointer]:
+          - img [ref=e1325]
+        - generic [ref=e1327]:
+          - generic [ref=e1328]: Путинизм
+          - generic [ref=e1330]:
+            - img [ref=e1331]
+            - text: "1"
+        - generic [ref=e1335]:
+          - heading "Диктаторы обмана. Новое лицо тирании в XXI веке" [level=2] [ref=e1336]
+          - generic [ref=e1337]: "2022"
+        - paragraph [ref=e1338]: Сергей Гуриев, Daniel Treisman
+        - generic [ref=e1339]:
+          - generic [ref=e1340]: 500 стр.
+          - link "читать" [ref=e1341] [cursor=pointer]:
+            - /url: https://babook.org/drupal/sites/default/files/2023-07/Dictators1.pdf
+        - generic [ref=e1342]:
+          - paragraph [ref=e1343] [cursor=pointer]: "Авторы объясняют, как в XXI веке изменились авторитарные режимы: если раньше диктаторы удерживали власть через страх, насилие и открытые репрессии, то сегодня всё чаще появляются так называемые «диктаторы обмана», которые действуют иначе — через манипуляцию информацией, пропаганду и имитацию демократических институтов. Авторы показывают, что современные автократы стараются выглядеть законными и популярными, допускают ограниченную оппозицию и выборы, но при этом контролируют медиа и формируют нужную картину реальности, что позволяет им удерживать власть без массового насилия и даже с поддержкой части общества. Такие режимы оказываются не слабее, а часто устойчивее старых диктатур, поскольку люди подчиняются им не из страха, а потому что верят в созданную ими версию реальности и не воспринимают систему как откровенно репрессивную."
+          - button "Читать далее" [ref=e1344] [cursor=pointer]
+        - button "Хочу читать" [ref=e1347] [cursor=pointer]
+      - article [ref=e1348]:
+        - 'img "Обложка: Contentious Politics" [ref=e1351]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e1353] [cursor=pointer]:
+          - img [ref=e1354]
+        - generic [ref=e1356]:
+          - generic [ref=e1357]: Государство
+          - generic [ref=e1359]:
+            - img [ref=e1360]
+            - text: "1"
+        - generic [ref=e1364]:
+          - heading "Contentious Politics" [level=2] [ref=e1365]
+          - generic [ref=e1366]: "2015"
+        - paragraph [ref=e1367]: Charles Tilly, Sidney Tarrow
+        - generic [ref=e1368]:
+          - generic [ref=e1369]: 288 стр.
+          - link "читать" [ref=e1370] [cursor=pointer]:
+            - /url: https://books.apple.com/us/book/contentious-politics/id1024488233
+        - generic [ref=e1371]:
+          - paragraph [ref=e1372] [cursor=pointer]: Авторы предлагают рассматривать протесты, социальные движения и революции как единый процесс, в котором группы предъявляют требования друг другу и государству, а политика развивается через взаимные действия и реакции. Книга показывает, что за внешне разными событиями стоят сходные механизмы — мобилизация участников, ответ государства, эскалация или затухание конфликта. Эта динамика во многом определяет, во что в итоге выливается политическое противостояние. Работа стала одной из ключевых в изучении политических конфликтов и задала современный подход, сместив фокус с отдельных причин на механизмы их развития — как такие процессы возникают, разворачиваются и к чему приводят.
+          - button "Читать далее" [ref=e1373] [cursor=pointer]
+        - button "Хочу читать" [ref=e1376] [cursor=pointer]
+      - article [ref=e1377]:
+        - 'img "Обложка: Возвращение государства. Россия в нулевые (2000-2012)" [ref=e1380]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e1382] [cursor=pointer]:
+          - img [ref=e1383]
+        - generic [ref=e1385]:
+          - generic [ref=e1386]: Путинизм
+          - generic [ref=e1388]:
+            - img [ref=e1389]
+            - text: "2"
+        - generic [ref=e1393]:
+          - heading "Возвращение государства. Россия в нулевые (2000-2012)" [level=2] [ref=e1394]
+          - generic [ref=e1395]: "2023"
+        - paragraph [ref=e1396]: Екатерина Шульман
+        - generic [ref=e1397]:
+          - generic [ref=e1398]: 208 стр.
+          - link "читать" [ref=e1399] [cursor=pointer]:
+            - /url: https://flibusta.su/book/168011-vozvraschenie-gosudarstva-rossiya-v-nulevyie-2000-2012/
+        - generic [ref=e1400]:
+          - paragraph [ref=e1401] [cursor=pointer]: "«Возвращение государства» Екатерины Шульман — это исследование политической истории России в период 2000–2012 годов. Книга анализирует не столько события и фигуры, сколько изменение институтов: как перестраивались государственный аппарат, партийная система, суды, региональная политика, медиа и отношения между государством и обществом. Это попытка показать, как постепенно формируется и закрепляется политический режим и почему он начинает воспроизводить сам себя. Аудио: 6 часов"
+          - button "Читать далее" [ref=e1402] [cursor=pointer]
+        - button "Хочу читать" [ref=e1405] [cursor=pointer]
+      - article [ref=e1406]:
+        - 'img "Обложка: Оружие слабых. Повседневные формы крестьянского сопротивления" [ref=e1409]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e1411] [cursor=pointer]:
+          - img [ref=e1412]
+        - generic [ref=e1414]:
+          - generic [ref=e1415]: Народные движения
+          - generic [ref=e1417]:
+            - img [ref=e1418]
+            - text: "1"
+        - generic [ref=e1422]:
+          - heading "Оружие слабых. Повседневные формы крестьянского сопротивления" [level=2] [ref=e1423]
+          - generic [ref=e1424]: "1985"
+        - paragraph [ref=e1425]: James Scott
+        - generic [ref=e1426]:
+          - generic [ref=e1427]: 390 стр.
+          - link "читать" [ref=e1428] [cursor=pointer]:
+            - /url: https://flibusta.su/book/376190-oruzie-slabyh-povsednevnye-formy-krestanskogo-soprotivlenia/
+        - generic [ref=e1429]:
+          - paragraph [ref=e1430] [cursor=pointer]: "«Оружие слабых» Джеймса Скотта — исследование повседневных форм сопротивления среди сельских жителей в Малайзии. Книга основана на полевой работе автора в конце 1970‑х годов в деревне Седака. В ходе экономических изменений конца 1960‑х – 1970‑х годов (включая механизацию и внедрение новых аграрных технологий) усилилось неравенство в деревне: более обеспеченные хозяйства выигрывали, а бедные теряли доступ к земле и доходам. Вместо открытых протестов и восстаний Скотт показывает, как социально уязвимые группы используют скрытые и низко рискованные стратегии — саботаж, затягивание работы, притворное подчинение, мелкое присвоение ресурсов — чтобы противостоять неравенству и власти. Эта книга расширила понятие сопротивления, и этот подход оказался применимым к рабочим, студентам, мигрантам и другим социальным группам — поэтому работа Скотта остаётся фундаментальной для политологии, социологии и антропологии. Аудио: 17 часов"
+          - button "Читать далее" [ref=e1431] [cursor=pointer]
+        - button "Хочу читать" [ref=e1433] [cursor=pointer]
+      - article [ref=e1434]:
+        - 'img "Обложка: Работа: Капитализм. Экономика. Сопротивление." [ref=e1437]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e1439] [cursor=pointer]:
+          - img [ref=e1440]
+        - generic [ref=e1442]:
+          - generic [ref=e1443]: Капитализм
+          - generic [ref=e1445]:
+            - img [ref=e1446]
+            - text: "3"
+        - generic [ref=e1450]:
+          - 'heading "Работа: Капитализм. Экономика. Сопротивление." [level=2] [ref=e1451]'
+          - generic [ref=e1452]: "2021"
+        - paragraph [ref=e1453]: CrimethInc
+        - generic [ref=e1454]:
+          - generic [ref=e1455]: 340 стр.
+          - link "читать" [ref=e1456] [cursor=pointer]:
+            - /url: https://www.rtpbooks.info/product/rabota-crimethinc/
+        - generic [ref=e1457]:
+          - paragraph [ref=e1458] [cursor=pointer]: Почему во времена значительного технического прогресса нам приходится работать больше, чем когда-либо прежде? Почему, чем больше мы работаем, тем беднее становимся по сравнению с начальниками? Почему во времена кризисов люди так яро защищают свои рабочие места, если никто не любит работать? Сможет ли капитализм пережить ещё одно столетие кризисов? В книге «Работа» рассматриваются эти и многие другие вопросы. Чтобы ответить на них, нам пришлось пересмотреть наш прежний взгляд на трудовую деятельность и выработать более тонкое понимание экономики. Мы провели месяцы, изучая непонятную историю и сравнивая опыт эксплуатации в повседневной жизни, постепенно создавая великую единую теорию современного капитализма.
+          - button "Читать далее" [ref=e1459] [cursor=pointer]
+        - button "Хочу читать" [ref=e1462] [cursor=pointer]
+      - article [ref=e1463]:
+        - 'img "Обложка: Консенсус: Принятие решений в свободном обществе" [ref=e1466]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e1468] [cursor=pointer]:
+          - img [ref=e1469]
+        - generic [ref=e1471]:
+          - generic [ref=e1472]: Демократия
+          - generic [ref=e1474]:
+            - img [ref=e1475]
+            - text: "2"
+        - 'heading "Консенсус: Принятие решений в свободном обществе" [level=2] [ref=e1480]'
+        - paragraph [ref=e1481]: Peter Gelderloos
+        - generic [ref=e1482]:
+          - generic [ref=e1483]: 106 стр.
+          - link "читать" [ref=e1484] [cursor=pointer]:
+            - /url: https://we.riseup.net/assets/64520/consensus.pdf
+        - generic [ref=e1485]:
+          - paragraph [ref=e1486] [cursor=pointer]: Это быстрое и лёгкое руководство по принятию коллективных решений описывает процесс прихода к консенсусу логично, шаг за шагом. Ясная форма позволяет этому пособию быть полезным не только в качестве инструкции для начинающих, но и как справочник для тех, кто уже знаком с принятием решений методом консенсуса. Будучи предназначенным в первую очередь для низовых политических и экологических групп, это руководство может быть полезно всякому, кто предпочитает сотрудничество, а не конфликт.
+          - button "Читать далее" [ref=e1487] [cursor=pointer]
+        - button "Хочу читать" [ref=e1490] [cursor=pointer]
+      - article [ref=e1491]:
+        - 'img "Обложка: Авторитарная Россия" [ref=e1494]'
+        - generic [ref=e1495]:
+          - generic [ref=e1496]: Путинизм
+          - generic [ref=e1498]:
+            - img [ref=e1499]
+            - text: "3"
+        - generic [ref=e1503]:
+          - heading "Авторитарная Россия" [level=2] [ref=e1504]
+          - generic [ref=e1505]: "2021"
+        - paragraph [ref=e1506]: Владимир Гельман
+        - generic [ref=e1507]:
+          - generic [ref=e1508]: 337 стр.
+          - link "читать" [ref=e1509] [cursor=pointer]:
+            - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%90%D0%B2%D1%82%D0%BE%D1%80%D0%B8%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F%20%D0%A0%D0%BE%D1%81%202021%20336%D1%81.pdf
+        - generic [ref=e1510]:
+          - paragraph [ref=e1511] [cursor=pointer]: "В августе 1991 года казалось, что демократия вот-вот наступит. Однако спустя десятилетия стало ясно: страна лишь отдалилась от свободы. Владимир Гельман объясняет, как это произошло. Без детерминизма и демонизации автор пишет о важных вехах политической истории страны: правлении Ельцина, формировании иерархии власти в 2000-х, возрождении оппозиции и застое 2010-х. Кроме того, Владимир Гельман дает определения ключевым терминам и концепциям и сравнивает российский опыт с другими странами. А главное — автор дает развернутый ответ на вопрос «Что ждет Россию в будущем?» Станет ли автократический режим еще более жестким и репрессивным? Или нас ждет «ползучая демократизация»?"
+          - button "Читать далее" [ref=e1512] [cursor=pointer]
+        - button "Хочу читать" [ref=e1515] [cursor=pointer]
+      - article [ref=e1516]:
+        - 'img "Обложка: Жизнь и времена либеральной" [ref=e1519]'
+        - generic [ref=e1520]:
+          - generic [ref=e1521]: Демократия
+          - generic [ref=e1523]:
+            - img [ref=e1524]
+            - text: "1"
+        - generic [ref=e1528]:
+          - heading "Жизнь и времена либеральной" [level=2] [ref=e1529]
+          - generic [ref=e1530]: "1977"
+        - paragraph [ref=e1531]: C. B. Macpherson
+        - generic [ref=e1532]:
+          - generic [ref=e1533]: 173 стр.
+          - link "читать" [ref=e1534] [cursor=pointer]:
+            - /url: https://www.klex.ru/zu1
+        - generic [ref=e1535]:
+          - paragraph [ref=e1536] [cursor=pointer]: Демократию ошибочно смешивать не только с выборами, но и с либерализмом. Макферсон даёт развёрнутый историко-теоретический анализ непростых отношений демократии и либерализма, которые привели к их несчастному браку во второй половине 20 века.
+          - button "Читать далее" [ref=e1537] [cursor=pointer]
+        - button "Хочу читать" [ref=e1540] [cursor=pointer]
+      - article [ref=e1541]:
+        - 'img "Обложка: Принципы представительного правления" [ref=e1544]'
+        - generic [ref=e1545]:
+          - generic [ref=e1546]: Демократия
+          - generic [ref=e1548]:
+            - img [ref=e1549]
+            - text: "2"
+        - generic [ref=e1553]:
+          - heading "Принципы представительного правления" [level=2] [ref=e1554]
+          - generic [ref=e1555]: "1997"
+        - paragraph [ref=e1556]: Bernard Manin
+        - generic [ref=e1557]:
+          - generic [ref=e1558]: 343 стр.
+          - link "читать" [ref=e1559] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/8
+        - generic [ref=e1560]:
+          - paragraph [ref=e1561] [cursor=pointer]: "Манен критикует сложившуюся систему власти в современных демократиях, которая сложилась в результате принятия выборности власти как фундаментального принципа ее функционирования, что привело к формированию аристократической формы представительной системы. Принцип выборности заменил собой более эгалитарный – жребий, использовавшийся в классических республиках. Современная демократия как успешная политическая система, таким образом, стала возможна не столько благодаря этому принципу, сколько из-за действия других компонентов системы. От А. Замятина: «С этой книги следует начать всем, кто до сих пор считает, что сущностью демократии являются выборы и представительство»."
+          - button "Читать далее" [ref=e1562] [cursor=pointer]
+          - paragraph [ref=e1563]:
+            - text: "Ещё рекомендации:"
+            - link "Рекомендация Г. Юдина" [ref=e1564] [cursor=pointer]:
+              - /url: https://openuni.io/course/8-course-7-1/lesson/1/material/752/
+        - button "Хочу читать" [ref=e1566] [cursor=pointer]
+      - article [ref=e1567]:
+        - 'img "Обложка: Народная история США" [ref=e1570]'
+        - generic [ref=e1571]:
+          - generic [ref=e1572]: Народные движения
+          - generic [ref=e1574]:
+            - img [ref=e1575]
+            - text: "1"
+        - generic [ref=e1579]:
+          - heading "Народная история США" [level=2] [ref=e1580]
+          - generic [ref=e1581]: "1980"
+        - paragraph [ref=e1582]: Howard Zinn
+        - generic [ref=e1583]:
+          - generic [ref=e1584]: 880 стр.
+          - link "читать" [ref=e1585] [cursor=pointer]:
+            - /url: https://fb2.top/narodnaya-istoriya-ssha-s-1492-goda-do-nashih-dney-330349
+        - paragraph [ref=e1587]: История американского рабочего и профсоюзного движения
+        - button "Хочу читать" [ref=e1590] [cursor=pointer]
+      - article [ref=e1591]:
+        - 'img "Обложка: Великая трансформация" [ref=e1594]'
+        - generic [ref=e1595]:
+          - generic [ref=e1596]: Государство
+          - generic [ref=e1598]:
+            - img [ref=e1599]
+            - text: "1"
+        - generic [ref=e1603]:
+          - heading "Великая трансформация" [level=2] [ref=e1604]
+          - generic [ref=e1605]: "1944"
+        - paragraph [ref=e1606]: Karl Polanyi
+        - generic [ref=e1607]:
+          - generic [ref=e1608]: 312 стр.
+          - link "читать" [ref=e1609] [cursor=pointer]:
+            - /url: http://rustem-nureev.ru/wp-content/uploads/2011/01/277.pdf
+        - generic [ref=e1610]:
+          - paragraph [ref=e1611] [cursor=pointer]: Исследование посвящено политическим и социальным процессам эпохи становления и развития капитализма. Поланьи утверждает, что рыночную экономику и национальное государство следует рассматривать не по отдельности, а как единое явление — общество рынка, или рыночное общество. Его возникновение разрушило традиционный социальный порядок — на протяжении большей части истории человечества экономическая деятельность не отделялась от социальных отношений, автор подчёркивал грандиозность перемен. Новый институциональный уклад породил контртенденции, которые привели к катаклизмам XX века
+          - button "Читать далее" [ref=e1612] [cursor=pointer]
+          - paragraph [ref=e1613]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв Г. Юдина" [ref=e1614] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=D0pMpy1-Pjw
+        - button "Хочу читать" [ref=e1617] [cursor=pointer]
+      - article [ref=e1618]:
+        - 'img "Обложка: Делать мнение: новая политическая игра" [ref=e1621]'
+        - generic [ref=e1623]: Демократия
+        - generic [ref=e1625]:
+          - 'heading "Делать мнение: новая политическая игра" [level=2] [ref=e1626]'
+          - generic [ref=e1627]: "1990"
+        - paragraph [ref=e1628]: Patrick Champagne
+        - generic [ref=e1629]:
+          - generic [ref=e1630]: 317 стр.
+          - link "читать" [ref=e1631] [cursor=pointer]:
+            - /url: https://scepsis.net/library/id_1093.html
+        - generic [ref=e1632]:
+          - paragraph [ref=e1633] [cursor=pointer]: Специалисты по опросам общественного мнения и телевидение — это не просто два новых игрока в политической игре. Они способствуют созданию системы «политика-медиа-опрос», в которой играют ведущую роль. Вездесущие специалисты по опросам общественного мнения официально претендуют на монополию на научное знание «народной воли» и неофициально предоставляют политическим партиям средства для манипулирования ею. Более того, освещение политики в СМИ, особенно уличных демонстраций, а также сопутствующие им опросы общественного мнения и барометры популярности, способствовали переосмыслению того, что мы сейчас понимаем под выражением «заниматься политикой».
+          - button "Читать далее" [ref=e1634] [cursor=pointer]
+        - button "Хочу читать" [ref=e1636] [cursor=pointer]
+      - article [ref=e1637]:
+        - 'img "Обложка: Долгий двадцатый век" [ref=e1640]'
+        - generic [ref=e1641]:
+          - generic [ref=e1642]: Капитализм
+          - generic [ref=e1644]:
+            - img [ref=e1645]
+            - text: "1"
+        - generic [ref=e1649]:
+          - heading "Долгий двадцатый век" [level=2] [ref=e1650]
+          - generic [ref=e1651]: "2006"
+        - paragraph [ref=e1652]: Giovanni Arrighi
+        - generic [ref=e1653]:
+          - generic [ref=e1654]: 727 стр.
+          - link "читать" [ref=e1655] [cursor=pointer]:
+            - /url: https://crystalbook.ru/wp-content/uploads/2021/05/%D0%90%D1%80%D1%80%D0%B8%D0%B3%D0%B8-%D0%94%D0%B6.-%D0%94%D0%BE%D0%BB%D0%B3%D0%B8%D0%B9-%D0%B4%D0%B2%D0%B0%D0%B4%D1%86%D0%B0%D1%82%D1%8B%D0%B9-%D0%B2%D0%B5%D0%BA.pdf
+        - generic [ref=e1656]:
+          - paragraph [ref=e1657] [cursor=pointer]: Описывает капитализм как череду сменяющих друг друга гегемоний от Генуи и Голландии до Британии и США, каждая из которых в свое время управляла мировой системой. Гегемония это не просто силовое доминирование. Это способность устанавливать правила, которые через идеологические инструменты представляются общими интересами, хотя на деле служат укреплению власти лидера. Сегодня, по его мнению, завершается американский цикл гегемонии, и мир движется в сторону азиатского лидерства, возможно, с доминирующей ролью Китая.
+          - button "Читать далее" [ref=e1658] [cursor=pointer]
+        - button "Хочу читать" [ref=e1661] [cursor=pointer]
+      - article [ref=e1662]:
+        - 'img "Обложка: Миросистемный анализ" [ref=e1665]'
+        - generic [ref=e1666]:
+          - generic [ref=e1667]: Капитализм
+          - generic [ref=e1669]:
+            - img [ref=e1670]
+            - text: "1"
+        - generic [ref=e1674]:
+          - heading "Миросистемный анализ" [level=2] [ref=e1675]
+          - generic [ref=e1676]: "2006"
+        - paragraph [ref=e1677]: Immanuel Wallerstein
+        - generic [ref=e1678]:
+          - generic [ref=e1679]: 248 стр.
+          - link "читать" [ref=e1680] [cursor=pointer]:
+            - /url: https://socioline.ru/files/5/48/vallerstain_i._-_analiz_mirovyh_sistem_i_situaciya_v_sovremennom_mire_-_2001.pdf
+        - generic [ref=e1681]:
+          - paragraph [ref=e1682] [cursor=pointer]: "Автор утверждает, что бедность стран третьего мира - это закономерность рыночной системы, а не ее отклонение. Объясняет, что такой порядок возможен из-за союза национальных государств и корпораций, где первые силой продвигают интересы вторых. Подчеркивает роль социальных наук в политике: они не только изучают реальность, но и формируются в историческом контексте, отражая интересы элит. Это понимание позволяет глубже осмыслить современные общественно-политические институты."
+          - button "Читать далее" [ref=e1683] [cursor=pointer]
+        - button "Хочу читать" [ref=e1686] [cursor=pointer]
+      - article [ref=e1687]:
+        - 'img "Обложка: Капитал и идеология" [ref=e1690]'
+        - generic [ref=e1691]:
+          - generic [ref=e1692]: Капитализм
+          - generic [ref=e1694]:
+            - img [ref=e1695]
+            - text: "2"
+        - generic [ref=e1699]:
+          - heading "Капитал и идеология" [level=2] [ref=e1700]
+          - generic [ref=e1701]: "2019"
+        - paragraph [ref=e1702]: Thomas Piketty
+        - generic [ref=e1703]:
+          - generic [ref=e1704]: 1150 стр.
+          - link "читать" [ref=e1705] [cursor=pointer]:
+            - /url: https://fb2.top/kapital-i-ideologiya-749702
+        - generic [ref=e1706]:
+          - paragraph [ref=e1707] [cursor=pointer]: "Французский экономит Пикетти утверждает, что неравенство в большей степени является политическим и идеологическим феноменом, чем экономическим. Исторический прогресс, по его мнению, достигается через борьбу за равный доступ к благам, а не через оправдание иерархий и частной собственности. Он рассматривает примеры обществ, которые стремились к большему равенству, будь то социалистические проекты XX века или европейские социальные государства. Пикетти подчеркивает: справедливое общество - это не абсолютное равенство, а доступ каждого к как можно большему количеству общественных благ"
+          - button "Читать далее" [ref=e1708] [cursor=pointer]
+        - button "Хочу читать" [ref=e1711] [cursor=pointer]
+      - article [ref=e1712]:
+        - 'img "Обложка: Размышления о представительном правлении" [ref=e1715]'
+        - generic [ref=e1717]: Демократия
+        - generic [ref=e1719]:
+          - heading "Размышления о представительном правлении" [level=2] [ref=e1720]
+          - generic [ref=e1721]: "1861"
+        - paragraph [ref=e1722]: John Stuart Mill
+        - generic [ref=e1723]:
+          - generic [ref=e1724]: 340 стр.
+          - link "читать" [ref=e1725] [cursor=pointer]:
+            - /url: https://readli.net/rassuzhdeniya-o-predstavitelnom-pravlenii/
+        - generic [ref=e1726]:
+          - paragraph [ref=e1727] [cursor=pointer]: Одна из наиболее острых и прозорливых книг ведущего англоязычного мыслителя XIX века. В ней Милль обосновывает необходимость парламентской формы правления со всеобщим представительством от всех классов, что позволит избежать «тирании большинства», диктующей просвещенным меньшинствам свои средние, вернее, посредственные вкусы и представления
+          - button "Читать далее" [ref=e1728] [cursor=pointer]
+          - paragraph [ref=e1729]:
+            - text: "Ещё рекомендации:"
+            - link "Г. Юдин рекомендует" [ref=e1730] [cursor=pointer]:
+              - /url: https://openuni.io/course/8-course-7-1/lesson/1/material/752/
+        - button "Хочу читать" [ref=e1733] [cursor=pointer]
+      - article [ref=e1734]:
+        - 'img "Обложка: Arguing with Zombies: Economics, Politics, and the Fight for a Better Future" [ref=e1737]'
+        - generic [ref=e1739]: Капитализм
+        - generic [ref=e1741]:
+          - 'heading "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future" [level=2] [ref=e1742]'
+          - generic [ref=e1743]: "2020"
+        - paragraph [ref=e1744]: Paul Krugman
+        - generic [ref=e1745]:
+          - generic [ref=e1746]: 464 стр.
+          - link "читать" [ref=e1747] [cursor=pointer]:
+            - /url: https://dokumen.pub/arguing-with-zombies-economics-politics-and-the-fight-for-a-better-future-hardcovernbsped-1324005017-9781324005018.html
+        - generic [ref=e1748]:
+          - paragraph [ref=e1749] [cursor=pointer]: Врагами Кругмана являются «идеи зомби», высказанные в названии его книги, особенно вера в то, что бюджетный дефицит — это всегда плохо, и представление о том, что снижение налогов для богатых может принести пользу кому-либо, кроме плутократов, которые никогда не перестают за них просить
+          - button "Читать далее" [ref=e1750] [cursor=pointer]
+          - paragraph [ref=e1751]:
+            - text: "Ещё рекомендации:"
+            - link "Обзор в Guardian" [ref=e1752] [cursor=pointer]:
+              - /url: https://www.theguardian.com/books/2020/may/03/arguing-with-zombies-review-paul-krugman-trump-republicans
+        - button "Хочу читать" [ref=e1754] [cursor=pointer]
+      - article [ref=e1755]:
+        - 'img "Обложка: Социологическое воображение" [ref=e1758]'
+        - generic [ref=e1759]:
+          - generic [ref=e1760]: Демократия
+          - generic [ref=e1762]:
+            - img [ref=e1763]
+            - text: "1"
+        - generic [ref=e1767]:
+          - heading "Социологическое воображение" [level=2] [ref=e1768]
+          - generic [ref=e1769]: "1959"
+        - paragraph [ref=e1770]: Charles Mills
+        - generic [ref=e1771]:
+          - generic [ref=e1772]: 257 стр.
+          - link "читать" [ref=e1773] [cursor=pointer]:
+            - /url: https://readli.net/sotsiologicheskoe-voobrazhenie/
+        - generic [ref=e1774]:
+          - paragraph [ref=e1775] [cursor=pointer]: "От Г. Юдина: «Социологическое воображение должно быть не только у социологов, но и у любого человека. Оно помогает видеть своё положение в обществе не как индивидуальную проблему, а как часть более широкой социальной структуры. Например, если человек работает изо всех сил, но не может обеспечить себе достойную жизнь, социологическое воображение позволяет осознать, что таких \"слабаков\" миллионы, и это не его личный недостаток, а системная проблема общества» Юдин также отмечает, что понимание того, что мир может быть устроен иначе, является важным элементом образования, особенно для молодых людей. Они должны воспринимать мир не как заранее предопределённый путь, а как пространство для проектирования, где они сами могут задавать вектор изменений"
+          - button "Читать далее" [ref=e1776] [cursor=pointer]
+        - button "Хочу читать" [ref=e1779] [cursor=pointer]
+      - article [ref=e1780]:
+        - 'img "Обложка: Освобождение человека" [ref=e1783]'
+        - generic [ref=e1784]:
+          - generic [ref=e1785]: Левая идея
+          - generic [ref=e1787]:
+            - img [ref=e1788]
+            - text: "1"
+        - generic [ref=e1792]:
+          - heading "Освобождение человека" [level=2] [ref=e1793]
+          - generic [ref=e1794]: "2023"
+        - paragraph [ref=e1795]: Роман Тиса
+        - generic [ref=e1796]:
+          - generic [ref=e1797]: 321 стр.
+          - link "читать" [ref=e1798] [cursor=pointer]:
+            - /url: https://directiolibera.com/osvobozhdenie-cheloveka
+        - generic [ref=e1799]:
+          - paragraph [ref=e1800] [cursor=pointer]: Книга автора, переводчика и редактора марксистского веб-журнала «Вперед» Романа Тисы, в которой он рассуждает о творческом развитии идей Карла Маркса в XX веке, акцентируя внимание на странах «третьего мира»
+          - button "Читать далее" [ref=e1801] [cursor=pointer]
+        - button "Хочу читать" [ref=e1804] [cursor=pointer]
+      - article [ref=e1805]:
+        - 'img "Обложка: Войны в Заливе не было" [ref=e1808]'
+        - generic [ref=e1809]:
+          - generic [ref=e1810]: Демократия
+          - generic [ref=e1812]:
+            - img [ref=e1813]
+            - text: "1"
+        - generic [ref=e1817]:
+          - heading "Войны в Заливе не было" [level=2] [ref=e1818]
+          - generic [ref=e1819]: "1991"
+        - paragraph [ref=e1820]: Jean Baudrillard
+        - generic [ref=e1821]:
+          - generic [ref=e1822]: 82 стр.
+          - link "читать" [ref=e1823] [cursor=pointer]:
+            - /url: https://books.google.rs/books?id=oc1FDQAAQBAJ&pg=PA5&source=gbs_selected_pages&cad=1#v=onepage&q&f=false
+        - generic [ref=e1824]:
+          - paragraph [ref=e1825] [cursor=pointer]: Легендарный текст, прославивший Бодрийяра на весь мир. Война в Персидском заливе осталась в истории не только благодаря участию самой широкой международной коалиции, но и благодаря планетарной телетрансляции в режиме реального времени. Однако Бодрийяр утверждает, что это «не-война», это «не-событие», это то, чего не было. Сама постановка вопроса о, казалось бы, совершенно очевидном факте, о том, что видели все в прямом эфире, поначалу вызвала большой скандал, но теперь заголовок превратился в поговорку, мем, даже своего рода мантру. Эта работа Бодрийяра легла в основу не менее культового, чем «Матрица» голливудского фильма «Хвост виляет собакой».
+          - button "Читать далее" [ref=e1826] [cursor=pointer]
+        - button "Хочу читать" [ref=e1829] [cursor=pointer]
+      - article [ref=e1830]:
+        - 'img "Обложка: Истоки современной политической мысли" [ref=e1833]'
+        - generic [ref=e1834]:
+          - generic [ref=e1835]: Государство
+          - generic [ref=e1837]:
+            - img [ref=e1838]
+            - text: "1"
+        - generic [ref=e1842]:
+          - heading "Истоки современной политической мысли" [level=2] [ref=e1843]
+          - generic [ref=e1844]: "1978"
+        - paragraph [ref=e1845]: Quentin Skinner
+        - generic [ref=e1846]:
+          - generic [ref=e1847]: 973 стр.
+          - link "читать" [ref=e1848] [cursor=pointer]:
+            - /url: https://vse-svobodny.com/product/skinner-k-istoki-sovremennoy-politicheskoy-2-toma/
+        - generic [ref=e1849]:
+          - paragraph [ref=e1850] [cursor=pointer]: "В первом томе своего капитального исторического труда, проясняющего истоки политической мысли Нового времени, Квентин Скиннер излагает методологические принципы своего исследования и объясняет, чем они отличаются от традиционного «текстуалистского» подхода. В первой части тома речь идет об истории республиканского идеала свободы, который начал формироваться в XII — начале XIV века в городах Северной Италии благодаря местной правовой и риторической культуре, а также под влиянием схоластики. Вторая часть посвящена истории политической мысли XV века: Скиннера интересует вопрос о том, насколько она отличается от предшествующей традиции и, в частности, до какой степени Макиавелли наследует и трансформирует гуманистическое понятие добродетели. Распространение гуманистической учености, происходившее в XV — начале XVI века за пределами Италии, составляет содержание третьей части тома. На примере сочинений Эразма Роттердамского, Томаса Мора, английских теоретиков «общего блага» Скиннер показывает, как изменяется традиционное гуманистическое отношение к добродетелям правителя, войне и социальному неравенству. Второй том посвящен исследованию политической мысли Реформации и Контрреформации. Автор прослеживает основные этапы развития лютеранства и кальвинизма, показывая взаимосвязь их идей с томизмом и оккамизмом, а также с гуманистической мыслью и движением концилиаризма. В книге рассказывается история радикальных кальвинистских концепций сопротивления власти, в том числе принадлежавших французским и шотландским революционным теоретикам второй половины XVI в. Подробно рассматривается процесс зарождения теории абсолютной монархии. В заключении выдающийся английский историк и философ излагает концепцию возникновения современного понятия государства."
+          - button "Читать далее" [ref=e1851] [cursor=pointer]
+        - button "Хочу читать" [ref=e1854] [cursor=pointer]
+      - article [ref=e1855]:
+        - 'img "Обложка: The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton" [ref=e1858]'
+        - generic [ref=e1859]:
+          - generic [ref=e1860]: Демократия
+          - generic [ref=e1862]:
+            - img [ref=e1863]
+            - text: "2"
+        - generic [ref=e1867]:
+          - 'heading "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton" [level=2] [ref=e1868]'
+          - generic [ref=e1869]: "1974"
+        - paragraph [ref=e1870]: Benjamin R. Barber
+        - generic [ref=e1871]:
+          - generic [ref=e1872]: 314 стр.
+          - link "читать" [ref=e1873] [cursor=pointer]:
+            - /url: https://dokumen.pub/qdownload/the-death-of-communal-liberty-a-history-of-freedom-in-a-swiss-mountain-canton-9781400867172.html
+        - generic [ref=e1874]:
+          - paragraph [ref=e1875] [cursor=pointer]: Сегодня Швейцария сталкивается с глубокой дилеммой-деревенская жизнь-это жизнь, пострадавшая от столкновения между общинным нормывалом и необходимостью национального выживания в промышленном, урбанизированном мире. Бенджамин Барбер прослеживает происхождение и эволюцию коммунальной свободы в группе альпийских деревень, которые составляют современный кантон Граубунден, и воссоздает свою острую тысячелетнюю борьбу за поддержание этой традиции перед лицом враждебной окружающей среды, иерархических феодальных институтов и европейской власти.
+          - button "Читать далее" [ref=e1876] [cursor=pointer]
+        - button "Хочу читать" [ref=e1878] [cursor=pointer]
+      - article [ref=e1879]:
+        - 'img "Обложка: Государство или Цена порядка" [ref=e1882]'
+        - generic [ref=e1883]:
+          - generic [ref=e1884]: Государство
+          - generic [ref=e1886]:
+            - img [ref=e1887]
+            - text: "1"
+        - generic [ref=e1891]:
+          - heading "Государство или Цена порядка" [level=2] [ref=e1892]
+          - generic [ref=e1893]: "2018"
+        - paragraph [ref=e1894]: Вадим Волков
+        - generic [ref=e1895]:
+          - generic [ref=e1896]: 160 стр.
+          - link "читать" [ref=e1897] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/348
+        - generic [ref=e1898]:
+          - paragraph [ref=e1899] [cursor=pointer]: Как с нами случилось государство? Какова его генеалогия, какие социальные группы его создавали и видоизменяли? Природа государства раскрывается здесь через процессы становления монополии легитимного насилия, налогообложения и юстиции. Что государство дает взамен, изымая и перераспределяя ресурсы общества?
+          - button "Читать далее" [ref=e1900] [cursor=pointer]
+        - button "Хочу читать" [ref=e1903] [cursor=pointer]
+      - article [ref=e1904]:
+        - 'img "Обложка: Управляя пустотой. Размывание западной демократии" [ref=e1907]'
+        - generic [ref=e1909]: Демократия
+        - generic [ref=e1911]:
+          - heading "Управляя пустотой. Размывание западной демократии" [level=2] [ref=e1912]
+          - generic [ref=e1913]: "2019"
+        - paragraph [ref=e1914]: Peter Mair
+        - generic [ref=e1915]:
+          - generic [ref=e1916]: 216 стр.
+          - link "читать" [ref=e1917] [cursor=pointer]:
+            - /url: https://readli.net/upravlyaya-pustotoy-razmyivanie-zapadnoy-demokratii/
+        - generic [ref=e1918]:
+          - paragraph [ref=e1919] [cursor=pointer]: Во всех сложившихся демократиях Западной Европы происходит падение явки избирателей и сокращение числа членов ведущих партий. В книге ведущего ирландского политического ученого Питера Майра оценивается влияние этих изменений, которые свидетельствуют о том, что избиратели покидают политическую арену. Одновременно с этим политические элиты Европы превращаются в однородный профессиональный класс, тесно связанный с государственными институтами, которые предлагают относительную стабильность в мире таких непостоянных избирателей.
+          - button "Читать далее" [ref=e1920] [cursor=pointer]
+        - button "Хочу читать" [ref=e1922] [cursor=pointer]
+      - article [ref=e1923]:
+        - 'img "Обложка: Краткая история равенства" [ref=e1926]'
+        - generic [ref=e1928]: Капитализм
+        - generic [ref=e1930]:
+          - heading "Краткая история равенства" [level=2] [ref=e1931]
+          - generic [ref=e1932]: "2021"
+        - paragraph [ref=e1933]: Thomas Piketty
+        - generic [ref=e1934]:
+          - generic [ref=e1935]: 394 стр.
+          - link "читать" [ref=e1936] [cursor=pointer]:
+            - /url: https://books.yandex.ru/books/i1qwdSc2
+        - generic [ref=e1937]:
+          - paragraph [ref=e1938] [cursor=pointer]: "Ведущий мировой экономист и эксперт в вопросах неравенства представляет краткую и удивительно оптимистичную историю человеческого стремления к равенству, несмотря на кризисы и бедствия. Легко поддаться пессимизму, каждый день слыша о неравенстве. Однако в своей новой книге Тома Пикетти напоминает человечеству, что великий размах истории дает нам основания для оптимизма. Пикетти элегантно и лаконично анализирует великие идеи, которые определили современный мир и разукрасили его оттенками «плохо» и «хорошо»: рост капитализма, революции, империализм, рабство, войны и построение государства всеобщего благосостояния. История равенства — это история насилия и социальной борьбы, перемежающаяся регрессами и катастрофами. Но, несмотря на все это, как показывает Пикетти, человеческие общества неуклонно двигались к более справедливому распределению доходов и активов, сокращению расового и гендерного неравенства и более широкому доступу к здравоохранению, образованию и гражданским правам. Эта книга — одновременно и прекрасное введение в новаторские идеи, развитые в монументальной книге Тома Пикетти «Капитал в XXI веке», и невероятно ценное самостоятельное исследование."
+          - button "Читать далее" [ref=e1939] [cursor=pointer]
+        - button "Хочу читать" [ref=e1942] [cursor=pointer]
+      - article [ref=e1943]:
+        - 'img "Обложка: Революция как момент истины" [ref=e1946]'
+        - generic [ref=e1947]:
+          - generic [ref=e1948]: Народные движения
+          - generic [ref=e1950]:
+            - img [ref=e1951]
+            - text: "3"
+        - generic [ref=e1955]:
+          - heading "Революция как момент истины" [level=2] [ref=e1956]
+          - generic [ref=e1957]: "1997"
+        - paragraph [ref=e1958]: Теодор Шанин
+        - generic [ref=e1959]:
+          - generic [ref=e1960]: 555 стр.
+          - link "читать" [ref=e1961] [cursor=pointer]:
+            - /url: https://rabkrin.org/shanin-teodor-revolyutsiya-kak-moment-istinyi-kniga/
+        - generic [ref=e1962]:
+          - paragraph [ref=e1963] [cursor=pointer]: "Революция 1905-1907 гг. стала для России моментом истины. Развиваясь в направлении, неожиданном и для ее сторонников, и для ее противников, эта революция драматически обнажила новые связки социальных характеристик и способствовала поиску неортодоксальных решений, как политических, так и теоретических. Введение от Шанина: «Первая попытка России понять саму себя с точки зрения современной социальной теории приняла форму спора между славянофилами и западниками. Россия представлялась им или абсолютно уникальным явлением, или же отсталой частью Европы, находящейся ступенькой ниже других европейских стран на единой эволюционной лестнице. Россия не была ни тем, ни другим»"
+          - button "Читать далее" [ref=e1964] [cursor=pointer]
+          - paragraph [ref=e1965]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв Г. Юдина" [ref=e1966] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=Elb91KmxuCw
+        - button "Хочу читать" [ref=e1969] [cursor=pointer]
+      - article [ref=e1970]:
+        - 'img "Обложка: Принуждение, капитал и европейские государства" [ref=e1973]'
+        - generic [ref=e1974]:
+          - generic [ref=e1975]: Государство
+          - generic [ref=e1977]:
+            - img [ref=e1978]
+            - text: "2"
+        - generic [ref=e1982]:
+          - heading "Принуждение, капитал и европейские государства" [level=2] [ref=e1983]
+          - generic [ref=e1984]: "1992"
+        - paragraph [ref=e1985]: Charles Tilly
+        - generic [ref=e1986]:
+          - generic [ref=e1987]: 360 стр.
+          - link "читать" [ref=e1988] [cursor=pointer]:
+            - /url: http://kyiv-heritage-guide.com/sites/default/files/%D0%A2%D0%98%D0%9B%D0%9B%D0%98%20-%20%D0%9F%D1%80%D0%B8%D0%BD%D1%83%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5%202009%20328c.pdf
+        - generic [ref=e1989]:
+          - paragraph [ref=e1990] [cursor=pointer]: Цель данного исследования, по словам автора, при помощи подробного анализа истории Европы дать возможность понять истоки, характер и границы современной мировой системы. Принуждение и капитал являются основой для формирования государств. Начальная дата исследования определяется временем, когда после 990 г. европейские правители в отношении с подвластным населением все больше отходили от захвата необходимых для ведения войны средств в пользу их приобретения. Тем самым создавалась основа для соглашений между насилием и капиталом, обеспечивших участникам права и привилегии, а также форму современных государств.
+          - button "Читать далее" [ref=e1991] [cursor=pointer]
+        - button "Хочу читать" [ref=e1993] [cursor=pointer]
+      - article [ref=e1994]:
+        - 'img "Обложка: Общественное мнение не существует" [ref=e1997]'
+        - generic [ref=e1998]:
+          - generic [ref=e1999]: Демократия
+          - generic [ref=e2001]:
+            - img [ref=e2002]
+            - text: "1"
+        - generic [ref=e2006]:
+          - heading "Общественное мнение не существует" [level=2] [ref=e2007]
+          - generic [ref=e2008]: "1972"
+        - paragraph [ref=e2009]: Pierre Bourdieu
+        - link "читать" [ref=e2011] [cursor=pointer]:
+          - /url: http://bourdieu.name/content/obshhestvennoe-mnenie-ne-sushhestvuet
+        - generic [ref=e2012]:
+          - paragraph [ref=e2013] [cursor=pointer]: "Статья утверждает, что опросы — это инструмент конструирования, а не отражения реальности. Он ставит под сомнение три постулата: что мнение есть у всех, что все мнения равнозначны и что существует единый консенсус. На деле опросы навязывают вопросы и игнорируют силовые отношения"
+          - button "Читать далее" [ref=e2014] [cursor=pointer]
+        - button "Хочу читать" [ref=e2017] [cursor=pointer]
+      - article [ref=e2018]:
+        - 'img "Обложка: Предпринимательское государство" [ref=e2021]'
+        - generic [ref=e2022]:
+          - generic [ref=e2023]: Капитализм
+          - generic [ref=e2025]:
+            - img [ref=e2026]
+            - text: "2"
+        - generic [ref=e2030]:
+          - heading "Предпринимательское государство" [level=2] [ref=e2031]
+          - generic [ref=e2032]: "2023"
+        - paragraph [ref=e2033]: Marijana Macukato
+        - generic [ref=e2034]:
+          - generic [ref=e2035]: 360 стр.
+          - link "читать" [ref=e2036] [cursor=pointer]:
+            - /url: https://id.hse.ru/books/795933140.html
+        - generic [ref=e2037]:
+          - paragraph [ref=e2038] [cursor=pointer]: Показывает, что миф об атлантах, единолично создавших инновационную экономику в своих гаражах, не соответствует той роли, которую на самом деле играло государство в части технологических разработок и рискованных вложений. Даёт новый взгляд на проблемы развития зелёной экономики и показывает, что в господствующей экономической парадигме человечество не сможет создать прорывные инновационные решения для спасения окружающей среды и климата
+          - button "Читать далее" [ref=e2039] [cursor=pointer]
+          - paragraph [ref=e2040]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв А. Замятина" [ref=e2041] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/194
+        - button "Хочу читать" [ref=e2043] [cursor=pointer]
+      - article [ref=e2044]:
+        - 'img "Обложка: Политика в эпоху жесткой экономии" [ref=e2047]'
+        - generic [ref=e2048]:
+          - generic [ref=e2049]: Капитализм
+          - generic [ref=e2051]:
+            - img [ref=e2052]
+            - text: "2"
+        - generic [ref=e2056]:
+          - heading "Политика в эпоху жесткой экономии" [level=2] [ref=e2057]
+          - generic [ref=e2058]: "2015"
+        - paragraph [ref=e2059]: Wolfgang Streeck, Armin Schäfer
+        - generic [ref=e2060]:
+          - generic [ref=e2061]: 392 стр.
+          - link "читать" [ref=e2062] [cursor=pointer]:
+            - /url: https://rabkrin.org/politika-v-epohu-zhestkoy-ekonomii-2015-kniga/
+        - generic [ref=e2063]:
+          - paragraph [ref=e2064] [cursor=pointer]: Многие зрелые демократии приближаются к ситуации фискального кризиса. На протяжении трех десятилетий странам ОЭСР приходится иметь дело с дефицитом бюджета и наращивать долг. В результате все меньшая доля доходов государства может идти на дискреционные расходы и социальные инвестиции, и независимо от того, какая партия находится у власти, ее руки оказываются связаны решениями, принятыми предыдущими правительствами. Текущий финансовый и бюджетный кризис усугубляется долгосрочным сокращением дискреционных расходов; проекты политических изменений больше не вызывают доверия. Многие граждане осознают это и отворачиваются от партийной политики, предпочитая не ходить на выборы
+          - button "Читать далее" [ref=e2065] [cursor=pointer]
+        - button "Хочу читать" [ref=e2068] [cursor=pointer]
+      - article [ref=e2069]:
+        - 'img "Обложка: Недостойное правление" [ref=e2072]'
+        - generic [ref=e2073]:
+          - generic [ref=e2074]: Путинизм
+          - generic [ref=e2076]:
+            - img [ref=e2077]
+            - text: "1"
+        - generic [ref=e2081]:
+          - heading "Недостойное правление" [level=2] [ref=e2082]
+          - generic [ref=e2083]: "2019"
+        - paragraph [ref=e2084]: Владимир Гельман
+        - generic [ref=e2085]:
+          - generic [ref=e2086]: 225 стр.
+          - link "читать" [ref=e2087] [cursor=pointer]:
+            - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%9D%D0%B5%D0%B4%D0%BE%D1%81%D1%82%D0%BE%D0%B9%D0%BD%D0%BE%D0%B5%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%202019%20254c.pdf
+        - generic [ref=e2088]:
+          - paragraph [ref=e2089] [cursor=pointer]: "Описание с сайта ВЦИОМа: «Недостойное правление» — это русский вариант английского bad governance, чьими характеристиками являются извлечение ренты и коррупция как принципы государственного управления, низкое качество госрегулирования и фундаментальное нарушение/извращение принципов верховенства права. Однако в России «недостойное правление» является не дефектом, считает Гельман, а средством удержания политической власти и экономического господства в руках правящих групп, то есть функциональным механизмом управления страной. Этот механизм не достался Российской Федерации в наследство от СССР и/или Российской империи, а сформировался как результат рациональной стратегии правящих групп, направленной на максимизацию власти и господства в политике, богатства и ренты в экономике и на сохранение такого положения дел на возможно более длительную перспективу. Гельман связывает создание такого политического режима в нашей стране со слабостью российского гражданского общества, которое почти не проявляло своего неприятия «недостойного правления» в форме коллективных действий, способных стать сильным вызовом для правящих групп. Именно пассивность граждан позволила чиновникам и олигархам выстроить режим, который не удалось создать в большинстве других стран сопоставимого с нами (а значит, довольно высокого) уровня развития"
+          - button "Читать далее" [ref=e2090] [cursor=pointer]
+        - button "Хочу читать" [ref=e2093] [cursor=pointer]
+      - article [ref=e2094]:
+        - 'img "Обложка: Свобода до либерализма" [ref=e2097]'
+        - generic [ref=e2099]: Демократия
+        - generic [ref=e2101]:
+          - heading "Свобода до либерализма" [level=2] [ref=e2102]
+          - generic [ref=e2103]: "1998"
+        - paragraph [ref=e2104]: Quentin Skinner
+        - generic [ref=e2105]:
+          - generic [ref=e2106]: 113 стр.
+          - link "читать" [ref=e2107] [cursor=pointer]:
+            - /url: https://www.eupress.ru/books/index/item/id/9
+        - generic [ref=e2108]:
+          - paragraph [ref=e2109] [cursor=pointer]: "В первой части автор стремится извлечь из небытия и реабилитировать неоримскую теорию свободных граждан и свободных государств, как она была развита в Англии эпохи раннего Нового времени. Анализ переходит в убедительную апологию природы, целей и задач интеллектуальной истории и истории идей Как говорит профессор Скиннер: «Интеллектуальный историк способен помочь нам понять, в какой мере ценности, воплощенные в современном образе жизни и способе мыслить эти ценности, отражают серию выборов, сделанных между различными возможными мирами в различные исторические эпохи». Предлагаемый читателю очерк — одно из самых существенных современных высказываний о важности, актуальности и возможной радости от такого рода исторического исследования"
+          - button "Читать далее" [ref=e2110] [cursor=pointer]
+        - button "Хочу читать" [ref=e2113] [cursor=pointer]
+      - article [ref=e2114]:
+        - 'img "Обложка: Долг: первые 5000 лет истории" [ref=e2117]'
+        - generic [ref=e2118]:
+          - generic [ref=e2119]: Капитализм
+          - generic [ref=e2121]:
+            - img [ref=e2122]
+            - text: "1"
+        - generic [ref=e2126]:
+          - 'heading "Долг: первые 5000 лет истории" [level=2] [ref=e2127]'
+          - generic [ref=e2128]: "2011"
+        - paragraph [ref=e2129]: David Graeber
+        - generic [ref=e2130]:
+          - generic [ref=e2131]: 534 стр.
+          - link "читать" [ref=e2132] [cursor=pointer]:
+            - /url: https://monoskop.org/images/c/cd/Greber_Devid_Dolg_pervyye_5000_let_istorii_2015.pdf
+        - generic [ref=e2133]:
+          - paragraph [ref=e2134] [cursor=pointer]: Масштабное и революционное исследование истории товарно-денежных отношений с древнейших времен до наших дней, предпринятое американским антропологом, профессором Лондонской школы экономики и одним из «антилидеров» движения “Occupy Wall street”, придумавшим слоган «Нас - 99%». Гребер, опираясь на антропологические методы, выдвигает тезис, что в основе того, что мы традиционно называем экономикой, лежит долг, который на разных этапах развития общества может принимать формы денег, бартера, залогов, кредитов, акций и так далее. Один из императивов книги — вырвать экономику из рук «профессиональных экономистов», доказавших свою несостоятельность во время последнего мирового кризиса, и поместить ее в более широкий контекст истории культуры, политологии, социологии и иных гуманитарных дисциплин. Для широкого круга читателей.
+          - button "Читать далее" [ref=e2135] [cursor=pointer]
+        - button "Хочу читать" [ref=e2138] [cursor=pointer]
+      - article [ref=e2139]:
+        - 'img "Обложка: Купленное время. Отсроченный кризис демократического капитализма" [ref=e2142]'
+        - generic [ref=e2143]:
+          - generic [ref=e2144]: Капитализм
+          - generic [ref=e2146]:
+            - img [ref=e2147]
+            - text: "1"
+        - generic [ref=e2151]:
+          - heading "Купленное время. Отсроченный кризис демократического капитализма" [level=2] [ref=e2152]
+          - generic [ref=e2153]: "2019"
+        - paragraph [ref=e2154]: Wolfgang Streeck
+        - generic [ref=e2155]:
+          - generic [ref=e2156]: 280 стр.
+          - link "читать" [ref=e2157] [cursor=pointer]:
+            - /url: https://www.labirint.ru/books/683515/
+        - generic [ref=e2158]:
+          - paragraph [ref=e2159] [cursor=pointer]: Автор анализирует истоки последних финансового, налогового и экономического кризисов, рассматривая их как часть длительной неолиберальной трансформации послевоенного капитализма, начавшейся в 1970-х годах
+          - button "Читать далее" [ref=e2160] [cursor=pointer]
+        - button "Хочу читать" [ref=e2162] [cursor=pointer]
+      - article [ref=e2163]:
+        - 'img "Обложка: Будущая революция" [ref=e2166]'
+        - generic [ref=e2167]:
+          - generic [ref=e2168]: Левая идея
+          - generic [ref=e2170]:
+            - img [ref=e2171]
+            - text: "2"
+        - generic [ref=e2175]:
+          - heading "Будущая революция" [level=2] [ref=e2176]
+          - generic [ref=e2177]: "2023"
+        - paragraph [ref=e2178]: Murray Bookchin
+        - generic [ref=e2179]:
+          - generic [ref=e2180]: 248 стр.
+          - link "читать" [ref=e2181] [cursor=pointer]:
+            - /url: https://www.rtpbooks.info/product/budushhaja-revoljucija-narodnye-assamblei-i-perspektiva-prjamoj-demokratii-mjurrej-bukchin/
+        - generic [ref=e2182]:
+          - paragraph [ref=e2183] [cursor=pointer]: "Девять коротких очерков, в которых автор рассуждает об актуальных проблемах современного революционного движения, критикует неудачи прошлых движений за социальные перемены и крупными мазками намечает контуры свободного общества будущего. Букчин показывает ошибочность прогнозов Маркса и считает классовый подход слишком узким для понимания современности и мобилизации широких масс. Большую мобилизующую силу он видит в проблемах разрушения окружающей среды, качества жилого пространства и участия в жизни общины. Букчин последовательно выстраивает критику государства и парламентской демократии, предлагая взамен конфедералистскую альтернативу, основанную на сети принимающих решения народных ассамблей, которые делегируют отзываемых депутатов для решения проблем на разных уровнях. Коммуналистский проект Букчина задает принципы будущего общества: муниципальная экономика взамен капиталистической, социальная экология и самое широкое использование прямой демократии посредством народных собраний, объединенных в конфедерации."
+          - button "Читать далее" [ref=e2184] [cursor=pointer]
+        - button "Хочу читать" [ref=e2187] [cursor=pointer]
+      - article [ref=e2188]:
+        - 'img "Обложка: Доктирна шока" [ref=e2191]'
+        - generic [ref=e2192]:
+          - generic [ref=e2193]: Капитализм
+          - generic [ref=e2195]:
+            - img [ref=e2196]
+            - text: "2"
+        - generic [ref=e2200]:
+          - heading "Доктирна шока" [level=2] [ref=e2201]
+          - generic [ref=e2202]: "2009"
+        - paragraph [ref=e2203]: Naomi Klein
+        - generic [ref=e2204]:
+          - generic [ref=e2205]: 656 стр.
+          - link "читать" [ref=e2206] [cursor=pointer]:
+            - /url: https://royallib.com/read/klyayn_naomi/doktrina_shoka_stanovlenie_kapitalizma_katastrof.html#0
+        - generic [ref=e2207]:
+          - paragraph [ref=e2208] [cursor=pointer]: История о том, как американская "свободная рыночная экномика" покоряет мир. Авторка считает, что экономисты Чикагской школы причастны к тому, что кризисные ситуации в разных странах мира оказались использованы для построения антидемократичских корпоратвных экономик. Наоми Кляйн называет это явление "доктриной шока". Она описывает, как полтики, экономисты и коммерсанты используют замешательство во вермя потрясений, чтобы проводить экономические реформы. Такие реформы известны как "шоковая терапия" - отсюда и название книги
+          - button "Читать далее" [ref=e2209] [cursor=pointer]
+        - button "Хочу читать" [ref=e2212] [cursor=pointer]
+      - article [ref=e2213]:
+        - 'img "Обложка: Краткая история неолиберализма" [ref=e2216]'
+        - generic [ref=e2217]:
+          - generic [ref=e2218]: Капитализм
+          - generic [ref=e2220]:
+            - img [ref=e2221]
+            - text: "3"
+        - generic [ref=e2225]:
+          - heading "Краткая история неолиберализма" [level=2] [ref=e2226]
+          - generic [ref=e2227]: "2007"
+        - paragraph [ref=e2228]: David Harvey
+        - generic [ref=e2229]:
+          - generic [ref=e2230]: 288 стр.
+          - link "читать" [ref=e2231] [cursor=pointer]:
+            - /url: https://royallib.com/read/harvi_devid/kratkaya_istoriya_neoliberalizma.html#0
+        - generic [ref=e2232]:
+          - paragraph [ref=e2233] [cursor=pointer]: Основа для тех, кто не очень понимает, что такое неолиберализм, но хочет разобраться. Автор рассказывает, как направление зарождалось и распространялось по всему миру. Харви не только критикует опасные последствия неолибрельаного порядка, но и описывает альтернативы
+          - button "Читать далее" [ref=e2234] [cursor=pointer]
+        - button "Хочу читать" [ref=e2237] [cursor=pointer]
+      - article [ref=e2238]:
+        - 'img "Обложка: The semisovereign people" [ref=e2241]'
+        - generic [ref=e2243]: Демократия
+        - generic [ref=e2245]:
+          - heading "The semisovereign people" [level=2] [ref=e2246]
+          - generic [ref=e2247]: "1960"
+        - paragraph [ref=e2248]: Schattschneider
+        - generic [ref=e2249]:
+          - generic [ref=e2250]: 180 стр.
+          - link "читать" [ref=e2251] [cursor=pointer]:
+            - /url: https://archive.org/details/semisovereignpeo00scha/mode/2up
+        - generic [ref=e2252]:
+          - paragraph [ref=e2253] [cursor=pointer]: Предполагается, что политики вынуждены балансировать между интересами общества и проводить компромиссную политику. Но это так не происходит. Если посмотреть на соц опросы о контроле над рождаемостью, бюджете, смертной казни, разводах, трудовых отношениях, налогах на сверхдоходы, свободе слова, рассовых отношения и так далее, то мы увидим, что общественное мнение по этим вопросам никак не влияет на политический курс, который реализуется в реальности. На самом деле группы с низкими доходами не представлены в этой конкуренции, в плюрализме мнений.
+          - button "Читать далее" [ref=e2254] [cursor=pointer]
+          - paragraph [ref=e2255]:
+            - text: "Ещё рекомендации:"
+            - link "Саммари от политолога" [ref=e2256] [cursor=pointer]:
+              - /url: https://adambrown.info/p/notes/schattschneider_the_semisovereign_people
+        - button "Хочу читать" [ref=e2258] [cursor=pointer]
+      - article [ref=e2259]:
+        - 'img "Обложка: Демократия, или Демон и Гегемон" [ref=e2262]'
+        - generic [ref=e2263]:
+          - generic [ref=e2264]: Демократия
+          - generic [ref=e2266]:
+            - img [ref=e2267]
+            - text: "2"
+        - generic [ref=e2271]:
+          - heading "Демократия, или Демон и Гегемон" [level=2] [ref=e2272]
+          - generic [ref=e2273]: "2016"
+        - paragraph [ref=e2274]: Артемий Магун
+        - generic [ref=e2275]:
+          - generic [ref=e2276]: 152 стр.
+          - link "читать" [ref=e2277] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/409
+        - generic [ref=e2278]:
+          - paragraph [ref=e2279] [cursor=pointer]: Самая обширная русскоязычная работа по политической теории демократии, по которой вы можете начать ориентироваться в сюжетах внутри этого огромного понятия
+          - button "Читать далее" [ref=e2280] [cursor=pointer]
+        - button "Хочу читать" [ref=e2283] [cursor=pointer]
+      - article [ref=e2284]:
+        - 'img "Обложка: Заря всего" [ref=e2287]'
+        - generic [ref=e2288]:
+          - generic [ref=e2289]: Государство
+          - generic [ref=e2291]:
+            - img [ref=e2292]
+            - text: "3"
+        - generic [ref=e2296]:
+          - heading "Заря всего" [level=2] [ref=e2297]
+          - generic [ref=e2298]: "2024"
+        - paragraph [ref=e2299]: David Wengrow, David Graeber
+        - generic [ref=e2300]:
+          - generic [ref=e2301]: 560 стр.
+          - link "читать" [ref=e2302] [cursor=pointer]:
+            - /url: "https://books.yandex.ru/books/VMifNlUI "
+        - generic [ref=e2303]:
+          - paragraph [ref=e2304] [cursor=pointer]: Авторы бросают вызов доминирующим представлениям о развитии общества как о движении от эгалитарных групп охотников-собирателей — через аграрную революцию и урбанизацию — к созданию иерархических государств. По их мнению, этот традиционный нарратив лишь воспроизводит мифы, укоренившиеся в исторической науке. Основываясь на данных археологии, антропологии и смежных дисциплин, полученных за последние десятилетия, Гребер и Уэнгроу предлагают посмотреть на социальную историю извне западного канона. «Заря всего» возникла как своего рода игра, неформальная дискуссия антрополога и археолога об истории человечества, и превратилась в захватывающее интеллектуальное путешествие
+          - button "Читать далее" [ref=e2305] [cursor=pointer]
+          - paragraph [ref=e2306]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв А. Замятина" [ref=e2307] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/88
+        - button "Хочу читать" [ref=e2310] [cursor=pointer]
+      - article [ref=e2311]:
+        - 'img "Обложка: Революционный темперамент. Париж в 1748–1789 годах" [ref=e2314]'
+        - generic [ref=e2315]:
+          - generic [ref=e2316]: Народные движения
+          - generic [ref=e2318]:
+            - img [ref=e2319]
+            - text: "1"
+        - generic [ref=e2323]:
+          - heading "Революционный темперамент. Париж в 1748–1789 годах" [level=2] [ref=e2324]
+          - generic [ref=e2325]: "2026"
+        - paragraph [ref=e2326]: Robert Darnton
+        - generic [ref=e2327]:
+          - generic [ref=e2328]: 242 стр.
+          - link "читать" [ref=e2329] [cursor=pointer]:
+            - /url: https://books.yandex.ru/books/OPaDWzEK
+        - generic [ref=e2330]:
+          - paragraph [ref=e2331] [cursor=pointer]: "Как Париж пришел к 1789 году? Что на самом деле думали и чувствовали парижане в десятилетия, предшествовавшие Великой французской революции? Выдающийся историк Р. Дарнтон в своей новой книге предлагает оригинальный ответ: он исследует не столько политико-экономические причины революции, сколько созревание особого «революционного темперамента» — коллективного умонастроения, которое сделало возможным взрыв 1789 года. Дарнтон погружает читателя в гущу парижской жизни 1748–1789 годов, прослеживая формирование нового общественного сознания через уникальную «мультимедийную систему» Старого порядка: как новости о войне, налогах, королевских любовницах и полетах на воздушном шаре превращались в песни, памфлеты, слухи и сплетни, распространяясь от салонов и кофеен до рынков и мастерских. Анализируя циркуляцию этих информационных потоков, автор реконструирует социальный опыт горожан и объясняет, как еще за сорок лет до взятия Бастилии в их сознании закрепилась готовность к радикальным переменам."
+          - button "Читать далее" [ref=e2332] [cursor=pointer]
+          - paragraph [ref=e2333]:
+            - text: "Ещё рекомендации:"
+            - link "Рекомендация А. Замятина" [ref=e2334] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/535
+        - button "Хочу читать" [ref=e2336] [cursor=pointer]
+  - contentinfo [ref=e2337]:
+    - button "Написать автору проекта" [ref=e2339] [cursor=pointer]
+  - dialog [ref=e2340]:
+    - generic [ref=e2341]:
+      - button "Закрыть" [ref=e2342] [cursor=pointer]: ×
+      - paragraph [ref=e2343]: Читательские круги
+      - heading "Расскажите о себе" [level=2] [ref=e2344]
+      - paragraph [ref=e2345]: Чтобы организатор знал, с кем связаться
+      - generic [ref=e2347]:
+        - generic [ref=e2348]: Имя
+        - textbox "Имя" [ref=e2349]:
+          - /placeholder: Как вас зовут
+        - generic [ref=e2350]: Telegram
+        - textbox "Telegram" [ref=e2351]:
+          - /placeholder: "@username"
+        - button "Сохранить" [ref=e2352] [cursor=pointer]
+  - dialog [ref=e2353]:
+    - generic [ref=e2354]:
+      - generic [ref=e2355]:
+        - generic [ref=e2356]: Личный кабинет
+        - generic [ref=e2357]: E2E Submit Auto 1780095329673
+      - button [ref=e2358] [cursor=pointer]: ×
+    - generic [ref=e2359]:
+      - button [ref=e2360] [cursor=pointer]: Мои книги
+      - button [ref=e2361] [cursor=pointer]: Предложил:а
+      - button [ref=e2362] [cursor=pointer]: Профиль
+  - alert [ref=e2366]
+```
