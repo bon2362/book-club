@@ -89,7 +89,7 @@ const mockByBook = [
       isNew: false,
     },
     users: [
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-1', name: 'Анна', email: 'anna@test.com', contacts: '', selectedBooks: ['Книга с одной записью'], selectedBookIds: ['1'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-1', name: 'Анна', email: 'anna@test.com', contacts: '', selectedBooks: ['Книга с одной записью'], selectedBookIds: ['1'], signups: [] },
     ],
   },
   {
@@ -109,9 +109,9 @@ const mockByBook = [
       isNew: false,
     },
     users: [
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-2', name: 'Борис', email: 'boris@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'] },
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-3', name: 'Вера', email: 'vera@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'] },
-      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-4', name: 'Глеб', email: 'gleb@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-2', name: 'Борис', email: 'boris@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'], signups: [] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-3', name: 'Вера', email: 'vera@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'], signups: [] },
+      { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-4', name: 'Глеб', email: 'gleb@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'], signups: [] },
     ],
   },
 ]

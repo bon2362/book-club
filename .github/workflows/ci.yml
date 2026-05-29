@@ -5,8 +5,6 @@ on:
   # (enforce_admins: true), значит push в main = squash-merge от PR,
   # который CI уже проверил. Дублирующий run на main-SHA только тратит
   # CI-время и шумит в UI.
-  # Если когда-нибудь нужен emergency push (см. AGENTS.md), CI на него
-  # не запустится — это норма, emergency edits идут без gate по определению.
   pull_request:
     branches: [main]
 
@@ -19,19 +17,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
+  # ── 1. Lint / typecheck / unit tests ──────────────────────────────────────
+  quality:
     runs-on: ubuntu-latest
-    # Принудительно гоняем все JS-actions (включая transitive — например
-    # actions/github-script внутри codecov-action@v5 и peaceiris/actions-gh-pages@v4,
-    # которые сами ещё не обновились) на Node 24. Иначе GitHub Actions runner
-    # ругается deprecation warning'ами; с сентября 2026 Node 20 будет удалён.
-    # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-    permissions:
-      contents: write
-      pull-requests: write
-
     steps:
       - uses: actions/checkout@v5
 
@@ -41,7 +31,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm ci
+        run: npm ci
 
       - name: Lint
         run: npm run lint
@@ -70,8 +60,52 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  # ── 2. E2E (Playwright) ───────────────────────────────────────────────────
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium --with-deps
+
+      # Если браузер взят из кэша, системные зависимости всё равно нужны
+      # (они не кэшируются), но install-deps без загрузки браузера — быстро.
+      - name: Install Playwright system deps (from cache)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # Синхронизируем схему e2e Neon-ветки с текущим schema.ts.
+      # Используем push (не migrate): ветка создана через Neon branching,
+      # поэтому __drizzle_migrations там нет — migrate пытается накатить
+      # все миграции с нуля и падает на уже существующих таблицах.
+      # push сравнивает schema.ts с реальной БД и применяет только дельту.
+      - name: Sync DB schema (e2e branch)
+        run: npx drizzle-kit push --force
+        env:
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+          SKIP_ENV_VALIDATION: 'true'
 
       - name: Get Allure history from gh-pages
         uses: actions/checkout@v5
@@ -117,6 +151,22 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-report
 
+  # ── 3. Next.js build ──────────────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build
         run: npm run build
         env:
@@ -130,3 +180,20 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           SKIP_ENV_VALIDATION: 'true'
+
+  # ── Gate: branch protection требует check с именем "ci" ───────────────────
+  ci:
+    needs: [quality, e2e, build]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: All jobs passed
+        run: |
+          if [[ "${{ needs.quality.result }}" != "success" || \
+                "${{ needs.e2e.result }}"    != "success" || \
+                "${{ needs.build.result }}"  != "success" ]]; then
+            echo "quality=${{ needs.quality.result }}"
+            echo "e2e=${{ needs.e2e.result }}"
+            echo "build=${{ needs.build.result }}"
+            exit 1
+          fi

@@ -34,6 +34,8 @@ describe('signup-books', () => {
           bookId: 'book-a',
           bookTitle: 'Книга A',
           signedAt: new Date('2026-01-01T00:00:00Z'),
+          personalStatus: null,
+          personalStatusUpdatedAt: null,
         },
         {
           userId: 'user-1',
@@ -45,6 +47,8 @@ describe('signup-books', () => {
           bookId: 'book-b',
           bookTitle: 'Книга B',
           signedAt: new Date('2026-01-01T00:00:00Z'),
+          personalStatus: 'reading',
+          personalStatusUpdatedAt: new Date('2026-02-15T10:00:00Z'),
         },
       ]),
     }
@@ -62,6 +66,20 @@ describe('signup-books', () => {
         contacts: '@ivan',
         selectedBooks: ['Книга A', 'Книга B'],
         selectedBookIds: ['book-a', 'book-b'],
+        signups: [
+          {
+            bookId: 'book-a',
+            personalStatus: null,
+            statusUpdatedAt: null,
+            signedAt: '2026-01-01T00:00:00.000Z',
+          },
+          {
+            bookId: 'book-b',
+            personalStatus: 'reading',
+            statusUpdatedAt: '2026-02-15T10:00:00.000Z',
+            signedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
         prioritiesSet: true,
       },
     ])
