@@ -5,7 +5,6 @@ export interface ScenarioParticipant {
 
 export interface ScenarioBook {
   bookId: string
-  readingStatus: string | null
 }
 
 export interface ScenarioSignup {
@@ -158,9 +157,9 @@ export function generateScenarios(input: GenerateScenariosInput): ScenarioCard[]
     signupsByBook.set(s.bookId, arr)
   }
 
-  // Candidate books: not reading, have ≥ targetGroupSize signups
+  // Candidate books: have ≥ targetGroupSize signups
+  // Note: personal status filtering (reading/read) happens upstream at the call site.
   const candidateBookIds = books
-    .filter(b => b.readingStatus !== 'reading')
     .map(b => b.bookId)
     .filter(bookId => (signupsByBook.get(bookId)?.length ?? 0) >= targetGroupSize)
 

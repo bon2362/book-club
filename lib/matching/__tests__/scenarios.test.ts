@@ -5,8 +5,8 @@ function makeParticipants(n: number) {
   return Array.from({ length: n }, (_, i) => ({ userId: `u${i + 1}`, pseudonym: `Участник${i + 1}` }))
 }
 
-function makeBook(bookId: string, readingStatus: string | null = null) {
-  return { bookId, readingStatus }
+function makeBook(bookId: string) {
+  return { bookId }
 }
 
 function allSignedUp(userIds: string[], bookId: string) {
@@ -43,15 +43,17 @@ describe('generateScenarios', () => {
     expect(result).toEqual([])
   })
 
-  it('excludes books with reading_status=reading', () => {
+  it('includes books regardless of global reading_status (filtering is upstream concern)', () => {
+    // The engine no longer filters by readingStatus — callers filter signups by personalStatus before passing in.
     const result = generateScenarios({
       participants,
-      books: [makeBook('b1', 'reading')],
+      books: [makeBook('b1')],
       signups: allSignedUp(userIds, 'b1'),
       ranks: rankAll(userIds, 'b1', 1),
       targetGroupSize: 3,
     })
-    expect(result).toEqual([])
+    expect(result).toHaveLength(1)
+    expect(result[0].bookId).toBe('b1')
   })
 
   it('excludes books without enough signups', () => {

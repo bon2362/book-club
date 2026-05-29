@@ -27,6 +27,7 @@ export interface BookParticipant {
   bookId: string
   pseudonym: string
   rank: number | null
+  personalStatus: string | null
 }
 
 interface Props {
@@ -53,8 +54,9 @@ function getPseudonymColor(pseudonym: string) {
   return PSEUDONYM_COLORS[Math.abs(hash) % PSEUDONYM_COLORS.length]
 }
 
-function interestLabel(rank: number | null, readingStatus: string | null): string {
-  if (readingStatus === 'reading') return 'читается'
+function interestLabel(rank: number | null, personalStatus: string | null): string {
+  if (personalStatus === 'reading') return 'читаю'
+  if (personalStatus === 'read') return 'прочитал(а)'
   if (rank === null) return 'без ранга'
   if (rank <= 3) return 'хочу читать'
   return 'готов(а)'
@@ -69,6 +71,7 @@ interface SortableRowProps {
   viewingUserId: string
   onMoveUp: (bookId: string) => void
   onMoveDown: (bookId: string) => void
+  onStatusChange: (bookId: string, status: string | null) => void
 }
 
 function SortableRow({
@@ -80,13 +83,14 @@ function SortableRow({
   viewingUserId,
   onMoveUp,
   onMoveDown,
+  onStatusChange,
 }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: book.bookId,
-    disabled: frozen || book.readingStatus === 'reading',
+    disabled: frozen,
   })
 
-  const canReorder = !frozen && book.readingStatus !== 'reading'
+  const canReorder = !frozen
 
   return (
     <li
@@ -99,7 +103,7 @@ function SortableRow({
         gap: '14px',
         padding: '14px 16px',
         borderBottom: '1px solid #ded6c8',
-        opacity: isDragging ? 0.5 : book.readingStatus === 'reading' ? 0.7 : 1,
+        opacity: isDragging ? 0.5 : 1,
         background: isDragging ? '#fff7e7' : undefined,
         alignItems: 'start',
       }}
@@ -130,12 +134,23 @@ function SortableRow({
         <div className="text-xs text-[#6d675f] mb-2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {book.author}
         </div>
+        {!frozen && (
+          <select
+            value={book.personalStatus ?? ''}
+            onChange={(e) => onStatusChange(book.bookId, e.target.value || null)}
+            className="text-[11px] border border-[#ded6c8] rounded px-1.5 py-0.5 bg-[#fafaf8] text-[#6d675f] cursor-pointer hover:border-[#bbb] mb-1.5"
+          >
+            <option value="">В списке</option>
+            <option value="reading">Читаю сейчас</option>
+            <option value="read">Прочитал(а)</option>
+          </select>
+        )}
         {chipsForBook.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {chipsForBook.map((p) => {
               const colors = getPseudonymColor(p.pseudonym)
               const isMe = p.userId === viewingUserId
-              const label = interestLabel(p.rank, book.readingStatus)
+              const label = interestLabel(p.rank, p.personalStatus)
               const rankStr = p.rank != null ? ` #${p.rank}` : ''
               return (
                 <span
@@ -190,11 +205,90 @@ function SortableRow({
   )
 }
 
+interface StatusRowProps {
+  book: PersonalListBook
+  chipsForBook: BookParticipant[]
+  viewingUserId: string
+  frozen: boolean
+  onStatusChange: (bookId: string, status: string | null) => void
+}
+
+function StatusRow({ book, chipsForBook, viewingUserId, frozen, onStatusChange }: StatusRowProps) {
+  const statusLabel = book.personalStatus === 'reading' ? 'Читаю' : 'Прочитал(а)'
+  return (
+    <li
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '52px 1fr',
+        gap: '14px',
+        padding: '14px 16px',
+        borderBottom: '1px solid #ded6c8',
+        alignItems: 'start',
+        opacity: 0.75,
+      }}
+    >
+      <div style={{ position: 'relative' }}>
+        <div className="relative rounded overflow-hidden" style={{ width: 48, height: 68 }}>
+          <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+        </div>
+      </div>
+      <div className="min-w-0">
+        <div className="font-semibold text-sm leading-snug mb-0.5 text-[#191817]" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {book.title}
+        </div>
+        <div className="text-xs text-[#6d675f] mb-2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {book.author}
+        </div>
+        {!frozen ? (
+          <select
+            value={book.personalStatus ?? ''}
+            onChange={(e) => onStatusChange(book.bookId, e.target.value || null)}
+            className="text-[11px] border border-[#ded6c8] rounded px-1.5 py-0.5 bg-[#fafaf8] text-[#6d675f] cursor-pointer hover:border-[#bbb] mb-1.5"
+          >
+            <option value="">В списке</option>
+            <option value="reading">Читаю сейчас</option>
+            <option value="read">Прочитал(а)</option>
+          </select>
+        ) : (
+          <span className="text-[11px] text-[#999] italic mb-1.5">{statusLabel}</span>
+        )}
+        {chipsForBook.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {chipsForBook.map((p) => {
+              const colors = getPseudonymColor(p.pseudonym)
+              const isMe = p.userId === viewingUserId
+              const label = interestLabel(p.rank, p.personalStatus)
+              const rankStr = p.rank != null ? ` #${p.rank}` : ''
+              return (
+                <span
+                  key={p.userId}
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] border ${colors.chip} ${colors.border} ${isMe ? `ring-1 ${colors.ring}` : ''}`}
+                  title={isMe ? 'Это вы' : undefined}
+                >
+                  {p.pseudonym} · {label}{rankStr}
+                </span>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </li>
+  )
+}
+
 async function patchPriorities(bookIds: string[]) {
   await fetch('/api/matching/priorities', {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ bookIds }),
+  })
+}
+
+async function patchStatus(bookId: string, status: string | null) {
+  await fetch(`/api/signup-books/${bookId}/status`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ status }),
   })
 }
 
@@ -213,28 +307,40 @@ export default function MatchingPersonalList({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const applyNewOrder = useCallback(async (newBooks: PersonalListBook[]) => {
-    const rankable = newBooks.filter((b) => b.readingStatus !== 'reading')
-    const ranked = rankable.map((b, i) => ({ ...b, rank: i + 1 }))
-    const updated = newBooks.map((b) => {
-      const r = ranked.find((rb) => rb.bookId === b.bookId)
-      return r ?? b
+  // Re-rank all active books (personalStatus === null) and clear rank on status books
+  function rerank(updatedBooks: PersonalListBook[]): PersonalListBook[] {
+    let rankCounter = 0
+    return updatedBooks.map((b) => {
+      if (b.personalStatus === null) {
+        rankCounter++
+        return { ...b, rank: rankCounter }
+      }
+      return { ...b, rank: null }
     })
-    setBooks(updated)
-    await patchPriorities(rankable.map((b) => b.bookId))
-    return updated
+  }
+
+  const applyNewOrder = useCallback(async (newBooks: PersonalListBook[]) => {
+    const reranked = rerank(newBooks)
+    setBooks(reranked)
+    await patchPriorities(reranked.filter((b) => b.personalStatus === null).map((b) => b.bookId))
+    return reranked
   }, [])
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event
       if (!over || active.id === over.id) return
-      const oldIndex = books.findIndex((b) => b.bookId === active.id)
-      const newIndex = books.findIndex((b) => b.bookId === over.id)
-      const newBooks = arrayMove(books, oldIndex, newIndex)
+      // Only active books are in the DnD context; find within active books
+      const activeBooks = books.filter((b) => b.personalStatus === null)
+      const oldIndex = activeBooks.findIndex((b) => b.bookId === active.id)
+      const newIndex = activeBooks.findIndex((b) => b.bookId === over.id)
+      const reorderedActive = arrayMove(activeBooks, oldIndex, newIndex)
+      // Reconstruct full list: active books (reordered) then status books
+      const statusBooks = books.filter((b) => b.personalStatus !== null)
+      const newBooks = [...reorderedActive, ...statusBooks]
       await applyNewOrder(newBooks)
       setAnnouncement(
-        `Книга ${books[oldIndex].title} перемещена на позицию ${newIndex + 1} из ${books.filter((b) => b.readingStatus !== 'reading').length}`,
+        `Книга ${activeBooks[oldIndex].title} перемещена на позицию ${newIndex + 1} из ${reorderedActive.length}`,
       )
     },
     [books, applyNewOrder],
@@ -242,12 +348,14 @@ export default function MatchingPersonalList({
 
   const handleMoveUp = useCallback(
     async (bookId: string) => {
-      const index = books.findIndex((b) => b.bookId === bookId)
+      const activeBooks = books.filter((b) => b.personalStatus === null)
+      const index = activeBooks.findIndex((b) => b.bookId === bookId)
       if (index <= 0) return
-      const newBooks = arrayMove(books, index, index - 1)
-      await applyNewOrder(newBooks)
+      const reorderedActive = arrayMove(activeBooks, index, index - 1)
+      const statusBooks = books.filter((b) => b.personalStatus !== null)
+      await applyNewOrder([...reorderedActive, ...statusBooks])
       setAnnouncement(
-        `Книга ${books[index].title} перемещена на позицию ${index} из ${books.filter((b) => b.readingStatus !== 'reading').length}`,
+        `Книга ${activeBooks[index].title} перемещена на позицию ${index} из ${reorderedActive.length}`,
       )
     },
     [books, applyNewOrder],
@@ -255,15 +363,37 @@ export default function MatchingPersonalList({
 
   const handleMoveDown = useCallback(
     async (bookId: string) => {
-      const index = books.findIndex((b) => b.bookId === bookId)
-      if (index >= books.length - 1) return
-      const newBooks = arrayMove(books, index, index + 1)
-      await applyNewOrder(newBooks)
+      const activeBooks = books.filter((b) => b.personalStatus === null)
+      const index = activeBooks.findIndex((b) => b.bookId === bookId)
+      if (index >= activeBooks.length - 1) return
+      const reorderedActive = arrayMove(activeBooks, index, index + 1)
+      const statusBooks = books.filter((b) => b.personalStatus !== null)
+      await applyNewOrder([...reorderedActive, ...statusBooks])
       setAnnouncement(
-        `Книга ${books[index].title} перемещена на позицию ${index + 2} из ${books.filter((b) => b.readingStatus !== 'reading').length}`,
+        `Книга ${activeBooks[index].title} перемещена на позицию ${index + 2} из ${reorderedActive.length}`,
       )
     },
     [books, applyNewOrder],
+  )
+
+  const handleStatusChange = useCallback(
+    async (bookId: string, newStatus: string | null) => {
+      // Optimistic update: change personalStatus, then re-rank
+      const updatedBooks = books.map((b) =>
+        b.bookId === bookId ? { ...b, personalStatus: newStatus } : b,
+      )
+      // Keep order: active books first (preserving relative order), then status books
+      const activeBooks = updatedBooks.filter((b) => b.personalStatus === null)
+      const statusBooks = updatedBooks.filter((b) => b.personalStatus !== null)
+      const reranked = rerank([...activeBooks, ...statusBooks])
+      setBooks(reranked)
+
+      await Promise.all([
+        patchStatus(bookId, newStatus),
+        patchPriorities(reranked.filter((b) => b.personalStatus === null).map((b) => b.bookId)),
+      ])
+    },
+    [books],
   )
 
   if (books.length === 0) {
@@ -281,7 +411,8 @@ export default function MatchingPersonalList({
     )
   }
 
-  const rankableCount = books.filter((b) => b.readingStatus !== 'reading').length
+  const activeBooks = books.filter((b) => b.personalStatus === null)
+  const statusBooks = books.filter((b) => b.personalStatus !== null)
 
   return (
     <>
@@ -295,28 +426,58 @@ export default function MatchingPersonalList({
       >
         {announcement}
       </div>
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={books.map((b) => b.bookId)} strategy={verticalListSortingStrategy}>
+        <SortableContext
+          items={activeBooks.map((b) => b.bookId)}
+          strategy={verticalListSortingStrategy}
+        >
           <ul className="list-none p-0 m-0" data-testid="matching-personal-list">
-            {books.map((book, idx) => {
+            {activeBooks.map((book, idx) => {
               const chipsForBook = bookParticipants.filter((p) => p.bookId === book.bookId)
               return (
                 <SortableRow
                   key={book.bookId}
                   book={book}
                   index={idx}
-                  total={rankableCount}
+                  total={activeBooks.length}
                   frozen={frozen}
                   chipsForBook={chipsForBook}
                   viewingUserId={viewingUserId}
                   onMoveUp={handleMoveUp}
                   onMoveDown={handleMoveDown}
+                  onStatusChange={handleStatusChange}
                 />
               )
             })}
           </ul>
         </SortableContext>
       </DndContext>
+
+      {statusBooks.length > 0 && (
+        <>
+          <div className="px-4 py-2 border-b border-[#ded6c8] border-t bg-[#f6f2e8]">
+            <span className="text-[11px] font-medium text-[#999] uppercase tracking-wide">
+              В процессе / Прочитано
+            </span>
+          </div>
+          <ul className="list-none p-0 m-0">
+            {statusBooks.map((book) => {
+              const chipsForBook = bookParticipants.filter((p) => p.bookId === book.bookId)
+              return (
+                <StatusRow
+                  key={book.bookId}
+                  book={book}
+                  chipsForBook={chipsForBook}
+                  viewingUserId={viewingUserId}
+                  frozen={frozen}
+                  onStatusChange={handleStatusChange}
+                />
+              )
+            })}
+          </ul>
+        </>
+      )}
     </>
   )
 }
