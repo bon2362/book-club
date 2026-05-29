@@ -9,6 +9,7 @@ export interface PersonalListBook {
   coverUrl: string | null
   readingStatus: string | null
   rank: number | null
+  personalStatus: string | null
 }
 
 export async function fetchPersonalList(userId: string): Promise<PersonalListBook[]> {
@@ -20,6 +21,7 @@ export async function fetchPersonalList(userId: string): Promise<PersonalListBoo
       coverUrl: books.coverUrl,
       readingStatus: books.readingStatus,
       rank: bookPriorities.rank,
+      personalStatus: signupBooks.personalStatus,
     })
     .from(signupBooks)
     .innerJoin(books, eq(books.id, signupBooks.bookId))

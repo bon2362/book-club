@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { signupBooks, books, matchingSessionParticipants } from '@/lib/db/schema'
-import { eq, and, inArray, notInArray } from 'drizzle-orm'
+import { eq, and, inArray, notInArray, isNull } from 'drizzle-orm'
 
 export interface MyMoveBook {
   bookId: string
@@ -37,7 +37,9 @@ export async function fetchMyMoves(
     .where(eq(signupBooks.userId, userId))
   const myBookIds = mySignups.map(s => s.bookId)
 
-  // Get signups from other participants for books the current user hasn't joined
+  // Get signups from other participants for books the current user hasn't joined.
+  // Exclude signups with a personal_status set (reading/read) — those users are no longer
+  // available as matching candidates for a new group on that book.
   const otherSignups = myBookIds.length > 0
     ? await db
         .select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
@@ -46,12 +48,18 @@ export async function fetchMyMoves(
           and(
             inArray(signupBooks.userId, otherUserIds),
             notInArray(signupBooks.bookId, myBookIds),
+            isNull(signupBooks.personalStatus),
           ),
         )
     : await db
         .select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
         .from(signupBooks)
-        .where(inArray(signupBooks.userId, otherUserIds))
+        .where(
+          and(
+            inArray(signupBooks.userId, otherUserIds),
+            isNull(signupBooks.personalStatus),
+          ),
+        )
 
   // Group by bookId: find books with exactly targetGroupSize-1 other participants signed up
   const countByBook = new Map<string, string[]>()

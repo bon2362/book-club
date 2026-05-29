@@ -113,6 +113,7 @@ export default async function MatchingPage({
             userId: signupBooks.userId,
             bookId: signupBooks.bookId,
             rank: bookPriorities.rank,
+            personalStatus: signupBooks.personalStatus,
           })
           .from(signupBooks)
           .leftJoin(
@@ -136,6 +137,7 @@ export default async function MatchingPage({
                 bookId: row.bookId,
                 pseudonym: participant?.pseudonym ?? row.userId,
                 rank: row.rank,
+                personalStatus: row.personalStatus ?? null,
               }
             }),
           )
@@ -260,7 +262,7 @@ async function fetchAndGenerateScenarios(
 ) {
   const [allSignups, allRanks, allBooks] = await Promise.all([
     db
-      .select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+      .select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
       .from(signupBooks)
       .where(inArray(signupBooks.userId, participantUserIds)),
     db
@@ -272,23 +274,27 @@ async function fetchAndGenerateScenarios(
       .from(bookPriorities)
       .where(inArray(bookPriorities.userId, participantUserIds)),
     db
-      .select({ id: books.id, readingStatus: books.readingStatus })
+      .select({ id: books.id })
       .from(books)
-      .where(and(eq(books.visibility, 'published'))),
+      .where(eq(books.visibility, 'published')),
   ])
 
   // Only include books signed up by at least one session participant
   const signedUpBookIds = new Set(allSignups.map((s) => s.bookId))
   const sessionBooks = allBooks
     .filter((b) => signedUpBookIds.has(b.id))
-    .map((b) => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
+    .map((b) => ({ bookId: b.id }))
+
+  // Exclude signups where the user has set a personal status (reading/read) —
+  // they are no longer available as candidates for a new group on that book.
+  const activeSignups = allSignups.filter((s) => s.personalStatus === null)
 
   const scenarioParticipants = participantUserIds.map((userId) => ({ userId, pseudonym: userId }))
 
   return generateScenarios({
     participants: scenarioParticipants,
     books: sessionBooks,
-    signups: allSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
+    signups: activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
     ranks: allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),
     targetGroupSize,
     maxResults: 10,

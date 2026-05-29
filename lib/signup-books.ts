@@ -96,14 +96,31 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
   const unique = new Map<string, SignupBookInput>()
   for (const book of selectedBooks) unique.set(book.id, book)
   const normalized = Array.from(unique.values())
+  const newBookIds = normalized.map(b => b.id)
 
   await db.transaction(async (tx) => {
-    await tx.delete(signupBooks).where(eq(signupBooks.userId, userId))
+    // Fetch current signups to determine what changed
+    const existing = await tx
+      .select({ bookId: signupBooks.bookId })
+      .from(signupBooks)
+      .where(eq(signupBooks.userId, userId))
 
-    if (normalized.length > 0) {
+    const existingIds = new Set(existing.map(e => e.bookId))
+    const toDelete = Array.from(existingIds).filter(id => !newBookIds.includes(id))
+    const toAdd = newBookIds.filter(id => !existingIds.has(id))
+
+    // Delete only removed books (preserves personal_status on remaining rows)
+    if (toDelete.length > 0) {
+      await tx
+        .delete(signupBooks)
+        .where(and(eq(signupBooks.userId, userId), inArray(signupBooks.bookId, toDelete)))
+    }
+
+    // Insert only newly-added books
+    if (toAdd.length > 0) {
       await tx
         .insert(signupBooks)
-        .values(normalized.map(book => ({ userId, bookId: book.id })))
+        .values(toAdd.map(bookId => ({ userId, bookId })))
         .onConflictDoNothing()
     }
   })

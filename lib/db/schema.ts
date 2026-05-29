@@ -127,9 +127,10 @@ export const bookPriorities = pgTable('book_priorities', {
 }))
 
 export const signupBooks = pgTable('signup_books', {
-  userId:   text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  bookId:   text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
-  signedAt: timestamp('signed_at', { mode: 'date' }).notNull().defaultNow(),
+  userId:         text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookId:         text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  signedAt:       timestamp('signed_at', { mode: 'date' }).notNull().defaultNow(),
+  personalStatus: text('personal_status'), // null | 'reading' | 'read'
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.bookId] }),
 }))
