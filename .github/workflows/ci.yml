@@ -96,11 +96,13 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      # Применяем все pending-миграции к e2e Neon-ветке перед запуском тестов.
-      # drizzle-kit отслеживает уже применённые миграции через __drizzle_migrations,
-      # поэтому шаг идемпотентен — повторный запуск не ломает схему.
-      - name: Apply DB migrations (e2e branch)
-        run: npx drizzle-kit migrate
+      # Синхронизируем схему e2e Neon-ветки с текущим schema.ts.
+      # Используем push (не migrate): ветка создана через Neon branching,
+      # поэтому __drizzle_migrations там нет — migrate пытается накатить
+      # все миграции с нуля и падает на уже существующих таблицах.
+      # push сравнивает schema.ts с реальной БД и применяет только дельту.
+      - name: Sync DB schema (e2e branch)
+        run: npx drizzle-kit push --force
         env:
           DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
           SKIP_ENV_VALIDATION: 'true'
