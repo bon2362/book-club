@@ -69,6 +69,7 @@ PK: `(session_id, user_id)`.
 | POST | `/api/matching/books` | Добавить книгу в личный список |
 | DELETE | `/api/matching/books/:bookId` | Удалить книгу из личного списка |
 | PATCH | `/api/matching/priorities` | Обновить порядок книг |
+| PATCH | `/api/signup-books/:bookId/status` | Обновить personal_status книги (`reading` / `read` / `null`) |
 
 ## Realtime-архитектура
 
@@ -77,14 +78,29 @@ PK: `(session_id, user_id)`.
 - **Feed** (`lib/matching/realtime/feed.ts`): ring-buffer на 100 событий; классифицирует мутации (`book_added_new_group`, `book_removed_group_disappeared` и др.).
 - **Polling-фолбэк**: `MatchingRealtimeClient` переключается на polling `/api/matching/state` каждые 3 секунды, если SSE падает 3 раза и backoff ≥ 30 секунд.
 
+## Personal status (личный статус книги)
+
+Каждый участник может отметить книгу из своего списка:
+
+| Статус | Значение | Поведение |
+| --- | --- | --- |
+| `null` | «В списке» | Активный кандидат для матчинга |
+| `reading` | «Читаю сейчас» | Исключён из матчинга для новых групп |
+| `read` | «Прочитал(а)» | Исключён из матчинга для новых групп |
+
+Хранится в `signup_books.personal_status`. Изменяется через дропдаун в левой панели «Мой список». Книги с установленным статусом отображаются в отдельной секции «В процессе / Прочитано» под ранжируемым списком.
+
+В чипах других участников (видны на каждой книге) статус тоже отображается: «читаю» / «прочитал(а)» / «хочу читать» / «без ранга».
+
 ## Сценарий engine
 
 `lib/matching/scenarios.ts` — pure function, без side-effects. Алгоритм:
-1. Исключает книги со статусом `reading` и книги без записей участников текущей сессии.
-2. Для малых входных данных (≤ 20 кандидатов) — полный перебор оптимального состава группы.
-3. Жадный выбор непересекающихся групп из оставшихся кандидатов.
-4. Tier: `leader` = топ-1, `max-coverage` = такой же `wantsCount` как лидер, `sub-max` = остальные.
-5. Сортировка: `wantsCount DESC → avgRank ASC → worstRank ASC → unrankedCount ASC`.
+1. Принимает только активные записи (`personal_status IS NULL`) — фильтрация происходит в `page.tsx` до вызова функции.
+2. Исключает книги без записей участников текущей сессии.
+3. Для малых входных данных (≤ 30 кандидатов, ≤ 5 в группе) — полный перебор оптимального состава группы.
+4. Жадный выбор непересекающихся групп из оставшихся кандидатов.
+5. Tier: `leader` = топ-1, `max-coverage` = такой же `wantsCount` как лидер, `sub-max` = остальные.
+6. Сортировка: `wantsCount DESC → avgRank ASC → worstRank ASC → unrankedCount ASC`.
 
 ## Admin-режим `?as=`
 
@@ -134,3 +150,5 @@ PK: `(session_id, user_id)`.
 | `drizzle/0028_matching_tables.sql` | Миграция: matching_sessions, participants, admin_views |
 | `drizzle/0029_matching_signup_books.sql` | Миграция: добавление matching FK в signup_books |
 | `drizzle/0030_matching_freeze_metrics.sql` | Миграция: метрики заморозки |
+| `drizzle/0031_signup_books_personal_status.sql` | Миграция: personal_status на signup_books |
+| `app/api/signup-books/[bookId]/status/route.ts` | PATCH: обновить personal_status |
