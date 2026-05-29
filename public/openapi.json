@@ -2475,6 +2475,76 @@
         }
       }
     },
+    "/api/signup-books/{bookId}/status": {
+      "patch": {
+        "tags": [
+          "Signups"
+        ],
+        "summary": "Обновить personal_status книги в списке пользователя",
+        "description": "Позволяет пользователю отметить книгу как 'читаю сейчас' или 'прочитал(а)'. Книги с выставленным статусом исключаются из матчинга как кандидаты для новой группы. Значение null возвращает книгу в активный список.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["reading", "read", null],
+                    "description": "null = В списке (активный кандидат), 'reading' = Читаю сейчас, 'read' = Прочитал(а)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный статус",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Не авторизован"
+          },
+          "404": {
+            "description": "Пользователь не записан на эту книгу"
+          }
+        }
+      }
+    },
     "/api/admin/tag-description": {
       "post": {
         "tags": [
