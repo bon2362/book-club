@@ -45,37 +45,13 @@ export default function MatchingRankNudge({ show }: Props) {
     <div
       role="status"
       aria-live="polite"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '0.75rem',
-        padding: '0.6rem 0.75rem',
-        marginBottom: '0.75rem',
-        borderRadius: 4,
-        background: '#fffbe6',
-        border: '1px solid #f5d35e',
-        fontSize: '0.78rem',
-        fontFamily: 'var(--nd-mono), monospace',
-        color: '#7a6000',
-      }}
+      className="flex items-center justify-between gap-3 mx-4 mt-3 px-3 py-2 rounded-lg bg-[#fef9c3] border border-[#fde047] text-xs text-[#713f12]"
     >
-      <span>
-        Расставь ранги, чтобы улучшить выбор сценариев
-      </span>
+      <span>Расставь ранги, чтобы улучшить выбор сценариев</span>
       <button
         onClick={dismiss}
         aria-label="Закрыть подсказку"
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: '#7a6000',
-          fontSize: '0.9rem',
-          lineHeight: 1,
-          padding: '0 2px',
-          flexShrink: 0,
-        }}
+        className="text-[#713f12] hover:text-[#422808] cursor-pointer text-base leading-none px-0.5 shrink-0"
       >
         ×
       </button>

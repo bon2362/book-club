@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import type { ScenarioCard } from '@/lib/matching/scenarios'
 import CoverImage from './CoverImage'
 
@@ -16,27 +16,42 @@ interface Props {
   bookById: Map<string, BookInfo>
 }
 
-const tierStyle = (tier: ScenarioCard['tier']): React.CSSProperties => {
-  if (tier === 'leader') return { background: '#f0faf0', border: '1px solid #b2d8b2' }
-  if (tier === 'max-coverage') return { background: '#f5f8ff', border: '1px solid #c0cff0' }
-  return { background: '#fafaf8', border: '1px solid #e8e8e4' }
-}
+const tierConfig = {
+  leader: {
+    bg: 'bg-[#f0fdf4]',
+    border: 'border-[#86efac]',
+    label: 'лидер',
+    labelClass: 'text-[#15803d] border-[#86efac]',
+  },
+  'max-coverage': {
+    bg: 'bg-[#eff6ff]',
+    border: 'border-[#93c5fd]',
+    label: 'макс. покрытие',
+    labelClass: 'text-[#1d4ed8] border-[#93c5fd]',
+  },
+  'sub-max': {
+    bg: 'bg-[#fafaf8]',
+    border: 'border-[#e8e8e4]',
+    label: null,
+    labelClass: '',
+  },
+} as const
 
-const tierLabel = (tier: ScenarioCard['tier']): string | null => {
-  if (tier === 'leader') return 'лидер'
-  if (tier === 'max-coverage') return 'макс. покрытие'
-  return null
-}
+const PSEUDONYM_COLORS = [
+  'bg-[#fde8d8] text-[#7c3516]',
+  'bg-[#dcfce7] text-[#14532d]',
+  'bg-[#dbeafe] text-[#1e3a8a]',
+  'bg-[#fef9c3] text-[#713f12]',
+  'bg-[#f3e8ff] text-[#581c87]',
+  'bg-[#ffe4e6] text-[#881337]',
+  'bg-[#d1fae5] text-[#065f46]',
+  'bg-[#e0f2fe] text-[#075985]',
+]
 
-const tierLabelColor = (tier: ScenarioCard['tier']): string => {
-  if (tier === 'leader') return '#4a7'
-  return '#6699cc'
-}
-
-const interestChipStyle = (interest: string): React.CSSProperties => {
-  if (interest === 'хочу читать') return { background: '#e8f5e8', color: '#4a7', border: '1px solid #b2d8b2' }
-  if (interest === 'готов(а)') return { background: '#f0f0f0', color: '#888', border: '1px solid #ddd' }
-  return { background: '#f9f9f9', color: '#bbb', border: '1px solid #eee' }
+function pseudonymColor(pseudonym: string) {
+  let hash = 0
+  for (let i = 0; i < pseudonym.length; i++) hash = pseudonym.charCodeAt(i) + ((hash << 5) - hash)
+  return PSEUDONYM_COLORS[Math.abs(hash) % PSEUDONYM_COLORS.length]
 }
 
 interface BookModalProps {
@@ -45,50 +60,31 @@ interface BookModalProps {
 }
 
 function BookModal({ book, onClose }: BookModalProps) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onClose])
-
   return (
     <div
       role="presentation"
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000,
-      }}
+      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={book.title}
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#fff', borderRadius: 6, padding: '1.5rem',
-          maxWidth: 380, width: '90%', fontFamily: 'var(--nd-mono), monospace',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-        }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_24px_70px_rgba(25,24,23,0.24)] p-5 max-w-[380px] w-full"
       >
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={{ width: 56, height: 80, flexShrink: 0 }}>
+        <div className="flex gap-4 mb-4">
+          <div className="relative rounded overflow-hidden shrink-0" style={{ width: 56, height: 80 }}>
             <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
           </div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{book.title}</div>
-            <div style={{ fontSize: '0.78rem', color: '#666' }}>{book.author}</div>
+          <div className="min-w-0">
+            <div className="font-semibold text-sm leading-snug mb-1">{book.title}</div>
+            <div className="text-xs text-[#6d675f]">{book.author}</div>
           </div>
         </div>
         <button
           onClick={onClose}
-          style={{
-            marginTop: '0.5rem', fontSize: '0.78rem', color: '#999',
-            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          }}
+          className="text-xs text-[#999] hover:text-[#555] cursor-pointer"
         >
           Закрыть (Esc)
         </button>
@@ -104,82 +100,53 @@ export default function MatchingScenarios({ scenarios, bookById }: Props) {
 
   if (scenarios.length === 0) {
     return (
-      <p style={{ color: '#999', fontSize: '0.8rem' }}>
-        Недостаточно участников или сигнапов для формирования сценариев.
-      </p>
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center text-[#6d675f]">
+        <div className="text-3xl mb-2">🎯</div>
+        <p className="text-sm">Недостаточно участников или сигнапов для формирования сценариев.</p>
+      </div>
     )
   }
 
   return (
     <>
       {modalBook && <BookModal book={modalBook} onClose={closeModal} />}
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <ul className="list-none p-0 m-0 flex flex-col gap-3">
         {scenarios.map((card) => {
           const book = bookById.get(card.bookId)
-          const label = tierLabel(card.tier)
+          const tier = tierConfig[card.tier]
           return (
             <li
               key={card.bookId}
-              style={{
-                borderRadius: 5,
-                padding: '0.75rem',
-                ...tierStyle(card.tier),
-              }}
+              className={`rounded-xl border p-3.5 ${tier.bg} ${tier.border}`}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <div className="flex items-start gap-3">
                 {book && (
-                  <div style={{ width: 36, height: 52, flexShrink: 0 }}>
+                  <div className="relative rounded overflow-hidden shrink-0" style={{ width: 40, height: 56 }}>
                     <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
                   </div>
                 )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <button
                       onClick={() => book && openModal(book)}
-                      style={{
-                        background: 'none', border: 'none', padding: 0,
-                        fontFamily: 'var(--nd-mono), monospace',
-                        fontSize: '0.82rem', fontWeight: 600,
-                        cursor: book ? 'pointer' : 'default',
-                        textAlign: 'left',
-                        textDecoration: book ? 'underline' : 'none',
-                        color: '#222',
-                      }}
+                      className="text-sm font-semibold text-[#191817] hover:text-[#0f766e] text-left leading-snug"
                     >
                       {book?.title ?? card.bookId}
                     </button>
-                    {label && (
-                      <span
-                        style={{
-                          fontSize: '0.65rem',
-                          color: tierLabelColor(card.tier),
-                          border: `1px solid ${tierLabelColor(card.tier)}`,
-                          borderRadius: 3,
-                          padding: '1px 5px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {label}
+                    {tier.label && (
+                      <span className={`text-[10px] border rounded-full px-2 py-0.5 shrink-0 ${tier.labelClass}`}>
+                        {tier.label}
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {card.members.map(m => (
+                  <div className="flex flex-wrap gap-1">
+                    {card.members.map((m) => (
                       <span
                         key={m.userId}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${pseudonymColor(m.pseudonym)}`}
                       >
-                        <span style={{ fontSize: '0.78rem', color: '#555' }}>{m.pseudonym}</span>
-                        <span
-                          style={{
-                            fontSize: '0.6rem',
-                            padding: '1px 4px',
-                            borderRadius: 3,
-                            ...interestChipStyle(m.interest),
-                          }}
-                        >
-                          {m.interest}
-                        </span>
+                        {m.pseudonym}
+                        <span className="ml-1 opacity-70">· {m.interest}</span>
                       </span>
                     ))}
                   </div>
