@@ -69,7 +69,10 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
 
     // Set bookC to "read"
     await dialog.locator(`[data-book-id="${bookC.id}"]`).click()
+    await expect(dialog.locator('[data-testid="status-menu"]')).toBeVisible()
+    const patchRead = page.waitForResponse(r => r.url().includes('/api/signup-books/') && r.request().method() === 'PATCH')
     await dialog.locator('[data-testid="status-option-read"]').click()
+    await patchRead
     await page.waitForLoadState('networkidle')
     await expect(dialog.locator('[data-testid="section-read"]')).toBeVisible()
     await expect(dialog.locator('[data-testid="priority-book-row"]')).toHaveCount(1)

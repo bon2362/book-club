@@ -250,7 +250,7 @@ test.describe('ProfileDrawer: status accordion menu', () => {
     try {
       const book = await createTestBook({ title: 'E2E Accordion Book' })
       await page.request.post('/api/test/signup', {
-        data: { userId: 'p', name: NAME, email: EMAIL, contacts: '@' + TG, selectedBookIds: [book.id] },
+        data: { userId: 'placeholder', name: NAME, email: EMAIL, contacts: '@' + TG, telegramUsername: TG, selectedBookIds: [book.id] },
       })
       await page.goto('/')
       await page.waitForLoadState('networkidle')
