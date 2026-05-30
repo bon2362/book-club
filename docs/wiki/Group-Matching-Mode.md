@@ -61,9 +61,13 @@ PK: `(session_id, user_id)`.
 | GET | `/api/matching/sessions` | Список всех сессий (только admin) |
 | POST | `/api/matching/sessions` | Создать сессию (только admin) |
 | POST | `/api/matching/sessions/:id/join` | Присоединиться к сессии (участник получает псевдоним) |
+| DELETE | `/api/matching/sessions/:id/leave` | Покинуть сессию (только активные сессии) |
 | POST | `/api/matching/sessions/:id/freeze` | Заморозить сессию (только admin) |
 | POST | `/api/matching/sessions/:id/heartbeat` | Обновить presence (участники; для admin — no-op) |
 | GET | `/api/matching/sessions/:id/audit-log` | Журнал admin_views для сессии (только admin) |
+| GET | `/api/admin/matching/sessions/:id/participants` | Список участников с именами (только admin) |
+| POST | `/api/admin/matching/sessions/:id/participants` | Добавить участника из базы пользователей (только admin, только active) |
+| DELETE | `/api/admin/matching/sessions/:id/participants/:userId` | Убрать участника из сессии (только admin, только active) |
 | GET | `/api/matching/stream?session=<id>` | SSE-канал с событиями сессии |
 | GET | `/api/matching/state?session=<id>&as=<userId>` | Текущее состояние (personalBooks, myMoves, scenarios) |
 | POST | `/api/matching/books` | Добавить книгу в личный список |
@@ -115,6 +119,22 @@ PK: `(session_id, user_id)`.
 - Мутации заблокированы (middleware возвращает 403 при попытке POST/PATCH/DELETE с `?as=`).
 - Каждый успешный просмотр записывается в `admin_views`.
 - Таблица просмотров видна в Админ-панели → Матчинг → «Журнал просмотров».
+
+## Управление участниками
+
+### Пользователь покидает сессию
+
+Кнопка «Покинуть» в шапке `/matching` видна только в активной сессии и только для своего аккаунта (скрыта при impersonation и frozen). При нажатии — confirm-диалог → `DELETE /api/matching/sessions/:id/leave` → редирект на `/`.
+
+После выхода запись в `matching_session_participants` удаляется. При следующем визите на `/matching` auto-join добавит пользователя обратно с новым псевдонимом (старые сигнапы и приоритеты сохраняются).
+
+### Администратор управляет составом
+
+Вкладка «Матчинг» в Админ-панели → блок «Участники» (только в активной сессии):
+- Таблица текущих участников: псевдоним, имя/id пользователя, время вступления, кнопка «Убрать»
+- Форма добавления: выпадающий список пользователей, не состоящих в сессии → «Добавить»
+
+Добавление работает по той же логике что и auto-join: присваивает уникальный животный псевдоним. Оба действия работают только для `status = active` и отправляют SSE-событие `state_changed` всем подключённым клиентам.
 
 ## Заморозка сессии
 
