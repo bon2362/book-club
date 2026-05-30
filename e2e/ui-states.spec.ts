@@ -24,28 +24,23 @@ test.beforeEach(async () => {
   await feature('Состояния интерфейса')
 })
 
-test.describe('Header: hide on scroll down', () => {
-  test('header visible at top of page', async ({ page }) => {
+test.describe('Header: hide on scroll', () => {
+  // Объединяет прежние 4 теста (виден вверху, прячется при скролле вниз,
+  // фильтр-бар прячется вместе с хедером) в один сценарий «вниз».
+  test('header и filter bar видны вверху и прячутся при скролле вниз', async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
-    expect(await isFullyVisible(page, 'header')).toBe(true)
-  })
 
-  test('header hides after scrolling down past threshold', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    // Вверху страницы хедер полностью виден
+    expect(await isFullyVisible(page, 'header')).toBe(true)
+
+    // Скролл вниз — хедер и фильтр-бар уходят за верхнюю границу вместе
     await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
     await expect.poll(() => isFullyAboveViewport(page, 'header'), { timeout: 1500 }).toBe(true)
-  })
-
-  test('filter bar hides together with header on scroll down', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-    await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
     await expect.poll(() => isFullyAboveViewportByLocator(page.locator('.filters-bar')), { timeout: 1500 }).toBe(true)
   })
 
-  test('header and filters reappear on scroll up', async ({ page }) => {
+  test('header и filter bar появляются при скролле вверх', async ({ page }) => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
     await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
@@ -132,15 +127,18 @@ test.describe('Admin tab layout states', () => {
     expect(sameLine).toBe(true)
   })
 
-  test('tag description textarea grows to fit entered text', async ({ page }) => {
+  // Авто-рост textarea под текст — одна и та же CSS-механика (auto-resize) в двух
+  // местах админки. Проверяем обе вкладки (Теги и Интро) в одном тесте.
+  test('textarea авто-растёт под введённый текст (теги и интро)', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
-    await page.getByRole('button', { name: /теги/i }).click()
 
-    const textarea = page.locator('textarea').first()
-    await expect(textarea).toBeVisible()
-    const before = await textarea.boundingBox()
-    await textarea.fill([
+    // Вкладка «Теги»
+    await page.getByRole('button', { name: /теги/i }).click()
+    const tagTextarea = page.locator('textarea').first()
+    await expect(tagTextarea).toBeVisible()
+    const tagBefore = await tagTextarea.boundingBox()
+    await tagTextarea.fill([
       'Первая строка',
       'Вторая строка',
       'Третья строка',
@@ -150,27 +148,21 @@ test.describe('Admin tab layout states', () => {
       'Седьмая строка',
       'Восьмая строка',
     ].join('\n'))
-    const after = await textarea.boundingBox()
+    const tagAfter = await tagTextarea.boundingBox()
+    expect(tagBefore).not.toBeNull()
+    expect(tagAfter).not.toBeNull()
+    expect(tagAfter!.height).toBeGreaterThan(tagBefore!.height)
 
-    expect(before).not.toBeNull()
-    expect(after).not.toBeNull()
-    expect(after!.height).toBeGreaterThan(before!.height)
-  })
-
-  test('intro body textarea grows to fit entered text', async ({ page }) => {
-    await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    // Вкладка «Интро»
     await page.getByRole('button', { name: /^интро$/i }).click()
-
-    const textarea = page.getByTestId('intro-header-body')
-    await expect(textarea).toBeVisible()
-    const before = await textarea.boundingBox()
-    await textarea.fill(['Первая строка интро', 'Вторая строка интро', 'Третья строка интро', 'Четвертая строка интро'].join('\n'))
-    const after = await textarea.boundingBox()
-
-    expect(before).not.toBeNull()
-    expect(after).not.toBeNull()
-    expect(after!.height).toBeGreaterThan(before!.height)
+    const introTextarea = page.getByTestId('intro-header-body')
+    await expect(introTextarea).toBeVisible()
+    const introBefore = await introTextarea.boundingBox()
+    await introTextarea.fill(['Первая строка интро', 'Вторая строка интро', 'Третья строка интро', 'Четвертая строка интро'].join('\n'))
+    const introAfter = await introTextarea.boundingBox()
+    expect(introBefore).not.toBeNull()
+    expect(introAfter).not.toBeNull()
+    expect(introAfter!.height).toBeGreaterThan(introBefore!.height)
   })
 })
 

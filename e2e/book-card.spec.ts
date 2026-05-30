@@ -13,17 +13,15 @@ test.describe('карточка книги — разворачивание оп
     await page.waitForSelector('article')
   })
 
-  test('кнопка «Читать далее» присутствует хотя бы на одной карточке', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /читать далее/i }).first()).toBeVisible()
-  })
+  // Roundtrip: «Читать далее» присутствует → клик разворачивает («Свернуть»)
+  // → клик сворачивает обратно. Покрывает прежние 3 теста одним сценарием.
+  test('разворачивание и сворачивание описания (roundtrip)', async ({ page }) => {
+    const readMore = page.getByRole('button', { name: /читать далее/i }).first()
+    await expect(readMore).toBeVisible()
 
-  test('клик на «Читать далее» показывает «Свернуть»', async ({ page }) => {
-    await page.getByRole('button', { name: /читать далее/i }).first().click()
+    await readMore.click()
     await expect(page.getByRole('button', { name: /свернуть/i }).first()).toBeVisible()
-  })
 
-  test('клик на «Свернуть» возвращает кнопку «Читать далее»', async ({ page }) => {
-    await page.getByRole('button', { name: /читать далее/i }).first().click()
     await page.getByRole('button', { name: /свернуть/i }).first().click()
     await expect(page.getByRole('button', { name: /читать далее/i }).first()).toBeVisible()
   })
