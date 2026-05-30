@@ -1,4 +1,4 @@
-import { generateScenarios } from '../scenarios'
+import { generateScenarioOverview, generateScenarios } from '../scenarios'
 
 // Helpers to build test fixtures
 function makeParticipants(n: number) {
@@ -199,5 +199,46 @@ describe('generateScenarios', () => {
     const p95 = times[Math.floor(times.length * 0.95)]
     expect(median).toBeLessThan(200)
     expect(p95).toBeLessThan(400)
+  })
+})
+
+describe('generateScenarioOverview', () => {
+  it('keeps complete overlapping circles as possible alternatives', () => {
+    const participants = makeParticipants(5)
+    const userIds = participants.map(p => p.userId)
+    const result = generateScenarioOverview({
+      participants,
+      books: [makeBook('current'), makeBook('alternative')],
+      signups: [
+        ...allSignedUp(userIds.slice(0, 3), 'current'),
+        ...allSignedUp(['u1', 'u2', 'u4'], 'alternative'),
+      ],
+      ranks: [
+        ...rankAll(userIds.slice(0, 3), 'current', 1),
+        ...rankAll(['u1', 'u2', 'u4'], 'alternative', 2),
+      ],
+      targetGroupSize: 3,
+    })
+
+    expect(result.current.map(c => c.bookId)).toEqual(['current'])
+    expect(result.candidates.map(c => c.bookId)).toEqual(['current', 'alternative'])
+    const alternative = result.candidates.find(c => c.bookId === 'alternative')
+    expect(alternative?.inCurrentLayout).toBe(false)
+    expect(alternative?.conflictsWith).toEqual(['Участник1', 'Участник2'])
+  })
+
+  it('reports participants left out of the current layout', () => {
+    const participants = makeParticipants(4)
+    const result = generateScenarioOverview({
+      participants,
+      books: [makeBook('b1')],
+      signups: allSignedUp(['u1', 'u2', 'u3'], 'b1'),
+      ranks: rankAll(['u1', 'u2', 'u3'], 'b1', 1),
+      targetGroupSize: 3,
+    })
+
+    expect(result.coveredCount).toBe(3)
+    expect(result.totalCount).toBe(4)
+    expect(result.leftOut.map(p => p.pseudonym)).toEqual(['Участник4'])
   })
 })

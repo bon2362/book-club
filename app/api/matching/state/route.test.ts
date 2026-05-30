@@ -21,7 +21,22 @@ jest.mock('@/lib/matching/my-moves', () => ({
   fetchMyMoves: jest.fn().mockResolvedValue([]),
 }))
 jest.mock('@/lib/matching/scenarios', () => ({
-  generateScenarios: jest.fn().mockReturnValue([]),
+  emptyScenarioOverview: jest.fn((participants, targetGroupSize) => ({
+    current: [],
+    candidates: [],
+    leftOut: participants,
+    coveredCount: 0,
+    totalCount: participants.length,
+    targetGroupSize,
+  })),
+  generateScenarioOverview: jest.fn().mockReturnValue({
+    current: [],
+    candidates: [],
+    leftOut: [],
+    coveredCount: 0,
+    totalCount: 0,
+    targetGroupSize: 3,
+  }),
 }))
 
 const mockAuth = authModule.auth as jest.Mock
@@ -75,6 +90,7 @@ describe('GET /api/matching/state', () => {
     const json = await res.json()
     expect(json).toHaveProperty('personalBooks')
     expect(json).toHaveProperty('scenarios')
+    expect(json).toHaveProperty('scenarioOverview')
     expect(json).toHaveProperty('myMoves')
     expect(json).toHaveProperty('sessionStatus')
   })

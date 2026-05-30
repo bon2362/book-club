@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users, signupBooks, bookPriorities, books } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
-import { generateScenarios } from '@/lib/matching/scenarios'
+import { emptyScenarioOverview, generateScenarioOverview } from '@/lib/matching/scenarios'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
@@ -147,16 +147,24 @@ export default async function MatchingPage({
       : []
 
   // Fetch scenario data only when enough participants
-  const scenarios =
+  const scenarioOverview =
     participantUserIds.length >= activeSession.targetGroupSize
-      ? await fetchAndGenerateScenarios(
+      ? await fetchAndGenerateScenarioOverview(
           participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym })),
           activeSession.targetGroupSize,
         )
-      : []
+      : emptyScenarioOverview(
+          participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym })),
+          activeSession.targetGroupSize,
+        )
 
   // Fetch book details for scenario cards
-  const scenarioBookIds = Array.from(new Set(scenarios.map((s) => s.bookId)))
+  const scenarioBookIds = Array.from(
+    new Set([
+      ...scenarioOverview.current.map((s) => s.bookId),
+      ...scenarioOverview.candidates.map((s) => s.bookId),
+    ]),
+  )
   const scenarioBooks =
     scenarioBookIds.length > 0
       ? await db
@@ -277,7 +285,7 @@ export default async function MatchingPage({
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
               <MatchingScenarios
-                scenarios={scenarios}
+                overview={scenarioOverview}
                 bookById={bookById}
                 bookParticipants={bookParticipants}
                 viewingUserId={viewingUserId}
@@ -315,7 +323,7 @@ export default async function MatchingPage({
   )
 }
 
-async function fetchAndGenerateScenarios(
+async function fetchAndGenerateScenarioOverview(
   participants: { userId: string; pseudonym: string }[],
   targetGroupSize: number,
 ) {
@@ -349,7 +357,7 @@ async function fetchAndGenerateScenarios(
   // they are no longer available as candidates for a new group on that book.
   const activeSignups = allSignups.filter((s) => s.personalStatus === null)
 
-  return generateScenarios({
+  return generateScenarioOverview({
     participants,
     books: sessionBooks,
     signups: activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),

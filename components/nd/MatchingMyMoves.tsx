@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal from './MatchingBookDetailModal'
@@ -15,6 +15,13 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
   const [modalBook, setModalBook] = useState<MyMoveBook | null>(null)
+
+  useEffect(() => {
+    setMoves(initialMoves)
+    setModalBook((prev) => (
+      prev ? initialMoves.find((move) => move.bookId === prev.bookId) ?? null : prev
+    ))
+  }, [initialMoves])
 
   async function handleAdd(bookId: string) {
     if (frozen) return

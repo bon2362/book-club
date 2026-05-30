@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -244,6 +244,13 @@ export default function MatchingPersonalList({
   const [books, setBooks] = useState(initialBooks)
   const [announcement, setAnnouncement] = useState('')
   const [modalBook, setModalBook] = useState<CatalogBook | null>(null)
+
+  useEffect(() => {
+    setBooks(initialBooks)
+    setModalBook((prev) => (
+      prev ? initialBooks.find((book) => book.bookId === prev.bookId) ?? null : prev
+    ))
+  }, [initialBooks])
 
   const sensors = useSensors(
     useSensor(PointerSensor),
