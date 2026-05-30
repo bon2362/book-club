@@ -88,22 +88,34 @@ export default function MatchingHeader({
         <div
           data-testid="admin-impersonation-banner"
           role="status"
-          className="flex items-center gap-3 px-4 py-2 text-xs text-[#7a5c00] bg-[#fffbea] border-b border-[#f0d060]"
+          className="flex items-center gap-3 px-4 py-2 text-xs border-b"
+          style={{
+            color: '#7a5c00',
+            background: '#fffbea',
+            borderColor: '#f0d060',
+          }}
         >
           <span>👁 Просмотр за</span>
           <strong>{viewedPseudonym ?? asParam}</strong>
-          {viewedName && <span className="text-[#a07800]">({viewedName})</span>}
+          {viewedName && <span style={{ color: '#a07800' }}>({viewedName})</span>}
           <span className="ml-auto opacity-70">только чтение</span>
           <a
             href="/matching"
-            className="text-[#7a5c00] underline text-[11px] hover:text-[#5c4000]"
+            className="underline text-[11px]"
+            style={{ color: '#7a5c00' }}
           >
             ← вернуться к своему виду
           </a>
         </div>
       )}
 
-      <header className="flex items-center justify-between gap-4 px-4 h-14 shrink-0 border-b border-[#ded6c8] bg-[rgba(246,242,232,0.94)] backdrop-blur-sm">
+      <header
+        className="flex items-center justify-between gap-4 px-4 h-14 shrink-0 border-b backdrop-blur-sm"
+        style={{
+          borderColor: 'var(--border)',
+          background: 'var(--bg-elevated)',
+        }}
+      >
         {/* Left: session info */}
         <div className="flex items-center gap-4 min-w-0">
           <h1
@@ -112,7 +124,10 @@ export default function MatchingHeader({
           >
             {sessionName}
           </h1>
-          <div className="hidden sm:flex items-center gap-3 text-sm text-[#6d675f] shrink-0">
+          <div
+            className="hidden sm:flex items-center gap-3 text-sm shrink-0"
+            style={{ color: 'var(--text-muted)' }}
+          >
             <span>Группы по {targetGroupSize}</span>
             {deadlineText && (
               <span>
@@ -123,11 +138,14 @@ export default function MatchingHeader({
               </span>
             )}
             {sessionStatus === 'frozen' ? (
-              <span className="bg-[#f0f0f0] text-[#888] px-2 py-0.5 rounded text-xs">
+              <span
+                className="px-2 py-0.5 rounded text-xs"
+                style={{ background: 'var(--bg-tag)', color: 'var(--text-muted)' }}
+              >
                 Зафиксирована
               </span>
             ) : (
-              <span className="text-[#0f766e]">● активна</span>
+              <span style={{ color: 'var(--success)' }}>● активна</span>
             )}
           </div>
         </div>
@@ -135,19 +153,34 @@ export default function MatchingHeader({
         {/* Right: participants popover */}
         <Popover.Root>
           <Popover.Trigger asChild>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#ded6c8] bg-[#fffdf8] hover:border-[#b8ad9b] hover:-translate-y-px transition-all text-sm text-[#6d675f] shrink-0">
+            <button
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:-translate-y-px transition-all text-sm shrink-0"
+              style={{
+                borderColor: 'var(--border)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-muted)',
+              }}
+            >
               <div className="flex -space-x-2">
                 {participants.slice(0, 6).map((p) => (
                   <div
                     key={p.userId}
-                    className={`w-6 h-6 rounded-full border-2 border-[#fffdf8] flex items-center justify-center text-[9px] font-bold ${pseudonymColor(p.pseudonym)}`}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold ${pseudonymColor(p.pseudonym)}`}
+                    style={{ borderColor: 'var(--bg-input)' }}
                     title={p.pseudonym}
                   >
                     {p.pseudonym[0].toUpperCase()}
                   </div>
                 ))}
                 {participants.length > 6 && (
-                  <div className="w-6 h-6 rounded-full border-2 border-[#fffdf8] bg-[#ece4d5] flex items-center justify-center text-[9px] font-bold text-[#5c4a3a]">
+                  <div
+                    className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold"
+                    style={{
+                      borderColor: 'var(--bg-input)',
+                      background: 'var(--bg-elevated)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
                     +{participants.length - 6}
                   </div>
                 )}
@@ -158,16 +191,26 @@ export default function MatchingHeader({
 
           <Popover.Portal>
             <Popover.Content
-              className="z-50 bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_8px_32px_rgba(25,24,23,0.15)] p-3 min-w-[220px] max-w-[300px]"
+              className="z-50 border rounded-xl p-3 min-w-[220px] max-w-[300px]"
+              style={{
+                background: 'var(--bg-input)',
+                borderColor: 'var(--border)',
+                boxShadow: '0 8px 32px var(--shadow)',
+              }}
               sideOffset={8}
               align="end"
             >
-              <div className="text-xs font-semibold text-[#6d675f] mb-2.5 uppercase tracking-wide">
+              <div
+                className="text-xs font-semibold mb-2.5 uppercase tracking-wide"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Участники ({participants.length})
               </div>
               <div className="flex flex-col gap-1">
                 {participants.length === 0 ? (
-                  <div className="text-sm text-[#6d675f]">Пока никто не присоединился.</div>
+                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    Пока никто не присоединился.
+                  </div>
                 ) : (
                   participants.map((p) => (
                     <div key={p.userId} className="flex items-center gap-2.5 py-1">
@@ -176,11 +219,17 @@ export default function MatchingHeader({
                       >
                         {p.pseudonym[0].toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium text-[#191817] flex-1">{p.pseudonym}</span>
+                      <span
+                        className="text-sm font-medium flex-1"
+                        style={{ color: 'var(--text)' }}
+                      >
+                        {p.pseudonym}
+                      </span>
                       {isAdmin && p.name && (
                         <a
                           href={`/matching?as=${p.userId}`}
-                          className="text-xs text-[#8c7b6b] hover:text-[#5c4a3a] shrink-0"
+                          className="text-xs shrink-0"
+                          style={{ color: 'var(--text-muted)' }}
                           title="Посмотреть за этого участника"
                         >
                           {p.name}
@@ -190,7 +239,7 @@ export default function MatchingHeader({
                   ))
                 )}
               </div>
-              <Popover.Arrow className="fill-[#ded6c8]" />
+              <Popover.Arrow style={{ fill: 'var(--border)' }} />
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>

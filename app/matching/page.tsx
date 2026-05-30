@@ -40,11 +40,18 @@ export default async function MatchingPage({
 
   if (!activeSession) {
     return (
-      <main className="font-mono p-8 max-w-2xl mx-auto">
+      <main
+        className="p-8 max-w-2xl mx-auto"
+        style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100svh' }}
+      >
         <h1 className="text-lg font-semibold mb-4">Матчинг</h1>
-        <p className="text-[#999]">
+        <p style={{ color: 'var(--text-muted)' }}>
           Нет активной сессии. Создайте её в{' '}
-          <a href="/admin?tab=matching" className="text-[#333] underline">
+          <a
+            href="/admin?tab=matching"
+            className="underline"
+            style={{ color: 'var(--accent)' }}
+          >
             Админ-панели → Матчинг
           </a>
           .
@@ -164,7 +171,10 @@ export default async function MatchingPage({
   const isFrozenOrImpersonating = activeSession.status === 'frozen' || isImpersonating
 
   return (
-    <div className="flex flex-col bg-[#f6f2e8]" style={{ height: '100svh', overflow: 'hidden' }}>
+    <div
+      className="flex flex-col"
+      style={{ height: '100svh', overflow: 'hidden', background: 'var(--bg)', color: 'var(--text)' }}
+    >
       <MatchingHeader
         sessionName={activeSession.name}
         sessionStatus={activeSession.status}
@@ -184,13 +194,23 @@ export default async function MatchingPage({
         style={{ gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)' }}
       >
         {/* Left: personal book list */}
-        <div className="flex flex-col bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_4px_24px_rgba(25,24,23,0.08)] overflow-hidden min-h-0">
-          <div className="px-4 py-3 border-b border-[#ded6c8] shrink-0">
-            <h2 className="text-base font-semibold m-0 text-[#191817]">
+        <div
+          className="flex flex-col rounded-xl overflow-hidden min-h-0 border"
+          style={{
+            background: 'var(--bg-input)',
+            borderColor: 'var(--border)',
+            boxShadow: '0 4px 24px var(--shadow-card)',
+          }}
+        >
+          <div
+            className="px-4 py-3 shrink-0 border-b"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <h2 className="text-base font-semibold m-0" style={{ color: 'var(--text)' }}>
               {isImpersonating ? 'Список участника' : 'Мой список'}
             </h2>
             {!isImpersonating && (
-              <p className="text-xs text-[#6d675f] mt-0.5 m-0">
+              <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--text-muted)' }}>
                 Перетащи книги, чтобы расставить приоритеты
               </p>
             )}
@@ -209,10 +229,14 @@ export default async function MatchingPage({
             />
           </div>
           {isAdmin && !isImpersonating && (
-            <div className="px-4 py-2.5 border-t border-[#ded6c8] shrink-0">
+            <div
+              className="px-4 py-2.5 shrink-0 border-t"
+              style={{ borderColor: 'var(--border)' }}
+            >
               <a
                 href="/admin?tab=matching"
-                className="text-xs text-[#6d675f] underline hover:text-[#191817]"
+                className="text-xs underline"
+                style={{ color: 'var(--text-muted)' }}
               >
                 Перейти в Админ-панель → Матчинг
               </a>
@@ -223,10 +247,21 @@ export default async function MatchingPage({
         {/* Right column: scenarios + moves stacked */}
         <div className="flex flex-col gap-4 min-h-0 overflow-hidden">
           {/* Scenarios */}
-          <div className="flex flex-col flex-1 bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_4px_24px_rgba(25,24,23,0.08)] overflow-hidden min-h-0">
-            <div className="px-4 py-3 border-b border-[#ded6c8] shrink-0">
+          <div
+            className="flex flex-col flex-1 rounded-xl overflow-hidden min-h-0 border"
+            style={{
+              background: 'var(--bg-input)',
+              borderColor: 'var(--border)',
+              boxShadow: '0 4px 24px var(--shadow-card)',
+            }}
+          >
+            <div
+              className="px-4 py-3 shrink-0 border-b"
+              style={{ borderColor: 'var(--border)' }}
+            >
               <h2
-                className="text-base font-semibold m-0 text-[#191817]"
+                className="text-base font-semibold m-0"
+                style={{ color: 'var(--text)' }}
                 title="Сортировка: макс. участников → больше топ-3 книг → ниже средний ранг"
               >
                 Сценарии групп
@@ -238,9 +273,19 @@ export default async function MatchingPage({
           </div>
 
           {/* My moves */}
-          <div className="flex flex-col flex-1 bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_4px_24px_rgba(25,24,23,0.08)] overflow-hidden min-h-0">
-            <div className="px-4 py-3 border-b border-[#ded6c8] shrink-0">
-              <h2 className="text-base font-semibold m-0 text-[#191817]">
+          <div
+            className="flex flex-col flex-1 rounded-xl overflow-hidden min-h-0 border"
+            style={{
+              background: 'var(--bg-input)',
+              borderColor: 'var(--border)',
+              boxShadow: '0 4px 24px var(--shadow-card)',
+            }}
+          >
+            <div
+              className="px-4 py-3 shrink-0 border-b"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <h2 className="text-base font-semibold m-0" style={{ color: 'var(--text)' }}>
                 {isImpersonating ? 'Ходы участника' : 'Мои ходы'}
               </h2>
             </div>
