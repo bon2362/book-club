@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
+import type { PersonalBookStatus } from '@/lib/signup-books'
 import { getUserActivityDisplay } from '@/lib/user-activity-display'
 import Header from './Header'
 import IntroEditor from './IntroEditor'
@@ -407,6 +408,29 @@ export default function AdminPanel({
       if (selectedAdminUserId === userId) closeUserDrawer()
     } catch {
       setSyncMsg('Не удалось удалить пользователя: ошибка сети')
+    }
+  }
+
+  async function handleChangeStatus(userId: string, bookId: string, status: PersonalBookStatus) {
+    try {
+      const res = await fetch('/api/admin/signup-books', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, bookId, status }),
+      })
+      if (!res.ok) return
+      setSelectedAdminUser(prev => {
+        if (!prev || prev.user.id !== userId) return prev
+        const updatedBooks = prev.signupBooks.map(b =>
+          b.bookId === bookId ? { ...b, personalStatus: status } : b,
+        )
+        const updatedPriorities = status !== null
+          ? prev.priorities.filter(p => p.bookId !== bookId)
+          : prev.priorities
+        return { ...prev, signupBooks: updatedBooks, priorities: updatedPriorities }
+      })
+    } catch {
+      // silently ignore
     }
   }
 
@@ -1150,6 +1174,10 @@ export default function AdminPanel({
           setView('submissions')
           setSubmissionFilter('all')
           setSelectedSubmissionId(submissionId)
+        }}
+        onChangeStatus={(bookId, status) => {
+          if (!selectedAdminUser) return
+          handleChangeStatus(selectedAdminUser.user.id, bookId, status)
         }}
       />
     </>
