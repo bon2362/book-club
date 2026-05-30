@@ -62,9 +62,9 @@ function SortableRow({ book, index, frozen, onClick }: SortableRowProps) {
         gridTemplateColumns: '48px 1fr',
         gap: '12px',
         padding: '12px 16px',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid #E5E5E5',
         opacity: isDragging ? 0.5 : 1,
-        background: isDragging ? 'var(--bg-elevated)' : undefined,
+        background: isDragging ? '#fafafa' : undefined,
         alignItems: 'start',
         cursor: 'pointer',
       }}
@@ -73,7 +73,7 @@ function SortableRow({ book, index, frozen, onClick }: SortableRowProps) {
       {/* Rank + drag handle stacked */}
       <div className="flex flex-col items-center gap-0.5 pt-0.5">
         {book.rank != null && (
-          <span className="text-lg font-bold leading-none" style={{ color: 'var(--text)' }}>
+          <span className="text-lg font-bold leading-none" style={{ color: '#111' }}>
             #{index + 1}
           </span>
         )}
@@ -84,7 +84,7 @@ function SortableRow({ book, index, frozen, onClick }: SortableRowProps) {
             aria-label={`Перетащить книгу ${book.title}`}
             onClick={(e) => e.stopPropagation()}
             className="cursor-grab select-none touch-none text-base leading-none"
-            style={{ color: 'var(--text-muted)', opacity: 0.5 }}
+            style={{ color: '#999', opacity: 0.5 }}
           >
             ⠿
           </button>
@@ -93,19 +93,29 @@ function SortableRow({ book, index, frozen, onClick }: SortableRowProps) {
 
       {/* Cover + title + author */}
       <div className="flex gap-3 min-w-0">
-        <div className="relative rounded overflow-hidden shrink-0" style={{ width: 44, height: 62 }}>
+        <div className="relative overflow-hidden shrink-0" style={{ width: 44, height: 62, borderRadius: 0 }}>
           <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
         </div>
         <div className="min-w-0">
           <div
-            className="font-semibold text-sm leading-snug mb-0.5"
-            style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              letterSpacing: '-0.01em',
+              color: '#111',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.25,
+              marginBottom: '0.125rem',
+            }}
           >
             {book.title}
           </div>
           <div
             className="text-xs"
-            style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{ color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
             {book.author}
           </div>
@@ -129,7 +139,7 @@ function StatusRow({ book, onClick }: StatusRowProps) {
         gridTemplateColumns: '48px 1fr',
         gap: '12px',
         padding: '12px 16px',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid #E5E5E5',
         alignItems: 'start',
         opacity: 0.7,
         cursor: 'pointer',
@@ -137,22 +147,32 @@ function StatusRow({ book, onClick }: StatusRowProps) {
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center pt-1">
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{statusIcon}</span>
+        <span className="text-[10px]" style={{ color: '#999' }}>{statusIcon}</span>
       </div>
       <div className="flex gap-3 min-w-0">
-        <div className="relative rounded overflow-hidden shrink-0" style={{ width: 44, height: 62 }}>
+        <div className="relative overflow-hidden shrink-0" style={{ width: 44, height: 62, borderRadius: 0 }}>
           <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
         </div>
         <div className="min-w-0">
           <div
-            className="font-semibold text-sm leading-snug mb-0.5"
-            style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              letterSpacing: '-0.01em',
+              color: '#111',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.25,
+              marginBottom: '0.125rem',
+            }}
           >
             {book.title}
           </div>
           <div
             className="text-xs"
-            style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{ color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
             {book.author}
           </div>
@@ -175,29 +195,39 @@ function CatalogRow({ book, onClick }: CatalogRowProps) {
         gridTemplateColumns: '48px 1fr',
         gap: '12px',
         padding: '12px 16px',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid #E5E5E5',
         alignItems: 'start',
         cursor: 'pointer',
       }}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center pt-1">
-        <span className="text-base leading-none" style={{ color: 'var(--text-muted)', opacity: 0.4 }}>+</span>
+        <span className="text-base leading-none" style={{ color: '#999', opacity: 0.4 }}>+</span>
       </div>
       <div className="flex gap-3 min-w-0">
-        <div className="relative rounded overflow-hidden shrink-0" style={{ width: 44, height: 62 }}>
+        <div className="relative overflow-hidden shrink-0" style={{ width: 44, height: 62, borderRadius: 0 }}>
           <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
         </div>
         <div className="min-w-0">
           <div
-            className="font-semibold text-sm leading-snug mb-0.5"
-            style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              letterSpacing: '-0.01em',
+              color: '#111',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.25,
+              marginBottom: '0.125rem',
+            }}
           >
             {book.title}
           </div>
           <div
             className="text-xs"
-            style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{ color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
             {book.author}
           </div>
@@ -405,17 +435,17 @@ export default function MatchingPersonalList({
         <>
           <div
             className="px-4 py-2 border-b border-t"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+            style={{ borderColor: '#E5E5E5', background: '#fafafa' }}
           >
             <span
               className="text-[11px] font-medium uppercase tracking-wide block"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: '#999' }}
             >
               В процессе / Прочитано
             </span>
             <span
               className="text-[10px] block mt-0.5"
-              style={{ color: 'var(--text-muted)', opacity: 0.75 }}
+              style={{ color: '#999', opacity: 0.75 }}
             >
               исключены при расчёте ваших сценариев и ходов
             </span>
@@ -433,11 +463,11 @@ export default function MatchingPersonalList({
         <>
           <div
             className="px-4 py-2 border-b border-t"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+            style={{ borderColor: '#E5E5E5', background: '#fafafa' }}
           >
             <span
               className="text-[11px] font-medium uppercase tracking-wide"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: '#999' }}
             >
               Все книги клуба
             </span>
@@ -453,7 +483,7 @@ export default function MatchingPersonalList({
       {activeBooks.length === 0 && statusBooks.length === 0 && catalogOnlyBooks.length === 0 && (
         <div
           className="flex flex-col items-center justify-center h-full p-8 text-center"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: '#999' }}
         >
           <div className="text-4xl mb-3">📚</div>
           <p className="text-sm leading-relaxed">Нет опубликованных книг.</p>

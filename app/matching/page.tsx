@@ -201,7 +201,7 @@ export default async function MatchingPage({
   return (
     <div
       className="flex flex-col"
-      style={{ height: '100svh', overflow: 'hidden', background: 'var(--bg)', color: 'var(--text)' }}
+      style={{ height: '100svh', overflow: 'hidden', background: '#fff', color: '#111' }}
     >
       <MatchingHeader
         sessionId={activeSession.id}
@@ -225,22 +225,32 @@ export default async function MatchingPage({
       >
         {/* Left: personal book list */}
         <div
-          className="flex flex-col rounded-xl overflow-hidden min-h-0 border"
+          className="flex flex-col overflow-hidden min-h-0 border"
           style={{
-            background: 'var(--bg-input)',
-            borderColor: 'var(--border)',
-            boxShadow: '0 4px 24px var(--shadow-card)',
+            background: '#fff',
+            borderColor: '#E5E5E5',
+            borderRadius: 0,
           }}
         >
           <div
             className="px-4 py-3 shrink-0 border-b"
-            style={{ borderColor: 'var(--border)' }}
+            style={{ borderColor: '#E5E5E5' }}
           >
-            <h2 className="text-base font-semibold m-0" style={{ color: 'var(--text)' }}>
+            <h2
+              className="m-0"
+              style={{
+                fontFamily: 'system-ui, sans-serif',
+                fontSize: '0.62rem',
+                fontWeight: 600,
+                textTransform: 'uppercase' as const,
+                letterSpacing: '0.14em',
+                color: '#999',
+              }}
+            >
               {isImpersonating ? 'Список участника' : 'Каталог'}
             </h2>
             {!isImpersonating && (
-              <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs mt-0.5 m-0" style={{ color: '#999' }}>
                 Перетащи книги, чтобы расставить приоритеты
               </p>
             )}
@@ -264,20 +274,27 @@ export default async function MatchingPage({
         <div className="flex flex-col gap-4 min-h-0 overflow-hidden">
           {/* Scenarios */}
           <div
-            className="flex flex-col flex-1 rounded-xl overflow-hidden min-h-0 border"
+            className="flex flex-col flex-1 overflow-hidden min-h-0 border"
             style={{
-              background: 'var(--bg-input)',
-              borderColor: 'var(--border)',
-              boxShadow: '0 4px 24px var(--shadow-card)',
+              background: '#fff',
+              borderColor: '#E5E5E5',
+              borderRadius: 0,
             }}
           >
             <div
               className="px-4 py-3 shrink-0 border-b"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: '#E5E5E5' }}
             >
               <h2
-                className="text-base font-semibold m-0"
-                style={{ color: 'var(--text)' }}
+                className="m-0"
+                style={{
+                  fontFamily: 'system-ui, sans-serif',
+                  fontSize: '0.62rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.14em',
+                  color: '#999',
+                }}
                 title="Сортировка: макс. участников → больше топ-3 книг → ниже средний ранг"
               >
                 Читательские круги
@@ -296,18 +313,28 @@ export default async function MatchingPage({
 
           {/* My moves */}
           <div
-            className="flex flex-col flex-1 rounded-xl overflow-hidden min-h-0 border"
+            className="flex flex-col flex-1 overflow-hidden min-h-0 border"
             style={{
-              background: 'var(--bg-input)',
-              borderColor: 'var(--border)',
-              boxShadow: '0 4px 24px var(--shadow-card)',
+              background: '#fff',
+              borderColor: '#E5E5E5',
+              borderRadius: 0,
             }}
           >
             <div
               className="px-4 py-3 shrink-0 border-b"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: '#E5E5E5' }}
             >
-              <h2 className="text-base font-semibold m-0" style={{ color: 'var(--text)' }}>
+              <h2
+                className="m-0"
+                style={{
+                  fontFamily: 'system-ui, sans-serif',
+                  fontSize: '0.62rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.14em',
+                  color: '#999',
+                }}
+              >
                 {isImpersonating ? 'Ходы участника' : 'Мои ходы'}
               </h2>
             </div>
