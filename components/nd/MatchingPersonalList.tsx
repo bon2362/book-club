@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import type { CatalogBook } from '@/lib/matching/personal-list'
 import CoverImage from './CoverImage'
+import MatchingBookDetailModal from './MatchingBookDetailModal'
 
 // BookParticipant stays — used for chips in the popup
 export interface BookParticipant {
@@ -29,31 +30,6 @@ export interface BookParticipant {
   pseudonym: string
   rank: number | null
   personalStatus: string | null
-}
-
-const PSEUDONYM_COLORS = [
-  { chip: 'bg-[#fde8d8] text-[#7c3516]', border: 'border-[#f8c4a0]' },
-  { chip: 'bg-[#dcfce7] text-[#14532d]', border: 'border-[#86efac]' },
-  { chip: 'bg-[#dbeafe] text-[#1e3a8a]', border: 'border-[#93c5fd]' },
-  { chip: 'bg-[#fef9c3] text-[#713f12]', border: 'border-[#fde047]' },
-  { chip: 'bg-[#f3e8ff] text-[#581c87]', border: 'border-[#d8b4fe]' },
-  { chip: 'bg-[#ffe4e6] text-[#881337]', border: 'border-[#fda4af]' },
-  { chip: 'bg-[#d1fae5] text-[#065f46]', border: 'border-[#6ee7b7]' },
-  { chip: 'bg-[#e0f2fe] text-[#075985]', border: 'border-[#7dd3fc]' },
-]
-
-function getPseudonymColor(pseudonym: string) {
-  let hash = 0
-  for (let i = 0; i < pseudonym.length; i++) hash = pseudonym.charCodeAt(i) + ((hash << 5) - hash)
-  return PSEUDONYM_COLORS[Math.abs(hash) % PSEUDONYM_COLORS.length]
-}
-
-function interestLabel(rank: number | null, personalStatus: string | null): string {
-  if (personalStatus === 'reading') return 'читаю'
-  if (personalStatus === 'read') return 'прочитал(а)'
-  if (rank === null) return 'без ранга'
-  if (rank <= 3) return 'хочу читать'
-  return 'готов(а)'
 }
 
 interface Props {
@@ -231,206 +207,6 @@ function CatalogRow({ book, onClick }: CatalogRowProps) {
   )
 }
 
-interface BookDetailModalProps {
-  book: CatalogBook
-  chips: BookParticipant[]
-  viewingUserId: string
-  frozen: boolean
-  onClose: () => void
-  onStatusChange: (bookId: string, status: string | null) => Promise<void>
-  onAddToList: (bookId: string) => Promise<void>
-  onRemoveFromList: (bookId: string) => Promise<void>
-}
-
-function BookDetailModal({
-  book,
-  chips,
-  viewingUserId,
-  frozen,
-  onClose,
-  onStatusChange,
-  onAddToList,
-  onRemoveFromList,
-}: BookDetailModalProps) {
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  async function handleAddToList() {
-    setBusy(true)
-    try { await onAddToList(book.bookId) } finally { setBusy(false) }
-  }
-
-  async function handleRemoveFromList() {
-    setBusy(true)
-    try { await onRemoveFromList(book.bookId) } finally { setBusy(false) }
-  }
-
-  async function handleStatusChange(newStatus: string | null) {
-    setBusy(true)
-    try { await onStatusChange(book.bookId, newStatus) } finally { setBusy(false) }
-  }
-
-  const meta: string[] = []
-  if (book.publishedDate) meta.push(book.publishedDate.split('/').at(-1) ?? book.publishedDate)
-  if (book.pages) meta.push(`${book.pages} стр.`)
-
-  return (
-    <div
-      role="presentation"
-      onClick={onClose}
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style={{ background: 'rgba(26, 23, 20, 0.4)' }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={book.title}
-        onClick={(e) => e.stopPropagation()}
-        className="border rounded-xl p-5 max-w-[420px] w-full"
-        style={{
-          background: 'var(--bg-input)',
-          borderColor: 'var(--border)',
-          boxShadow: '0 24px 70px rgba(26,23,20,0.18)',
-          maxHeight: '85vh',
-          overflowY: 'auto',
-        }}
-      >
-        {/* Cover + title */}
-        <div className="flex gap-4 mb-4">
-          <div className="relative rounded overflow-hidden shrink-0" style={{ width: 64, height: 92 }}>
-            <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div
-              className="font-semibold text-base leading-snug mb-1"
-              style={{ fontFamily: 'Georgia, "Times New Roman", serif', color: 'var(--text)' }}
-            >
-              {book.title}
-            </div>
-            <div className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>
-              {book.author}
-            </div>
-            {meta.length > 0 && (
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {meta.join(' · ')}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Participant chips */}
-        {chips.length > 0 && (
-          <div className="mb-4">
-            <div className="text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Участники
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {chips.map((p) => {
-                const colors = getPseudonymColor(p.pseudonym)
-                const isMe = p.userId === viewingUserId
-                const label = interestLabel(p.rank, p.personalStatus)
-                const rankStr = p.rank != null ? ` #${p.rank}` : ''
-                return (
-                  <span
-                    key={p.userId}
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] border ${colors.chip} ${colors.border} ${isMe ? 'ring-1 ring-current' : ''}`}
-                    title={isMe ? 'Это вы' : undefined}
-                  >
-                    {p.pseudonym} · {label}{rankStr}
-                  </span>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        {book.description && (
-          <p
-            className="text-sm leading-relaxed mb-4"
-            style={{ color: 'var(--text-body)' }}
-          >
-            {book.description}
-          </p>
-        )}
-
-        {/* Status (only if in list and not frozen) */}
-        {book.isInList && !frozen && (
-          <div className="mb-4">
-            <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-muted)' }}>
-              Статус
-            </label>
-            <select
-              value={book.personalStatus ?? ''}
-              onChange={(e) => handleStatusChange(e.target.value || null)}
-              disabled={busy}
-              className="w-full text-sm border rounded-lg px-3 py-2 cursor-pointer"
-              style={{
-                borderColor: 'var(--border)',
-                background: 'var(--bg-elevated)',
-                color: 'var(--text)',
-              }}
-            >
-              <option value="">В списке</option>
-              <option value="reading">Читаю сейчас</option>
-              <option value="read">Прочитал(а)</option>
-            </select>
-          </div>
-        )}
-
-        {/* Add/Remove buttons */}
-        {!frozen && (
-          <div className="flex gap-2">
-            {book.isInList ? (
-              <button
-                onClick={handleRemoveFromList}
-                disabled={busy}
-                className="flex-1 text-sm py-2 px-3 rounded-lg border transition-colors"
-                style={{
-                  borderColor: 'var(--border)',
-                  background: 'var(--bg-elevated)',
-                  color: 'var(--text-muted)',
-                  cursor: busy ? 'default' : 'pointer',
-                }}
-              >
-                {busy ? '…' : 'Убрать из списка'}
-              </button>
-            ) : (
-              <button
-                onClick={handleAddToList}
-                disabled={busy}
-                className="flex-1 text-sm py-2 px-3 rounded-lg border transition-colors font-medium"
-                style={{
-                  borderColor: 'var(--accent)',
-                  background: 'var(--accent)',
-                  color: '#fff',
-                  cursor: busy ? 'default' : 'pointer',
-                  opacity: busy ? 0.7 : 1,
-                }}
-              >
-                {busy ? '…' : 'Добавить в список'}
-              </button>
-            )}
-          </div>
-        )}
-
-        <button
-          onClick={onClose}
-          className="mt-4 text-xs cursor-pointer block"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Закрыть (Esc)
-        </button>
-      </div>
-    </div>
-  )
-}
-
 async function patchPriorities(bookIds: string[]) {
   await fetch('/api/matching/priorities', {
     method: 'PATCH',
@@ -583,7 +359,7 @@ export default function MatchingPersonalList({
       </div>
 
       {modalBook && (
-        <BookDetailModal
+        <MatchingBookDetailModal
           book={modalBook}
           chips={bookParticipants.filter((p) => p.bookId === modalBook.bookId)}
           viewingUserId={viewingUserId}

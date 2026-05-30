@@ -6,7 +6,14 @@ export interface MyMoveBook {
   bookId: string
   title: string
   author: string
+  description: string
   coverUrl: string | null
+  pages: number | null
+  publishedDate: string
+  textUrl: string
+  whyRead: string | null
+  recommendationLink: string | null
+  tags: string[]
   existingParticipants: { userId: string; pseudonym: string }[]
 }
 
@@ -77,7 +84,19 @@ export async function fetchMyMoves(
   if (qualifyingBookIds.length === 0) return []
 
   const bookDetails = await db
-    .select({ id: books.id, title: books.title, author: books.author, coverUrl: books.coverUrl })
+    .select({
+      id: books.id,
+      title: books.title,
+      author: books.author,
+      description: books.description,
+      coverUrl: books.coverUrl,
+      pages: books.pages,
+      publishedDate: books.publishedDate,
+      textUrl: books.textUrl,
+      whyRead: books.whyRead,
+      recommendationLink: books.recommendationLink,
+      tags: books.tags,
+    })
     .from(books)
     .where(and(inArray(books.id, qualifyingBookIds), eq(books.visibility, 'published')))
 
@@ -87,7 +106,14 @@ export async function fetchMyMoves(
     bookId: book.id,
     title: book.title,
     author: book.author,
+    description: book.description,
     coverUrl: book.coverUrl ?? null,
+    pages: book.pages,
+    publishedDate: book.publishedDate,
+    textUrl: book.textUrl,
+    whyRead: book.whyRead,
+    recommendationLink: book.recommendationLink,
+    tags: Array.isArray(book.tags) ? book.tags : [],
     existingParticipants: (countByBook.get(book.id) ?? []).map(uid => ({
       userId: uid,
       pseudonym: pseudonymMap.get(uid) ?? uid,

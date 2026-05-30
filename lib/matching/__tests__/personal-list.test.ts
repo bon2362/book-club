@@ -69,16 +69,25 @@ describe('fetchCatalogWithPersonalData', () => {
   it('returns all published books, not just signed-up ones', async () => {
     const rows = [
       { bookId: 'b1', title: 'Книга А', author: 'Автор', description: 'desc', coverUrl: null,
-        pages: 300, publishedDate: '2020', rank: 1, personalStatus: null, signupBookId: 'b1' },
+        pages: 300, publishedDate: '2020', textUrl: 'https://text.example', whyRead: 'why',
+        recommendationLink: 'Рецензия https://review.example', tags: ['tag'], rank: 1, personalStatus: null, signupBookId: 'b1' },
       { bookId: 'b2', title: 'Книга Б', author: 'Автор', description: '', coverUrl: null,
-        pages: null, publishedDate: '', rank: null, personalStatus: 'reading', signupBookId: 'b2' },
+        pages: null, publishedDate: '', textUrl: '', whyRead: null, recommendationLink: null,
+        tags: [], rank: null, personalStatus: 'reading', signupBookId: 'b2' },
       { bookId: 'b3', title: 'Книга В', author: 'Автор', description: '', coverUrl: null,
-        pages: null, publishedDate: '', rank: null, personalStatus: null, signupBookId: null },
+        pages: null, publishedDate: '', textUrl: '', whyRead: null, recommendationLink: null,
+        tags: [], rank: null, personalStatus: null, signupBookId: null },
     ]
     mockDb.select = jest.fn().mockReturnValue(makeChainLeftJoin(rows))
     const result = await fetchCatalogWithPersonalData('u1')
     expect(result).toHaveLength(3)
     expect(result[0]).toMatchObject({ bookId: 'b1', rank: 1, isInList: true })
+    expect(result[0]).toMatchObject({
+      textUrl: 'https://text.example',
+      whyRead: 'why',
+      recommendationLink: 'Рецензия https://review.example',
+      tags: ['tag'],
+    })
     expect(result[1]).toMatchObject({ bookId: 'b2', personalStatus: 'reading', isInList: true })
     expect(result[2]).toMatchObject({ bookId: 'b3', rank: null, isInList: false })
   })

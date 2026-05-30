@@ -54,6 +54,10 @@ export interface CatalogBook {
   coverUrl: string | null
   pages: number | null
   publishedDate: string
+  textUrl: string
+  whyRead: string | null
+  recommendationLink: string | null
+  tags: string[]
   rank: number | null
   personalStatus: string | null
   isInList: boolean
@@ -69,6 +73,10 @@ export async function fetchCatalogWithPersonalData(userId: string): Promise<Cata
       coverUrl: books.coverUrl,
       pages: books.pages,
       publishedDate: books.publishedDate,
+      textUrl: books.textUrl,
+      whyRead: books.whyRead,
+      recommendationLink: books.recommendationLink,
+      tags: books.tags,
       rank: bookPriorities.rank,
       personalStatus: signupBooks.personalStatus,
       signupBookId: signupBooks.bookId,
@@ -97,6 +105,10 @@ export async function fetchCatalogWithPersonalData(userId: string): Promise<Cata
     coverUrl: row.coverUrl,
     pages: row.pages,
     publishedDate: row.publishedDate,
+    textUrl: row.textUrl,
+    whyRead: row.whyRead,
+    recommendationLink: row.recommendationLink,
+    tags: Array.isArray(row.tags) ? row.tags : [],
     rank: row.rank,
     personalStatus: row.personalStatus,
     isInList: row.signupBookId !== null,
