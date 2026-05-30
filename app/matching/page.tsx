@@ -170,6 +170,11 @@ export default async function MatchingPage({
   // Frozen or impersonating = read-only
   const isFrozenOrImpersonating = activeSession.status === 'frozen' || isImpersonating
 
+  // Get current user's pseudonym (not impersonating) or null if impersonating
+  const userPseudonym = !isImpersonating
+    ? participants.find((p) => p.userId === session.user.id)?.pseudonym ?? null
+    : null
+
   return (
     <div
       className="flex flex-col"
@@ -186,6 +191,7 @@ export default async function MatchingPage({
         viewedPseudonym={viewedParticipant?.pseudonym ?? null}
         viewedName={viewedParticipant?.name ?? null}
         asParam={asParam}
+        userPseudonym={userPseudonym}
       />
 
       {/* Two-column workspace */}
