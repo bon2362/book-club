@@ -9,15 +9,9 @@ test.describe('поиск по книгам', () => {
     await page.waitForSelector('article, p:has-text("Ничего не найдено")')
   })
 
-  test('поле поиска отображается на странице', async ({ page }) => {
-    await expect(page.getByPlaceholder('Поиск по названию или автору…')).toBeVisible()
-  })
-
-  test('пустой запрос показывает все книги', async ({ page }) => {
-    const searchInput = page.getByPlaceholder('Поиск по названию или автору…')
-    await expect(searchInput).toHaveValue('')
-    await expect(page.locator('article').first()).toBeVisible()
-  })
+  // «поле отображается» и «пустой запрос показывает все книги» удалены как
+  // тривиальные — наличие поля и стартовый полный список проверяются неявно
+  // в тестах ниже (фильтрация / очистка).
 
   test('ввод текста фильтрует список книг', async ({ page }) => {
     const searchInput = page.getByPlaceholder('Поиск по названию или автору…')
@@ -32,13 +26,6 @@ test.describe('поиск по книгам', () => {
     }
   })
 
-  test('кириллический запрос возвращает результаты или «Ничего не найдено»', async ({ page }) => {
-    await page.getByPlaceholder('Поиск по названию или автору…').fill('история')
-    const cardCount = await page.locator('article').count()
-    const emptyVisible = await page.getByText('Ничего не найдено').isVisible().catch(() => false)
-    expect(cardCount > 0 || emptyVisible).toBe(true)
-  })
-
   test('очистка поиска восстанавливает полный список', async ({ page }) => {
     const searchInput = page.getByPlaceholder('Поиск по названию или автору…')
     const totalBefore = await page.locator('article').count()
@@ -48,12 +35,12 @@ test.describe('поиск по книгам', () => {
     expect(totalAfter).toBe(totalBefore)
   })
 
-  test('несуществующий запрос показывает «Ничего не найдено»', async ({ page }) => {
-    await page.getByPlaceholder('Поиск по названию или автору…').fill('zzzzzzzzz_нет_такой_книги')
+  // Объединяет прежние «кириллический запрос» и «несуществующий запрос»:
+  // заведомо отсутствующий кириллический запрос обязан дать «Ничего не найдено».
+  test('несуществующий кириллический запрос показывает «Ничего не найдено»', async ({ page }) => {
+    await page.getByPlaceholder('Поиск по названию или автору…').fill('абвгдеж_нет_такой_книги_ёёё')
     await page.waitForTimeout(300)
-    const cardCount = await page.locator('article').count()
-    if (cardCount === 0) {
-      await expect(page.getByText('Ничего не найдено')).toBeVisible()
-    }
+    await expect(page.locator('article')).toHaveCount(0)
+    await expect(page.getByText('Ничего не найдено')).toBeVisible()
   })
 })

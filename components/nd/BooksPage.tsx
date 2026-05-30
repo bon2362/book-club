@@ -21,6 +21,7 @@ import Footer from './Footer'
 import FeedbackForm from './FeedbackForm'
 import { useScrollHide } from '@/lib/scroll-hide-context'
 import { getUserContactEmail } from '@/lib/user-email'
+import { useAutoDismiss } from './useAutoDismiss'
 
 interface Props {
   books: BookWithCover[]
@@ -131,11 +132,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     return nextSave
   }
 
-  useEffect(() => {
-    if (!showPriorityHint || priorityHintPaused) return
-    const t = setTimeout(() => setShowPriorityHint(false), 20000)
-    return () => clearTimeout(t)
-  }, [showPriorityHint, priorityHintPaused])
+  // Авто-закрытие тоста-подсказки через 20s (пауза на hover). Логика таймера
+  // вынесена в useAutoDismiss и покрыта unit-тестом с fake timers вместо
+  // медленных Playwright-сценариев (см. components/nd/useAutoDismiss.test.tsx).
+  useAutoDismiss(showPriorityHint, priorityHintPaused, () => setShowPriorityHint(false))
 
   useEffect(() => {
     selectedBooksRef.current = selectedBooks
