@@ -241,13 +241,13 @@ export default function MatchingHeader({
             >
               <div
                 className="text-xs font-semibold mb-2.5 uppercase tracking-wide"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: '#999' }}
               >
                 Участники ({participants.length})
               </div>
               <div className="flex flex-col gap-1">
                 {participants.length === 0 ? (
-                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  <div className="text-sm" style={{ color: '#999' }}>
                     Пока никто не присоединился.
                   </div>
                 ) : (
@@ -261,7 +261,7 @@ export default function MatchingHeader({
                       </div>
                       <span
                         className="text-sm font-medium flex-1"
-                        style={{ color: 'var(--text)' }}
+                        style={{ color: '#111' }}
                       >
                         {p.pseudonym}
                       </span>
@@ -269,7 +269,7 @@ export default function MatchingHeader({
                         <a
                           href={`/matching?as=${p.userId}`}
                           className="text-xs shrink-0"
-                          style={{ color: 'var(--text-muted)' }}
+                          style={{ color: '#999' }}
                           title="Посмотреть за этого участника"
                         >
                           {p.name}
@@ -279,7 +279,7 @@ export default function MatchingHeader({
                   ))
                 )}
               </div>
-              <Popover.Arrow style={{ fill: 'var(--border)' }} />
+              <Popover.Arrow style={{ fill: '#E5E5E5' }} />
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>
