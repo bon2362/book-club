@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { signupBooks, userIdentities, users, books } from '@/lib/db/schema'
-import { eq, or } from 'drizzle-orm'
+import { and, eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
 function notAllowed() {
@@ -12,22 +12,25 @@ export async function GET(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
   const email = req.nextUrl.searchParams.get('email')
-  if (!email) {
-    return NextResponse.json({ error: 'Missing email' }, { status: 400 })
+  const telegramUsername = req.nextUrl.searchParams.get('telegramUsername')
+  if (!email && !telegramUsername) {
+    return NextResponse.json({ error: 'Missing email or telegramUsername' }, { status: 400 })
   }
 
-  const rows = await db
+  const rows = email ? await db
     .select({ id: users.id, email: users.contactEmail, contactEmail: users.contactEmail })
     .from(users)
     .where(eq(users.contactEmail, email))
-    .limit(1)
+    .limit(1) : []
 
   let userRow = rows[0]
   if (!userRow) {
     const identityRows = await db
       .select({ userId: userIdentities.userId })
       .from(userIdentities)
-      .where(or(eq(userIdentities.email, email), eq(userIdentities.providerAccountId, email)))
+      .where(telegramUsername
+        ? and(eq(userIdentities.provider, 'telegram'), eq(userIdentities.providerAccountId, telegramUsername))
+        : or(eq(userIdentities.email, email!), eq(userIdentities.providerAccountId, email!)))
       .limit(1)
     if (identityRows[0]?.userId) {
       const byIdentityRows = await db
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
   const userId = userRow.id
   const [signupBookRows, identityRows] = await Promise.all([
     db
-      .select({ bookId: signupBooks.bookId, bookTitle: books.title })
+      .select({ bookId: signupBooks.bookId, bookTitle: books.title, personalStatus: signupBooks.personalStatus })
       .from(signupBooks)
       .innerJoin(books, eq(signupBooks.bookId, books.id))
       .where(eq(signupBooks.userId, userId)),
@@ -70,5 +73,6 @@ export async function GET(req: NextRequest) {
     signupBookCount: signupBookRows.length,
     signupBooks: signupBookRows.map(row => row.bookTitle),
     signupBookIds: signupBookRows.map(row => row.bookId),
+    signups: signupBookRows.map(row => ({ bookId: row.bookId, personalStatus: row.personalStatus })),
   })
 }
