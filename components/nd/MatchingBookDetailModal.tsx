@@ -88,11 +88,12 @@ export default function MatchingBookDetailModal({
         aria-modal="true"
         aria-label={book.title}
         onClick={(e) => e.stopPropagation()}
-        className="relative border rounded-xl max-w-[720px] w-full"
+        className="relative border max-w-[720px] w-full"
         style={{
-          background: 'var(--bg-input)',
-          borderColor: 'var(--border)',
-          boxShadow: '0 24px 70px rgba(26,23,20,0.18)',
+          background: '#fff',
+          borderColor: '#E5E5E5',
+          borderRadius: 0,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           maxHeight: '86vh',
           overflowY: 'auto',
         }}
@@ -101,21 +102,22 @@ export default function MatchingBookDetailModal({
           type="button"
           onClick={onClose}
           aria-label="Закрыть"
-          className="absolute top-3 right-3 h-8 w-8 rounded-full border text-lg leading-none"
+          className="absolute top-3 right-3 h-8 w-8 border text-lg leading-none"
           style={{
-            borderColor: 'var(--border)',
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-muted)',
+            borderRadius: 0,
+            borderColor: '#E5E5E5',
+            background: '#fff',
+            color: '#999',
             cursor: 'pointer',
           }}
         >
           ×
         </button>
 
-        <div className="px-6 py-5 pr-14 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="px-6 py-5 pr-14 border-b" style={{ borderColor: '#E5E5E5' }}>
           <h3
             className="m-0 text-xl font-semibold leading-tight"
-            style={{ fontFamily: 'Georgia, "Times New Roman", serif', color: 'var(--text)' }}
+            style={{ fontFamily: 'Georgia, "Times New Roman", serif', color: '#111' }}
           >
             {book.title}
           </h3>
@@ -127,7 +129,7 @@ export default function MatchingBookDetailModal({
           </div>
 
           <div className="min-w-0">
-            <p className="text-base m-0 mb-2" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-base m-0 mb-2" style={{ color: '#666' }}>
               {book.author}{meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
             </p>
 
@@ -136,11 +138,12 @@ export default function MatchingBookDetailModal({
                 {book.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-[11px] uppercase rounded-full px-2 py-0.5 border"
+                    className="text-[11px] uppercase px-2 py-0.5 border"
                     style={{
-                      color: 'var(--text-muted)',
-                      borderColor: 'var(--border)',
-                      background: 'var(--bg-elevated)',
+                      color: '#999',
+                      borderColor: '#d6d6d6',
+                      background: 'transparent',
+                      borderRadius: 0,
                     }}
                   >
                     {tag}
@@ -152,7 +155,7 @@ export default function MatchingBookDetailModal({
             {book.description && (
               <p
                 className="text-sm leading-relaxed mb-5"
-                style={{ color: 'var(--text-body)', whiteSpace: 'pre-line' }}
+                style={{ color: '#444', whiteSpace: 'pre-line' }}
               >
                 {book.description}
               </p>
@@ -161,12 +164,12 @@ export default function MatchingBookDetailModal({
             {book.whyRead && (
               <section
                 className="mb-5 border-l-2 px-4 py-3"
-                style={{ borderColor: 'var(--accent)', background: 'var(--bg-elevated)' }}
+                style={{ borderColor: '#C0603A', background: '#fafafa' }}
               >
-                <h4 className="m-0 mb-2 text-xs uppercase" style={{ color: 'var(--accent)' }}>
+                <h4 className="m-0 mb-2 text-xs uppercase" style={{ color: '#C0603A' }}>
                   Почему предлагаю читать
                 </h4>
-                <p className="m-0 text-sm leading-relaxed" style={{ color: 'var(--text-body)', whiteSpace: 'pre-line' }}>
+                <p className="m-0 text-sm leading-relaxed" style={{ color: '#444', whiteSpace: 'pre-line' }}>
                   {book.whyRead}
                 </p>
               </section>
@@ -175,12 +178,12 @@ export default function MatchingBookDetailModal({
             {(book.textUrl || parsedRecommendation) && (
               <div className="flex flex-wrap gap-3 mb-5 text-sm">
                 {book.textUrl && (
-                  <a href={book.textUrl} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--text)' }}>
+                  <a href={book.textUrl} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#111' }}>
                     Текст
                   </a>
                 )}
                 {parsedRecommendation && (
-                  <a href={parsedRecommendation.url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--text)' }}>
+                  <a href={parsedRecommendation.url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: '#111' }}>
                     {parsedRecommendation.text}
                   </a>
                 )}
@@ -189,7 +192,7 @@ export default function MatchingBookDetailModal({
 
             {chips.length > 0 && (
               <div className="mb-5">
-                <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs font-medium mb-2" style={{ color: '#999' }}>
                   Записались на книгу:
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -201,7 +204,8 @@ export default function MatchingBookDetailModal({
                     return (
                       <span
                         key={p.userId}
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] border ${colors.chip} ${colors.border} ${isMe ? 'ring-1 ring-current' : ''}`}
+                        className={`inline-flex items-center px-2 py-0.5 text-[11px] border ${colors.chip} ${isMe ? 'ring-1 ring-current' : ''}`}
+                        style={{ borderRadius: 0 }}
                         title={isMe ? 'Это вы' : undefined}
                       >
                         {p.pseudonym} · {label}{rankStr}
@@ -219,11 +223,12 @@ export default function MatchingBookDetailModal({
                   value={book.personalStatus ?? ''}
                   onChange={(e) => handleStatusChange(e.target.value || null)}
                   disabled={busy}
-                  className="w-full text-sm border rounded-lg px-3 py-2 cursor-pointer"
+                  className="w-full text-sm border px-3 py-2 cursor-pointer"
                   style={{
-                    borderColor: 'var(--border)',
-                    background: 'var(--bg-elevated)',
-                    color: 'var(--text)',
+                    borderColor: '#E5E5E5',
+                    background: '#fafafa',
+                    color: '#111',
+                    borderRadius: 0,
                   }}
                 >
                   <option value="">Записал:ась</option>
@@ -239,11 +244,12 @@ export default function MatchingBookDetailModal({
                   <button
                     onClick={handleRemoveFromList}
                     disabled={busy}
-                    className="flex-1 text-sm py-2 px-3 rounded-lg border transition-colors"
+                    className="flex-1 text-sm py-2 px-3 border"
                     style={{
-                      borderColor: 'var(--border)',
-                      background: 'var(--bg-elevated)',
-                      color: 'var(--text-muted)',
+                      borderRadius: 0,
+                      borderColor: '#E5E5E5',
+                      background: '#fff',
+                      color: '#666',
                       cursor: busy ? 'default' : 'pointer',
                     }}
                   >
@@ -253,10 +259,11 @@ export default function MatchingBookDetailModal({
                   <button
                     onClick={handleAddToList}
                     disabled={busy}
-                    className="flex-1 text-sm py-2 px-3 rounded-lg border transition-colors font-medium"
+                    className="flex-1 text-sm py-2 px-3 font-medium"
                     style={{
-                      borderColor: 'var(--accent)',
-                      background: 'var(--accent)',
+                      borderRadius: 0,
+                      border: '1px solid #111',
+                      background: '#111',
                       color: '#fff',
                       cursor: busy ? 'default' : 'pointer',
                       opacity: busy ? 0.7 : 1,
