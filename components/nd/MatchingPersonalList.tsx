@@ -483,7 +483,7 @@ export default function MatchingPersonalList({
       {activeBooks.length === 0 && statusBooks.length === 0 && catalogOnlyBooks.length === 0 && (
         <div
           className="flex flex-col items-center justify-center h-full p-8 text-center"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: '#999' }}
         >
           <div className="text-4xl mb-3">📚</div>
           <p className="text-sm leading-relaxed">Нет опубликованных книг.</p>
