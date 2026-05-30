@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
+import type { PersonalBookStatus } from '@/lib/signup-books'
 import CoverImage from './CoverImage'
 
 interface Props {
   book: BookWithCover
   isSelected: boolean
   onToggle: (book: BookWithCover) => void
+  personalStatus?: PersonalBookStatus | null
 }
 
 function extractYear(date: string): string {
@@ -35,7 +37,7 @@ function parseRecommendationLink(raw: string): { text: string; url: string } | n
   return { text, url }
 }
 
-export default function BookCard({ book, isSelected, onToggle }: Props) {
+export default function BookCard({ book, isSelected, onToggle, personalStatus }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
   const [descHovered, setDescHovered] = useState(false)
@@ -488,28 +490,48 @@ export default function BookCard({ book, isSelected, onToggle }: Props) {
       {/* Spacer */}
       <div style={{ flex: 1 }} />
 
-      {/* Toggle button */}
+      {/* Toggle button / personal status label */}
       <div style={{ padding: '0.75rem' }}>
-        <button
-          onClick={() => onToggle(book)}
-          aria-pressed={isSelected}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '0.5rem 1rem',
-            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-            fontSize: '0.7rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            cursor: 'pointer',
-            border: '1px solid #111',
-            background: isSelected ? '#111' : 'transparent',
-            color: isSelected ? '#fff' : '#111',
-            transition: 'background 0.15s, color 0.15s',
-          }}
-        >
-          {isSelected ? '✓ Вы записаны' : 'Хочу читать'}
-        </button>
+        {personalStatus === 'reading' || personalStatus === 'read' ? (
+          <div
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '0.5rem 1rem',
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              border: '1px solid #D0D0D0',
+              color: '#999',
+              textAlign: 'center',
+              boxSizing: 'border-box',
+            }}
+          >
+            {personalStatus === 'reading' ? 'Читаю сейчас' : 'Прочитал:а'}
+          </div>
+        ) : (
+          <button
+            onClick={() => onToggle(book)}
+            aria-pressed={isSelected}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '0.5rem 1rem',
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+              border: '1px solid #111',
+              background: isSelected ? '#111' : 'transparent',
+              color: isSelected ? '#fff' : '#111',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            {isSelected ? '✓ Вы записаны' : 'Хочу читать'}
+          </button>
+        )}
       </div>
     </article>
   )

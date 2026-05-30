@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
 import { useSession, signOut } from 'next-auth/react'
 import type { BookWithCover } from '@/lib/books-with-covers'
-import type { UserSignup } from '@/lib/signup-books'
+import type { UserSignup, PersonalBookStatus } from '@/lib/signup-books'
 import { searchBooks } from '@/lib/search'
 import { bookMatchesAuthor, getUniqueAuthors } from '@/lib/authors'
 import Header from './Header'
@@ -202,6 +202,16 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
 
   const hasReadBooks = useMemo(() => books.some(b => b.status === 'read'), [books])
   const hasNewBooks = useMemo(() => books.some(b => b.isNew), [books])
+
+  // Per-book personal reading status from SSR (reflects state at page load).
+  // reading/read → catalog shows a soft label instead of the signup toggle.
+  const personalStatusMap = useMemo(() => {
+    const map = new Map<string, PersonalBookStatus>()
+    for (const s of (currentUser?.signups ?? [])) {
+      if (s.personalStatus) map.set(s.bookId, s.personalStatus)
+    }
+    return map
+  }, [currentUser?.signups])
 
   function handleToggle(book: BookWithCover) {
     if (!isLoggedIn) {
@@ -471,7 +481,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
             <SubmitBookCard onClick={handleSubmitBookClick} />
             {filteredBooks.map(book => (
-              <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} />
+              <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
             ))}
           </div>
         ) : (
@@ -498,7 +508,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                 </td>
               </tr>
               {filteredBooks.map(book => (
-                <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} />
+                <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
               ))}
             </tbody>
           </table>
