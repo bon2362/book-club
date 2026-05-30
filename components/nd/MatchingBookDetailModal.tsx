@@ -204,7 +204,7 @@ export default function MatchingBookDetailModal({
                     return (
                       <span
                         key={p.userId}
-                        className={`inline-flex items-center px-2 py-0.5 text-[11px] border ${colors.chip} ${isMe ? 'ring-1 ring-current' : ''}`}
+                        className={`inline-flex items-center px-2 py-0.5 text-[11px] ${colors.chip} ${isMe ? 'ring-1 ring-current' : ''}`}
                         style={{ borderRadius: 0 }}
                         title={isMe ? 'Это вы' : undefined}
                       >
