@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, signupBooks, bookPriorities, books } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
-import { fetchPersonalList } from '@/lib/matching/personal-list'
+import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
 import { generateScenarios } from '@/lib/matching/scenarios'
 
@@ -30,14 +30,17 @@ export async function GET(req: NextRequest) {
   const effectiveUserId = (isAdmin && asParam) ? asParam : session.user.id
 
   const participants = await db
-    .select({ userId: matchingSessionParticipants.userId })
+    .select({
+      userId: matchingSessionParticipants.userId,
+      pseudonym: matchingSessionParticipants.pseudonym,
+    })
     .from(matchingSessionParticipants)
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
 
   const participantUserIds = participants.map(p => p.userId)
 
   const [personalBooks, myMoves] = await Promise.all([
-    fetchPersonalList(effectiveUserId),
+    fetchCatalogWithPersonalData(effectiveUserId),
     fetchMyMoves(effectiveUserId, sessionId, matchSession.targetGroupSize),
   ])
 
@@ -45,7 +48,7 @@ export async function GET(req: NextRequest) {
   let scenarios: ReturnType<typeof generateScenarios> = []
   if (participantUserIds.length >= matchSession.targetGroupSize) {
     const [allSignups, allRanks, allBooks] = await Promise.all([
-      db.select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+      db.select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
         .from(signupBooks)
         .where(inArray(signupBooks.userId, participantUserIds)),
       db.select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, rank: bookPriorities.rank })
@@ -57,10 +60,11 @@ export async function GET(req: NextRequest) {
     ])
     const signedUpBookIds = new Set(allSignups.map(s => s.bookId))
     const sessionBooks = allBooks.filter(b => signedUpBookIds.has(b.id)).map(b => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
+    const activeSignups = allSignups.filter(s => s.personalStatus === null)
     scenarios = generateScenarios({
-      participants: participantUserIds.map(uid => ({ userId: uid, pseudonym: uid })),
+      participants,
       books: sessionBooks,
-      signups: allSignups,
+      signups: activeSignups.map(s => ({ userId: s.userId, bookId: s.bookId })),
       ranks: allRanks,
       targetGroupSize: matchSession.targetGroupSize,
       maxResults: 10,

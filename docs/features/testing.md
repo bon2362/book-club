@@ -104,6 +104,10 @@ npm run test:e2e
 |----------|-----------|
 | `POST /api/test/session` | Создать сессию (поддерживает `isAdmin`, `telegramUsername`) |
 | `DELETE /api/test/session` | Удалить пользователя и сессию |
+| `POST /api/test/books` | Создать тестовую опубликованную книгу |
+| `DELETE /api/test/books` | Удалить тестовую книгу |
+| `POST /api/test/matching-session` | Создать активную тестовую matching-сессию |
+| `DELETE /api/test/matching-session` | Удалить тестовую matching-сессию |
 | `POST /api/test/signup` | Записать выбранные книги напрямую в `signup_books` |
 | `DELETE /api/test/signup` | Удалить тестовые записи пользователя из `signup_books` |
 

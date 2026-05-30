@@ -149,7 +149,10 @@ export default async function MatchingPage({
   // Fetch scenario data only when enough participants
   const scenarios =
     participantUserIds.length >= activeSession.targetGroupSize
-      ? await fetchAndGenerateScenarios(participantUserIds, activeSession.targetGroupSize)
+      ? await fetchAndGenerateScenarios(
+          participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym })),
+          activeSession.targetGroupSize,
+        )
       : []
 
   // Fetch book details for scenario cards
@@ -157,11 +160,27 @@ export default async function MatchingPage({
   const scenarioBooks =
     scenarioBookIds.length > 0
       ? await db
-          .select({ id: books.id, title: books.title, author: books.author, coverUrl: books.coverUrl })
+          .select({
+            id: books.id,
+            title: books.title,
+            author: books.author,
+            description: books.description,
+            coverUrl: books.coverUrl,
+            pages: books.pages,
+            publishedDate: books.publishedDate,
+            textUrl: books.textUrl,
+            whyRead: books.whyRead,
+            recommendationLink: books.recommendationLink,
+            tags: books.tags,
+          })
           .from(books)
           .where(inArray(books.id, scenarioBookIds))
       : []
-  const bookById = new Map(scenarioBooks.map((b) => [b.id, b]))
+  const bookById = new Map(scenarioBooks.map((b) => [b.id, {
+    ...b,
+    bookId: b.id,
+    tags: Array.isArray(b.tags) ? b.tags : [],
+  }]))
 
   // Frozen or impersonating = read-only
   const isFrozenOrImpersonating = activeSession.status === 'frozen' || isImpersonating
@@ -253,11 +272,17 @@ export default async function MatchingPage({
                 style={{ color: 'var(--text)' }}
                 title="Сортировка: макс. участников → больше топ-3 книг → ниже средний ранг"
               >
-                Сценарии групп
+                Читательские круги
               </h2>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
-              <MatchingScenarios scenarios={scenarios} bookById={bookById} />
+              <MatchingScenarios
+                scenarios={scenarios}
+                bookById={bookById}
+                bookParticipants={bookParticipants}
+                viewingUserId={viewingUserId}
+                targetGroupSize={activeSession.targetGroupSize}
+              />
             </div>
           </div>
 
@@ -291,9 +316,10 @@ export default async function MatchingPage({
 }
 
 async function fetchAndGenerateScenarios(
-  participantUserIds: string[],
+  participants: { userId: string; pseudonym: string }[],
   targetGroupSize: number,
 ) {
+  const participantUserIds = participants.map((p) => p.userId)
   const [allSignups, allRanks, allBooks] = await Promise.all([
     db
       .select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
@@ -323,10 +349,8 @@ async function fetchAndGenerateScenarios(
   // they are no longer available as candidates for a new group on that book.
   const activeSignups = allSignups.filter((s) => s.personalStatus === null)
 
-  const scenarioParticipants = participantUserIds.map((userId) => ({ userId, pseudonym: userId }))
-
   return generateScenarios({
-    participants: scenarioParticipants,
+    participants,
     books: sessionBooks,
     signups: activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
     ranks: allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),

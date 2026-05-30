@@ -35,10 +35,21 @@ type TestBook = {
   description: string
   pages: number
   publishedDate: string
+  textUrl: string
+  whyRead: string | null
+  recommendationLink: string | null
   visibility: 'published' | 'draft' | 'hidden'
 }
 
-type TestBookOverrides = Partial<Pick<TestBook, 'id' | 'title' | 'author' | 'tags' | 'description' | 'pages' | 'publishedDate' | 'visibility'>>
+type TestBookOverrides = Partial<Pick<TestBook, 'id' | 'title' | 'author' | 'tags' | 'description' | 'pages' | 'publishedDate' | 'textUrl' | 'whyRead' | 'recommendationLink' | 'visibility'>>
+
+type MatchingSession = {
+  id: string
+  name: string
+  targetGroupSize: number
+}
+
+type MatchingSessionOverrides = Partial<Pick<MatchingSession, 'name' | 'targetGroupSize'>>
 
 interface AdminSession {
   email: string
@@ -47,6 +58,12 @@ interface AdminSession {
 }
 
 interface E2EHelpers {
+  /**
+   * Log in as a regular user with a unique email derived from the test id.
+   * Session is deleted automatically in teardown.
+   */
+  loginAsUser: (overrides?: { email?: string; name?: string }) => Promise<AdminSession>
+
   /**
    * Log in as an admin with a unique email derived from the test id.
    * Session is deleted automatically in teardown.
@@ -73,6 +90,11 @@ interface E2EHelpers {
    * Does NOT require an admin session.
    */
   createTestBook: (overrides?: TestBookOverrides) => Promise<TestBook>
+
+  /**
+   * Create an active matching session through a test-only API and delete it in teardown.
+   */
+  createMatchingSession: (overrides?: MatchingSessionOverrides) => Promise<MatchingSession>
 }
 
 type CleanupFn = () => Promise<void>
@@ -97,6 +119,34 @@ export const test = base.extend<E2EHelpers>({
       await context.route(pattern, (route) => route.abort())
     }
     await use(context)
+  },
+
+  loginAsUser: async ({ page }, use, testInfo) => {
+    const cleanups: CleanupFn[] = []
+    let count = 0
+
+    const login: E2EHelpers['loginAsUser'] = async (overrides) => {
+      const index = count++
+      const email = overrides?.email ?? `e2e-${testInfo.testId}-user-${index}@test.invalid`
+      const name = overrides?.name ?? `E2E User ${index} ${testInfo.testId}`
+      const res = await page.request.post('/api/test/session', {
+        data: { email, name, isAdmin: false },
+      })
+      if (!res.ok()) {
+        throw new Error(`/api/test/session failed: ${res.status()} ${await res.text()}`)
+      }
+      const body = (await res.json()) as { userId: string }
+      cleanups.push(async () => {
+        await page.request.delete('/api/test/session', { data: { email } })
+      })
+      return { email, name, userId: body.userId }
+    }
+
+    await use(login)
+
+    for (const fn of cleanups.reverse()) {
+      try { await fn() } catch { /* best-effort */ }
+    }
   },
 
   loginAsAdmin: async ({ page }, use, testInfo) => {
@@ -183,6 +233,33 @@ export const test = base.extend<E2EHelpers>({
       try {
         await page.request.delete('/api/test/books', { data: { id } })
       } catch { /* best-effort — cleanup hooks would still mop up next run */ }
+    }
+  },
+
+  createMatchingSession: async ({ page }, use, testInfo) => {
+    const created: string[] = []
+
+    const create: E2EHelpers['createMatchingSession'] = async (overrides) => {
+      const res = await page.request.post('/api/test/matching-session', {
+        data: {
+          name: overrides?.name ?? `E2E Matching ${testInfo.testId}`,
+          targetGroupSize: overrides?.targetGroupSize ?? 3,
+        },
+      })
+      if (!res.ok()) {
+        throw new Error(`POST /api/test/matching-session failed: ${res.status()} ${await res.text()}`)
+      }
+      const body = (await res.json()) as { session: MatchingSession }
+      created.push(body.session.id)
+      return body.session
+    }
+
+    await use(create)
+
+    for (const id of created.reverse()) {
+      try {
+        await page.request.delete('/api/test/matching-session', { data: { id } })
+      } catch { /* best-effort — DB cleanup is the safety net */ }
     }
   },
 })

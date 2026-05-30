@@ -26,6 +26,9 @@ type BookOverrides = {
   description?: string
   pages?: number
   publishedDate?: string
+  textUrl?: string
+  whyRead?: string | null
+  recommendationLink?: string | null
   visibility?: 'published' | 'draft' | 'hidden'
   sortOrder?: number
 }
@@ -51,11 +54,11 @@ export async function POST(req: NextRequest) {
       type: 'book' as const,
       pages: overrides.pages ?? 100,
       publishedDate: overrides.publishedDate ?? '2024',
-      textUrl: '',
+      textUrl: overrides.textUrl ?? '',
       description: overrides.description ?? 'E2E test book',
       coverUrl: null,
-      whyRead: null,
-      recommendationLink: null,
+      whyRead: overrides.whyRead ?? null,
+      recommendationLink: overrides.recommendationLink ?? null,
       readingStatus: null,
       visibility: overrides.visibility ?? 'published',
       isNew: false,

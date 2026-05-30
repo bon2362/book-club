@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import { getPseudonymColor } from './matching-shared'
 
 interface Participant {
   userId: string
@@ -51,23 +52,6 @@ function useDeadlineText(deadlineAt: string | null): { text: string; urgent: boo
   }, [deadlineAt])
 
   return state
-}
-
-const PSEUDONYM_COLORS = [
-  'bg-[#fde8d8] text-[#7c3516]',
-  'bg-[#dcfce7] text-[#14532d]',
-  'bg-[#dbeafe] text-[#1e3a8a]',
-  'bg-[#fef9c3] text-[#713f12]',
-  'bg-[#f3e8ff] text-[#581c87]',
-  'bg-[#ffe4e6] text-[#881337]',
-  'bg-[#d1fae5] text-[#065f46]',
-  'bg-[#e0f2fe] text-[#075985]',
-]
-
-function pseudonymColor(pseudonym: string) {
-  let hash = 0
-  for (let i = 0; i < pseudonym.length; i++) hash = pseudonym.charCodeAt(i) + ((hash << 5) - hash)
-  return PSEUDONYM_COLORS[Math.abs(hash) % PSEUDONYM_COLORS.length]
 }
 
 export default function MatchingHeader({
@@ -155,7 +139,7 @@ export default function MatchingHeader({
             )}
             {userPseudonym && (
               <span
-                className={`text-[11px] px-2.5 py-1 rounded-full font-medium shrink-0 ${pseudonymColor(userPseudonym)}`}
+                className={`text-[11px] px-2.5 py-1 rounded-full font-medium shrink-0 ${getPseudonymColor(userPseudonym).chip}`}
               >
                 Я: {userPseudonym}
               </span>
@@ -205,7 +189,7 @@ export default function MatchingHeader({
                 {participants.slice(0, 6).map((p) => (
                   <div
                     key={p.userId}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold ${pseudonymColor(p.pseudonym)}`}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold ${getPseudonymColor(p.pseudonym).chip}`}
                     style={{ borderColor: 'var(--bg-input)' }}
                     title={p.pseudonym}
                   >
@@ -255,7 +239,7 @@ export default function MatchingHeader({
                   participants.map((p) => (
                     <div key={p.userId} className="flex items-center gap-2.5 py-1">
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${pseudonymColor(p.pseudonym)}`}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${getPseudonymColor(p.pseudonym).chip}`}
                       >
                         {p.pseudonym[0].toUpperCase()}
                       </div>

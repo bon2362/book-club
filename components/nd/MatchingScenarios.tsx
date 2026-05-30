@@ -3,17 +3,20 @@
 import { useState, useCallback } from 'react'
 import type { ScenarioCard } from '@/lib/matching/scenarios'
 import CoverImage from './CoverImage'
+import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
+import { getPseudonymColor } from './matching-shared'
+import type { BookParticipant } from './MatchingPersonalList'
 
-interface BookInfo {
+interface BookInfo extends MatchingBookDetail {
   id: string
-  title: string
-  author: string
-  coverUrl: string | null
 }
 
 interface Props {
   scenarios: ScenarioCard[]
   bookById: Map<string, BookInfo>
+  bookParticipants: BookParticipant[]
+  viewingUserId: string
+  targetGroupSize: number
 }
 
 const tierConfig = {
@@ -34,69 +37,13 @@ const tierConfig = {
   },
 } as const
 
-const PSEUDONYM_COLORS = [
-  'bg-[#fde8d8] text-[#7c3516]',
-  'bg-[#dcfce7] text-[#14532d]',
-  'bg-[#dbeafe] text-[#1e3a8a]',
-  'bg-[#fef9c3] text-[#713f12]',
-  'bg-[#f3e8ff] text-[#581c87]',
-  'bg-[#ffe4e6] text-[#881337]',
-  'bg-[#d1fae5] text-[#065f46]',
-  'bg-[#e0f2fe] text-[#075985]',
-]
-
-function pseudonymColor(pseudonym: string) {
-  let hash = 0
-  for (let i = 0; i < pseudonym.length; i++) hash = pseudonym.charCodeAt(i) + ((hash << 5) - hash)
-  return PSEUDONYM_COLORS[Math.abs(hash) % PSEUDONYM_COLORS.length]
-}
-
-interface BookModalProps {
-  book: BookInfo
-  onClose: () => void
-}
-
-function BookModal({ book, onClose }: BookModalProps) {
-  return (
-    <div
-      role="presentation"
-      onClick={onClose}
-      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={book.title}
-        onClick={(e) => e.stopPropagation()}
-        className="border rounded-xl p-5 max-w-[380px] w-full"
-        style={{
-          background: 'var(--bg-input)',
-          borderColor: 'var(--border)',
-          boxShadow: '0 24px 70px var(--shadow)',
-        }}
-      >
-        <div className="flex gap-4 mb-4">
-          <div className="relative rounded overflow-hidden shrink-0" style={{ width: 56, height: 80 }}>
-            <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold text-sm leading-snug mb-1">{book.title}</div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{book.author}</div>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="text-xs cursor-pointer"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Закрыть (Esc)
-        </button>
-      </div>
-    </div>
-  )
-}
-
-export default function MatchingScenarios({ scenarios, bookById }: Props) {
+export default function MatchingScenarios({
+  scenarios,
+  bookById,
+  bookParticipants,
+  viewingUserId,
+  targetGroupSize,
+}: Props) {
   const [modalBook, setModalBook] = useState<BookInfo | null>(null)
   const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
   const closeModal = useCallback(() => setModalBook(null), [])
@@ -108,14 +55,23 @@ export default function MatchingScenarios({ scenarios, bookById }: Props) {
         style={{ color: 'var(--text-muted)' }}
       >
         <div className="text-3xl mb-2">🎯</div>
-        <p className="text-sm">Недостаточно участников или сигнапов для формирования сценариев.</p>
+        <p className="text-sm">
+          Пока недостаточно участников или записей для формирования кругов. Нужно минимум {targetGroupSize}
+        </p>
       </div>
     )
   }
 
   return (
     <>
-      {modalBook && <BookModal book={modalBook} onClose={closeModal} />}
+      {modalBook && (
+        <MatchingBookDetailModal
+          book={modalBook}
+          chips={bookParticipants.filter((p) => p.bookId === modalBook.bookId)}
+          viewingUserId={viewingUserId}
+          onClose={closeModal}
+        />
+      )}
       <ul className="list-none p-0 m-0 flex flex-col gap-3">
         {scenarios.map((card) => {
           const book = bookById.get(card.bookId)
@@ -151,7 +107,7 @@ export default function MatchingScenarios({ scenarios, bookById }: Props) {
                     {card.members.map((m) => (
                       <span
                         key={m.userId}
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${pseudonymColor(m.pseudonym)}`}
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${getPseudonymColor(m.pseudonym).chip}`}
                       >
                         {m.pseudonym}
                         <span className="ml-1 opacity-70">· {m.interest}</span>

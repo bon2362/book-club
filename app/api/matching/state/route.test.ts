@@ -15,7 +15,7 @@ jest.mock('@/lib/db/schema', () => ({
   books: {},
 }))
 jest.mock('@/lib/matching/personal-list', () => ({
-  fetchPersonalList: jest.fn().mockResolvedValue([]),
+  fetchCatalogWithPersonalData: jest.fn().mockResolvedValue([]),
 }))
 jest.mock('@/lib/matching/my-moves', () => ({
   fetchMyMoves: jest.fn().mockResolvedValue([]),
