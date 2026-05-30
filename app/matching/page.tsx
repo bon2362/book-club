@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users, signupBooks, bookPriorities, books } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
-import { fetchPersonalList } from '@/lib/matching/personal-list'
+import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { generateScenarios } from '@/lib/matching/scenarios'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
@@ -103,7 +103,7 @@ export default async function MatchingPage({
       .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
       .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
       .orderBy(matchingSessionParticipants.joinedAt),
-    fetchPersonalList(viewingUserId),
+    fetchCatalogWithPersonalData(viewingUserId),
     fetchMyMoves(viewingUserId, activeSession.id, activeSession.targetGroupSize),
   ])
 
@@ -112,9 +112,10 @@ export default async function MatchingPage({
     ? participants.find((p) => p.userId === asParam)
     : null
 
-  // Fetch per-book participant signups for chips in the personal list
+  // Fetch per-book participant signups for chips in the popup (all catalog books, not just user's list)
+  const inListBookIds = personalBooks.filter((b) => b.isInList).map((b) => b.bookId)
   const bookParticipants: BookParticipant[] =
-    personalBooks.length > 0 && participantUserIds.length > 0
+    participantUserIds.length > 0
       ? await db
           .select({
             userId: signupBooks.userId,
@@ -130,12 +131,7 @@ export default async function MatchingPage({
               eq(bookPriorities.bookId, signupBooks.bookId),
             ),
           )
-          .where(
-            and(
-              inArray(signupBooks.bookId, personalBooks.map((b) => b.bookId)),
-              inArray(signupBooks.userId, participantUserIds),
-            ),
-          )
+          .where(inArray(signupBooks.userId, participantUserIds))
           .then((rows) =>
             rows.map((row) => {
               const participant = participants.find((p) => p.userId === row.userId)
@@ -170,6 +166,11 @@ export default async function MatchingPage({
   // Frozen or impersonating = read-only
   const isFrozenOrImpersonating = activeSession.status === 'frozen' || isImpersonating
 
+  // Get current user's pseudonym (not impersonating) or null if impersonating
+  const userPseudonym = !isImpersonating
+    ? participants.find((p) => p.userId === session.user.id)?.pseudonym ?? null
+    : null
+
   return (
     <div
       className="flex flex-col"
@@ -186,6 +187,7 @@ export default async function MatchingPage({
         viewedPseudonym={viewedParticipant?.pseudonym ?? null}
         viewedName={viewedParticipant?.name ?? null}
         asParam={asParam}
+        userPseudonym={userPseudonym}
       />
 
       {/* Two-column workspace */}
@@ -207,7 +209,7 @@ export default async function MatchingPage({
             style={{ borderColor: 'var(--border)' }}
           >
             <h2 className="text-base font-semibold m-0" style={{ color: 'var(--text)' }}>
-              {isImpersonating ? 'Список участника' : 'Мой список'}
+              {isImpersonating ? 'Список участника' : 'Каталог'}
             </h2>
             {!isImpersonating && (
               <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--text-muted)' }}>
@@ -217,7 +219,7 @@ export default async function MatchingPage({
           </div>
           {!isImpersonating && (
             <MatchingRankNudge
-              show={personalBooks.length > 0 && personalBooks.every((b) => b.rank === null)}
+              show={inListBookIds.length > 0 && personalBooks.filter((b) => b.isInList).every((b) => b.rank === null)}
             />
           )}
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -228,20 +230,6 @@ export default async function MatchingPage({
               frozen={isFrozenOrImpersonating}
             />
           </div>
-          {isAdmin && !isImpersonating && (
-            <div
-              className="px-4 py-2.5 shrink-0 border-t"
-              style={{ borderColor: 'var(--border)' }}
-            >
-              <a
-                href="/admin?tab=matching"
-                className="text-xs underline"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Перейти в Админ-панель → Матчинг
-              </a>
-            </div>
-          )}
         </div>
 
         {/* Right column: scenarios + moves stacked */}

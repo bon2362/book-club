@@ -20,6 +20,7 @@ interface Props {
   viewedPseudonym: string | null
   viewedName: string | null
   asParam: string | null
+  userPseudonym: string | null
 }
 
 function useDeadlineText(deadlineAt: string | null): { text: string; urgent: boolean } {
@@ -79,6 +80,7 @@ export default function MatchingHeader({
   viewedPseudonym,
   viewedName,
   asParam,
+  userPseudonym,
 }: Props) {
   const { text: deadlineText, urgent } = useDeadlineText(deadlineAt)
 
@@ -135,6 +137,13 @@ export default function MatchingHeader({
                 <span className={urgent ? 'text-red-600 font-medium' : ''}>
                   {deadlineText}
                 </span>
+              </span>
+            )}
+            {userPseudonym && (
+              <span
+                className={`text-[11px] px-2.5 py-1 rounded-full font-medium shrink-0 ${pseudonymColor(userPseudonym)}`}
+              >
+                Я: {userPseudonym}
               </span>
             )}
             {sessionStatus === 'frozen' ? (
