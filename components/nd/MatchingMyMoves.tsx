@@ -54,13 +54,13 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
           onClose={() => setModalBook(null)}
         />
       )}
-      <p className="text-xs m-0 mb-2" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-xs m-0 mb-2" style={{ color: '#999' }}>
         Добавь книгу и круг замкнется
       </p>
       {moves.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center h-full p-6 text-center"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: '#999' }}
         >
           <div className="text-3xl mb-2">✅</div>
           <p className="text-sm">Пока нет книг, где ваша заявка замкнет круг</p>
@@ -70,36 +70,53 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
           {moves.map((move) => (
             <li
               key={move.bookId}
-              className="rounded-xl border p-3"
+              className="p-3"
               style={{
-                borderColor: 'var(--success)',
-                background: 'var(--bg-tag-green)',
+                borderRadius: 0,
+                borderTop: '1px solid #E5E5E5',
+                borderRight: '1px solid #E5E5E5',
+                borderBottom: '1px solid #E5E5E5',
+                borderLeft: '2px solid #C0603A',
+                background: '#fff',
               }}
             >
               <div className="flex gap-3 mb-2.5">
-                <div className="relative rounded overflow-hidden shrink-0" style={{ width: 40, height: 56 }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: 40, height: 56, borderRadius: 0 }}>
                   <CoverImage coverUrl={move.coverUrl} title={move.title} author={move.author} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={() => setModalBook(move)}
-                    className="font-semibold text-sm leading-snug mb-0.5 text-left hover:underline"
-                    style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}
+                    className="text-left hover:underline"
+                    style={{
+                      fontFamily: 'Georgia, "Times New Roman", serif',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      letterSpacing: '-0.01em',
+                      color: '#111',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: 'block',
+                      maxWidth: '100%',
+                      marginBottom: '0.15rem',
+                    }}
                   >
                     {move.title}
                   </button>
-                  <div className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <div className="text-xs mb-1.5" style={{ color: '#999' }}>
                     {move.author}
                   </div>
-                  <div className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
+                  <div className="text-[11px] font-medium mb-1" style={{ color: '#999' }}>
                     Уже записались:
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {move.existingParticipants.map((p) => (
                       <span
                         key={p.pseudonym}
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${getPseudonymColor(p.pseudonym).chip}`}
+                        className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(p.pseudonym).chip}`}
+                        style={{ borderRadius: 0 }}
                       >
                         {p.pseudonym}
                       </span>
@@ -111,20 +128,30 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
                 <button
                   onClick={() => handleAdd(move.bookId)}
                   disabled={adding === move.bookId}
-                  className="w-full text-sm py-2 px-3 rounded-lg border transition-colors font-medium"
+                  className="w-full font-semibold"
                   style={
                     adding === move.bookId
                       ? {
-                          background: 'var(--bg-elevated)',
-                          borderColor: 'var(--border)',
-                          color: 'var(--text-muted)',
+                          borderRadius: 0,
+                          background: '#E5E5E5',
+                          border: '1px solid #E5E5E5',
+                          color: '#999',
                           cursor: 'default',
+                          fontSize: '0.72rem',
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '0.08em',
+                          padding: '0.55rem',
                         }
                       : {
-                          background: 'var(--success)',
-                          borderColor: 'var(--success)',
+                          borderRadius: 0,
+                          background: '#111',
+                          border: '1px solid #111',
                           color: '#fff',
                           cursor: 'pointer',
+                          fontSize: '0.72rem',
+                          textTransform: 'uppercase' as const,
+                          letterSpacing: '0.08em',
+                          padding: '0.55rem',
                         }
                   }
                 >
