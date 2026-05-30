@@ -49,7 +49,10 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
 
   if (moves.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center text-[#6d675f]">
+      <div
+        className="flex flex-col items-center justify-center h-full p-6 text-center"
+        style={{ color: 'var(--text-muted)' }}
+      >
         <div className="text-3xl mb-2">✅</div>
         <p className="text-sm">Нет книг, где ваш сигнап завершит группу.</p>
       </div>
@@ -61,17 +64,26 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
       {moves.map((move) => (
         <li
           key={move.bookId}
-          className="rounded-xl border border-[#86efac] bg-[#f0fdf4] p-3"
+          className="rounded-xl border p-3"
+          style={{
+            borderColor: 'var(--success)',
+            background: 'var(--bg-tag-green)',
+          }}
         >
           <div className="flex gap-3 mb-2.5">
             <div className="relative rounded overflow-hidden shrink-0" style={{ width: 40, height: 56 }}>
               <CoverImage coverUrl={move.coverUrl} title={move.title} author={move.author} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-sm leading-snug mb-0.5 text-[#191817]" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div
+                className="font-semibold text-sm leading-snug mb-0.5"
+                style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
                 {move.title}
               </div>
-              <div className="text-xs text-[#6d675f] mb-1.5">{move.author}</div>
+              <div className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                {move.author}
+              </div>
               <div className="flex flex-wrap gap-1">
                 {move.existingParticipants.map((p) => (
                   <span
@@ -88,11 +100,22 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
             <button
               onClick={() => handleAdd(move.bookId)}
               disabled={adding === move.bookId}
-              className={`w-full text-sm py-2 px-3 rounded-lg border transition-colors font-medium ${
+              className="w-full text-sm py-2 px-3 rounded-lg border transition-colors font-medium"
+              style={
                 adding === move.bookId
-                  ? 'bg-[#f0f0f0] border-[#ddd] text-[#999] cursor-default'
-                  : 'bg-[#0f766e] border-[#0f766e] text-white hover:bg-[#0a5c54] hover:border-[#0a5c54] cursor-pointer'
-              }`}
+                  ? {
+                      background: 'var(--bg-elevated)',
+                      borderColor: 'var(--border)',
+                      color: 'var(--text-muted)',
+                      cursor: 'default',
+                    }
+                  : {
+                      background: 'var(--success)',
+                      borderColor: 'var(--success)',
+                      color: '#fff',
+                      cursor: 'pointer',
+                    }
+              }
             >
               {adding === move.bookId ? '…' : 'Хочу читать'}
             </button>

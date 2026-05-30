@@ -30,8 +30,8 @@ const tierConfig = {
     labelClass: 'text-[#1d4ed8] border-[#93c5fd]',
   },
   'sub-max': {
-    bg: 'bg-[#fafaf8]',
-    border: 'border-[#e8e8e4]',
+    bg: 'bg-[var(--bg-elevated)]',
+    border: 'border-[var(--border-subtle)]',
     label: null,
     labelClass: '',
   },
@@ -71,7 +71,12 @@ function BookModal({ book, onClose }: BookModalProps) {
         aria-modal="true"
         aria-label={book.title}
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#fffdf8] border border-[#ded6c8] rounded-xl shadow-[0_24px_70px_rgba(25,24,23,0.24)] p-5 max-w-[380px] w-full"
+        className="border rounded-xl p-5 max-w-[380px] w-full"
+        style={{
+          background: 'var(--bg-input)',
+          borderColor: 'var(--border)',
+          boxShadow: '0 24px 70px var(--shadow)',
+        }}
       >
         <div className="flex gap-4 mb-4">
           <div className="relative rounded overflow-hidden shrink-0" style={{ width: 56, height: 80 }}>
@@ -79,12 +84,13 @@ function BookModal({ book, onClose }: BookModalProps) {
           </div>
           <div className="min-w-0">
             <div className="font-semibold text-sm leading-snug mb-1">{book.title}</div>
-            <div className="text-xs text-[#6d675f]">{book.author}</div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{book.author}</div>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="text-xs text-[#999] hover:text-[#555] cursor-pointer"
+          className="text-xs cursor-pointer"
+          style={{ color: 'var(--text-muted)' }}
         >
           Закрыть (Esc)
         </button>
@@ -100,7 +106,10 @@ export default function MatchingScenarios({ scenarios, bookById }: Props) {
 
   if (scenarios.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center text-[#6d675f]">
+      <div
+        className="flex flex-col items-center justify-center h-full p-6 text-center"
+        style={{ color: 'var(--text-muted)' }}
+      >
         <div className="text-3xl mb-2">🎯</div>
         <p className="text-sm">Недостаточно участников или сигнапов для формирования сценариев.</p>
       </div>
@@ -129,7 +138,8 @@ export default function MatchingScenarios({ scenarios, bookById }: Props) {
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <button
                       onClick={() => book && openModal(book)}
-                      className="text-sm font-semibold text-[#191817] hover:text-[#0f766e] text-left leading-snug"
+                      className="text-sm font-semibold text-left leading-snug hover:underline"
+                      style={{ color: 'var(--text)' }}
                     >
                       {book?.title ?? card.bookId}
                     </button>

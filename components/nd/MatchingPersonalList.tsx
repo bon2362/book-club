@@ -102,9 +102,9 @@ function SortableRow({
         gridTemplateColumns: '52px 1fr 90px',
         gap: '14px',
         padding: '14px 16px',
-        borderBottom: '1px solid #ded6c8',
+        borderBottom: '1px solid var(--border)',
         opacity: isDragging ? 0.5 : 1,
-        background: isDragging ? '#fff7e7' : undefined,
+        background: isDragging ? 'var(--bg-elevated)' : undefined,
         alignItems: 'start',
       }}
     >
@@ -115,8 +115,8 @@ function SortableRow({
             {...attributes}
             {...listeners}
             aria-label={`Перетащить книгу ${book.title}`}
-            className="absolute text-[#ccc] cursor-grab hover:text-[#999] select-none touch-none text-lg leading-none"
-            style={{ left: -14, top: '50%', transform: 'translateY(-50%)' }}
+            className="absolute cursor-grab select-none touch-none text-lg leading-none"
+            style={{ color: 'var(--text-muted)', opacity: 0.5, left: -14, top: '50%', transform: 'translateY(-50%)' }}
           >
             ⠿
           </button>
@@ -128,17 +128,22 @@ function SortableRow({
 
       {/* Title / author / participant chips */}
       <div className="min-w-0">
-        <div className="font-semibold text-sm leading-snug mb-0.5 text-[#191817]" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="font-semibold text-sm leading-snug mb-0.5" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {book.title}
         </div>
-        <div className="text-xs text-[#6d675f] mb-2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="text-xs mb-2" style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {book.author}
         </div>
         {!frozen && (
           <select
             value={book.personalStatus ?? ''}
             onChange={(e) => onStatusChange(book.bookId, e.target.value || null)}
-            className="text-[11px] border border-[#ded6c8] rounded px-1.5 py-0.5 bg-[#fafaf8] text-[#6d675f] cursor-pointer hover:border-[#bbb] mb-1.5"
+            className="text-[11px] border rounded px-1.5 py-0.5 cursor-pointer mb-1.5"
+            style={{
+              borderColor: 'var(--border)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-muted)',
+            }}
           >
             <option value="">В списке</option>
             <option value="reading">Читаю сейчас</option>
@@ -169,9 +174,13 @@ function SortableRow({
       {/* Rank + reorder */}
       <div className="flex flex-col items-end gap-1">
         {book.rank != null && (
-          <span className="text-2xl font-bold leading-none text-[#191817]">#{book.rank}</span>
+          <span className="text-2xl font-bold leading-none" style={{ color: 'var(--text)' }}>
+            #{book.rank}
+          </span>
         )}
-        <span className="text-[10px] text-[#6d675f]">место в списке</span>
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          место в списке
+        </span>
         {canReorder && (
           <div className="flex flex-col gap-0.5 mt-0.5">
             <button
@@ -180,9 +189,10 @@ function SortableRow({
               aria-label={`Переместить ${book.title} выше`}
               className={`text-[11px] px-1.5 py-0.5 leading-none border rounded transition-colors ${
                 index === 0
-                  ? 'text-[#ddd] border-[#eee] cursor-default'
-                  : 'text-[#999] border-[#ddd] hover:text-[#555] hover:border-[#bbb] cursor-pointer'
+                  ? 'cursor-default opacity-30'
+                  : 'cursor-pointer opacity-70 hover:opacity-100'
               }`}
+              style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
             >
               ▲
             </button>
@@ -192,9 +202,10 @@ function SortableRow({
               aria-label={`Переместить ${book.title} ниже`}
               className={`text-[11px] px-1.5 py-0.5 leading-none border rounded transition-colors ${
                 index === total - 1
-                  ? 'text-[#ddd] border-[#eee] cursor-default'
-                  : 'text-[#999] border-[#ddd] hover:text-[#555] hover:border-[#bbb] cursor-pointer'
+                  ? 'cursor-default opacity-30'
+                  : 'cursor-pointer opacity-70 hover:opacity-100'
               }`}
+              style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
             >
               ▼
             </button>
@@ -222,7 +233,7 @@ function StatusRow({ book, chipsForBook, viewingUserId, frozen, onStatusChange }
         gridTemplateColumns: '52px 1fr',
         gap: '14px',
         padding: '14px 16px',
-        borderBottom: '1px solid #ded6c8',
+        borderBottom: '1px solid var(--border)',
         alignItems: 'start',
         opacity: 0.75,
       }}
@@ -233,24 +244,31 @@ function StatusRow({ book, chipsForBook, viewingUserId, frozen, onStatusChange }
         </div>
       </div>
       <div className="min-w-0">
-        <div className="font-semibold text-sm leading-snug mb-0.5 text-[#191817]" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="font-semibold text-sm leading-snug mb-0.5" style={{ color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {book.title}
         </div>
-        <div className="text-xs text-[#6d675f] mb-2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="text-xs mb-2" style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {book.author}
         </div>
         {!frozen ? (
           <select
             value={book.personalStatus ?? ''}
             onChange={(e) => onStatusChange(book.bookId, e.target.value || null)}
-            className="text-[11px] border border-[#ded6c8] rounded px-1.5 py-0.5 bg-[#fafaf8] text-[#6d675f] cursor-pointer hover:border-[#bbb] mb-1.5"
+            className="text-[11px] border rounded px-1.5 py-0.5 cursor-pointer mb-1.5"
+            style={{
+              borderColor: 'var(--border)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-muted)',
+            }}
           >
             <option value="">В списке</option>
             <option value="reading">Читаю сейчас</option>
             <option value="read">Прочитал(а)</option>
           </select>
         ) : (
-          <span className="text-[11px] text-[#999] italic mb-1.5">{statusLabel}</span>
+          <span className="text-[11px] italic mb-1.5" style={{ color: 'var(--text-muted)' }}>
+            {statusLabel}
+          </span>
         )}
         {chipsForBook.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -424,11 +442,14 @@ export default function MatchingPersonalList({
 
   if (books.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center text-[#6d675f]">
+      <div
+        className="flex flex-col items-center justify-center h-full p-8 text-center"
+        style={{ color: 'var(--text-muted)' }}
+      >
         <div className="text-4xl mb-3">📚</div>
         <p className="text-sm leading-relaxed">
           Вы ещё не добавили книги.{' '}
-          <a href="/" className="underline text-[#0f766e] hover:text-[#0a5c54]">
+          <a href="/" className="underline" style={{ color: 'var(--accent)' }}>
             Перейдите в каталог
           </a>
           , чтобы выбрать книги для чтения.
@@ -482,8 +503,14 @@ export default function MatchingPersonalList({
 
       {statusBooks.length > 0 && (
         <>
-          <div className="px-4 py-2 border-b border-[#ded6c8] border-t bg-[#f6f2e8]">
-            <span className="text-[11px] font-medium text-[#999] uppercase tracking-wide">
+          <div
+            className="px-4 py-2 border-b border-t"
+            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+          >
+            <span
+              className="text-[11px] font-medium uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
               В процессе / Прочитано
             </span>
           </div>
