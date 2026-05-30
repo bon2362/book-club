@@ -378,20 +378,46 @@ export default function MatchingPersonalList({
 
   const handleStatusChange = useCallback(
     async (bookId: string, newStatus: string | null) => {
-      // Optimistic update: change personalStatus, then re-rank
-      const updatedBooks = books.map((b) =>
-        b.bookId === bookId ? { ...b, personalStatus: newStatus } : b,
-      )
-      // Keep order: active books first (preserving relative order), then status books
-      const activeBooks = updatedBooks.filter((b) => b.personalStatus === null)
-      const statusBooks = updatedBooks.filter((b) => b.personalStatus !== null)
-      const reranked = rerank([...activeBooks, ...statusBooks])
-      setBooks(reranked)
+      if (newStatus === null) {
+        // Book returning to active: preserve existing active books' ranks,
+        // append the returning book at the end without a rank (rank: null).
+        // final_pos = after all ranked active books, unranked at tail.
+        const updatedBooks = books.map((b) =>
+          b.bookId === bookId ? { ...b, personalStatus: null, rank: null } : b,
+        )
+        // Active books: ranked ones first (sorted by rank), then unranked at tail
+        const rankedActive = updatedBooks
+          .filter((b) => b.personalStatus === null && b.rank !== null)
+          .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+        const unrankedActive = updatedBooks.filter(
+          (b) => b.personalStatus === null && b.rank === null,
+        )
+        const statusBooks = updatedBooks.filter((b) => b.personalStatus !== null)
+        const merged = [...rankedActive, ...unrankedActive, ...statusBooks]
+        setBooks(merged)
 
-      await Promise.all([
-        patchStatus(bookId, newStatus),
-        patchPriorities(reranked.filter((b) => b.personalStatus === null).map((b) => b.bookId)),
-      ])
+        await Promise.all([
+          patchStatus(bookId, newStatus),
+          // Only send already-ranked active books to preserve their positions;
+          // do not include the newly returned book so it stays unranked.
+          patchPriorities(rankedActive.map((b) => b.bookId)),
+        ])
+      } else {
+        // Book leaving active (status → reading/read): re-rank remaining active
+        // books to fill the gap left by the departing book.
+        const updatedBooks = books.map((b) =>
+          b.bookId === bookId ? { ...b, personalStatus: newStatus } : b,
+        )
+        const activeBooks = updatedBooks.filter((b) => b.personalStatus === null)
+        const statusBooks = updatedBooks.filter((b) => b.personalStatus !== null)
+        const reranked = rerank([...activeBooks, ...statusBooks])
+        setBooks(reranked)
+
+        await Promise.all([
+          patchStatus(bookId, newStatus),
+          patchPriorities(reranked.filter((b) => b.personalStatus === null).map((b) => b.bookId)),
+        ])
+      }
     },
     [books],
   )
