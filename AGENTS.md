@@ -31,7 +31,7 @@ gh pr merge --auto --squash --delete-branch
 Для совсем быстрых правок есть shell-функция `qpr "msg"` (если настроен алиас) — объединяет всё в одну команду.
 
 ### Что гарантирует CI-gate
-- Прод **не задеплоится**, если упали: lint, secret scan, typecheck, unit-tests, E2E, build.
+- Прод **не задеплоится**, если упали: lint, secret scan, typecheck, unit-tests, build. **E2E в merge-gate НЕ входят** — они вынесены в отдельный workflow `.github/workflows/e2e-nightly.yml` (cron 00:00 UTC + ручной `workflow_dispatch`), не блокируют мерж. Если ночной E2E красный — GitHub уведомит, чиним форвардом. Прогнать E2E вручную: `gh workflow run "E2E (nightly)"`.
 - `gh pr merge --auto` — мерж происходит автоматически в момент когда CI станет зелёным; не надо сидеть и кликать.
 - Vercel preview каждой feature-ветки публикуется на уникальном URL (виден в PR).
 - **`strict: true`** в branch protection: PR обязан быть up-to-date с main перед мержем. Если другой PR смержился раньше — GitHub потребует `gh pr update-branch`, CI перезапустится на актуальной комбинации. Это закрывает дыру «два PR от одного base, оба зелёные по отдельности, но сломанные вместе». Особенно важно при параллельной работе нескольких агентов.

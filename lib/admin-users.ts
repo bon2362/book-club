@@ -11,6 +11,7 @@ import {
 } from '@/lib/db/schema'
 import { asc, desc, eq } from 'drizzle-orm'
 import { formatTelegramDisplay } from '@/lib/telegram-display'
+import type { PersonalBookStatus } from './signup-books'
 
 export interface AdminUserSummary {
   id: string
@@ -30,7 +31,7 @@ export interface AdminUserSummary {
 
 export interface AdminUserDetails {
   user: AdminUserSummary & { prioritiesSet: boolean }
-  signupBooks: { bookId: string; bookName: string; signedAt: string }[]
+  signupBooks: { bookId: string; bookName: string; signedAt: string; personalStatus: PersonalBookStatus }[]
   priorities: { bookId: string; bookName: string; rank: number }[]
   submissions: {
     id: string
@@ -185,7 +186,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
 
   const [signupRows, priorityRows, submissionRows, feedbackRows, identityRows] = await Promise.all([
     db
-      .select({ bookId: signupBooks.bookId, bookName: books.title, signedAt: signupBooks.signedAt })
+      .select({ bookId: signupBooks.bookId, bookName: books.title, signedAt: signupBooks.signedAt, personalStatus: signupBooks.personalStatus })
       .from(signupBooks)
       .innerJoin(books, eq(signupBooks.bookId, books.id))
       .where(eq(signupBooks.userId, userId))
@@ -244,7 +245,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
 
   return {
     user: { ...summary, prioritiesSet: userRow.prioritiesSet ?? false },
-    signupBooks: signupRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, signedAt: row.signedAt.toISOString() })),
+    signupBooks: signupRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, signedAt: row.signedAt.toISOString(), personalStatus: (row.personalStatus ?? null) as PersonalBookStatus })),
     priorities: priorityRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, rank: row.rank })),
     submissions: submissionRows.map(row => ({
       id: row.id,

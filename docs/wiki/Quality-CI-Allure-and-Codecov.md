@@ -4,15 +4,27 @@
 
 ![Allure report](images/allure-report.png)
 
-## Что запускается в CI
+## Два пайплайна: быстрый merge-gate и ночной E2E
 
-GitHub Actions workflow `CI` делает:
+Проверки разделены на два независимых GitHub Actions workflow.
 
-Workflow состоит из трёх параллельных job (`quality`, `e2e`, `build`) и финального gate-job `ci`, который требует, чтобы все три прошли:
+### `CI` — быстрый merge-gate (блокирует мерж)
+
+Бежит на каждый pull request. Состоит из двух параллельных job (`quality`, `build`) и финального gate-job `ci`, который требует, чтобы оба прошли. Это единственная required-проверка branch protection — мерж ждёт только её (~80 секунд).
 
 - **`quality`** — `npm ci`, ESLint, secret scan, TypeScript typecheck, Jest unit-тесты с coverage, загрузка coverage в Codecov.
-- **`e2e`** — `npm ci`, установка Playwright Chromium (с кэшем), синхронизация схемы e2e-ветки (`drizzle-kit push`), **сборка production-билда** (`next build`), запуск Playwright против production-сервера, генерация и публикация Allure на GitHub Pages.
-- **`build`** — отдельная проверка, что `next build` проходит с прод-секретами.
+- **`build`** — проверка, что `next build` проходит с прод-секретами.
+
+### `E2E (nightly)` — Playwright, НЕ блокирует мерж
+
+E2E вынесены из merge-gate в отдельный workflow `.github/workflows/e2e-nightly.yml`. Триггеры — **только расписание и ручной запуск**, никаких push/PR:
+
+- `schedule: cron '0 0 * * *'` — раз в сутки в 00:00 UTC (03:00 МСК) по актуальному `main`;
+- `workflow_dispatch` — кнопка «Run workflow» для прогона по требованию.
+
+Job делает: `npm ci`, установка Playwright Chromium (с кэшем), синхронизация схемы e2e-ветки (`drizzle-kit push`), сборка production-билда (`next build`), запуск Playwright против production-сервера, генерация и публикация Allure на GitHub Pages.
+
+**Почему так.** e2e-job платит ~100s фиксированного оверхеда (install + браузеры + schema + build) плюс ~270s на сами тесты — это держало мерж 6–7 минут на каждый PR. Для домашнего проекта с парой пользователей это не оправдано: быстрый gate ловит «не собирается / битый тип / утёк секрет» сразу, а E2E ловит регрессии сценариев ночью, постфактум. Красный ночной прогон → GitHub шлёт уведомление → чиним форвардом. Поднять/убрать триггеры или поменять час cron — правка `e2e-nightly.yml`.
 
 ### Почему E2E гоняет production-сервер, а не `next dev`
 
