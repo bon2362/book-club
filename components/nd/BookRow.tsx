@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
+import type { PersonalBookStatus } from '@/lib/signup-books'
 
 interface Props {
   book: BookWithCover
   isSelected: boolean
   onToggle: (book: BookWithCover) => void
+  personalStatus?: PersonalBookStatus | null
 }
 
 function extractYear(date: string): string {
@@ -26,7 +28,7 @@ function formatSignupCount(n: number): string {
 const sans = 'var(--nd-sans), system-ui, sans-serif'
 const serif = 'var(--nd-serif), Georgia, serif'
 
-export default function BookRow({ book, isSelected, onToggle }: Props) {
+export default function BookRow({ book, isSelected, onToggle, personalStatus }: Props) {
   const [hovered, setHovered] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
   const isReading = book.status === 'reading'
@@ -127,27 +129,45 @@ export default function BookRow({ book, isSelected, onToggle }: Props) {
         )}
       </td>
 
-      {/* Button */}
+      {/* Button / personal status label */}
       <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', textAlign: 'right' }}>
-        <button
-          onClick={() => onToggle(book)}
-          aria-pressed={isSelected}
-          style={{
-            padding: '0.3rem 0.75rem',
-            fontFamily: sans,
-            fontSize: '0.65rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            cursor: 'pointer',
-            border: '1px solid #111',
-            background: isSelected ? '#111' : 'transparent',
-            color: isSelected ? '#fff' : '#111',
-            whiteSpace: 'nowrap',
-            transition: 'background 0.15s, color 0.15s',
-          }}
-        >
-          {isSelected ? '✓ Вы записаны' : 'Хочу читать'}
-        </button>
+        {personalStatus === 'reading' || personalStatus === 'read' ? (
+          <span
+            style={{
+              display: 'inline-block',
+              padding: '0.3rem 0.75rem',
+              fontFamily: sans,
+              fontSize: '0.65rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              border: '1px solid #D0D0D0',
+              color: '#999',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {personalStatus === 'reading' ? 'Читаю сейчас' : 'Прочитал:а'}
+          </span>
+        ) : (
+          <button
+            onClick={() => onToggle(book)}
+            aria-pressed={isSelected}
+            style={{
+              padding: '0.3rem 0.75rem',
+              fontFamily: sans,
+              fontSize: '0.65rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+              border: '1px solid #111',
+              background: isSelected ? '#111' : 'transparent',
+              color: isSelected ? '#fff' : '#111',
+              whiteSpace: 'nowrap',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            {isSelected ? '✓ Вы записаны' : 'Хочу читать'}
+          </button>
+        )}
       </td>
     </tr>
   )
