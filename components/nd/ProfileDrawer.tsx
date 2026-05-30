@@ -205,14 +205,21 @@ function SortableBookItem({
           ⠿
         </span>
         <span style={{
-          flex: 1, fontSize: 14,
-          fontWeight: isUnsubscribed ? 'normal' : 500,
-          textDecoration: isUnsubscribed ? 'line-through' : 'none',
-          color: isUnsubscribed ? '#9ca3af' : '#111',
+          flex: 1, minWidth: 0,
+          display: 'flex', flexDirection: 'column', gap: 2,
+          marginRight: 8,
         }}>
-          {name}
+          <span style={{
+            fontSize: 14,
+            fontWeight: isUnsubscribed ? 'normal' : 500,
+            textDecoration: isUnsubscribed ? 'line-through' : 'none',
+            color: isUnsubscribed ? '#9ca3af' : '#111',
+            lineHeight: 1.3,
+          }}>
+            {name}
+          </span>
+          <span style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.3 }}>{author}</span>
         </span>
-        <span style={{ fontSize: 11, color: '#9ca3af', marginRight: 8 }}>{author}</span>
         <button
           onClick={e => { e.stopPropagation(); onToggle() }}
           style={{
@@ -270,8 +277,13 @@ function StatusBookItem({
         }}>
           {current === 'reading' ? '📖' : '✓'}
         </span>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#111' }}>{name}</span>
-        <span style={{ fontSize: 11, color: '#9ca3af' }}>{author}</span>
+        <span style={{
+          flex: 1, minWidth: 0,
+          display: 'flex', flexDirection: 'column', gap: 2,
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: '#111', lineHeight: 1.3 }}>{name}</span>
+          <span style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.3 }}>{author}</span>
+        </span>
       </div>
       {isMenuOpen && <StatusMenu current={current} onChange={onStatusChange} />}
     </div>
