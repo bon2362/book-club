@@ -60,122 +60,16 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── 2. E2E (Playwright) ───────────────────────────────────────────────────
-  e2e:
-    runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ hashFiles('**/package-lock.json') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium --with-deps
-
-      # Если браузер взят из кэша, системные зависимости всё равно нужны
-      # (они не кэшируются), но install-deps без загрузки браузера — быстро.
-      - name: Install Playwright system deps (from cache)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-
-      # Синхронизируем схему e2e Neon-ветки с текущим schema.ts.
-      # Используем push (не migrate): ветка создана через Neon branching,
-      # поэтому __drizzle_migrations там нет — migrate пытается накатить
-      # все миграции с нуля и падает на уже существующих таблицах.
-      # push сравнивает schema.ts с реальной БД и применяет только дельту.
-      - name: Sync DB schema (e2e branch)
-        run: npx drizzle-kit push --force
-        env:
-          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
-          SKIP_ENV_VALIDATION: 'true'
-
-      # Production-сборка для E2E. Playwright на CI поднимает `next start`
-      # (см. playwright.config.ts → webServer), которому нужен готовый .next.
-      # Раньше E2E ходили в `next dev` — ленивая компиляция роутов давала
-      # медленный первый хит каждой страницы и флак (useContext null →
-      # таймаут → ретрай за 15s). Прекомпилированный билд убирает обе боли.
-      # Билдим с e2e-DB и маркерами (НЕ прод), чтобы любые build-time
-      # обращения к данным шли в изолированную Neon-ветку.
-      - name: Build app for E2E (production server)
-        run: npm run build
-        env:
-          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
-          PROD_DB_HOST_MARKER: ${{ secrets.PROD_DB_HOST_MARKER }}
-          E2E_REQUIRE_DB_MARKER: ${{ secrets.E2E_REQUIRE_DB_MARKER }}
-          AUTH_SECRET: 'e2e-test-secret-only-used-for-signing-test-sessions'
-          NEXTAUTH_TEST_MODE: 'true'
-          NEXT_PUBLIC_DISABLE_ANALYTICS: 'true'
-          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
-          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
-          SKIP_ENV_VALIDATION: 'true'
-
-      - name: Get Allure history from gh-pages
-        uses: actions/checkout@v5
-        if: always()
-        continue-on-error: true
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      - name: E2E tests
-        run: npm run test:e2e
-        env:
-          # E2E job бьёт в изолированную Neon-ветку `e2e`, НЕ в прод.
-          # Guard в lib/test-mode.ts отказывается работать, если DATABASE_URL
-          # содержит PROD_DB_HOST_MARKER или не содержит E2E_REQUIRE_DB_MARKER.
-          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
-          PROD_DB_HOST_MARKER: ${{ secrets.PROD_DB_HOST_MARKER }}
-          E2E_REQUIRE_DB_MARKER: ${{ secrets.E2E_REQUIRE_DB_MARKER }}
-          AUTH_SECRET: 'e2e-test-secret-only-used-for-signing-test-sessions'
-          NEXTAUTH_TEST_MODE: 'true'
-          NEXTAUTH_URL: 'http://localhost:3000'
-          # Production-сервер (next start) ⇒ NODE_ENV=production. Флаги
-          # E2E_ALLOW_PRODUCTION_SERVER + AUTH_TRUST_HOST инжектятся прямо в
-          # env сервера через playwright.config.ts (webServer.env, ветка CI) —
-          # единый источник правды. Прод-БД защищена маркерами ниже.
-          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
-          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
-          SKIP_ENV_VALIDATION: 'true'
-
-      - name: Install Allure CLI
-        if: always()
-        run: npm install -g allure-commandline
-
-      - name: Restore Allure history
-        if: always()
-        run: cp -r gh-pages/history allure-results/history 2>/dev/null || true
-
-      - name: Generate Allure report
-        if: always()
-        run: allure generate allure-results --clean -o allure-report
-
-      - name: Publish Allure report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        if: always()
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: allure-report
-
-  # ── 3. Next.js build ──────────────────────────────────────────────────────
+  # ── 2. Next.js build ──────────────────────────────────────────────────────
+  #
+  # E2E (Playwright) больше НЕ часть merge-gate. Они вынесены в отдельный
+  # workflow .github/workflows/e2e-nightly.yml, который бежит по расписанию
+  # (cron) и по ручному запуску — НЕ на push/PR. Причина: e2e-job платит
+  # ~100s фиксированного оверхеда (install + браузеры + schema + build) и
+  # ~270s на сами тесты, что держало мерж 6-7 минут. Для домашнего проекта с
+  # парой пользователей это не оправдано: быстрый gate (lint/typecheck/unit/
+  # build, ~80s) ловит «не собирается / битый тип / утёк секрет», а E2E ловит
+  # регрессии сценариев ночью, постфактум — чиним форвардом.
   build:
     runs-on: ubuntu-latest
     env:
@@ -207,17 +101,15 @@ jobs:
 
   # ── Gate: branch protection требует check с именем "ci" ───────────────────
   ci:
-    needs: [quality, e2e, build]
+    needs: [quality, build]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: All jobs passed
         run: |
           if [[ "${{ needs.quality.result }}" != "success" || \
-                "${{ needs.e2e.result }}"    != "success" || \
                 "${{ needs.build.result }}"  != "success" ]]; then
             echo "quality=${{ needs.quality.result }}"
-            echo "e2e=${{ needs.e2e.result }}"
             echo "build=${{ needs.build.result }}"
             exit 1
           fi
