@@ -94,7 +94,17 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
   //   - legacy global seed books `__test_book_*` (no longer created, kept as guard)
   //   - per-test books `__e2e_book_*` (createTestBook fixture)
   //   - any title that starts with "E2E " (free-form fixture content)
-  const safeRows = process.env.NODE_ENV === 'production'
+  //
+  // NOTE: the CI E2E job runs a *production* server (`next start`,
+  // NODE_ENV=production) for speed/stability, and its fixtures legitimately
+  // create "E2E "-prefixed books that the tests then assert on. We must NOT
+  // hide those during that run, or the e2e suite fails against its own data.
+  // `E2E_ALLOW_PRODUCTION_SERVER` is the canonical "this production runtime is
+  // a CI e2e run, not the live site" flag (same signal lib/test-mode.ts gates
+  // on, injected only by playwright.config.ts). On real Vercel prod it is never
+  // set, so the live site keeps the full filter.
+  const isE2EProdServer = process.env.E2E_ALLOW_PRODUCTION_SERVER === 'true'
+  const safeRows = process.env.NODE_ENV === 'production' && !isE2EProdServer
     ? rows.filter(row =>
         !row.id.startsWith('__test_book_') &&
         !row.id.startsWith('__e2e_book_') &&
