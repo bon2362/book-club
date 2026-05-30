@@ -18,22 +18,19 @@ interface Props {
 
 const tierConfig = {
   leader: {
-    bg: 'bg-[#f0fdf4]',
-    border: 'border-[#86efac]',
+    style: { background: 'var(--bg-tag-green)', borderColor: 'var(--success)' },
     label: 'лидер',
-    labelClass: 'text-[#15803d] border-[#86efac]',
+    labelStyle: { color: 'var(--success)', borderColor: 'var(--success)' },
   },
   'max-coverage': {
-    bg: 'bg-[#eff6ff]',
-    border: 'border-[#93c5fd]',
+    style: { background: 'var(--bg-elevated)', borderColor: 'var(--border)' },
     label: 'макс. покрытие',
-    labelClass: 'text-[#1d4ed8] border-[#93c5fd]',
+    labelStyle: { color: 'var(--text-secondary)', borderColor: 'var(--border)' },
   },
   'sub-max': {
-    bg: 'bg-[var(--bg-elevated)]',
-    border: 'border-[var(--border-subtle)]',
+    style: { background: 'var(--bg-elevated)', borderColor: 'var(--border)' },
     label: null,
-    labelClass: '',
+    labelStyle: {},
   },
 } as const
 
@@ -126,7 +123,8 @@ export default function MatchingScenarios({ scenarios, bookById }: Props) {
           return (
             <li
               key={card.bookId}
-              className={`rounded-xl border p-3.5 ${tier.bg} ${tier.border}`}
+              className="rounded-xl border p-3.5"
+              style={tier.style}
             >
               <div className="flex items-start gap-3">
                 {book && (
@@ -144,7 +142,7 @@ export default function MatchingScenarios({ scenarios, bookById }: Props) {
                       {book?.title ?? card.bookId}
                     </button>
                     {tier.label && (
-                      <span className={`text-[10px] border rounded-full px-2 py-0.5 shrink-0 ${tier.labelClass}`}>
+                      <span className="text-[10px] border rounded-full px-2 py-0.5 shrink-0" style={tier.labelStyle}>
                         {tier.label}
                       </span>
                     )}
