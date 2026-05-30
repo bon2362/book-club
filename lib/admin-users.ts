@@ -11,6 +11,7 @@ import {
 } from '@/lib/db/schema'
 import { asc, desc, eq } from 'drizzle-orm'
 import { formatTelegramDisplay } from '@/lib/telegram-display'
+import type { PersonalBookStatus } from './signup-books'
 
 export interface AdminUserSummary {
   id: string
@@ -30,7 +31,7 @@ export interface AdminUserSummary {
 
 export interface AdminUserDetails {
   user: AdminUserSummary & { prioritiesSet: boolean }
-  signupBooks: { bookId: string; bookName: string; signedAt: string; personalStatus: string | null }[]
+  signupBooks: { bookId: string; bookName: string; signedAt: string; personalStatus: PersonalBookStatus }[]
   priorities: { bookId: string; bookName: string; rank: number }[]
   submissions: {
     id: string
@@ -244,7 +245,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
 
   return {
     user: { ...summary, prioritiesSet: userRow.prioritiesSet ?? false },
-    signupBooks: signupRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, signedAt: row.signedAt.toISOString(), personalStatus: row.personalStatus ?? null })),
+    signupBooks: signupRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, signedAt: row.signedAt.toISOString(), personalStatus: (row.personalStatus ?? null) as PersonalBookStatus })),
     priorities: priorityRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, rank: row.rank })),
     submissions: submissionRows.map(row => ({
       id: row.id,
