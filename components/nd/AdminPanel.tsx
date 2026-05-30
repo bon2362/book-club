@@ -411,7 +411,7 @@ export default function AdminPanel({
     }
   }
 
-  async function handleChangeStatus(userId: string, bookId: string, status: string | null) {
+  async function handleChangeStatus(userId: string, bookId: string, status: PersonalBookStatus) {
     try {
       const res = await fetch('/api/admin/signup-books', {
         method: 'PATCH',
@@ -422,7 +422,7 @@ export default function AdminPanel({
       setSelectedAdminUser(prev => {
         if (!prev || prev.user.id !== userId) return prev
         const updatedBooks = prev.signupBooks.map(b =>
-          b.bookId === bookId ? { ...b, personalStatus: status as PersonalBookStatus } : b,
+          b.bookId === bookId ? { ...b, personalStatus: status } : b,
         )
         const updatedPriorities = status !== null
           ? prev.priorities.filter(p => p.bookId !== bookId)

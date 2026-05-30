@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { AdminUserDetails } from '@/lib/admin-users'
+import type { PersonalBookStatus } from '@/lib/signup-books'
 
 interface Props {
   isOpen: boolean
@@ -11,7 +12,7 @@ interface Props {
   onRemoveSignup: (bookId: string, bookName: string) => void
   onDeleteUser: () => void
   onOpenSubmission: (submissionId: string) => void
-  onChangeStatus: (bookId: string, status: string | null) => void
+  onChangeStatus: (bookId: string, status: PersonalBookStatus) => void
 }
 
 const sans = 'var(--nd-sans), system-ui, sans-serif'
@@ -90,7 +91,7 @@ function BookStatusChip({
   isRanked?: boolean
   isMenuOpen: boolean
   onToggleMenu: () => void
-  onStatusSelect: (status: string | null) => void
+  onStatusSelect: (status: PersonalBookStatus) => void
   onRemove: () => void
 }) {
   return (
@@ -109,11 +110,11 @@ function BookStatusChip({
       <button onClick={onRemove} title="Снять запись" style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
       {isMenuOpen && (
         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #E5E5E5', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10, minWidth: 160, borderRadius: 2 }}>
-          {[
+          {([
             { value: null, label: 'Записал:ась' },
             { value: 'reading', label: 'Читаю' },
             { value: 'read', label: 'Прочитал:а' },
-          ].map(opt => (
+          ] as { value: PersonalBookStatus; label: string }[]).map(opt => (
             <button
               key={String(opt.value)}
               onClick={() => { onStatusSelect(opt.value); }}
