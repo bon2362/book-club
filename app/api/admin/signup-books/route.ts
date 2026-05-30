@@ -29,25 +29,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
 
-  // Verify the user is signed up for this book
-  const [signup] = await db
-    .select({ bookId: signupBooks.bookId })
-    .from(signupBooks)
-    .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
-    .limit(1)
-
-  if (!signup) {
-    return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
-  }
-
+  let signupExists = false
   await db.transaction(async (tx) => {
-    // 1. Update personal_status
+    // 1. Verify the user is signed up for this book (inside transaction to avoid race condition)
+    const [signup] = await tx
+      .select({ bookId: signupBooks.bookId })
+      .from(signupBooks)
+      .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+      .limit(1)
+
+    if (!signup) return
+
+    signupExists = true
+
+    // 2. Update personal_status
     await tx
       .update(signupBooks)
       .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
       .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 
-    // 2. If moving to reading/read: remove from book_priorities and rerank
+    // 3. If moving to reading/read: remove from book_priorities and rerank
     if (status !== null && status !== undefined) {
       const [existing] = await tx
         .select({ rank: bookPriorities.rank })
@@ -68,6 +69,10 @@ export async function PATCH(req: NextRequest) {
     }
     // If status === null: leave book_priorities untouched
   })
+
+  if (!signupExists) {
+    return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
+  }
 
   return NextResponse.json({ ok: true })
 }
