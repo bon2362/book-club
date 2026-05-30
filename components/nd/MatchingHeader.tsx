@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import { getPseudonymColor } from './matching-shared'
 
 interface Participant {
   userId: string
@@ -110,49 +109,59 @@ export default function MatchingHeader({
       )}
 
       <header
-        className="flex items-center justify-between gap-4 px-4 h-14 shrink-0 border-b backdrop-blur-sm"
+        className="flex items-center justify-between gap-4 px-4 h-14 shrink-0"
         style={{
-          borderColor: 'var(--border)',
-          background: 'var(--bg-elevated)',
+          background: '#fff',
+          borderBottom: '2px solid #000',
         }}
       >
         {/* Left: session info */}
         <div className="flex items-center gap-4 min-w-0">
           <h1
-            className="text-xl leading-none m-0 font-medium truncate"
-            style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+            className="text-xl leading-none m-0 truncate"
+            style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, color: '#111' }}
           >
             {sessionName}
           </h1>
           <div
-            className="hidden sm:flex items-center gap-3 text-sm shrink-0"
-            style={{ color: 'var(--text-muted)' }}
+            className="hidden sm:flex items-center gap-3 shrink-0"
+            style={{ fontSize: '0.6rem', textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: '#999' }}
           >
             <span>Группы по {targetGroupSize}</span>
             {deadlineText && (
               <span>
                 Дедлайн:{' '}
-                <span className={urgent ? 'text-red-600 font-medium' : ''}>
+                <span style={urgent ? { color: '#C0392B', fontWeight: 600 } : {}}>
                   {deadlineText}
                 </span>
               </span>
             )}
             {userPseudonym && (
               <span
-                className={`text-[11px] px-2.5 py-1 rounded-full font-medium shrink-0 ${getPseudonymColor(userPseudonym).chip}`}
+                style={{
+                  fontSize: '0.56rem',
+                  padding: '0.18rem 0.55rem',
+                  borderRadius: 0,
+                  fontWeight: 600,
+                  background: 'transparent',
+                  color: '#111',
+                  border: '1px solid #111',
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.1em',
+                  flexShrink: 0,
+                }}
               >
                 Я: {userPseudonym}
               </span>
             )}
             {sessionStatus === 'frozen' ? (
               <span
-                className="px-2 py-0.5 rounded text-xs"
-                style={{ background: 'var(--bg-tag)', color: 'var(--text-muted)' }}
+                style={{ padding: '0.12rem 0.4rem', background: 'transparent', color: '#999', border: '1px solid #d6d6d6' }}
               >
                 Зафиксирована
               </span>
             ) : (
-              <span style={{ color: 'var(--success)' }}>● активна</span>
+              <span style={{ color: '#2D6A4F' }}>● активна</span>
             )}
           </div>
         </div>
@@ -163,13 +172,19 @@ export default function MatchingHeader({
           <button
             onClick={handleLeave}
             disabled={leaving}
-            className="px-3 py-1.5 rounded-lg border text-sm transition-all hover:-translate-y-px"
             style={{
-              borderColor: 'var(--border)',
-              background: 'var(--bg-input)',
-              color: 'var(--text-muted)',
+              font: 'inherit',
+              fontSize: '0.62rem',
               cursor: leaving ? 'default' : 'pointer',
               opacity: leaving ? 0.6 : 1,
+              padding: '0 0 1px',
+              border: 'none',
+              borderBottom: '1px solid #111',
+              borderRadius: 0,
+              background: 'none',
+              color: '#111',
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.08em',
             }}
           >
             {leaving ? '…' : 'Покинуть'}
@@ -178,19 +193,22 @@ export default function MatchingHeader({
         <Popover.Root>
           <Popover.Trigger asChild>
             <button
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:-translate-y-px transition-all text-sm shrink-0"
+              className="flex items-center gap-2 px-3 py-1.5 shrink-0"
               style={{
-                borderColor: 'var(--border)',
-                background: 'var(--bg-input)',
-                color: 'var(--text-muted)',
+                borderRadius: 0,
+                border: '1px solid #111',
+                background: '#fff',
+                color: '#666',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
               }}
             >
               <div className="flex -space-x-2">
                 {participants.slice(0, 6).map((p) => (
                   <div
                     key={p.userId}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold ${getPseudonymColor(p.pseudonym).chip}`}
-                    style={{ borderColor: 'var(--bg-input)' }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
+                    style={{ background: '#111', color: '#fff', border: '2px solid #fff' }}
                     title={p.pseudonym}
                   >
                     {p.pseudonym[0].toUpperCase()}
@@ -198,28 +216,25 @@ export default function MatchingHeader({
                 ))}
                 {participants.length > 6 && (
                   <div
-                    className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold"
-                    style={{
-                      borderColor: 'var(--bg-input)',
-                      background: 'var(--bg-elevated)',
-                      color: 'var(--text-secondary)',
-                    }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
+                    style={{ background: '#fff', color: '#555', border: '1px solid #ccc' }}
                   >
                     +{participants.length - 6}
                   </div>
                 )}
               </div>
-              <span className="font-medium">{participants.length}</span>
+              <span className="font-medium" style={{ color: '#111' }}>{participants.length}</span>
             </button>
           </Popover.Trigger>
 
           <Popover.Portal>
             <Popover.Content
-              className="z-50 border rounded-xl p-3 min-w-[220px] max-w-[300px]"
+              className="z-50 border p-3 min-w-[220px] max-w-[300px]"
               style={{
-                background: 'var(--bg-input)',
-                borderColor: 'var(--border)',
-                boxShadow: '0 8px 32px var(--shadow)',
+                background: '#fff',
+                borderColor: '#E5E5E5',
+                borderRadius: 0,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
               }}
               sideOffset={8}
               align="end"
@@ -239,7 +254,8 @@ export default function MatchingHeader({
                   participants.map((p) => (
                     <div key={p.userId} className="flex items-center gap-2.5 py-1">
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${getPseudonymColor(p.pseudonym).chip}`}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                        style={{ background: '#111', color: '#fff' }}
                       >
                         {p.pseudonym[0].toUpperCase()}
                       </div>
