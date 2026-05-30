@@ -21,17 +21,17 @@ interface Props {
 
 const tierConfig = {
   leader: {
-    style: { background: 'var(--bg-tag-green)', borderColor: 'var(--success)' },
+    style: { background: '#fff', borderTop: '2px solid #111', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', borderRadius: 0 },
     label: 'лидер',
-    labelStyle: { color: 'var(--success)', borderColor: 'var(--success)' },
+    labelStyle: { color: '#C0603A' },
   },
   'max-coverage': {
-    style: { background: 'var(--bg-elevated)', borderColor: 'var(--border)' },
+    style: { background: '#fff', border: '1px solid #E5E5E5', borderRadius: 0 },
     label: 'макс. покрытие',
-    labelStyle: { color: 'var(--text-secondary)', borderColor: 'var(--border)' },
+    labelStyle: { color: '#999' },
   },
   'sub-max': {
-    style: { background: 'var(--bg-elevated)', borderColor: 'var(--border)' },
+    style: { background: '#fff', border: '1px solid #E5E5E5', borderRadius: 0 },
     label: null,
     labelStyle: {},
   },
@@ -53,7 +53,7 @@ export default function MatchingScenarios({
     return (
       <div
         className="flex flex-col items-center justify-center h-full p-6 text-center"
-        style={{ color: 'var(--text-muted)' }}
+        style={{ color: '#999' }}
       >
         <div className="text-3xl mb-2">🎯</div>
         <p className="text-sm">
@@ -74,7 +74,7 @@ export default function MatchingScenarios({
         />
       )}
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex flex-wrap items-center gap-1.5 text-xs" style={{ color: '#999' }}>
           <span>Текущий расклад: {overview.coveredCount}/{overview.totalCount} участников</span>
           {overview.leftOut.length > 0 && (
             <>
@@ -83,7 +83,8 @@ export default function MatchingScenarios({
               {overview.leftOut.map((p) => (
                 <span
                   key={p.userId}
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${getPseudonymColor(p.pseudonym).chip}`}
+                  className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(p.pseudonym).chip}`}
+                  style={{ borderRadius: 0 }}
                 >
                   {p.pseudonym}
                 </span>
@@ -94,7 +95,7 @@ export default function MatchingScenarios({
 
         {overview.current.length > 0 && (
           <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: '#999' }}>
               Текущий расклад
             </h3>
             <ul className="list-none p-0 m-0 flex flex-col gap-3">
@@ -112,7 +113,7 @@ export default function MatchingScenarios({
 
         {alternatives.length > 0 && (
           <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: '#999' }}>
               Возможные круги
             </h3>
             <ul className="list-none p-0 m-0 flex flex-col gap-3">
@@ -146,17 +147,20 @@ function ScenarioItem({
   const isAlternative = candidate !== null && !candidate.inCurrentLayout
   const label = isAlternative ? 'альтернатива' : tier.label
   const labelStyle = isAlternative
-    ? { color: 'var(--text-secondary)', borderColor: 'var(--border)' }
+    ? { color: '#999' }
     : tier.labelStyle
 
   return (
     <li
-      className="rounded-xl border p-3.5"
-      style={isAlternative ? { background: 'var(--bg-input)', borderColor: 'var(--border)' } : tier.style}
+      className="border p-3.5"
+      style={isAlternative
+        ? { background: '#fff', border: '1px solid #E5E5E5', borderRadius: 0 }
+        : { ...tier.style }
+      }
     >
       <div className="flex items-start gap-3">
         {book && (
-          <div className="relative rounded overflow-hidden shrink-0" style={{ width: 40, height: 56 }}>
+          <div className="relative overflow-hidden shrink-0" style={{ width: 40, height: 56, borderRadius: 0 }}>
             <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
           </div>
         )}
@@ -164,13 +168,32 @@ function ScenarioItem({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <button
               onClick={() => book && onOpen(book)}
-              className="text-sm font-semibold text-left leading-snug hover:underline"
-              style={{ color: 'var(--text)' }}
+              className="text-left leading-snug hover:underline"
+              style={{
+                fontFamily: 'Georgia, "Times New Roman", serif',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                letterSpacing: '-0.01em',
+                color: '#111',
+              }}
             >
               {book?.title ?? card.bookId}
             </button>
             {label && (
-              <span className="text-[10px] border rounded-full px-2 py-0.5 shrink-0" style={labelStyle}>
+              <span
+                className="text-[10px] shrink-0"
+                style={{
+                  ...labelStyle,
+                  borderBottom: '1px solid currentColor',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRight: 'none',
+                  borderRadius: 0,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.12em',
+                  padding: '0 0 1px',
+                }}
+              >
                 {label}
               </span>
             )}
@@ -179,7 +202,8 @@ function ScenarioItem({
             {card.members.map((m) => (
               <span
                 key={m.userId}
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] ${getPseudonymColor(m.pseudonym).chip}`}
+                className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(m.pseudonym).chip}`}
+                style={{ borderRadius: 0 }}
               >
                 {m.pseudonym}
                 <span className="ml-1 opacity-70">· {m.interest}</span>
@@ -187,7 +211,7 @@ function ScenarioItem({
             ))}
           </div>
           {candidate && candidate.conflictsWith.length > 0 && (
-            <p className="text-[11px] mt-2 mb-0" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] mt-2 mb-0" style={{ color: '#999' }}>
               Пересекается с текущим раскладом: {candidate.conflictsWith.join(', ')}
             </p>
           )}
