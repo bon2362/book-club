@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users, signupBooks, bookPriorities, books } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
-import { fetchPersonalList } from '@/lib/matching/personal-list'
+import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { generateScenarios } from '@/lib/matching/scenarios'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
@@ -103,7 +103,7 @@ export default async function MatchingPage({
       .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
       .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
       .orderBy(matchingSessionParticipants.joinedAt),
-    fetchPersonalList(viewingUserId),
+    fetchCatalogWithPersonalData(viewingUserId),
     fetchMyMoves(viewingUserId, activeSession.id, activeSession.targetGroupSize),
   ])
 
@@ -113,8 +113,9 @@ export default async function MatchingPage({
     : null
 
   // Fetch per-book participant signups for chips in the personal list
+  const inListBookIds = personalBooks.filter((b) => b.isInList).map((b) => b.bookId)
   const bookParticipants: BookParticipant[] =
-    personalBooks.length > 0 && participantUserIds.length > 0
+    inListBookIds.length > 0 && participantUserIds.length > 0
       ? await db
           .select({
             userId: signupBooks.userId,
@@ -132,7 +133,7 @@ export default async function MatchingPage({
           )
           .where(
             and(
-              inArray(signupBooks.bookId, personalBooks.map((b) => b.bookId)),
+              inArray(signupBooks.bookId, inListBookIds),
               inArray(signupBooks.userId, participantUserIds),
             ),
           )
@@ -223,7 +224,7 @@ export default async function MatchingPage({
           </div>
           {!isImpersonating && (
             <MatchingRankNudge
-              show={personalBooks.length > 0 && personalBooks.every((b) => b.rank === null)}
+              show={inListBookIds.length > 0 && personalBooks.filter((b) => b.isInList).every((b) => b.rank === null)}
             />
           )}
           <div className="flex-1 min-h-0 overflow-y-auto">
