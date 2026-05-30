@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import type { AdminUserDetails } from '@/lib/admin-users'
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   onRemoveSignup: (bookId: string, bookName: string) => void
   onDeleteUser: () => void
   onOpenSubmission: (submissionId: string) => void
+  onChangeStatus: (bookId: string, status: string | null) => void
 }
 
 const sans = 'var(--nd-sans), system-ui, sans-serif'
@@ -74,7 +75,63 @@ const adminBadge: React.CSSProperties = {
   letterSpacing: '0.06em',
 }
 
-export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemoveSignup, onDeleteUser, onOpenSubmission }: Props) {
+function BookStatusChip({
+  bookName,
+  rankLabel,
+  isRanked,
+  isMenuOpen,
+  onToggleMenu,
+  onStatusSelect,
+  onRemove,
+}: {
+  bookId: string
+  bookName: string
+  rankLabel?: string | number
+  isRanked?: boolean
+  isMenuOpen: boolean
+  onToggleMenu: () => void
+  onStatusSelect: (status: string | null) => void
+  onRemove: () => void
+}) {
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', background: '#F5F5F5', borderRadius: 2, overflow: 'visible', fontSize: '0.78rem' }}>
+      {rankLabel !== undefined && (
+        <span style={{ background: isRanked ? '#111' : '#E5E5E5', color: isRanked ? '#fff' : '#AAA', padding: '0.22rem 0.45rem', fontWeight: 700, borderRadius: '2px 0 0 2px' }}>
+          {rankLabel}
+        </span>
+      )}
+      <button
+        onClick={onToggleMenu}
+        style={{ background: 'none', border: 'none', padding: '0.22rem 0.5rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.78rem', color: '#111' }}
+      >
+        {bookName}
+      </button>
+      <button onClick={onRemove} title="Снять запись" style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
+      {isMenuOpen && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #E5E5E5', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10, minWidth: 160, borderRadius: 2 }}>
+          {[
+            { value: null, label: 'Записал:ась' },
+            { value: 'reading', label: 'Читаю' },
+            { value: 'read', label: 'Прочитал:а' },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={() => { onStatusSelect(opt.value); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '0.4rem 0.75rem', fontFamily: sans, fontSize: '0.75rem', cursor: 'pointer', color: '#111' }}
+              data-testid={`admin-status-option-${opt.value ?? 'null'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+}
+
+export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemoveSignup, onDeleteUser, onOpenSubmission, onChangeStatus }: Props) {
+  const [openMenuBookId, setOpenMenuBookId] = useState<string | null>(null)
+
   useEffect(() => {
     if (!isOpen) return
     const original = document.body.style.overflow
@@ -90,12 +147,19 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
   }, [isOpen, onClose])
 
   const user = data?.user
+
+  // Три группы по personalStatus
+  const nullBooks = (data?.signupBooks ?? []).filter(b => b.personalStatus === null)
+  const readingBooks = (data?.signupBooks ?? []).filter(b => b.personalStatus === 'reading')
+  const readBooks = (data?.signupBooks ?? []).filter(b => b.personalStatus === 'read')
+
+  // Для nullBooks — сортировка по приоритету (как раньше):
   const priorityMap = new Map((data?.priorities ?? []).map(row => [row.bookId, row.rank]))
-  const ranked = (data?.signupBooks ?? [])
-    .filter(row => priorityMap.has(row.bookId))
-    .sort((a, b) => priorityMap.get(a.bookId)! - priorityMap.get(b.bookId)!)
-  const unranked = (data?.signupBooks ?? []).filter(row => !priorityMap.has(row.bookId))
-  const sortedBooks = user?.prioritiesSet ? [...ranked, ...unranked] : (data?.signupBooks ?? [])
+  const rankedNull = nullBooks
+    .filter(b => priorityMap.has(b.bookId))
+    .sort((a, b2) => priorityMap.get(a.bookId)! - priorityMap.get(b2.bookId)!)
+  const unrankedNull = nullBooks.filter(b => !priorityMap.has(b.bookId))
+  const sortedNullBooks = user?.prioritiesSet ? [...rankedNull, ...unrankedNull] : nullBooks
 
   return (
     <>
@@ -179,23 +243,83 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                     {user.prioritiesSet ? 'приоритеты расставлены' : 'без приоритетов'}
                   </span>
                 </div>
-                {!user.prioritiesSet && sortedBooks.length > 0 && <div style={{ color: '#AAA', fontStyle: 'italic', fontSize: '0.76rem', marginBottom: '0.5rem' }}>приоритеты ещё не расставлены</div>}
-                {user.prioritiesSet && unranked.length > 0 && <div style={{ color: '#AAA', fontStyle: 'italic', fontSize: '0.76rem', marginBottom: '0.5rem' }}>добавил:а книги после расстановки</div>}
-                {sortedBooks.length === 0 ? <p style={{ color: '#BBB', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет записей</p> : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {sortedBooks.map(row => {
-                      const rank = priorityMap.get(row.bookId)
-                      const label = !user.prioritiesSet ? '?' : rank ?? '+'
-                      const isRanked = user.prioritiesSet && rank !== undefined
-                      return (
-                        <span key={row.bookId} style={{ display: 'inline-flex', alignItems: 'center', background: '#F5F5F5', borderRadius: 2, overflow: 'hidden', fontSize: '0.78rem' }}>
-                          <span style={{ background: isRanked ? '#111' : '#E5E5E5', color: isRanked ? '#fff' : '#AAA', padding: '0.22rem 0.45rem', fontWeight: 700 }}>{label}</span>
-                          <span style={{ padding: '0.22rem 0.5rem' }}>{row.bookName}</span>
-                          <button onClick={() => onRemoveSignup(row.bookId, row.bookName)} title="Снять запись" style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
-                        </span>
-                      )
-                    })}
+
+                {/* Под-секция: Записал:ась */}
+                {sortedNullBooks.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb', marginBottom: '0.35rem' }}>
+                      Записал:ась
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      {sortedNullBooks.map(row => {
+                        const rank = priorityMap.get(row.bookId)
+                        const isRanked = user.prioritiesSet && rank !== undefined
+                        const rankLabel = !user.prioritiesSet ? '?' : rank ?? '+'
+                        return (
+                          <BookStatusChip
+                            key={row.bookId}
+                            bookId={row.bookId}
+                            bookName={row.bookName}
+                            rankLabel={rankLabel}
+                            isRanked={isRanked}
+                            isMenuOpen={openMenuBookId === row.bookId}
+                            onToggleMenu={() => setOpenMenuBookId(prev => prev === row.bookId ? null : row.bookId)}
+                            onStatusSelect={(s) => { setOpenMenuBookId(null); onChangeStatus(row.bookId, s) }}
+                            onRemove={() => onRemoveSignup(row.bookId, row.bookName)}
+                          />
+                        )
+                      })}
+                    </div>
                   </div>
+                )}
+
+                {/* Под-секция: Читаю */}
+                {readingBooks.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb', marginBottom: '0.35rem' }}>
+                      Читаю
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      {readingBooks.map(row => (
+                        <BookStatusChip
+                          key={row.bookId}
+                          bookId={row.bookId}
+                          bookName={row.bookName}
+                          isMenuOpen={openMenuBookId === row.bookId}
+                          onToggleMenu={() => setOpenMenuBookId(prev => prev === row.bookId ? null : row.bookId)}
+                          onStatusSelect={(s) => { setOpenMenuBookId(null); onChangeStatus(row.bookId, s) }}
+                          onRemove={() => onRemoveSignup(row.bookId, row.bookName)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Под-секция: Прочитал:а */}
+                {readBooks.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb', marginBottom: '0.35rem' }}>
+                      Прочитал:а
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      {readBooks.map(row => (
+                        <BookStatusChip
+                          key={row.bookId}
+                          bookId={row.bookId}
+                          bookName={row.bookName}
+                          isMenuOpen={openMenuBookId === row.bookId}
+                          onToggleMenu={() => setOpenMenuBookId(prev => prev === row.bookId ? null : row.bookId)}
+                          onStatusSelect={(s) => { setOpenMenuBookId(null); onChangeStatus(row.bookId, s) }}
+                          onRemove={() => onRemoveSignup(row.bookId, row.bookName)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Пустое состояние */}
+                {(data?.signupBooks ?? []).length === 0 && (
+                  <p style={{ color: '#BBB', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет записей</p>
                 )}
               </section>
 
