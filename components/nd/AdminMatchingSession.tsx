@@ -20,6 +20,18 @@ interface AuditEntry {
   adminName: string | null
 }
 
+interface Participant {
+  userId: string
+  pseudonym: string
+  joinedAt: string
+  name: string | null
+}
+
+interface AllUser {
+  id: string
+  name: string | null
+}
+
 const fieldInput: React.CSSProperties = {
   fontFamily: 'var(--nd-mono), monospace',
   fontSize: '0.8rem',
@@ -47,6 +59,13 @@ export default function AdminMatchingSession() {
   const [error, setError] = useState<string | null>(null)
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
   const [auditLoading, setAuditLoading] = useState(false)
+
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [allUsers, setAllUsers] = useState<AllUser[]>([])
+  const [participantsLoading, setParticipantsLoading] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState('')
+  const [addingParticipant, setAddingParticipant] = useState(false)
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null)
 
   // Form state
   const [name, setName] = useState('')
@@ -83,14 +102,69 @@ export default function AdminMatchingSession() {
     }
   }, [])
 
+  const loadParticipants = useCallback(async (sessionId: string) => {
+    setParticipantsLoading(true)
+    try {
+      const res = await fetch(`/api/admin/matching/sessions/${sessionId}/participants`)
+      const json = await res.json()
+      if (res.ok) setParticipants(json.data ?? [])
+    } finally {
+      setParticipantsLoading(false)
+    }
+  }, [])
+
+  const loadAllUsers = useCallback(async () => {
+    const res = await fetch('/api/admin/users')
+    const json = await res.json()
+    if (res.ok) setAllUsers(json.data ?? [])
+  }, [])
+
   useEffect(() => {
     const active = sessions.find(s => s.status === 'active')
-    if (active) loadAudit(active.id)
-  }, [sessions, loadAudit])
+    if (active) {
+      loadAudit(active.id)
+      loadParticipants(active.id)
+      loadAllUsers()
+    }
+  }, [sessions, loadAudit, loadParticipants, loadAllUsers])
 
   const activeSession = sessions.find(s => s.status === 'active')
   const [freezing, setFreezing] = useState(false)
   const [freezeError, setFreezeError] = useState<string | null>(null)
+
+  async function handleAddParticipant() {
+    if (!activeSession || !selectedUserId) return
+    setAddingParticipant(true)
+    try {
+      const res = await fetch(`/api/admin/matching/sessions/${activeSession.id}/participants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserId }),
+      })
+      if (res.ok) {
+        setSelectedUserId('')
+        await loadParticipants(activeSession.id)
+      }
+    } finally {
+      setAddingParticipant(false)
+    }
+  }
+
+  async function handleRemoveParticipant(userId: string) {
+    if (!activeSession) return
+    setRemovingUserId(userId)
+    try {
+      const res = await fetch(
+        `/api/admin/matching/sessions/${activeSession.id}/participants/${userId}`,
+        { method: 'DELETE' },
+      )
+      if (res.ok) {
+        await loadParticipants(activeSession.id)
+      }
+    } finally {
+      setRemovingUserId(null)
+    }
+  }
 
   async function handleFreeze() {
     if (!activeSession) return
@@ -170,6 +244,91 @@ export default function AdminMatchingSession() {
             </button>
           </div>
           {freezeError && <p style={{ color: '#c00', fontSize: '0.75rem', marginTop: 4 }}>{freezeError}</p>}
+        </div>
+      )}
+
+      {!loading && activeSession && (
+        <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid #333', borderRadius: 3 }}>
+          <div style={{ fontWeight: 600, marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            Участники ({participants.length})
+            <button
+              onClick={() => loadParticipants(activeSession.id)}
+              style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}
+            >
+              ↺
+            </button>
+          </div>
+
+          {participantsLoading && <p style={{ color: '#999', fontSize: '0.78rem' }}>Загрузка…</p>}
+
+          {!participantsLoading && participants.length === 0 && (
+            <p style={{ color: '#999', fontSize: '0.78rem' }}>Нет участников.</p>
+          )}
+
+          {!participantsLoading && participants.length > 0 && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', marginBottom: '0.75rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
+                  <th style={{ padding: '3px 8px 3px 0' }}>Псевдоним</th>
+                  <th style={{ padding: '3px 8px' }}>Пользователь</th>
+                  <th style={{ padding: '3px 8px' }}>Вступил</th>
+                  <th style={{ padding: '3px 8px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {participants.map(p => (
+                  <tr key={p.userId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '3px 8px 3px 0', fontWeight: 500 }}>{p.pseudonym}</td>
+                    <td style={{ padding: '3px 8px', color: '#555' }}>
+                      <a
+                        href={`/matching?as=${p.userId}`}
+                        style={{ color: '#333', textDecoration: 'underline' }}
+                        title={p.userId}
+                      >
+                        {p.name ?? p.userId.slice(0, 12) + '…'}
+                      </a>
+                    </td>
+                    <td style={{ padding: '3px 8px', color: '#999', whiteSpace: 'nowrap' }}>
+                      {new Date(p.joinedAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td style={{ padding: '3px 8px' }}>
+                      <button
+                        onClick={() => handleRemoveParticipant(p.userId)}
+                        disabled={removingUserId === p.userId}
+                        style={{ ...btn, fontSize: '0.7rem', padding: '1px 6px', color: '#c00', borderColor: '#c00' }}
+                      >
+                        {removingUserId === p.userId ? '…' : 'Убрать'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <select
+              value={selectedUserId}
+              onChange={e => setSelectedUserId(e.target.value)}
+              style={{ ...fieldInput, width: 'auto', minWidth: 160, border: '1px solid #ccc', padding: '4px 6px', borderRadius: 2 }}
+            >
+              <option value="">— выбрать пользователя —</option>
+              {allUsers
+                .filter(u => !participants.some(p => p.userId === u.id))
+                .map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.name ?? u.id.slice(0, 12) + '…'}
+                  </option>
+                ))}
+            </select>
+            <button
+              onClick={handleAddParticipant}
+              disabled={!selectedUserId || addingParticipant}
+              style={{ ...btn, opacity: !selectedUserId || addingParticipant ? 0.5 : 1 }}
+            >
+              {addingParticipant ? 'Добавляю…' : 'Добавить'}
+            </button>
+          </div>
         </div>
       )}
 

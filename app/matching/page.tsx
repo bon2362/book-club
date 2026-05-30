@@ -177,6 +177,7 @@ export default async function MatchingPage({
       style={{ height: '100svh', overflow: 'hidden', background: 'var(--bg)', color: 'var(--text)' }}
     >
       <MatchingHeader
+        sessionId={activeSession.id}
         sessionName={activeSession.name}
         sessionStatus={activeSession.status}
         targetGroupSize={activeSession.targetGroupSize}

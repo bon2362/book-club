@@ -10,6 +10,7 @@ interface Participant {
 }
 
 interface Props {
+  sessionId: string
   sessionName: string
   sessionStatus: string
   targetGroupSize: number
@@ -70,6 +71,7 @@ function pseudonymColor(pseudonym: string) {
 }
 
 export default function MatchingHeader({
+  sessionId,
   sessionName,
   sessionStatus,
   targetGroupSize,
@@ -83,6 +85,18 @@ export default function MatchingHeader({
   userPseudonym,
 }: Props) {
   const { text: deadlineText, urgent } = useDeadlineText(deadlineAt)
+  const [leaving, setLeaving] = useState(false)
+
+  async function handleLeave() {
+    if (!window.confirm('Покинуть сессию? При следующем входе на страницу вы будете добавлены заново с новым псевдонимом.')) return
+    setLeaving(true)
+    try {
+      await fetch(`/api/matching/sessions/${sessionId}/leave`, { method: 'DELETE' })
+      window.location.href = '/'
+    } finally {
+      setLeaving(false)
+    }
+  }
 
   return (
     <>
@@ -159,7 +173,24 @@ export default function MatchingHeader({
           </div>
         </div>
 
-        {/* Right: participants popover */}
+        {/* Right: leave button + participants popover */}
+        <div className="flex items-center gap-2 shrink-0">
+        {sessionStatus === 'active' && !isImpersonating && (
+          <button
+            onClick={handleLeave}
+            disabled={leaving}
+            className="px-3 py-1.5 rounded-lg border text-sm transition-all hover:-translate-y-px"
+            style={{
+              borderColor: 'var(--border)',
+              background: 'var(--bg-input)',
+              color: 'var(--text-muted)',
+              cursor: leaving ? 'default' : 'pointer',
+              opacity: leaving ? 0.6 : 1,
+            }}
+          >
+            {leaving ? '…' : 'Покинуть'}
+          </button>
+        )}
         <Popover.Root>
           <Popover.Trigger asChild>
             <button
@@ -252,6 +283,7 @@ export default function MatchingHeader({
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>
+        </div>
       </header>
     </>
   )
