@@ -153,6 +153,8 @@ function SortableBookItem({
   onStatusChange: (s: PersonalBookStatus) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const [rowHover, setRowHover] = useState(false)
+  const [removeHover, setRemoveHover] = useState(false)
 
   const topEmojis = ['🏆', '🥈', '🥉']
   const showRank = prioritiesSet && !isUnranked && !isUnsubscribed
@@ -164,12 +166,15 @@ function SortableBookItem({
         data-testid="priority-book-row"
         data-book-id={id}
         onClick={onRowTap}
+        onMouseEnter={() => setRowHover(true)}
+        onMouseLeave={() => setRowHover(false)}
         style={{
           display: 'flex',
           alignItems: 'center',
           padding: '10px 16px',
           borderBottom: '1px solid #f3f4f6',
-          background: isMenuOpen ? '#fafaf7' : '#fff',
+          background: isMenuOpen ? '#fafaf7' : rowHover ? '#f5f5f4' : '#fff',
+          transition: 'background 120ms ease',
           userSelect: 'none',
           cursor: 'pointer',
         }}
@@ -222,10 +227,20 @@ function SortableBookItem({
         </span>
         <button
           onClick={e => { e.stopPropagation(); onToggle() }}
+          onMouseEnter={() => setRemoveHover(true)}
+          onMouseLeave={() => setRemoveHover(false)}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: isUnsubscribed ? '#22c55e' : '#9ca3af',
-            fontSize: 13, padding: '0 4px',
+            border: 'none', cursor: 'pointer',
+            color: isUnsubscribed
+              ? (removeHover ? '#16a34a' : '#22c55e')
+              : (removeHover ? '#dc2626' : '#9ca3af'),
+            background: removeHover
+              ? (isUnsubscribed ? '#dcfce7' : '#fee2e2')
+              : 'transparent',
+            fontSize: 16, lineHeight: 1,
+            width: 24, height: 24, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 120ms ease, color 120ms ease',
           }}
           title={isUnsubscribed ? 'Вернуть' : 'Отписаться'}
         >
@@ -254,18 +269,22 @@ function StatusBookItem({
   onRowTap: () => void
   onStatusChange: (s: PersonalBookStatus) => void
 }) {
+  const [rowHover, setRowHover] = useState(false)
   return (
     <div>
       <div
         data-testid="status-book-row"
         data-book-id={id}
         onClick={onRowTap}
+        onMouseEnter={() => setRowHover(true)}
+        onMouseLeave={() => setRowHover(false)}
         style={{
           display: 'flex',
           alignItems: 'center',
           padding: '10px 16px',
           borderBottom: '1px solid #f3f4f6',
-          background: isMenuOpen ? '#fafaf7' : '#fff',
+          background: isMenuOpen ? '#fafaf7' : rowHover ? '#f5f5f4' : '#fff',
+          transition: 'background 120ms ease',
           userSelect: 'none',
           cursor: 'pointer',
         }}
