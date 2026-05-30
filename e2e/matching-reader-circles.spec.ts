@@ -80,5 +80,22 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await expect(dialog).toContainText(secondPseudonym)
   await expect(dialog).toContainText(thirdPseudonym)
   await expect(dialog).not.toContainText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i)
+
+  await dialog.getByRole('button', { name: 'Закрыть' }).click()
+  await expect(dialog).not.toBeVisible()
+
+  const moveCard = page
+    .locator('li')
+    .filter({ hasText: moveBook.title })
+    .filter({ hasText: 'Уже записались:' })
+    .first()
+  await moveCard.getByRole('button', { name: 'Хочу читать' }).click()
+
+  await expect(page.getByText('Пока нет книг, где ваша заявка замкнет круг')).toBeVisible()
+  await expect(page.locator('[data-testid="matching-personal-list"]').getByText(moveBook.title)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Возможные круги' })).toBeVisible()
+  await expect(page.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
+  await expect(page.getByText('альтернатива')).toBeVisible()
+
   await page.goto('about:blank')
 })

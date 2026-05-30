@@ -35,6 +35,20 @@ export interface ScenarioCard {
   unrankedCount: number
 }
 
+export interface ScenarioCandidate extends ScenarioCard {
+  inCurrentLayout: boolean
+  conflictsWith: string[]
+}
+
+export interface ScenarioOverview {
+  current: ScenarioCard[]
+  candidates: ScenarioCandidate[]
+  leftOut: ScenarioParticipant[]
+  coveredCount: number
+  totalCount: number
+  targetGroupSize: number
+}
+
 export interface GenerateScenariosInput {
   participants: ScenarioParticipant[]
   books: ScenarioBook[]
@@ -42,6 +56,15 @@ export interface GenerateScenariosInput {
   ranks: ScenarioRank[]
   targetGroupSize: number
   maxResults?: number
+}
+
+interface Candidate {
+  bookId: string
+  members: GroupMember[]
+  wantsCount: number
+  avgRank: number | null
+  worstRank: number | null
+  unrankedCount: number
 }
 
 function interest(rank: number | null): GroupMember['interest'] {
@@ -131,7 +154,49 @@ function pickBestGroup(
   return sorted.slice(0, targetGroupSize)
 }
 
-export function generateScenarios(input: GenerateScenariosInput): ScenarioCard[] {
+function assignTiers(selected: Candidate[]): ScenarioCard[] {
+  if (selected.length === 0) return []
+
+  const topWantsCount = selected[0].wantsCount
+  return selected.map((c, i): ScenarioCard => {
+    let tier: ScenarioCard['tier']
+    if (i === 0) tier = 'leader'
+    else if (c.wantsCount === topWantsCount) tier = 'max-coverage'
+    else tier = 'sub-max'
+
+    return {
+      bookId: c.bookId,
+      tier,
+      members: c.members,
+      wantsCount: c.wantsCount,
+      avgRank: c.avgRank,
+      worstRank: c.worstRank,
+      unrankedCount: c.unrankedCount,
+    }
+  })
+}
+
+function hasSameMembers(a: Pick<ScenarioCard, 'members'>, b: Pick<ScenarioCard, 'members'>): boolean {
+  if (a.members.length !== b.members.length) return false
+  const aIds = new Set(a.members.map((m) => m.userId))
+  return b.members.every((m) => aIds.has(m.userId))
+}
+
+export function emptyScenarioOverview(
+  participants: ScenarioParticipant[],
+  targetGroupSize: number,
+): ScenarioOverview {
+  return {
+    current: [],
+    candidates: [],
+    leftOut: participants,
+    coveredCount: 0,
+    totalCount: participants.length,
+    targetGroupSize,
+  }
+}
+
+export function generateScenarioOverview(input: GenerateScenariosInput): ScenarioOverview {
   const {
     participants,
     books,
@@ -162,16 +227,6 @@ export function generateScenarios(input: GenerateScenariosInput): ScenarioCard[]
   const candidateBookIds = books
     .map(b => b.bookId)
     .filter(bookId => (signupsByBook.get(bookId)?.length ?? 0) >= targetGroupSize)
-
-  // For each candidate book, find best group and score it
-  interface Candidate {
-    bookId: string
-    members: GroupMember[]
-    wantsCount: number
-    avgRank: number | null
-    worstRank: number | null
-    unrankedCount: number
-  }
 
   const scored: Candidate[] = []
 
@@ -230,24 +285,41 @@ export function generateScenarios(input: GenerateScenariosInput): ScenarioCard[]
     }
   }
 
-  // Assign tiers
-  if (selected.length === 0) return []
+  const current = assignTiers(selected)
+  const currentUserIds = new Set(current.flatMap((card) => card.members.map((m) => m.userId)))
+  const leftOut = participants.filter((p) => !currentUserIds.has(p.userId))
 
-  const topWantsCount = selected[0].wantsCount
-  return selected.map((c, i): ScenarioCard => {
-    let tier: ScenarioCard['tier']
-    if (i === 0) tier = 'leader'
-    else if (c.wantsCount === topWantsCount) tier = 'max-coverage'
-    else tier = 'sub-max'
+  const candidates: ScenarioCandidate[] = scored.map((candidate) => {
+    const currentMatch = current.find(
+      (card) => card.bookId === candidate.bookId && hasSameMembers(card, candidate),
+    )
+    const overlapsCurrentLayout = candidate.members.filter((m) => currentUserIds.has(m.userId))
 
     return {
-      bookId: c.bookId,
-      tier,
-      members: c.members,
-      wantsCount: c.wantsCount,
-      avgRank: c.avgRank,
-      worstRank: c.worstRank,
-      unrankedCount: c.unrankedCount,
+      bookId: candidate.bookId,
+      tier: currentMatch?.tier ?? 'sub-max',
+      members: candidate.members,
+      wantsCount: candidate.wantsCount,
+      avgRank: candidate.avgRank,
+      worstRank: candidate.worstRank,
+      unrankedCount: candidate.unrankedCount,
+      inCurrentLayout: currentMatch !== undefined,
+      conflictsWith: currentMatch
+        ? []
+        : overlapsCurrentLayout.map((m) => m.pseudonym),
     }
   })
+
+  return {
+    current,
+    candidates,
+    leftOut,
+    coveredCount: currentUserIds.size,
+    totalCount: participants.length,
+    targetGroupSize,
+  }
+}
+
+export function generateScenarios(input: GenerateScenariosInput): ScenarioCard[] {
+  return generateScenarioOverview(input).current
 }
