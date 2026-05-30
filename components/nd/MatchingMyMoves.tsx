@@ -73,9 +73,7 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
               className="p-3"
               style={{
                 borderRadius: 0,
-                borderTop: '1px solid #E5E5E5',
-                borderRight: '1px solid #E5E5E5',
-                borderBottom: '1px solid #E5E5E5',
+                border: '1px solid #E5E5E5',
                 borderLeft: '2px solid #C0603A',
                 background: '#fff',
               }}
