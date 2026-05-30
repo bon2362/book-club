@@ -73,8 +73,9 @@ export default defineConfig({
   // workers: локально 4 — спеки изолированы через createTestBook/
   // createIntroSection, не дерутся за общие данные. На CI снижаем до 2:
   // GitHub Actions runner делит 4 vCPU с системой, плюс Neon free tier
-  // (0.25 vCPU) — при 4 параллельных Playwright contexts admin-страница
-  // не успевает гидратироваться за 120s, тесты флачат с timeout.
+  // (0.25 vCPU). Производственный `next start` (см. webServer ниже) держит
+  // конкурентность куда лучше dev-сервера, но Neon-bottleneck остаётся —
+  // поэтому workers:2 пока сохраняем, тюнинг отдельным шагом после замера.
   workers: process.env.CI ? 2 : 4,
   reporter: process.env.CI
     ? [['list'], ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: false }]]
@@ -87,13 +88,32 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npm run dev',
+    // На CI поднимаем production-сервер (`next start` по уже собранному
+    // `.next`), а не dev. Причина — dev компилирует роут лениво при первом
+    // обращении: первый хит каждой страницы платит за webpack-компиляцию
+    // (секунды-десятки секунд), иногда React-контекст не успевает
+    // подняться → `useContext` of null → таймаут 60-120s → ретрай по уже
+    // скомпилированному роуту проходит за 15s. Это давало и медленный
+    // suite, и регулярный флак. `next start` отдаёт прекомпилированный
+    // билд сразу. Сборка делается отдельным шагом в CI (.github/workflows/
+    // ci.yml, job e2e) перед запуском Playwright.
+    // Локально оставляем dev для быстрого hot-reload цикла.
+    command: process.env.CI ? 'npm run start' : 'npm run dev',
     url: 'http://127.0.0.1:3000',
-    reuseExistingServer: true,
+    // На CI всегда поднимаем свежий сервер; локально переиспользуем
+    // уже запущенный dev, если он есть.
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
       NEXTAUTH_TEST_MODE: 'true',
       NEXT_PUBLIC_DISABLE_ANALYTICS: 'true',
+      // На CI поднимаем production-сервер (NODE_ENV=production). Чтобы
+      // /api/test/* guard (lib/test-mode.ts) пропустил тест-эндпоинты под
+      // prod-рантаймом, нужен явный opt-in — инжектим его прямо в env
+      // сервера, детерминированно, а не через merge process.env. Прод-БД
+      // при этом защищена маркерами (E2E_REQUIRE_DB_MARKER / PROD_DB_HOST_MARKER).
+      // AUTH_TRUST_HOST — NextAuth v5 в production требует доверенный хост.
+      ...(process.env.CI ? { E2E_ALLOW_PRODUCTION_SERVER: 'true', AUTH_TRUST_HOST: 'true' } : {}),
       ...forwardedEnv,
     },
   },

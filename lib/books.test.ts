@@ -92,6 +92,7 @@ beforeEach(() => {
   insertValuesCalls.length = 0
   updateSetCalls.length = 0
   delete process.env.NEXTAUTH_TEST_MODE
+  delete process.env.E2E_ALLOW_PRODUCTION_SERVER
   setNodeEnv(originalNodeEnv)
 })
 
@@ -137,6 +138,24 @@ describe('lib/books — fetchBooksWithCovers', () => {
 
     const result = await fetchBooksWithCovers()
     expect(result.map(book => book.id)).toEqual(['real-book'])
+  })
+
+  // The CI E2E job runs `next start` (NODE_ENV=production) and its fixtures
+  // create "E2E "-prefixed books that the tests assert on. Under that run the
+  // E2E_ALLOW_PRODUCTION_SERVER opt-in is set, so the live-site safety filter
+  // must be bypassed — otherwise the suite can't see its own fixture data.
+  it('does NOT filter E2E fixture books during a CI production-server e2e run', async () => {
+    setNodeEnv('production')
+    process.env.E2E_ALLOW_PRODUCTION_SERVER = 'true'
+    pushResult([
+      bookRow({ id: '__e2e_book_abc12345_0__', title: 'Whatever' }),
+      bookRow({ id: 'e2e-book', title: 'E2E Auto Signup 123' }),
+      bookRow({ id: 'real-book', title: 'Real Book' }),
+    ])
+    pushResult([])
+
+    const result = await fetchBooksWithCovers()
+    expect(result.map(book => book.id)).toEqual(['__e2e_book_abc12345_0__', 'e2e-book', 'real-book'])
   })
 
   it('maps DB row to BookWithCover shape (article type capitalised, source preserved)', async () => {

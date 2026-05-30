@@ -107,6 +107,26 @@ jobs:
           DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
           SKIP_ENV_VALIDATION: 'true'
 
+      # Production-сборка для E2E. Playwright на CI поднимает `next start`
+      # (см. playwright.config.ts → webServer), которому нужен готовый .next.
+      # Раньше E2E ходили в `next dev` — ленивая компиляция роутов давала
+      # медленный первый хит каждой страницы и флак (useContext null →
+      # таймаут → ретрай за 15s). Прекомпилированный билд убирает обе боли.
+      # Билдим с e2e-DB и маркерами (НЕ прод), чтобы любые build-time
+      # обращения к данным шли в изолированную Neon-ветку.
+      - name: Build app for E2E (production server)
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+          PROD_DB_HOST_MARKER: ${{ secrets.PROD_DB_HOST_MARKER }}
+          E2E_REQUIRE_DB_MARKER: ${{ secrets.E2E_REQUIRE_DB_MARKER }}
+          AUTH_SECRET: 'e2e-test-secret-only-used-for-signing-test-sessions'
+          NEXTAUTH_TEST_MODE: 'true'
+          NEXT_PUBLIC_DISABLE_ANALYTICS: 'true'
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          SKIP_ENV_VALIDATION: 'true'
+
       - name: Get Allure history from gh-pages
         uses: actions/checkout@v5
         if: always()
@@ -127,6 +147,10 @@ jobs:
           AUTH_SECRET: 'e2e-test-secret-only-used-for-signing-test-sessions'
           NEXTAUTH_TEST_MODE: 'true'
           NEXTAUTH_URL: 'http://localhost:3000'
+          # Production-сервер (next start) ⇒ NODE_ENV=production. Флаги
+          # E2E_ALLOW_PRODUCTION_SERVER + AUTH_TRUST_HOST инжектятся прямо в
+          # env сервера через playwright.config.ts (webServer.env, ветка CI) —
+          # единый источник правды. Прод-БД защищена маркерами ниже.
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
           SKIP_ENV_VALIDATION: 'true'

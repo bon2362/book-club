@@ -11,6 +11,7 @@ describe('isTestEndpointAllowed', () => {
     delete process.env.PROD_DB_HOST_MARKER
     delete process.env.E2E_REQUIRE_DB_MARKER
     delete process.env.NEXTAUTH_TEST_MODE
+    delete process.env.E2E_ALLOW_PRODUCTION_SERVER
   })
 
   afterAll(() => {
@@ -28,9 +29,84 @@ describe('isTestEndpointAllowed', () => {
     }
   }
 
-  it('denies when NODE_ENV is production', () => {
+  it('denies when NODE_ENV is production without the explicit opt-in', () => {
     setEnv({ NODE_ENV: 'production', NEXTAUTH_TEST_MODE: 'true' })
     expect(isTestEndpointAllowed()).toBe(false)
+  })
+
+  // [SEC] Production runtime (next start for E2E). All three conditions must
+  // hold; each missing one must fail closed so real prod can never expose
+  // /api/test/* (which can mint admin JWTs and delete users).
+  const E2E_DB = 'postgres://user:pwd@ep-e2e-host-7777.neon.tech/db'
+
+  it('[SEC] allows under production only with opt-in + both markers correctly set', () => {
+    setEnv({
+      NODE_ENV: 'production',
+      NEXTAUTH_TEST_MODE: 'true',
+      E2E_ALLOW_PRODUCTION_SERVER: 'true',
+      DATABASE_URL: E2E_DB,
+      E2E_REQUIRE_DB_MARKER: 'ep-e2e-host-7777',
+      PROD_DB_HOST_MARKER: 'ep-prod-host-9999',
+    })
+    expect(isTestEndpointAllowed()).toBe(true)
+  })
+
+  it('[SEC] denies under production when opt-in flag is missing (markers alone are not enough)', () => {
+    setEnv({
+      NODE_ENV: 'production',
+      NEXTAUTH_TEST_MODE: 'true',
+      E2E_ALLOW_PRODUCTION_SERVER: undefined,
+      DATABASE_URL: E2E_DB,
+      E2E_REQUIRE_DB_MARKER: 'ep-e2e-host-7777',
+      PROD_DB_HOST_MARKER: 'ep-prod-host-9999',
+    })
+    expect(isTestEndpointAllowed()).toBe(false)
+  })
+
+  it('[SEC] denies under production when E2E_REQUIRE_DB_MARKER is not set (no fail-open)', () => {
+    setEnv({
+      NODE_ENV: 'production',
+      NEXTAUTH_TEST_MODE: 'true',
+      E2E_ALLOW_PRODUCTION_SERVER: 'true',
+      DATABASE_URL: E2E_DB,
+      E2E_REQUIRE_DB_MARKER: undefined,
+      PROD_DB_HOST_MARKER: 'ep-prod-host-9999',
+    })
+    expect(isTestEndpointAllowed()).toBe(false)
+  })
+
+  it('[SEC] denies under production when PROD_DB_HOST_MARKER is not set (no fail-open)', () => {
+    setEnv({
+      NODE_ENV: 'production',
+      NEXTAUTH_TEST_MODE: 'true',
+      E2E_ALLOW_PRODUCTION_SERVER: 'true',
+      DATABASE_URL: E2E_DB,
+      E2E_REQUIRE_DB_MARKER: 'ep-e2e-host-7777',
+      PROD_DB_HOST_MARKER: undefined,
+    })
+    expect(isTestEndpointAllowed()).toBe(false)
+  })
+
+  it('[SEC] denies under production when DATABASE_URL points at the prod host', () => {
+    setEnv({
+      NODE_ENV: 'production',
+      NEXTAUTH_TEST_MODE: 'true',
+      E2E_ALLOW_PRODUCTION_SERVER: 'true',
+      DATABASE_URL: 'postgres://user:pwd@ep-prod-host-9999.neon.tech/db',
+      E2E_REQUIRE_DB_MARKER: 'ep-e2e-host-7777',
+      PROD_DB_HOST_MARKER: 'ep-prod-host-9999',
+    })
+    expect(isTestEndpointAllowed()).toBe(false)
+  })
+
+  it('[SEC] opt-in flag is ignored outside production (dev path unaffected)', () => {
+    setEnv({
+      NODE_ENV: 'development',
+      NEXTAUTH_TEST_MODE: 'true',
+      E2E_ALLOW_PRODUCTION_SERVER: undefined,
+      DATABASE_URL: E2E_DB,
+    })
+    expect(isTestEndpointAllowed()).toBe(true)
   })
 
   it('denies when NEXTAUTH_TEST_MODE is not "true"', () => {
