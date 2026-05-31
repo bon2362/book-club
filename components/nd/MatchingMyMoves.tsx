@@ -10,10 +10,9 @@ import ParticipantInterestChip from './ParticipantInterestChip'
 interface Props {
   moves: MyMoveBook[]
   frozen?: boolean
-  onMoveHover?: (move: MyMoveBook | null) => void
 }
 
-export default function MatchingMyMoves({ moves: initialMoves, frozen = false, onMoveHover }: Props) {
+export default function MatchingMyMoves({ moves: initialMoves, frozen = false }: Props) {
   const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
@@ -74,10 +73,6 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false, o
             <li
               key={move.bookId}
               className="p-3"
-              onMouseEnter={() => onMoveHover?.(move)}
-              onMouseLeave={() => onMoveHover?.(null)}
-              onFocus={() => onMoveHover?.(move)}
-              onBlur={() => onMoveHover?.(null)}
               style={{
                 borderRadius: 0,
                 border: '1px solid var(--border)',

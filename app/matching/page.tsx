@@ -155,7 +155,13 @@ export default async function MatchingPage({
       : emptyScenarioSetOverview(scenarioParticipants, activeSession.targetGroupSize)
 
   const bookTitleById = new Map(personalBooks.map((book) => [book.bookId, book.title]))
-  const myMovesWithImpact = addMoveImpacts(myMoves, scenarioInput, viewingUserId, bookTitleById)
+  const myMovesWithImpact = addMoveImpacts(
+    myMoves,
+    scenarioInput,
+    viewingUserId,
+    bookTitleById,
+    scenarioSetOverview.leader?.id ?? null,
+  )
   const bookById = new Map(personalBooks.map((b) => [b.bookId, {
     ...b,
     id: b.bookId,
@@ -306,8 +312,9 @@ function addMoveImpacts(
   scenarioInput: GenerateScenariosInput,
   viewingUserId: string,
   bookTitleById: Map<string, string>,
+  currentLeaderId: string | null,
 ): MyMoveBook[] {
-  return moves.map((move) => {
+  return moves.flatMap((move) => {
     const hasSignup = scenarioInput.signups.some((signup) => (
       signup.userId === viewingUserId && signup.bookId === move.bookId
     ))
@@ -318,12 +325,13 @@ function addMoveImpacts(
       signups: hasSignup
         ? scenarioInput.signups
         : [...scenarioInput.signups, { userId: viewingUserId, bookId: move.bookId }],
+      ranks: promoteBookToFirstRank(scenarioInput.ranks, viewingUserId, move.bookId),
     })
-    const scenario = findScenarioForMove(nextOverview.scenarios, viewingUserId, move.bookId) ?? nextOverview.leader
+    const scenario = nextOverview.leader
 
-    if (!scenario) return move
+    if (!scenario || scenario.id === currentLeaderId) return []
+    if (!scenarioIncludesMove(scenario, viewingUserId, move.bookId)) return []
 
-    const scenarioIndex = nextOverview.scenarios.findIndex((candidate) => candidate.id === scenario.id)
     const circleTitles = scenario.circles.map((circle) => bookTitleById.get(circle.bookId) ?? circle.bookId)
     const moveCircle = scenario.circles.find((circle) => (
       circle.bookId === move.bookId && circle.members.some((member) => member.userId === viewingUserId)
@@ -334,25 +342,43 @@ function addMoveImpacts(
       ...move,
       impact: {
         scenarioId: scenario.id,
-        scenarioTitle: `Сценарий ${scenarioIndex + 1}`,
+        scenarioTitle: 'Сценарий 1',
         coverageLabel: `${scenario.score.coveredCount}/${scenario.score.totalCount} участни:ц`,
         summary: moveCircle
-          ? `Появится круг «${moveTitle}», а весь сценарий будет: ${circleTitles.join(' + ')}.`
-          : `Лучший сценарий после хода будет: ${circleTitles.join(' + ')}.`,
+          ? `Этот ход меняет лучший сценарий: появится круг «${moveTitle}», а весь сценарий будет: ${circleTitles.join(' + ')}.`
+          : `Этот ход меняет лучший сценарий: ${circleTitles.join(' + ')}.`,
         circleTitles,
       },
     }
   })
 }
 
-function findScenarioForMove(
-  scenarios: MatchingScenario[],
+function scenarioIncludesMove(
+  scenario: MatchingScenario,
   viewingUserId: string,
   bookId: string,
-): MatchingScenario | null {
-  return scenarios.find((scenario) => (
-    scenario.circles.some((circle) => (
+): boolean {
+  return scenario.circles.some((circle) => (
       circle.bookId === bookId && circle.members.some((member) => member.userId === viewingUserId)
-    ))
-  )) ?? null
+  ))
+}
+
+function promoteBookToFirstRank(
+  ranks: GenerateScenariosInput['ranks'],
+  userId: string,
+  bookId: string,
+): GenerateScenariosInput['ranks'] {
+  const existingUserRanks = ranks
+    .filter((rank) => rank.userId === userId && rank.bookId !== bookId)
+    .sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER))
+  const otherRanks = ranks.filter((rank) => rank.userId !== userId)
+
+  return [
+    ...otherRanks,
+    { userId, bookId, rank: 1 },
+    ...existingUserRanks.map((rank, index) => ({
+      ...rank,
+      rank: index + 2,
+    })),
+  ]
 }
