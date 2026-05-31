@@ -93,9 +93,9 @@ test('matching shows reader circles, move hints, and full book details modal', a
 
   await expect(page.getByText('Пока нет книг, где ваша заявка замкнет круг')).toBeVisible()
   await expect(page.locator('[data-testid="matching-personal-list"]').getByText(moveBook.title)).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Возможные круги' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Сценарий 1' })).toBeVisible()
   await expect(page.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
-  await expect(page.getByText('альтернатива')).toBeVisible()
+  await expect(page.getByText(/3\/3 участни:ц/).first()).toBeVisible()
 
   await page.goto('about:blank')
 })

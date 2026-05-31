@@ -7,7 +7,14 @@ import { matchingSessions, matchingSessionParticipants, signupBooks, bookPriorit
 import { eq, inArray, and } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
-import { emptyScenarioOverview, generateScenarioOverview, type ScenarioOverview } from '@/lib/matching/scenarios'
+import {
+  emptyScenarioOverview,
+  emptyScenarioSetOverview,
+  generateScenarioOverview,
+  generateScenarioSets,
+  type ScenarioOverview,
+  type ScenarioSetOverview,
+} from '@/lib/matching/scenarios'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -46,6 +53,7 @@ export async function GET(req: NextRequest) {
 
   // Scenario generation
   let scenarioOverview: ScenarioOverview = emptyScenarioOverview(participants, matchSession.targetGroupSize)
+  let scenarioSetOverview: ScenarioSetOverview = emptyScenarioSetOverview(participants, matchSession.targetGroupSize)
   if (participantUserIds.length >= matchSession.targetGroupSize) {
     const [allSignups, allRanks, allBooks] = await Promise.all([
       db.select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
@@ -61,14 +69,16 @@ export async function GET(req: NextRequest) {
     const signedUpBookIds = new Set(allSignups.map(s => s.bookId))
     const sessionBooks = allBooks.filter(b => signedUpBookIds.has(b.id)).map(b => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
     const activeSignups = allSignups.filter(s => s.personalStatus === null)
-    scenarioOverview = generateScenarioOverview({
+    const scenarioInput = {
       participants,
       books: sessionBooks,
       signups: activeSignups.map(s => ({ userId: s.userId, bookId: s.bookId })),
       ranks: allRanks,
       targetGroupSize: matchSession.targetGroupSize,
       maxResults: 10,
-    })
+    }
+    scenarioSetOverview = generateScenarioSets(scenarioInput)
+    scenarioOverview = generateScenarioOverview(scenarioInput)
   }
 
   return NextResponse.json({
@@ -76,6 +86,7 @@ export async function GET(req: NextRequest) {
     myMoves,
     scenarios: scenarioOverview.current,
     scenarioOverview,
+    scenarioSetOverview,
     sessionStatus: matchSession.status,
   })
 }

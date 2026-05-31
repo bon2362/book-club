@@ -1,6 +1,5 @@
-import { generateScenarioOverview, generateScenarios } from '../scenarios'
+import { generateScenarioSets, generateScenarios } from '../scenarios'
 
-// Helpers to build test fixtures
 function makeParticipants(n: number) {
   return Array.from({ length: n }, (_, i) => ({ userId: `u${i + 1}`, pseudonym: `Участник${i + 1}` }))
 }
@@ -10,188 +9,268 @@ function makeBook(bookId: string) {
 }
 
 function allSignedUp(userIds: string[], bookId: string) {
-  return userIds.map(userId => ({ userId, bookId }))
+  return userIds.map((userId) => ({ userId, bookId }))
 }
 
 function rankAll(userIds: string[], bookId: string, rank: number) {
-  return userIds.map(userId => ({ userId, bookId, rank }))
+  return userIds.map((userId) => ({ userId, bookId, rank }))
 }
 
-describe('generateScenarios', () => {
-  const participants = makeParticipants(6)
-  const userIds = participants.map(p => p.userId)
+function rank(userId: string, bookId: string, value: number) {
+  return { userId, bookId, rank: value }
+}
 
-  it('returns empty array when no books', () => {
-    const result = generateScenarios({
+describe('generateScenarioSets', () => {
+  it('returns an empty overview when no scenario can be formed', () => {
+    const participants = makeParticipants(3)
+    const result = generateScenarioSets({
       participants,
       books: [],
       signups: [],
       ranks: [],
       targetGroupSize: 3,
     })
-    expect(result).toEqual([])
+
+    expect(result.leader).toBeNull()
+    expect(result.scenarios).toEqual([])
+    expect(result.totalCount).toBe(3)
   })
 
-  it('returns empty array when no signups', () => {
-    const result = generateScenarios({
+  it('returns one exact-size circle and reports left out participants', () => {
+    const participants = makeParticipants(4)
+    const result = generateScenarioSets({
       participants,
       books: [makeBook('b1')],
-      signups: [],
-      ranks: [],
+      signups: allSignedUp(['u1', 'u2', 'u3'], 'b1'),
+      ranks: rankAll(['u1', 'u2', 'u3'], 'b1', 1),
       targetGroupSize: 3,
     })
-    expect(result).toEqual([])
+
+    expect(result.leader?.circles).toHaveLength(1)
+    expect(result.leader?.circles[0].bookId).toBe('b1')
+    expect(result.leader?.circles[0].members).toHaveLength(3)
+    expect(result.leader?.leftOut.map((p) => p.userId)).toEqual(['u4'])
   })
 
-  it('includes books regardless of global reading_status (filtering is upstream concern)', () => {
-    // The engine no longer filters by readingStatus — callers filter signups by personalStatus before passing in.
-    const result = generateScenarios({
-      participants,
-      books: [makeBook('b1')],
-      signups: allSignedUp(userIds, 'b1'),
-      ranks: rankAll(userIds, 'b1', 1),
-      targetGroupSize: 3,
-    })
-    expect(result).toHaveLength(1)
-    expect(result[0].bookId).toBe('b1')
-  })
-
-  it('excludes books without enough signups', () => {
-    const result = generateScenarios({
-      participants: makeParticipants(2),
-      books: [makeBook('b1')],
-      signups: allSignedUp(['u1', 'u2'], 'b1'),
-      ranks: [],
-      targetGroupSize: 3,
-    })
-    expect(result).toEqual([])
-  })
-
-  it('groups have exactly targetGroupSize members', () => {
-    const result = generateScenarios({
-      participants,
-      books: [makeBook('b1')],
-      signups: allSignedUp(userIds, 'b1'),
-      ranks: rankAll(userIds, 'b1', 2),
-      targetGroupSize: 3,
-    })
-    expect(result).toHaveLength(1)
-    expect(result[0].members).toHaveLength(3)
-  })
-
-  it('no participant repeats across selected groups', () => {
-    // 6 participants, 2 books each with 6 signups → should produce 2 groups, 3+3=6 unique
-    const result = generateScenarios({
+  it('combines two disjoint books into one full-coverage scenario', () => {
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
       participants,
       books: [makeBook('b1'), makeBook('b2')],
       signups: [
-        ...allSignedUp(userIds, 'b1'),
-        ...allSignedUp(userIds, 'b2'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'b1'),
+        ...allSignedUp(['u4', 'u5', 'u6'], 'b2'),
       ],
       ranks: [
-        ...rankAll(userIds, 'b1', 2),
-        ...rankAll(userIds, 'b2', 2),
+        ...rankAll(['u1', 'u2', 'u3'], 'b1', 2),
+        ...rankAll(['u4', 'u5', 'u6'], 'b2', 2),
       ],
       targetGroupSize: 3,
     })
-    expect(result).toHaveLength(2)
-    const allMemberIds = result.flatMap(c => c.members.map(m => m.userId))
-    const unique = new Set(allMemberIds)
-    expect(unique.size).toBe(allMemberIds.length)
+
+    expect(result.leader?.score.coveredCount).toBe(6)
+    expect(result.leader?.circles.map((circle) => circle.bookId).sort()).toEqual(['b1', 'b2'])
+    expect(result.leader?.tier).toBe('leader')
   })
 
-  it('tier leader is assigned to top card only', () => {
-    const result = generateScenarios({
+  it('prioritizes full coverage over a better ranked partial scenario', () => {
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
       participants,
-      books: [makeBook('b1'), makeBook('b2')],
+      books: [makeBook('favorite'), makeBook('fallback-a'), makeBook('fallback-b')],
       signups: [
-        ...allSignedUp(userIds.slice(0, 3), 'b1'),
-        ...allSignedUp(userIds.slice(3, 6), 'b2'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'favorite'),
+        ...allSignedUp(['u1', 'u2', 'u4'], 'fallback-a'),
+        ...allSignedUp(['u3', 'u5', 'u6'], 'fallback-b'),
       ],
       ranks: [
-        ...rankAll(userIds.slice(0, 3), 'b1', 1),
-        ...rankAll(userIds.slice(3, 6), 'b2', 5),
+        ...rankAll(['u1', 'u2', 'u3'], 'favorite', 1),
+        ...rankAll(['u1', 'u2', 'u4'], 'fallback-a', 4),
+        ...rankAll(['u3', 'u5', 'u6'], 'fallback-b', 4),
       ],
       targetGroupSize: 3,
     })
-    const leaders = result.filter(c => c.tier === 'leader')
-    expect(leaders).toHaveLength(1)
-    expect(leaders[0].bookId).toBe('b1')
+
+    expect(result.leader?.score.coveredCount).toBe(6)
+    expect(result.leader?.circles.map((circle) => circle.bookId).sort()).toEqual(['fallback-a', 'fallback-b'])
   })
 
-  it('tier max-coverage assigned to all cards with same wantsCount as leader', () => {
-    // 3 books, each with 3 signups and rank=1 → all tied → all max-coverage (except leader)
-    const p3 = makeParticipants(9)
-    const books = [makeBook('b1'), makeBook('b2'), makeBook('b3')]
-    const signups = [
-      ...allSignedUp(p3.slice(0, 3).map(p => p.userId), 'b1'),
-      ...allSignedUp(p3.slice(3, 6).map(p => p.userId), 'b2'),
-      ...allSignedUp(p3.slice(6, 9).map(p => p.userId), 'b3'),
-    ]
-    const ranks = [
-      ...rankAll(p3.slice(0, 3).map(p => p.userId), 'b1', 1),
-      ...rankAll(p3.slice(3, 6).map(p => p.userId), 'b2', 1),
-      ...rankAll(p3.slice(6, 9).map(p => p.userId), 'b3', 1),
-    ]
-    const result = generateScenarios({ participants: p3, books, signups, ranks, targetGroupSize: 3 })
-    expect(result).toHaveLength(3)
-    expect(result.filter(c => c.tier === 'leader')).toHaveLength(1)
-    expect(result.filter(c => c.tier === 'max-coverage')).toHaveLength(2)
-    expect(result.filter(c => c.tier === 'sub-max')).toHaveLength(0)
-  })
-
-  it('tier sub-max assigned when wantsCount is less than leader', () => {
-    const p6 = makeParticipants(6)
-    const books = [makeBook('b1'), makeBook('b2')]
-    const signups = [
-      ...allSignedUp(p6.slice(0, 3).map(p => p.userId), 'b1'),
-      ...allSignedUp(p6.slice(3, 6).map(p => p.userId), 'b2'),
-    ]
-    const ranks = [
-      ...rankAll(p6.slice(0, 3).map(p => p.userId), 'b1', 1),  // wantsCount=3
-      ...rankAll(p6.slice(3, 6).map(p => p.userId), 'b2', 5),  // wantsCount=0
-    ]
-    const result = generateScenarios({ participants: p6, books, signups, ranks, targetGroupSize: 3 })
-    expect(result).toHaveLength(2)
-    expect(result.find(c => c.bookId === 'b1')?.tier).toBe('leader')
-    expect(result.find(c => c.bookId === 'b2')?.tier).toBe('sub-max')
-  })
-
-  it('respects maxResults', () => {
-    const p = makeParticipants(30)
-    const books = Array.from({ length: 10 }, (_, i) => makeBook(`b${i}`))
-    const signups = books.flatMap(b => allSignedUp(p.slice(0, 5).map(x => x.userId), b.bookId))
-    const result = generateScenarios({ participants: p, books, signups, ranks: [], targetGroupSize: 3, maxResults: 3 })
-    expect(result.length).toBeLessThanOrEqual(3)
-  })
-
-  it('handles null ranks (unranked participants)', () => {
-    const result = generateScenarios({
+  it('uses stronger top-3 interest as the first tie-breaker for equal coverage', () => {
+    const participants = makeParticipants(3)
+    const result = generateScenarioSets({
       participants,
-      books: [makeBook('b1')],
-      signups: allSignedUp(userIds, 'b1'),
+      books: [makeBook('strong'), makeBook('weak')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3'], 'strong'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'weak'),
+      ],
+      ranks: [
+        rank('u1', 'strong', 1),
+        rank('u2', 'strong', 2),
+        rank('u3', 'strong', 6),
+        ...rankAll(['u1', 'u2', 'u3'], 'weak', 4),
+      ],
+      targetGroupSize: 3,
+    })
+
+    expect(result.leader?.circles[0].bookId).toBe('strong')
+  })
+
+  it('uses lower average rank after coverage and top-3 ties', () => {
+    const participants = makeParticipants(3)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('lower-avg'), makeBook('higher-avg')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3'], 'lower-avg'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'higher-avg'),
+      ],
+      ranks: [
+        rank('u1', 'lower-avg', 1),
+        rank('u2', 'lower-avg', 4),
+        rank('u3', 'lower-avg', 4),
+        rank('u1', 'higher-avg', 1),
+        rank('u2', 'higher-avg', 5),
+        rank('u3', 'higher-avg', 5),
+      ],
+      targetGroupSize: 3,
+    })
+
+    expect(result.leader?.circles[0].bookId).toBe('lower-avg')
+  })
+
+  it('uses lower worst rank after average-rank ties', () => {
+    const participants = makeParticipants(3)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('lower-worst'), makeBook('higher-worst')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3'], 'lower-worst'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'higher-worst'),
+      ],
+      ranks: [
+        rank('u1', 'lower-worst', 1),
+        rank('u2', 'lower-worst', 5),
+        rank('u3', 'lower-worst', 6),
+        rank('u1', 'higher-worst', 1),
+        rank('u2', 'higher-worst', 4),
+        rank('u3', 'higher-worst', 7),
+      ],
+      targetGroupSize: 3,
+    })
+
+    expect(result.leader?.circles[0].bookId).toBe('lower-worst')
+  })
+
+  it('does not get trapped by the locally best overlapping circle', () => {
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('local-best'), makeBook('coverage-a'), makeBook('coverage-b')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3'], 'local-best'),
+        ...allSignedUp(['u1', 'u2', 'u4'], 'coverage-a'),
+        ...allSignedUp(['u3', 'u5', 'u6'], 'coverage-b'),
+      ],
+      ranks: [
+        ...rankAll(['u1', 'u2', 'u3'], 'local-best', 1),
+        ...rankAll(['u1', 'u2', 'u4'], 'coverage-a', 5),
+        ...rankAll(['u3', 'u5', 'u6'], 'coverage-b', 5),
+      ],
+      targetGroupSize: 3,
+    })
+
+    expect(result.leader?.score.coveredCount).toBe(6)
+    expect(result.leader?.circles.map((circle) => circle.bookId).sort()).toEqual(['coverage-a', 'coverage-b'])
+  })
+
+  it('keeps lower-scored diverse circles when they unlock more coverage', () => {
+    const participants = makeParticipants(20)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('popular'), makeBook('small')],
+      signups: [
+        ...allSignedUp(participants.map((p) => p.userId), 'popular'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'small'),
+      ],
+      ranks: [
+        ...rankAll(['u1', 'u2', 'u3'], 'popular', 1),
+        ...rankAll(['u4', 'u5', 'u6'], 'popular', 8),
+        ...rankAll(['u1', 'u2', 'u3'], 'small', 1),
+      ],
+      targetGroupSize: 3,
+    })
+
+    expect(result.leader?.score.coveredCount).toBe(6)
+    expect(result.leader?.circles.map((circle) => circle.bookId).sort()).toEqual(['popular', 'small'])
+  })
+
+  it('never repeats a participant inside one scenario', () => {
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('b1'), makeBook('b2'), makeBook('b3')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3', 'u4'], 'b1'),
+        ...allSignedUp(['u3', 'u4', 'u5', 'u6'], 'b2'),
+        ...allSignedUp(['u1', 'u2', 'u5', 'u6'], 'b3'),
+      ],
       ranks: [],
       targetGroupSize: 3,
     })
-    expect(result).toHaveLength(1)
-    expect(result[0].unrankedCount).toBe(3)
-    expect(result[0].wantsCount).toBe(0)
+
+    for (const scenario of result.scenarios) {
+      const userIds = scenario.circles.flatMap((circle) => circle.members.map((m) => m.userId))
+      expect(new Set(userIds).size).toBe(userIds.length)
+    }
+  })
+
+  it('never repeats a book inside one scenario', () => {
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('b1'), makeBook('b2')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3', 'u4', 'u5', 'u6'], 'b1'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'b2'),
+      ],
+      ranks: [],
+      targetGroupSize: 3,
+    })
+
+    for (const scenario of result.scenarios) {
+      const bookIds = scenario.circles.map((circle) => circle.bookId)
+      expect(new Set(bookIds).size).toBe(bookIds.length)
+    }
+  })
+
+  it('respects maxResults for scenario sets', () => {
+    const participants = makeParticipants(12)
+    const books = Array.from({ length: 8 }, (_, i) => makeBook(`b${i}`))
+    const signups = books.flatMap((book) => allSignedUp(participants.map((p) => p.userId), book.bookId))
+    const result = generateScenarioSets({ participants, books, signups, ranks: [], targetGroupSize: 3, maxResults: 3 })
+
+    expect(result.scenarios.length).toBeLessThanOrEqual(3)
   })
 
   it('perf: N=30 participants, M=50 books median < 200ms', () => {
-    const p = makeParticipants(30)
+    const participants = makeParticipants(30)
     const books = Array.from({ length: 50 }, (_, i) => makeBook(`book${i}`))
-    const signups = books.flatMap(b =>
-      p.slice(0, 10).map(x => ({ userId: x.userId, bookId: b.bookId }))
+    const signups = books.flatMap((book) =>
+      participants.slice(0, 10).map((participant) => ({ userId: participant.userId, bookId: book.bookId })),
     )
-    const ranks = books.flatMap(b =>
-      p.slice(0, 10).map((x, i) => ({ userId: x.userId, bookId: b.bookId, rank: (i % 7) + 1 }))
+    const ranks = books.flatMap((book) =>
+      participants.slice(0, 10).map((participant, i) => ({
+        userId: participant.userId,
+        bookId: book.bookId,
+        rank: (i % 7) + 1,
+      })),
     )
 
     const times: number[] = []
     for (let run = 0; run < 11; run++) {
       const start = Date.now()
-      generateScenarios({ participants: p, books, signups, ranks, targetGroupSize: 3 })
+      generateScenarioSets({ participants, books, signups, ranks, targetGroupSize: 3 })
       times.push(Date.now() - start)
     }
     times.sort((a, b) => a - b)
@@ -202,43 +281,52 @@ describe('generateScenarios', () => {
   })
 })
 
-describe('generateScenarioOverview', () => {
-  it('keeps complete overlapping circles as possible alternatives', () => {
-    const participants = makeParticipants(5)
-    const userIds = participants.map(p => p.userId)
-    const result = generateScenarioOverview({
+describe('generateScenarios compatibility wrapper', () => {
+  it('still returns old ScenarioCard objects for freeze route consumers', () => {
+    const participants = makeParticipants(6)
+    const result = generateScenarios({
       participants,
-      books: [makeBook('current'), makeBook('alternative')],
+      books: [makeBook('b1'), makeBook('b2')],
       signups: [
-        ...allSignedUp(userIds.slice(0, 3), 'current'),
-        ...allSignedUp(['u1', 'u2', 'u4'], 'alternative'),
+        ...allSignedUp(['u1', 'u2', 'u3'], 'b1'),
+        ...allSignedUp(['u4', 'u5', 'u6'], 'b2'),
       ],
       ranks: [
-        ...rankAll(userIds.slice(0, 3), 'current', 1),
-        ...rankAll(['u1', 'u2', 'u4'], 'alternative', 2),
+        ...rankAll(['u1', 'u2', 'u3'], 'b1', 1),
+        ...rankAll(['u4', 'u5', 'u6'], 'b2', 5),
       ],
       targetGroupSize: 3,
     })
 
-    expect(result.current.map(c => c.bookId)).toEqual(['current'])
-    expect(result.candidates.map(c => c.bookId)).toEqual(['current', 'alternative'])
-    const alternative = result.candidates.find(c => c.bookId === 'alternative')
-    expect(alternative?.inCurrentLayout).toBe(false)
-    expect(alternative?.conflictsWith).toEqual(['Участник1', 'Участник2'])
+    expect(result).toHaveLength(2)
+    expect(result[0]).toMatchObject({
+      bookId: 'b1',
+      tier: 'leader',
+      wantsCount: 3,
+      avgRank: 1,
+      worstRank: 1,
+      unrankedCount: 0,
+    })
+    expect(result[0].members).toHaveLength(3)
   })
 
-  it('reports participants left out of the current layout', () => {
-    const participants = makeParticipants(4)
-    const result = generateScenarioOverview({
-      participants,
-      books: [makeBook('b1')],
-      signups: allSignedUp(['u1', 'u2', 'u3'], 'b1'),
-      ranks: rankAll(['u1', 'u2', 'u3'], 'b1', 1),
-      targetGroupSize: 3,
+  it('still respects maxResults as the maximum number of legacy cards', () => {
+    const participants = makeParticipants(36)
+    const books = Array.from({ length: 12 }, (_, i) => makeBook(`b${i + 1}`))
+    const signups = books.flatMap((book, index) => {
+      const start = index * 3
+      return allSignedUp(participants.slice(start, start + 3).map((p) => p.userId), book.bookId)
     })
 
-    expect(result.coveredCount).toBe(3)
-    expect(result.totalCount).toBe(4)
-    expect(result.leftOut.map(p => p.pseudonym)).toEqual(['Участник4'])
+    const result = generateScenarios({
+      participants,
+      books,
+      signups,
+      ranks: [],
+      targetGroupSize: 3,
+      maxResults: 10,
+    })
+
+    expect(result).toHaveLength(10)
   })
 })

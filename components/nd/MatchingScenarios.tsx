@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import type { ScenarioCandidate, ScenarioCard, ScenarioOverview } from '@/lib/matching/scenarios'
+import { useCallback, useState } from 'react'
+import type { MatchingCircle, MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import { getPseudonymColor } from './matching-shared'
@@ -12,30 +12,20 @@ interface BookInfo extends MatchingBookDetail {
 }
 
 interface Props {
-  overview: ScenarioOverview
+  overview: ScenarioSetOverview
   bookById: Map<string, BookInfo>
   bookParticipants: BookParticipant[]
   viewingUserId: string
   targetGroupSize: number
 }
 
-const tierConfig = {
-  leader: {
-    style: { background: 'var(--bg-input)', borderTop: '2px solid var(--border-strong)', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', borderRadius: 0 },
-    label: 'лидер',
-    labelStyle: { color: 'var(--accent)' },
-  },
-  'max-coverage': {
-    style: { background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 0 },
-    label: 'макс. покрытие',
-    labelStyle: { color: 'var(--text-muted)' },
-  },
-  'sub-max': {
-    style: { background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 0 },
-    label: null,
-    labelStyle: {},
-  },
-} as const
+const tierLabel: Record<MatchingScenario['tier'], string> = {
+  leader: 'текущий лучший',
+  'full-coverage': 'полное покрытие',
+  'best-achievable-partial': 'лучший частичный',
+  partial: 'частичный',
+  'blocked-better': 'может стать лучше',
+}
 
 export default function MatchingScenarios({
   overview,
@@ -47,9 +37,8 @@ export default function MatchingScenarios({
   const [modalBook, setModalBook] = useState<BookInfo | null>(null)
   const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
   const closeModal = useCallback(() => setModalBook(null), [])
-  const alternatives = overview.candidates.filter((card) => !card.inCurrentLayout)
 
-  if (overview.candidates.length === 0) {
+  if (overview.scenarios.length === 0) {
     return (
       <div
         className="flex flex-col items-center justify-center h-full p-6 text-center"
@@ -73,90 +62,125 @@ export default function MatchingScenarios({
           onClose={closeModal}
         />
       )}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-          <span>Текущий расклад: {overview.coveredCount}/{overview.totalCount} участников</span>
-          {overview.leftOut.length > 0 && (
-            <>
-              <span>·</span>
-              <span>за бортом:</span>
-              {overview.leftOut.map((p) => (
-                <span
-                  key={p.userId}
-                  className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(p.pseudonym).chip}`}
-                  style={{ borderRadius: 0 }}
-                >
-                  {p.pseudonym}
-                </span>
-              ))}
-            </>
-          )}
-        </div>
-
-        {overview.current.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: 'var(--text-muted)' }}>
-              Текущий расклад
-            </h3>
-            <ul className="list-none p-0 m-0 flex flex-col gap-3">
-              {overview.current.map((card) => (
-                <ScenarioItem
-                  key={`current-${card.bookId}`}
-                  card={card}
-                  book={bookById.get(card.bookId)}
-                  onOpen={openModal}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {alternatives.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: 'var(--text-muted)' }}>
-              Возможные круги
-            </h3>
-            <ul className="list-none p-0 m-0 flex flex-col gap-3">
-              {alternatives.map((card) => (
-                <ScenarioItem
-                  key={`candidate-${card.bookId}`}
-                  card={card}
-                  book={bookById.get(card.bookId)}
-                  onOpen={openModal}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
+      <ul className="list-none p-0 m-0 flex flex-col gap-3">
+        {overview.scenarios.map((scenario, index) => (
+          <ScenarioSetCard
+            key={scenario.id}
+            scenario={scenario}
+            scenarioNumber={index + 1}
+            bookById={bookById}
+            onOpen={openModal}
+          />
+        ))}
+      </ul>
     </>
   )
 }
 
-function ScenarioItem({
-  card,
-  book,
+function ScenarioSetCard({
+  scenario,
+  scenarioNumber,
+  bookById,
   onOpen,
 }: {
-  card: ScenarioCard | ScenarioCandidate
-  book: BookInfo | undefined
+  scenario: MatchingScenario
+  scenarioNumber: number
+  bookById: Map<string, BookInfo>
   onOpen: (book: BookInfo) => void
 }) {
-  const tier = tierConfig[card.tier]
-  const candidate = 'inCurrentLayout' in card ? card : null
-  const isAlternative = candidate !== null && !candidate.inCurrentLayout
-  const label = isAlternative ? 'альтернатива' : tier.label
-  const labelStyle = isAlternative
-    ? { color: 'var(--text-muted)' }
-    : tier.labelStyle
+  const isLeader = scenario.tier === 'leader'
 
   return (
     <li
-      className="border p-3.5"
-      style={isAlternative
-        ? { background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 0 }
-        : { ...tier.style }
-      }
+      className="border"
+      style={{
+        background: 'var(--bg-input)',
+        borderColor: isLeader ? 'var(--border-strong)' : 'var(--border)',
+        borderTopWidth: isLeader ? 2 : 1,
+        borderRadius: 0,
+      }}
+    >
+      <div
+        className="px-3 py-2 border-b flex flex-wrap items-center gap-2"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <h3
+          className="m-0"
+          style={{
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.12em',
+            color: 'var(--text)',
+          }}
+        >
+          Сценарий {scenarioNumber}
+        </h3>
+        <span
+          className="text-[10px]"
+          style={{
+            color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
+            borderBottom: '1px solid currentColor',
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.1em',
+            paddingBottom: 1,
+          }}
+        >
+          {tierLabel[scenario.tier]}
+        </span>
+        <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
+          {scenario.score.coveredCount}/{scenario.score.totalCount} участни:ц
+        </span>
+      </div>
+
+      <div className="p-3 flex flex-col gap-2.5">
+        {scenario.circles.map((circle) => (
+          <CircleItem
+            key={circle.id}
+            circle={circle}
+            book={bookById.get(circle.bookId)}
+            onOpen={onOpen}
+          />
+        ))}
+
+        {scenario.leftOut.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              За бортом:
+            </span>
+            {scenario.leftOut.map((participant) => (
+              <span
+                key={participant.userId}
+                className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(participant.pseudonym).chip}`}
+                style={{ borderRadius: 0 }}
+              >
+                {participant.pseudonym}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </li>
+  )
+}
+
+function CircleItem({
+  circle,
+  book,
+  onOpen,
+}: {
+  circle: MatchingCircle
+  book: BookInfo | undefined
+  onOpen: (book: BookInfo) => void
+}) {
+  return (
+    <div
+      className="border p-3"
+      style={{
+        background: 'var(--bg)',
+        borderColor: 'var(--border)',
+        borderRadius: 0,
+      }}
     >
       <div className="flex items-start gap-3">
         {book && (
@@ -165,58 +189,33 @@ function ScenarioItem({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <button
-              onClick={() => book && onOpen(book)}
-              className="text-left leading-snug hover:underline"
-              style={{
-                fontFamily: 'Georgia, "Times New Roman", serif',
-                fontWeight: 700,
-                fontSize: '0.92rem',
-                letterSpacing: '-0.01em',
-                color: 'var(--text)',
-              }}
-            >
-              {book?.title ?? card.bookId}
-            </button>
-            {label && (
+          <button
+            type="button"
+            onClick={() => book && onOpen(book)}
+            className="text-left leading-snug hover:underline"
+            style={{
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontWeight: 700,
+              fontSize: '0.92rem',
+              color: 'var(--text)',
+            }}
+          >
+            {book?.title ?? circle.bookId}
+          </button>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {circle.members.map((member) => (
               <span
-                className="text-[10px] shrink-0"
-                style={{
-                  ...labelStyle,
-                  borderBottom: '1px solid currentColor',
-                  borderTop: 'none',
-                  borderLeft: 'none',
-                  borderRight: 'none',
-                  borderRadius: 0,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.12em',
-                  padding: '0 0 1px',
-                }}
-              >
-                {label}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {card.members.map((m) => (
-              <span
-                key={m.userId}
-                className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(m.pseudonym).chip}`}
+                key={member.userId}
+                className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(member.pseudonym).chip}`}
                 style={{ borderRadius: 0 }}
               >
-                {m.pseudonym}
-                <span className="ml-1 opacity-70">· {m.interest}</span>
+                {member.pseudonym}
+                <span className="ml-1 opacity-70">· {member.interest}</span>
               </span>
             ))}
           </div>
-          {candidate && candidate.conflictsWith.length > 0 && (
-            <p className="text-[11px] mt-2 mb-0" style={{ color: 'var(--text-muted)' }}>
-              Пересекается с текущим раскладом: {candidate.conflictsWith.join(', ')}
-            </p>
-          )}
         </div>
       </div>
-    </li>
+    </div>
   )
 }

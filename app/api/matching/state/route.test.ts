@@ -29,11 +29,23 @@ jest.mock('@/lib/matching/scenarios', () => ({
     totalCount: participants.length,
     targetGroupSize,
   })),
+  emptyScenarioSetOverview: jest.fn((participants, targetGroupSize) => ({
+    scenarios: [],
+    leader: null,
+    totalCount: participants.length,
+    targetGroupSize,
+  })),
   generateScenarioOverview: jest.fn().mockReturnValue({
     current: [],
     candidates: [],
     leftOut: [],
     coveredCount: 0,
+    totalCount: 0,
+    targetGroupSize: 3,
+  }),
+  generateScenarioSets: jest.fn().mockReturnValue({
+    scenarios: [],
+    leader: null,
     totalCount: 0,
     targetGroupSize: 3,
   }),
@@ -91,6 +103,7 @@ describe('GET /api/matching/state', () => {
     expect(json).toHaveProperty('personalBooks')
     expect(json).toHaveProperty('scenarios')
     expect(json).toHaveProperty('scenarioOverview')
+    expect(json).toHaveProperty('scenarioSetOverview')
     expect(json).toHaveProperty('myMoves')
     expect(json).toHaveProperty('sessionStatus')
   })

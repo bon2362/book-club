@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal from './MatchingBookDetailModal'
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function MatchingMyMoves({ moves: initialMoves, frozen = false }: Props) {
+  const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
   const [modalBook, setModalBook] = useState<MyMoveBook | null>(null)
@@ -34,6 +36,7 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
       })
       if (res.ok) {
         setMoves((prev) => prev.filter((m) => m.bookId !== bookId))
+        router.refresh()
       }
     } finally {
       setAdding(null)
