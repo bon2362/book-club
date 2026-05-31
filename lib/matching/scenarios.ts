@@ -49,6 +49,45 @@ export interface ScenarioOverview {
   targetGroupSize: number
 }
 
+export interface MatchingCircle {
+  id: string
+  bookId: string
+  members: GroupMember[]
+  minSize: number
+  maxSize: number
+  wantsCount: number
+  avgRank: number | null
+  worstRank: number | null
+  unrankedCount: number
+}
+
+export interface ScenarioScore {
+  coveredCount: number
+  totalCount: number
+  coverageRatio: number
+  strongInterestCount: number
+  rankedCount: number
+  unrankedCount: number
+  rankSum: number
+  avgRank: number | null
+  worstRank: number | null
+}
+
+export interface MatchingScenario {
+  id: string
+  tier: 'leader' | 'full-coverage' | 'best-achievable-partial' | 'partial' | 'blocked-better'
+  circles: MatchingCircle[]
+  leftOut: ScenarioParticipant[]
+  score: ScenarioScore
+}
+
+export interface ScenarioSetOverview {
+  scenarios: MatchingScenario[]
+  leader: MatchingScenario | null
+  totalCount: number
+  targetGroupSize: number
+}
+
 export interface GenerateScenariosInput {
   participants: ScenarioParticipant[]
   books: ScenarioBook[]
@@ -58,14 +97,17 @@ export interface GenerateScenariosInput {
   maxResults?: number
 }
 
-interface Candidate {
-  bookId: string
-  members: GroupMember[]
-  wantsCount: number
-  avgRank: number | null
-  worstRank: number | null
-  unrankedCount: number
+interface CircleState {
+  circles: MatchingCircle[]
+  usedBookIds: Set<string>
+  usedUserIds: Set<string>
 }
+
+const MAX_CIRCLES_PER_BOOK = 24
+const MAX_TOTAL_CIRCLES = 900
+const BEAM_WIDTH = 50
+const EXHAUSTIVE_COMBINATION_LIMIT = 5_000
+const TOP_LOCAL_CIRCLES_PER_BOOK = 12
 
 function interest(rank: number | null): GroupMember['interest'] {
   if (rank === null) return 'без ранга'
@@ -73,107 +115,379 @@ function interest(rank: number | null): GroupMember['interest'] {
   return 'готов(а)'
 }
 
-function scoreCandidates(members: GroupMember[]): {
+function scoreMembers(members: GroupMember[]): {
   wantsCount: number
   avgRank: number | null
   worstRank: number | null
   unrankedCount: number
+  rankedCount: number
+  rankSum: number
 } {
-  const ranked = members.filter(m => m.rank !== null)
+  const ranked = members.filter((m) => m.rank !== null)
+  const rankSum = ranked.reduce((sum, m) => sum + m.rank!, 0)
   const unrankedCount = members.length - ranked.length
-  const wantsCount = members.filter(m => m.rank !== null && m.rank <= 3).length
-  const avgRank = ranked.length > 0 ? ranked.reduce((s, m) => s + m.rank!, 0) / ranked.length : null
-  const worstRank = ranked.length > 0 ? Math.max(...ranked.map(m => m.rank!)) : null
-  return { wantsCount, avgRank, worstRank, unrankedCount }
+  const wantsCount = ranked.filter((m) => m.rank! <= 3).length
+  const avgRank = ranked.length > 0 ? rankSum / ranked.length : null
+  const worstRank = ranked.length > 0 ? Math.max(...ranked.map((m) => m.rank!)) : null
+  return { wantsCount, avgRank, worstRank, unrankedCount, rankedCount: ranked.length, rankSum }
 }
 
-// Compare two cards: higher is better
-// Returns negative if a < b (b is better), positive if a > b (a is better)
-function compareScore(
-  a: { wantsCount: number; avgRank: number | null; worstRank: number | null; unrankedCount: number },
-  b: { wantsCount: number; avgRank: number | null; worstRank: number | null; unrankedCount: number },
-): number {
-  if (b.wantsCount !== a.wantsCount) return a.wantsCount - b.wantsCount
-  // Lower avgRank is better; null ranks are worst
-  const aAvg = a.avgRank ?? Infinity
-  const bAvg = b.avgRank ?? Infinity
-  if (aAvg !== bAvg) return bAvg - aAvg
-  const aWorst = a.worstRank ?? Infinity
-  const bWorst = b.worstRank ?? Infinity
-  if (aWorst !== bWorst) return bWorst - aWorst
-  return b.unrankedCount - a.unrankedCount
+function compareNullableRankAsc(a: number | null, b: number | null): number {
+  return (a ?? Infinity) - (b ?? Infinity)
 }
 
-// Pick the best combination of targetGroupSize members from candidates.
-// Sorts by rank (null = worst) and picks the top group using exhaustive search
-// for small targetGroupSize (<=5 typical).
-function pickBestGroup(
-  candidates: GroupMember[],
-  targetGroupSize: number,
-): GroupMember[] | null {
-  if (candidates.length < targetGroupSize) return null
-  if (candidates.length === targetGroupSize) return candidates
+// Positive means a is better than b.
+function compareCircleScore(a: MatchingCircle, b: MatchingCircle): number {
+  if (a.wantsCount !== b.wantsCount) return a.wantsCount - b.wantsCount
+  const avg = compareNullableRankAsc(a.avgRank, b.avgRank)
+  if (avg !== 0) return -avg
+  const worst = compareNullableRankAsc(a.worstRank, b.worstRank)
+  if (worst !== 0) return -worst
+  if (a.unrankedCount !== b.unrankedCount) return b.unrankedCount - a.unrankedCount
+  return b.id.localeCompare(a.id)
+}
 
-  // Sort: want most хочу читать, then lowest rank, then null last
-  const sorted = [...candidates].sort((a, b) => {
-    const wa = a.rank !== null && a.rank <= 3 ? 0 : 1
-    const wb = b.rank !== null && b.rank <= 3 ? 0 : 1
-    if (wa !== wb) return wa - wb
-    const ra = a.rank ?? Infinity
-    const rb = b.rank ?? Infinity
-    return ra - rb
-  })
+// Positive means a is better than b.
+function compareScenarioScore(a: Pick<MatchingScenario, 'id' | 'score'>, b: Pick<MatchingScenario, 'id' | 'score'>): number {
+  if (a.score.coveredCount !== b.score.coveredCount) return a.score.coveredCount - b.score.coveredCount
+  if (a.score.strongInterestCount !== b.score.strongInterestCount) {
+    return a.score.strongInterestCount - b.score.strongInterestCount
+  }
+  const avg = compareNullableRankAsc(a.score.avgRank, b.score.avgRank)
+  if (avg !== 0) return -avg
+  const worst = compareNullableRankAsc(a.score.worstRank, b.score.worstRank)
+  if (worst !== 0) return -worst
+  if (a.score.unrankedCount !== b.score.unrankedCount) return b.score.unrankedCount - a.score.unrankedCount
+  return b.id.localeCompare(a.id)
+}
 
-  // For small targetGroupSize, brute-force best combination
-  if (targetGroupSize <= 5 && candidates.length <= 30) {
-    let best: GroupMember[] | null = null
-    let bestScore: ReturnType<typeof scoreCandidates> | null = null
+function memberSortKey(member: GroupMember): string {
+  const rank = String(member.rank ?? 9999).padStart(4, '0')
+  return `${rank}:${member.pseudonym}:${member.userId}`
+}
 
-    const combine = (start: number, current: GroupMember[]) => {
-      if (current.length === targetGroupSize) {
-        const s = scoreCandidates(current)
-        if (bestScore === null || compareScore(s, bestScore) > 0) {
-          best = [...current]
-          bestScore = s
-        }
-        return
-      }
-      const remaining = candidates.length - start
-      if (remaining < targetGroupSize - current.length) return
-      for (let i = start; i < candidates.length; i++) {
-        current.push(candidates[i])
-        combine(i + 1, current)
-        current.pop()
-      }
+function buildCircleId(bookId: string, members: GroupMember[]): string {
+  return `${bookId}:${members.map((m) => m.userId).sort().join('+')}`
+}
+
+function toMember(userId: string, bookId: string, pseudonymMap: Map<string, string>, rankMap: Map<string, number | null>): GroupMember {
+  const rank = rankMap.get(`${userId}:${bookId}`) ?? null
+  return {
+    userId,
+    pseudonym: pseudonymMap.get(userId) ?? userId,
+    rank,
+    interest: interest(rank),
+  }
+}
+
+function combinations<T>(items: T[], size: number): T[][] {
+  if (size <= 0 || items.length < size) return []
+  const result: T[][] = []
+  const current: T[] = []
+
+  function walk(start: number) {
+    if (current.length === size) {
+      result.push([...current])
+      return
     }
-    combine(0, [])
-    return best
+    const needed = size - current.length
+    for (let i = start; i <= items.length - needed; i++) {
+      current.push(items[i])
+      walk(i + 1)
+      current.pop()
+    }
   }
 
-  // Greedy fallback for large inputs
-  return sorted.slice(0, targetGroupSize)
+  walk(0)
+  return result
 }
 
-function assignTiers(selected: Candidate[]): ScenarioCard[] {
-  if (selected.length === 0) return []
+function combinationCount(n: number, k: number): number {
+  if (k < 0 || k > n) return 0
+  const size = Math.min(k, n - k)
+  let count = 1
+  for (let i = 1; i <= size; i++) {
+    count = (count * (n - size + i)) / i
+    if (count > EXHAUSTIVE_COMBINATION_LIMIT) return count
+  }
+  return count
+}
 
-  const topWantsCount = selected[0].wantsCount
-  return selected.map((c, i): ScenarioCard => {
-    let tier: ScenarioCard['tier']
-    if (i === 0) tier = 'leader'
-    else if (c.wantsCount === topWantsCount) tier = 'max-coverage'
-    else tier = 'sub-max'
+function memberGroupId(members: GroupMember[]): string {
+  return members.map((m) => m.userId).sort().join('+')
+}
 
-    return {
-      bookId: c.bookId,
-      tier,
-      members: c.members,
-      wantsCount: c.wantsCount,
-      avgRank: c.avgRank,
-      worstRank: c.worstRank,
-      unrankedCount: c.unrankedCount,
+function buildMemberGroups(members: GroupMember[], targetGroupSize: number): GroupMember[][] {
+  const totalCombinations = combinationCount(members.length, targetGroupSize)
+  if (totalCombinations <= EXHAUSTIVE_COMBINATION_LIMIT) {
+    return combinations(members, targetGroupSize)
+  }
+
+  const groups = new Map<string, GroupMember[]>()
+  const addGroup = (group: GroupMember[]) => {
+    if (group.length !== targetGroupSize) return
+    groups.set(memberGroupId(group), group)
+  }
+
+  addGroup(members.slice(0, targetGroupSize))
+
+  for (let offset = 0; offset < targetGroupSize; offset++) {
+    for (let start = offset; start + targetGroupSize <= members.length; start += targetGroupSize) {
+      addGroup(members.slice(start, start + targetGroupSize))
     }
+  }
+
+  for (const anchor of members) {
+    const group = [anchor]
+    for (const candidate of members) {
+      if (candidate.userId === anchor.userId) continue
+      group.push(candidate)
+      if (group.length === targetGroupSize) break
+    }
+    addGroup(group)
+  }
+
+  return Array.from(groups.values())
+}
+
+function memberOverlap(a: MatchingCircle, b: MatchingCircle): number {
+  const aIds = new Set(a.members.map((m) => m.userId))
+  return b.members.filter((m) => aIds.has(m.userId)).length
+}
+
+function maxOverlapWithSelected(circle: MatchingCircle, selected: MatchingCircle[]): number {
+  if (selected.length === 0) return 0
+  return Math.max(...selected.map((candidate) => memberOverlap(circle, candidate)))
+}
+
+function selectDiverseCircles(circles: MatchingCircle[], targetGroupSize: number): MatchingCircle[] {
+  const sorted = [...circles].sort((a, b) => compareCircleScore(b, a))
+  const selected: MatchingCircle[] = []
+  const selectedIds = new Set<string>()
+
+  const add = (circle: MatchingCircle) => {
+    if (selectedIds.has(circle.id) || selected.length >= MAX_CIRCLES_PER_BOOK) return
+    selected.push(circle)
+    selectedIds.add(circle.id)
+  }
+
+  for (const circle of sorted.slice(0, TOP_LOCAL_CIRCLES_PER_BOOK)) add(circle)
+
+  for (let allowedOverlap = 0; allowedOverlap < targetGroupSize && selected.length < MAX_CIRCLES_PER_BOOK; allowedOverlap++) {
+    for (const circle of sorted) {
+      if (selectedIds.has(circle.id)) continue
+      if (maxOverlapWithSelected(circle, selected) <= allowedOverlap) add(circle)
+      if (selected.length >= MAX_CIRCLES_PER_BOOK) break
+    }
+  }
+
+  for (const circle of sorted) {
+    add(circle)
+    if (selected.length >= MAX_CIRCLES_PER_BOOK) break
+  }
+
+  return selected.sort((a, b) => compareCircleScore(b, a))
+}
+
+function buildCandidateCircles(input: GenerateScenariosInput): MatchingCircle[] {
+  const { participants, books, signups, ranks, targetGroupSize } = input
+  if (targetGroupSize < 1 || participants.length < targetGroupSize) return []
+
+  const pseudonymMap = new Map(participants.map((p) => [p.userId, p.pseudonym]))
+  const participantIds = new Set(participants.map((p) => p.userId))
+  const rankMap = new Map(ranks.map((r) => [`${r.userId}:${r.bookId}`, r.rank] as const))
+  const bookIds = new Set(books.map((b) => b.bookId))
+  const signupsByBook = new Map<string, Set<string>>()
+
+  for (const signup of signups) {
+    if (!bookIds.has(signup.bookId) || !participantIds.has(signup.userId)) continue
+    const userIds = signupsByBook.get(signup.bookId) ?? new Set<string>()
+    userIds.add(signup.userId)
+    signupsByBook.set(signup.bookId, userIds)
+  }
+
+  const allCircles: MatchingCircle[] = []
+  for (const book of books) {
+    const userIds = Array.from(signupsByBook.get(book.bookId) ?? [])
+    if (userIds.length < targetGroupSize) continue
+
+    const members = userIds
+      .map((userId) => toMember(userId, book.bookId, pseudonymMap, rankMap))
+      .sort((a, b) => memberSortKey(a).localeCompare(memberSortKey(b)))
+
+    const circles = buildMemberGroups(members, targetGroupSize)
+      .map((circleMembers): MatchingCircle => {
+        const score = scoreMembers(circleMembers)
+        return {
+          id: buildCircleId(book.bookId, circleMembers),
+          bookId: book.bookId,
+          members: circleMembers,
+          minSize: targetGroupSize,
+          maxSize: targetGroupSize,
+          wantsCount: score.wantsCount,
+          avgRank: score.avgRank,
+          worstRank: score.worstRank,
+          unrankedCount: score.unrankedCount,
+        }
+      })
+
+    allCircles.push(...selectDiverseCircles(circles, targetGroupSize))
+  }
+
+  return allCircles
+    .sort((a, b) => compareCircleScore(b, a))
+    .slice(0, MAX_TOTAL_CIRCLES)
+}
+
+function scenarioId(circles: MatchingCircle[]): string {
+  return circles.map((circle) => circle.id).sort().join('|')
+}
+
+function scoreScenario(circles: MatchingCircle[], totalCount: number): ScenarioScore {
+  const members = circles.flatMap((circle) => circle.members)
+  const ranked = members.filter((m) => m.rank !== null)
+  const rankSum = ranked.reduce((sum, m) => sum + m.rank!, 0)
+  const coveredCount = new Set(members.map((m) => m.userId)).size
+  return {
+    coveredCount,
+    totalCount,
+    coverageRatio: totalCount > 0 ? coveredCount / totalCount : 0,
+    strongInterestCount: ranked.filter((m) => m.rank! <= 3).length,
+    rankedCount: ranked.length,
+    unrankedCount: members.length - ranked.length,
+    rankSum,
+    avgRank: ranked.length > 0 ? rankSum / ranked.length : null,
+    worstRank: ranked.length > 0 ? Math.max(...ranked.map((m) => m.rank!)) : null,
+  }
+}
+
+function toScenario(
+  circles: MatchingCircle[],
+  participants: ScenarioParticipant[],
+  tier: MatchingScenario['tier'],
+): MatchingScenario {
+  const usedUserIds = new Set(circles.flatMap((circle) => circle.members.map((m) => m.userId)))
+  return {
+    id: scenarioId(circles),
+    tier,
+    circles,
+    leftOut: participants.filter((p) => !usedUserIds.has(p.userId)),
+    score: scoreScenario(circles, participants.length),
+  }
+}
+
+function canAddCircle(state: CircleState, circle: MatchingCircle): boolean {
+  if (state.usedBookIds.has(circle.bookId)) return false
+  return circle.members.every((member) => !state.usedUserIds.has(member.userId))
+}
+
+function addCircle(state: CircleState, circle: MatchingCircle): CircleState {
+  return {
+    circles: [...state.circles, circle],
+    usedBookIds: new Set(state.usedBookIds).add(circle.bookId),
+    usedUserIds: new Set([...Array.from(state.usedUserIds), ...circle.members.map((m) => m.userId)]),
+  }
+}
+
+function compareStates(a: CircleState, b: CircleState, totalCount: number): number {
+  const aScenario = { id: scenarioId(a.circles), score: scoreScenario(a.circles, totalCount) }
+  const bScenario = { id: scenarioId(b.circles), score: scoreScenario(b.circles, totalCount) }
+  return compareScenarioScore(aScenario, bScenario)
+}
+
+function buildScenarioStates(circles: MatchingCircle[], participants: ScenarioParticipant[]): CircleState[] {
+  const empty: CircleState = { circles: [], usedBookIds: new Set(), usedUserIds: new Set() }
+  let states: CircleState[] = [empty]
+
+  for (const circle of circles) {
+    const additions: CircleState[] = []
+    for (const state of states) {
+      if (canAddCircle(state, circle)) additions.push(addCircle(state, circle))
+    }
+
+    const byId = new Map<string, CircleState>()
+    for (const state of [...states, ...additions]) {
+      byId.set(scenarioId(state.circles), state)
+    }
+
+    const emptyState = byId.get('') ?? empty
+    const rankedStates = Array.from(byId.values())
+      .filter((state) => state.circles.length > 0)
+      .sort((a, b) => compareStates(b, a, participants.length))
+      .slice(0, BEAM_WIDTH)
+
+    states = [emptyState, ...rankedStates]
+  }
+
+  return states.filter((state) => state.circles.length > 0)
+}
+
+function assignScenarioTiers(scenarios: MatchingScenario[], totalCount: number): MatchingScenario[] {
+  if (scenarios.length === 0) return []
+  const bestPartialCoverage = Math.max(
+    0,
+    ...scenarios
+      .filter((scenario) => scenario.score.coveredCount < totalCount)
+      .map((scenario) => scenario.score.coveredCount),
+  )
+
+  return scenarios.map((scenario, index) => {
+    let tier: MatchingScenario['tier']
+    if (index === 0) tier = 'leader'
+    else if (scenario.score.coveredCount === totalCount) tier = 'full-coverage'
+    else if (scenario.score.coveredCount === bestPartialCoverage) tier = 'best-achievable-partial'
+    else tier = 'partial'
+    return { ...scenario, tier }
   })
+}
+
+export function emptyScenarioSetOverview(
+  participants: ScenarioParticipant[],
+  targetGroupSize: number,
+): ScenarioSetOverview {
+  return {
+    scenarios: [],
+    leader: null,
+    totalCount: participants.length,
+    targetGroupSize,
+  }
+}
+
+export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSetOverview {
+  const { participants, targetGroupSize, maxResults = 10 } = input
+  if (participants.length < targetGroupSize || targetGroupSize < 1) {
+    return emptyScenarioSetOverview(participants, targetGroupSize)
+  }
+
+  const candidateCircles = buildCandidateCircles(input)
+  if (candidateCircles.length === 0) {
+    return emptyScenarioSetOverview(participants, targetGroupSize)
+  }
+
+  const scenarios = buildScenarioStates(candidateCircles, participants)
+    .map((state) => toScenario(state.circles, participants, 'partial'))
+    .sort((a, b) => compareScenarioScore(b, a))
+    .slice(0, maxResults)
+
+  const tiered = assignScenarioTiers(scenarios, participants.length)
+  return {
+    scenarios: tiered,
+    leader: tiered[0] ?? null,
+    totalCount: participants.length,
+    targetGroupSize,
+  }
+}
+
+function toScenarioCard(circle: MatchingCircle, tier: ScenarioCard['tier']): ScenarioCard {
+  return {
+    bookId: circle.bookId,
+    tier,
+    members: circle.members,
+    wantsCount: circle.wantsCount,
+    avgRank: circle.avgRank,
+    worstRank: circle.worstRank,
+    unrankedCount: circle.unrankedCount,
+  }
 }
 
 function hasSameMembers(a: Pick<ScenarioCard, 'members'>, b: Pick<ScenarioCard, 'members'>): boolean {
@@ -197,129 +511,44 @@ export function emptyScenarioOverview(
 }
 
 export function generateScenarioOverview(input: GenerateScenariosInput): ScenarioOverview {
-  const {
-    participants,
-    books,
-    signups,
-    ranks,
-    targetGroupSize,
-    maxResults = 10,
-  } = input
+  const scenarioSets = generateScenarioSets(input)
+  const leader = scenarioSets.leader
+  if (!leader) return emptyScenarioOverview(input.participants, input.targetGroupSize)
 
-  const pseudonymMap = new Map(participants.map(p => [p.userId, p.pseudonym]))
-
-  // Build rank lookup: (userId, bookId) → rank
-  const rankMap = new Map<string, number | null>()
-  for (const r of ranks) {
-    rankMap.set(`${r.userId}:${r.bookId}`, r.rank)
-  }
-
-  // Build signups per book
-  const signupsByBook = new Map<string, string[]>()
-  for (const s of signups) {
-    const arr = signupsByBook.get(s.bookId) ?? []
-    arr.push(s.userId)
-    signupsByBook.set(s.bookId, arr)
-  }
-
-  // Candidate books: have ≥ targetGroupSize signups
-  // Note: personal status filtering (reading/read) happens upstream at the call site.
-  const candidateBookIds = books
-    .map(b => b.bookId)
-    .filter(bookId => (signupsByBook.get(bookId)?.length ?? 0) >= targetGroupSize)
-
-  const scored: Candidate[] = []
-
-  for (const bookId of candidateBookIds) {
-    const userIds = signupsByBook.get(bookId) ?? []
-    const memberCandidates: GroupMember[] = userIds.map(userId => ({
-      userId,
-      pseudonym: pseudonymMap.get(userId) ?? userId,
-      rank: rankMap.get(`${userId}:${bookId}`) ?? null,
-      interest: interest(rankMap.get(`${userId}:${bookId}`) ?? null),
-    }))
-
-    const group = pickBestGroup(memberCandidates, targetGroupSize)
-    if (!group) continue
-
-    const s = scoreCandidates(group)
-    scored.push({ bookId, members: group, ...s })
-  }
-
-  // Sort by score descending
-  scored.sort((a, b) => compareScore(b, a))
-
-  // Build full member candidate lists for re-picking when initial group overlaps
-  const memberCandidatesByBook = new Map<string, GroupMember[]>()
-  for (const bookId of candidateBookIds) {
-    const userIds2 = signupsByBook.get(bookId) ?? []
-    memberCandidatesByBook.set(bookId, userIds2.map(userId => ({
-      userId,
-      pseudonym: pseudonymMap.get(userId) ?? userId,
-      rank: rankMap.get(`${userId}:${bookId}`) ?? null,
-      interest: interest(rankMap.get(`${userId}:${bookId}`) ?? null),
-    })))
-  }
-
-  // Greedily select non-overlapping groups to maximize coverage
-  const selectedUserIds = new Set<string>()
-  const selected: Candidate[] = []
-
-  for (const candidate of scored) {
-    const overlaps = candidate.members.some(m => selectedUserIds.has(m.userId))
-    if (!overlaps) {
-      for (const m of candidate.members) selectedUserIds.add(m.userId)
-      selected.push(candidate)
-      if (selected.length >= maxResults) break
-    } else {
-      // Try re-picking from remaining participants
-      const allCandidates = memberCandidatesByBook.get(candidate.bookId) ?? []
-      const remaining = allCandidates.filter(m => !selectedUserIds.has(m.userId))
-      const altGroup = pickBestGroup(remaining, targetGroupSize)
-      if (altGroup) {
-        const s = scoreCandidates(altGroup)
-        for (const m of altGroup) selectedUserIds.add(m.userId)
-        selected.push({ bookId: candidate.bookId, members: altGroup, ...s })
-        if (selected.length >= maxResults) break
-      }
-    }
-  }
-
-  const current = assignTiers(selected)
-  const currentUserIds = new Set(current.flatMap((card) => card.members.map((m) => m.userId)))
-  const leftOut = participants.filter((p) => !currentUserIds.has(p.userId))
-
-  const candidates: ScenarioCandidate[] = scored.map((candidate) => {
-    const currentMatch = current.find(
-      (card) => card.bookId === candidate.bookId && hasSameMembers(card, candidate),
-    )
-    const overlapsCurrentLayout = candidate.members.filter((m) => currentUserIds.has(m.userId))
-
-    return {
-      bookId: candidate.bookId,
-      tier: currentMatch?.tier ?? 'sub-max',
-      members: candidate.members,
-      wantsCount: candidate.wantsCount,
-      avgRank: candidate.avgRank,
-      worstRank: candidate.worstRank,
-      unrankedCount: candidate.unrankedCount,
-      inCurrentLayout: currentMatch !== undefined,
-      conflictsWith: currentMatch
-        ? []
-        : overlapsCurrentLayout.map((m) => m.pseudonym),
-    }
+  const current = leader.circles.map((circle, index) => {
+    if (index === 0) return toScenarioCard(circle, 'leader')
+    return toScenarioCard(circle, circle.wantsCount === leader.circles[0].wantsCount ? 'max-coverage' : 'sub-max')
   })
+  const currentUserIds = new Set(current.flatMap((card) => card.members.map((m) => m.userId)))
+
+  const candidates: ScenarioCandidate[] = []
+  const candidateIds = new Set<string>()
+  for (const circle of buildCandidateCircles(input)) {
+    if (candidateIds.has(circle.id)) continue
+    candidateIds.add(circle.id)
+    const card = toScenarioCard(circle, 'sub-max')
+    const currentMatch = current.find((currentCard) => (
+      currentCard.bookId === card.bookId && hasSameMembers(currentCard, card)
+    ))
+    const overlapsCurrentLayout = card.members.filter((m) => currentUserIds.has(m.userId))
+    candidates.push({
+      ...card,
+      tier: currentMatch?.tier ?? 'sub-max',
+      inCurrentLayout: currentMatch !== undefined,
+      conflictsWith: currentMatch ? [] : overlapsCurrentLayout.map((m) => m.pseudonym),
+    })
+  }
 
   return {
     current,
     candidates,
-    leftOut,
-    coveredCount: currentUserIds.size,
-    totalCount: participants.length,
-    targetGroupSize,
+    leftOut: leader.leftOut,
+    coveredCount: leader.score.coveredCount,
+    totalCount: input.participants.length,
+    targetGroupSize: input.targetGroupSize,
   }
 }
 
 export function generateScenarios(input: GenerateScenariosInput): ScenarioCard[] {
-  return generateScenarioOverview(input).current
+  return generateScenarioOverview(input).current.slice(0, input.maxResults ?? 10)
 }
