@@ -4,7 +4,6 @@ import { useCallback, useState } from 'react'
 import type { MatchingCircle, MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
-import { getPseudonymColor } from './matching-shared'
 import type { BookParticipant } from './MatchingPersonalList'
 import ParticipantInterestChip from './ParticipantInterestChip'
 
@@ -69,7 +68,7 @@ export default function MatchingScenarios({
           onClose={closeModal}
         />
       )}
-      <ul className="list-none p-0 m-0 flex flex-col gap-3">
+      <ul className="list-none p-0 m-0">
         {overview.scenarios.map((scenario, index) => (
           <ScenarioSetCard
             key={scenario.id}
@@ -77,6 +76,7 @@ export default function MatchingScenarios({
             scenarioNumber={index + 1}
             bookById={bookById}
             onOpen={openModal}
+            isFirst={index === 0}
             highlighted={
               scenario.id === highlightedScenarioId ||
               scenario.circles.some((circle) => (
@@ -96,12 +96,14 @@ function ScenarioSetCard({
   scenarioNumber,
   bookById,
   onOpen,
+  isFirst,
   highlighted,
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
   bookById: Map<string, BookInfo>
   onOpen: (book: BookInfo) => void
+  isFirst: boolean
   highlighted: boolean
 }) {
   const isLeader = scenario.tier === 'leader'
@@ -116,78 +118,84 @@ function ScenarioSetCard({
 
   return (
     <li
-      className="border"
       style={{
-        background: highlighted ? 'var(--bg-tag-green)' : 'var(--bg-input)',
-        borderColor: highlighted || isLeader ? 'var(--border-strong)' : 'var(--border)',
-        borderTopWidth: highlighted || isLeader ? 2 : 1,
-        borderRadius: 0,
+        borderTop: isFirst ? 'none' : '1px solid var(--hair)',
+        background: isLeader ? 'var(--accent-soft)' : highlighted ? 'rgba(192, 96, 58, 0.04)' : 'transparent',
+        padding: '0.95rem 1.25rem',
       }}
       data-highlighted={highlighted ? 'true' : 'false'}
     >
-      <div
-        className="px-3 py-2 border-b flex flex-wrap items-center gap-2"
-        style={{ borderColor: 'var(--border)' }}
-      >
+      {/* Header row */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         <h3
           className="m-0"
           title={scoreTitle}
           style={{
-            fontSize: '0.72rem',
+            fontSize: '0.7rem',
             fontWeight: 700,
             textTransform: 'uppercase' as const,
-            letterSpacing: '0.12em',
-            color: 'var(--text)',
+            letterSpacing: '0.1em',
+            color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
           }}
         >
-          Сценарий {scenarioNumber}
+          Вариант {scenarioNumber}
         </h3>
-        {tierLabel[scenario.tier] && (
+        {isLeader && (
           <span
-            className="text-[10px]"
             style={{
-              color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
-              borderBottom: '1px solid currentColor',
+              fontSize: '0.66rem',
+              fontWeight: 700,
               textTransform: 'uppercase' as const,
-              letterSpacing: '0.1em',
-              paddingBottom: 1,
+              letterSpacing: '0.06em',
+              background: 'var(--accent)',
+              color: 'var(--bg-input)',
+              padding: '0.12rem 0.5rem',
+              borderRadius: 'var(--radius-pill)',
             }}
           >
+            лучший
+          </span>
+        )}
+        {!isLeader && tierLabel[scenario.tier] && (
+          <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
             {tierLabel[scenario.tier]}
           </span>
         )}
-        <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
-          {scenario.score.coveredCount}/{scenario.score.totalCount} участни:ц
+        <span className="ml-auto" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          {scenario.score.coveredCount === scenario.score.totalCount
+            ? `все ${scenario.score.totalCount} участников`
+            : `${scenario.score.coveredCount} из ${scenario.score.totalCount} участников`}
         </span>
       </div>
 
-      <div className="p-3 flex flex-col gap-2.5">
-        {scenario.circles.map((circle) => (
+      {/* Circles: rows separated by hairline */}
+      <div>
+        {scenario.circles.map((circle, idx) => (
           <CircleItem
             key={circle.id}
             circle={circle}
             book={bookById.get(circle.bookId)}
             onOpen={onOpen}
+            isFirst={idx === 0}
+            isLeader={isLeader}
           />
         ))}
-
-        {scenario.leftOut.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              За бортом:
-            </span>
-            {scenario.leftOut.map((participant) => (
-              <span
-                key={participant.userId}
-                className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(participant.pseudonym).chip}`}
-                style={{ borderRadius: 0 }}
-              >
-                {participant.pseudonym}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
+
+      {scenario.leftOut.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-1"
+          style={{ marginTop: '0.7rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}
+        >
+          <span>За бортом:</span>
+          {scenario.leftOut.map((participant, idx) => (
+            <span key={participant.userId} style={{ color: 'var(--text-secondary)' }}>
+              {idx > 0 && <span style={{ color: 'var(--hair)', margin: '0 0.2rem' }}>·</span>}
+              {participant.pseudonym}
+            </span>
+          ))}
+        </div>
+      )}
     </li>
   )
 }
@@ -196,50 +204,63 @@ function CircleItem({
   circle,
   book,
   onOpen,
+  isFirst,
+  isLeader,
 }: {
   circle: MatchingCircle
   book: BookInfo | undefined
   onOpen: (book: BookInfo) => void
+  isFirst: boolean
+  isLeader: boolean
 }) {
   return (
     <div
-      className="border p-3"
       style={{
-        background: 'var(--bg)',
-        borderColor: 'var(--border)',
-        borderRadius: 0,
+        display: 'flex',
+        gap: '0.8rem',
+        alignItems: 'flex-start',
+        padding: '0.55rem 0',
+        borderTop: isFirst ? 'none' : `1px solid ${isLeader ? 'rgba(192, 96, 58, 0.16)' : 'var(--hair)'}`,
       }}
     >
-      <div className="flex items-start gap-3">
-        {book && (
-          <div className="relative overflow-hidden shrink-0" style={{ width: 40, height: 56, borderRadius: 0 }}>
-            <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <button
-            type="button"
-            onClick={() => book && onOpen(book)}
-            className="text-left leading-snug hover:underline"
-            style={{
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontWeight: 700,
-              fontSize: '0.92rem',
-              color: 'var(--text)',
-            }}
-          >
-            {book?.title ?? circle.bookId}
-          </button>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {circle.members.map((member) => (
-              <ParticipantInterestChip
-                key={member.userId}
-                userId={member.userId}
-                pseudonym={member.pseudonym}
-                rank={member.rank}
-              />
-            ))}
-          </div>
+      {book && (
+        <div
+          className="relative overflow-hidden shrink-0"
+          style={{ width: 42, height: 60, borderRadius: 4, boxShadow: '0 1px 3px rgba(40,30,20,0.14)' }}
+        >
+          <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <button
+          type="button"
+          onClick={() => book && onOpen(book)}
+          className="text-left leading-snug"
+          style={{
+            fontFamily: 'var(--nd-serif)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            letterSpacing: '-0.01em',
+            color: 'var(--text)',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { (e.target as HTMLElement).style.color = 'var(--accent)' }}
+          onMouseLeave={(e) => { (e.target as HTMLElement).style.color = 'var(--text)' }}
+        >
+          {book?.title ?? circle.bookId}
+        </button>
+        <div className="flex flex-wrap mt-1.5" style={{ gap: '0.3rem 0' }}>
+          {circle.members.map((member) => (
+            <ParticipantInterestChip
+              key={member.userId}
+              userId={member.userId}
+              pseudonym={member.pseudonym}
+              rank={member.rank}
+            />
+          ))}
         </div>
       </div>
     </div>

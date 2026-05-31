@@ -25,18 +25,35 @@ export default function ParticipantInterestChip({
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-[11px] border ${isMe ? 'ring-1 ring-current' : ''}`}
+      className="nd-chip-text"
       style={{
-        borderRadius: 0,
-        borderColor: strong ? 'var(--success)' : 'var(--border)',
-        background: strong ? 'var(--bg-tag-green)' : 'var(--bg-tag)',
-        color: strong ? 'var(--success)' : 'var(--text-secondary)',
-        fontWeight: strong ? 700 : 500,
+        display: 'inline-flex',
+        alignItems: 'baseline',
+        gap: '0.25rem',
+        fontSize: '0.78rem',
+        color: 'var(--text-secondary)',
       }}
       title={`${pseudonym}: ${rankTooltip(rank)}`}
     >
-      {pseudonym}
-      {!compact && <span className="ml-1 opacity-75">· {label}</span>}
+      <b
+        style={{
+          fontWeight: isMe ? 700 : 500,
+          color: strong ? 'var(--accent)' : 'inherit',
+        }}
+      >
+        {pseudonym}
+      </b>
+      {!compact && (
+        <span
+          style={{
+            fontSize: '0.72rem',
+            color: strong ? 'var(--accent)' : 'var(--text-muted)',
+            opacity: strong ? 0.85 : 1,
+          }}
+        >
+          {label}
+        </span>
+      )}
     </span>
   )
 }

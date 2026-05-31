@@ -97,10 +97,25 @@
   --pseudonym-16-border:#D9DB9A;
 
   /* ── Elevation ─────────────────────────────────────────────────────────── */
-  /* Редакторский стиль плоский. Тени по умолчанию выключены: любой
-     box-shadow: 0 4px 24px var(--shadow-card) станет невидимым.            */
   --shadow:          transparent;
-  --shadow-card:     transparent;
+  /* Для дашборд-поверхностей (matching, модалки) — мягкая тёплая тень.
+     Редакторские экраны (главная, каталог) её не используют явно.          */
+  --shadow-card:     0 1px 2px rgba(50, 38, 24, 0.05), 0 6px 20px rgba(50, 38, 24, 0.05);
+
+  /* ── Мягкие поверхности (опт-ин, только для дашборд-экранов) ───────────── */
+  /* Редакторские экраны (главная, каталог) остаются на --radius: 0.          */
+  --radius-card:     10px;   /* панели, карточки, модалки */
+  --radius-control:  8px;    /* кнопки действий */
+  --radius-pill:     999px;  /* теги-пилюли, статус-метки */
+
+  /* Тёплая разделительная линия (мягче холодного --border #E5E5E5) */
+  --hair:            #ECE3D4;
+
+  /* Мягкий акцентный тинт (выделение «лучшего», без рамок) */
+  --accent-soft:     #F4E7DD;
+
+  /* Тёплый фон чипа/тега (вместо рамки) */
+  --chip-bg:         #F1EADD;
 
   /* ── Type families ─────────────────────────────────────────────────────── */
   --nd-serif:        Georgia, "Times New Roman", serif;
@@ -145,6 +160,25 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--nd-sans);
+}
+
+/* ── Chip text: буллет-разделитель между соседними чипами ────────────────── */
+
+.nd-chip-text + .nd-chip-text {
+  position: relative;
+  padding-left: 0.6rem;
+}
+.nd-chip-text + .nd-chip-text::before {
+  content: "";
+  position: absolute;
+  left: 0.1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--hair);
+  display: block;
 }
 
 /* ── Tooltip ──────────────────────────────────────────────────────────────── */
