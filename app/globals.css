@@ -110,6 +110,8 @@
 
   /* Тёплая разделительная линия (мягче холодного --border #E5E5E5) */
   --hair:            #ECE3D4;
+  /* Очень светлая линия для строк ВНУТРИ карточки (слабее --hair) */
+  --hair-soft:       #F1EADD;
 
   /* Мягкий акцентный тинт (выделение «лучшего», без рамок) */
   --accent-soft:     #F4E7DD;
@@ -160,6 +162,59 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--nd-sans);
+}
+
+/* ── Move item: плавное раскрытие блока «После добавления» ───────────────── */
+
+.nd-move-item {
+  transition: background 0.18s ease;
+}
+.nd-move-item:hover,
+.nd-move-item:focus-within {
+  background: #FAF6EE;
+  border-radius: var(--radius-control);
+}
+.nd-move-impact {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  transition: max-height 0.28s ease, opacity 0.22s ease, margin-top 0.28s ease;
+}
+.nd-move-item:hover .nd-move-impact,
+.nd-move-item:focus-within .nd-move-impact {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 0.6rem;
+}
+
+/* ── Catalog row hover ────────────────────────────────────────────────────── */
+
+.nd-catalog-row {
+  position: relative;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.nd-catalog-row:hover {
+  background: #FAF6EE;
+}
+.nd-catalog-row:hover + .nd-catalog-row {
+  box-shadow: none;
+}
+.nd-catalog-row .nd-catalog-act {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  box-shadow: -10px 0 12px 6px #FAF6EE;
+}
+.nd-catalog-row:hover .nd-catalog-act {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* ── Chip text: буллет-разделитель между соседними чипами ────────────────── */

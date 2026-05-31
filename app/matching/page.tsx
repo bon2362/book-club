@@ -213,47 +213,51 @@ export default async function MatchingPage({
       </div>
 
       {/* Second viewport: catalog and user's books */}
-      <div className="p-4 pt-0" style={{ height: '100svh', minHeight: 560 }}>
-        <section
-          data-testid="matching-catalog-panel"
-          className="flex flex-col overflow-hidden min-h-0 h-full border"
-          style={{ background: 'var(--bg-input)', borderColor: 'var(--border)', borderRadius: 0 }}
-        >
-          <div className="px-4 py-3 shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
-            <h2
-              className="m-0"
-              style={{
-                fontFamily: 'system-ui, sans-serif',
-                fontSize: '0.62rem',
-                fontWeight: 600,
-                textTransform: 'uppercase' as const,
-                letterSpacing: '0.14em',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {isImpersonating ? 'Список участника' : 'Каталог'}
-            </h2>
-            {!isImpersonating && (
-              <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--text-muted)' }}>
-                Слева книги клуба, справа ваши добавленные книги и статусы
-              </p>
-            )}
-          </div>
+      <div className="p-4 pt-0" style={{ minHeight: 560 }} data-testid="matching-catalog-panel">
+        {/* Catalog intro — same serif style as panel headings above */}
+        <div style={{ padding: '1.4rem 0 1rem' }}>
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: 'var(--nd-serif)',
+              fontSize: '1.12rem',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--text)',
+            }}
+          >
+            {isImpersonating ? 'Список участника' : 'Каталог'}
+          </h2>
           {!isImpersonating && (
-            <MatchingRankNudge
-              show={inListBookIds.length > 0 && personalBooks.filter((b) => b.isInList).every((b) => b.rank === null)}
-            />
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Слева — книги клуба, справа — ваш список и приоритеты
+            </p>
           )}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <MatchingPersonalList
-              books={personalBooks}
-              bookParticipants={bookParticipants}
-              viewingUserId={viewingUserId}
-              frozen={isReadOnly}
-              mutationUserId={isImpersonating ? viewingUserId : undefined}
-            />
-          </div>
-        </section>
+        </div>
+
+        {!isImpersonating && (
+          <MatchingRankNudge
+            show={inListBookIds.length > 0 && personalBooks.filter((b) => b.isInList).every((b) => b.rank === null)}
+          />
+        )}
+
+        {/* Two-column grid aligned with top row — MatchingPersonalList renders a fragment with two sections */}
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)',
+            gap: '1.1rem',
+            paddingBottom: '1.6rem',
+          }}
+        >
+          <MatchingPersonalList
+            books={personalBooks}
+            bookParticipants={bookParticipants}
+            viewingUserId={viewingUserId}
+            frozen={isReadOnly}
+            mutationUserId={isImpersonating ? viewingUserId : undefined}
+          />
+        </div>
       </div>
 
       <MatchingRealtimeWrapper sessionId={activeSession.id} />

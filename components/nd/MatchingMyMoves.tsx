@@ -38,7 +38,6 @@ export default function MatchingMyMoves({
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
   const [modalState, setModalState] = useState<ModalState | null>(null)
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null)
 
   useEffect(() => {
     setMoves(initialMoves)
@@ -89,10 +88,7 @@ export default function MatchingMyMoves({
           {moves.map((move, idx) => (
             <li
               key={move.bookId}
-              onMouseEnter={() => setHoveredCard(move.bookId)}
-              onMouseLeave={() => setHoveredCard(null)}
-              onFocus={() => setHoveredCard(move.bookId)}
-              onBlur={() => setHoveredCard(null)}
+              className="nd-move-item"
               style={{
                 padding: '0.95rem 1.25rem',
                 borderTop: idx === 0 ? 'none' : '1px solid var(--hair)',
@@ -161,10 +157,10 @@ export default function MatchingMyMoves({
                     </>
                   )}
 
-                  {move.impact && hoveredCard === move.bookId && (
+                  {move.impact && (
                     <div
+                      className="nd-move-impact"
                       style={{
-                        marginTop: '0.6rem',
                         paddingLeft: '0.75rem',
                         borderLeft: '2px solid var(--accent)',
                         fontSize: '0.72rem',

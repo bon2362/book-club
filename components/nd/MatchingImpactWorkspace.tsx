@@ -72,7 +72,7 @@ export default function MatchingImpactWorkspace({
             Читательские круги
             {scenarioCount > 0 && (
               <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>
-                {' '}· {scenarioCount} {scenarioCount === 1 ? 'вариант' : scenarioCount < 5 ? 'варианта' : 'вариантов'}
+                {' '}· {scenarioCount} {scenarioCount === 1 ? 'сценарий' : scenarioCount < 5 ? 'сценария' : 'сценариев'}
               </span>
             )}
           </h2>
