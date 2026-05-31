@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   DndContext,
   closestCenter,
@@ -271,6 +272,7 @@ export default function MatchingPersonalList({
   viewingUserId,
   frozen = false,
 }: Props) {
+  const router = useRouter()
   const [books, setBooks] = useState(initialBooks)
   const [announcement, setAnnouncement] = useState('')
   const [modalBook, setModalBook] = useState<CatalogBook | null>(null)
@@ -309,9 +311,10 @@ export default function MatchingPersonalList({
     await patchPriorities(
       reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId)
     )
+    router.refresh()
     return reranked
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [router])
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -350,8 +353,9 @@ export default function MatchingPersonalList({
         patchStatus(bookId, newStatus),
         patchPriorities(rankedActive.map((b) => b.bookId)),
       ])
+      router.refresh()
     },
-    [books],
+    [books, router],
   )
 
   const handleAddToList = useCallback(
@@ -361,8 +365,9 @@ export default function MatchingPersonalList({
       )
       setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, isInList: true } : prev))
       await addToList(bookId)
+      router.refresh()
     },
-    [],
+    [router],
   )
 
   const handleRemoveFromList = useCallback(
@@ -377,9 +382,10 @@ export default function MatchingPersonalList({
         prev?.bookId === bookId ? { ...prev, isInList: false, rank: null, personalStatus: null } : prev,
       )
       await removeFromList(bookId)
+      router.refresh()
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [router],
   )
 
   return (
@@ -408,87 +414,114 @@ export default function MatchingPersonalList({
         />
       )}
 
-      {/* Active ranked books (drag-and-drop) */}
-      {activeBooks.length > 0 && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext
-            items={activeBooks.map((b) => b.bookId)}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="list-none p-0 m-0" data-testid="matching-personal-list">
-              {activeBooks.map((book, idx) => (
-                <SortableRow
-                  key={book.bookId}
-                  book={book}
-                  index={idx}
-                  frozen={frozen}
-                  onClick={setModalBook}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
-      )}
-
-      {/* Status books section */}
-      {statusBooks.length > 0 && (
-        <>
+      <div className="grid h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
+        <section data-testid="matching-catalog-available" className="flex flex-col min-h-0 border-r" style={{ borderColor: 'var(--border)' }}>
           <div
-            className="px-4 py-2 border-b border-t"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
-          >
-            <span
-              className="text-[11px] font-medium uppercase tracking-wide block"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              В процессе / Прочитано
-            </span>
-            <span
-              className="text-[10px] block mt-0.5"
-              style={{ color: 'var(--text-muted)', opacity: 0.75 }}
-            >
-              исключены при расчёте ваших сценариев и ходов
-            </span>
-          </div>
-          <ul className="list-none p-0 m-0">
-            {statusBooks.map((book) => (
-              <StatusRow key={book.bookId} book={book} onClick={setModalBook} />
-            ))}
-          </ul>
-        </>
-      )}
-
-      {/* Catalog (not in list) */}
-      {catalogOnlyBooks.length > 0 && (
-        <>
-          <div
-            className="px-4 py-2 border-b border-t"
+            className="px-4 py-2 border-b"
             style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
           >
             <span
               className="text-[11px] font-medium uppercase tracking-wide"
               style={{ color: 'var(--text-muted)' }}
             >
-              Все книги клуба
+              Остальной каталог
             </span>
           </div>
-          <ul className="list-none p-0 m-0">
-            {catalogOnlyBooks.map((book) => (
-              <CatalogRow key={book.bookId} book={book} onClick={setModalBook} />
-            ))}
-          </ul>
-        </>
-      )}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {catalogOnlyBooks.length > 0 ? (
+              <ul className="list-none p-0 m-0">
+                {catalogOnlyBooks.map((book) => (
+                  <CatalogRow key={book.bookId} book={book} onClick={setModalBook} />
+                ))}
+              </ul>
+            ) : (
+              <EmptyColumn text="Все книги уже в вашем списке или статусах." />
+            )}
+          </div>
+        </section>
 
-      {activeBooks.length === 0 && statusBooks.length === 0 && catalogOnlyBooks.length === 0 && (
-        <div
-          className="flex flex-col items-center justify-center h-full p-8 text-center"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <div className="text-4xl mb-3">📚</div>
-          <p className="text-sm leading-relaxed">Нет опубликованных книг.</p>
-        </div>
-      )}
+        <section data-testid="matching-catalog-mine" className="flex flex-col min-h-0">
+          <div
+            className="px-4 py-2 border-b"
+            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+          >
+            <span
+              className="text-[11px] font-medium uppercase tracking-wide block"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Мои книги
+            </span>
+            <span
+              className="text-[10px] block mt-0.5"
+              style={{ color: 'var(--text-muted)', opacity: 0.75 }}
+            >
+              активные книги участвуют в расчёте сценариев
+            </span>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {activeBooks.length > 0 && (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={activeBooks.map((b) => b.bookId)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <ul className="list-none p-0 m-0" data-testid="matching-personal-list">
+                    {activeBooks.map((book, idx) => (
+                      <SortableRow
+                        key={book.bookId}
+                        book={book}
+                        index={idx}
+                        frozen={frozen}
+                        onClick={setModalBook}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+            )}
+
+            {statusBooks.length > 0 && (
+              <>
+                <div
+                  className="px-4 py-2 border-b border-t"
+                  style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+                >
+                  <span
+                    className="text-[11px] font-medium uppercase tracking-wide block"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    В процессе / Прочитано
+                  </span>
+                  <span
+                    className="text-[10px] block mt-0.5"
+                    style={{ color: 'var(--text-muted)', opacity: 0.75 }}
+                  >
+                    исключены при расчёте ваших сценариев и ходов
+                  </span>
+                </div>
+                <ul className="list-none p-0 m-0">
+                  {statusBooks.map((book) => (
+                    <StatusRow key={book.bookId} book={book} onClick={setModalBook} />
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {activeBooks.length === 0 && statusBooks.length === 0 && (
+              <EmptyColumn text="Здесь появятся книги, которые вы добавили." />
+            )}
+          </div>
+        </section>
+      </div>
+
     </>
+  )
+}
+
+function EmptyColumn({ text }: { text: string }) {
+  return (
+    <div className="h-full flex items-center justify-center p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-sm leading-relaxed m-0">{text}</p>
+    </div>
   )
 }

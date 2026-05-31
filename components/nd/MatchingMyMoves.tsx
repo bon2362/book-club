@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal from './MatchingBookDetailModal'
-import { getPseudonymColor } from './matching-shared'
+import ParticipantInterestChip from './ParticipantInterestChip'
 
 interface Props {
   moves: MyMoveBook[]
   frozen?: boolean
+  onMoveHover?: (move: MyMoveBook | null) => void
 }
 
-export default function MatchingMyMoves({ moves: initialMoves, frozen = false }: Props) {
+export default function MatchingMyMoves({ moves: initialMoves, frozen = false, onMoveHover }: Props) {
   const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
@@ -51,7 +52,6 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
           chips={modalBook.existingParticipants.map((p) => ({
             ...p,
             bookId: modalBook.bookId,
-            rank: null,
             personalStatus: null,
           }))}
           onClose={() => setModalBook(null)}
@@ -74,6 +74,10 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
             <li
               key={move.bookId}
               className="p-3"
+              onMouseEnter={() => onMoveHover?.(move)}
+              onMouseLeave={() => onMoveHover?.(null)}
+              onFocus={() => onMoveHover?.(move)}
+              onBlur={() => onMoveHover?.(null)}
               style={{
                 borderRadius: 0,
                 border: '1px solid var(--border)',
@@ -114,15 +118,25 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {move.existingParticipants.map((p) => (
-                      <span
-                        key={p.pseudonym}
-                        className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(p.pseudonym).chip}`}
-                        style={{ borderRadius: 0 }}
-                      >
-                        {p.pseudonym}
-                      </span>
+                      <ParticipantInterestChip
+                        key={p.userId}
+                        userId={p.userId}
+                        pseudonym={p.pseudonym}
+                        rank={p.rank}
+                      />
                     ))}
                   </div>
+                  {move.impact && (
+                    <div
+                      className="mt-2 border-l-2 pl-2 text-[11px] leading-snug"
+                      style={{ borderColor: 'var(--accent)', color: 'var(--text-secondary)' }}
+                    >
+                      <div className="font-semibold" style={{ color: 'var(--text)' }}>
+                        После добавления: {move.impact.scenarioTitle} · {move.impact.coverageLabel}
+                      </div>
+                      <div>{move.impact.summary}</div>
+                    </div>
+                  )}
                 </div>
               </div>
               {!frozen && (

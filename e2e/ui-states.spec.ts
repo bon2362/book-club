@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, type Page } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
 async function isFullyAboveViewport(page: import('@playwright/test').Page, selector: string) {
@@ -59,6 +59,57 @@ test.describe('Home submit book CTA layout', () => {
     const box = await page.getByTestId('submit-book-card').boundingBox()
     expect(box).not.toBeNull()
     expect(box!.height).toBeLessThanOrEqual(96)
+  })
+})
+
+async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, bookIds: string[]) {
+  const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`)
+  expect(joinRes.ok()).toBe(true)
+  for (const bookId of bookIds) {
+    const addRes = await page.request.post('/api/matching/books', { data: { bookId } })
+    expect(addRes.ok()).toBe(true)
+  }
+  if (bookIds.length > 0) {
+    const rankRes = await page.request.patch('/api/matching/priorities', { data: { bookIds } })
+    expect(rankRes.ok()).toBe(true)
+  }
+}
+
+test.describe('Matching layout', () => {
+  test('reader circles and moves occupy first viewport; catalog starts below', async ({
+    page,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const session = await createMatchingSession({ targetGroupSize: 3 })
+    const circleBook = await createTestBook({ title: `UI Circle ${Date.now()}`, author: 'Layout Author' })
+    const moveBook = await createTestBook({ title: `UI Move ${Date.now()}`, author: 'Layout Author' })
+
+    await loginAsUser({ name: 'UI Matching One' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id, moveBook.id])
+    await loginAsUser({ name: 'UI Matching Two' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id, moveBook.id])
+    await loginAsUser({ name: 'UI Matching Three' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
+
+    await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
+
+    const viewport = page.viewportSize()!
+    const circlesBox = await page.getByTestId('matching-reader-circles-panel').boundingBox()
+    const movesBox = await page.getByTestId('matching-my-moves-panel').boundingBox()
+    const catalogBox = await page.getByTestId('matching-catalog-panel').boundingBox()
+
+    expect(circlesBox).not.toBeNull()
+    expect(movesBox).not.toBeNull()
+    expect(catalogBox).not.toBeNull()
+    expect(circlesBox!.y).toBeLessThan(viewport.height)
+    expect(movesBox!.y).toBeLessThan(viewport.height)
+    expect(circlesBox!.y + circlesBox!.height).toBeLessThanOrEqual(viewport.height + 1)
+    expect(movesBox!.y + movesBox!.height).toBeLessThanOrEqual(viewport.height + 1)
+    expect(catalogBox!.y).toBeGreaterThanOrEqual(viewport.height - 24)
   })
 })
 

@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { signupBooks, books, matchingSessionParticipants } from '@/lib/db/schema'
+import { signupBooks, books, matchingSessionParticipants, bookPriorities } from '@/lib/db/schema'
 import { eq, and, inArray, notInArray, isNull } from 'drizzle-orm'
 
 export interface MyMoveBook {
@@ -14,7 +14,14 @@ export interface MyMoveBook {
   whyRead: string | null
   recommendationLink: string | null
   tags: string[]
-  existingParticipants: { userId: string; pseudonym: string }[]
+  existingParticipants: { userId: string; pseudonym: string; rank: number | null }[]
+  impact?: {
+    scenarioId: string | null
+    scenarioTitle: string
+    coverageLabel: string
+    summary: string
+    circleTitles: string[]
+  }
 }
 
 export async function fetchMyMoves(
@@ -49,8 +56,15 @@ export async function fetchMyMoves(
   // available as matching candidates for a new group on that book.
   const otherSignups = myBookIds.length > 0
     ? await db
-        .select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+        .select({ userId: signupBooks.userId, bookId: signupBooks.bookId, rank: bookPriorities.rank })
         .from(signupBooks)
+        .leftJoin(
+          bookPriorities,
+          and(
+            eq(bookPriorities.userId, signupBooks.userId),
+            eq(bookPriorities.bookId, signupBooks.bookId),
+          ),
+        )
         .where(
           and(
             inArray(signupBooks.userId, otherUserIds),
@@ -59,8 +73,15 @@ export async function fetchMyMoves(
           ),
         )
     : await db
-        .select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+        .select({ userId: signupBooks.userId, bookId: signupBooks.bookId, rank: bookPriorities.rank })
         .from(signupBooks)
+        .leftJoin(
+          bookPriorities,
+          and(
+            eq(bookPriorities.userId, signupBooks.userId),
+            eq(bookPriorities.bookId, signupBooks.bookId),
+          ),
+        )
         .where(
           and(
             inArray(signupBooks.userId, otherUserIds),
@@ -69,10 +90,10 @@ export async function fetchMyMoves(
         )
 
   // Group by bookId: find books with exactly targetGroupSize-1 other participants signed up
-  const countByBook = new Map<string, string[]>()
+  const countByBook = new Map<string, { userId: string; rank: number | null }[]>()
   for (const s of otherSignups) {
     const arr = countByBook.get(s.bookId) ?? []
-    arr.push(s.userId)
+    arr.push({ userId: s.userId, rank: s.rank ?? null })
     countByBook.set(s.bookId, arr)
   }
 
@@ -114,9 +135,10 @@ export async function fetchMyMoves(
     whyRead: book.whyRead,
     recommendationLink: book.recommendationLink,
     tags: Array.isArray(book.tags) ? book.tags : [],
-    existingParticipants: (countByBook.get(book.id) ?? []).map(uid => ({
+    existingParticipants: (countByBook.get(book.id) ?? []).map(({ userId: uid, rank }) => ({
       userId: uid,
       pseudonym: pseudonymMap.get(uid) ?? uid,
+      rank,
     })),
   }))
 }

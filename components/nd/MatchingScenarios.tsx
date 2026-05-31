@@ -6,6 +6,7 @@ import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import { getPseudonymColor } from './matching-shared'
 import type { BookParticipant } from './MatchingPersonalList'
+import ParticipantInterestChip from './ParticipantInterestChip'
 
 interface BookInfo extends MatchingBookDetail {
   id: string
@@ -17,6 +18,9 @@ interface Props {
   bookParticipants: BookParticipant[]
   viewingUserId: string
   targetGroupSize: number
+  highlightedScenarioId?: string | null
+  highlightedBookId?: string | null
+  highlightedUserIds?: string[]
 }
 
 const tierLabel: Record<MatchingScenario['tier'], string> = {
@@ -33,6 +37,9 @@ export default function MatchingScenarios({
   bookParticipants,
   viewingUserId,
   targetGroupSize,
+  highlightedScenarioId = null,
+  highlightedBookId = null,
+  highlightedUserIds = [],
 }: Props) {
   const [modalBook, setModalBook] = useState<BookInfo | null>(null)
   const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
@@ -70,6 +77,13 @@ export default function MatchingScenarios({
             scenarioNumber={index + 1}
             bookById={bookById}
             onOpen={openModal}
+            highlighted={
+              scenario.id === highlightedScenarioId ||
+              scenario.circles.some((circle) => (
+                circle.bookId === highlightedBookId ||
+                circle.members.some((member) => highlightedUserIds.includes(member.userId))
+              ))
+            }
           />
         ))}
       </ul>
@@ -82,23 +96,34 @@ function ScenarioSetCard({
   scenarioNumber,
   bookById,
   onOpen,
+  highlighted,
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
   bookById: Map<string, BookInfo>
   onOpen: (book: BookInfo) => void
+  highlighted: boolean
 }) {
   const isLeader = scenario.tier === 'leader'
+  const scoreTitle = [
+    `Покрытие: ${scenario.score.coveredCount}/${scenario.score.totalCount}`,
+    `Очень хотят: ${scenario.score.strongInterestCount}`,
+    `Средний ранг: ${scenario.score.avgRank === null ? 'нет' : scenario.score.avgRank.toFixed(1)}`,
+    `Худший ранг: ${scenario.score.worstRank ?? 'нет'}`,
+    `Без ранга: ${scenario.score.unrankedCount}`,
+    'Сортировка: больше покрытие → больше «очень хочу» → ниже средний ранг → ниже худший ранг → меньше записей без ранга.',
+  ].join('\n')
 
   return (
     <li
       className="border"
       style={{
-        background: 'var(--bg-input)',
-        borderColor: isLeader ? 'var(--border-strong)' : 'var(--border)',
-        borderTopWidth: isLeader ? 2 : 1,
+        background: highlighted ? 'var(--bg-tag-green)' : 'var(--bg-input)',
+        borderColor: highlighted || isLeader ? 'var(--border-strong)' : 'var(--border)',
+        borderTopWidth: highlighted || isLeader ? 2 : 1,
         borderRadius: 0,
       }}
+      data-highlighted={highlighted ? 'true' : 'false'}
     >
       <div
         className="px-3 py-2 border-b flex flex-wrap items-center gap-2"
@@ -106,6 +131,7 @@ function ScenarioSetCard({
       >
         <h3
           className="m-0"
+          title={scoreTitle}
           style={{
             fontSize: '0.72rem',
             fontWeight: 700,
@@ -204,14 +230,12 @@ function CircleItem({
           </button>
           <div className="flex flex-wrap gap-1 mt-2">
             {circle.members.map((member) => (
-              <span
+              <ParticipantInterestChip
                 key={member.userId}
-                className={`inline-flex items-center px-2 py-0.5 text-[11px] ${getPseudonymColor(member.pseudonym).chip}`}
-                style={{ borderRadius: 0 }}
-              >
-                {member.pseudonym}
-                <span className="ml-1 opacity-70">· {member.interest}</span>
-              </span>
+                userId={member.userId}
+                pseudonym={member.pseudonym}
+                rank={member.rank}
+              />
             ))}
           </div>
         </div>

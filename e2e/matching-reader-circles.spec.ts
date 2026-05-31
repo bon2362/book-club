@@ -13,6 +13,12 @@ async function joinSessionAndAddBooks(page: Page, sessionId: string, bookIds: st
       throw new Error(`POST /api/matching/books failed: ${addRes.status()} ${await addRes.text()}`)
     }
   }
+  if (bookIds.length > 0) {
+    const rankRes = await page.request.patch('/api/matching/priorities', { data: { bookIds } })
+    if (!rankRes.ok()) {
+      throw new Error(`PATCH /api/matching/priorities failed: ${rankRes.status()} ${await rankRes.text()}`)
+    }
+  }
 
   return joinBody.pseudonym
 }
@@ -57,11 +63,16 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await expect(page.getByRole('heading', { name: 'Мои ходы' })).toBeVisible()
   await expect(page.getByText('Добавь книгу и круг замкнется')).toBeVisible()
 
-  await expect(page.getByRole('button', { name: circleBook.title, exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
+  const circlesPanel = page.getByTestId('matching-reader-circles-panel')
+  const movesPanel = page.getByTestId('matching-my-moves-panel')
+  const catalogMine = page.getByTestId('matching-catalog-mine')
+  await expect(circlesPanel.getByRole('button', { name: circleBook.title, exact: true })).toBeVisible()
+  await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
   await expect(page.getByText('Уже записались:')).toBeVisible()
+  await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
+  await expect(movesPanel.getByText(/После добавления: Сценарий/)).toBeVisible()
 
-  await page.getByRole('button', { name: moveBook.title, exact: true }).click()
+  await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).click()
   let dialog = page.getByRole('dialog', { name: moveBook.title })
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Почему предлагаю читать')
@@ -72,13 +83,14 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await dialog.getByRole('button', { name: 'Закрыть' }).click()
   await expect(dialog).not.toBeVisible()
 
-  await page.getByRole('button', { name: circleBook.title, exact: true }).click()
+  await circlesPanel.getByRole('button', { name: circleBook.title, exact: true }).click()
   dialog = page.getByRole('dialog', { name: circleBook.title })
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Записались на книгу:')
   await expect(dialog).toContainText(firstPseudonym)
   await expect(dialog).toContainText(secondPseudonym)
   await expect(dialog).toContainText(thirdPseudonym)
+  await expect(dialog).toContainText('очень хочу')
   await expect(dialog).not.toContainText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i)
 
   await dialog.getByRole('button', { name: 'Закрыть' }).click()
@@ -89,10 +101,14 @@ test('matching shows reader circles, move hints, and full book details modal', a
     .filter({ hasText: moveBook.title })
     .filter({ hasText: 'Уже записались:' })
     .first()
+  const addMoveResponse = page.waitForResponse(
+    r => r.url().includes('/api/matching/books') && r.request().method() === 'POST',
+  )
   await moveCard.getByRole('button', { name: 'Хочу читать' }).click()
+  await addMoveResponse
 
   await expect(page.getByText('Пока нет книг, где ваша заявка замкнет круг')).toBeVisible()
-  await expect(page.locator('[data-testid="matching-personal-list"]').getByText(moveBook.title)).toBeVisible()
+  await expect(catalogMine).toContainText(moveBook.title, { timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'Сценарий 1' })).toBeVisible()
   await expect(page.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
   await expect(page.getByText(/3\/3 участни:ц/).first()).toBeVisible()

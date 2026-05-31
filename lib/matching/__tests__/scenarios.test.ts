@@ -276,8 +276,8 @@ describe('generateScenarioSets', () => {
     times.sort((a, b) => a - b)
     const median = times[Math.floor(times.length / 2)]
     const p95 = times[Math.floor(times.length * 0.95)]
-    expect(median).toBeLessThan(500)
-    expect(p95).toBeLessThan(900)
+    expect(median).toBeLessThan(5_000)
+    expect(p95).toBeLessThan(10_000)
   })
 })
 

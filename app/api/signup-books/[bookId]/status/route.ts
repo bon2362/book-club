@@ -3,8 +3,9 @@ export const dynamic = 'force-dynamic'
 import { auth } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { signupBooks } from '@/lib/db/schema'
+import { matchingSessions, signupBooks } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
+import { broadcast } from '@/lib/matching/realtime/hub'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -42,6 +43,21 @@ export async function PATCH(
     .update(signupBooks)
     .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
     .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+
+  const [activeSession] = await db
+    .select({ id: matchingSessions.id })
+    .from(matchingSessions)
+    .where(eq(matchingSessions.status, 'active'))
+    .limit(1)
+
+  if (activeSession) {
+    broadcast(activeSession.id, 'state_changed', {
+      userId,
+      kind: 'personal_status_updated',
+      bookId,
+      status: status ?? null,
+    })
+  }
 
   return NextResponse.json({ ok: true })
 }

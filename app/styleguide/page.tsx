@@ -135,7 +135,7 @@ export default function StyleguidePage() {
                 <span style={chip}>тег</span>
                 <span style={{ ...chip, background: 'var(--text)', color: 'var(--bg)', borderColor: 'var(--text)' }}>активный</span>
                 <span style={chip}>Медведка</span>
-                <span style={chip}>Зяблик <span style={{ color: 'var(--text-muted)' }}>· хочу читать</span></span>
+                <span style={chip}>Зяблик <span style={{ color: 'var(--text-muted)' }}>· очень хочу</span></span>
               </div>
             </div>
 
@@ -155,8 +155,8 @@ export default function StyleguidePage() {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <span style={chip}>Медведка <span style={{ color: 'var(--text-muted)' }}>· без ранга</span></span>
-                <span style={chip}>Зяблик <span style={{ color: 'var(--text-muted)' }}>· готов(а)</span></span>
-                <span style={chip}>Соболь <span style={{ color: 'var(--text-muted)' }}>· хочу читать</span></span>
+                <span style={chip}>Зяблик <span style={{ color: 'var(--text-muted)' }}>· хочу</span></span>
+                <span style={chip}>Соболь <span style={{ color: 'var(--text-muted)' }}>· очень хочу</span></span>
               </div>
             </div>
 
