@@ -13,9 +13,9 @@ function formatNumber(n: number): string {
 }
 
 function pickColor(ratio: number): string {
-  if (ratio >= 0.9) return '#C0603A'
+  if (ratio >= 0.9) return 'var(--accent)'
   if (ratio >= 0.7) return '#C49B3A'
-  return '#2D6A4F'
+  return 'var(--success)'
 }
 
 interface Props {
@@ -55,8 +55,8 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
   }, [refreshSignal])
 
   const containerStyle: React.CSSProperties = {
-    border: '1px solid #E5E5E5',
-    background: '#fff',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-input)',
     padding: '0.75rem 1rem',
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   }
@@ -65,7 +65,7 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
     fontSize: '0.6rem',
     textTransform: 'uppercase',
     letterSpacing: '0.12em',
-    color: '#999',
+    color: 'var(--text-muted)',
     marginBottom: '0.5rem',
   }
 
@@ -73,7 +73,7 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
     return (
       <div style={containerStyle}>
         <div style={labelStyle}>PostHog · события за месяц</div>
-        <div style={{ fontSize: '0.85rem', color: '#999' }}>Загружаем…</div>
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Загружаем…</div>
       </div>
     )
   }
@@ -82,7 +82,7 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
     return (
       <div style={containerStyle}>
         <div style={labelStyle}>PostHog · события за месяц</div>
-        <div style={{ fontSize: '0.85rem', color: '#999' }}>
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           Не настроены env-переменные <code>POSTHOG_PERSONAL_API_KEY</code> и <code>POSTHOG_PROJECT_ID</code>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
     return (
       <div style={containerStyle}>
         <div style={labelStyle}>PostHog · события за месяц</div>
-        <div style={{ fontSize: '0.85rem', color: '#C0603A' }}>
+        <div style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>
           Не удалось получить данные: {state.message}
         </div>
       </div>
@@ -108,10 +108,10 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
     <div style={containerStyle}>
       <div style={labelStyle}>PostHog · события за месяц</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#111' }}>
+        <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text)' }}>
           {formatNumber(state.eventsThisMonth)}
         </span>
-        <span style={{ fontSize: '0.85rem', color: '#666' }}>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           из {formatNumber(state.limit)}
         </span>
         <span style={{ fontSize: '0.75rem', color, marginLeft: 'auto' }}>{percent}%</span>
@@ -121,7 +121,7 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
         aria-valuenow={state.eventsThisMonth}
         aria-valuemin={0}
         aria-valuemax={state.limit}
-        style={{ height: 6, background: '#F0F0F0', position: 'relative', marginBottom: '0.5rem' }}
+        style={{ height: 6, background: 'var(--bg-elevated)', position: 'relative', marginBottom: '0.5rem' }}
       >
         <div
           style={{
@@ -135,7 +135,7 @@ export default function PostHogUsageWidget({ refreshSignal = 0 }: Props) {
           }}
         />
       </div>
-      <div style={{ fontSize: '0.7rem', color: '#999' }}>
+      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
         Лимит сбрасывается 1-го числа. При превышении биллинг-лимита события начнут отбрасываться.
       </div>
     </div>

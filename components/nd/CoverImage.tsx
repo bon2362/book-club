@@ -40,7 +40,7 @@ export default function CoverImage({ coverUrl, title, author }: Props) {
       style={{
         width: '100%',
         height: '100%',
-        background: '#F5F5F5',
+        background: 'var(--bg-elevated)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -50,7 +50,7 @@ export default function CoverImage({ coverUrl, title, author }: Props) {
         style={{
           fontFamily: 'var(--nd-sans), system-ui, sans-serif',
           fontSize: '1.5rem',
-          color: '#999',
+          color: 'var(--text-muted)',
           userSelect: 'none',
         }}
       >

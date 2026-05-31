@@ -54,13 +54,13 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
           onClose={() => setModalBook(null)}
         />
       )}
-      <p className="text-xs m-0 mb-2" style={{ color: '#999' }}>
+      <p className="text-xs m-0 mb-2" style={{ color: 'var(--text-muted)' }}>
         Добавь книгу и круг замкнется
       </p>
       {moves.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center h-full p-6 text-center"
-          style={{ color: '#999' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           <div className="text-3xl mb-2">✅</div>
           <p className="text-sm">Пока нет книг, где ваша заявка замкнет круг</p>
@@ -73,9 +73,9 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
               className="p-3"
               style={{
                 borderRadius: 0,
-                border: '1px solid #E5E5E5',
-                borderLeft: '2px solid #C0603A',
-                background: '#fff',
+                border: '1px solid var(--border)',
+                borderLeft: '2px solid var(--accent)',
+                background: 'var(--bg-input)',
               }}
             >
               <div className="flex gap-3 mb-2.5">
@@ -92,7 +92,7 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
                       fontWeight: 700,
                       fontSize: '0.9rem',
                       letterSpacing: '-0.01em',
-                      color: '#111',
+                      color: 'var(--text)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -103,10 +103,10 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
                   >
                     {move.title}
                   </button>
-                  <div className="text-xs mb-1.5" style={{ color: '#999' }}>
+                  <div className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
                     {move.author}
                   </div>
-                  <div className="text-[11px] font-medium mb-1" style={{ color: '#999' }}>
+                  <div className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
                     Уже записались:
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -131,9 +131,9 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
                     adding === move.bookId
                       ? {
                           borderRadius: 0,
-                          background: '#E5E5E5',
-                          border: '1px solid #E5E5E5',
-                          color: '#999',
+                          background: 'var(--border)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text-muted)',
                           cursor: 'default',
                           fontSize: '0.72rem',
                           textTransform: 'uppercase' as const,
@@ -142,9 +142,9 @@ export default function MatchingMyMoves({ moves: initialMoves, frozen = false }:
                         }
                       : {
                           borderRadius: 0,
-                          background: '#111',
-                          border: '1px solid #111',
-                          color: '#fff',
+                          background: 'var(--text)',
+                          border: '1px solid var(--border-strong)',
+                          color: 'var(--bg)',
                           cursor: 'pointer',
                           fontSize: '0.72rem',
                           textTransform: 'uppercase' as const,

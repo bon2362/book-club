@@ -35,26 +35,26 @@ function timeAgo(dateInput: string | number): string {
 
 function CiDot({ status, conclusion }: { status: string; conclusion: string | null }) {
   if (status === 'in_progress' || status === 'queued') {
-    return <span style={{ color: '#f59e0b' }}>●</span>
+    return <span style={{ color: 'var(--status-warn)' }}>●</span>
   }
-  if (conclusion === 'success') return <span style={{ color: '#22c55e' }}>●</span>
-  if (conclusion === 'failure') return <span style={{ color: '#ef4444' }}>●</span>
-  return <span style={{ color: '#9ca3af' }}>●</span>
+  if (conclusion === 'success') return <span style={{ color: 'var(--status-ok)' }}>●</span>
+  if (conclusion === 'failure') return <span style={{ color: 'var(--status-fail)' }}>●</span>
+  return <span style={{ color: 'var(--text-muted)' }}>●</span>
 }
 
 function DeployDot({ state }: { state: string }) {
-  if (state === 'READY') return <span style={{ color: '#22c55e' }}>●</span>
-  if (state === 'ERROR' || state === 'CANCELED') return <span style={{ color: '#ef4444' }}>●</span>
+  if (state === 'READY') return <span style={{ color: 'var(--status-ok)' }}>●</span>
+  if (state === 'ERROR' || state === 'CANCELED') return <span style={{ color: 'var(--status-fail)' }}>●</span>
   if (state === 'BUILDING' || state === 'INITIALIZING' || state === 'QUEUED') {
-    return <span style={{ color: '#f59e0b' }}>●</span>
+    return <span style={{ color: 'var(--status-warn)' }}>●</span>
   }
-  return <span style={{ color: '#9ca3af' }}>●</span>
+  return <span style={{ color: 'var(--text-muted)' }}>●</span>
 }
 
 const BASE_STYLE: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.7rem',
-  color: '#999',
+  color: 'var(--text-muted)',
   display: 'flex',
   flexWrap: 'wrap',
   gap: '0.4rem 1.5rem',
@@ -62,10 +62,10 @@ const BASE_STYLE: React.CSSProperties = {
 }
 
 const LINK_STYLE: React.CSSProperties = {
-  color: '#555',
+  color: 'var(--text-secondary)',
   fontFamily: 'monospace',
   textDecoration: 'none',
-  borderBottom: '1px solid #ccc',
+  borderBottom: '1px solid var(--border)',
 }
 
 interface AdminStatusBarProps {
@@ -92,7 +92,7 @@ export default function AdminStatusBar({ refreshSignal = 0 }: AdminStatusBarProp
   }, [fetchStatus, refreshSignal])
 
   if (loading) {
-    return <div style={BASE_STYLE}><span style={{ color: '#bbb' }}>загрузка статусов…</span></div>
+    return <div style={BASE_STYLE}><span style={{ color: 'var(--text-muted)' }}>загрузка статусов…</span></div>
   }
 
   if (!data) return null
@@ -109,7 +109,7 @@ export default function AdminStatusBar({ refreshSignal = 0 }: AdminStatusBarProp
             {ci.name}
           </a>
           <span>·</span>
-          <span style={{ color: '#777' }}>{ci.branch}</span>
+          <span style={{ color: 'var(--text-secondary)' }}>{ci.branch}</span>
           <span>·</span>
           <a
             href={`https://github.com/bon2362/book-club/commit/${ci.sha}`}
@@ -153,7 +153,7 @@ export default function AdminStatusBar({ refreshSignal = 0 }: AdminStatusBarProp
         </span>
       )}
       {!ci && !deploy && (
-        <span style={{ color: '#bbb' }}>статусы недоступны</span>
+        <span style={{ color: 'var(--text-muted)' }}>статусы недоступны</span>
       )}
     </div>
   )

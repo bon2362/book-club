@@ -13,7 +13,7 @@ export default function SubmitBookButton({ onClick }: Props) {
         fontSize: '0.65rem',
         textTransform: 'uppercase',
         letterSpacing: '0.08em',
-        color: '#C0603A',
+        color: 'var(--accent)',
         background: 'none',
         border: 'none',
         borderBottom: '1px solid #C0603A',

@@ -23,7 +23,7 @@ const sectionTitle: React.CSSProperties = {
   fontSize: '0.68rem',
   textTransform: 'uppercase',
   letterSpacing: '0.12em',
-  color: '#666',
+  color: 'var(--text-secondary)',
   margin: 0,
 }
 
@@ -66,8 +66,8 @@ const adminBadge: React.CSSProperties = {
   alignItems: 'center',
   padding: '0.1rem 0.45rem',
   borderRadius: 2,
-  background: '#111',
-  color: '#fff',
+  background: 'var(--text)',
+  color: 'var(--bg)',
   fontFamily: sans,
   fontSize: '0.62rem',
   fontWeight: 700,
@@ -95,21 +95,21 @@ function BookStatusChip({
   onRemove: () => void
 }) {
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', background: '#F5F5F5', borderRadius: 2, overflow: 'visible', fontSize: '0.78rem' }}>
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', background: 'var(--bg-elevated)', borderRadius: 2, overflow: 'visible', fontSize: '0.78rem' }}>
       {rankLabel !== undefined && (
-        <span style={{ background: isRanked ? '#111' : '#E5E5E5', color: isRanked ? '#fff' : '#AAA', padding: '0.22rem 0.45rem', fontWeight: 700, borderRadius: '2px 0 0 2px' }}>
+        <span style={{ background: isRanked ? 'var(--text)' : 'var(--border)', color: isRanked ? 'var(--bg)' : 'var(--text-muted)', padding: '0.22rem 0.45rem', fontWeight: 700, borderRadius: '2px 0 0 2px' }}>
           {rankLabel}
         </span>
       )}
       <button
         onClick={onToggleMenu}
-        style={{ background: 'none', border: 'none', padding: '0.22rem 0.5rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.78rem', color: '#111' }}
+        style={{ background: 'none', border: 'none', padding: '0.22rem 0.5rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.78rem', color: 'var(--text)' }}
       >
         {bookName}
       </button>
-      <button onClick={onRemove} title="Снять запись" style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
+      <button onClick={onRemove} title="Снять запись" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
       {isMenuOpen && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #E5E5E5', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10, minWidth: 160, borderRadius: 2 }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--bg-input)', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10, minWidth: 160, borderRadius: 2 }}>
           {([
             { value: null, label: 'Записал:ась' },
             { value: 'reading', label: 'Читаю' },
@@ -118,7 +118,7 @@ function BookStatusChip({
             <button
               key={String(opt.value)}
               onClick={() => { onStatusSelect(opt.value); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '0.4rem 0.75rem', fontFamily: sans, fontSize: '0.75rem', cursor: 'pointer', color: '#111' }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '0.4rem 0.75rem', fontFamily: sans, fontSize: '0.75rem', cursor: 'pointer', color: 'var(--text)' }}
               data-testid={`admin-status-option-${opt.value ?? 'null'}`}
             >
               {opt.label}
@@ -187,7 +187,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
           width: 640,
           maxWidth: '100vw',
           height: '100dvh',
-          background: '#fff',
+          background: 'var(--bg-input)',
           borderLeft: '2px solid #111',
           zIndex: 300,
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
@@ -197,42 +197,42 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
           flexDirection: 'column',
         }}
       >
-        <header style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #E5E5E5', display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+        <header style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
           <div>
-            <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.16em', color: '#999' }}>
+            <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--text-muted)' }}>
               Карточка пользователя
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
-              <h2 style={{ fontFamily: serif, fontSize: '1.35rem', margin: 0, color: '#111' }}>
+              <h2 style={{ fontFamily: serif, fontSize: '1.35rem', margin: 0, color: 'var(--text)' }}>
                 {loading ? 'Загрузка…' : user?.name || user?.contactEmail || user?.telegramDisplay || 'Пользователь'}
               </h2>
               {user?.isAdmin && <span style={adminBadge}>Admin</span>}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Закрыть" style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: '#666', cursor: 'pointer', height: 32 }}>
+          <button onClick={onClose} aria-label="Закрыть" style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: 'var(--text-secondary)', cursor: 'pointer', height: 32 }}>
             ×
           </button>
         </header>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', fontFamily: sans }}>
-          {loading && <p style={{ color: '#666' }}>Загрузка данных…</p>}
-          {!loading && !data && <p style={{ color: '#999' }}>Не удалось загрузить пользователя.</p>}
+          {loading && <p style={{ color: 'var(--text-secondary)' }}>Загрузка данных…</p>}
+          {!loading && !data && <p style={{ color: 'var(--text-muted)' }}>Не удалось загрузить пользователя.</p>}
           {data && user && (
             <>
               <section style={{ marginBottom: '1.6rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.7rem' }}>
                   <h3 style={sectionTitle}>Профиль</h3>
-                  <span style={pill('#F0F0F0', '#555')}>{lastAuthLabel(user.authProvider)}</span>
+                  <span style={pill('var(--border-subtle)', 'var(--text-secondary)')}>{lastAuthLabel(user.authProvider)}</span>
                 </div>
                 <dl style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '0.45rem 0.9rem', margin: 0, fontSize: '0.82rem' }}>
-                  <dt style={{ color: '#999' }}>Имя</dt><dd style={{ margin: 0 }}>{user.name || '—'}</dd>
-                  <dt style={{ color: '#999' }}>Telegram</dt><dd style={{ margin: 0 }}>{user.telegramDisplay || '—'}</dd>
-                  <dt style={{ color: '#999' }}>Email</dt><dd style={{ margin: 0 }}>{user.contactEmail || '—'}</dd>
-                  <dt style={{ color: '#999' }}>Языки</dt><dd style={{ margin: 0 }}>{user.languages.length ? user.languages.join(', ') : '—'}</dd>
-                  <dt style={{ color: '#999' }}>Последняя активность</dt><dd style={{ margin: 0 }}>{formatDate(user.lastActivityAt)}</dd>
-                  <dt style={{ color: '#999' }}>Дата создания</dt><dd style={{ margin: 0 }}>{formatDate(user.createdAt)}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Имя</dt><dd style={{ margin: 0 }}>{user.name || '—'}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Telegram</dt><dd style={{ margin: 0 }}>{user.telegramDisplay || '—'}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Email</dt><dd style={{ margin: 0 }}>{user.contactEmail || '—'}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Языки</dt><dd style={{ margin: 0 }}>{user.languages.length ? user.languages.join(', ') : '—'}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Последняя активность</dt><dd style={{ margin: 0 }}>{formatDate(user.lastActivityAt)}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>Дата создания</dt><dd style={{ margin: 0 }}>{formatDate(user.createdAt)}</dd>
                 </dl>
-                <button onClick={onDeleteUser} style={{ marginTop: '0.9rem', background: 'transparent', border: '1px solid #E5E5E5', color: '#999', padding: '0.35rem 0.75rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <button onClick={onDeleteUser} style={{ marginTop: '0.9rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '0.35rem 0.75rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Удалить пользователя
                 </button>
               </section>
@@ -240,7 +240,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
               <section style={{ marginBottom: '1.6rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.45rem' }}>
                   <h3 style={sectionTitle}>Записи на книги</h3>
-                  <span style={user.prioritiesSet ? pill('#E2F0EA', '#2D6A4F') : pill('#F0F0F0', '#777')}>
+                  <span style={user.prioritiesSet ? pill('#E2F0EA', 'var(--success)') : pill('var(--border-subtle)', 'var(--text-secondary)')}>
                     {user.prioritiesSet ? 'приоритеты расставлены' : 'без приоритетов'}
                   </span>
                 </div>
@@ -248,7 +248,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                 {/* Под-секция: Записал:ась */}
                 {sortedNullBooks.length > 0 && (
                   <div style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb', marginBottom: '0.35rem' }}>
+                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
                       Записал:ась
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
@@ -277,7 +277,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                 {/* Под-секция: Читаю */}
                 {readingBooks.length > 0 && (
                   <div style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb', marginBottom: '0.35rem' }}>
+                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
                       Читаю
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
@@ -299,7 +299,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                 {/* Под-секция: Прочитал:а */}
                 {readBooks.length > 0 && (
                   <div style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb', marginBottom: '0.35rem' }}>
+                    <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
                       Прочитал:а
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
@@ -320,20 +320,20 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
 
                 {/* Пустое состояние */}
                 {(data?.signupBooks ?? []).length === 0 && (
-                  <p style={{ color: '#BBB', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет записей</p>
+                  <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет записей</p>
                 )}
               </section>
 
               <section style={{ marginBottom: '1.6rem' }}>
                 <h3 style={{ ...sectionTitle, marginBottom: '0.5rem' }}>Предложения книг</h3>
-                {data.submissions.length === 0 ? <p style={{ color: '#BBB', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет предложений</p> : (
+                {data.submissions.length === 0 ? <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет предложений</p> : (
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {data.submissions.map(sub => (
-                      <li key={sub.id} style={{ padding: '0.55rem 0', borderBottom: '1px solid #F0F0F0', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
-                        <div><div>{sub.title}</div><div style={{ color: '#999', fontSize: '0.7rem' }}>{sub.author} · {formatDate(sub.createdAt)}</div></div>
+                      <li key={sub.id} style={{ padding: '0.55rem 0', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+                        <div><div>{sub.title}</div><div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{sub.author} · {formatDate(sub.createdAt)}</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={pill(sub.status === 'approved' ? '#E2F0EA' : sub.status === 'rejected' ? '#FAE0E0' : '#FFF3DC', '#555')}>{sub.status}</span>
-                          <button onClick={() => onOpenSubmission(sub.id)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontFamily: sans, fontSize: '0.72rem', padding: 0 }}>
+                          <span style={pill(sub.status === 'approved' ? '#E2F0EA' : sub.status === 'rejected' ? '#FAE0E0' : '#FFF3DC', 'var(--text-secondary)')}>{sub.status}</span>
+                          <button onClick={() => onOpenSubmission(sub.id)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: sans, fontSize: '0.72rem', padding: 0 }}>
                             открыть заявку →
                           </button>
                         </div>
@@ -345,12 +345,12 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
 
               <section>
                 <h3 style={{ ...sectionTitle, marginBottom: '0.5rem' }}>Фидбеки</h3>
-                {data.feedback.length === 0 ? <p style={{ color: '#BBB', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет фидбеков</p> : (
+                {data.feedback.length === 0 ? <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.82rem' }}>Нет фидбеков</p> : (
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {data.feedback.map(item => (
-                      <li key={item.id} style={{ padding: '0.65rem 0', borderBottom: '1px solid #F0F0F0' }}>
-                        <div style={{ color: '#999', fontSize: '0.72rem', marginBottom: '0.25rem' }}>{formatDate(item.createdAt)}</div>
-                        <div style={{ whiteSpace: 'pre-wrap', color: '#333', fontSize: '0.84rem' }}>{item.message}</div>
+                      <li key={item.id} style={{ padding: '0.65rem 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginBottom: '0.25rem' }}>{formatDate(item.createdAt)}</div>
+                        <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-body)', fontSize: '0.84rem' }}>{item.message}</div>
                       </li>
                     ))}
                   </ul>

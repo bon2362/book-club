@@ -92,7 +92,7 @@ function StatusMenu({
         display: 'flex',
         gap: 6,
         padding: '10px 16px 12px',
-        background: '#fafaf7',
+        background: 'var(--bg)',
         borderBottom: '1px solid #f3f4f6',
         flexWrap: 'wrap',
       }}
@@ -114,7 +114,7 @@ function StatusMenu({
               letterSpacing: '0.1em',
               padding: '0.32rem 0.6rem',
               background: isCurrent ? '#111' : '#fff',
-              color: isCurrent ? '#fff' : '#666',
+              color: isCurrent ? '#fff' : 'var(--text-secondary)',
               border: `1px solid ${isCurrent ? '#111' : '#e5e7eb'}`,
               cursor: isCurrent ? 'default' : 'pointer',
             }}
@@ -204,7 +204,7 @@ function SortableBookItem({
           {...attributes}
           {...listeners}
           onClick={e => e.stopPropagation()}
-          style={{ color: '#d1d5db', fontSize: 18, marginRight: 10, cursor: 'grab', lineHeight: 1, touchAction: 'none' }}
+          style={{ color: 'var(--text-muted)', fontSize: 18, marginRight: 10, cursor: 'grab', lineHeight: 1, touchAction: 'none' }}
           aria-label="Перетащить"
         >
           ⠿
@@ -223,7 +223,7 @@ function SortableBookItem({
           }}>
             {name}
           </span>
-          <span style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.3 }}>{author}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>{author}</span>
         </span>
         <button
           onClick={e => { e.stopPropagation(); onToggle() }}
@@ -232,7 +232,7 @@ function SortableBookItem({
           style={{
             border: 'none', cursor: 'pointer',
             color: isUnsubscribed
-              ? (removeHover ? '#16a34a' : '#22c55e')
+              ? (removeHover ? 'var(--status-ok-hover)' : 'var(--status-ok)')
               : (removeHover ? '#dc2626' : '#9ca3af'),
             background: removeHover
               ? (isUnsubscribed ? '#dcfce7' : '#fee2e2')
@@ -300,8 +300,8 @@ function StatusBookItem({
           flex: 1, minWidth: 0,
           display: 'flex', flexDirection: 'column', gap: 2,
         }}>
-          <span style={{ fontSize: 14, fontWeight: 500, color: '#111', lineHeight: 1.3 }}>{name}</span>
-          <span style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.3 }}>{author}</span>
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)', lineHeight: 1.3 }}>{name}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>{author}</span>
         </span>
       </div>
       {isMenuOpen && <StatusMenu current={current} onChange={onStatusChange} />}
@@ -754,7 +754,7 @@ export default function ProfileDrawer({
     fontSize: '0.55rem',
     textTransform: 'uppercase',
     letterSpacing: '0.12em',
-    color: '#999',
+    color: 'var(--text-muted)',
     marginBottom: '0.9rem',
   }
 
@@ -763,10 +763,10 @@ export default function ProfileDrawer({
     fontSize: '0.55rem',
     textTransform: 'uppercase',
     letterSpacing: '0.14em',
-    color: '#666',
+    color: 'var(--text-secondary)',
     padding: '14px 16px 8px',
     borderTop: '1px solid #f3f4f6',
-    background: '#fff',
+    background: 'var(--bg-input)',
   }
 
   return (
@@ -795,7 +795,7 @@ export default function ProfileDrawer({
           width: '380px',
           maxWidth: '100vw',
           height: '100dvh',
-          background: '#fff',
+          background: 'var(--bg-input)',
           borderLeft: '2px solid #111',
           zIndex: 300,
           display: 'flex',
@@ -806,7 +806,7 @@ export default function ProfileDrawer({
       >
         <div style={{
           padding: '1.25rem 1.5rem 1rem',
-          borderBottom: '1px solid #E5E5E5',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
@@ -818,7 +818,7 @@ export default function ProfileDrawer({
               fontSize: '0.55rem',
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
-              color: '#999',
+              color: 'var(--text-muted)',
               marginBottom: '0.3rem',
             }}>
               Личный кабинет
@@ -826,7 +826,7 @@ export default function ProfileDrawer({
             <div style={{
               fontFamily: 'var(--nd-serif), Georgia, serif',
               fontSize: '1.3rem',
-              color: '#111',
+              color: 'var(--text)',
               letterSpacing: '-0.02em',
               fontWeight: 700,
             }}>
@@ -840,7 +840,7 @@ export default function ProfileDrawer({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: '#999',
+              color: 'var(--text-muted)',
               fontSize: '1.3rem',
               lineHeight: 1,
               padding: '0.25rem',
@@ -853,7 +853,7 @@ export default function ProfileDrawer({
           </button>
         </div>
 
-        <div style={{ display: 'flex', borderBottom: '1px solid #E5E5E5', flexShrink: 0 }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           {(['signup', 'submitted', 'profile'] as Tab[]).map(tab => {
             const labels: Record<Tab, string> = {
               signup: 'Мои книги',
@@ -871,7 +871,7 @@ export default function ProfileDrawer({
                   fontSize: '0.6rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
-                  color: activeTab === tab ? '#111' : '#999',
+                  color: activeTab === tab ? '#111' : 'var(--text-muted)',
                   background: 'none',
                   border: 'none',
                   borderBottom: activeTab === tab ? '2px solid #111' : '2px solid transparent',
@@ -904,7 +904,7 @@ export default function ProfileDrawer({
 
               <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
                 {!hasAnyBook && prioritiesLoaded ? (
-                  <div style={{ padding: '24px 16px', color: '#9ca3af', fontSize: 14, textAlign: 'center' }}>
+                  <div style={{ padding: '24px 16px', color: 'var(--text-muted)', fontSize: 14, textAlign: 'center' }}>
                     Ты пока не записал:ась ни на одну книгу
                   </div>
                 ) : (
@@ -992,11 +992,11 @@ export default function ProfileDrawer({
               {prioritiesLoaded && priorityOrder.length > 0 && (
                 <div style={{
                   padding: '10px 16px', borderTop: '1px solid #e5e7eb',
-                  fontSize: 12, color: '#9ca3af',
+                  fontSize: 12, color: 'var(--text-muted)',
                   display: 'flex', justifyContent: 'flex-end',
                 }}>
                   {prioritiesSaving === 'saving' && <span>Сохранение...</span>}
-                  {prioritiesSaving === 'saved' && <span style={{ color: '#22c55e' }}>✓ Сохранено</span>}
+                  {prioritiesSaving === 'saved' && <span style={{ color: 'var(--status-ok)' }}>✓ Сохранено</span>}
                 </div>
               )}
             </div>
@@ -1009,14 +1009,14 @@ export default function ProfileDrawer({
               {!submissionsLoaded ? (
                 <p style={{
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.78rem', color: '#bbb', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0',
+                  fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0',
                 }}>
                   Загружаем…
                 </p>
               ) : submissions.length === 0 ? (
                 <p style={{
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                  fontSize: '0.78rem', color: '#bbb', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0',
+                  fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0',
                 }}>
                   Ты ещё не предлагал:а книги
                 </p>
@@ -1024,20 +1024,20 @@ export default function ProfileDrawer({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {submissions.map(sub => (
                     <div key={sub.id} style={{
-                      border: '1px solid #E5E5E5',
+                      border: '1px solid var(--border)',
                       borderLeft: '3px solid #111',
                       padding: '0.75rem',
                     }}>
                       <div style={{
                         fontFamily: 'var(--nd-serif), Georgia, serif',
-                        fontSize: '0.875rem', color: '#111', fontWeight: 700,
+                        fontSize: '0.875rem', color: 'var(--text)', fontWeight: 700,
                         letterSpacing: '-0.01em', lineHeight: 1.3,
                       }}>
                         {sub.title}
                       </div>
                       <div style={{
                         fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                        fontSize: '0.7rem', color: '#666',
+                        fontSize: '0.7rem', color: 'var(--text-secondary)',
                         marginTop: '0.15rem', marginBottom: '0.5rem',
                       }}>
                         {sub.author}{sub.pages ? ` · ${sub.pages} стр.` : ''}
@@ -1046,7 +1046,7 @@ export default function ProfileDrawer({
                       {sub.status === 'rejected' && sub.rejectionReason && (
                         <div style={{
                           fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                          fontSize: '0.68rem', color: '#999',
+                          fontSize: '0.68rem', color: 'var(--text-muted)',
                           marginTop: '0.4rem', fontStyle: 'italic', lineHeight: 1.4,
                         }}>
                           {sub.rejectionReason}
@@ -1060,7 +1060,7 @@ export default function ProfileDrawer({
                             style={{
                               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                               fontSize: '0.65rem',
-                              color: withdrawingId === sub.id ? '#ccc' : '#bbb',
+                              color: withdrawingId === sub.id ? 'var(--border)' : 'var(--text-muted)',
                               background: 'none', border: 'none',
                               cursor: withdrawingId === sub.id ? 'default' : 'pointer',
                               padding: 0, textDecoration: 'underline',
@@ -1071,7 +1071,7 @@ export default function ProfileDrawer({
                           {withdrawFailedId === sub.id && (
                             <span style={{
                               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                              fontSize: '0.65rem', color: '#c00', marginLeft: '0.5rem',
+                              fontSize: '0.65rem', color: 'var(--accent)', marginLeft: '0.5rem',
                             }}>
                               Не удалось отозвать
                             </span>
@@ -1098,7 +1098,7 @@ export default function ProfileDrawer({
                       fontSize: '0.55rem',
                       textTransform: 'uppercase',
                       letterSpacing: '0.1em',
-                      color: '#666',
+                      color: 'var(--text-secondary)',
                       marginBottom: '0.35rem',
                     }}>
                       Имя
@@ -1113,9 +1113,9 @@ export default function ProfileDrawer({
                         display: 'block', width: '100%',
                         padding: '0.55rem 0.7rem',
                         fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                        fontSize: '0.85rem', color: '#111', background: '#fff',
-                        border: '1px solid #E5E5E5',
-                        borderBottom: '2px solid #111',
+                        fontSize: '0.85rem', color: 'var(--text)', background: 'var(--bg-input)',
+                        border: '1px solid var(--border)',
+                        borderBottom: '2px solid var(--border-strong)',
                         outline: 'none', boxSizing: 'border-box',
                       }}
                     />
@@ -1127,7 +1127,7 @@ export default function ProfileDrawer({
                       fontSize: '0.55rem',
                       textTransform: 'uppercase',
                       letterSpacing: '0.1em',
-                      color: '#666',
+                      color: 'var(--text-secondary)',
                       marginBottom: '0.35rem',
                     }}>
                       Telegram
@@ -1144,9 +1144,9 @@ export default function ProfileDrawer({
                         padding: '0.55rem 0.7rem',
                         fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                         fontSize: '0.85rem',
-                        color: telegramLocked ? '#666' : '#111',
-                        background: telegramLocked ? '#F5F5F5' : '#fff',
-                        border: '1px solid #E5E5E5',
+                        color: telegramLocked ? 'var(--text-secondary)' : '#111',
+                        background: telegramLocked ? 'var(--bg-elevated)' : '#fff',
+                        border: '1px solid var(--border)',
                         borderBottom: telegramLocked ? '2px solid #ccc' : '2px solid #111',
                         outline: 'none',
                         cursor: telegramLocked ? 'default' : 'text',
@@ -1155,7 +1155,7 @@ export default function ProfileDrawer({
                     />
                     <div style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.62rem', color: '#aaa',
+                      fontSize: '0.62rem', color: 'var(--text-muted)',
                       marginTop: '0.3rem', fontStyle: 'italic',
                     }}>
                       Организатор свяжется с вами для записи в группу
@@ -1164,7 +1164,7 @@ export default function ProfileDrawer({
                   {saveError && (
                     <p style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.8rem', color: '#c00', marginBottom: '1rem',
+                      fontSize: '0.8rem', color: 'var(--accent)', marginBottom: '1rem',
                     }}>
                       {saveError}
                     </p>
@@ -1176,9 +1176,9 @@ export default function ProfileDrawer({
                       width: '100%', padding: '0.65rem 1rem',
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                       fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em',
-                      background: saving ? '#E5E5E5' : saveSuccess ? '#2A6E2A' : profileUnchanged ? '#E5E5E5' : '#111',
-                      color: (saving || profileUnchanged) ? '#999' : '#fff',
-                      border: `1px solid ${profileUnchanged ? '#ccc' : '#111'}`,
+                      background: saving ? 'var(--border)' : saveSuccess ? '#2A6E2A' : profileUnchanged ? 'var(--border)' : '#111',
+                      color: (saving || profileUnchanged) ? 'var(--text-muted)' : '#fff',
+                      border: `1px solid ${profileUnchanged ? 'var(--border)' : '#111'}`,
                       cursor: (saving || profileUnchanged) ? 'default' : 'pointer',
                       transition: 'background 0.15s, color 0.15s',
                     }}
@@ -1193,7 +1193,7 @@ export default function ProfileDrawer({
                 {languagesNeverSaved && languagesLoaded && (
                   <p style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.72rem', color: '#aaa', fontStyle: 'italic',
+                    fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic',
                     marginBottom: '0.75rem',
                   }}>
                     Выберите языки чтения
@@ -1218,7 +1218,7 @@ export default function ProfileDrawer({
                     onClick={() => setShowExtraLanguages(v => !v)}
                     style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.72rem', color: '#999',
+                      fontSize: '0.72rem', color: 'var(--text-muted)',
                       background: 'none', border: '1px dashed #ccc',
                       padding: '0.3rem 0.65rem', cursor: 'pointer',
                     }}
@@ -1252,7 +1252,7 @@ export default function ProfileDrawer({
                   )}
                   <span style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.78rem', color: '#666',
+                    fontSize: '0.78rem', color: 'var(--text-secondary)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {contactEmail ?? '—'}
@@ -1262,7 +1262,7 @@ export default function ProfileDrawer({
                   onClick={() => signOut({ callbackUrl: '/' })}
                   style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.65rem', color: '#999',
+                    fontSize: '0.65rem', color: 'var(--text-muted)',
                     background: 'none', border: 'none', cursor: 'pointer',
                     flexShrink: 0, whiteSpace: 'nowrap', textDecoration: 'underline',
                   }}
@@ -1278,7 +1278,7 @@ export default function ProfileDrawer({
                     onClick={handleDeleteAccount}
                     style={{
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.7rem', color: '#999',
+                      fontSize: '0.7rem', color: 'var(--text-muted)',
                       background: 'none', border: 'none', cursor: 'pointer',
                       textDecoration: 'underline',
                     }}
@@ -1296,8 +1296,8 @@ export default function ProfileDrawer({
         <div style={{
           position: 'fixed',
           bottom: '1.5rem', right: '1.5rem', zIndex: 9999,
-          background: toast.type === 'error' ? '#c00' : '#111',
-          color: '#fff',
+          background: toast.type === 'error' ? 'var(--accent)' : '#111',
+          color: 'var(--bg)',
           fontFamily: 'var(--nd-sans), system-ui, sans-serif',
           fontSize: '0.8rem',
           padding: '0.65rem 1rem',
@@ -1330,9 +1330,9 @@ function LangButton({
         fontFamily: 'var(--nd-sans), system-ui, sans-serif',
         fontSize: '0.72rem',
         padding: '0.3rem 0.65rem',
-        background: disabled ? '#f5f5f5' : active ? '#111' : '#fff',
-        color: disabled ? '#ccc' : active ? '#fff' : '#111',
-        border: `1px solid ${disabled ? '#e5e5e5' : active ? '#111' : '#E5E5E5'}`,
+        background: disabled ? 'var(--bg-elevated)' : active ? '#111' : '#fff',
+        color: disabled ? 'var(--border)' : active ? '#fff' : '#111',
+        border: `1px solid ${disabled ? 'var(--border)' : active ? '#111' : 'var(--border)'}`,
         cursor: disabled ? 'default' : 'pointer',
         transition: 'background 0.15s, color 0.15s',
         opacity: disabled ? 0.6 : 1,
@@ -1358,7 +1358,7 @@ function StatusBadge({ status }: { status: string }) {
       letterSpacing: '0.1em',
       padding: '0.2rem 0.4rem',
       border: '1px solid',
-      ...(styles[status] ?? { color: '#666', borderColor: '#ccc', background: '#f5f5f5' }),
+      ...(styles[status] ?? { color: 'var(--text-secondary)', borderColor: 'var(--border)', background: 'var(--bg-elevated)' }),
     }}>
       {STATUS_LABELS[status] ?? status}
     </span>

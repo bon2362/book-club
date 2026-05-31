@@ -14,7 +14,7 @@ function minutesUntil(isoDate: string): number {
 const WIDGET_STYLE: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.7rem',
-  color: '#999',
+  color: 'var(--text-muted)',
   display: 'flex',
   alignItems: 'center',
   gap: '0.3rem',
@@ -46,11 +46,11 @@ export default function DigestStatusWidget({ refreshSignal = 0 }: DigestStatusWi
 
   const dot =
     data.status === 'ready' ? (
-      <span style={{ color: '#22c55e' }}>●</span>
+      <span style={{ color: 'var(--status-ok)' }}>●</span>
     ) : data.status === 'cooling' ? (
-      <span style={{ color: '#f59e0b' }}>●</span>
+      <span style={{ color: 'var(--status-warn)' }}>●</span>
     ) : (
-      <span style={{ color: '#9ca3af' }}>●</span>
+      <span style={{ color: 'var(--text-muted)' }}>●</span>
     )
 
   let label: string

@@ -89,19 +89,19 @@ export default function MatchingHeader({
           role="status"
           className="flex items-center gap-3 px-4 py-2 text-xs border-b"
           style={{
-            color: '#7a5c00',
+            color: 'var(--status-warn)',
             background: '#fffbea',
             borderColor: '#f0d060',
           }}
         >
           <span>👁 Просмотр за</span>
           <strong>{viewedPseudonym ?? asParam}</strong>
-          {viewedName && <span style={{ color: '#a07800' }}>({viewedName})</span>}
+          {viewedName && <span style={{ color: 'var(--status-warn)' }}>({viewedName})</span>}
           <span className="ml-auto opacity-70">только чтение</span>
           <a
             href="/matching"
             className="underline text-[11px]"
-            style={{ color: '#7a5c00' }}
+            style={{ color: 'var(--status-warn)' }}
           >
             ← вернуться к своему виду
           </a>
@@ -111,7 +111,7 @@ export default function MatchingHeader({
       <header
         className="flex items-center justify-between gap-4 px-4 h-14 shrink-0"
         style={{
-          background: '#fff',
+          background: 'var(--bg-input)',
           borderBottom: '2px solid #000',
         }}
       >
@@ -119,13 +119,13 @@ export default function MatchingHeader({
         <div className="flex items-center gap-4 min-w-0">
           <h1
             className="text-xl leading-none m-0 truncate"
-            style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, color: '#111' }}
+            style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, color: 'var(--text)' }}
           >
             {sessionName}
           </h1>
           <div
             className="hidden sm:flex items-center gap-3 shrink-0"
-            style={{ fontSize: '0.6rem', textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: '#999' }}
+            style={{ fontSize: '0.6rem', textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: 'var(--text-muted)' }}
           >
             <span>Группы по {targetGroupSize}</span>
             {deadlineText && (
@@ -144,8 +144,8 @@ export default function MatchingHeader({
                   borderRadius: 0,
                   fontWeight: 600,
                   background: 'transparent',
-                  color: '#111',
-                  border: '1px solid #111',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border-strong)',
                   textTransform: 'uppercase' as const,
                   letterSpacing: '0.1em',
                   flexShrink: 0,
@@ -156,12 +156,12 @@ export default function MatchingHeader({
             )}
             {sessionStatus === 'frozen' ? (
               <span
-                style={{ padding: '0.12rem 0.4rem', background: 'transparent', color: '#999', border: '1px solid #d6d6d6' }}
+                style={{ padding: '0.12rem 0.4rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
               >
                 Зафиксирована
               </span>
             ) : (
-              <span style={{ color: '#2D6A4F' }}>● активна</span>
+              <span style={{ color: 'var(--success)' }}>● активна</span>
             )}
           </div>
         </div>
@@ -179,10 +179,10 @@ export default function MatchingHeader({
               opacity: leaving ? 0.6 : 1,
               padding: '0 0 1px',
               border: 'none',
-              borderBottom: '1px solid #111',
+              borderBottom: '1px solid var(--border-strong)',
               borderRadius: 0,
               background: 'none',
-              color: '#111',
+              color: 'var(--text)',
               textTransform: 'uppercase' as const,
               letterSpacing: '0.08em',
             }}
@@ -196,9 +196,9 @@ export default function MatchingHeader({
               className="flex items-center gap-2 px-3 py-1.5 shrink-0"
               style={{
                 borderRadius: 0,
-                border: '1px solid #111',
-                background: '#fff',
-                color: '#666',
+                border: '1px solid var(--border-strong)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-secondary)',
                 fontSize: '0.8rem',
                 cursor: 'pointer',
               }}
@@ -208,7 +208,7 @@ export default function MatchingHeader({
                   <div
                     key={p.userId}
                     className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
-                    style={{ background: '#111', color: '#fff', border: '2px solid #fff' }}
+                    style={{ background: 'var(--text)', color: 'var(--bg)', border: '2px solid var(--bg)' }}
                     title={p.pseudonym}
                   >
                     {p.pseudonym[0].toUpperCase()}
@@ -217,13 +217,13 @@ export default function MatchingHeader({
                 {participants.length > 6 && (
                   <div
                     className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
-                    style={{ background: '#fff', color: '#555', border: '1px solid #ccc' }}
+                    style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                   >
                     +{participants.length - 6}
                   </div>
                 )}
               </div>
-              <span className="font-medium" style={{ color: '#111' }}>{participants.length}</span>
+              <span className="font-medium" style={{ color: 'var(--text)' }}>{participants.length}</span>
             </button>
           </Popover.Trigger>
 
@@ -231,8 +231,8 @@ export default function MatchingHeader({
             <Popover.Content
               className="z-50 border p-3 min-w-[220px] max-w-[300px]"
               style={{
-                background: '#fff',
-                borderColor: '#E5E5E5',
+                background: 'var(--bg-input)',
+                borderColor: 'var(--border)',
                 borderRadius: 0,
                 boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
               }}
@@ -241,13 +241,13 @@ export default function MatchingHeader({
             >
               <div
                 className="text-xs font-semibold mb-2.5 uppercase tracking-wide"
-                style={{ color: '#999' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 Участники ({participants.length})
               </div>
               <div className="flex flex-col gap-1">
                 {participants.length === 0 ? (
-                  <div className="text-sm" style={{ color: '#999' }}>
+                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
                     Пока никто не присоединился.
                   </div>
                 ) : (
@@ -255,13 +255,13 @@ export default function MatchingHeader({
                     <div key={p.userId} className="flex items-center gap-2.5 py-1">
                       <div
                         className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                        style={{ background: '#111', color: '#fff' }}
+                        style={{ background: 'var(--text)', color: 'var(--bg)' }}
                       >
                         {p.pseudonym[0].toUpperCase()}
                       </div>
                       <span
                         className="text-sm font-medium flex-1"
-                        style={{ color: '#111' }}
+                        style={{ color: 'var(--text)' }}
                       >
                         {p.pseudonym}
                       </span>
@@ -269,7 +269,7 @@ export default function MatchingHeader({
                         <a
                           href={`/matching?as=${p.userId}`}
                           className="text-xs shrink-0"
-                          style={{ color: '#999' }}
+                          style={{ color: 'var(--text-muted)' }}
                           title="Посмотреть за этого участника"
                         >
                           {p.name}
@@ -279,7 +279,7 @@ export default function MatchingHeader({
                   ))
                 )}
               </div>
-              <Popover.Arrow style={{ fill: '#E5E5E5' }} />
+              <Popover.Arrow style={{ fill: 'var(--border)' }} />
             </Popover.Content>
           </Popover.Portal>
         </Popover.Root>

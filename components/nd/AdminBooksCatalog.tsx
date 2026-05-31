@@ -115,14 +115,14 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   fontFamily: SANS,
   fontSize: '0.82rem',
-  color: '#111',
-  borderTop: '1px solid #E5E5E5',
+  color: 'var(--text)',
+  borderTop: '1px solid var(--border)',
   borderRight: '1px solid #E5E5E5',
-  borderLeft: '1px solid #E5E5E5',
-  borderBottom: '2px solid #111',
+  borderLeft: '1px solid var(--border)',
+  borderBottom: '2px solid var(--border-strong)',
   padding: '0.38rem 0.55rem',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--bg-input)',
   boxSizing: 'border-box',
 }
 
@@ -131,8 +131,8 @@ const headBase: React.CSSProperties = {
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: '#666',
-  borderBottom: '2px solid #111',
+  color: 'var(--text-secondary)',
+  borderBottom: '2px solid var(--border-strong)',
   textAlign: 'left',
   userSelect: 'none',
   padding: '0.55rem 0.75rem',
@@ -141,8 +141,8 @@ const headBase: React.CSSProperties = {
 
 const cellBase: React.CSSProperties = {
   fontFamily: SANS,
-  color: '#111',
-  borderBottom: '1px solid #E5E5E5',
+  color: 'var(--text)',
+  borderBottom: '1px solid var(--border)',
   verticalAlign: 'middle',
   padding: '0.5rem 0.75rem',
 }
@@ -155,8 +155,8 @@ function Cover({ book }: { book: AdminBook }) {
         width: 34,
         height: 50,
         flex: '0 0 34px',
-        border: '1px solid #DDD',
-        background: '#F5F5F5',
+        border: '1px solid var(--border)',
+        background: 'var(--bg-elevated)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -172,7 +172,7 @@ function Cover({ book }: { book: AdminBook }) {
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       ) : (
-        <span style={{ fontFamily: SANS, fontSize: '0.6rem', color: '#999' }}>
+        <span style={{ fontFamily: SANS, fontSize: '0.6rem', color: 'var(--text-muted)' }}>
           {initials(book.author) || '—'}
         </span>
       )}
@@ -244,16 +244,16 @@ function StatusChips({ book }: { book: AdminBook }) {
 
 function Participants({ participants }: { participants: CatalogParticipant[] }) {
   if (!participants || participants.length === 0) {
-    return <span style={{ color: '#ccc' }}>—</span>
+    return <span style={{ color: 'var(--border)' }}>—</span>
   }
   return (
-    <span style={{ color: '#444', fontSize: '0.72rem', lineHeight: 1.55 }}>
+    <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', lineHeight: 1.55 }}>
       {participants.map((p, i) => (
         <span key={p.userId}>
           {i > 0 && ', '}
           {p.name}
           {p.rank !== null && (
-            <span style={{ color: '#aaa', fontSize: '0.68rem', marginLeft: 3, whiteSpace: 'nowrap' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', marginLeft: 3, whiteSpace: 'nowrap' }}>
               ({TOP_PRIORITY_EMOJI[p.rank - 1] ? `${TOP_PRIORITY_EMOJI[p.rank - 1]} ` : ''}#{p.rank})
             </span>
           )}
@@ -320,10 +320,10 @@ function CopyableId({ id }: { id: string }) {
         fontFamily: MONO,
         fontSize: '0.72rem',
         padding: '0.18rem 0.4rem',
-        border: '1px solid #DDD',
+        border: '1px solid var(--border)',
         borderRadius: 2,
         background: '#F8F6F2',
-        color: '#666',
+        color: 'var(--text-secondary)',
         cursor: 'pointer',
       }}
     >
@@ -341,7 +341,7 @@ function ReadOnlyField({ label, value, mono }: { label: string; value: string | 
           fontSize: '0.62rem',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
-          color: '#999',
+          color: 'var(--text-muted)',
           marginBottom: '0.2rem',
         }}
       >
@@ -351,9 +351,9 @@ function ReadOnlyField({ label, value, mono }: { label: string; value: string | 
         style={{
           fontFamily: mono ? MONO : SANS,
           fontSize: '0.78rem',
-          color: '#666',
+          color: 'var(--text-secondary)',
           background: '#F2EFE9',
-          border: '1px solid #E5E5E5',
+          border: '1px solid var(--border)',
           padding: '0.32rem 0.5rem',
           minHeight: '1.5rem',
         }}
@@ -373,7 +373,7 @@ function Field({ label, full, children }: { label: string; full?: boolean; child
           fontSize: '0.62rem',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
-          color: '#666',
+          color: 'var(--text-secondary)',
           marginBottom: '0.2rem',
         }}
       >
@@ -408,7 +408,7 @@ function VisibilityToggle({
         gap: '0.55rem',
         padding: '0.3rem 0.55rem',
         background: 'transparent',
-        border: `1px solid ${isPublished ? '#2E7D32' : '#999'}`,
+        border: `1px solid ${isPublished ? '#2E7D32' : 'var(--text-muted)'}`,
         cursor: disabled ? 'default' : 'pointer',
         fontFamily: SANS,
         opacity: disabled ? 0.6 : 1,
@@ -420,7 +420,7 @@ function VisibilityToggle({
           display: 'inline-block',
           width: 34,
           height: 18,
-          background: isPublished ? '#2E7D32' : '#CCC',
+          background: isPublished ? '#2E7D32' : 'var(--border)',
           borderRadius: 999,
           transition: 'background 0.15s',
         }}
@@ -432,7 +432,7 @@ function VisibilityToggle({
             left: isPublished ? 18 : 2,
             width: 14,
             height: 14,
-            background: '#fff',
+            background: 'var(--bg-input)',
             borderRadius: '50%',
             transition: 'left 0.15s',
           }}
@@ -444,7 +444,7 @@ function VisibilityToggle({
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           fontWeight: 700,
-          color: isPublished ? '#2E7D32' : '#666',
+          color: isPublished ? '#2E7D32' : 'var(--text-secondary)',
         }}
       >
         {isPublished ? 'Опубликована' : 'Скрыта'}
@@ -475,7 +475,7 @@ function NewBadgeToggle({
         gap: '0.55rem',
         padding: '0.3rem 0.55rem',
         background: 'transparent',
-        border: `1px solid ${value ? '#C0603A' : '#999'}`,
+        border: `1px solid ${value ? 'var(--accent)' : 'var(--text-muted)'}`,
         cursor: disabled ? 'default' : 'pointer',
         fontFamily: SANS,
         opacity: disabled ? 0.6 : 1,
@@ -487,7 +487,7 @@ function NewBadgeToggle({
           display: 'inline-block',
           width: 34,
           height: 18,
-          background: value ? '#C0603A' : '#CCC',
+          background: value ? 'var(--accent)' : 'var(--border)',
           borderRadius: 999,
           transition: 'background 0.15s',
         }}
@@ -499,7 +499,7 @@ function NewBadgeToggle({
             left: value ? 18 : 2,
             width: 14,
             height: 14,
-            background: '#fff',
+            background: 'var(--bg-input)',
             borderRadius: '50%',
             transition: 'left 0.15s',
           }}
@@ -511,7 +511,7 @@ function NewBadgeToggle({
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           fontWeight: 700,
-          color: value ? '#C0603A' : '#666',
+          color: value ? 'var(--accent)' : 'var(--text-secondary)',
         }}
       >
         NEW
@@ -530,12 +530,12 @@ function ReadingStatusSegmented({
   disabled?: boolean
 }) {
   const opts: { v: string | null; label: string; color: string }[] = [
-    { v: null, label: 'Без статуса', color: '#666' },
-    { v: 'reading', label: 'Reading', color: '#C0603A' },
+    { v: null, label: 'Без статуса', color: 'var(--text-secondary)' },
+    { v: 'reading', label: 'Reading', color: 'var(--accent)' },
     { v: 'read', label: 'Read', color: '#2E7D32' },
   ]
   return (
-    <div style={{ display: 'inline-flex', border: '1px solid #999' }}>
+    <div style={{ display: 'inline-flex', border: '1px solid var(--text-muted)' }}>
       {opts.map((o, i) => {
         const active = (value ?? null) === o.v
         return (
@@ -553,7 +553,7 @@ function ReadingStatusSegmented({
               border: 'none',
               borderLeft: i > 0 ? '1px solid #999' : 'none',
               background: active ? o.color : 'transparent',
-              color: active ? '#fff' : '#666',
+              color: active ? '#fff' : 'var(--text-secondary)',
               fontWeight: active ? 700 : 400,
               cursor: disabled ? 'default' : 'pointer',
               whiteSpace: 'nowrap',
@@ -576,7 +576,7 @@ function ControlRow({ label, children }: { label: string; children: React.ReactN
           fontSize: '0.62rem',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
-          color: '#888',
+          color: 'var(--text-muted)',
           width: 110,
           flex: '0 0 110px',
         }}
@@ -614,7 +614,7 @@ function BookEditor({
     editorRef.current?.querySelectorAll('textarea').forEach(autoHeight)
   }, [book.id])
   return (
-    <div ref={editorRef} style={{ padding: '1rem 1rem 1.25rem', background: '#FAF8F4', borderBottom: '2px solid #111' }}>
+    <div ref={editorRef} style={{ padding: '1rem 1rem 1.25rem', background: 'var(--bg)', borderBottom: '2px solid var(--border-strong)' }}>
       {/* State panel */}
       <div
         style={{
@@ -630,13 +630,13 @@ function BookEditor({
             position: 'absolute',
             top: -8,
             left: 14,
-            background: '#FAF8F4',
+            background: 'var(--bg)',
             padding: '0 0.45rem',
             fontFamily: SANS,
             fontSize: '0.6rem',
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
-            color: '#888',
+            color: 'var(--text-muted)',
           }}
         >
           Состояние
@@ -725,14 +725,14 @@ function BookEditor({
       </div>
 
       {/* Read-only system fields */}
-      <div style={{ marginTop: '1rem', paddingTop: '0.9rem', borderTop: '1px dashed #D6D0C4' }}>
+      <div style={{ marginTop: '1rem', paddingTop: '0.9rem', borderTop: '1px dashed var(--border)' }}>
         <div
           style={{
             fontFamily: SANS,
             fontSize: '0.62rem',
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
-            color: '#999',
+            color: 'var(--text-muted)',
             marginBottom: '0.55rem',
           }}
         >
@@ -770,7 +770,7 @@ function BookEditor({
           gap: '0.5rem',
           marginTop: '1rem',
           paddingTop: '0.75rem',
-          borderTop: '1px solid #E5E5E5',
+          borderTop: '1px solid var(--border)',
         }}
       >
         {hasEdits ? (
@@ -785,16 +785,16 @@ function BookEditor({
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               padding: '0.4rem 0.85rem',
-              border: '1px solid #111',
-              background: saving ? '#666' : '#111',
-              color: '#fff',
+              border: '1px solid var(--border-strong)',
+              background: saving ? 'var(--text-secondary)' : '#111',
+              color: 'var(--bg)',
               cursor: saving ? 'default' : 'pointer',
             }}
           >
             {saving ? 'Сохранение…' : 'Сохранить'}
           </button>
         ) : (
-          <span style={{ fontFamily: SANS, fontSize: '0.72rem', color: '#999' }}>Нет несохранённых изменений</span>
+          <span style={{ fontFamily: SANS, fontSize: '0.72rem', color: 'var(--text-muted)' }}>Нет несохранённых изменений</span>
         )}
       </div>
     </div>
@@ -844,7 +844,7 @@ function SortableRow({
                 justifyContent: 'center',
                 width: 18,
                 height: 22,
-                color: '#111',
+                color: 'var(--text)',
                 cursor: 'grab',
                 fontSize: '1rem',
                 lineHeight: 1,
@@ -854,7 +854,7 @@ function SortableRow({
               ⋮⋮
             </span>
           ) : (
-            <span style={{ fontFamily: MONO, fontSize: '0.72rem', color: '#999' }}>{position}</span>
+            <span style={{ fontFamily: MONO, fontSize: '0.72rem', color: 'var(--text-muted)' }}>{position}</span>
           )}
         </td>
         <td style={{ ...cellBase, width: 50 }}>
@@ -872,7 +872,7 @@ function SortableRow({
               textAlign: 'left',
               cursor: 'pointer',
               fontFamily: SANS,
-              color: '#111',
+              color: 'var(--text)',
               display: 'block',
               width: '100%',
             }}
@@ -909,7 +909,7 @@ function SortableRow({
                 <StatusChips book={book} />
               </div>
             </div>
-            <div style={{ fontStyle: 'italic', color: '#666', fontSize: '0.72rem', marginTop: '0.12rem' }}>
+            <div style={{ fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '0.72rem', marginTop: '0.12rem' }}>
               {book.author || 'Автор не указан'}
             </div>
           </button>
@@ -920,17 +920,17 @@ function SortableRow({
             textAlign: 'right',
             fontWeight: 700,
             width: 70,
-            color: book.signupCount > 0 ? '#111' : '#BBB',
+            color: book.signupCount > 0 ? '#111' : 'var(--text-muted)',
           }}
         >
           {book.signupCount}
         </td>
-        <td style={{ ...cellBase, color: '#444', maxWidth: 420 }}>
+        <td style={{ ...cellBase, color: 'var(--text-secondary)', maxWidth: 420 }}>
           <Participants participants={participants} />
         </td>
       </tr>
       {expanded && editorElement && (
-        <tr style={{ background: '#FAF8F4' }} data-testid={`admin-book-editor-${book.id}`}>
+        <tr style={{ background: 'var(--bg)' }} data-testid={`admin-book-editor-${book.id}`}>
           <td colSpan={5} style={{ padding: 0 }}>
             {editorElement}
           </td>
@@ -1003,19 +1003,19 @@ function SectionTable({
           padding: '0 0 0.55rem 0',
           cursor: 'pointer',
           fontFamily: SERIF,
-          color: '#111',
+          color: 'var(--text)',
           width: '100%',
         }}
         aria-expanded={open}
       >
         <h2 style={{ margin: 0, fontFamily: SERIF, fontWeight: 700, fontSize: '1.05rem' }}>
-          {title} <span style={{ color: '#999', fontWeight: 400 }}>({books.length})</span>
+          {title} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({books.length})</span>
         </h2>
-        <span style={{ fontFamily: SANS, fontSize: '0.78rem', color: '#666' }}>{subtitle}</span>
-        <span style={{ marginLeft: 'auto', fontFamily: SANS, fontSize: '0.78rem', color: '#999' }}>{open ? '▲' : '▼'}</span>
+        <span style={{ fontFamily: SANS, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{subtitle}</span>
+        <span style={{ marginLeft: 'auto', fontFamily: SANS, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', border: '1px solid #E5E5E5' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
           <thead>
             <tr>
               <SortTh
@@ -1044,7 +1044,7 @@ function SectionTable({
           <tbody>
             {books.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ ...cellBase, color: '#999', fontStyle: 'italic' }}>
+                <td colSpan={5} style={{ ...cellBase, color: 'var(--text-muted)', fontStyle: 'italic' }}>
                   Пусто
                 </td>
               </tr>
@@ -1089,7 +1089,7 @@ function CreateBookForm({
 }) {
   return (
     <div
-      style={{ border: '1px solid #111', padding: '1rem', marginBottom: '1rem', background: '#fff' }}
+      style={{ border: '1px solid var(--border-strong)', padding: '1rem', marginBottom: '1rem', background: 'var(--bg-input)' }}
       data-testid="admin-books-create-form"
     >
       <h3 style={{ fontFamily: SERIF, fontSize: '1rem', margin: '0 0 0.75rem' }}>Новая книга</h3>
@@ -1186,9 +1186,9 @@ function CreateBookForm({
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             padding: '0.4rem 0.85rem',
-            border: '1px solid #111',
-            background: saving ? '#666' : '#111',
-            color: '#fff',
+            border: '1px solid var(--border-strong)',
+            background: saving ? 'var(--text-secondary)' : '#111',
+            color: 'var(--bg)',
             cursor: saving ? 'default' : 'pointer',
           }}
         >
@@ -1504,9 +1504,9 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             padding: '0.38rem 0.85rem',
-            border: '1px solid #111',
+            border: '1px solid var(--border-strong)',
             background: 'transparent',
-            color: '#111',
+            color: 'var(--text)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
           }}
@@ -1524,16 +1524,16 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
             letterSpacing: '0.06em',
             padding: '0.38rem 0.85rem',
             cursor: 'pointer',
-            border: `1px solid ${reorderMode ? '#C0603A' : '#999'}`,
-            background: reorderMode ? '#C0603A' : 'transparent',
-            color: reorderMode ? '#fff' : '#666',
+            border: `1px solid ${reorderMode ? 'var(--accent)' : 'var(--text-muted)'}`,
+            background: reorderMode ? 'var(--accent)' : 'transparent',
+            color: reorderMode ? '#fff' : 'var(--text-secondary)',
             whiteSpace: 'nowrap',
           }}
         >
           {reorderMode ? '✓ Режим перестановки' : '⇅ Режим перестановки'}
         </button>
         <span style={{ flex: 1 }} />
-        <span style={{ fontFamily: SANS, fontSize: '0.7rem', color: '#999' }}>
+        <span style={{ fontFamily: SANS, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
           {allFiltered.length} из {books.length}
           {lastFetchedAt && ` · обновлено в ${lastFetchedAt}`}
           {refreshing && ' (обновляется…)'}
@@ -1577,19 +1577,19 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
             marginBottom: '0.9rem',
           }}
         >
-          Режим перестановки: сортировка зафиксирована на «№». Тащите строки за <span style={{ color: '#111' }}>⋮⋮</span>, чтобы изменить порядок. Только опубликованные книги.
+          Режим перестановки: сортировка зафиксирована на «№». Тащите строки за <span style={{ color: 'var(--text)' }}>⋮⋮</span>, чтобы изменить порядок. Только опубликованные книги.
         </div>
       )}
 
       {errorMsg && (
-        <p style={{ color: '#C0603A', fontFamily: SANS, fontSize: '0.8rem' }}>{errorMsg}</p>
+        <p style={{ color: 'var(--accent)', fontFamily: SANS, fontSize: '0.8rem' }}>{errorMsg}</p>
       )}
 
       {creating && (
         <CreateBookForm form={createForm} setForm={setCreateForm} saving={createSaving} onSubmit={submitCreate} />
       )}
 
-      {loading && <p style={{ fontFamily: SANS, color: '#666' }}>Загрузка…</p>}
+      {loading && <p style={{ fontFamily: SANS, color: 'var(--text-secondary)' }}>Загрузка…</p>}
 
       {!loading && (
         <Fragment>
@@ -1649,7 +1649,7 @@ function FilterPill({
         padding: '0.25rem 0.55rem',
         border: '1px solid #999',
         background: active ? '#111' : 'transparent',
-        color: active ? '#fff' : '#666',
+        color: active ? '#fff' : 'var(--text-secondary)',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
       }}

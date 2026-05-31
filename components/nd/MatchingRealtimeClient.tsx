@@ -118,7 +118,7 @@ export default function MatchingRealtimeClient({ sessionId, onStateChange, onPre
         bottom: 8,
         right: 8,
         fontSize: '0.6rem',
-        color: mode === 'sse' ? '#4a7' : '#999',
+        color: mode === 'sse' ? '#4a7' : 'var(--text-muted)',
         fontFamily: 'var(--nd-mono), monospace',
         opacity: 0.6,
         userSelect: 'none',

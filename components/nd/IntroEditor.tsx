@@ -37,7 +37,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: '0.65rem',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: '#666',
+  color: 'var(--text-secondary)',
   marginBottom: '0.25rem',
   display: 'block',
 }
@@ -47,10 +47,10 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.85rem',
-  color: '#111',
+  color: 'var(--text)',
   padding: '0.5rem 0.625rem',
-  border: '1px solid #E5E5E5',
-  background: '#fff',
+  border: '1px solid var(--border)',
+  background: 'var(--bg-input)',
   boxSizing: 'border-box',
 }
 
@@ -69,9 +69,9 @@ const btn = (color: string, disabled = false): React.CSSProperties => ({
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
   padding: '0.35rem 0.75rem',
-  border: `1px solid ${disabled ? '#E5E5E5' : color}`,
+  border: `1px solid ${disabled ? 'var(--border)' : color}`,
   background: 'transparent',
-  color: disabled ? '#999' : color,
+  color: disabled ? 'var(--text-muted)' : color,
   cursor: disabled ? 'default' : 'pointer',
 })
 
@@ -120,8 +120,8 @@ function SortableSection({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    border: '1px solid #E5E5E5',
-    background: '#fff',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-input)',
     padding: '0.875rem',
     marginBottom: '0.625rem',
   }
@@ -137,7 +137,7 @@ function SortableSection({
             cursor: 'grab',
             background: 'none',
             border: 'none',
-            color: '#aaa',
+            color: 'var(--text-muted)',
             fontSize: '1.1rem',
             padding: '0 0.25rem',
             touchAction: 'none',
@@ -145,7 +145,7 @@ function SortableSection({
         >
           ⋮⋮
         </button>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: '#555', cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={section.isPublished}
@@ -157,7 +157,7 @@ function SortableSection({
           <button
             onClick={onDelete}
             disabled={saving}
-            style={btn('#C0603A', saving)}
+            style={btn('var(--accent)', saving)}
             data-testid={`intro-delete-${section.id}`}
           >
             Удалить
@@ -315,7 +315,7 @@ export default function IntroEditor() {
     }
   }
 
-  if (loading) return <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.85rem', color: '#666' }}>Загрузка…</div>
+  if (loading) return <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Загрузка…</div>
 
   return (
     <div data-testid="intro-editor" style={{ maxWidth: '780px' }}>
@@ -323,12 +323,12 @@ export default function IntroEditor() {
         <button onClick={handleSave} disabled={saving || dirtyIds.size === 0} style={btn('#111', saving || dirtyIds.size === 0)} data-testid="intro-save">
           {saving ? 'Сохранение…' : 'Сохранить'}
         </button>
-        {msg && <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: '#666' }} data-testid="intro-msg">{msg}</span>}
+        {msg && <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: 'var(--text-secondary)' }} data-testid="intro-msg">{msg}</span>}
       </div>
 
       {header && (
-        <div style={{ border: '1px solid #E5E5E5', background: '#fff', padding: '0.875rem', marginBottom: '1.25rem' }}>
-          <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '0.625rem' }}>
+        <div style={{ border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '0.875rem', marginBottom: '1.25rem' }}>
+          <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.625rem' }}>
             Шапка
           </div>
           <label style={labelStyle}>Eyebrow</label>
@@ -348,7 +348,7 @@ export default function IntroEditor() {
         </div>
       )}
 
-      <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '0.5rem' }}>
+      <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
         Секции аккордеона
       </div>
 

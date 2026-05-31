@@ -9,7 +9,7 @@ interface Props {
 export default function SubmitBookCard({ onClick }: Props) {
   const [hovered, setHovered] = useState(false)
 
-  const accent = '#C0603A'
+  const accent = 'var(--accent)'
   const idle = '#D8D2CC'
 
   return (
@@ -26,8 +26,8 @@ export default function SubmitBookCard({ onClick }: Props) {
         flexDirection: 'column',
         width: '100%',
         padding: 0,
-        background: '#fff',
-        border: `1px solid ${hovered ? accent : '#E5E5E5'}`,
+        background: 'var(--bg-input)',
+        border: `1px solid ${hovered ? accent : 'var(--border)'}`,
         cursor: 'pointer',
         textAlign: 'left',
         fontFamily: 'inherit',
@@ -111,7 +111,7 @@ export default function SubmitBookCard({ onClick }: Props) {
         </div>
       </div>
 
-      <div className="submit-book-card__copy" style={{ padding: '0.75rem 0.85rem 0.9rem', borderTop: '1px solid #F0EBE6' }}>
+      <div className="submit-book-card__copy" style={{ padding: '0.75rem 0.85rem 0.9rem', borderTop: '1px solid var(--border)' }}>
         <div
           style={{
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -130,7 +130,7 @@ export default function SubmitBookCard({ onClick }: Props) {
             marginTop: '0.25rem',
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             fontSize: '0.7rem',
-            color: '#888',
+            color: 'var(--text-muted)',
             lineHeight: 1.4,
           }}
         >
