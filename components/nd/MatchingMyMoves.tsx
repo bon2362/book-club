@@ -39,7 +39,6 @@ export default function MatchingMyMoves({
   const [adding, setAdding] = useState<string | null>(null)
   const [modalState, setModalState] = useState<ModalState | null>(null)
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
-  const [hoveredButton, setHoveredButton] = useState<string | null>(null)
 
   useEffect(() => {
     setMoves(initialMoves)
@@ -77,9 +76,6 @@ export default function MatchingMyMoves({
           onClose={() => setModalState(null)}
         />
       )}
-      <p className="text-xs m-0 mb-2" style={{ color: 'var(--text-muted)' }}>
-        Добавь книгу и соберется новый сценарий
-      </p>
       {moves.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center h-full p-6 text-center"
@@ -89,24 +85,24 @@ export default function MatchingMyMoves({
           <p className="text-sm">Пока нет книг, где ваша заявка замкнет круг</p>
         </div>
       ) : (
-        <ul className="list-none p-0 m-0 flex flex-col gap-2.5">
-          {moves.map((move) => (
+        <ul className="list-none p-0 m-0">
+          {moves.map((move, idx) => (
             <li
               key={move.bookId}
-              className="p-3"
               onMouseEnter={() => setHoveredCard(move.bookId)}
               onMouseLeave={() => setHoveredCard(null)}
               onFocus={() => setHoveredCard(move.bookId)}
               onBlur={() => setHoveredCard(null)}
               style={{
-                borderRadius: 0,
-                border: '1px solid var(--border)',
-                borderLeft: '2px solid var(--accent)',
-                background: 'var(--bg-input)',
+                padding: '0.95rem 1.25rem',
+                borderTop: idx === 0 ? 'none' : '1px solid var(--hair)',
               }}
             >
-              <div className="flex gap-3 mb-2.5">
-                <div className="relative overflow-hidden shrink-0" style={{ width: 40, height: 56, borderRadius: 0 }}>
+              <div className="flex gap-3">
+                <div
+                  className="relative overflow-hidden shrink-0"
+                  style={{ width: 42, height: 60, borderRadius: 4, boxShadow: '0 1px 3px rgba(40,30,20,0.14)' }}
+                >
                   <CoverImage coverUrl={move.coverUrl} title={move.title} author={move.author} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -120,11 +116,11 @@ export default function MatchingMyMoves({
                         personalStatus: null,
                       })),
                     })}
-                    className="text-left hover:underline"
+                    className="text-left"
                     style={{
-                      fontFamily: 'Georgia, "Times New Roman", serif',
+                      fontFamily: 'var(--nd-serif)',
                       fontWeight: 700,
-                      fontSize: '0.9rem',
+                      fontSize: '1rem',
                       letterSpacing: '-0.01em',
                       color: 'var(--text)',
                       overflow: 'hidden',
@@ -132,37 +128,51 @@ export default function MatchingMyMoves({
                       whiteSpace: 'nowrap',
                       display: 'block',
                       maxWidth: '100%',
-                      marginBottom: '0.15rem',
+                      lineHeight: 1.25,
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
                     }}
+                    onMouseEnter={(e) => { (e.target as HTMLElement).style.color = 'var(--accent)' }}
+                    onMouseLeave={(e) => { (e.target as HTMLElement).style.color = 'var(--text)' }}
                   >
                     {move.title}
                   </button>
-                  <div className="text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
                     {move.author}
                   </div>
-                  <div className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
-                    Уже записались:
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {move.existingParticipants.map((p) => (
-                      <ParticipantInterestChip
-                        key={p.userId}
-                        userId={p.userId}
-                        pseudonym={p.pseudonym}
-                        rank={p.rank}
-                      />
-                    ))}
-                  </div>
-                  {move.impact && (
+
+                  {move.existingParticipants.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '0.55rem 0 0.25rem' }}>
+                        Уже записались
+                      </div>
+                      <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
+                        {move.existingParticipants.map((p) => (
+                          <ParticipantInterestChip
+                            key={p.userId}
+                            userId={p.userId}
+                            pseudonym={p.pseudonym}
+                            rank={p.rank}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {move.impact && hoveredCard === move.bookId && (
                     <div
-                      className="mt-2 border-l-2 pl-2 text-[11px] leading-snug"
                       style={{
-                        borderColor: 'var(--accent)',
+                        marginTop: '0.6rem',
+                        paddingLeft: '0.75rem',
+                        borderLeft: '2px solid var(--accent)',
+                        fontSize: '0.72rem',
+                        lineHeight: 1.45,
                         color: 'var(--text-secondary)',
-                        display: hoveredCard === move.bookId ? 'block' : 'none',
                       }}
                     >
-                      <div className="font-semibold" style={{ color: 'var(--text)' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.1rem' }}>
                         После добавления
                       </div>
                       <div>
@@ -182,9 +192,9 @@ export default function MatchingMyMoves({
                                   })
                                 }
                               }}
-                              className="underline"
                               style={{
                                 color: 'var(--text)',
+                                textDecoration: 'underline',
                                 font: 'inherit',
                                 background: 'none',
                                 border: 'none',
@@ -199,50 +209,42 @@ export default function MatchingMyMoves({
                       </div>
                     </div>
                   )}
+
+                  {!frozen && (
+                    <button
+                      onClick={() => handleAdd(move.bookId)}
+                      disabled={adding === move.bookId}
+                      style={
+                        adding === move.bookId
+                          ? {
+                              marginTop: '0.7rem',
+                              background: 'var(--border)',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              cursor: 'default',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              padding: '0.5rem 1rem',
+                              borderRadius: 'var(--radius-control)',
+                            }
+                          : {
+                              marginTop: '0.7rem',
+                              background: 'var(--accent)',
+                              border: 'none',
+                              color: 'var(--bg-input)',
+                              cursor: 'pointer',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              padding: '0.5rem 1rem',
+                              borderRadius: 'var(--radius-control)',
+                            }
+                      }
+                    >
+                      {adding === move.bookId ? '…' : 'Хочу читать'}
+                    </button>
+                  )}
                 </div>
               </div>
-              {!frozen && (
-                <button
-                  onClick={() => handleAdd(move.bookId)}
-                  onMouseEnter={() => setHoveredButton(move.bookId)}
-                  onMouseLeave={() => setHoveredButton(null)}
-                  onFocus={() => setHoveredButton(move.bookId)}
-                  onBlur={() => setHoveredButton(null)}
-                  disabled={adding === move.bookId}
-                  className="w-full font-semibold"
-                  style={
-                    adding === move.bookId
-                      ? {
-                          borderRadius: 0,
-                          background: 'var(--border)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text-muted)',
-                          cursor: 'default',
-                          fontSize: '0.72rem',
-                          textTransform: 'uppercase' as const,
-                          letterSpacing: '0.08em',
-                          padding: '0.55rem',
-                        }
-                      : {
-                          borderRadius: 0,
-                          background: 'var(--text)',
-                          border: '1px solid var(--border-strong)',
-                          color: 'var(--bg)',
-                          cursor: 'pointer',
-                          fontSize: '0.72rem',
-                          textTransform: 'uppercase' as const,
-                          letterSpacing: '0.08em',
-                          padding: '0.55rem',
-                        }
-                  }
-                >
-                  {adding === move.bookId
-                    ? '…'
-                    : hoveredButton === move.bookId
-                      ? 'Хочу читать * на первое место'
-                      : 'Хочу читать'}
-                </button>
-              )}
             </li>
           ))}
         </ul>

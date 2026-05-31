@@ -81,70 +81,88 @@ export default function MatchingBookDetailModal({
     <div
       role="presentation"
       onClick={onClose}
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style={{ background: 'rgba(26, 23, 20, 0.42)' }}
+      className="fixed inset-0 flex items-center justify-center z-50 p-6"
+      style={{ background: 'rgba(33, 28, 23, 0.34)', backdropFilter: 'blur(2px)' }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={book.title}
         onClick={(e) => e.stopPropagation()}
-        className="relative border max-w-[720px] w-full"
+        className="relative max-w-[640px] w-full"
         style={{
           background: 'var(--bg-input)',
-          borderColor: 'var(--border)',
-          borderRadius: 0,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-          maxHeight: '86vh',
+          borderRadius: 'var(--radius-card)',
+          boxShadow: '0 24px 70px rgba(33,28,23,0.25)',
+          maxHeight: '88vh',
           overflowY: 'auto',
         }}
       >
+        {/* Close button: soft round */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Закрыть"
-          className="absolute top-3 right-3 h-8 w-8 border text-lg leading-none"
+          className="absolute top-4 right-4 flex items-center justify-center"
           style={{
-            borderRadius: 0,
-            borderColor: 'var(--border)',
-            background: 'var(--bg-input)',
-            color: 'var(--text-muted)',
+            width: 30,
+            height: 30,
+            borderRadius: '50%',
+            border: 'none',
+            background: 'var(--chip-bg)',
+            color: 'var(--text-secondary)',
+            fontSize: '1.05rem',
             cursor: 'pointer',
+            lineHeight: 1,
+            zIndex: 1,
           }}
+          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--hair)' }}
+          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--chip-bg)' }}
         >
           ×
         </button>
 
-        <div className="px-6 py-5 pr-14 border-b" style={{ borderColor: 'var(--border)' }}>
-          <h3
-            className="m-0 text-xl font-semibold leading-tight"
-            style={{ fontFamily: 'Georgia, "Times New Roman", serif', color: 'var(--text)' }}
+        {/* Top: cover + title/author/tags — no separate header with border */}
+        <div
+          className="grid gap-6"
+          style={{ gridTemplateColumns: '132px minmax(0,1fr)', padding: '1.9rem 1.9rem 0' }}
+        >
+          <div
+            className="relative overflow-hidden shrink-0"
+            style={{ width: 132, height: 198, borderRadius: 6, boxShadow: '0 4px 16px rgba(40,30,20,0.18)' }}
           >
-            {book.title}
-          </h3>
-        </div>
-
-        <div className="grid gap-6 p-6" style={{ gridTemplateColumns: '140px minmax(0, 1fr)' }}>
-          <div className="relative rounded overflow-hidden shrink-0" style={{ width: 140, height: 210 }}>
             <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
           </div>
 
-          <div className="min-w-0">
-            <p className="text-base m-0 mb-2" style={{ color: 'var(--text-secondary)' }}>
+          <div style={{ paddingTop: '0.1rem', paddingRight: '2rem' }}>
+            <h3
+              className="leading-tight"
+              style={{
+                margin: '0 0 0.4rem',
+                fontFamily: 'var(--nd-serif)',
+                fontWeight: 700,
+                fontSize: '1.55rem',
+                letterSpacing: '-0.01em',
+                color: 'var(--text)',
+                lineHeight: 1.15,
+              }}
+            >
+              {book.title}
+            </h3>
+            <p style={{ margin: '0 0 0.85rem', fontSize: '0.92rem', color: 'var(--text-muted)' }}>
               {book.author}{meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
             </p>
-
             {book.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-4">
+              <div className="flex flex-wrap gap-1.5">
                 {book.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-[11px] uppercase px-2 py-0.5 border"
                     style={{
-                      color: 'var(--text-muted)',
-                      borderColor: '#d6d6d6',
-                      background: 'transparent',
-                      borderRadius: 0,
+                      fontSize: '0.72rem',
+                      padding: '0.16rem 0.6rem',
+                      borderRadius: 'var(--radius-pill)',
+                      background: 'var(--chip-bg)',
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     {tag}
@@ -152,124 +170,150 @@ export default function MatchingBookDetailModal({
                 ))}
               </div>
             )}
+          </div>
+        </div>
 
-            {book.description && (
-              <p
-                className="text-sm leading-relaxed mb-5"
-                style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}
+        {/* Body */}
+        <div style={{ padding: '1.5rem 1.9rem 1.9rem' }}>
+          {book.description && (
+            <p
+              style={{ margin: '0 0 1.5rem', fontSize: '0.92rem', lineHeight: 1.68, color: 'var(--text-body)', whiteSpace: 'pre-line' }}
+            >
+              {book.description}
+            </p>
+          )}
+
+          {book.whyRead && (
+            <section
+              style={{
+                margin: '0 0 1.5rem',
+                paddingLeft: '1rem',
+                borderLeft: '3px solid var(--accent)',
+              }}
+            >
+              <h4
+                style={{ margin: '0 0 0.35rem', fontSize: '0.72rem', textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--accent)' }}
               >
-                {book.description}
+                Почему предлагаю читать
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.62, color: 'var(--text-body)', whiteSpace: 'pre-line' }}>
+                {book.whyRead}
               </p>
-            )}
+            </section>
+          )}
 
-            {book.whyRead && (
-              <section
-                className="mb-5 border-l-2 px-4 py-3"
-                style={{ borderColor: 'var(--accent)', background: 'var(--bg-elevated)' }}
+          {(book.textUrl || parsedRecommendation) && (
+            <div className="flex flex-wrap gap-4 mb-6" style={{ fontSize: '0.88rem' }}>
+              {book.textUrl && (
+                <a
+                  href={book.textUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.textDecoration = 'underline' }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.textDecoration = 'none' }}
+                >
+                  Текст →
+                </a>
+              )}
+              {parsedRecommendation && (
+                <a
+                  href={parsedRecommendation.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.textDecoration = 'underline' }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.textDecoration = 'none' }}
+                >
+                  {parsedRecommendation.text} →
+                </a>
+              )}
+            </div>
+          )}
+
+          {chips.length > 0 && (
+            <div style={{ marginBottom: '1.7rem' }}>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
+                Записались на книгу
+              </div>
+              <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
+                {chips.map((p) => (
+                  <ParticipantInterestChip
+                    key={p.userId}
+                    userId={p.userId}
+                    pseudonym={p.pseudonym}
+                    rank={p.rank}
+                    personalStatus={p.personalStatus}
+                    viewingUserId={viewingUserId}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {book.isInList && canEdit && (
+            <div style={{ marginBottom: '1rem' }}>
+              <select
+                aria-label="Статус книги"
+                value={book.personalStatus ?? ''}
+                onChange={(e) => handleStatusChange(e.target.value || null)}
+                disabled={busy}
+                className="w-full text-sm border px-3 py-2 cursor-pointer"
+                style={{
+                  borderColor: 'var(--border)',
+                  background: 'var(--bg-elevated)',
+                  color: 'var(--text)',
+                  borderRadius: 'var(--radius-control)',
+                }}
               >
-                <h4 className="m-0 mb-2 text-xs uppercase" style={{ color: 'var(--accent)' }}>
-                  Почему предлагаю читать
-                </h4>
-                <p className="m-0 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-                  {book.whyRead}
-                </p>
-              </section>
-            )}
+                <option value="">Записал:ась</option>
+                <option value="reading">Читаю сейчас</option>
+                <option value="read">Прочитал:а</option>
+              </select>
+            </div>
+          )}
 
-            {(book.textUrl || parsedRecommendation) && (
-              <div className="flex flex-wrap gap-3 mb-5 text-sm">
-                {book.textUrl && (
-                  <a href={book.textUrl} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--text)' }}>
-                    Текст
-                  </a>
-                )}
-                {parsedRecommendation && (
-                  <a href={parsedRecommendation.url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--text)' }}>
-                    {parsedRecommendation.text}
-                  </a>
-                )}
-              </div>
-            )}
-
-            {chips.length > 0 && (
-              <div className="mb-5">
-                <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Записались на книгу:
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {chips.map((p) => (
-                    <ParticipantInterestChip
-                      key={p.userId}
-                      userId={p.userId}
-                      pseudonym={p.pseudonym}
-                      rank={p.rank}
-                      personalStatus={p.personalStatus}
-                      viewingUserId={viewingUserId}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {book.isInList && canEdit && (
-              <div className="mb-4">
-                <select
-                  aria-label="Статус книги"
-                  value={book.personalStatus ?? ''}
-                  onChange={(e) => handleStatusChange(e.target.value || null)}
+          {canEdit && (
+            <div className="flex gap-3 items-center">
+              {book.isInList ? (
+                <button
+                  onClick={handleRemoveFromList}
                   disabled={busy}
-                  className="w-full text-sm border px-3 py-2 cursor-pointer"
                   style={{
-                    borderColor: 'var(--border)',
-                    background: 'var(--bg-elevated)',
-                    color: 'var(--text)',
-                    borderRadius: 0,
+                    fontSize: '0.85rem',
+                    padding: 0,
+                    border: 'none',
+                    background: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: busy ? 'default' : 'pointer',
+                    textDecoration: 'underline',
                   }}
                 >
-                  <option value="">Записал:ась</option>
-                  <option value="reading">Читаю сейчас</option>
-                  <option value="read">Прочитал:а</option>
-                </select>
-              </div>
-            )}
-
-            {canEdit && (
-              <div className="flex gap-2">
-                {book.isInList ? (
-                  <button
-                    onClick={handleRemoveFromList}
-                    disabled={busy}
-                    className="flex-1 text-sm py-2 px-3 border"
-                    style={{
-                      borderRadius: 0,
-                      borderColor: 'var(--border)',
-                      background: 'var(--bg-input)',
-                      color: 'var(--text-secondary)',
-                      cursor: busy ? 'default' : 'pointer',
-                    }}
-                  >
-                    {busy ? '…' : 'Убрать из списка'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleAddToList}
-                    disabled={busy}
-                    className="flex-1 text-sm py-2 px-3 font-medium"
-                    style={{
-                      borderRadius: 0,
-                      border: '1px solid var(--border-strong)',
-                      background: 'var(--text)',
-                      color: 'var(--bg)',
-                      cursor: busy ? 'default' : 'pointer',
-                      opacity: busy ? 0.7 : 1,
-                    }}
-                  >
-                    {busy ? '…' : 'Добавить в список'}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  {busy ? '…' : 'Убрать из списка'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddToList}
+                  disabled={busy}
+                  style={{
+                    background: 'var(--accent)',
+                    border: 'none',
+                    color: 'var(--bg-input)',
+                    padding: '0.6rem 1.3rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-control)',
+                    cursor: busy ? 'default' : 'pointer',
+                    opacity: busy ? 0.7 : 1,
+                  }}
+                  onMouseEnter={(e) => { if (!busy) (e.target as HTMLElement).style.background = 'var(--accent-hover)' }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--accent)' }}
+                >
+                  {busy ? '…' : 'Добавить в список'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
