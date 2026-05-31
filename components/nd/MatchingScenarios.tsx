@@ -68,7 +68,11 @@ export default function MatchingScenarios({
           onClose={closeModal}
         />
       )}
-      <ul className="list-none p-0 m-0">
+      {/* Тёплый фон контейнера — белые карточки сценариев читаются на нём */}
+      <ul
+        className="list-none p-0 m-0 flex flex-col"
+        style={{ background: 'var(--bg)', padding: '0.7rem', gap: '0.7rem', display: 'flex', flexDirection: 'column' }}
+      >
         {overview.scenarios.map((scenario, index) => (
           <ScenarioSetCard
             key={scenario.id}
@@ -76,7 +80,6 @@ export default function MatchingScenarios({
             scenarioNumber={index + 1}
             bookById={bookById}
             onOpen={openModal}
-            isFirst={index === 0}
             highlighted={
               scenario.id === highlightedScenarioId ||
               scenario.circles.some((circle) => (
@@ -96,14 +99,12 @@ function ScenarioSetCard({
   scenarioNumber,
   bookById,
   onOpen,
-  isFirst,
   highlighted,
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
   bookById: Map<string, BookInfo>
   onOpen: (book: BookInfo) => void
-  isFirst: boolean
   highlighted: boolean
 }) {
   const isLeader = scenario.tier === 'leader'
@@ -119,9 +120,10 @@ function ScenarioSetCard({
   return (
     <li
       style={{
-        borderTop: isFirst ? 'none' : '1px solid var(--hair)',
-        background: isLeader ? 'var(--accent-soft)' : highlighted ? 'rgba(192, 96, 58, 0.04)' : 'transparent',
-        padding: '0.95rem 1.25rem',
+        background: isLeader ? 'var(--accent-soft)' : highlighted ? 'rgba(192, 96, 58, 0.04)' : 'var(--bg-input)',
+        borderRadius: 'var(--radius-card)',
+        boxShadow: isLeader ? 'none' : '0 1px 2px rgba(50,38,24,.04)',
+        padding: '0.85rem 1rem',
       }}
       data-highlighted={highlighted ? 'true' : 'false'}
     >
@@ -138,7 +140,7 @@ function ScenarioSetCard({
             color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
           }}
         >
-          Вариант {scenarioNumber}
+          Сценарий {scenarioNumber}
         </h3>
         {isLeader && (
           <span
@@ -220,7 +222,7 @@ function CircleItem({
         gap: '0.8rem',
         alignItems: 'flex-start',
         padding: '0.55rem 0',
-        borderTop: isFirst ? 'none' : `1px solid ${isLeader ? 'rgba(192, 96, 58, 0.16)' : 'var(--hair)'}`,
+        borderTop: isFirst ? 'none' : `1px solid ${isLeader ? 'rgba(181, 83, 43, 0.14)' : 'var(--hair-soft)'}`,
       }}
     >
       {book && (

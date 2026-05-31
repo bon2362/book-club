@@ -41,14 +41,54 @@ interface Props {
   mutationUserId?: string
 }
 
+// ── Shared cover style ────────────────────────────────────────────────────────
+const coverStyle: React.CSSProperties = {
+  width: 40,
+  height: 57,
+  borderRadius: 3,
+  flexShrink: 0,
+  boxShadow: '0 1px 3px rgba(40,30,20,0.14)',
+  position: 'relative',
+  overflow: 'hidden',
+}
+
+// ── Panel wrapper ─────────────────────────────────────────────────────────────
+const panelStyle: React.CSSProperties = {
+  background: 'var(--bg-input)',
+  borderRadius: 'var(--radius-card)',
+  boxShadow: 'var(--shadow-card)',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  minHeight: 300,
+}
+
+const panelHeadStyle: React.CSSProperties = {
+  padding: '0.85rem 1.25rem 0.6rem',
+  flexShrink: 0,
+}
+
+// ── Row base style ─────────────────────────────────────────────────────────────
+const rowBase: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '30px 40px 1fr',
+  gap: '0.75rem',
+  padding: '0.6rem 0.75rem',
+  alignItems: 'center',
+  cursor: 'pointer',
+}
+
+// ── SortableRow ───────────────────────────────────────────────────────────────
 interface SortableRowProps {
   book: CatalogBook
   index: number
   frozen: boolean
+  isFirst: boolean
   onClick: (book: CatalogBook) => void
+  onRemove: (bookId: string) => void
 }
 
-function SortableRow({ book, index, frozen, onClick }: SortableRowProps) {
+function SortableRow({ book, index, frozen, isFirst, onClick, onRemove }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: book.bookId,
     disabled: frozen,
@@ -57,25 +97,23 @@ function SortableRow({ book, index, frozen, onClick }: SortableRowProps) {
   return (
     <li
       ref={setNodeRef}
+      className="nd-catalog-row"
       style={{
+        ...rowBase,
         transform: CSS.Transform.toString(transform),
         transition,
-        display: 'grid',
-        gridTemplateColumns: '48px 1fr',
-        gap: '12px',
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--border)',
+        boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)',
         opacity: isDragging ? 0.5 : 1,
-        background: isDragging ? 'var(--bg-elevated)' : undefined,
-        alignItems: 'start',
-        cursor: 'pointer',
+        background: isDragging ? '#FAF6EE' : undefined,
       }}
       onClick={() => onClick(book)}
     >
-      {/* Rank + drag handle stacked */}
-      <div className="flex flex-col items-center gap-0.5 pt-0.5">
+      {/* Rank + drag handle */}
+      <div className="flex flex-col items-center gap-0.5">
         {book.rank != null && (
-          <span className="text-lg font-bold leading-none" style={{ color: 'var(--text)' }}>
+          <span
+            style={{ fontFamily: 'var(--nd-serif)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1 }}
+          >
             #{index + 1}
           </span>
         )}
@@ -85,187 +123,176 @@ function SortableRow({ book, index, frozen, onClick }: SortableRowProps) {
             {...listeners}
             aria-label={`Перетащить книгу ${book.title}`}
             onClick={(e) => e.stopPropagation()}
-            className="cursor-grab select-none touch-none text-base leading-none"
-            style={{ color: 'var(--text-muted)', opacity: 0.5 }}
+            className="cursor-grab select-none touch-none"
+            style={{ color: 'var(--text-muted)', opacity: 0, fontSize: '0.8rem', background: 'none', border: 'none', padding: 0 }}
           >
             ⠿
           </button>
         )}
       </div>
 
-      {/* Cover + title + author */}
-      <div className="flex gap-3 min-w-0">
-        <div className="relative overflow-hidden shrink-0" style={{ width: 44, height: 62, borderRadius: 0 }}>
-          <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+      {/* Cover */}
+      <div style={coverStyle}>
+        <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+      </div>
+
+      {/* Title + author */}
+      <div className="min-w-0">
+        <div
+          style={{
+            fontFamily: 'var(--nd-serif)',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            letterSpacing: '-0.01em',
+            color: 'var(--text)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.25,
+            marginBottom: '0.05rem',
+          }}
+        >
+          {book.title}
         </div>
-        <div className="min-w-0">
-          <div
-            style={{
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              letterSpacing: '-0.01em',
-              color: 'var(--text)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              lineHeight: 1.25,
-              marginBottom: '0.125rem',
-            }}
-          >
-            {book.title}
-          </div>
-          <div
-            className="text-xs"
-            style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          >
-            {book.author}
-          </div>
+        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {book.author}
         </div>
       </div>
+
+      {/* «Убрать из списка» — absolute over row, appears on hover via CSS */}
+      {!frozen && (
+        <button
+          type="button"
+          className="nd-catalog-act"
+          onClick={(e) => { e.stopPropagation(); onRemove(book.bookId) }}
+          style={{
+            background: 'var(--chip-bg)',
+            color: 'var(--text-secondary)',
+            border: 'none',
+            borderRadius: 'var(--radius-control)',
+            fontSize: '0.74rem',
+            fontWeight: 600,
+            padding: '0.4rem 0.8rem',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--hair)'; (e.target as HTMLElement).style.color = 'var(--accent)' }}
+          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--chip-bg)'; (e.target as HTMLElement).style.color = 'var(--text-secondary)' }}
+        >
+          Убрать из списка
+        </button>
+      )}
     </li>
   )
 }
 
+// ── StatusRow ─────────────────────────────────────────────────────────────────
 interface StatusRowProps {
   book: CatalogBook
+  isFirst: boolean
   onClick: (book: CatalogBook) => void
 }
 
-function StatusRow({ book, onClick }: StatusRowProps) {
+function StatusRow({ book, isFirst, onClick }: StatusRowProps) {
   const statusIcon = book.personalStatus === 'reading' ? '📖' : '✓'
   return (
     <li
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '48px 1fr',
-        gap: '12px',
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--border)',
-        alignItems: 'start',
-        opacity: 0.7,
-        cursor: 'pointer',
-      }}
+      className="nd-catalog-row"
+      style={{ ...rowBase, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)', opacity: 0.7 }}
       onClick={() => onClick(book)}
     >
-      <div className="flex justify-center pt-1">
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{statusIcon}</span>
+      <div className="flex justify-center">
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{statusIcon}</span>
       </div>
-      <div className="flex gap-3 min-w-0">
-        <div className="relative overflow-hidden shrink-0" style={{ width: 44, height: 62, borderRadius: 0 }}>
-          <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+      <div style={coverStyle}>
+        <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+      </div>
+      <div className="min-w-0">
+        <div
+          style={{
+            fontFamily: 'var(--nd-serif)',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            letterSpacing: '-0.01em',
+            color: 'var(--text)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.25,
+            marginBottom: '0.05rem',
+          }}
+        >
+          {book.title}
         </div>
-        <div className="min-w-0">
-          <div
-            style={{
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              letterSpacing: '-0.01em',
-              color: 'var(--text)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              lineHeight: 1.25,
-              marginBottom: '0.125rem',
-            }}
-          >
-            {book.title}
-          </div>
-          <div
-            className="text-xs"
-            style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          >
-            {book.author}
-          </div>
+        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {book.author}
         </div>
       </div>
     </li>
   )
 }
 
+// ── CatalogRow ────────────────────────────────────────────────────────────────
 interface CatalogRowProps {
   book: CatalogBook
+  isFirst: boolean
   onClick: (book: CatalogBook) => void
   onAdd: (bookId: string) => void
   frozen: boolean
 }
 
-function CatalogRow({ book, onClick, onAdd, frozen }: CatalogRowProps) {
-  const [hovered, setHovered] = useState(false)
+function CatalogRow({ book, isFirst, onClick, onAdd, frozen }: CatalogRowProps) {
   return (
     <li
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '48px minmax(0, 1fr) auto',
-        gap: '12px',
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--border)',
-        alignItems: 'start',
-        cursor: 'pointer',
-        background: hovered ? 'var(--bg-tag-green)' : 'transparent',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocus={() => setHovered(true)}
-      onBlur={() => setHovered(false)}
+      className="nd-catalog-row"
+      style={{ ...rowBase, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)' }}
       onClick={() => onClick(book)}
     >
-      <div className="flex justify-center pt-1">
-        <span className="text-base leading-none" style={{ color: 'var(--text-muted)', opacity: 0.4 }}>+</span>
+      <div className="flex justify-center">
+        <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)', opacity: 0.45 }}>+</span>
       </div>
-      <div className="flex gap-3 min-w-0">
-        <div className="relative overflow-hidden shrink-0" style={{ width: 44, height: 62, borderRadius: 0 }}>
-          <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+      <div style={coverStyle}>
+        <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+      </div>
+      <div className="min-w-0">
+        <div
+          style={{
+            fontFamily: 'var(--nd-serif)',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            letterSpacing: '-0.01em',
+            color: 'var(--text)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.25,
+            marginBottom: '0.05rem',
+          }}
+        >
+          {book.title}
         </div>
-        <div className="min-w-0">
-          <div
-            style={{
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              letterSpacing: '-0.01em',
-              color: 'var(--text)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              lineHeight: 1.25,
-              marginBottom: '0.125rem',
-            }}
-          >
-            {book.title}
-          </div>
-          <div
-            className="text-xs"
-            style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-          >
-            {book.author}
-          </div>
+        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {book.author}
         </div>
       </div>
+
+      {/* «Хочу читать» — absolute on hover */}
       {!frozen && (
         <button
           type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onAdd(book.bookId)
-          }}
+          className="nd-catalog-act"
+          onClick={(e) => { e.stopPropagation(); onAdd(book.bookId) }}
           style={{
-            alignSelf: 'center',
-            opacity: hovered ? 1 : 0,
-            pointerEvents: hovered ? 'auto' : 'none',
-            borderRadius: 0,
-            border: '1px solid var(--border-strong)',
-            background: 'var(--text)',
-            color: 'var(--bg)',
-            padding: '0.45rem 0.75rem',
-            fontSize: '0.68rem',
-            fontWeight: 700,
-            textTransform: 'uppercase' as const,
-            letterSpacing: '0.08em',
-            transition: 'opacity 120ms ease',
-            whiteSpace: 'nowrap',
+            background: 'var(--accent)',
+            color: 'var(--bg-input)',
+            border: 'none',
+            borderRadius: 'var(--radius-control)',
+            fontSize: '0.74rem',
+            fontWeight: 600,
+            padding: '0.4rem 0.8rem',
+            cursor: 'pointer',
           }}
+          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--accent-hover)' }}
+          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--accent)' }}
         >
           Хочу читать
         </button>
@@ -273,6 +300,8 @@ function CatalogRow({ book, onClick, onAdd, frozen }: CatalogRowProps) {
     </li>
   )
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function mutationUrl(path: string, mutationUserId?: string) {
   if (!mutationUserId) return path
@@ -306,6 +335,8 @@ async function addToList(bookId: string, mutationUserId?: string) {
 async function removeFromList(bookId: string, mutationUserId?: string) {
   await fetch(mutationUrl(`/api/matching/books/${bookId}`, mutationUserId), { method: 'DELETE' })
 }
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function MatchingPersonalList({
   books: initialBooks,
@@ -461,112 +492,102 @@ export default function MatchingPersonalList({
         />
       )}
 
-      <div className="grid h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
-        <section data-testid="matching-catalog-available" className="flex flex-col min-h-0 border-r" style={{ borderColor: 'var(--border)' }}>
-          <div
-            className="px-4 py-2 border-b flex flex-col justify-center"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)', minHeight: 54 }}
-          >
-            <span
-              className="text-[11px] font-medium uppercase tracking-wide"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Остальной каталог
-            </span>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {catalogOnlyBooks.length > 0 ? (
-              <ul className="list-none p-0 m-0">
-                {catalogOnlyBooks.map((book) => (
-                  <CatalogRow
-                    key={book.bookId}
-                    book={book}
-                    onClick={setModalBook}
-                    onAdd={handleAddToList}
-                    frozen={frozen}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <EmptyColumn text="Все книги уже в вашем списке или статусах." />
-            )}
-          </div>
-        </section>
+      {/* ── Остальной каталог ── */}
+      <section
+        data-testid="matching-catalog-available"
+        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden' }}
+        className="flex flex-col"
+      >
+        <div style={panelHeadStyle}>
+          <h3 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text)' }}>
+            Остальной каталог
+          </h3>
+          <p style={{ margin: '0.15rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+            Наведите на книгу и добавьте её в список
+          </p>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0.5rem 0.5rem' }}>
+          {catalogOnlyBooks.length > 0 ? (
+            <ul className="list-none p-0 m-0">
+              {catalogOnlyBooks.map((book, idx) => (
+                <CatalogRow
+                  key={book.bookId}
+                  book={book}
+                  isFirst={idx === 0}
+                  onClick={setModalBook}
+                  onAdd={handleAddToList}
+                  frozen={frozen}
+                />
+              ))}
+            </ul>
+          ) : (
+            <EmptyColumn text="Все книги уже в вашем списке или статусах." />
+          )}
+        </div>
+      </section>
 
-        <section data-testid="matching-catalog-mine" className="flex flex-col min-h-0">
-          <div
-            className="px-4 py-2 border-b flex flex-col justify-center"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)', minHeight: 54 }}
-          >
-            <span
-              className="text-[11px] font-medium uppercase tracking-wide block"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Мои книги
-            </span>
-            <span
-              className="text-[10px] block mt-0.5"
-              style={{ color: 'var(--text-muted)', opacity: 0.75 }}
-            >
-              активные книги участвуют в расчёте сценариев
-            </span>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {activeBooks.length > 0 && (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext
-                  items={activeBooks.map((b) => b.bookId)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <ul className="list-none p-0 m-0" data-testid="matching-personal-list">
-                    {activeBooks.map((book, idx) => (
-                      <SortableRow
-                        key={book.bookId}
-                        book={book}
-                        index={idx}
-                        frozen={frozen}
-                        onClick={setModalBook}
-                      />
-                    ))}
-                  </ul>
-                </SortableContext>
-              </DndContext>
-            )}
-
-            {statusBooks.length > 0 && (
-              <>
-                <div
-                  className="px-4 py-2 border-b border-t"
-                  style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
-                >
-                  <span
-                    className="text-[11px] font-medium uppercase tracking-wide block"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    В процессе / Прочитано
-                  </span>
-                  <span
-                    className="text-[10px] block mt-0.5"
-                    style={{ color: 'var(--text-muted)', opacity: 0.75 }}
-                  >
-                    исключены при расчёте ваших сценариев и ходов
-                  </span>
-                </div>
-                <ul className="list-none p-0 m-0">
-                  {statusBooks.map((book) => (
-                    <StatusRow key={book.bookId} book={book} onClick={setModalBook} />
+      {/* ── Мои книги ── */}
+      <section
+        data-testid="matching-catalog-mine"
+        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden' }}
+        className="flex flex-col"
+      >
+        <div style={panelHeadStyle}>
+          <h3 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text)' }}>
+            Мои книги
+          </h3>
+          <p style={{ margin: '0.15rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+            Перетащите, чтобы задать приоритет
+          </p>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0.5rem' }}>
+          {activeBooks.length > 0 && (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext
+                items={activeBooks.map((b) => b.bookId)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="list-none p-0 m-0" data-testid="matching-personal-list">
+                  {activeBooks.map((book, idx) => (
+                    <SortableRow
+                      key={book.bookId}
+                      book={book}
+                      index={idx}
+                      frozen={frozen}
+                      isFirst={idx === 0}
+                      onClick={setModalBook}
+                      onRemove={handleRemoveFromList}
+                    />
                   ))}
                 </ul>
-              </>
-            )}
+              </SortableContext>
+            </DndContext>
+          )}
 
-            {activeBooks.length === 0 && statusBooks.length === 0 && (
-              <EmptyColumn text="Здесь появятся книги, которые вы добавили." />
-            )}
-          </div>
-        </section>
-      </div>
+          {statusBooks.length > 0 && (
+            <>
+              {/* «В процессе / Прочитано» subheading — тёплый стиль */}
+              <div style={{ padding: '0.65rem 0.75rem 0.4rem', borderTop: `1px solid var(--hair)${activeBooks.length > 0 ? '' : '; border-top:none'}` }}>
+                <span style={{ fontFamily: 'var(--nd-serif)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  В процессе / Прочитано
+                </span>
+                <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                  исключены из расчёта сценариев
+                </span>
+              </div>
+              <ul className="list-none p-0 m-0">
+                {statusBooks.map((book, idx) => (
+                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} onClick={setModalBook} />
+                ))}
+              </ul>
+            </>
+          )}
 
+          {activeBooks.length === 0 && statusBooks.length === 0 && (
+            <EmptyColumn text="Здесь появятся книги, которые вы добавили." />
+          )}
+        </div>
+      </section>
     </>
   )
 }

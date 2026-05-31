@@ -152,6 +152,28 @@ export default function MatchingBookDetailModal({
             <p style={{ margin: '0 0 0.85rem', fontSize: '0.92rem', color: 'var(--text-muted)' }}>
               {book.author}{meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
             </p>
+
+            {/* п.7: «Кто записался» поднято наверх — первое, что видит человек */}
+            {chips.length > 0 && (
+              <div style={{ marginBottom: '0.85rem' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                  Записались на книгу
+                </div>
+                <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
+                  {chips.map((p) => (
+                    <ParticipantInterestChip
+                      key={p.userId}
+                      userId={p.userId}
+                      pseudonym={p.pseudonym}
+                      rank={p.rank}
+                      personalStatus={p.personalStatus}
+                      viewingUserId={viewingUserId}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {book.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {book.tags.map((tag) => (
@@ -228,26 +250,6 @@ export default function MatchingBookDetailModal({
                   {parsedRecommendation.text} →
                 </a>
               )}
-            </div>
-          )}
-
-          {chips.length > 0 && (
-            <div style={{ marginBottom: '1.7rem' }}>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
-                Записались на книгу
-              </div>
-              <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
-                {chips.map((p) => (
-                  <ParticipantInterestChip
-                    key={p.userId}
-                    userId={p.userId}
-                    pseudonym={p.pseudonym}
-                    rank={p.rank}
-                    personalStatus={p.personalStatus}
-                    viewingUserId={viewingUserId}
-                  />
-                ))}
-              </div>
             </div>
           )}
 
