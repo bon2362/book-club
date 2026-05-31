@@ -188,6 +188,16 @@ body {
   margin-top: 0.6rem;
 }
 
+/* ── Drag handle visibility ───────────────────────────────────────────────── */
+
+.nd-drag-handle {
+  opacity: 0.28;
+  transition: opacity 0.15s ease;
+}
+.nd-catalog-row:hover .nd-drag-handle {
+  opacity: 0.55;
+}
+
 /* ── Catalog row hover ────────────────────────────────────────────────────── */
 
 .nd-catalog-row {
