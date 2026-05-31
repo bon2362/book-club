@@ -7,11 +7,12 @@ import { matchingSessions, matchingSessionParticipants, users, signupBooks, book
 import { eq, inArray, and } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { emptyScenarioSetOverview, generateScenarioSets } from '@/lib/matching/scenarios'
+import type { GenerateScenariosInput, MatchingScenario } from '@/lib/matching/scenarios'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
+import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
-import MatchingScenarios from '@/components/nd/MatchingScenarios'
-import MatchingMyMoves from '@/components/nd/MatchingMyMoves'
+import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
 import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingHeader from '@/components/nd/MatchingHeader'
@@ -146,46 +147,18 @@ export default async function MatchingPage({
           )
       : []
 
-  // Fetch scenario data only when enough participants
+  const scenarioParticipants = participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym }))
+  const scenarioInput = await fetchScenarioInput(scenarioParticipants, activeSession.targetGroupSize)
   const scenarioSetOverview =
     participantUserIds.length >= activeSession.targetGroupSize
-      ? await fetchAndGenerateScenarioSetOverview(
-          participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym })),
-          activeSession.targetGroupSize,
-        )
-      : emptyScenarioSetOverview(
-          participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym })),
-          activeSession.targetGroupSize,
-        )
+      ? generateScenarioSets(scenarioInput)
+      : emptyScenarioSetOverview(scenarioParticipants, activeSession.targetGroupSize)
 
-  // Fetch book details for scenario cards
-  const scenarioBookIds = Array.from(
-    new Set(scenarioSetOverview.scenarios.flatMap((scenario) => (
-      scenario.circles.map((circle) => circle.bookId)
-    ))),
-  )
-  const scenarioBooks =
-    scenarioBookIds.length > 0
-      ? await db
-          .select({
-            id: books.id,
-            title: books.title,
-            author: books.author,
-            description: books.description,
-            coverUrl: books.coverUrl,
-            pages: books.pages,
-            publishedDate: books.publishedDate,
-            textUrl: books.textUrl,
-            whyRead: books.whyRead,
-            recommendationLink: books.recommendationLink,
-            tags: books.tags,
-          })
-          .from(books)
-          .where(inArray(books.id, scenarioBookIds))
-      : []
-  const bookById = new Map(scenarioBooks.map((b) => [b.id, {
+  const bookTitleById = new Map(personalBooks.map((book) => [book.bookId, book.title]))
+  const myMovesWithImpact = addMoveImpacts(myMoves, scenarioInput, viewingUserId, bookTitleById)
+  const bookById = new Map(personalBooks.map((b) => [b.bookId, {
     ...b,
-    bookId: b.id,
+    id: b.bookId,
     tags: Array.isArray(b.tags) ? b.tags : [],
   }]))
 
@@ -200,41 +173,47 @@ export default async function MatchingPage({
   return (
     <div
       className="flex flex-col"
-      style={{ height: '100svh', overflow: 'hidden', background: 'var(--bg-input)', color: 'var(--text)' }}
+      style={{ minHeight: '100svh', background: 'var(--bg)', color: 'var(--text)' }}
     >
-      <MatchingHeader
-        sessionId={activeSession.id}
-        sessionName={activeSession.name}
-        sessionStatus={activeSession.status}
-        targetGroupSize={activeSession.targetGroupSize}
-        deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
-        participants={participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym, name: p.name ?? null }))}
-        isAdmin={isAdmin}
-        isImpersonating={isImpersonating}
-        viewedPseudonym={viewedParticipant?.pseudonym ?? null}
-        viewedName={viewedParticipant?.name ?? null}
-        asParam={asParam}
-        userPseudonym={userPseudonym}
-      />
+      <div className="flex flex-col" style={{ height: '100svh' }}>
+        <MatchingHeader
+          sessionId={activeSession.id}
+          sessionName={activeSession.name}
+          sessionStatus={activeSession.status}
+          targetGroupSize={activeSession.targetGroupSize}
+          deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
+          participants={participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym, name: p.name ?? null }))}
+          isAdmin={isAdmin}
+          isImpersonating={isImpersonating}
+          viewedPseudonym={viewedParticipant?.pseudonym ?? null}
+          viewedName={viewedParticipant?.name ?? null}
+          asParam={asParam}
+          userPseudonym={userPseudonym}
+        />
 
-      {/* Two-column workspace */}
-      <div
-        className="flex-1 min-h-0 p-4 gap-4 grid"
-        style={{ gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)' }}
-      >
-        {/* Left: personal book list */}
-        <div
-          className="flex flex-col overflow-hidden min-h-0 border"
-          style={{
-            background: 'var(--bg-input)',
-            borderColor: 'var(--border)',
-            borderRadius: 0,
-          }}
+        {/* First viewport: scenarios + moves */}
+        <div className="flex-1 min-h-0 p-4">
+          <MatchingImpactWorkspace
+            overview={scenarioSetOverview}
+            bookById={bookById}
+            bookParticipants={bookParticipants}
+            viewingUserId={viewingUserId}
+            targetGroupSize={activeSession.targetGroupSize}
+            moves={myMovesWithImpact}
+            frozen={isFrozenOrImpersonating}
+            movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
+          />
+        </div>
+      </div>
+
+      {/* Second viewport: catalog and user's books */}
+      <div className="p-4 pt-0" style={{ height: '100svh', minHeight: 560 }}>
+        <section
+          data-testid="matching-catalog-panel"
+          className="flex flex-col overflow-hidden min-h-0 h-full border"
+          style={{ background: 'var(--bg-input)', borderColor: 'var(--border)', borderRadius: 0 }}
         >
-          <div
-            className="px-4 py-3 shrink-0 border-b"
-            style={{ borderColor: 'var(--border)' }}
-          >
+          <div className="px-4 py-3 shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
             <h2
               className="m-0"
               style={{
@@ -250,7 +229,7 @@ export default async function MatchingPage({
             </h2>
             {!isImpersonating && (
               <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--text-muted)' }}>
-                Перетащи книги, чтобы расставить приоритеты
+                Слева книги клуба, справа ваши добавленные книги и статусы
               </p>
             )}
           </div>
@@ -259,7 +238,7 @@ export default async function MatchingPage({
               show={inListBookIds.length > 0 && personalBooks.filter((b) => b.isInList).every((b) => b.rank === null)}
             />
           )}
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <MatchingPersonalList
               books={personalBooks}
               bookParticipants={bookParticipants}
@@ -267,81 +246,7 @@ export default async function MatchingPage({
               frozen={isFrozenOrImpersonating}
             />
           </div>
-        </div>
-
-        {/* Right column: scenarios + moves stacked */}
-        <div className="flex flex-col gap-4 min-h-0 overflow-hidden">
-          {/* Scenarios */}
-          <div
-            className="flex flex-col flex-1 overflow-hidden min-h-0 border"
-            style={{
-              background: 'var(--bg-input)',
-              borderColor: 'var(--border)',
-              borderRadius: 0,
-            }}
-          >
-            <div
-              className="px-4 py-3 shrink-0 border-b"
-              style={{ borderColor: 'var(--border)' }}
-            >
-              <h2
-                className="m-0"
-                style={{
-                  fontFamily: 'system-ui, sans-serif',
-                  fontSize: '0.62rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.14em',
-                  color: 'var(--text-muted)',
-                }}
-                title="Сортировка: макс. участников → больше топ-3 книг → ниже средний ранг"
-              >
-                Читательские круги
-              </h2>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-3">
-              <MatchingScenarios
-                overview={scenarioSetOverview}
-                bookById={bookById}
-                bookParticipants={bookParticipants}
-                viewingUserId={viewingUserId}
-                targetGroupSize={activeSession.targetGroupSize}
-              />
-            </div>
-          </div>
-
-          {/* My moves */}
-          <div
-            className="flex flex-col flex-1 overflow-hidden min-h-0 border"
-            style={{
-              background: 'var(--bg-input)',
-              borderColor: 'var(--border)',
-              borderRadius: 0,
-            }}
-          >
-            <div
-              className="px-4 py-3 shrink-0 border-b"
-              style={{ borderColor: 'var(--border)' }}
-            >
-              <h2
-                className="m-0"
-                style={{
-                  fontFamily: 'system-ui, sans-serif',
-                  fontSize: '0.62rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.14em',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                {isImpersonating ? 'Ходы участника' : 'Мои ходы'}
-              </h2>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-3">
-              <MatchingMyMoves moves={myMoves} frozen={isFrozenOrImpersonating} />
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
 
       <MatchingRealtimeWrapper sessionId={activeSession.id} />
@@ -349,11 +254,14 @@ export default async function MatchingPage({
   )
 }
 
-async function fetchAndGenerateScenarioSetOverview(
+async function fetchScenarioInput(
   participants: { userId: string; pseudonym: string }[],
   targetGroupSize: number,
-) {
+): Promise<GenerateScenariosInput> {
   const participantUserIds = participants.map((p) => p.userId)
+  if (participantUserIds.length === 0) {
+    return { participants, books: [], signups: [], ranks: [], targetGroupSize, maxResults: 10 }
+  }
   const [allSignups, allRanks, allBooks] = await Promise.all([
     db
       .select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
@@ -383,12 +291,68 @@ async function fetchAndGenerateScenarioSetOverview(
   // they are no longer available as candidates for a new group on that book.
   const activeSignups = allSignups.filter((s) => s.personalStatus === null)
 
-  return generateScenarioSets({
+  return {
     participants,
     books: sessionBooks,
     signups: activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
     ranks: allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),
     targetGroupSize,
     maxResults: 10,
+  }
+}
+
+function addMoveImpacts(
+  moves: MyMoveBook[],
+  scenarioInput: GenerateScenariosInput,
+  viewingUserId: string,
+  bookTitleById: Map<string, string>,
+): MyMoveBook[] {
+  return moves.map((move) => {
+    const hasSignup = scenarioInput.signups.some((signup) => (
+      signup.userId === viewingUserId && signup.bookId === move.bookId
+    ))
+    const hasBook = scenarioInput.books.some((book) => book.bookId === move.bookId)
+    const nextOverview = generateScenarioSets({
+      ...scenarioInput,
+      books: hasBook ? scenarioInput.books : [...scenarioInput.books, { bookId: move.bookId }],
+      signups: hasSignup
+        ? scenarioInput.signups
+        : [...scenarioInput.signups, { userId: viewingUserId, bookId: move.bookId }],
+    })
+    const scenario = findScenarioForMove(nextOverview.scenarios, viewingUserId, move.bookId) ?? nextOverview.leader
+
+    if (!scenario) return move
+
+    const scenarioIndex = nextOverview.scenarios.findIndex((candidate) => candidate.id === scenario.id)
+    const circleTitles = scenario.circles.map((circle) => bookTitleById.get(circle.bookId) ?? circle.bookId)
+    const moveCircle = scenario.circles.find((circle) => (
+      circle.bookId === move.bookId && circle.members.some((member) => member.userId === viewingUserId)
+    ))
+    const moveTitle = bookTitleById.get(move.bookId) ?? move.title
+
+    return {
+      ...move,
+      impact: {
+        scenarioId: scenario.id,
+        scenarioTitle: `Сценарий ${scenarioIndex + 1}`,
+        coverageLabel: `${scenario.score.coveredCount}/${scenario.score.totalCount} участни:ц`,
+        summary: moveCircle
+          ? `Появится круг «${moveTitle}», а весь сценарий будет: ${circleTitles.join(' + ')}.`
+          : `Лучший сценарий после хода будет: ${circleTitles.join(' + ')}.`,
+        circleTitles,
+      },
+    }
   })
+}
+
+function findScenarioForMove(
+  scenarios: MatchingScenario[],
+  viewingUserId: string,
+  bookId: string,
+): MatchingScenario | null {
+  return scenarios.find((scenario) => (
+    scenario.circles.some((circle) => (
+      circle.bookId === bookId && circle.members.some((member) => member.userId === viewingUserId)
+    ))
+  )) ?? null
 }

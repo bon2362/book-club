@@ -22,7 +22,7 @@ export interface GroupMember {
   userId: string
   pseudonym: string
   rank: number | null
-  interest: 'хочу читать' | 'готов(а)' | 'без ранга'
+  interest: 'очень хочу' | 'хочу' | 'без ранга'
 }
 
 export interface ScenarioCard {
@@ -111,8 +111,8 @@ const TOP_LOCAL_CIRCLES_PER_BOOK = 12
 
 function interest(rank: number | null): GroupMember['interest'] {
   if (rank === null) return 'без ранга'
-  if (rank <= 3) return 'хочу читать'
-  return 'готов(а)'
+  if (rank <= 3) return 'очень хочу'
+  return 'хочу'
 }
 
 function scoreMembers(members: GroupMember[]): {

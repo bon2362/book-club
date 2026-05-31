@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import CoverImage from './CoverImage'
-import { getPseudonymColor, interestLabel, parseRecommendationLink } from './matching-shared'
+import { parseRecommendationLink } from './matching-shared'
 import type { BookParticipant } from './MatchingPersonalList'
+import ParticipantInterestChip from './ParticipantInterestChip'
 
 export interface MatchingBookDetail {
   bookId: string
@@ -196,22 +197,16 @@ export default function MatchingBookDetailModal({
                   Записались на книгу:
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {chips.map((p) => {
-                    const colors = getPseudonymColor(p.pseudonym)
-                    const isMe = p.userId === viewingUserId
-                    const label = interestLabel(p.rank, p.personalStatus)
-                    const rankStr = p.rank != null ? ` #${p.rank}` : ''
-                    return (
-                      <span
-                        key={p.userId}
-                        className={`inline-flex items-center px-2 py-0.5 text-[11px] ${colors.chip} ${isMe ? 'ring-1 ring-current' : ''}`}
-                        style={{ borderRadius: 0 }}
-                        title={isMe ? 'Это вы' : undefined}
-                      >
-                        {p.pseudonym} · {label}{rankStr}
-                      </span>
-                    )
-                  })}
+                  {chips.map((p) => (
+                    <ParticipantInterestChip
+                      key={p.userId}
+                      userId={p.userId}
+                      pseudonym={p.pseudonym}
+                      rank={p.rank}
+                      personalStatus={p.personalStatus}
+                      viewingUserId={viewingUserId}
+                    />
+                  ))}
                 </div>
               </div>
             )}
