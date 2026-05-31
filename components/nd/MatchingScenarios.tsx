@@ -16,7 +16,6 @@ interface Props {
   bookById: Map<string, BookInfo>
   bookParticipants: BookParticipant[]
   viewingUserId: string
-  targetGroupSize: number
   highlightedScenarioId?: string | null
   highlightedBookId?: string | null
   highlightedUserIds?: string[]
@@ -35,7 +34,6 @@ export default function MatchingScenarios({
   bookById,
   bookParticipants,
   viewingUserId,
-  targetGroupSize,
   highlightedScenarioId = null,
   highlightedBookId = null,
   highlightedUserIds = [],
@@ -52,7 +50,7 @@ export default function MatchingScenarios({
       >
         <div className="text-3xl mb-2">🎯</div>
         <p className="text-sm">
-          Пока недостаточно участников или записей для формирования кругов. Нужно минимум {targetGroupSize}
+          Пока недостаточно участников или записей для формирования кругов. Нужно минимум {overview.minGroupSize}
         </p>
       </div>
     )

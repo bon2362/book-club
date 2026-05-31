@@ -261,7 +261,7 @@ UI должен различать:
 
 ### Dynamic Group Size Implications
 
-Когда появятся `minGroupSize` / `maxGroupSize`, coverage-first правило сохраняется:
+Сессия хранит `minGroupSize` / `maxGroupSize`; coverage-first правило сохраняется:
 
 - круг считается валидным при `members.length >= minGroupSize`;
 - добавление участников до `maxGroupSize` полезно, если увеличивает `coveredCount`;
@@ -295,19 +295,9 @@ minGroupSize: number
 maxGroupSize: number
 ```
 
-Варианты отображения:
+Не вводим UI-статусы вроде `собран`, `можно расширить`, `полный`: цель не в том, чтобы набить каждый круг до максимума. Диапазон нужен, чтобы сценарий мог покрыть больше людей, например распределением 3+4 вместо жесткого 3+3 с одним участником за бортом.
 
-- `Круг собран · 3/5`;
-- `Можно расширить · 4/5`;
-- `Полный круг · 5/5`.
-
-БД сейчас хранит только `matching_sessions.target_group_size`. Для новой модели нужен один из вариантов:
-
-1. заменить смысл текущего поля на `minGroupSize` и добавить `maxGroupSize`;
-2. оставить `targetGroupSize` для совместимости, добавить `minGroupSize`, `maxGroupSize`, а затем постепенно мигрировать UI;
-3. переименовать поле миграцией, если нет зависимости на старое имя в архивных данных.
-
-Рекомендуемый безопасный путь: добавить `min_group_size` и `max_group_size`, заполнить оба текущим `target_group_size`, затем постепенно перевести код.
+БД хранит `matching_sessions.min_group_size` и `matching_sessions.max_group_size`. Старое поле `target_group_size` удалено миграцией, для существующей тестовой сессии оба новых значения выставляются в `3`.
 
 ## Algorithm Sketch
 
@@ -416,7 +406,7 @@ Actions:
 - Introduce `MatchingScenario`, `MatchingCircle`, `ScenarioScore`.
 - Keep existing `generateScenarios()` compatibility wrapper for freeze code.
 - Render scenario cards as containers of circles.
-- Keep group size fixed to existing `targetGroupSize` in this slice.
+- Keep group size fixed to configured `minGroupSize`/`maxGroupSize` in this slice.
 
 ## Implementation-Ready Task: Slice 1
 
@@ -426,7 +416,7 @@ Scenario-based matching engine and reader-circle cards.
 
 ### Objective
 
-Replace the current circle-first overview with a scenario-first model for `Читательские круги`, while keeping group size fixed to the existing `targetGroupSize`.
+Replace the current circle-first overview with a scenario-first model for `Читательские круги`, while keeping group size fixed to the configured `minGroupSize`/`maxGroupSize`.
 
 This slice must establish the core engine contract:
 
@@ -462,7 +452,7 @@ Features that must be preserved:
 
 - **Session creation flow**
   - Admin can create a matching session from the admin panel.
-  - Creation keeps `name`, optional `deadlineAt`, and existing `targetGroupSize`.
+  - Creation keeps `name`, optional `deadlineAt`, and configured `minGroupSize`/`maxGroupSize`.
   - Only one `active` session exists at a time.
   - No DB migration is introduced in Slice 1.
 - **Session lifecycle**
@@ -553,7 +543,8 @@ export interface ScenarioSetOverview {
   scenarios: MatchingScenario[]
   leader: MatchingScenario | null
   totalCount: number
-  targetGroupSize: number
+  minGroupSize: number
+  maxGroupSize: number
 }
 ```
 
@@ -569,8 +560,8 @@ Implement in `lib/matching/scenarios.ts`.
 
 Step 1: Build candidate circles.
 
-- For each published session book with at least `targetGroupSize` active signups, create possible circles of exactly `targetGroupSize` participants.
-- For this slice, `minSize = maxSize = targetGroupSize`.
+- For each published session book with at least `minGroupSize`/`maxGroupSize` active signups, create possible circles of exactly `minGroupSize`/`maxGroupSize` participants.
+- If `minGroupSize === maxGroupSize`, `minSize` and `maxSize` are equal; otherwise the engine considers every circle size in the configured range.
 - For small inputs, use combination search. Current tests already cover up to `N=30`, `M=50`; preserve performance guard.
 - Score each circle with the current member metrics: `wantsCount`, `avgRank`, `worstRank`, `unrankedCount`.
 
@@ -627,7 +618,7 @@ Step 5: Assign tiers.
   - `За бортом` chips when `leftOut.length > 0`.
 - Clicking a nested circle's book title opens the existing shared `MatchingBookDetailModal`.
 - Empty state remains:
-  - `Пока недостаточно участников или записей для формирования кругов. Нужно минимум {targetGroupSize}`.
+  - `Пока недостаточно участников или записей для формирования кругов. Нужно минимум {minGroupSize}`.
 
 `app/matching/page.tsx`
 
@@ -646,7 +637,7 @@ Unit tests in `lib/matching/__tests__/scenarios.test.ts`.
 Required cases:
 
 1. Empty inputs return `leader: null` and no scenarios.
-2. A single book with exactly `targetGroupSize` signups returns one scenario with one circle and correct `leftOut`.
+2. A single book with exactly `minGroupSize`/`maxGroupSize` signups returns one scenario with one circle and correct `leftOut`.
 3. Two disjoint books produce one scenario with two circles and full coverage.
 4. Full coverage beats better average rank with partial coverage.
    - Example: scenario A covers `6/6` with average rank 5; scenario B covers `3/6` with average rank 1. A wins.
@@ -714,7 +705,7 @@ npx playwright test e2e/matching-reader-circles.spec.ts
 ### Implementation Notes
 
 - Do not introduce DB changes in this slice.
-- Keep `targetGroupSize` as the fixed circle size.
+- Keep `minGroupSize`/`maxGroupSize` as the fixed circle size.
 - Prefer pure functions in `lib/matching/scenarios.ts`; no DB access inside the engine.
 - Keep stable ordering to avoid flickering UI after realtime refresh.
 - Beware combinatorial explosion: tests should protect both correctness and performance.
@@ -748,7 +739,7 @@ Files:
 Actions:
 
 - Add `min_group_size` and `max_group_size`.
-- Default both from existing `target_group_size`.
+- Default both to `3` for existing rows in this project.
 - Admin can set and update both values.
 - Scenario engine uses `[minGroupSize, maxGroupSize]`.
 
@@ -781,7 +772,7 @@ V1 should include:
 - scenario cards with multiple circles and left-out participants;
 - personal move cards that show resulting scenario;
 - only add-book moves, no rank-change moves yet;
-- fixed group size using current `targetGroupSize`;
+- fixed group size using current `minGroupSize`/`maxGroupSize`;
 - no DB migration yet;
 - hover/focus highlighting if cheap, otherwise defer to V1.1.
 

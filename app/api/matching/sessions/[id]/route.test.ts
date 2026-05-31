@@ -34,13 +34,13 @@ describe('PATCH /api/matching/sessions/[id]', () => {
 
   it('returns 403 for non-admins', async () => {
     mockAuth.mockResolvedValue(userSession)
-    const res = await PATCH(makeReq({ targetGroupSize: 4 }), params)
+    const res = await PATCH(makeReq({ minGroupSize: 3, maxGroupSize: 4 }), params)
     expect(res.status).toBe(403)
   })
 
-  it('returns 400 for invalid target group size', async () => {
+  it('returns 400 for invalid group size range', async () => {
     mockAuth.mockResolvedValue(adminSession)
-    const res = await PATCH(makeReq({ targetGroupSize: 1 }), params)
+    const res = await PATCH(makeReq({ minGroupSize: 4, maxGroupSize: 3 }), params)
     expect(res.status).toBe(400)
   })
 
@@ -55,13 +55,14 @@ describe('PATCH /api/matching/sessions/[id]', () => {
     const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
     mockDb.update = jest.fn().mockReturnValue(updateChain)
 
-    const res = await PATCH(makeReq({ targetGroupSize: 4 }), params)
+    const res = await PATCH(makeReq({ minGroupSize: 3, maxGroupSize: 4 }), params)
 
     expect(res.status).toBe(200)
-    expect(updateChain.set).toHaveBeenCalledWith({ targetGroupSize: 4 })
+    expect(updateChain.set).toHaveBeenCalledWith({ minGroupSize: 3, maxGroupSize: 4 })
     expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      kind: 'target_group_size_updated',
-      targetGroupSize: 4,
+      kind: 'group_size_range_updated',
+      minGroupSize: 3,
+      maxGroupSize: 4,
       userId: 'admin1',
     })
   })

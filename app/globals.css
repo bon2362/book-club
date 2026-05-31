@@ -188,15 +188,18 @@ body {
 .nd-move-impact {
   max-height: 0;
   opacity: 0;
+  visibility: hidden;
   overflow: hidden;
   margin-top: 0;
-  transition: max-height 0.28s ease, opacity 0.22s ease, margin-top 0.28s ease;
+  transition: max-height 0.28s ease, opacity 0.22s ease, margin-top 0.28s ease, visibility 0s linear 0.28s;
 }
 .nd-move-item:hover .nd-move-impact,
 .nd-move-item:focus-within .nd-move-impact {
   max-height: 120px;
   opacity: 1;
+  visibility: visible;
   margin-top: 0.6rem;
+  transition-delay: 0s;
 }
 
 /* ── Drag handle visibility ───────────────────────────────────────────────── */

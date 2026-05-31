@@ -28,7 +28,7 @@ describe('generateScenarioSets', () => {
       books: [],
       signups: [],
       ranks: [],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader).toBeNull()
@@ -43,13 +43,52 @@ describe('generateScenarioSets', () => {
       books: [makeBook('b1')],
       signups: allSignedUp(['u1', 'u2', 'u3'], 'b1'),
       ranks: rankAll(['u1', 'u2', 'u3'], 'b1', 1),
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.circles).toHaveLength(1)
     expect(result.leader?.circles[0].bookId).toBe('b1')
     expect(result.leader?.circles[0].members).toHaveLength(3)
     expect(result.leader?.leftOut.map((p) => p.userId)).toEqual(['u4'])
+  })
+
+  it('allows a circle to grow up to maxGroupSize when that improves coverage', () => {
+    const participants = makeParticipants(4)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('b1')],
+      signups: allSignedUp(['u1', 'u2', 'u3', 'u4'], 'b1'),
+      ranks: rankAll(['u1', 'u2', 'u3', 'u4'], 'b1', 2),
+      minGroupSize: 3, maxGroupSize: 4,
+    })
+
+    expect(result.minGroupSize).toBe(3)
+    expect(result.maxGroupSize).toBe(4)
+    expect(result.leader?.score.coveredCount).toBe(4)
+    expect(result.leader?.circles).toHaveLength(1)
+    expect(result.leader?.circles[0].members).toHaveLength(4)
+    expect(result.leader?.leftOut).toEqual([])
+  })
+
+  it('can cover seven participants as 3+4 instead of leaving one out', () => {
+    const participants = makeParticipants(7)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('b1'), makeBook('b2')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3'], 'b1'),
+        ...allSignedUp(['u4', 'u5', 'u6', 'u7'], 'b2'),
+      ],
+      ranks: [
+        ...rankAll(['u1', 'u2', 'u3'], 'b1', 2),
+        ...rankAll(['u4', 'u5', 'u6', 'u7'], 'b2', 2),
+      ],
+      minGroupSize: 3, maxGroupSize: 4,
+    })
+
+    expect(result.leader?.score.coveredCount).toBe(7)
+    expect(result.leader?.circles.map((circle) => circle.members.length).sort()).toEqual([3, 4])
+    expect(result.leader?.leftOut).toEqual([])
   })
 
   it('combines two disjoint books into one full-coverage scenario', () => {
@@ -65,7 +104,7 @@ describe('generateScenarioSets', () => {
         ...rankAll(['u1', 'u2', 'u3'], 'b1', 2),
         ...rankAll(['u4', 'u5', 'u6'], 'b2', 2),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.score.coveredCount).toBe(6)
@@ -88,7 +127,7 @@ describe('generateScenarioSets', () => {
         ...rankAll(['u1', 'u2', 'u4'], 'fallback-a', 4),
         ...rankAll(['u3', 'u5', 'u6'], 'fallback-b', 4),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.score.coveredCount).toBe(6)
@@ -110,7 +149,7 @@ describe('generateScenarioSets', () => {
         rank('u3', 'strong', 6),
         ...rankAll(['u1', 'u2', 'u3'], 'weak', 4),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.circles[0].bookId).toBe('strong')
@@ -133,7 +172,7 @@ describe('generateScenarioSets', () => {
         rank('u2', 'higher-avg', 5),
         rank('u3', 'higher-avg', 5),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.circles[0].bookId).toBe('lower-avg')
@@ -156,7 +195,7 @@ describe('generateScenarioSets', () => {
         rank('u2', 'higher-worst', 4),
         rank('u3', 'higher-worst', 7),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.circles[0].bookId).toBe('lower-worst')
@@ -177,7 +216,7 @@ describe('generateScenarioSets', () => {
         ...rankAll(['u1', 'u2', 'u4'], 'coverage-a', 5),
         ...rankAll(['u3', 'u5', 'u6'], 'coverage-b', 5),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.score.coveredCount).toBe(6)
@@ -198,7 +237,7 @@ describe('generateScenarioSets', () => {
         ...rankAll(['u4', 'u5', 'u6'], 'popular', 8),
         ...rankAll(['u1', 'u2', 'u3'], 'small', 1),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result.leader?.score.coveredCount).toBe(6)
@@ -216,7 +255,7 @@ describe('generateScenarioSets', () => {
         ...allSignedUp(['u1', 'u2', 'u5', 'u6'], 'b3'),
       ],
       ranks: [],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     for (const scenario of result.scenarios) {
@@ -235,7 +274,7 @@ describe('generateScenarioSets', () => {
         ...allSignedUp(['u1', 'u2', 'u3'], 'b2'),
       ],
       ranks: [],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     for (const scenario of result.scenarios) {
@@ -248,7 +287,7 @@ describe('generateScenarioSets', () => {
     const participants = makeParticipants(12)
     const books = Array.from({ length: 8 }, (_, i) => makeBook(`b${i}`))
     const signups = books.flatMap((book) => allSignedUp(participants.map((p) => p.userId), book.bookId))
-    const result = generateScenarioSets({ participants, books, signups, ranks: [], targetGroupSize: 3, maxResults: 3 })
+    const result = generateScenarioSets({ participants, books, signups, ranks: [], minGroupSize: 3, maxGroupSize: 3, maxResults: 3 })
 
     expect(result.scenarios.length).toBeLessThanOrEqual(3)
   })
@@ -270,7 +309,7 @@ describe('generateScenarioSets', () => {
     const times: number[] = []
     for (let run = 0; run < 11; run++) {
       const start = Date.now()
-      generateScenarioSets({ participants, books, signups, ranks, targetGroupSize: 3 })
+      generateScenarioSets({ participants, books, signups, ranks, minGroupSize: 3, maxGroupSize: 3 })
       times.push(Date.now() - start)
     }
     times.sort((a, b) => a - b)
@@ -295,7 +334,7 @@ describe('generateScenarios compatibility wrapper', () => {
         ...rankAll(['u1', 'u2', 'u3'], 'b1', 1),
         ...rankAll(['u4', 'u5', 'u6'], 'b2', 5),
       ],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
     })
 
     expect(result).toHaveLength(2)
@@ -323,7 +362,7 @@ describe('generateScenarios compatibility wrapper', () => {
       books,
       signups,
       ranks: [],
-      targetGroupSize: 3,
+      minGroupSize: 3, maxGroupSize: 3,
       maxResults: 10,
     })
 

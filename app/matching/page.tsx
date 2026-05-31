@@ -105,7 +105,7 @@ export default async function MatchingPage({
       .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
       .orderBy(matchingSessionParticipants.joinedAt),
     fetchCatalogWithPersonalData(viewingUserId),
-    fetchMyMoves(viewingUserId, activeSession.id, activeSession.targetGroupSize),
+    fetchMyMoves(viewingUserId, activeSession.id, activeSession.minGroupSize),
   ])
 
   const participantUserIds = participants.map((p) => p.userId)
@@ -148,11 +148,15 @@ export default async function MatchingPage({
       : []
 
   const scenarioParticipants = participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym }))
-  const scenarioInput = await fetchScenarioInput(scenarioParticipants, activeSession.targetGroupSize)
+  const scenarioInput = await fetchScenarioInput(
+    scenarioParticipants,
+    activeSession.minGroupSize,
+    activeSession.maxGroupSize,
+  )
   const scenarioSetOverview =
-    participantUserIds.length >= activeSession.targetGroupSize
+    participantUserIds.length >= activeSession.minGroupSize
       ? generateScenarioSets(scenarioInput)
-      : emptyScenarioSetOverview(scenarioParticipants, activeSession.targetGroupSize)
+      : emptyScenarioSetOverview(scenarioParticipants, activeSession.minGroupSize, activeSession.maxGroupSize)
 
   const bookTitleById = new Map(personalBooks.map((book) => [book.bookId, book.title]))
   const myMovesWithImpact = addMoveImpacts(
@@ -185,7 +189,8 @@ export default async function MatchingPage({
           sessionId={activeSession.id}
           sessionName={activeSession.name}
           sessionStatus={activeSession.status}
-          targetGroupSize={activeSession.targetGroupSize}
+          minGroupSize={activeSession.minGroupSize}
+          maxGroupSize={activeSession.maxGroupSize}
           deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
           participants={participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym, name: p.name ?? null }))}
           isAdmin={isAdmin}
@@ -203,7 +208,6 @@ export default async function MatchingPage({
             bookById={bookById}
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
-            targetGroupSize={activeSession.targetGroupSize}
             moves={myMovesWithImpact}
             frozen={isReadOnly}
             movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
@@ -267,11 +271,12 @@ export default async function MatchingPage({
 
 async function fetchScenarioInput(
   participants: { userId: string; pseudonym: string }[],
-  targetGroupSize: number,
+  minGroupSize: number,
+  maxGroupSize: number,
 ): Promise<GenerateScenariosInput> {
   const participantUserIds = participants.map((p) => p.userId)
   if (participantUserIds.length === 0) {
-    return { participants, books: [], signups: [], ranks: [], targetGroupSize, maxResults: 10 }
+    return { participants, books: [], signups: [], ranks: [], minGroupSize, maxGroupSize, maxResults: 10 }
   }
   const [allSignups, allRanks, allBooks] = await Promise.all([
     db
@@ -307,7 +312,8 @@ async function fetchScenarioInput(
     books: sessionBooks,
     signups: activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
     ranks: allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),
-    targetGroupSize,
+    minGroupSize,
+    maxGroupSize,
     maxResults: 10,
   }
 }

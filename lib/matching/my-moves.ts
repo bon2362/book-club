@@ -28,7 +28,7 @@ export interface MyMoveBook {
 export async function fetchMyMoves(
   userId: string,
   sessionId: string,
-  targetGroupSize: number,
+  minGroupSize: number,
 ): Promise<MyMoveBook[]> {
   // Get all session participants except current user
   const otherParticipants = await db
@@ -41,7 +41,7 @@ export async function fetchMyMoves(
       ),
     )
 
-  if (otherParticipants.length < targetGroupSize - 1) return []
+  if (otherParticipants.length < minGroupSize - 1) return []
 
   const otherUserIds = otherParticipants.map(p => p.userId)
 
@@ -90,7 +90,9 @@ export async function fetchMyMoves(
           ),
         )
 
-  // Group by bookId: find books with exactly targetGroupSize-1 other participants signed up
+  // Group by bookId: prefilter books with enough other participants for the
+  // current user to make at least one valid circle. Scenario simulation later
+  // decides whether adding the book actually changes the leader scenario.
   const countByBook = new Map<string, { userId: string; rank: number | null }[]>()
   for (const s of otherSignups) {
     const arr = countByBook.get(s.bookId) ?? []
@@ -100,7 +102,7 @@ export async function fetchMyMoves(
 
   const qualifyingBookIds: string[] = []
   for (const [bookId, userIds] of Array.from(countByBook.entries())) {
-    if (userIds.length === targetGroupSize - 1) qualifyingBookIds.push(bookId)
+    if (userIds.length >= minGroupSize - 1) qualifyingBookIds.push(bookId)
   }
 
   if (qualifyingBookIds.length === 0) return []

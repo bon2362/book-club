@@ -14,7 +14,6 @@ interface Props {
   bookById: Map<string, BookInfo>
   bookParticipants: BookParticipant[]
   viewingUserId: string
-  targetGroupSize: number
   moves: MyMoveBook[]
   frozen: boolean
   movesHeading: string
@@ -56,7 +55,6 @@ export default function MatchingImpactWorkspace({
   bookById,
   bookParticipants,
   viewingUserId,
-  targetGroupSize,
   moves,
   frozen,
   movesHeading,
@@ -83,7 +81,6 @@ export default function MatchingImpactWorkspace({
             bookById={bookById}
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
-            targetGroupSize={targetGroupSize}
           />
         </div>
       </section>
@@ -91,7 +88,7 @@ export default function MatchingImpactWorkspace({
       <section data-testid="matching-my-moves-panel" style={panel}>
         <div style={panelHeadStyle}>
           <h2 style={h2Style}>{movesHeading}</h2>
-          <p style={subStyle}>Добавьте книгу — и соберётся новый круг</p>
+          <p style={subStyle}>Добавь книгу и соберется новый сценарий</p>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem' }}>
           <MatchingMyMoves

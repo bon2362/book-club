@@ -29,7 +29,7 @@ test('matching shows reader circles, move hints, and full book details modal', a
   createTestBook,
   loginAsUser,
 }) => {
-  const session = await createMatchingSession({ targetGroupSize: 3 })
+  const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
   const circleBook = await createTestBook({
     title: `E2E Circle Book ${test.info().testId}`,
     author: 'Circle Author',
@@ -67,7 +67,7 @@ test('matching shows reader circles, move hints, and full book details modal', a
   const movesPanel = page.getByTestId('matching-my-moves-panel')
   const catalogMine = page.getByTestId('matching-catalog-mine')
   await expect(circlesPanel.getByRole('button', { name: circleBook.title, exact: true })).toBeVisible()
-  await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
+  await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible()
   await expect(page.getByText('Уже записались:')).toBeVisible()
   await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
   await expect(movesPanel.getByText('После добавления')).toBeHidden()
@@ -115,11 +115,11 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await moveCard.getByRole('button', { name: 'Хочу читать * на первое место' }).click()
   await addMoveResponse
 
-  await expect(page.getByText('Пока нет книг, где ваша заявка замкнет круг')).toBeVisible()
+  await expect(page.getByText('Пока нет книг, где ваша заявка изменит лучший сценарий')).toBeVisible()
   await expect(catalogMine).toContainText(moveBook.title, { timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'Сценарий 1' })).toBeVisible()
   await expect(page.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
-  await expect(page.getByText(/3\/3 участни:ц/).first()).toBeVisible()
+  await expect(page.getByText('все 3 участников').first()).toBeVisible()
 
   await page.goto('about:blank')
 })

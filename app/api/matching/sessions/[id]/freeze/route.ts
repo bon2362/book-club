@@ -62,7 +62,8 @@ export async function POST(_req: NextRequest, { params }: Params) {
     books: sessionBooks,
     signups: allSignups,
     ranks: allRanks,
-    targetGroupSize: matchSession.targetGroupSize,
+    minGroupSize: matchSession.minGroupSize,
+    maxGroupSize: matchSession.maxGroupSize,
     maxResults: 10,
   })
 
@@ -76,7 +77,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     (frozenAt.getTime() - matchSession.createdAt.getTime()) / 1000,
   )
   const metricTop3HitRate = leader
-    ? leader.wantsCount / matchSession.targetGroupSize
+    ? leader.wantsCount / leader.members.length
     : 0
 
   await db

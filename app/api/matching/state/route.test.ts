@@ -21,19 +21,21 @@ jest.mock('@/lib/matching/my-moves', () => ({
   fetchMyMoves: jest.fn().mockResolvedValue([]),
 }))
 jest.mock('@/lib/matching/scenarios', () => ({
-  emptyScenarioOverview: jest.fn((participants, targetGroupSize) => ({
+  emptyScenarioOverview: jest.fn((participants, minGroupSize, maxGroupSize) => ({
     current: [],
     candidates: [],
     leftOut: participants,
     coveredCount: 0,
     totalCount: participants.length,
-    targetGroupSize,
+    minGroupSize,
+    maxGroupSize,
   })),
-  emptyScenarioSetOverview: jest.fn((participants, targetGroupSize) => ({
+  emptyScenarioSetOverview: jest.fn((participants, minGroupSize, maxGroupSize) => ({
     scenarios: [],
     leader: null,
     totalCount: participants.length,
-    targetGroupSize,
+    minGroupSize,
+    maxGroupSize,
   })),
   generateScenarioOverview: jest.fn().mockReturnValue({
     current: [],
@@ -41,13 +43,15 @@ jest.mock('@/lib/matching/scenarios', () => ({
     leftOut: [],
     coveredCount: 0,
     totalCount: 0,
-    targetGroupSize: 3,
+    minGroupSize: 3,
+    maxGroupSize: 3,
   }),
   generateScenarioSets: jest.fn().mockReturnValue({
     scenarios: [],
     leader: null,
     totalCount: 0,
-    targetGroupSize: 3,
+    minGroupSize: 3,
+    maxGroupSize: 3,
   }),
 }))
 
@@ -92,7 +96,7 @@ describe('GET /api/matching/state', () => {
 
   it('returns 200 with state for authenticated user', async () => {
     mockAuth.mockResolvedValue(userSession)
-    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active', targetGroupSize: 3 }]) }
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active', minGroupSize: 3, maxGroupSize: 3 }]) }
     const participantsChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionChain)

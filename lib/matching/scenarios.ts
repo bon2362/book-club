@@ -46,7 +46,8 @@ export interface ScenarioOverview {
   leftOut: ScenarioParticipant[]
   coveredCount: number
   totalCount: number
-  targetGroupSize: number
+  minGroupSize: number
+  maxGroupSize: number
 }
 
 export interface MatchingCircle {
@@ -85,7 +86,8 @@ export interface ScenarioSetOverview {
   scenarios: MatchingScenario[]
   leader: MatchingScenario | null
   totalCount: number
-  targetGroupSize: number
+  minGroupSize: number
+  maxGroupSize: number
 }
 
 export interface GenerateScenariosInput {
@@ -93,7 +95,8 @@ export interface GenerateScenariosInput {
   books: ScenarioBook[]
   signups: ScenarioSignup[]
   ranks: ScenarioRank[]
-  targetGroupSize: number
+  minGroupSize: number
+  maxGroupSize: number
   maxResults?: number
 }
 
@@ -217,23 +220,23 @@ function memberGroupId(members: GroupMember[]): string {
   return members.map((m) => m.userId).sort().join('+')
 }
 
-function buildMemberGroups(members: GroupMember[], targetGroupSize: number): GroupMember[][] {
-  const totalCombinations = combinationCount(members.length, targetGroupSize)
+function buildMemberGroupsForSize(members: GroupMember[], groupSize: number): GroupMember[][] {
+  const totalCombinations = combinationCount(members.length, groupSize)
   if (totalCombinations <= EXHAUSTIVE_COMBINATION_LIMIT) {
-    return combinations(members, targetGroupSize)
+    return combinations(members, groupSize)
   }
 
   const groups = new Map<string, GroupMember[]>()
   const addGroup = (group: GroupMember[]) => {
-    if (group.length !== targetGroupSize) return
+    if (group.length !== groupSize) return
     groups.set(memberGroupId(group), group)
   }
 
-  addGroup(members.slice(0, targetGroupSize))
+  addGroup(members.slice(0, groupSize))
 
-  for (let offset = 0; offset < targetGroupSize; offset++) {
-    for (let start = offset; start + targetGroupSize <= members.length; start += targetGroupSize) {
-      addGroup(members.slice(start, start + targetGroupSize))
+  for (let offset = 0; offset < groupSize; offset++) {
+    for (let start = offset; start + groupSize <= members.length; start += groupSize) {
+      addGroup(members.slice(start, start + groupSize))
     }
   }
 
@@ -242,11 +245,22 @@ function buildMemberGroups(members: GroupMember[], targetGroupSize: number): Gro
     for (const candidate of members) {
       if (candidate.userId === anchor.userId) continue
       group.push(candidate)
-      if (group.length === targetGroupSize) break
+      if (group.length === groupSize) break
     }
     addGroup(group)
   }
 
+  return Array.from(groups.values())
+}
+
+function buildMemberGroups(members: GroupMember[], minGroupSize: number, maxGroupSize: number): GroupMember[][] {
+  const groups = new Map<string, GroupMember[]>()
+  const upper = Math.min(maxGroupSize, members.length)
+  for (let size = minGroupSize; size <= upper; size++) {
+    for (const group of buildMemberGroupsForSize(members, size)) {
+      groups.set(memberGroupId(group), group)
+    }
+  }
   return Array.from(groups.values())
 }
 
@@ -260,7 +274,7 @@ function maxOverlapWithSelected(circle: MatchingCircle, selected: MatchingCircle
   return Math.max(...selected.map((candidate) => memberOverlap(circle, candidate)))
 }
 
-function selectDiverseCircles(circles: MatchingCircle[], targetGroupSize: number): MatchingCircle[] {
+function selectDiverseCircles(circles: MatchingCircle[], maxGroupSize: number): MatchingCircle[] {
   const sorted = [...circles].sort((a, b) => compareCircleScore(b, a))
   const selected: MatchingCircle[] = []
   const selectedIds = new Set<string>()
@@ -273,7 +287,7 @@ function selectDiverseCircles(circles: MatchingCircle[], targetGroupSize: number
 
   for (const circle of sorted.slice(0, TOP_LOCAL_CIRCLES_PER_BOOK)) add(circle)
 
-  for (let allowedOverlap = 0; allowedOverlap < targetGroupSize && selected.length < MAX_CIRCLES_PER_BOOK; allowedOverlap++) {
+  for (let allowedOverlap = 0; allowedOverlap < maxGroupSize && selected.length < MAX_CIRCLES_PER_BOOK; allowedOverlap++) {
     for (const circle of sorted) {
       if (selectedIds.has(circle.id)) continue
       if (maxOverlapWithSelected(circle, selected) <= allowedOverlap) add(circle)
@@ -290,8 +304,8 @@ function selectDiverseCircles(circles: MatchingCircle[], targetGroupSize: number
 }
 
 function buildCandidateCircles(input: GenerateScenariosInput): MatchingCircle[] {
-  const { participants, books, signups, ranks, targetGroupSize } = input
-  if (targetGroupSize < 1 || participants.length < targetGroupSize) return []
+  const { participants, books, signups, ranks, minGroupSize, maxGroupSize } = input
+  if (minGroupSize < 1 || maxGroupSize < minGroupSize || participants.length < minGroupSize) return []
 
   const pseudonymMap = new Map(participants.map((p) => [p.userId, p.pseudonym]))
   const participantIds = new Set(participants.map((p) => p.userId))
@@ -309,21 +323,21 @@ function buildCandidateCircles(input: GenerateScenariosInput): MatchingCircle[] 
   const allCircles: MatchingCircle[] = []
   for (const book of books) {
     const userIds = Array.from(signupsByBook.get(book.bookId) ?? [])
-    if (userIds.length < targetGroupSize) continue
+    if (userIds.length < minGroupSize) continue
 
     const members = userIds
       .map((userId) => toMember(userId, book.bookId, pseudonymMap, rankMap))
       .sort((a, b) => memberSortKey(a).localeCompare(memberSortKey(b)))
 
-    const circles = buildMemberGroups(members, targetGroupSize)
+    const circles = buildMemberGroups(members, minGroupSize, maxGroupSize)
       .map((circleMembers): MatchingCircle => {
         const score = scoreMembers(circleMembers)
         return {
           id: buildCircleId(book.bookId, circleMembers),
           bookId: book.bookId,
           members: circleMembers,
-          minSize: targetGroupSize,
-          maxSize: targetGroupSize,
+          minSize: minGroupSize,
+          maxSize: maxGroupSize,
           wantsCount: score.wantsCount,
           avgRank: score.avgRank,
           worstRank: score.worstRank,
@@ -331,7 +345,7 @@ function buildCandidateCircles(input: GenerateScenariosInput): MatchingCircle[] 
         }
       })
 
-    allCircles.push(...selectDiverseCircles(circles, targetGroupSize))
+    allCircles.push(...selectDiverseCircles(circles, maxGroupSize))
   }
 
   return allCircles
@@ -443,25 +457,27 @@ function assignScenarioTiers(scenarios: MatchingScenario[], totalCount: number):
 
 export function emptyScenarioSetOverview(
   participants: ScenarioParticipant[],
-  targetGroupSize: number,
+  minGroupSize: number,
+  maxGroupSize = minGroupSize,
 ): ScenarioSetOverview {
   return {
     scenarios: [],
     leader: null,
     totalCount: participants.length,
-    targetGroupSize,
+    minGroupSize,
+    maxGroupSize,
   }
 }
 
 export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSetOverview {
-  const { participants, targetGroupSize, maxResults = 10 } = input
-  if (participants.length < targetGroupSize || targetGroupSize < 1) {
-    return emptyScenarioSetOverview(participants, targetGroupSize)
+  const { participants, minGroupSize, maxGroupSize, maxResults = 10 } = input
+  if (participants.length < minGroupSize || minGroupSize < 1 || maxGroupSize < minGroupSize) {
+    return emptyScenarioSetOverview(participants, minGroupSize, maxGroupSize)
   }
 
   const candidateCircles = buildCandidateCircles(input)
   if (candidateCircles.length === 0) {
-    return emptyScenarioSetOverview(participants, targetGroupSize)
+    return emptyScenarioSetOverview(participants, minGroupSize, maxGroupSize)
   }
 
   const scenarios = buildScenarioStates(candidateCircles, participants)
@@ -474,7 +490,8 @@ export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSet
     scenarios: tiered,
     leader: tiered[0] ?? null,
     totalCount: participants.length,
-    targetGroupSize,
+    minGroupSize,
+    maxGroupSize,
   }
 }
 
@@ -498,7 +515,8 @@ function hasSameMembers(a: Pick<ScenarioCard, 'members'>, b: Pick<ScenarioCard, 
 
 export function emptyScenarioOverview(
   participants: ScenarioParticipant[],
-  targetGroupSize: number,
+  minGroupSize: number,
+  maxGroupSize = minGroupSize,
 ): ScenarioOverview {
   return {
     current: [],
@@ -506,14 +524,15 @@ export function emptyScenarioOverview(
     leftOut: participants,
     coveredCount: 0,
     totalCount: participants.length,
-    targetGroupSize,
+    minGroupSize,
+    maxGroupSize,
   }
 }
 
 export function generateScenarioOverview(input: GenerateScenariosInput): ScenarioOverview {
   const scenarioSets = generateScenarioSets(input)
   const leader = scenarioSets.leader
-  if (!leader) return emptyScenarioOverview(input.participants, input.targetGroupSize)
+  if (!leader) return emptyScenarioOverview(input.participants, input.minGroupSize, input.maxGroupSize)
 
   const current = leader.circles.map((circle, index) => {
     if (index === 0) return toScenarioCard(circle, 'leader')
@@ -545,7 +564,8 @@ export function generateScenarioOverview(input: GenerateScenariosInput): Scenari
     leftOut: leader.leftOut,
     coveredCount: leader.score.coveredCount,
     totalCount: input.participants.length,
-    targetGroupSize: input.targetGroupSize,
+    minGroupSize: input.minGroupSize,
+    maxGroupSize: input.maxGroupSize,
   }
 }
 

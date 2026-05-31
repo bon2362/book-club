@@ -70,7 +70,8 @@ matching_sessions
   created_at      timestamp NOT NULL default now()
   deadline_at     timestamp NULL          -- advisory only; does not auto-freeze
   status          text NOT NULL           -- 'active' | 'frozen'
-  target_group_size integer NOT NULL default 3
+  min_group_size integer NOT NULL default 3
+  max_group_size integer NOT NULL default 3
   frozen_at       timestamp NULL
   frozen_scenario_json jsonb NULL         -- the final pick captured at freeze time
 
@@ -96,7 +97,7 @@ There is intentionally no `matching_activity_events` table in v1. The realtime f
 
 A session is the unit of coordination. Without a session there is no matching page to open.
 
-- **Creation**: only admin. Required fields: `name`, `target_group_size` (default 3). Optional: `deadline_at`.
+- **Creation**: only admin. Required fields: `name`, `min_group_size` and `max_group_size` (default 3). Optional: `deadline_at`.
 - **Joining**: any authenticated user can join an `active` session via the matching page URL. Joining inserts a `matching_session_participants` row with a randomly-assigned animal pseudonym (see Pseudonyms).
 - **Deadline behavior**: the deadline is **advisory** — it is visible to participants as a countdown but does not automatically freeze the session. The admin freezes manually.
 - **Freezing**: admin presses "зафиксировать". Server captures the current top-sorted scenario into `frozen_scenario_json`, sets `status='frozen'` and `frozen_at`. From this point all mutation endpoints reject writes against this session.
@@ -106,7 +107,7 @@ A session is the unit of coordination. Without a session there is no matching pa
 
 ## Matching Rules
 
-- **Group size**: defaults to 3, configurable per session via `target_group_size`. Engine logic is parameterized but the v1 UI assumes 3.
+- **Group size**: defaults to 3-3, configurable per session via `min_group_size` and `max_group_size`.
 - A user can appear in only one group per scenario.
 - A book can appear once per scenario.
 - Published books are shown; books with no current signups are visible in catalog list but **excluded from scenario generation** (no group of 3 can include zero-signup books).
@@ -221,7 +222,7 @@ Scenario recomputation runs server-side on every mutation, not per-client. Resul
 
 ## Scenario Engine Complexity
 
-The engine builds candidate groups of `target_group_size` participants around books that have ≥`target_group_size` signups.
+The engine builds candidate groups from `min_group_size` to `max_group_size` participants around books that have at least `min_group_size` active signups.
 
 - **Naive bound**: `O(C(N, 3) * M)` for N participants, M eligible books. For N=30, M=50 that's ~200k * 50 = 10M operations — too slow for an interactive realtime path.
 - **Pruning**:
@@ -339,7 +340,7 @@ All endpoints check active session existence and (for mutations) `status='active
 - `POST /api/matching/sessions` — admin only, creates session.
 - `POST /api/matching/sessions/:id/freeze` — admin only.
 - `POST /api/matching/sessions/:id/join` — current user joins, gets pseudonym.
-- `PATCH /api/matching/sessions/:id` — admin only, updates `target_group_size` for an active session.
+- `PATCH /api/matching/sessions/:id` — admin only, updates `min_group_size` and `max_group_size` for an active session.
 - `POST /api/matching/books` — adds book to current user's signup, or to `?as=<userId>` for admins.
 - `DELETE /api/matching/books/:bookId` — removes book from current user, or from `?as=<userId>` for admins.
 - `PATCH /api/matching/priorities` — accepts ordered list `[bookId, ...]`, server normalizes ranks to dense `1..N`; supports admin `?as=<userId>`.

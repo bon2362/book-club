@@ -157,7 +157,7 @@ export default function MatchingBookDetailModal({
             {chips.length > 0 && (
               <div style={{ marginBottom: '0.85rem' }}>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-                  Записались на книгу
+                  Записались на книгу:
                 </div>
                 <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
                   {chips.map((p) => (
