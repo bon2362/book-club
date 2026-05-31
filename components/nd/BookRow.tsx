@@ -35,17 +35,17 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
   const isRead = book.status === 'read'
   const year = extractYear(book.date)
 
-  const accentColor = isReading ? '#C0603A' : isRead ? '#D0D0D0' : 'transparent'
+  const accentColor = isReading ? 'var(--accent)' : isRead ? '#D0D0D0' : 'transparent'
 
   return (
     <tr
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? '#F9F9F9' : isRead ? '#FAFAFA' : '#fff',
+        background: hovered ? '#F9F9F9' : isRead ? 'var(--bg-elevated)' : '#fff',
         opacity: isRead ? 0.7 : 1,
         transition: 'background 0.1s',
-        borderBottom: '1px solid #E5E5E5',
+        borderBottom: '1px solid var(--border)',
       }}
     >
       {/* Status accent */}
@@ -54,21 +54,21 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
       {/* Title + Author */}
       <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: serif, fontWeight: 700, fontSize: '0.95rem', color: '#111', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          <span style={{ fontFamily: serif, fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
             {book.name}
           </span>
           {book.isNew && (
-            <span style={{ fontFamily: sans, fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.12em', background: '#C0603A', color: '#fff', padding: '0.15rem 0.4rem', flexShrink: 0 }}>
+            <span style={{ fontFamily: sans, fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.12em', background: 'var(--accent)', color: 'var(--bg)', padding: '0.15rem 0.4rem', flexShrink: 0 }}>
               Новая
             </span>
           )}
           {year && (
-            <span style={{ fontFamily: sans, fontSize: '0.65rem', color: '#bbb', flexShrink: 0 }}>
+            <span style={{ fontFamily: sans, fontSize: '0.65rem', color: 'var(--text-muted)', flexShrink: 0 }}>
               {year}
             </span>
           )}
         </div>
-        <div style={{ fontFamily: sans, fontStyle: 'italic', fontSize: '0.78rem', color: '#888', marginTop: '0.1rem' }}>
+        <div style={{ fontFamily: sans, fontStyle: 'italic', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
           {book.author}
         </div>
       </td>
@@ -77,7 +77,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
       <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
           {book.tags.map(tag => (
-            <span key={tag} style={{ fontFamily: sans, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.09em', color: '#aaa' }}>
+            <span key={tag} style={{ fontFamily: sans, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--text-muted)' }}>
               {tag}
             </span>
           ))}
@@ -88,7 +88,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
       <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start' }}>
           {book.pages && (
-            <span style={{ fontFamily: sans, fontSize: '0.7rem', color: '#bbb' }}>
+            <span style={{ fontFamily: sans, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               {book.pages} стр.
             </span>
           )}
@@ -97,7 +97,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               href={book.link}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontFamily: sans, fontSize: '0.7rem', color: '#111', textDecoration: 'none', borderBottom: '1px solid #111' }}
+              style={{ fontFamily: sans, fontSize: '0.7rem', color: 'var(--text)', textDecoration: 'none', borderBottom: '1px solid var(--border-strong)' }}
             >
               Читать
             </a>
@@ -112,7 +112,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
             <span
               onMouseEnter={() => setSignupTooltip(true)}
               onMouseLeave={() => setSignupTooltip(false)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontFamily: sans, fontSize: '0.65rem', color: '#bbb', cursor: 'default', userSelect: 'none' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontFamily: sans, fontSize: '0.65rem', color: 'var(--text-muted)', cursor: 'default', userSelect: 'none' }}
             >
               <svg viewBox="0 0 9 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ height: '0.6rem', width: 'auto', flexShrink: 0 }}>
                 <circle cx="4.5" cy="3" r="2.5" fill="#BBBBBB" />
@@ -121,7 +121,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               {book.signupCount}
             </span>
             {signupTooltip && (
-              <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)', background: '#111', color: '#fff', fontFamily: sans, fontSize: '0.65rem', padding: '0.25rem 0.5rem', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10 }}>
+              <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)', background: 'var(--text)', color: 'var(--bg)', fontFamily: sans, fontSize: '0.65rem', padding: '0.25rem 0.5rem', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10 }}>
                 {formatSignupCount(book.signupCount)}
               </div>
             )}
@@ -141,7 +141,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               border: '1px solid #D0D0D0',
-              color: '#999',
+              color: 'var(--text-muted)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -158,7 +158,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               cursor: 'pointer',
-              border: '1px solid #111',
+              border: '1px solid var(--border-strong)',
               background: isSelected ? '#111' : 'transparent',
               color: isSelected ? '#fff' : '#111',
               whiteSpace: 'nowrap',

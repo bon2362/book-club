@@ -92,7 +92,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 fontSize: '0.6rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
-                color: '#555',
+                color: 'var(--text-secondary)',
                 background: 'rgba(255,255,255,0.85)',
                 padding: '0.3rem 0.65rem',
                 border: '1px solid #C8C8C8',
@@ -108,8 +108,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               position: 'absolute',
               top: '0.5rem',
               left: '0.5rem',
-              background: '#C0603A',
-              color: '#fff',
+              background: 'var(--accent)',
+              color: 'var(--bg)',
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.6rem',
               textTransform: 'uppercase',
@@ -145,8 +145,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               aria-expanded={submittedTooltip}
               style={{
                 position: 'relative',
-                background: '#C0603A',
-                color: '#fff',
+                background: 'var(--accent)',
+                color: 'var(--bg)',
                 padding: '0.2rem 0.35rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -178,8 +178,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                     top: 'calc(100% + 4px)',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: '#111',
-                    color: '#fff',
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                     fontSize: '0.65rem',
                     padding: '0.3rem 0.5rem',
@@ -196,8 +196,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
           {book.isNew && !isReading && (
             <div
               style={{
-                background: '#C0603A',
-                color: '#fff',
+                background: 'var(--accent)',
+                color: 'var(--bg)',
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.55rem',
                 textTransform: 'uppercase',
@@ -224,7 +224,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 fontSize: '0.6rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
-                color: '#999',
+                color: 'var(--text-muted)',
               }}
             >
               {tag}
@@ -242,7 +242,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                   fontSize: '0.6rem',
                   lineHeight: '1',
-                  color: '#999',
+                  color: 'var(--text-muted)',
                   cursor: 'default',
                   userSelect: 'none',
                 }}
@@ -259,8 +259,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                     position: 'absolute',
                     bottom: 'calc(100% + 4px)',
                     right: 0,
-                    background: '#111',
-                    color: '#fff',
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                     fontSize: '0.65rem',
                     padding: '0.25rem 0.5rem',
@@ -278,7 +278,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
       )}
 
       {/* Rule */}
-      <div style={{ margin: '0.5rem 0.75rem 0', borderTop: '1px solid #111' }} />
+      <div style={{ margin: '0.5rem 0.75rem 0', borderTop: '1px solid var(--border-strong)' }} />
 
       {/* Status badge */}
       {(isReading || isRead) && (
@@ -289,8 +289,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               fontSize: '0.6rem',
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
-              color: isRead ? '#999' : '#C0603A',
-              borderBottom: `1px solid ${isRead ? '#C8C8C8' : '#C0603A'}`,
+              color: isRead ? 'var(--text-muted)' : 'var(--accent)',
+              borderBottom: `1px solid ${isRead ? '#C8C8C8' : 'var(--accent)'}`,
               paddingBottom: '0.1rem',
             }}
           >
@@ -307,7 +307,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
             fontWeight: 700,
             fontSize: '1.05rem',
             lineHeight: 1.25,
-            color: '#111',
+            color: 'var(--text)',
             margin: 0,
             letterSpacing: '-0.01em',
           }}
@@ -319,7 +319,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.65rem',
-              color: '#999',
+              color: 'var(--text-muted)',
               whiteSpace: 'nowrap',
               marginTop: '0.2rem',
               flexShrink: 0,
@@ -336,7 +336,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
           fontFamily: 'var(--nd-sans), system-ui, sans-serif',
           fontStyle: 'italic',
           fontSize: '0.8rem',
-          color: '#666',
+          color: 'var(--text-secondary)',
           margin: '0.25rem 0.75rem 0',
         }}
       >
@@ -358,7 +358,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.7rem',
-                color: '#999',
+                color: 'var(--text-muted)',
               }}
             >
               {book.pages} стр.
@@ -372,9 +372,9 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.7rem',
-                color: '#111',
+                color: 'var(--text)',
                 textDecoration: 'none',
-                borderBottom: '1px solid #111',
+                borderBottom: '1px solid var(--border-strong)',
               }}
             >
               читать
@@ -395,7 +395,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.78rem',
                 lineHeight: 1.55,
-                color: '#666',
+                color: 'var(--text-secondary)',
                 margin: 0,
                 whiteSpace: 'pre-line',
                 cursor: hasExpandable ? 'pointer' : 'default',
@@ -416,13 +416,13 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               style={{
                 background: 'none',
                 border: 'none',
-                borderBottom: `1px solid ${descHovered ? '#C0603A' : 'transparent'}`,
+                borderBottom: `1px solid ${descHovered ? 'var(--accent)' : 'transparent'}`,
                 padding: '0.25rem 0 0',
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.7rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
-                color: descHovered ? '#C0603A' : '#999',
+                color: descHovered ? 'var(--accent)' : 'var(--text-muted)',
                 cursor: 'pointer',
                 transition: 'color 160ms ease, border-color 160ms ease',
               }}
@@ -435,7 +435,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               style={{
                 marginTop: '0.75rem',
                 paddingLeft: '0.75rem',
-                borderLeft: '2px solid #C0603A',
+                borderLeft: '2px solid var(--accent)',
                 background: '#FDF6F3',
                 padding: '0.6rem 0.75rem',
               }}
@@ -446,7 +446,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                   fontSize: '0.55rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.12em',
-                  color: '#C0603A',
+                  color: 'var(--accent)',
                   margin: '0 0 0.3rem',
                 }}
               >
@@ -458,7 +458,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                   fontStyle: 'italic',
                   fontSize: '0.76rem',
                   lineHeight: 1.55,
-                  color: '#555',
+                  color: 'var(--text-secondary)',
                   margin: 0,
                   whiteSpace: 'pre-line',
                 }}
@@ -471,13 +471,13 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
             const parsed = parseRecommendationLink(book.recommendationLink)
             if (!parsed) return null
             return (
-              <p style={{ margin: '0.5rem 0 0', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: '#999' }}>
+              <p style={{ margin: '0.5rem 0 0', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                 {'Ещё рекомендации: '}
                 <a
                   href={parsed.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: '#999', borderBottom: '1px solid #ccc', textDecoration: 'none' }}
+                  style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', textDecoration: 'none' }}
                 >
                   {parsed.text}
                 </a>
@@ -503,7 +503,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               border: '1px solid #D0D0D0',
-              color: '#999',
+              color: 'var(--text-muted)',
               textAlign: 'center',
               boxSizing: 'border-box',
             }}
@@ -523,7 +523,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               cursor: 'pointer',
-              border: '1px solid #111',
+              border: '1px solid var(--border-strong)',
               background: isSelected ? '#111' : 'transparent',
               color: isSelected ? '#fff' : '#111',
               transition: 'background 0.15s, color 0.15s',

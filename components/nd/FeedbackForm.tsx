@@ -16,12 +16,12 @@ type FormStatus = 'idle' | 'submitting' | 'needs-email-confirm' | 'success' | 'e
 const inputStyle: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.85rem',
-  color: '#111',
-  background: '#fff',
-  borderTop: '1px solid #E5E5E5',
+  color: 'var(--text)',
+  background: 'var(--bg-input)',
+  borderTop: '1px solid var(--border)',
   borderRight: '1px solid #E5E5E5',
-  borderLeft: '1px solid #E5E5E5',
-  borderBottom: '2px solid #111',
+  borderLeft: '1px solid var(--border)',
+  borderBottom: '2px solid var(--border-strong)',
   padding: '0.5rem 0.6rem',
   outline: 'none',
   width: '100%',
@@ -33,7 +33,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: '0.75rem',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: '#111',
+  color: 'var(--text)',
   display: 'block',
   marginBottom: '0.3rem',
 }
@@ -139,10 +139,10 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
       <div
         style={{
           position: 'relative',
-          background: '#fff',
+          background: 'var(--bg-input)',
           width: '100%',
           maxWidth: '480px',
-          border: '2px solid #111',
+          border: '2px solid var(--border-strong)',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
@@ -161,7 +161,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
             cursor: 'pointer',
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             fontSize: '1rem',
-            color: '#999',
+            color: 'var(--text-muted)',
             lineHeight: 1,
             padding: '0.2rem',
           }}
@@ -169,13 +169,13 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
           ✕
         </button>
 
-        <div style={{ padding: '2rem 2rem 1.5rem', borderBottom: '1px solid #E5E5E5' }}>
-          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#999', margin: '0 0 0.5rem' }}>
+        <div style={{ padding: '2rem 2rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', margin: '0 0 0.5rem' }}>
             Читательские круги
           </p>
           <h2
             id="feedback-form-title"
-            style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: '#111', margin: 0, letterSpacing: '-0.02em' }}
+            style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}
           >
             Написать автору проекта
           </h2>
@@ -183,10 +183,10 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
 
         {status === 'success' ? (
           <div style={{ padding: '2rem', textAlign: 'center' }}>
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '1rem', color: '#2D6A4F', fontWeight: 600, margin: '0 0 0.5rem' }}>
+            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '1rem', color: 'var(--success)', fontWeight: 600, margin: '0 0 0.5rem' }}>
               Спасибо!
             </p>
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: '#555', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
               Я прочитаю и отвечу.
             </p>
             <button
@@ -197,10 +197,10 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
                 fontSize: '0.75rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                color: '#111',
+                color: 'var(--text)',
                 background: 'none',
                 border: 'none',
-                borderBottom: '1px solid #111',
+                borderBottom: '1px solid var(--border-strong)',
                 cursor: 'pointer',
                 padding: '0 0 1px',
               }}
@@ -251,9 +251,9 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
               </div>
             </div>
 
-            <div style={{ padding: '1rem 2rem', borderTop: '1px solid #E5E5E5', background: '#fff' }}>
+            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border)', background: 'var(--bg-input)' }}>
               {status === 'error' && (
-                <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: '#C0603A', margin: '0 0 0.75rem' }}>
+                <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: 'var(--accent)', margin: '0 0 0.75rem' }}>
                   Не удалось отправить. Попробуйте ещё раз.
                 </p>
               )}
@@ -268,9 +268,9 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   cursor: isDisabled ? 'default' : 'pointer',
-                  border: '1px solid #111',
+                  border: '1px solid var(--border-strong)',
                   background: isDisabled ? 'transparent' : '#111',
-                  color: isDisabled ? '#999' : '#fff',
+                  color: isDisabled ? 'var(--text-muted)' : '#fff',
                   borderColor: isDisabled ? '#C8C8C8' : '#111',
                   transition: 'background 0.15s, color 0.15s, border-color 0.15s',
                 }}
@@ -278,7 +278,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
                 {status === 'submitting' ? 'Отправляем…' : 'Отправить'}
               </button>
               {status === 'needs-email-confirm' && (
-                <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: '#888', margin: '0.5rem 0 0', textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.5rem 0 0', textAlign: 'center' }}>
                   Без email я не смогу ответить.{' '}
                   <button
                     type="button"
@@ -286,10 +286,10 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
                     style={{
                       fontFamily: 'inherit',
                       fontSize: 'inherit',
-                      color: '#111',
+                      color: 'var(--text)',
                       background: 'none',
                       border: 'none',
-                      borderBottom: '1px solid #111',
+                      borderBottom: '1px solid var(--border-strong)',
                       cursor: 'pointer',
                       padding: 0,
                     }}

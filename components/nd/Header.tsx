@@ -43,7 +43,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
       ref={headerRef}
       style={{
         borderBottom: '2px solid #000',
-        background: '#fff',
+        background: 'var(--bg-input)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
@@ -69,7 +69,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
               fontSize: '0.6rem',
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
-              color: '#999',
+              color: 'var(--text-muted)',
               lineHeight: 1,
             }}
           >
@@ -85,7 +85,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                 fontSize: '0.6rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.15em',
-                color: whatIsThisHovered ? '#111' : '#999',
+                color: whatIsThisHovered ? '#111' : 'var(--text-muted)',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -105,7 +105,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
           style={{
             fontFamily: 'var(--nd-serif), Georgia, serif',
             fontSize: '1.25rem',
-            color: '#111',
+            color: 'var(--text)',
             textDecoration: 'none',
             letterSpacing: '-0.01em',
           }}
@@ -133,9 +133,9 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                 fontSize: '0.65rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                color: '#888',
+                color: 'var(--text-muted)',
                 textDecoration: 'none',
-                borderBottom: '1px solid #ccc',
+                borderBottom: '1px solid var(--border)',
                 padding: '0 0 1px',
                 whiteSpace: 'nowrap',
               }}
@@ -158,7 +158,7 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                   style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                     fontSize: '0.7rem',
-                    color: '#666',
+                    color: 'var(--text-secondary)',
                     background: 'none',
                     border: 'none',
                     borderBottom: '1px solid #bbb',
@@ -184,8 +184,8 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                     width: '28px',
                     height: '28px',
                     borderRadius: '50%',
-                    background: '#555',
-                    color: '#fff',
+                    background: 'var(--text-secondary)',
+                    color: 'var(--bg)',
                     border: 'none',
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                     fontSize: '0.65rem',
@@ -209,8 +209,8 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                     width: '28px',
                     height: '28px',
                     borderRadius: '50%',
-                    background: '#111',
-                    color: '#fff',
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
                     border: 'none',
                     cursor: 'pointer',
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
@@ -236,10 +236,10 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
                 fontSize: '0.65rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                color: '#111',
+                color: 'var(--text)',
                 background: 'none',
                 border: 'none',
-                borderBottom: '1px solid #111',
+                borderBottom: '1px solid var(--border-strong)',
                 cursor: 'pointer',
                 padding: '0 0 1px',
               }}

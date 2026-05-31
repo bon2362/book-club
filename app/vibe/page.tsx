@@ -199,30 +199,30 @@ export default async function VibePage() {
       </div>
     </div>
     <footer style={{
-      borderTop: '1px solid #E5E5E5',
+      borderTop: '1px solid var(--border)',
       padding: '1rem 1.5rem',
       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
       fontSize: '0.7rem',
-      color: '#999',
+      color: 'var(--text-muted)',
       display: 'flex',
       flexWrap: 'wrap',
       gap: '0.4rem 1rem',
       alignItems: 'center',
     }}>
-      {buildTime && <span>Деплой: <b style={{ color: '#555' }}>{buildTime} CET</b></span>}
+      {buildTime && <span>Деплой: <b style={{ color: 'var(--text-secondary)' }}>{buildTime} CET</b></span>}
       {shortSha && (
         <span>Коммит:{' '}
           <a
             href={`https://github.com/bon2362/book-club/commit/${sha}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#555', fontFamily: 'monospace', textDecoration: 'none', borderBottom: '1px solid #ccc' }}
+            style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}
           >
             {shortSha}
           </a>
         </span>
       )}
-      {commitMsg && <span style={{ color: '#777' }}>{commitMsg}</span>}
+      {commitMsg && <span style={{ color: 'var(--text-secondary)' }}>{commitMsg}</span>}
     </footer>
     </>
   )

@@ -38,6 +38,14 @@
   --border-subtle:   #EEEEEE;   /* ещё тише */
   --border-strong:   #111111;   /* фирменная сильная линия (низ инпута 2px, низ хедера) */
 
+  /* ── Status (traffic-light: CI-индикаторы, live-статусы) ──────────────── */
+  /* Только для AdminStatusBar, AllureWidget, DigestStatusWidget и аналогов. */
+  /* Для ошибок в формах и акцентов — var(--accent).                         */
+  --status-ok:        #22C55E;   /* ● зелёный — success / live */
+  --status-ok-hover:  #16A34A;
+  --status-fail:      #EF4444;   /* ● красный — failure / error */
+  --status-warn:      #F59E0B;   /* ● жёлтый — pending / warning */
+
   /* ── Elevation ─────────────────────────────────────────────────────────── */
   /* Редакторский стиль плоский. Тени по умолчанию выключены: любой
      box-shadow: 0 4px 24px var(--shadow-card) станет невидимым.            */

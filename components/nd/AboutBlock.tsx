@@ -44,7 +44,7 @@ function AccordionSection({ number, question, body, isOpen, onToggle }: Accordio
       <div
         style={{
           fontSize: '0.7rem',
-          color: '#ccc',
+          color: 'var(--border)',
           fontFamily: 'var(--nd-serif), Georgia, serif',
           paddingTop: '0.05rem',
           flexShrink: 0,
@@ -69,7 +69,7 @@ function AccordionSection({ number, question, body, isOpen, onToggle }: Accordio
             padding: 0,
             fontFamily: 'var(--nd-serif), Georgia, serif',
             fontSize: '0.95rem',
-            color: isOpen ? '#111' : '#444',
+            color: isOpen ? '#111' : 'var(--text-secondary)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -82,7 +82,7 @@ function AccordionSection({ number, question, body, isOpen, onToggle }: Accordio
           <span
             style={{
               fontSize: '0.65rem',
-              color: '#ccc',
+              color: 'var(--border)',
               marginLeft: '0.5rem',
               flexShrink: 0,
               display: 'inline-block',
@@ -102,7 +102,7 @@ function AccordionSection({ number, question, body, isOpen, onToggle }: Accordio
             paddingTop: '0.5rem',
             fontSize: '0.83rem',
             lineHeight: 1.7,
-            color: '#555',
+            color: 'var(--text-secondary)',
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
           }}
         >
@@ -168,8 +168,8 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
     setOpenSection(prev => (prev === idx ? null : idx))
   }
 
-  const borderColor = isAccordionOpen ? '#888' : isHovered ? '#999' : '#ccc'
-  const bgColor = isAccordionOpen || isHovered ? '#fafafa' : '#fff'
+  const borderColor = isAccordionOpen ? 'var(--text-muted)' : isHovered ? 'var(--text-muted)' : 'var(--border)'
+  const bgColor = isAccordionOpen || isHovered ? 'var(--bg-elevated)' : '#fff'
   const leadParagraphs = bodyToParagraphs(header.body)
 
   return (
@@ -185,7 +185,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
         onTouchStart={() => setIsHovered(false)}
         tabIndex={isAccordionOpen ? -1 : 0}
         style={{
-          borderBottom: '1px solid #E5E5E5',
+          borderBottom: '1px solid var(--border)',
           borderLeft: `3px solid ${borderColor}`,
           background: bgColor,
           cursor: isAccordionOpen ? 'default' : 'pointer',
@@ -206,7 +206,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
               fontWeight: 600,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              color: '#bbb',
+              color: 'var(--text-muted)',
               marginBottom: '0.4rem',
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             }}
@@ -228,7 +228,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
                 flex: 1,
                 fontSize: '0.875rem',
                 lineHeight: 1.65,
-                color: '#555',
+                color: 'var(--text-secondary)',
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               }}
             >
@@ -248,7 +248,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
                 onClick={handleMoreClick}
                 style={{
                   fontSize: '0.75rem',
-                  color: '#555',
+                  color: 'var(--text-secondary)',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
@@ -269,7 +269,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#ccc',
+                  color: 'var(--border)',
                   fontSize: '1rem',
                   lineHeight: 1,
                   minWidth: '44px',

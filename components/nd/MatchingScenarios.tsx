@@ -21,17 +21,17 @@ interface Props {
 
 const tierConfig = {
   leader: {
-    style: { background: '#fff', borderTop: '2px solid #111', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', borderRadius: 0 },
+    style: { background: 'var(--bg-input)', borderTop: '2px solid var(--border-strong)', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', borderRadius: 0 },
     label: 'лидер',
-    labelStyle: { color: '#C0603A' },
+    labelStyle: { color: 'var(--accent)' },
   },
   'max-coverage': {
-    style: { background: '#fff', border: '1px solid #E5E5E5', borderRadius: 0 },
+    style: { background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 0 },
     label: 'макс. покрытие',
-    labelStyle: { color: '#999' },
+    labelStyle: { color: 'var(--text-muted)' },
   },
   'sub-max': {
-    style: { background: '#fff', border: '1px solid #E5E5E5', borderRadius: 0 },
+    style: { background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 0 },
     label: null,
     labelStyle: {},
   },
@@ -53,7 +53,7 @@ export default function MatchingScenarios({
     return (
       <div
         className="flex flex-col items-center justify-center h-full p-6 text-center"
-        style={{ color: '#999' }}
+        style={{ color: 'var(--text-muted)' }}
       >
         <div className="text-3xl mb-2">🎯</div>
         <p className="text-sm">
@@ -74,7 +74,7 @@ export default function MatchingScenarios({
         />
       )}
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-1.5 text-xs" style={{ color: '#999' }}>
+        <div className="flex flex-wrap items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
           <span>Текущий расклад: {overview.coveredCount}/{overview.totalCount} участников</span>
           {overview.leftOut.length > 0 && (
             <>
@@ -95,7 +95,7 @@ export default function MatchingScenarios({
 
         {overview.current.length > 0 && (
           <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: '#999' }}>
+            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: 'var(--text-muted)' }}>
               Текущий расклад
             </h3>
             <ul className="list-none p-0 m-0 flex flex-col gap-3">
@@ -113,7 +113,7 @@ export default function MatchingScenarios({
 
         {alternatives.length > 0 && (
           <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: '#999' }}>
+            <h3 className="text-[11px] font-semibold uppercase m-0" style={{ color: 'var(--text-muted)' }}>
               Возможные круги
             </h3>
             <ul className="list-none p-0 m-0 flex flex-col gap-3">
@@ -147,14 +147,14 @@ function ScenarioItem({
   const isAlternative = candidate !== null && !candidate.inCurrentLayout
   const label = isAlternative ? 'альтернатива' : tier.label
   const labelStyle = isAlternative
-    ? { color: '#999' }
+    ? { color: 'var(--text-muted)' }
     : tier.labelStyle
 
   return (
     <li
       className="border p-3.5"
       style={isAlternative
-        ? { background: '#fff', border: '1px solid #E5E5E5', borderRadius: 0 }
+        ? { background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 0 }
         : { ...tier.style }
       }
     >
@@ -174,7 +174,7 @@ function ScenarioItem({
                 fontWeight: 700,
                 fontSize: '0.92rem',
                 letterSpacing: '-0.01em',
-                color: '#111',
+                color: 'var(--text)',
               }}
             >
               {book?.title ?? card.bookId}
@@ -211,7 +211,7 @@ function ScenarioItem({
             ))}
           </div>
           {candidate && candidate.conflictsWith.length > 0 && (
-            <p className="text-[11px] mt-2 mb-0" style={{ color: '#999' }}>
+            <p className="text-[11px] mt-2 mb-0" style={{ color: 'var(--text-muted)' }}>
               Пересекается с текущим раскладом: {candidate.conflictsWith.join(', ')}
             </p>
           )}

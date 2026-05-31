@@ -56,7 +56,7 @@ export async function GET() {
                 fontSize: '17px',
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
-                color: '#999',
+                color: 'var(--text-muted)',
                 marginBottom: '22px',
                 display: 'flex',
               }}
@@ -70,7 +70,7 @@ export async function GET() {
                 fontWeight: 700,
                 fontSize: hasCovers ? '74px' : '88px',
                 lineHeight: 1.05,
-                color: '#111',
+                color: 'var(--text)',
                 letterSpacing: '-0.02em',
                 marginBottom: '28px',
                 display: 'flex',
@@ -87,7 +87,7 @@ export async function GET() {
                 fontStyle: 'italic',
                 fontSize: '22px',
                 lineHeight: 1.5,
-                color: '#555',
+                color: 'var(--text-secondary)',
                 display: 'flex',
               }}
             >
@@ -101,7 +101,7 @@ export async function GET() {
             style={{
               fontFamily: 'serif',
               fontSize: '17px',
-              color: '#C0603A',
+              color: 'var(--accent)',
               letterSpacing: '0.04em',
               display: 'flex',
             }}
