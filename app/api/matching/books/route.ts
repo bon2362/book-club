@@ -3,8 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingSessions, signupBooks } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { matchingSessions, signupBooks, bookPriorities } from '@/lib/db/schema'
+import { asc, eq } from 'drizzle-orm'
 import { broadcast } from '@/lib/matching/realtime/hub'
 
 export async function POST(req: NextRequest) {
@@ -29,7 +29,31 @@ export async function POST(req: NextRequest) {
     .values({ userId: session.user.id, bookId })
     .onConflictDoNothing()
 
-  broadcast(activeSession.id, 'state_changed', { userId: session.user.id, kind: 'book_added', bookId })
+  const userId = session.user.id
+  const currentOrder = await db
+    .select({ bookId: bookPriorities.bookId })
+    .from(bookPriorities)
+    .where(eq(bookPriorities.userId, userId))
+    .orderBy(asc(bookPriorities.rank))
+
+  const nextOrder = [
+    bookId,
+    ...currentOrder
+      .map((row) => row.bookId)
+      .filter((existingBookId) => existingBookId !== bookId),
+  ]
+
+  for (let i = 0; i < nextOrder.length; i++) {
+    await db
+      .insert(bookPriorities)
+      .values({ userId, bookId: nextOrder[i], rank: i + 1 })
+      .onConflictDoUpdate({
+        target: [bookPriorities.userId, bookPriorities.bookId],
+        set: { rank: i + 1, updatedAt: new Date() },
+      })
+  }
+
+  broadcast(activeSession.id, 'state_changed', { userId, kind: 'book_added', bookId })
 
   return NextResponse.json({ ok: true }, { status: 200 })
 }

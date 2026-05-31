@@ -50,10 +50,10 @@ test('matching shows reader circles, move hints, and full book details modal', a
   })
 
   await loginAsUser({ name: 'E2E Reader One' })
-  const firstPseudonym = await joinSessionAndAddBooks(page, session.id, [circleBook.id, moveBook.id])
+  const firstPseudonym = await joinSessionAndAddBooks(page, session.id, [moveBook.id, circleBook.id])
 
   await loginAsUser({ name: 'E2E Reader Two' })
-  const secondPseudonym = await joinSessionAndAddBooks(page, session.id, [circleBook.id, moveBook.id])
+  const secondPseudonym = await joinSessionAndAddBooks(page, session.id, [moveBook.id, circleBook.id])
 
   await loginAsUser({ name: 'E2E Reader Three' })
   const thirdPseudonym = await joinSessionAndAddBooks(page, session.id, [circleBook.id])
@@ -70,7 +70,8 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
   await expect(page.getByText('Уже записались:')).toBeVisible()
   await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
-  await expect(movesPanel.getByText(/После добавления: Сценарий/)).toBeVisible()
+  await expect(movesPanel.getByText(/После добавления: Сценарий 1/)).toBeVisible()
+  await expect(movesPanel.getByText('Этот ход меняет лучший сценарий')).toBeVisible()
 
   await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).click()
   let dialog = page.getByRole('dialog', { name: moveBook.title })

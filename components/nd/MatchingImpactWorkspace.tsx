@@ -1,6 +1,3 @@
-'use client'
-
-import { useState } from 'react'
 import type { ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingScenarios from './MatchingScenarios'
@@ -33,8 +30,6 @@ export default function MatchingImpactWorkspace({
   frozen,
   movesHeading,
 }: Props) {
-  const [hoveredMove, setHoveredMove] = useState<MyMoveBook | null>(null)
-
   return (
     <div className="grid gap-4 h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)' }}>
       <section
@@ -64,12 +59,6 @@ export default function MatchingImpactWorkspace({
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
             targetGroupSize={targetGroupSize}
-            highlightedScenarioId={hoveredMove?.impact?.scenarioId ?? null}
-            highlightedBookId={hoveredMove?.bookId ?? null}
-            highlightedUserIds={hoveredMove ? [
-              viewingUserId,
-              ...hoveredMove.existingParticipants.map((participant) => participant.userId),
-            ] : []}
           />
         </div>
       </section>
@@ -95,7 +84,7 @@ export default function MatchingImpactWorkspace({
           </h2>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto p-3">
-          <MatchingMyMoves moves={moves} frozen={frozen} onMoveHover={setHoveredMove} />
+          <MatchingMyMoves moves={moves} frozen={frozen} />
         </div>
       </section>
     </div>
