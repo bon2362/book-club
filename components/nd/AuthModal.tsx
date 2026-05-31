@@ -100,11 +100,11 @@ export default function AuthModal({ isOpen, onClose }: Props) {
       <div
         style={{
           position: 'relative',
-          background: '#fff',
+          background: 'var(--bg-input)',
           width: '100%',
           maxWidth: '400px',
           padding: '2.5rem 2rem 2rem',
-          border: '2px solid #111',
+          border: '2px solid var(--border-strong)',
         }}
       >
         {/* Close */}
@@ -120,7 +120,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             cursor: 'pointer',
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             fontSize: '1rem',
-            color: '#999',
+            color: 'var(--text-muted)',
             lineHeight: 1,
             padding: '0.2rem',
           }}
@@ -134,7 +134,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             fontSize: '0.6rem',
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
-            color: '#999',
+            color: 'var(--text-muted)',
             margin: '0 0 0.75rem',
           }}
         >
@@ -146,7 +146,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             fontFamily: 'var(--nd-serif), Georgia, serif',
             fontWeight: 700,
             fontSize: '1.5rem',
-            color: '#111',
+            color: 'var(--text)',
             margin: '0 0 0.25rem',
             letterSpacing: '-0.02em',
           }}
@@ -158,7 +158,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           style={{
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             fontSize: '0.8rem',
-            color: '#666',
+            color: 'var(--text-secondary)',
             margin: '0 0 1.75rem',
             lineHeight: 1.5,
           }}
@@ -166,7 +166,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
           войдите, чтобы записаться на книги
         </p>
 
-        <div style={{ borderTop: '1px solid #111', marginBottom: '1.5rem' }} />
+        <div style={{ borderTop: '1px solid var(--border-strong)', marginBottom: '1.5rem' }} />
 
         {/* Telegram — primary */}
         <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }} />
@@ -181,9 +181,9 @@ export default function AuthModal({ isOpen, onClose }: Props) {
               cursor: 'pointer',
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.72rem',
-              color: '#999',
+              color: 'var(--text-muted)',
               textDecoration: 'underline',
-              textDecorationColor: '#ccc',
+              textDecorationColor: 'var(--border)',
               textUnderlineOffset: '3px',
               padding: 0,
             }}
@@ -212,9 +212,9 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
                 cursor: 'pointer',
-                border: '1px solid #111',
-                background: '#111',
-                color: '#fff',
+                border: '1px solid var(--border-strong)',
+                background: 'var(--text)',
+                color: 'var(--bg)',
                 transition: 'background 0.15s',
               }}
             >
@@ -228,13 +228,13 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0' }}>
-              <div style={{ flex: 1, height: 1, background: '#E5E5E5' }} />
-              <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#bbb' }}>или</span>
-              <div style={{ flex: 1, height: 1, background: '#E5E5E5' }} />
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>или</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
 
             {magicState === 'sent' ? (
-              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#555', lineHeight: 1.55, margin: 0, textAlign: 'center' }}>
+              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0, textAlign: 'center' }}>
                 Проверьте почту — мы отправили ссылку для входа на <strong>{email}</strong>
               </p>
             ) : (
@@ -248,10 +248,10 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                   style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                     fontSize: '1rem',
-                    color: '#111',
-                    background: '#fff',
-                    border: '1px solid #E5E5E5',
-                    borderBottom: '2px solid #111',
+                    color: 'var(--text)',
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border)',
+                    borderBottom: '2px solid var(--border-strong)',
                     padding: '0.6rem 0.75rem',
                     outline: 'none',
                     width: '100%',
@@ -259,7 +259,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                   }}
                 />
                 {magicState === 'error' && (
-                  <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: '#C0603A', margin: 0 }}>
+                  <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: 'var(--accent)', margin: 0 }}>
                     Не удалось отправить письмо. Попробуйте ещё раз.
                   </p>
                 )}
@@ -275,9 +275,9 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                       cursor: magicState === 'loading' ? 'default' : 'pointer',
-                      border: '1px solid #111',
+                      border: '1px solid var(--border-strong)',
                       background: 'transparent',
-                      color: magicState === 'loading' ? '#999' : '#111',
+                      color: magicState === 'loading' ? 'var(--text-muted)' : '#111',
                       borderColor: magicState === 'loading' ? '#C8C8C8' : '#111',
                       transition: 'color 0.15s, border-color 0.15s',
                     }}

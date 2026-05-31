@@ -32,21 +32,21 @@ function progressBar(passed: number, total: number): string {
 const WIDGET_STYLE: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.7rem',
-  color: '#999',
+  color: 'var(--text-muted)',
   display: 'flex',
   alignItems: 'center',
   gap: '0.3rem',
 }
 
 const LINK_STYLE: React.CSSProperties = {
-  color: '#555',
+  color: 'var(--text-secondary)',
   textDecoration: 'none',
-  borderBottom: '1px solid #ccc',
+  borderBottom: '1px solid var(--border)',
 }
 
 const MONO_STYLE: React.CSSProperties = {
   fontFamily: 'monospace',
-  color: '#777',
+  color: 'var(--text-secondary)',
 }
 
 interface AllureWidgetProps {
@@ -86,8 +86,8 @@ export default function AllureWidget({ refreshSignal = 0 }: AllureWidgetProps) {
   const { passed, failed, broken, skipped, total } = data.statistic
   const allGood = failed === 0 && broken === 0
   const dot = allGood
-    ? <span style={{ color: '#22c55e' }}>●</span>
-    : <span style={{ color: '#ef4444' }}>●</span>
+    ? <span style={{ color: 'var(--status-ok)' }}>●</span>
+    : <span style={{ color: 'var(--status-fail)' }}>●</span>
 
   const bar = progressBar(passed, total)
   const issues = [
@@ -101,8 +101,8 @@ export default function AllureWidget({ refreshSignal = 0 }: AllureWidgetProps) {
       {dot}
       <span>Allure:</span>
       <span style={MONO_STYLE}>[{bar}]</span>
-      <span style={{ color: '#555' }}>{passed}/{total}</span>
-      {issues && <><span>·</span><span style={{ color: allGood ? '#999' : '#ef4444' }}>{issues}</span></>}
+      <span style={{ color: 'var(--text-secondary)' }}>{passed}/{total}</span>
+      {issues && <><span>·</span><span style={{ color: allGood ? 'var(--text-muted)' : 'var(--status-fail)' }}>{issues}</span></>}
       <span>·</span>
       <span>{timeAgo(data.time.stop)}</span>
       <span>·</span>

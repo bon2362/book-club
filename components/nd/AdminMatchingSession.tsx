@@ -36,7 +36,7 @@ const fieldInput: React.CSSProperties = {
   fontFamily: 'var(--nd-mono), monospace',
   fontSize: '0.8rem',
   border: 'none',
-  borderBottom: '1px solid #ccc',
+  borderBottom: '1px solid var(--border)',
   outline: 'none',
   padding: '2px 0',
   background: 'transparent',
@@ -46,7 +46,7 @@ const fieldInput: React.CSSProperties = {
 const btn: React.CSSProperties = {
   fontFamily: 'var(--nd-mono), monospace',
   fontSize: '0.75rem',
-  border: '1px solid #ccc',
+  border: '1px solid var(--border)',
   background: 'none',
   padding: '4px 10px',
   cursor: 'pointer',
@@ -216,11 +216,11 @@ export default function AdminMatchingSession() {
         Matching-сессия
       </h3>
 
-      {loading && <p style={{ color: '#999' }}>Загрузка…</p>}
-      {error && <p style={{ color: '#c00' }}>{error}</p>}
+      {loading && <p style={{ color: 'var(--text-muted)' }}>Загрузка…</p>}
+      {error && <p style={{ color: 'var(--accent)' }}>{error}</p>}
 
       {!loading && activeSession && (
-        <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid #333', borderRadius: 3 }}>
+        <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: 3 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Активная сессия</div>
           <div>Название: {activeSession.name}</div>
           <div>Размер группы: {activeSession.targetGroupSize}</div>
@@ -230,25 +230,25 @@ export default function AdminMatchingSession() {
           <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <a
               href="/matching"
-              style={{ color: '#333', textDecoration: 'underline', fontSize: '0.78rem' }}
+              style={{ color: 'var(--text-body)', textDecoration: 'underline', fontSize: '0.78rem' }}
             >
               Открыть страницу матчинга →
             </a>
             <button
               onClick={handleFreeze}
               disabled={freezing}
-              style={{ ...btn, borderColor: '#c00', color: '#c00' }}
+              style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
               data-testid="admin-freeze-session"
             >
               {freezing ? 'Фиксирую…' : 'Зафиксировать'}
             </button>
           </div>
-          {freezeError && <p style={{ color: '#c00', fontSize: '0.75rem', marginTop: 4 }}>{freezeError}</p>}
+          {freezeError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem', marginTop: 4 }}>{freezeError}</p>}
         </div>
       )}
 
       {!loading && activeSession && (
-        <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid #333', borderRadius: 3 }}>
+        <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: 3 }}>
           <div style={{ fontWeight: 600, marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             Участники ({participants.length})
             <button
@@ -259,16 +259,16 @@ export default function AdminMatchingSession() {
             </button>
           </div>
 
-          {participantsLoading && <p style={{ color: '#999', fontSize: '0.78rem' }}>Загрузка…</p>}
+          {participantsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Загрузка…</p>}
 
           {!participantsLoading && participants.length === 0 && (
-            <p style={{ color: '#999', fontSize: '0.78rem' }}>Нет участников.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Нет участников.</p>
           )}
 
           {!participantsLoading && participants.length > 0 && (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', marginBottom: '0.75rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                   <th style={{ padding: '3px 8px 3px 0' }}>Псевдоним</th>
                   <th style={{ padding: '3px 8px' }}>Пользователь</th>
                   <th style={{ padding: '3px 8px' }}>Вступил</th>
@@ -277,25 +277,25 @@ export default function AdminMatchingSession() {
               </thead>
               <tbody>
                 {participants.map(p => (
-                  <tr key={p.userId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                  <tr key={p.userId} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <td style={{ padding: '3px 8px 3px 0', fontWeight: 500 }}>{p.pseudonym}</td>
-                    <td style={{ padding: '3px 8px', color: '#555' }}>
+                    <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>
                       <a
                         href={`/matching?as=${p.userId}`}
-                        style={{ color: '#333', textDecoration: 'underline' }}
+                        style={{ color: 'var(--text-body)', textDecoration: 'underline' }}
                         title={p.userId}
                       >
                         {p.name ?? p.userId.slice(0, 12) + '…'}
                       </a>
                     </td>
-                    <td style={{ padding: '3px 8px', color: '#999', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '3px 8px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(p.joinedAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td style={{ padding: '3px 8px' }}>
                       <button
                         onClick={() => handleRemoveParticipant(p.userId)}
                         disabled={removingUserId === p.userId}
-                        style={{ ...btn, fontSize: '0.7rem', padding: '1px 6px', color: '#c00', borderColor: '#c00' }}
+                        style={{ ...btn, fontSize: '0.7rem', padding: '1px 6px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
                       >
                         {removingUserId === p.userId ? '…' : 'Убрать'}
                       </button>
@@ -310,7 +310,7 @@ export default function AdminMatchingSession() {
             <select
               value={selectedUserId}
               onChange={e => setSelectedUserId(e.target.value)}
-              style={{ ...fieldInput, width: 'auto', minWidth: 160, border: '1px solid #ccc', padding: '4px 6px', borderRadius: 2 }}
+              style={{ ...fieldInput, width: 'auto', minWidth: 160, border: '1px solid var(--border)', padding: '4px 6px', borderRadius: 2 }}
             >
               <option value="">— выбрать пользователя —</option>
               {allUsers
@@ -333,7 +333,7 @@ export default function AdminMatchingSession() {
       )}
 
       {!loading && !activeSession && (
-        <p style={{ color: '#999', marginBottom: '1rem' }}>Активных сессий нет.</p>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Активных сессий нет.</p>
       )}
 
       <div style={{ marginBottom: '1.5rem' }}>
@@ -341,13 +341,13 @@ export default function AdminMatchingSession() {
           {activeSession ? 'Создать новую сессию (заменит активную после её заморозки)' : 'Создать новую сессию'}
         </div>
         {activeSession && (
-          <p style={{ color: '#c60', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
+          <p style={{ color: 'var(--status-warn)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
             ⚠ Уже есть активная сессия. Сначала заморозьте её, затем создайте новую.
           </p>
         )}
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: 400 }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', color: '#666', marginBottom: 2 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
               Название *
             </label>
             <input
@@ -361,7 +361,7 @@ export default function AdminMatchingSession() {
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', color: '#666', marginBottom: 2 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
               Размер группы
             </label>
             <input
@@ -376,7 +376,7 @@ export default function AdminMatchingSession() {
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', color: '#666', marginBottom: 2 }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
               Дедлайн (опционально)
             </label>
             <input
@@ -388,7 +388,7 @@ export default function AdminMatchingSession() {
               data-testid="matching-session-deadline"
             />
           </div>
-          {createError && <p style={{ color: '#c00', fontSize: '0.75rem' }}>{createError}</p>}
+          {createError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{createError}</p>}
           <button
             type="submit"
             disabled={creating || !name.trim() || !!activeSession}
@@ -408,9 +408,9 @@ export default function AdminMatchingSession() {
               ↺
             </button>
           </div>
-          {auditLoading && <p style={{ color: '#999', fontSize: '0.78rem' }}>Загрузка…</p>}
+          {auditLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Загрузка…</p>}
           {!auditLoading && auditLog.length === 0 && (
-            <p style={{ color: '#999', fontSize: '0.78rem' }}>Просмотров за других участников не было.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Просмотров за других участников не было.</p>
           )}
           {!auditLoading && auditLog.length > 0 && (
             <table
@@ -418,7 +418,7 @@ export default function AdminMatchingSession() {
               style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}
             >
               <thead>
-                <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                   <th style={{ padding: '3px 8px 3px 0' }}>Когда</th>
                   <th style={{ padding: '3px 8px' }}>Администратор</th>
                   <th style={{ padding: '3px 8px' }}>Просматривал</th>
@@ -426,17 +426,17 @@ export default function AdminMatchingSession() {
               </thead>
               <tbody>
                 {auditLog.map(entry => (
-                  <tr key={entry.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '3px 8px 3px 0', color: '#999', whiteSpace: 'nowrap' }}>
+                  <tr key={entry.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '3px 8px 3px 0', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(entry.ts).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td style={{ padding: '3px 8px', color: '#555' }}>
+                    <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>
                       {entry.adminName ?? entry.adminId.slice(0, 8)}
                     </td>
                     <td style={{ padding: '3px 8px' }}>
                       <a
                         href={`/matching?as=${entry.viewedUserId}`}
-                        style={{ color: '#333', textDecoration: 'underline' }}
+                        style={{ color: 'var(--text-body)', textDecoration: 'underline' }}
                         title={entry.viewedUserId}
                       >
                         {entry.viewedUserId.slice(0, 12)}…
@@ -455,7 +455,7 @@ export default function AdminMatchingSession() {
           <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Прошлые сессии</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>
+              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                 <th style={{ padding: '4px 8px 4px 0' }}>Название</th>
                 <th style={{ padding: '4px 8px' }}>Статус</th>
                 <th style={{ padding: '4px 8px' }}>Создана</th>
@@ -464,13 +464,13 @@ export default function AdminMatchingSession() {
             </thead>
             <tbody>
               {sessions.filter(s => s.status !== 'active').map(s => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+                <tr key={s.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                   <td style={{ padding: '4px 8px 4px 0' }}>{s.name}</td>
-                  <td style={{ padding: '4px 8px', color: '#666' }}>{s.status}</td>
-                  <td style={{ padding: '4px 8px', color: '#999' }}>
+                  <td style={{ padding: '4px 8px', color: 'var(--text-secondary)' }}>{s.status}</td>
+                  <td style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>
                     {new Date(s.createdAt).toLocaleDateString('ru-RU')}
                   </td>
-                  <td style={{ padding: '4px 8px', color: '#999' }}>
+                  <td style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>
                     {s.frozenAt ? new Date(s.frozenAt).toLocaleDateString('ru-RU') : '—'}
                   </td>
                 </tr>

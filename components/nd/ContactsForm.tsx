@@ -57,10 +57,10 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
     padding: '0.6rem 0.75rem',
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.875rem',
-    color: '#111',
-    background: '#fff',
-    border: '1px solid #E5E5E5',
-    borderBottom: '2px solid #111',
+    color: 'var(--text)',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border)',
+    borderBottom: '2px solid var(--border-strong)',
     outline: 'none',
     boxSizing: 'border-box',
     marginBottom: '1rem',
@@ -72,7 +72,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
     fontSize: '0.6rem',
     textTransform: 'uppercase',
     letterSpacing: '0.1em',
-    color: '#666',
+    color: 'var(--text-secondary)',
     marginBottom: '0.4rem',
   }
 
@@ -94,11 +94,11 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--bg-input)',
           width: '100%',
           maxWidth: '400px',
           padding: '2.5rem 2rem 2rem',
-          border: '2px solid #111',
+          border: '2px solid var(--border-strong)',
           position: 'relative',
         }}
       >
@@ -115,23 +115,23 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
             cursor: 'pointer',
             fontSize: '1.2rem',
             lineHeight: 1,
-            color: '#999',
+            color: 'var(--text-muted)',
             padding: '0.25rem',
           }}
         >
           ×
         </button>
-        <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#999', margin: '0 0 0.75rem' }}>
+        <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', margin: '0 0 0.75rem' }}>
           Читательские круги
         </p>
-        <h2 style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: '#111', margin: '0 0 0.25rem', letterSpacing: '-0.02em' }}>
+        <h2 style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: 'var(--text)', margin: '0 0 0.25rem', letterSpacing: '-0.02em' }}>
           {defaultName ? 'Редактировать профиль' : 'Расскажите о себе'}
         </h2>
-        <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#666', margin: '0 0 1.5rem' }}>
+        <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem' }}>
           {defaultName ? 'Обновите ваши данные' : 'Чтобы организатор знал, с кем связаться'}
         </p>
 
-        <div style={{ borderTop: '1px solid #111', marginBottom: '1.5rem' }} />
+        <div style={{ borderTop: '1px solid var(--border-strong)', marginBottom: '1.5rem' }} />
 
         <form onSubmit={handleSubmit} noValidate>
           <label htmlFor="nd-name" style={labelStyle}>Имя</label>
@@ -155,8 +155,8 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
             placeholder={telegramLocked ? '@username (привязан к аккаунту)' : '@username'}
             style={{
               ...inputStyle,
-              background: telegramLocked ? '#F5F5F5' : '#fff',
-              color: telegramLocked ? '#666' : '#111',
+              background: telegramLocked ? 'var(--bg-elevated)' : '#fff',
+              color: telegramLocked ? 'var(--text-secondary)' : '#111',
               cursor: telegramLocked ? 'default' : 'text',
             }}
           />
@@ -164,7 +164,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
             <p style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.7rem',
-              color: '#888',
+              color: 'var(--text-muted)',
               marginTop: '-0.75rem',
               marginBottom: '1rem',
             }}>
@@ -173,7 +173,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
           )}
 
           {error && (
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#c00', marginBottom: '1rem' }}>
+            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--accent)', marginBottom: '1rem' }}>
               {error}
             </p>
           )}
@@ -190,9 +190,9 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               cursor: loading ? 'default' : 'pointer',
-              border: '1px solid #111',
-              background: loading ? '#E5E5E5' : '#111',
-              color: loading ? '#999' : '#fff',
+              border: '1px solid var(--border-strong)',
+              background: loading ? 'var(--border)' : '#111',
+              color: loading ? 'var(--text-muted)' : '#fff',
               transition: 'background 0.15s',
             }}
           >
@@ -209,7 +209,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.7rem',
-                color: '#999',
+                color: 'var(--text-muted)',
                 background: 'none',
                 border: 'none',
                 cursor: loading ? 'default' : 'pointer',

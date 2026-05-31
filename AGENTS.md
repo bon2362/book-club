@@ -1,5 +1,44 @@
 # Book Club Project
 
+## Дизайн-система (канон: белый редакторский)
+
+Весь сайт — главная, каталог, `/matching`, админка — использует **один** визуальный язык.
+Источник правды по значениям — `app/globals.css` (`:root`). Живая витрина — страница `/styleguide`.
+
+### Незыблемые правила
+1. **Никаких сырых хексов в компонентах.** Цвет, шрифт, линия — только через `var(--…)`.
+   Запрещены `style={{ color: '#111' }}` и Tailwind-произвольные значения `bg-[#fde8d8]`, `text-[#...]`.
+2. **Острые углы.** `border-radius` = `var(--radius)` (0). Никаких `rounded-xl/lg/full`.
+   Круг разрешён только для аватаров участников.
+3. **Плоскость.** Теней нет (`--shadow-card: transparent`). Не добавлять `box-shadow` с литералами.
+4. **Линия вместо заливки.** Акцент/статус — цветной линией (низ/верх/слева), а не цветным фоном.
+   Заливка цветом — только у активной кнопки (`var(--text)`) и статусных CTA (success/accent).
+5. **Шрифты.** Заголовки — `var(--nd-serif)` (Georgia). Текст/метки — `var(--nd-sans)` (system-ui).
+   Микрометки — UPPERCASE, `letter-spacing: 0.12–0.15em`, `0.6rem`, `var(--text-muted)`.
+
+### Стиль кода (этот репо)
+**Inline `style={{…}}` + `var(--…)` — канон этого проекта.** Весь `components/nd/*` написан так.
+Tailwind также легитимен: токены проброшены в `tailwind.config.ts` → можно `className="text-accent"`.
+
+### Токены (см. `app/globals.css`)
+`--bg #F9F5EE` · `--bg-elevated #EDE5D8` · `--bg-input #FFF` · `--text #111` · `--text-body #333` ·
+`--text-secondary #666` · `--text-muted #999` · `--accent #C0603A` · `--success #2D6A4F` ·
+`--border #E5E5E5` · `--border-strong #111` · `--shadow-card transparent` ·
+`--nd-serif` · `--nd-sans` · `--radius 0`.
+
+### Примитивы (копировать из `/styleguide`, не изобретать)
+- **Кнопка** — заливка `var(--text)`, UPPERCASE `0.72rem` ls `0.08em`, квадратная. Статусные: `--accent` / `--success`.
+- **Инпут** — белый фон, `1px solid var(--border)` + `border-bottom: 2px solid var(--border-strong)`.
+- **Чип** — квадратный, `1px solid var(--border)`. Псевдонимы — моно-вариант через `getPseudonymColor` (`matching-shared.ts`).
+- **Метка тира / статус** — UPPERCASE с `border-bottom: 1px solid currentColor` (без рамки/заливки).
+- **Карточка** — `1px solid var(--border)`, без тени; «лидер» = `border-top: 2px` ; «мой ход» = `border-left: 2px var(--accent)`.
+- **Аватар** — круг, заливка `var(--text)`, белая буква.
+
+### Чего НЕ делать
+- Не возвращать пастельную палитру псевдонимов (была причиной расхождения `/matching`).
+- Не вводить тёмную тему — её удалили намеренно. Нет `data-theme`, нет dark-токенов.
+- Не дублировать палитру в компонентах — менять только `globals.css`.
+
 ## Проект
 "Долгое наступление" — сайт книжного клуба.
 - **Live:** https://www.slowreading.club (резерв: https://book-club-slow-rising.vercel.app)

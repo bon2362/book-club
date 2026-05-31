@@ -15,7 +15,7 @@ interface AdminFooterProps {
 }
 
 const FOOTER_STYLE: React.CSSProperties = {
-  borderTop: '1px solid #E5E5E5',
+  borderTop: '1px solid var(--border)',
   padding: '1rem 1.5rem',
   display: 'flex',
   flexDirection: 'column',
@@ -25,7 +25,7 @@ const FOOTER_STYLE: React.CSSProperties = {
 const META_ROW_STYLE: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.7rem',
-  color: '#999',
+  color: 'var(--text-muted)',
   display: 'flex',
   flexWrap: 'wrap',
   gap: '0.4rem 1rem',
@@ -33,10 +33,10 @@ const META_ROW_STYLE: React.CSSProperties = {
 }
 
 const LINK_STYLE: React.CSSProperties = {
-  color: '#555',
+  color: 'var(--text-secondary)',
   fontFamily: 'monospace',
   textDecoration: 'none',
-  borderBottom: '1px solid #ccc',
+  borderBottom: '1px solid var(--border)',
 }
 
 const BUTTON_STYLE: React.CSSProperties = {
@@ -45,8 +45,8 @@ const BUTTON_STYLE: React.CSSProperties = {
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
   color: '#222',
-  background: '#fff',
-  border: '1px solid #111',
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border-strong)',
   cursor: 'pointer',
   padding: '0.35rem 0.55rem',
 }
@@ -68,7 +68,7 @@ export default function AdminFooter({
   return (
     <footer style={FOOTER_STYLE}>
       <div style={META_ROW_STYLE}>
-        {buildTime && <span>Деплой: <b style={{ color: '#555' }}>{buildTime} CET</b></span>}
+        {buildTime && <span>Деплой: <b style={{ color: 'var(--text-secondary)' }}>{buildTime} CET</b></span>}
         {shortSha && commitSha && (
           <span>Коммит:{' '}
             <a
@@ -81,7 +81,7 @@ export default function AdminFooter({
             </a>
           </span>
         )}
-        {commitMsg && <span style={{ color: '#777' }}>{commitMsg}</span>}
+        {commitMsg && <span style={{ color: 'var(--text-secondary)' }}>{commitMsg}</span>}
         <button
           type="button"
           onClick={refreshWidgets}

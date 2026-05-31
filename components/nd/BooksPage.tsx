@@ -293,7 +293,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       fontSize: '0.75rem',
       color: active ? '#fff' : '#111',
       background: active ? '#111' : 'transparent',
-      border: '1px solid #111',
+      border: '1px solid var(--border-strong)',
       padding: '0.4rem 0.65rem',
       cursor: 'pointer',
       transition: 'background 0.15s, color 0.15s',
@@ -304,10 +304,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const selectStyle: React.CSSProperties = {
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.75rem',
-    color: '#111',
-    background: '#fff',
-    border: '1px solid #E5E5E5',
-    borderBottom: '2px solid #111',
+    color: 'var(--text)',
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border)',
+    borderBottom: '2px solid var(--border-strong)',
     padding: '0.4rem 0.6rem',
     cursor: 'pointer',
     outline: 'none',
@@ -332,8 +332,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       {/* Search + filters */}
       <div
         style={{
-          borderBottom: '1px solid #E5E5E5',
-          background: '#fff',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-input)',
           position: 'sticky',
           top: 'var(--header-height, 57px)',
           transform: isHidden ? 'translateY(calc(-100% - var(--header-height, 57px)))' : 'translateY(0)',
@@ -364,10 +364,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                 flex: 1,
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.8rem',
-                color: '#111',
-                background: '#fff',
-                border: '1px solid #E5E5E5',
-                borderBottom: '2px solid #111',
+                color: 'var(--text)',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border)',
+                borderBottom: '2px solid var(--border-strong)',
                 padding: '0.4rem 0.6rem',
                 outline: 'none',
               }}
@@ -376,7 +376,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
               className="filters-view-toggle"
               onClick={() => handleSetViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               title={viewMode === 'grid' ? 'Переключить в таблицу' : 'Переключить в сетку'}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: '#111', display: 'flex', flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: 'var(--text)', display: 'flex', flexShrink: 0 }}
             >
               {viewMode === 'grid' ? (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -423,7 +423,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                       left: '50%',
                       transform: 'translateX(-50%)',
                       background: '#222',
-                      color: '#fff',
+                      color: 'var(--bg)',
                       fontSize: '0.75rem',
                       padding: '4px 10px',
                       borderRadius: '6px',
@@ -452,14 +452,14 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
 
       {/* Tag description */}
       {filterTag && tagDescriptions[filterTag] && (
-        <div style={{ borderBottom: '1px solid #E5E5E5' }}>
+        <div style={{ borderBottom: '1px solid var(--border)' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem 1.5rem' }}>
             <p
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.8rem',
                 lineHeight: 1.65,
-                color: '#555',
+                color: 'var(--text-secondary)',
                 margin: 0,
                 borderLeft: '2px solid #111',
                 paddingLeft: '1rem',
@@ -474,7 +474,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       {/* Books */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem' }}>
         {filteredBooks.length === 0 ? (
-          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: '#999', textAlign: 'center', padding: '3rem 0' }}>
+          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: 'var(--text-muted)', textAlign: 'center', padding: '3rem 0' }}>
             Ничего не найдено
           </p>
         ) : viewMode === 'grid' ? (
@@ -485,20 +485,20 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             ))}
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '2px solid #111' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '2px solid var(--border-strong)' }}>
             <tbody>
-              <tr style={{ borderBottom: '2px solid #111', background: '#FAFAF8' }}>
+              <tr style={{ borderBottom: '2px solid var(--border-strong)', background: 'var(--bg)' }}>
                 <td colSpan={6} style={{ padding: '0.75rem 0.75rem' }}>
                   <button
                     onClick={handleSubmitBookClick}
                     style={{
-                      background: '#111',
+                      background: 'var(--text)',
                       border: 'none',
                       borderRadius: '2px',
                       padding: '0.4rem 0.85rem',
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                       fontSize: '0.75rem',
-                      color: '#fff',
+                      color: 'var(--bg)',
                       cursor: 'pointer',
                       letterSpacing: '0.04em',
                     }}
@@ -529,8 +529,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             width: '2.75rem',
             height: '2.75rem',
             borderRadius: '50%',
-            background: '#111',
-            color: '#fff',
+            background: 'var(--text)',
+            color: 'var(--bg)',
             border: 'none',
             fontSize: '1.25rem',
             cursor: 'pointer',
@@ -608,8 +608,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
-            background: '#fff',
-            border: '1px solid #111',
+            background: 'var(--bg-input)',
+            border: '1px solid var(--border-strong)',
             boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
             padding: '0.85rem 1rem',
             display: 'flex',
@@ -625,7 +625,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.8rem',
-              color: '#111',
+              color: 'var(--text)',
               margin: 0,
               lineHeight: 1.4,
             }}
@@ -639,8 +639,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
               fontSize: '0.7rem',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
-              color: '#fff',
-              background: '#111',
+              color: 'var(--bg)',
+              background: 'var(--text)',
               border: 'none',
               padding: '0.4rem 0.75rem',
               cursor: 'pointer',
@@ -659,7 +659,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
               cursor: 'pointer',
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.9rem',
-              color: '#999',
+              color: 'var(--text-muted)',
               padding: '0 0.15rem',
               lineHeight: 1,
               flexShrink: 0,

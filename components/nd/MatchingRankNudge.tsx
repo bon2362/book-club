@@ -45,13 +45,34 @@ export default function MatchingRankNudge({ show }: Props) {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center justify-between gap-3 mx-4 mt-3 px-3 py-2 rounded-lg bg-[#fef9c3] border border-[#fde047] text-xs text-[#713f12]"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '0.75rem',
+        margin: '0.75rem 1rem 0',
+        padding: '0.45rem 0.75rem',
+        borderLeft: '2px solid var(--accent)',
+        background: 'var(--bg-input)',
+        fontSize: '0.72rem',
+        color: 'var(--text-body)',
+        fontFamily: 'var(--nd-sans)',
+      }}
     >
       <span>Расставь ранги, чтобы улучшить выбор сценариев</span>
       <button
         onClick={dismiss}
         aria-label="Закрыть подсказку"
-        className="text-[#713f12] hover:text-[#422808] cursor-pointer text-base leading-none px-0.5 shrink-0"
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--text-muted)',
+          fontSize: '1rem',
+          lineHeight: 1,
+          padding: '0 0.15rem',
+          flexShrink: 0,
+        }}
       >
         ×
       </button>

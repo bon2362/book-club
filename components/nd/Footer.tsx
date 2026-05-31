@@ -9,7 +9,7 @@ export default function Footer({ onFeedback }: Props) {
     <footer
       style={{
         borderTop: '2px solid #000',
-        background: '#fff',
+        background: 'var(--bg-input)',
       }}
     >
       <div
@@ -29,7 +29,7 @@ export default function Footer({ onFeedback }: Props) {
             fontSize: '0.65rem',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
-            color: '#666',
+            color: 'var(--text-secondary)',
             background: 'none',
             border: 'none',
             borderBottom: '1px solid #bbb',

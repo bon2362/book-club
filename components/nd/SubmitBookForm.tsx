@@ -14,12 +14,12 @@ type FormStatus = 'idle' | 'submitting' | 'success' | 'error'
 const inputStyle: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.85rem',
-  color: '#111',
-  background: '#fff',
-  borderTop: '1px solid #E5E5E5',
+  color: 'var(--text)',
+  background: 'var(--bg-input)',
+  borderTop: '1px solid var(--border)',
   borderRight: '1px solid #E5E5E5',
-  borderLeft: '1px solid #E5E5E5',
-  borderBottom: '2px solid #111',
+  borderLeft: '1px solid var(--border)',
+  borderBottom: '2px solid var(--border-strong)',
   padding: '0.5rem 0.6rem',
   outline: 'none',
   width: '100%',
@@ -39,7 +39,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: '0.75rem',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: '#111',
+  color: 'var(--text)',
   display: 'block',
   marginBottom: '0.3rem',
 }
@@ -47,7 +47,7 @@ const labelStyle: React.CSSProperties = {
 const errorTextStyle: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.72rem',
-  color: '#C0603A',
+  color: 'var(--accent)',
   marginTop: '0.25rem',
 }
 
@@ -165,10 +165,10 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
       <div
         style={{
           position: 'relative',
-          background: '#fff',
+          background: 'var(--bg-input)',
           width: '100%',
           maxWidth: '480px',
-          border: '2px solid #111',
+          border: '2px solid var(--border-strong)',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
@@ -187,7 +187,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
             cursor: 'pointer',
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             fontSize: '1rem',
-            color: '#999',
+            color: 'var(--text-muted)',
             lineHeight: 1,
             padding: '0.2rem',
           }}
@@ -195,21 +195,21 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
           ✕
         </button>
 
-        <div style={{ padding: '2rem 2rem 1.5rem', borderBottom: '1px solid #E5E5E5' }}>
-          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#999', margin: '0 0 0.5rem' }}>
+        <div style={{ padding: '2rem 2rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+          <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', margin: '0 0 0.5rem' }}>
             Читательские круги
           </p>
-          <h2 id="submit-book-title" style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: '#111', margin: 0, letterSpacing: '-0.02em' }}>
+          <h2 id="submit-book-title" style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.4rem', color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}>
             Предложить книгу
           </h2>
         </div>
 
         {status === 'success' ? (
           <div style={{ padding: '2rem', textAlign: 'center' }}>
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '1rem', color: '#2D6A4F', fontWeight: 600, margin: '0 0 0.5rem' }}>
+            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '1rem', color: 'var(--success)', fontWeight: 600, margin: '0 0 0.5rem' }}>
               Заявка принята!
             </p>
-            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: '#555', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
               Мы рассмотрим её в ближайшее время.
             </p>
             <button
@@ -220,10 +220,10 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
                 fontSize: '0.75rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                color: '#111',
+                color: 'var(--text)',
                 background: 'none',
                 border: 'none',
-                borderBottom: '1px solid #111',
+                borderBottom: '1px solid var(--border-strong)',
                 cursor: 'pointer',
                 padding: '0 0 1px',
               }}
@@ -235,7 +235,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
           <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
             {/* Scrollable area */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 2rem 1rem' }}>
-              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: '#999', margin: '0 0 1.25rem' }}>
+              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0 0 1.25rem' }}>
                 * — обязательные поля
               </p>
 
@@ -284,7 +284,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
                 </div>
               </div>
 
-              <hr style={{ border: 'none', borderTop: '1px solid #E5E5E5', margin: '0 0 1.25rem' }} />
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '0 0 1.25rem' }} />
 
               {/* Optional fields */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -353,7 +353,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
             </div>
 
             {/* Sticky submit area */}
-            <div style={{ padding: '1rem 2rem', borderTop: '1px solid #E5E5E5', background: '#fff' }}>
+            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border)', background: 'var(--bg-input)' }}>
               {status === 'error' && (
                 <p style={{ ...errorTextStyle, marginBottom: '0.75rem' }}>
                   Не удалось отправить заявку. Попробуйте ещё раз.
@@ -370,9 +370,9 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   cursor: status === 'submitting' ? 'default' : 'pointer',
-                  border: '1px solid #111',
+                  border: '1px solid var(--border-strong)',
                   background: status === 'submitting' ? 'transparent' : '#111',
-                  color: status === 'submitting' ? '#999' : '#fff',
+                  color: status === 'submitting' ? 'var(--text-muted)' : '#fff',
                   borderColor: status === 'submitting' ? '#C8C8C8' : '#111',
                   transition: 'background 0.15s, color 0.15s, border-color 0.15s',
                 }}

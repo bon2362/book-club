@@ -201,7 +201,7 @@ export default async function MatchingPage({
   return (
     <div
       className="flex flex-col"
-      style={{ height: '100svh', overflow: 'hidden', background: '#fff', color: '#111' }}
+      style={{ height: '100svh', overflow: 'hidden', background: 'var(--bg-input)', color: 'var(--text)' }}
     >
       <MatchingHeader
         sessionId={activeSession.id}
@@ -227,14 +227,14 @@ export default async function MatchingPage({
         <div
           className="flex flex-col overflow-hidden min-h-0 border"
           style={{
-            background: '#fff',
-            borderColor: '#E5E5E5',
+            background: 'var(--bg-input)',
+            borderColor: 'var(--border)',
             borderRadius: 0,
           }}
         >
           <div
             className="px-4 py-3 shrink-0 border-b"
-            style={{ borderColor: '#E5E5E5' }}
+            style={{ borderColor: 'var(--border)' }}
           >
             <h2
               className="m-0"
@@ -244,13 +244,13 @@ export default async function MatchingPage({
                 fontWeight: 600,
                 textTransform: 'uppercase' as const,
                 letterSpacing: '0.14em',
-                color: '#999',
+                color: 'var(--text-muted)',
               }}
             >
               {isImpersonating ? 'Список участника' : 'Каталог'}
             </h2>
             {!isImpersonating && (
-              <p className="text-xs mt-0.5 m-0" style={{ color: '#999' }}>
+              <p className="text-xs mt-0.5 m-0" style={{ color: 'var(--text-muted)' }}>
                 Перетащи книги, чтобы расставить приоритеты
               </p>
             )}
@@ -276,14 +276,14 @@ export default async function MatchingPage({
           <div
             className="flex flex-col flex-1 overflow-hidden min-h-0 border"
             style={{
-              background: '#fff',
-              borderColor: '#E5E5E5',
+              background: 'var(--bg-input)',
+              borderColor: 'var(--border)',
               borderRadius: 0,
             }}
           >
             <div
               className="px-4 py-3 shrink-0 border-b"
-              style={{ borderColor: '#E5E5E5' }}
+              style={{ borderColor: 'var(--border)' }}
             >
               <h2
                 className="m-0"
@@ -293,7 +293,7 @@ export default async function MatchingPage({
                   fontWeight: 600,
                   textTransform: 'uppercase' as const,
                   letterSpacing: '0.14em',
-                  color: '#999',
+                  color: 'var(--text-muted)',
                 }}
                 title="Сортировка: макс. участников → больше топ-3 книг → ниже средний ранг"
               >
@@ -315,14 +315,14 @@ export default async function MatchingPage({
           <div
             className="flex flex-col flex-1 overflow-hidden min-h-0 border"
             style={{
-              background: '#fff',
-              borderColor: '#E5E5E5',
+              background: 'var(--bg-input)',
+              borderColor: 'var(--border)',
               borderRadius: 0,
             }}
           >
             <div
               className="px-4 py-3 shrink-0 border-b"
-              style={{ borderColor: '#E5E5E5' }}
+              style={{ borderColor: 'var(--border)' }}
             >
               <h2
                 className="m-0"
@@ -332,7 +332,7 @@ export default async function MatchingPage({
                   fontWeight: 600,
                   textTransform: 'uppercase' as const,
                   letterSpacing: '0.14em',
-                  color: '#999',
+                  color: 'var(--text-muted)',
                 }}
               >
                 {isImpersonating ? 'Ходы участника' : 'Мои ходы'}

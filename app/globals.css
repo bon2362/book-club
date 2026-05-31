@@ -2,57 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens ─────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — единый источник правды
+   Канон: «редакторский пергамент» — тёплый кремовый фон, белые карточки. Тёмной темы нет.
+
+   Правила:
+   • В компонентах НЕ писать сырые хексы. Только var(--…) отсюда.
+   • Имена токенов стабильны — менять значения здесь, а не в JSX.
+   • Скругления = 0 (редакторская острота). Тени отсутствуют.
+   ════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Light (default) — parchment */
-  --bg:              #F9F5EE;
-  --bg-elevated:     #EDE5D8;
-  --bg-input:        #FDFAF5;
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
+  --bg:              #F9F5EE;   /* фон страницы — тёплый пергамент */
+  --bg-elevated:     #EDE5D8;   /* приподнятый фон: разделители секций, шапки */
+  --bg-input:        #FFFFFF;   /* поля ввода, карточки — белые на тёплом фоне */
   --bg-input-focus:  #FFFFFF;
-  --bg-tag:          #EDE5D8;
-  --bg-tag-green:    #EBF3EE;
+  --bg-tag:          #EDE5D8;   /* нейтральный фон тега/чипа */
+  --bg-tag-green:    #EFF5F1;   /* очень лёгкий success-тинт; предпочитать акцент через линию */
 
-  --text:            #1A1714;
-  --text-secondary:  #5C4A3A;
-  --text-muted:      #8C7B6B;
-  --text-body:       #3D3028;
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --text:            #111111;   /* основной */
+  --text-secondary:  #666666;   /* вторичный (авторы, подписи) */
+  --text-muted:      #999999;   /* приглушённый (мета, плейсхолдеры) */
+  --text-body:       #333333;   /* длинный текст / описания */
 
-  --accent:          #B5451B;
-  --accent-hover:    #8C3415;
-  --success:         #2D6A4F;
+  /* ── Accents ───────────────────────────────────────────────────────────── */
+  --accent:          #C0603A;   /* терракота: статусы, акценты, ошибки */
+  --accent-hover:    #A04E2E;
+  --success:         #2D6A4F;   /* зелёный: «записаться», подтверждения */
   --success-hover:   #1E4D39;
 
-  --border:          #D4C4B0;
-  --border-subtle:   #E2D8CC;
+  /* ── Lines ─────────────────────────────────────────────────────────────── */
+  --border:          #E5E5E5;   /* хайрлайн: рамки карточек, разделители */
+  --border-subtle:   #EEEEEE;   /* ещё тише */
+  --border-strong:   #111111;   /* фирменная сильная линия (низ инпута 2px, низ хедера) */
 
-  --shadow:          rgba(26, 23, 20, 0.08);
-  --shadow-card:     rgba(26, 23, 20, 0.06);
-}
+  /* ── Status (traffic-light: CI-индикаторы, live-статусы) ──────────────── */
+  /* Только для AdminStatusBar, AllureWidget, DigestStatusWidget и аналогов. */
+  /* Для ошибок в формах и акцентов — var(--accent).                         */
+  --status-ok:        #22C55E;   /* ● зелёный — success / live */
+  --status-ok-hover:  #16A34A;
+  --status-fail:      #EF4444;   /* ● красный — failure / error */
+  --status-warn:      #F59E0B;   /* ● жёлтый — pending / warning */
 
-:root[data-theme="dark"] {
-  --bg:              #111111;
-  --bg-elevated:     #1A1A1A;
-  --bg-input:        #1C1C1C;
-  --bg-input-focus:  #252525;
-  --bg-tag:          #252525;
-  --bg-tag-green:    #1A2E24;
+  /* ── Elevation ─────────────────────────────────────────────────────────── */
+  /* Редакторский стиль плоский. Тени по умолчанию выключены: любой
+     box-shadow: 0 4px 24px var(--shadow-card) станет невидимым.            */
+  --shadow:          transparent;
+  --shadow-card:     transparent;
 
-  --text:            #F0EBE3;
-  --text-secondary:  #C9B8A8;
-  --text-muted:      #9E8E80;
-  --text-body:       #D4C8BC;
+  /* ── Type families ─────────────────────────────────────────────────────── */
+  --nd-serif:        Georgia, "Times New Roman", serif;
+  --nd-sans:         system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --nd-mono:         ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --accent:          #E05A2B;
-  --accent-hover:    #C04820;
-  --success:         #3D8A68;
-  --success-hover:   #2D6A4F;
+  /* ── Radius ────────────────────────────────────────────────────────────── */
+  --radius:          0px;       /* острые углы — норма */
+  --radius-sm:       2px;       /* максимум скругления, если совсем нужно */
 
-  --border:          #3A3028;
-  --border-subtle:   #2A2420;
-
-  --shadow:          rgba(0, 0, 0, 0.3);
-  --shadow-card:     rgba(0, 0, 0, 0.2);
+  /* ── Header height (runtime, выставляется ResizeObserver в Header.tsx) ──── */
+  --header-height:   57px;
 }
 
 /* ── Header mobile ────────────────────────────────────────────────────────── */
@@ -84,6 +94,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  font-family: var(--nd-sans);
 }
 
 /* ── Tooltip ──────────────────────────────────────────────────────────────── */

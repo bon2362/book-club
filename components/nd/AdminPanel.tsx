@@ -88,9 +88,9 @@ function writeStoredIdSet(key: string, ids: Set<string>) {
 const cell: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.8rem',
-  color: '#111',
+  color: 'var(--text)',
   padding: '0.5rem 0.75rem',
-  borderBottom: '1px solid #E5E5E5',
+  borderBottom: '1px solid var(--border)',
   verticalAlign: 'top',
 }
 
@@ -100,8 +100,8 @@ const headCell: React.CSSProperties = {
   fontSize: '0.65rem',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: '#666',
-  borderBottom: '2px solid #111',
+  color: 'var(--text-secondary)',
+  borderBottom: '2px solid var(--border-strong)',
 }
 
 const adminBadge: React.CSSProperties = {
@@ -109,8 +109,8 @@ const adminBadge: React.CSSProperties = {
   alignItems: 'center',
   padding: '0.08rem 0.38rem',
   borderRadius: 2,
-  background: '#111',
-  color: '#fff',
+  background: 'var(--text)',
+  color: 'var(--bg)',
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.62rem',
   fontWeight: 700,
@@ -121,7 +121,7 @@ const adminBadge: React.CSSProperties = {
 
 const newUserBadge: React.CSSProperties = {
   ...adminBadge,
-  background: '#C0603A',
+  background: 'var(--accent)',
 }
 
 const fieldLabel: React.CSSProperties = {
@@ -129,7 +129,7 @@ const fieldLabel: React.CSSProperties = {
   fontSize: '0.65rem',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: '#666',
+  color: 'var(--text-secondary)',
   marginBottom: '0.25rem',
 }
 
@@ -138,14 +138,14 @@ const fieldInput: React.CSSProperties = {
   width: '100%',
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.8rem',
-  color: '#111',
-  borderTop: '1px solid #E5E5E5',
+  color: 'var(--text)',
+  borderTop: '1px solid var(--border)',
   borderRight: '1px solid #E5E5E5',
-  borderLeft: '1px solid #E5E5E5',
-  borderBottom: '2px solid #111',
+  borderLeft: '1px solid var(--border)',
+  borderBottom: '2px solid var(--border-strong)',
   padding: '0.35rem 0.5rem',
   outline: 'none',
-  background: '#fff',
+  background: 'var(--bg-input)',
   boxSizing: 'border-box',
 }
 
@@ -250,8 +250,8 @@ function CountBadge({ count }: { count: number }) {
         padding: '0 0.28rem',
         marginLeft: '0.35rem',
         borderRadius: 999,
-        background: '#C0603A',
-        color: '#fff',
+        background: 'var(--accent)',
+        color: 'var(--bg)',
         fontSize: '0.6rem',
         lineHeight: 1,
         letterSpacing: 0,
@@ -548,7 +548,7 @@ export default function AdminPanel({
     background: 'none',
     border: 'none',
     borderBottom: active ? '2px solid #111' : '2px solid transparent',
-    color: active ? '#111' : '#999',
+    color: active ? '#111' : 'var(--text-muted)',
     cursor: 'pointer',
     marginRight: '1.5rem',
   })
@@ -559,9 +559,9 @@ export default function AdminPanel({
     textTransform: 'uppercase',
     letterSpacing: '0.06em',
     padding: '0.3rem 0.75rem',
-    border: `1px solid ${disabled ? '#E5E5E5' : color}`,
+    border: `1px solid ${disabled ? 'var(--border)' : color}`,
     background: 'transparent',
-    color: disabled ? '#999' : color,
+    color: disabled ? 'var(--text-muted)' : color,
     cursor: disabled ? 'default' : 'pointer',
   })
 
@@ -573,7 +573,7 @@ export default function AdminPanel({
     padding: '0.2rem 0.5rem',
     border: '1px solid #999',
     background: active ? '#111' : 'transparent',
-    color: active ? '#fff' : '#666',
+    color: active ? '#fff' : 'var(--text-secondary)',
     cursor: 'pointer',
   })
 
@@ -661,7 +661,7 @@ export default function AdminPanel({
   }
 
   const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
-  const submissionStatusColor: Record<string, string> = { pending: '#C0603A', approved: '#2E7D32', rejected: '#999' }
+  const submissionStatusColor: Record<string, string> = { pending: 'var(--accent)', approved: '#2E7D32', rejected: 'var(--text-muted)' }
 
   return (
     <>
@@ -669,12 +669,12 @@ export default function AdminPanel({
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem' }}>
         {/* Title row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <h1 style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.5rem', color: '#111', margin: 0 }}>
+          <h1 style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontWeight: 700, fontSize: '1.5rem', color: 'var(--text)', margin: 0 }}>
             Панель администратора
           </h1>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {syncMsg && (
-              <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: '#666' }}>
+              <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 {syncMsg}
               </span>
             )}
@@ -682,7 +682,7 @@ export default function AdminPanel({
         </div>
 
         {/* Tabs */}
-        <div style={{ borderBottom: '1px solid #E5E5E5', marginBottom: '1.5rem' }}>
+        <div style={{ borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
           <button style={tabStyle(view === 'users')} onClick={() => selectView('users')}>
             Участники ({adminUsersLoaded ? adminUsers.length : users.length})
           </button>
@@ -723,13 +723,13 @@ export default function AdminPanel({
                 onChange={e => setUserSearch(e.target.value)}
                 placeholder="Поиск по имени или Telegram"
                 aria-label="Поиск пользователей"
-                style={{ ...fieldInput, maxWidth: 420, borderBottomColor: '#111' }}
+                style={{ ...fieldInput, maxWidth: 420, borderBottomColor: 'var(--border-strong)' }}
               />
-              <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: '#999' }}>
+              <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 {adminUsersLoaded ? `${filteredAdminUsers.length} из ${adminUsers.length}` : 'Загрузка…'}
               </span>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', border: '1px solid #E5E5E5' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
               <thead>
                 <tr>
                   <th style={{ ...headCell, cursor: 'pointer', textAlign: 'right' }} onClick={() => setSort('books')}>
@@ -754,10 +754,10 @@ export default function AdminPanel({
               </thead>
               <tbody>
                 {!adminUsersLoaded && (
-                  <tr><td colSpan={6} style={{ ...cell, color: '#999' }}>Загрузка пользователей…</td></tr>
+                  <tr><td colSpan={6} style={{ ...cell, color: 'var(--text-muted)' }}>Загрузка пользователей…</td></tr>
                 )}
                 {adminUsersLoaded && filteredAdminUsers.length === 0 && (
-                  <tr><td colSpan={6} style={{ ...cell, color: '#999' }}>Никого не найдено</td></tr>
+                  <tr><td colSpan={6} style={{ ...cell, color: 'var(--text-muted)' }}>Никого не найдено</td></tr>
                 )}
                 {filteredAdminUsers.map(u => {
                   const telegram = u.telegramDisplay || '—'
@@ -766,25 +766,25 @@ export default function AdminPanel({
                       key={u.id}
                       onClick={() => openUserDrawer(u.id)}
                       style={{ cursor: 'pointer', transition: 'background 0.1s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#FAFAFA' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                     >
-                      <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? '#111' : '#BBB' }}>{u.booksCount}</td>
+                      <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? 'var(--text)' : 'var(--text-muted)' }}>{u.booksCount}</td>
                       <td style={{ ...cell, fontWeight: 700 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                          {u.name || <span style={{ color: '#bbb' }}>—</span>}
+                          {u.name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
                           {u.isAdmin && <span style={adminBadge}>Admin</span>}
                           {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
                         </span>
                       </td>
                       <td style={cell}>{telegram}</td>
-                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>
+                      <td style={{ ...cell, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                         <LastActivityCell type={u.lastActivityType} value={u.lastActivityAt} />
                       </td>
-                      <td style={{ ...cell, color: '#666', whiteSpace: 'nowrap' }}>{formatAdminDate(u.createdAt)}</td>
-                      <td style={{ ...cell, color: '#666' }}>
-                        {u.languages.length === 0 ? <span style={{ color: '#ccc' }}>—</span> : u.languages.map(lang => (
-                          <span key={lang} style={{ display: 'inline-block', padding: '0.08rem 0.38rem', marginRight: '0.25rem', background: '#F0F0F0', color: '#555', fontSize: '0.68rem', borderRadius: 2, textTransform: 'uppercase' }}>
+                      <td style={{ ...cell, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatAdminDate(u.createdAt)}</td>
+                      <td style={{ ...cell, color: 'var(--text-secondary)' }}>
+                        {u.languages.length === 0 ? <span style={{ color: 'var(--border)' }}>—</span> : u.languages.map(lang => (
+                          <span key={lang} style={{ display: 'inline-block', padding: '0.08rem 0.38rem', marginRight: '0.25rem', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: '0.68rem', borderRadius: 2, textTransform: 'uppercase' }}>
                             {lang}
                           </span>
                         ))}
@@ -811,7 +811,7 @@ export default function AdminPanel({
                       fontSize: '0.65rem',
                       textTransform: 'uppercase',
                       letterSpacing: '0.1em',
-                      color: '#666',
+                      color: 'var(--text-secondary)',
                       marginBottom: '0.4rem',
                     }}
                   >
@@ -828,12 +828,12 @@ export default function AdminPanel({
                       fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                       fontSize: '0.8rem',
                       lineHeight: 1.55,
-                      color: '#111',
-                      border: '1px solid #E5E5E5',
-                      borderBottom: '2px solid #111',
+                      color: 'var(--text)',
+                      border: '1px solid var(--border)',
+                      borderBottom: '2px solid var(--border-strong)',
                       padding: '0.5rem 0.75rem',
                       outline: 'none',
-                      background: '#fff',
+                      background: 'var(--bg-input)',
                       boxSizing: 'border-box',
                     }}
                   />
@@ -847,16 +847,16 @@ export default function AdminPanel({
                         textTransform: 'uppercase',
                         letterSpacing: '0.08em',
                         padding: '0.3rem 0.75rem',
-                        border: '1px solid #111',
-                        background: isSaving ? '#E5E5E5' : 'transparent',
-                        color: isSaving ? '#999' : '#111',
+                        border: '1px solid var(--border-strong)',
+                        background: isSaving ? 'var(--border)' : 'transparent',
+                        color: isSaving ? 'var(--text-muted)' : '#111',
                         cursor: isSaving ? 'default' : 'pointer',
                       }}
                     >
                       {isSaving ? 'Сохранение…' : 'Сохранить'}
                     </button>
                     {isSaved && (
-                      <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: '#666' }}>
+                      <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                         Сохранено
                       </span>
                     )}
@@ -883,10 +883,10 @@ export default function AdminPanel({
               })}
             </div>
 
-            {!submissionsLoaded && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#666' }}>Загрузка…</p>}
+            {!submissionsLoaded && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Загрузка…</p>}
 
             {submissionsLoaded && filteredSubmissions.length === 0 && (
-              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#666' }}>Нет заявок</p>
+              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Нет заявок</p>
             )}
 
             {submissionsLoaded && filteredSubmissions.length > 0 && (
@@ -918,30 +918,30 @@ export default function AdminPanel({
                       <Fragment key={sub.id}>
                         <tr
                           onClick={() => setSelectedSubmissionId(isSelected ? null : sub.id)}
-                          style={{ cursor: 'pointer', background: isSelected ? '#FAFAFA' : 'transparent' }}
+                          style={{ cursor: 'pointer', background: isSelected ? 'var(--bg-elevated)' : 'transparent' }}
                         >
                           <td style={cell}>{sub.title}</td>
-                          <td style={{ ...cell, fontStyle: 'italic', color: '#666' }}>{sub.author}</td>
-                          <td style={{ ...cell, color: '#666' }}>{sub.userEmail ?? '—'}</td>
+                          <td style={{ ...cell, fontStyle: 'italic', color: 'var(--text-secondary)' }}>{sub.author}</td>
+                          <td style={{ ...cell, color: 'var(--text-secondary)' }}>{sub.userEmail ?? '—'}</td>
                           <td style={cell}>
                             <span style={{ color: statusColor, fontWeight: sub.status === 'pending' ? 700 : 400 }}>
                               {statusLabel}
                             </span>
                           </td>
-                          <td style={{ ...cell, color: '#999' }}>
+                          <td style={{ ...cell, color: 'var(--text-muted)' }}>
                             {new Date(sub.createdAt).toLocaleDateString('ru-RU')}
                           </td>
-                          <td style={{ ...cell, textAlign: 'right', color: '#999' }}>
+                          <td style={{ ...cell, textAlign: 'right', color: 'var(--text-muted)' }}>
                             {isSelected ? '▲' : '▼'}
                           </td>
                         </tr>
                         {isSelected && (
                           <tr>
-                            <td colSpan={6} style={{ padding: '1rem 0.75rem 1.25rem', background: '#FAFAFA', borderBottom: '2px solid #111' }}>
+                            <td colSpan={6} style={{ padding: '1rem 0.75rem 1.25rem', background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border-strong)' }}>
                               <div style={{ display: 'grid', gap: '0.75rem', maxWidth: '720px' }}>
                                 <div>
                                   <div style={fieldLabel}>Email автора</div>
-                                  <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: '#666' }}>
+                                  <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                     {sub.userEmail ?? '—'}
                                   </div>
                                 </div>
@@ -1018,7 +1018,7 @@ export default function AdminPanel({
                                         <img
                                           src={url}
                                           alt="Превью обложки"
-                                          style={{ width: '48px', height: '72px', objectFit: 'cover', border: '1px solid #DDD', background: '#F5F5F5' }}
+                                          style={{ width: '48px', height: '72px', objectFit: 'cover', border: '1px solid var(--border)', background: 'var(--bg-elevated)' }}
                                           onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
                                         />
                                       )
@@ -1055,27 +1055,27 @@ export default function AdminPanel({
                                   <button
                                     onClick={() => handleSubmissionAction(sub.id, 'rejected')}
                                     disabled={isActing || sub.status === 'rejected'}
-                                    style={actionBtnStyle('#C0603A', isActing || sub.status === 'rejected')}
+                                    style={actionBtnStyle('var(--accent)', isActing || sub.status === 'rejected')}
                                   >
                                     Отклонить
                                   </button>
                                   <span style={{ flex: 1 }} />
                                   {submissionDeleteConfirm === sub.id ? (
                                     <>
-                                      <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: '#C0603A' }}>
+                                      <span style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: 'var(--accent)' }}>
                                         Удалить навсегда?
                                       </span>
                                       <button
                                         onClick={() => handleDeleteSubmission(sub.id)}
                                         disabled={isActing}
-                                        style={actionBtnStyle('#C0603A', isActing)}
+                                        style={actionBtnStyle('var(--accent)', isActing)}
                                       >
                                         {isActing ? 'Удаление…' : 'Да, удалить'}
                                       </button>
                                       <button
                                         onClick={() => setSubmissionDeleteConfirm(null)}
                                         disabled={isActing}
-                                        style={actionBtnStyle('#999', isActing)}
+                                        style={actionBtnStyle('var(--text-muted)', isActing)}
                                       >
                                         Отмена
                                       </button>
@@ -1084,7 +1084,7 @@ export default function AdminPanel({
                                     <button
                                       onClick={e => { e.stopPropagation(); setSubmissionDeleteConfirm(sub.id) }}
                                       disabled={isActing}
-                                      style={actionBtnStyle('#999', isActing)}
+                                      style={actionBtnStyle('var(--text-muted)', isActing)}
                                     >
                                       Удалить
                                     </button>
@@ -1122,30 +1122,30 @@ export default function AdminPanel({
                 )
               })}
             </div>
-            {!feedbackLoaded && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', color: '#666' }}>Загрузка…</p>}
-            {feedbackLoaded && filteredFeedback.length === 0 && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', color: '#999' }}>Нет фидбеков</p>}
+            {!feedbackLoaded && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', color: 'var(--text-secondary)' }}>Загрузка…</p>}
+            {feedbackLoaded && filteredFeedback.length === 0 && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', color: 'var(--text-muted)' }}>Нет фидбеков</p>}
             {feedbackLoaded && filteredFeedback.length > 0 && (
               <div style={{ display: 'grid', gap: '0.6rem' }}>
                 {filteredFeedback.map(item => {
                   const displayName = item.userName ?? item.name ?? 'Аноним'
                   const displayEmail = item.userContactEmail ?? item.userEmail ?? item.email
                   return (
-                    <article key={item.id} style={{ border: '1px solid #E5E5E5', background: '#fff', padding: '0.8rem 0.9rem' }}>
+                    <article key={item.id} style={{ border: '1px solid var(--border)', background: 'var(--bg-input)', padding: '0.8rem 0.9rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.45rem', alignItems: 'baseline' }}>
                         <div>
                           {item.userId ? (
-                            <button onClick={() => openUserDrawer(item.userId!)} style={{ background: 'none', border: 'none', padding: 0, color: '#111', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--nd-sans), system-ui, sans-serif' }}>
+                            <button onClick={() => openUserDrawer(item.userId!)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--nd-sans), system-ui, sans-serif' }}>
                               {displayName}
                             </button>
                           ) : (
                             <span style={{ fontWeight: 700 }}>{displayName}</span>
                           )}
-                          {displayEmail && <span style={{ color: '#999', marginLeft: '0.5rem', fontSize: '0.78rem' }}>{displayEmail}</span>}
-                          {!item.userId && <span style={{ marginLeft: '0.5rem', background: '#F0F0F0', color: '#777', borderRadius: 2, padding: '0.08rem 0.4rem', fontSize: '0.68rem' }}>Аноним</span>}
+                          {displayEmail && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.78rem' }}>{displayEmail}</span>}
+                          {!item.userId && <span style={{ marginLeft: '0.5rem', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', borderRadius: 2, padding: '0.08rem 0.4rem', fontSize: '0.68rem' }}>Аноним</span>}
                         </div>
-                        <time style={{ color: '#999', fontSize: '0.72rem' }}>{new Date(item.createdAt).toLocaleString('ru-RU')}</time>
+                        <time style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{new Date(item.createdAt).toLocaleString('ru-RU')}</time>
                       </div>
-                      <div style={{ whiteSpace: 'pre-wrap', color: '#333', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.86rem', lineHeight: 1.55 }}>
+                      <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-body)', fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.86rem', lineHeight: 1.55 }}>
                         {item.message}
                       </div>
                     </article>

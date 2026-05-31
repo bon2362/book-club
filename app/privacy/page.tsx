@@ -48,7 +48,7 @@ export default function PrivacyPage() {
         lineHeight: 1.6,
       }}
     >
-      <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: '#999', margin: '0 0 0.5rem' }}>
+      <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-muted)', margin: '0 0 0.5rem' }}>
         Долгое наступление · Читательские круги
       </p>
       <h1
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
       >
         Политика конфиденциальности
       </h1>
-      <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 2rem' }}>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 2rem' }}>
         Действует с {EFFECTIVE_DATE} года. Применяется к сайту{' '}
         <a href="https://www.slowreading.club" style={linkStyle}>slowreading.club</a>.
       </p>
