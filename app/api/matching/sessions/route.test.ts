@@ -73,8 +73,12 @@ describe('POST /api/matching/sessions', () => {
       returning: jest.fn().mockResolvedValue([{ id: 'new-id', name: 'Test', status: 'active' }]),
     }
     mockDb.insert = jest.fn().mockReturnValue(insertChain)
-    const res = await POST(makeRequest({ name: 'Test session', targetGroupSize: 3 }))
+    const res = await POST(makeRequest({ name: 'Test session', minGroupSize: 3, maxGroupSize: 4 }))
     expect(res.status).toBe(201)
+    expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({
+      minGroupSize: 3,
+      maxGroupSize: 4,
+    }))
     const json = await res.json()
     expect(json.success).toBe(true)
     expect(json.data.id).toBe('new-id')

@@ -13,7 +13,8 @@ interface Props {
   sessionId: string
   sessionName: string
   sessionStatus: string
-  targetGroupSize: number
+  minGroupSize: number
+  maxGroupSize: number
   deadlineAt: string | null
   participants: Participant[]
   isAdmin: boolean
@@ -72,7 +73,8 @@ export default function MatchingHeader({
   sessionId,
   sessionName,
   sessionStatus,
-  targetGroupSize,
+  minGroupSize,
+  maxGroupSize,
   deadlineAt,
   participants,
   isAdmin,
@@ -85,12 +87,14 @@ export default function MatchingHeader({
   const { text: deadlineText, urgent } = useDeadlineText(deadlineAt)
   const [leaving, setLeaving] = useState(false)
   const [editingSize, setEditingSize] = useState(false)
-  const [sizeValue, setSizeValue] = useState(String(targetGroupSize))
+  const [minSizeValue, setMinSizeValue] = useState(String(minGroupSize))
+  const [maxSizeValue, setMaxSizeValue] = useState(String(maxGroupSize))
   const [savingSize, setSavingSize] = useState(false)
 
   useEffect(() => {
-    setSizeValue(String(targetGroupSize))
-  }, [targetGroupSize])
+    setMinSizeValue(String(minGroupSize))
+    setMaxSizeValue(String(maxGroupSize))
+  }, [minGroupSize, maxGroupSize])
 
   async function handleLeave() {
     if (!window.confirm('Покинуть сессию? При следующем входе на страницу вы будете добавлены заново с новым псевдонимом.')) return
@@ -104,14 +108,20 @@ export default function MatchingHeader({
   }
 
   async function handleSaveGroupSize() {
-    const nextSize = Number(sizeValue)
-    if (!Number.isInteger(nextSize) || nextSize < 2) return
+    const nextMinSize = Number(minSizeValue)
+    const nextMaxSize = Number(maxSizeValue)
+    if (
+      !Number.isInteger(nextMinSize) ||
+      !Number.isInteger(nextMaxSize) ||
+      nextMinSize < 2 ||
+      nextMaxSize < nextMinSize
+    ) return
     setSavingSize(true)
     try {
       const res = await fetch(`/api/matching/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ targetGroupSize: nextSize }),
+        body: JSON.stringify({ minGroupSize: nextMinSize, maxGroupSize: nextMaxSize }),
       })
       if (res.ok) {
         setEditingSize(false)
@@ -121,6 +131,16 @@ export default function MatchingHeader({
       setSavingSize(false)
     }
   }
+
+  function resetGroupSizeEdit() {
+    setMinSizeValue(String(minGroupSize))
+    setMaxSizeValue(String(maxGroupSize))
+    setEditingSize(false)
+  }
+
+  const groupSizeLabel = minGroupSize === maxGroupSize
+    ? `Группы по ${minGroupSize}`
+    : `Группы ${minGroupSize}-${maxGroupSize}`
 
   return (
     <>
@@ -171,14 +191,35 @@ export default function MatchingHeader({
           >
             {editingSize ? (
               <span className="inline-flex items-baseline gap-1.5">
-                <span>Группы по</span>
+                <span>Группы от</span>
                 <input
-                  value={sizeValue}
-                  onChange={(event) => setSizeValue(event.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveGroupSize(); if (e.key === 'Escape') { setSizeValue(String(targetGroupSize)); setEditingSize(false) } }}
+                  value={minSizeValue}
+                  onChange={(event) => setMinSizeValue(event.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveGroupSize(); if (e.key === 'Escape') resetGroupSizeEdit() }}
                   type="number"
                   min={2}
                   autoFocus
+                  className="nd-inline-number"
+                  style={{
+                    width: '2.4em',
+                    font: 'inherit',
+                    color: 'var(--text)',
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border-strong)',
+                    outline: 'none',
+                    padding: '0 0 1px',
+                    textAlign: 'center',
+                  }}
+                />
+                <span>до</span>
+                <input
+                  value={maxSizeValue}
+                  onChange={(event) => setMaxSizeValue(event.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveGroupSize(); if (e.key === 'Escape') resetGroupSizeEdit() }}
+                  type="number"
+                  min={2}
+                  max={10}
                   className="nd-inline-number"
                   style={{
                     width: '2.4em',
@@ -210,7 +251,7 @@ export default function MatchingHeader({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setSizeValue(String(targetGroupSize)); setEditingSize(false) }}
+                  onClick={resetGroupSizeEdit}
                   style={{ font: 'inherit', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   Отмена
@@ -232,11 +273,11 @@ export default function MatchingHeader({
                     textUnderlineOffset: '0.15em',
                   }}
                 >
-                  Группы по {targetGroupSize}
+                  {groupSizeLabel}
                 </button>
               </>
             ) : (
-              <span>Группы по {targetGroupSize}</span>
+              <span>{groupSizeLabel}</span>
             )}
 
             {deadlineText && (

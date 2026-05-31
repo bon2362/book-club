@@ -48,13 +48,21 @@ export async function GET(req: NextRequest) {
 
   const [personalBooks, myMoves] = await Promise.all([
     fetchCatalogWithPersonalData(effectiveUserId),
-    fetchMyMoves(effectiveUserId, sessionId, matchSession.targetGroupSize),
+    fetchMyMoves(effectiveUserId, sessionId, matchSession.minGroupSize),
   ])
 
   // Scenario generation
-  let scenarioOverview: ScenarioOverview = emptyScenarioOverview(participants, matchSession.targetGroupSize)
-  let scenarioSetOverview: ScenarioSetOverview = emptyScenarioSetOverview(participants, matchSession.targetGroupSize)
-  if (participantUserIds.length >= matchSession.targetGroupSize) {
+  let scenarioOverview: ScenarioOverview = emptyScenarioOverview(
+    participants,
+    matchSession.minGroupSize,
+    matchSession.maxGroupSize,
+  )
+  let scenarioSetOverview: ScenarioSetOverview = emptyScenarioSetOverview(
+    participants,
+    matchSession.minGroupSize,
+    matchSession.maxGroupSize,
+  )
+  if (participantUserIds.length >= matchSession.minGroupSize) {
     const [allSignups, allRanks, allBooks] = await Promise.all([
       db.select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
         .from(signupBooks)
@@ -74,7 +82,8 @@ export async function GET(req: NextRequest) {
       books: sessionBooks,
       signups: activeSignups.map(s => ({ userId: s.userId, bookId: s.bookId })),
       ranks: allRanks,
-      targetGroupSize: matchSession.targetGroupSize,
+      minGroupSize: matchSession.minGroupSize,
+      maxGroupSize: matchSession.maxGroupSize,
       maxResults: 10,
     }
     scenarioSetOverview = generateScenarioSets(scenarioInput)

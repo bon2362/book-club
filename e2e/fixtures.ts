@@ -46,10 +46,11 @@ type TestBookOverrides = Partial<Pick<TestBook, 'id' | 'title' | 'author' | 'tag
 type MatchingSession = {
   id: string
   name: string
-  targetGroupSize: number
+  minGroupSize: number
+  maxGroupSize: number
 }
 
-type MatchingSessionOverrides = Partial<Pick<MatchingSession, 'name' | 'targetGroupSize'>>
+type MatchingSessionOverrides = Partial<Pick<MatchingSession, 'name' | 'minGroupSize' | 'maxGroupSize'>>
 
 interface AdminSession {
   email: string
@@ -243,7 +244,8 @@ export const test = base.extend<E2EHelpers>({
       const res = await page.request.post('/api/test/matching-session', {
         data: {
           name: overrides?.name ?? `E2E Matching ${testInfo.testId}`,
-          targetGroupSize: overrides?.targetGroupSize ?? 3,
+          minGroupSize: overrides?.minGroupSize ?? 3,
+          maxGroupSize: overrides?.maxGroupSize ?? overrides?.minGroupSize ?? 3,
         },
       })
       if (!res.ok()) {

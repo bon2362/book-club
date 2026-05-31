@@ -37,10 +37,12 @@ export default function MatchingMyMoves({
   const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
+  const [hoveredAdd, setHoveredAdd] = useState<string | null>(null)
   const [modalState, setModalState] = useState<ModalState | null>(null)
 
   useEffect(() => {
     setMoves(initialMoves)
+    setHoveredAdd(null)
     setModalState(null)
   }, [initialMoves])
 
@@ -81,7 +83,7 @@ export default function MatchingMyMoves({
           style={{ color: 'var(--text-muted)' }}
         >
           <div className="text-3xl mb-2">✅</div>
-          <p className="text-sm">Пока нет книг, где ваша заявка замкнет круг</p>
+          <p className="text-sm">Пока нет книг, где ваша заявка изменит лучший сценарий</p>
         </div>
       ) : (
         <ul className="list-none p-0 m-0">
@@ -142,7 +144,7 @@ export default function MatchingMyMoves({
                   {move.existingParticipants.length > 0 && (
                     <>
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '0.55rem 0 0.25rem' }}>
-                        Уже записались
+                        Уже записались:
                       </div>
                       <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
                         {move.existingParticipants.map((p) => (
@@ -209,6 +211,10 @@ export default function MatchingMyMoves({
                   {!frozen && (
                     <button
                       onClick={() => handleAdd(move.bookId)}
+                      onMouseEnter={() => setHoveredAdd(move.bookId)}
+                      onMouseLeave={() => setHoveredAdd((current) => current === move.bookId ? null : current)}
+                      onFocus={() => setHoveredAdd(move.bookId)}
+                      onBlur={() => setHoveredAdd((current) => current === move.bookId ? null : current)}
                       disabled={adding === move.bookId}
                       style={
                         adding === move.bookId
@@ -236,7 +242,11 @@ export default function MatchingMyMoves({
                             }
                       }
                     >
-                      {adding === move.bookId ? '…' : 'Хочу читать'}
+                      {adding === move.bookId
+                        ? '…'
+                        : hoveredAdd === move.bookId
+                          ? 'Хочу читать * на первое место'
+                          : 'Хочу читать'}
                     </button>
                   )}
                 </div>

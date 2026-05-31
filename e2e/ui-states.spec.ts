@@ -83,7 +83,7 @@ test.describe('Matching layout', () => {
     loginAsUser,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
-    const session = await createMatchingSession({ targetGroupSize: 3 })
+    const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
     const circleBook = await createTestBook({ title: `UI Circle ${Date.now()}`, author: 'Layout Author' })
     const moveBook = await createTestBook({ title: `UI Move ${Date.now()}`, author: 'Layout Author' })
 
@@ -95,7 +95,8 @@ test.describe('Matching layout', () => {
     await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
 
     await page.goto('/matching')
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByTestId('matching-reader-circles-panel')).toBeVisible()
+    await expect(page.getByTestId('matching-my-moves-panel')).toBeVisible()
 
     const viewport = page.viewportSize()!
     const circlesBox = await page.getByTestId('matching-reader-circles-panel').boundingBox()

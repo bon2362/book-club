@@ -191,7 +191,8 @@ export const matchingSessions = pgTable('matching_sessions', {
   createdAt:          timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   deadlineAt:         timestamp('deadline_at', { mode: 'date' }),
   status:             text('status').notNull().default('active'), // 'active' | 'frozen'
-  targetGroupSize:    integer('target_group_size').notNull().default(3),
+  minGroupSize:       integer('min_group_size').notNull().default(3),
+  maxGroupSize:       integer('max_group_size').notNull().default(3),
   frozenAt:                        timestamp('frozen_at', { mode: 'date' }),
   frozenScenarioJson:              jsonb('frozen_scenario_json'),
   metricGroupsCount:               integer('metric_groups_count'),

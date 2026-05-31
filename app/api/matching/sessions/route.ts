@@ -8,8 +8,25 @@ import { eq } from 'drizzle-orm'
 
 interface CreateSessionBody {
   name: string
-  targetGroupSize?: number
+  minGroupSize?: number
+  maxGroupSize?: number
   deadlineAt?: string | null
+}
+
+const MAX_GROUP_SIZE_LIMIT = 10
+
+function parseGroupSizeRange(body: CreateSessionBody): { minGroupSize: number; maxGroupSize: number } | { error: string } {
+  const minGroupSize = typeof body.minGroupSize === 'number' ? body.minGroupSize : 3
+  const maxGroupSize = typeof body.maxGroupSize === 'number' ? body.maxGroupSize : minGroupSize
+
+  if (!Number.isInteger(minGroupSize) || !Number.isInteger(maxGroupSize)) {
+    return { error: 'minGroupSize and maxGroupSize must be integers' }
+  }
+  if (minGroupSize < 2) return { error: 'minGroupSize must be an integer >= 2' }
+  if (maxGroupSize < minGroupSize) return { error: 'maxGroupSize must be greater than or equal to minGroupSize' }
+  if (maxGroupSize > MAX_GROUP_SIZE_LIMIT) return { error: `maxGroupSize must be <= ${MAX_GROUP_SIZE_LIMIT}` }
+
+  return { minGroupSize, maxGroupSize }
 }
 
 export async function POST(req: NextRequest) {
@@ -30,10 +47,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 })
   }
 
-  const targetGroupSize = typeof body.targetGroupSize === 'number' ? body.targetGroupSize : 3
-  if (!Number.isInteger(targetGroupSize) || targetGroupSize < 2) {
-    return NextResponse.json({ error: 'targetGroupSize must be an integer ≥ 2' }, { status: 400 })
-  }
+  const groupSizeRange = parseGroupSizeRange(body)
+  if ('error' in groupSizeRange) return NextResponse.json({ error: groupSizeRange.error }, { status: 400 })
 
   let deadlineAt: Date | null = null
   if (body.deadlineAt) {
@@ -63,10 +78,17 @@ export async function POST(req: NextRequest) {
       name,
       createdBy: session.user.id,
       status: 'active',
-      targetGroupSize,
+      minGroupSize: groupSizeRange.minGroupSize,
+      maxGroupSize: groupSizeRange.maxGroupSize,
       deadlineAt,
     })
-    .returning({ id: matchingSessions.id, name: matchingSessions.name, status: matchingSessions.status })
+    .returning({
+      id: matchingSessions.id,
+      name: matchingSessions.name,
+      status: matchingSessions.status,
+      minGroupSize: matchingSessions.minGroupSize,
+      maxGroupSize: matchingSessions.maxGroupSize,
+    })
 
   return NextResponse.json({ success: true, data: created }, { status: 201 })
 }

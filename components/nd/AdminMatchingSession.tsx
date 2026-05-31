@@ -6,7 +6,8 @@ interface MatchingSession {
   id: string
   name: string
   status: string
-  targetGroupSize: number
+  minGroupSize: number
+  maxGroupSize: number
   deadlineAt: string | null
   createdAt: string
   frozenAt: string | null
@@ -69,7 +70,8 @@ export default function AdminMatchingSession() {
 
   // Form state
   const [name, setName] = useState('')
-  const [targetGroupSize, setTargetGroupSize] = useState(3)
+  const [minGroupSize, setMinGroupSize] = useState(3)
+  const [maxGroupSize, setMaxGroupSize] = useState(3)
   const [deadlineAt, setDeadlineAt] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -193,7 +195,8 @@ export default function AdminMatchingSession() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          targetGroupSize,
+          minGroupSize,
+          maxGroupSize,
           deadlineAt: deadlineAt || null,
         }),
       })
@@ -201,7 +204,8 @@ export default function AdminMatchingSession() {
       if (!res.ok) throw new Error(json.error ?? 'Ошибка создания')
       setName('')
       setDeadlineAt('')
-      setTargetGroupSize(3)
+      setMinGroupSize(3)
+      setMaxGroupSize(3)
       await load()
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Неизвестная ошибка')
@@ -223,7 +227,11 @@ export default function AdminMatchingSession() {
         <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: 3 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Активная сессия</div>
           <div>Название: {activeSession.name}</div>
-          <div>Размер группы: {activeSession.targetGroupSize}</div>
+          <div>
+            Размер группы: {activeSession.minGroupSize === activeSession.maxGroupSize
+              ? activeSession.minGroupSize
+              : `${activeSession.minGroupSize}-${activeSession.maxGroupSize}`}
+          </div>
           {activeSession.deadlineAt && (
             <div>Дедлайн: {new Date(activeSession.deadlineAt).toLocaleString('ru-RU')}</div>
           )}
@@ -364,16 +372,34 @@ export default function AdminMatchingSession() {
             <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
               Размер группы
             </label>
-            <input
-              type="number"
-              min={2}
-              max={10}
-              value={targetGroupSize}
-              onChange={e => setTargetGroupSize(Number(e.target.value))}
-              disabled={creating || !!activeSession}
-              style={{ ...fieldInput, width: 60 }}
-              data-testid="matching-session-group-size"
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>от</span>
+              <input
+                type="number"
+                min={2}
+                max={10}
+                value={minGroupSize}
+                onChange={e => {
+                  const value = Number(e.target.value)
+                  setMinGroupSize(value)
+                  if (maxGroupSize < value) setMaxGroupSize(value)
+                }}
+                disabled={creating || !!activeSession}
+                style={{ ...fieldInput, width: 60 }}
+                data-testid="matching-session-min-group-size"
+              />
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>до</span>
+              <input
+                type="number"
+                min={minGroupSize}
+                max={10}
+                value={maxGroupSize}
+                onChange={e => setMaxGroupSize(Number(e.target.value))}
+                disabled={creating || !!activeSession}
+                style={{ ...fieldInput, width: 60 }}
+                data-testid="matching-session-max-group-size"
+              />
+            </div>
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
@@ -391,7 +417,7 @@ export default function AdminMatchingSession() {
           {createError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{createError}</p>}
           <button
             type="submit"
-            disabled={creating || !name.trim() || !!activeSession}
+            disabled={creating || !name.trim() || !!activeSession || maxGroupSize < minGroupSize}
             style={{ ...btn, alignSelf: 'flex-start' }}
             data-testid="matching-session-submit"
           >
