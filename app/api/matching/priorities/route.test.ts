@@ -15,8 +15,9 @@ jest.mock('@/lib/db/schema', () => ({
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
 
-function makeReq(body: object) {
-  return new Request('http://localhost/api/matching/priorities', {
+function makeReq(body: object, asUserId?: string) {
+  const suffix = asUserId ? `?as=${asUserId}` : ''
+  return new Request(`http://localhost/api/matching/priorities${suffix}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
     headers: { 'content-type': 'application/json' },
@@ -24,6 +25,7 @@ function makeReq(body: object) {
 }
 
 const userSession = { user: { id: 'user1', isAdmin: false } }
+const adminSession = { user: { id: 'admin1', isAdmin: true } }
 
 describe('PATCH /api/matching/priorities', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -81,5 +83,27 @@ describe('PATCH /api/matching/priorities', () => {
     const json = await res.json()
     expect(json.ranks).toHaveLength(2)
     expect(mockDb.insert).toHaveBeenCalledTimes(2)
+  })
+
+  it('lets admin reorder books for an impersonated participant', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }]) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(canonicalChain)
+    const upsertChain = { values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) }
+    mockDb.insert = jest.fn().mockReturnValue(upsertChain)
+
+    const res = await PATCH(makeReq({ bookIds: ['b2'] }, 'participant1'))
+
+    expect(res.status).toBe(200)
+    expect(upsertChain.values).toHaveBeenCalledWith({ userId: 'participant1', bookId: 'b2', rank: 1 })
+  })
+
+  it('rejects non-admin impersonated mutations', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const res = await PATCH(makeReq({ bookIds: ['b1'] }, 'participant1'))
+    expect(res.status).toBe(403)
   })
 })

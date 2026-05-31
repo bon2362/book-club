@@ -9,9 +9,11 @@ import { broadcast } from '@/lib/matching/realtime/hub'
 
 type Params = { params: { bookId: string } }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const asUserId = new URL(req.url).searchParams.get('as')
+  if (asUserId && !session.user.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const [activeSession] = await db
     .select()
@@ -22,7 +24,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!activeSession) return NextResponse.json({ error: 'No active session' }, { status: 404 })
   if (activeSession.status === 'frozen') return NextResponse.json({ error: 'Session is frozen' }, { status: 409 })
 
-  const userId = session.user.id
+  const userId = asUserId ?? session.user.id
   const { bookId } = params
 
   await db.delete(signupBooks).where(

@@ -21,6 +21,7 @@ export interface MyMoveBook {
     coverageLabel: string
     summary: string
     circleTitles: string[]
+    circleBooks: { bookId: string; title: string }[]
   }
 }
 

@@ -485,7 +485,7 @@ Features that must be preserved:
 - **Admin impersonation**
   - Admin can open `/matching?as=<userId>`.
   - Impersonation shows that participant's personal list, scenario view, and personal moves.
-  - Impersonation remains read-only and blocks mutations.
+  - Impersonation is marked as admin mode and lets admin add/remove books, reorder priorities, and change statuses for the viewed participant.
   - Admin view is audited in `admin_views`.
 - **Personal catalog/list behavior**
   - User can add/remove books from their matching list.

@@ -61,7 +61,7 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await page.goto('/matching')
   await expect(page.getByRole('heading', { name: 'Читательские круги' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Мои ходы' })).toBeVisible()
-  await expect(page.getByText('Добавь книгу и круг замкнется')).toBeVisible()
+  await expect(page.getByText('Добавь книгу и соберется новый сценарий')).toBeVisible()
 
   const circlesPanel = page.getByTestId('matching-reader-circles-panel')
   const movesPanel = page.getByTestId('matching-my-moves-panel')
@@ -70,10 +70,14 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
   await expect(page.getByText('Уже записались:')).toBeVisible()
   await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
-  await expect(movesPanel.getByText(/После добавления: Сценарий 1/)).toBeVisible()
-  await expect(movesPanel.getByText('Этот ход меняет лучший сценарий')).toBeVisible()
+  await expect(movesPanel.getByText('После добавления')).toBeHidden()
+  const moveCardPreview = movesPanel.locator('li').filter({ hasText: moveBook.title }).first()
+  await moveCardPreview.hover()
+  await expect(movesPanel.getByText('После добавления')).toBeVisible()
+  await expect(movesPanel.getByText('Лучшим сценарием станет:')).toBeVisible()
+  await expect(moveCardPreview.getByRole('button', { name: moveBook.title, exact: true }).nth(1)).toBeVisible()
 
-  await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).click()
+  await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first().click()
   let dialog = page.getByRole('dialog', { name: moveBook.title })
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Почему предлагаю читать')
@@ -105,7 +109,10 @@ test('matching shows reader circles, move hints, and full book details modal', a
   const addMoveResponse = page.waitForResponse(
     r => r.url().includes('/api/matching/books') && r.request().method() === 'POST',
   )
-  await moveCard.getByRole('button', { name: 'Хочу читать' }).click()
+  const addButton = moveCard.getByRole('button', { name: 'Хочу читать' })
+  await addButton.hover()
+  await expect(moveCard.getByRole('button', { name: 'Хочу читать * на первое место' })).toBeVisible()
+  await moveCard.getByRole('button', { name: 'Хочу читать * на первое место' }).click()
   await addMoveResponse
 
   await expect(page.getByText('Пока нет книг, где ваша заявка замкнет круг')).toBeVisible()

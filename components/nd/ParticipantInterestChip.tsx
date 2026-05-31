@@ -1,6 +1,6 @@
 'use client'
 
-import { getPseudonymColor, interestLabel, isStrongInterest, rankTooltip } from './matching-shared'
+import { interestLabel, isStrongInterest, rankTooltip } from './matching-shared'
 
 interface Props {
   userId: string
@@ -19,19 +19,18 @@ export default function ParticipantInterestChip({
   viewingUserId,
   compact = false,
 }: Props) {
-  const colors = getPseudonymColor(pseudonym)
   const label = interestLabel(rank, personalStatus)
   const strong = isStrongInterest(rank) && personalStatus === null
   const isMe = viewingUserId === userId
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-[11px] border ${colors.chip} ${isMe ? 'ring-1 ring-current' : ''}`}
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] border ${isMe ? 'ring-1 ring-current' : ''}`}
       style={{
         borderRadius: 0,
-        borderColor: strong ? 'var(--accent)' : undefined,
-        background: strong ? 'var(--bg-tag-green)' : undefined,
-        color: strong ? 'var(--accent)' : undefined,
+        borderColor: strong ? 'var(--success)' : 'var(--border)',
+        background: strong ? 'var(--bg-tag-green)' : 'var(--bg-tag)',
+        color: strong ? 'var(--success)' : 'var(--text-secondary)',
         fontWeight: strong ? 700 : 500,
       }}
       title={`${pseudonym}: ${rankTooltip(rank)}`}

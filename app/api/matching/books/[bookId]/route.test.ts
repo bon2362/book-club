@@ -16,13 +16,15 @@ jest.mock('@/lib/db/schema', () => ({
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
 
-function makeReq(bookId: string) {
-  return new Request(`http://localhost/api/matching/books/${bookId}`, {
+function makeReq(bookId: string, asUserId?: string) {
+  const suffix = asUserId ? `?as=${asUserId}` : ''
+  return new Request(`http://localhost/api/matching/books/${bookId}${suffix}`, {
     method: 'DELETE',
   }) as unknown as import('next/server').NextRequest
 }
 
 const userSession = { user: { id: 'user1', isAdmin: false } }
+const adminSession = { user: { id: 'admin1', isAdmin: true } }
 
 describe('DELETE /api/matching/books/[bookId]', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -66,5 +68,29 @@ describe('DELETE /api/matching/books/[bookId]', () => {
     expect(res.status).toBe(200)
     expect(mockDb.delete).toHaveBeenCalledTimes(2)
     expect(mockDb.update).toHaveBeenCalledTimes(2)
+  })
+
+  it('lets admin delete a book for an impersonated participant', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const remainingChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(remainingChain)
+    const deleteChain = { where: jest.fn().mockResolvedValue([]) }
+    mockDb.delete = jest.fn().mockReturnValue(deleteChain)
+    const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    mockDb.update = jest.fn().mockReturnValue(updateChain)
+
+    const res = await DELETE(makeReq('b1', 'participant1'), { params: { bookId: 'b1' } })
+
+    expect(res.status).toBe(200)
+    expect(mockDb.delete).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects non-admin impersonated mutations', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const res = await DELETE(makeReq('b1', 'participant1'), { params: { bookId: 'b1' } })
+    expect(res.status).toBe(403)
   })
 })

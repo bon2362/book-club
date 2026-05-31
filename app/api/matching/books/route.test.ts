@@ -17,8 +17,9 @@ jest.mock('@/lib/db/schema', () => ({
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
 
-function makeReq(body: object) {
-  return new Request('http://localhost/api/matching/books', {
+function makeReq(body: object, asUserId?: string) {
+  const suffix = asUserId ? `?as=${asUserId}` : ''
+  return new Request(`http://localhost/api/matching/books${suffix}`, {
     method: 'POST',
     body: JSON.stringify(body),
     headers: { 'content-type': 'application/json' },
@@ -26,6 +27,7 @@ function makeReq(body: object) {
 }
 
 const userSession = { user: { id: 'user1', isAdmin: false } }
+const adminSession = { user: { id: 'admin1', isAdmin: true } }
 
 describe('POST /api/matching/books', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -88,5 +90,38 @@ describe('POST /api/matching/books', () => {
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(1, { userId: 'user1', bookId: 'b1', rank: 1 })
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(2, { userId: 'user1', bookId: 'b2', rank: 2 })
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(3, { userId: 'user1', bookId: 'b3', rank: 3 })
+  })
+
+  it('lets admin add and promote a book for an impersonated participant', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const sessionSelect = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const prioritiesSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockResolvedValue([{ bookId: 'b2' }]),
+    }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionSelect)
+      .mockReturnValueOnce(prioritiesSelect)
+    const insertChain = { values: jest.fn().mockReturnThis(), onConflictDoNothing: jest.fn().mockResolvedValue([]) }
+    const priorityInsertChain = {
+      values: jest.fn().mockReturnThis(),
+      onConflictDoUpdate: jest.fn().mockResolvedValue([]),
+    }
+    mockDb.insert = jest.fn((table) => (
+      table === signupBooks ? insertChain : priorityInsertChain
+    )) as unknown as typeof mockDb.insert
+
+    const res = await POST(makeReq({ bookId: 'b1' }, 'participant1'))
+
+    expect(res.status).toBe(200)
+    expect(insertChain.values).toHaveBeenCalledWith({ userId: 'participant1', bookId: 'b1' })
+    expect(priorityInsertChain.values).toHaveBeenNthCalledWith(1, { userId: 'participant1', bookId: 'b1', rank: 1 })
+  })
+
+  it('rejects non-admin impersonated mutations', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const res = await POST(makeReq({ bookId: 'b1' }, 'participant1'))
+    expect(res.status).toBe(403)
   })
 })
