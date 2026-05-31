@@ -123,8 +123,8 @@ function SortableRow({ book, index, frozen, isFirst, onClick, onRemove }: Sortab
             {...listeners}
             aria-label={`Перетащить книгу ${book.title}`}
             onClick={(e) => e.stopPropagation()}
-            className="cursor-grab select-none touch-none"
-            style={{ color: 'var(--text-muted)', opacity: 0, fontSize: '0.8rem', background: 'none', border: 'none', padding: 0 }}
+            className="nd-drag-handle cursor-grab select-none touch-none"
+            style={{ color: 'var(--text-muted)', fontSize: '1rem', background: 'none', border: 'none', padding: 0, lineHeight: 1 }}
           >
             ⠿
           </button>

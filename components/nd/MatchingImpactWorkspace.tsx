@@ -65,7 +65,7 @@ export default function MatchingImpactWorkspace({
   const scenarioCount = overview.scenarios.length
 
   return (
-    <div className="grid gap-4 h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)' }}>
+    <div className="grid h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)', gap: '1.1rem' }}>
       <section data-testid="matching-reader-circles-panel" style={panel}>
         <div style={panelHeadStyle}>
           <h2 style={h2Style}>
