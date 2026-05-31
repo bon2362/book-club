@@ -18,8 +18,9 @@ const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
 const mockBroadcast = broadcast as jest.Mock
 
-function makeReq(body: object) {
-  return new Request('http://localhost/api/signup-books/book-1/status', {
+function makeReq(body: object, asUserId?: string) {
+  const suffix = asUserId ? `?as=${asUserId}` : ''
+  return new Request(`http://localhost/api/signup-books/book-1/status${suffix}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
     headers: { 'content-type': 'application/json' },
@@ -27,6 +28,7 @@ function makeReq(body: object) {
 }
 
 const userSession = { user: { id: 'user1', isAdmin: false } }
+const adminSession = { user: { id: 'admin1', isAdmin: true } }
 const params = { params: { bookId: 'book-1' } }
 
 describe('PATCH /api/signup-books/[bookId]/status', () => {
@@ -81,5 +83,40 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
       bookId: 'book-1',
       status: 'reading',
     })
+  })
+
+  it('lets admin update status for an impersonated participant', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const signupChain = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
+    }
+    const activeSessionChain = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ id: 'session-1' }]),
+    }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(signupChain)
+      .mockReturnValueOnce(activeSessionChain)
+    const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    mockDb.update = jest.fn().mockReturnValue(updateChain)
+
+    const res = await PATCH(makeReq({ status: 'read' }, 'participant1'), params)
+
+    expect(res.status).toBe(200)
+    expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
+      userId: 'participant1',
+      kind: 'personal_status_updated',
+      bookId: 'book-1',
+      status: 'read',
+    })
+  })
+
+  it('rejects non-admin impersonated mutations', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const res = await PATCH(makeReq({ status: 'read' }, 'participant1'), params)
+    expect(res.status).toBe(403)
   })
 })

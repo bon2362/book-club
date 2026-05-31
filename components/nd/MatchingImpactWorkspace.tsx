@@ -18,6 +18,7 @@ interface Props {
   moves: MyMoveBook[]
   frozen: boolean
   movesHeading: string
+  mutationUserId?: string
 }
 
 export default function MatchingImpactWorkspace({
@@ -29,6 +30,7 @@ export default function MatchingImpactWorkspace({
   moves,
   frozen,
   movesHeading,
+  mutationUserId,
 }: Props) {
   return (
     <div className="grid gap-4 h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)' }}>
@@ -84,7 +86,14 @@ export default function MatchingImpactWorkspace({
           </h2>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto p-3">
-          <MatchingMyMoves moves={moves} frozen={frozen} />
+          <MatchingMyMoves
+            moves={moves}
+            frozen={frozen}
+            bookById={bookById}
+            bookParticipants={bookParticipants}
+            viewingUserId={viewingUserId}
+            mutationUserId={mutationUserId}
+          />
         </div>
       </section>
     </div>

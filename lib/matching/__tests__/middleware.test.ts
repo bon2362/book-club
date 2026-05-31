@@ -44,11 +44,17 @@ describe('withMatchingGuards', () => {
     expect(res.status).toBe(200)
   })
 
-  it('blocks mutation with ?as= for admin — returns 403', async () => {
+  it('passes mutation with ?as= for admin', async () => {
     mockAuth.mockResolvedValue(adminSession)
+    const chain = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ status: 'active' }]),
+    }
+    mockDb.select = jest.fn().mockReturnValue(chain)
     const handler = withMatchingGuards(async () => new Response('ok'), { mutates: true })
     const res = await handler(makeReq(`${baseUrl}?as=u2`), { params: {} })
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(200)
   })
 
   it('silently ignores ?as= for non-admin', async () => {

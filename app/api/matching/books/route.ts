@@ -10,6 +10,9 @@ import { broadcast } from '@/lib/matching/realtime/hub'
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const asUserId = new URL(req.url).searchParams.get('as')
+  if (asUserId && !session.user.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const userId = asUserId ?? session.user.id
 
   const [activeSession] = await db
     .select()
@@ -26,10 +29,9 @@ export async function POST(req: NextRequest) {
 
   await db
     .insert(signupBooks)
-    .values({ userId: session.user.id, bookId })
+    .values({ userId, bookId })
     .onConflictDoNothing()
 
-  const userId = session.user.id
   const currentOrder = await db
     .select({ bookId: bookPriorities.bookId })
     .from(bookPriorities)

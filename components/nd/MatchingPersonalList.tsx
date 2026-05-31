@@ -38,6 +38,7 @@ interface Props {
   bookParticipants: BookParticipant[]
   viewingUserId: string
   frozen?: boolean
+  mutationUserId?: string
 }
 
 interface SortableRowProps {
@@ -186,20 +187,28 @@ function StatusRow({ book, onClick }: StatusRowProps) {
 interface CatalogRowProps {
   book: CatalogBook
   onClick: (book: CatalogBook) => void
+  onAdd: (bookId: string) => void
+  frozen: boolean
 }
 
-function CatalogRow({ book, onClick }: CatalogRowProps) {
+function CatalogRow({ book, onClick, onAdd, frozen }: CatalogRowProps) {
+  const [hovered, setHovered] = useState(false)
   return (
     <li
       style={{
         display: 'grid',
-        gridTemplateColumns: '48px 1fr',
+        gridTemplateColumns: '48px minmax(0, 1fr) auto',
         gap: '12px',
         padding: '12px 16px',
         borderBottom: '1px solid var(--border)',
         alignItems: 'start',
         cursor: 'pointer',
+        background: hovered ? 'var(--bg-tag-green)' : 'transparent',
       }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center pt-1">
@@ -234,36 +243,68 @@ function CatalogRow({ book, onClick }: CatalogRowProps) {
           </div>
         </div>
       </div>
+      {!frozen && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onAdd(book.bookId)
+          }}
+          style={{
+            alignSelf: 'center',
+            opacity: hovered ? 1 : 0,
+            pointerEvents: hovered ? 'auto' : 'none',
+            borderRadius: 0,
+            border: '1px solid var(--border-strong)',
+            background: 'var(--text)',
+            color: 'var(--bg)',
+            padding: '0.45rem 0.75rem',
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.08em',
+            transition: 'opacity 120ms ease',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Хочу читать
+        </button>
+      )}
     </li>
   )
 }
 
-async function patchPriorities(bookIds: string[]) {
-  await fetch('/api/matching/priorities', {
+function mutationUrl(path: string, mutationUserId?: string) {
+  if (!mutationUserId) return path
+  return `${path}?as=${encodeURIComponent(mutationUserId)}`
+}
+
+async function patchPriorities(bookIds: string[], mutationUserId?: string) {
+  await fetch(mutationUrl('/api/matching/priorities', mutationUserId), {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ bookIds }),
   })
 }
 
-async function patchStatus(bookId: string, status: string | null) {
-  await fetch(`/api/signup-books/${bookId}/status`, {
+async function patchStatus(bookId: string, status: string | null, mutationUserId?: string) {
+  await fetch(mutationUrl(`/api/signup-books/${bookId}/status`, mutationUserId), {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ status }),
   })
 }
 
-async function addToList(bookId: string) {
-  await fetch('/api/matching/books', {
+async function addToList(bookId: string, mutationUserId?: string) {
+  await fetch(mutationUrl('/api/matching/books', mutationUserId), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ bookId }),
   })
 }
 
-async function removeFromList(bookId: string) {
-  await fetch(`/api/matching/books/${bookId}`, { method: 'DELETE' })
+async function removeFromList(bookId: string, mutationUserId?: string) {
+  await fetch(mutationUrl(`/api/matching/books/${bookId}`, mutationUserId), { method: 'DELETE' })
 }
 
 export default function MatchingPersonalList({
@@ -271,6 +312,7 @@ export default function MatchingPersonalList({
   bookParticipants,
   viewingUserId,
   frozen = false,
+  mutationUserId,
 }: Props) {
   const router = useRouter()
   const [books, setBooks] = useState(initialBooks)
@@ -309,12 +351,13 @@ export default function MatchingPersonalList({
     const reranked = rerank(newBooks)
     setBooks(reranked)
     await patchPriorities(
-      reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId)
+      reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId),
+      mutationUserId,
     )
     router.refresh()
     return reranked
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router])
+  }, [router, mutationUserId])
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -350,24 +393,28 @@ export default function MatchingPersonalList({
       setBooks(merged)
       setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, personalStatus: newStatus } : prev))
       await Promise.all([
-        patchStatus(bookId, newStatus),
-        patchPriorities(rankedActive.map((b) => b.bookId)),
+        patchStatus(bookId, newStatus, mutationUserId),
+        patchPriorities(rankedActive.map((b) => b.bookId), mutationUserId),
       ])
       router.refresh()
     },
-    [books, router],
+    [books, router, mutationUserId],
   )
 
   const handleAddToList = useCallback(
     async (bookId: string) => {
-      setBooks((prev) =>
-        prev.map((b) => (b.bookId === bookId ? { ...b, isInList: true, rank: null } : b)),
-      )
-      setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, isInList: true } : prev))
-      await addToList(bookId)
+      setBooks((prev) => {
+        const target = prev.find((book) => book.bookId === bookId)
+        if (!target) return prev
+        const promoted = { ...target, isInList: true, personalStatus: null, rank: 1 }
+        const rest = prev.filter((book) => book.bookId !== bookId)
+        return rerank([promoted, ...rest])
+      })
+      setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, isInList: true, rank: 1 } : prev))
+      await addToList(bookId, mutationUserId)
       router.refresh()
     },
-    [router],
+    [router, mutationUserId],
   )
 
   const handleRemoveFromList = useCallback(
@@ -381,11 +428,11 @@ export default function MatchingPersonalList({
       setModalBook((prev) =>
         prev?.bookId === bookId ? { ...prev, isInList: false, rank: null, personalStatus: null } : prev,
       )
-      await removeFromList(bookId)
+      await removeFromList(bookId, mutationUserId)
       router.refresh()
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [router],
+    [router, mutationUserId],
   )
 
   return (
@@ -417,8 +464,8 @@ export default function MatchingPersonalList({
       <div className="grid h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
         <section data-testid="matching-catalog-available" className="flex flex-col min-h-0 border-r" style={{ borderColor: 'var(--border)' }}>
           <div
-            className="px-4 py-2 border-b"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+            className="px-4 py-2 border-b flex flex-col justify-center"
+            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)', minHeight: 54 }}
           >
             <span
               className="text-[11px] font-medium uppercase tracking-wide"
@@ -431,7 +478,13 @@ export default function MatchingPersonalList({
             {catalogOnlyBooks.length > 0 ? (
               <ul className="list-none p-0 m-0">
                 {catalogOnlyBooks.map((book) => (
-                  <CatalogRow key={book.bookId} book={book} onClick={setModalBook} />
+                  <CatalogRow
+                    key={book.bookId}
+                    book={book}
+                    onClick={setModalBook}
+                    onAdd={handleAddToList}
+                    frozen={frozen}
+                  />
                 ))}
               </ul>
             ) : (
@@ -442,8 +495,8 @@ export default function MatchingPersonalList({
 
         <section data-testid="matching-catalog-mine" className="flex flex-col min-h-0">
           <div
-            className="px-4 py-2 border-b"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+            className="px-4 py-2 border-b flex flex-col justify-center"
+            style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)', minHeight: 54 }}
           >
             <span
               className="text-[11px] font-medium uppercase tracking-wide block"

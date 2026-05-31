@@ -10,6 +10,8 @@ import { broadcast } from '@/lib/matching/realtime/hub'
 export async function PATCH(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const asUserId = new URL(req.url).searchParams.get('as')
+  if (asUserId && !session.user.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const [activeSession] = await db
     .select()
@@ -26,7 +28,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'bookIds must be a non-empty string array' }, { status: 400 })
   }
 
-  const userId = session.user.id
+  const userId = asUserId ?? session.user.id
   const ordered = bookIds as string[]
 
   // Upsert each book with its new rank (1-indexed position)

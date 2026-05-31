@@ -170,18 +170,18 @@ Each connected client emits a heartbeat over the SSE channel every 25 seconds. T
 
 ## Admin View
 
-The owner needs visibility into what each participant sees, but not the ability to act for them.
+The owner needs visibility into what each participant sees and a controlled way to fix participant lists during facilitation.
 
 - Admin can open any participant's view of the current session: their personal list, their ranks, the scenarios they'd see, the `Мои ходы` they'd see.
-- Admin **cannot** add/remove books, reorder ranks, or otherwise mutate another user's state from this view. It is strictly read-only.
+- Admin can add/remove books, reorder ranks, and change statuses for the viewed participant from this view. The UI marks this as admin mode.
 - Admin's own presence does not appear in the impersonated user's online indicator (admin views are silent).
 
 ## Security and `?as=` Mechanics
 
 Admin impersonation is a known-dangerous pattern. The plan commits to specific controls:
 
-- **Server-enforced role check** in middleware for any request carrying `?as=<userId>`. If the caller is not admin, the parameter is stripped and the request proceeds as the caller's own identity (no error leakage about whether the target exists).
-- **Mutation block on impersonated requests**: all `POST/PATCH/DELETE` endpoints under `/api/matching/*` reject when the session has `as` set, regardless of UI state. The check lives in a single shared middleware, not in each handler.
+- **Server-enforced role check** for any request carrying `?as=<userId>`. If the caller is not admin, mutation endpoints reject with `403`; read endpoints ignore the parameter and proceed as the caller's own identity.
+- **Controlled impersonated mutations**: personal matching mutations accept `?as=<userId>` only for admins, so the owner can facilitate by editing participant lists and ranks.
 - **Audit log**: every successful impersonated read inserts an `admin_views` row (`admin_id`, `viewed_user_id`, `session_id`, `ts`). The admin sees their own log in a debug panel.
 - **Read-only SSE channel for impersonated views**: the impersonation endpoint subscribes to the broadcast channel but the server marks the connection as no-emit (admin's heartbeat does not register in the target user's presence).
 - **No `as=` via cookies or session state** — it's always a query parameter on the request, so a forgotten admin tab cannot silently mutate state on the next click.
@@ -333,15 +333,16 @@ Example copy:
 
 ## API Sketch
 
-All endpoints check active session existence and (for mutations) `status='active'`. All mutation endpoints reject when `?as=` is present.
+All endpoints check active session existence and (for mutations) `status='active'`. Personal mutation endpoints accept `?as=<userId>` only for admins.
 
 - `GET /api/matching/state?session=<id>` — full state for current user including scenarios, presence snapshot, recent feed.
 - `POST /api/matching/sessions` — admin only, creates session.
 - `POST /api/matching/sessions/:id/freeze` — admin only.
 - `POST /api/matching/sessions/:id/join` — current user joins, gets pseudonym.
-- `POST /api/matching/books` — adds book to current user's signup.
-- `DELETE /api/matching/books/:bookId` — removes book.
-- `PATCH /api/matching/priorities` — accepts ordered list `[bookId, ...]`, server normalizes ranks to dense `1..N`.
+- `PATCH /api/matching/sessions/:id` — admin only, updates `target_group_size` for an active session.
+- `POST /api/matching/books` — adds book to current user's signup, or to `?as=<userId>` for admins.
+- `DELETE /api/matching/books/:bookId` — removes book from current user, or from `?as=<userId>` for admins.
+- `PATCH /api/matching/priorities` — accepts ordered list `[bookId, ...]`, server normalizes ranks to dense `1..N`; supports admin `?as=<userId>`.
 - `GET /api/matching/stream?session=<id>` — SSE.
 
 ## Feature Gate
@@ -389,7 +390,7 @@ If a participant requests deletion of their data:
 ### Integration / security tests
 
 - `?as=<userId>` allowed only for admins.
-- `?as=` blocks all mutation endpoints regardless of UI state.
+- Personal mutation endpoints with `?as=` mutate the viewed participant for admins and return `403` for non-admins.
 - `admin_views` row inserted on every successful impersonated read.
 - Mutation endpoints reject when session `status='frozen'`.
 - Only one `active` session at a time (DB constraint).
@@ -404,7 +405,7 @@ If a participant requests deletion of their data:
 - Two browser contexts: user A adds a book, user B sees the scenario tier change without reload.
 - SSE reconnects after server restart and resumes presence within ~10s.
 - Admin freezes session, all clients switch to read-only UI.
-- Admin opens `?as=<userId>` view, mutation attempts return 403.
+- Admin opens `?as=<userId>` view and can add/remove books, reorder priorities, and change statuses for the viewed participant.
 - Non-admin attempting `?as=` is silently downgraded to their own identity.
 - New session: pseudonyms regenerate; user state (books, ranks) carries over.
 

@@ -69,6 +69,13 @@ export default function MatchingHeader({
 }: Props) {
   const { text: deadlineText, urgent } = useDeadlineText(deadlineAt)
   const [leaving, setLeaving] = useState(false)
+  const [editingSize, setEditingSize] = useState(false)
+  const [sizeValue, setSizeValue] = useState(String(targetGroupSize))
+  const [savingSize, setSavingSize] = useState(false)
+
+  useEffect(() => {
+    setSizeValue(String(targetGroupSize))
+  }, [targetGroupSize])
 
   async function handleLeave() {
     if (!window.confirm('Покинуть сессию? При следующем входе на страницу вы будете добавлены заново с новым псевдонимом.')) return
@@ -81,6 +88,25 @@ export default function MatchingHeader({
     }
   }
 
+  async function handleSaveGroupSize() {
+    const nextSize = Number(sizeValue)
+    if (!Number.isInteger(nextSize) || nextSize < 2) return
+    setSavingSize(true)
+    try {
+      const res = await fetch(`/api/matching/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ targetGroupSize: nextSize }),
+      })
+      if (res.ok) {
+        setEditingSize(false)
+        window.location.reload()
+      }
+    } finally {
+      setSavingSize(false)
+    }
+  }
+
   return (
     <>
       {isImpersonating && (
@@ -90,14 +116,14 @@ export default function MatchingHeader({
           className="flex items-center gap-3 px-4 py-2 text-xs border-b"
           style={{
             color: 'var(--status-warn)',
-            background: '#fffbea',
-            borderColor: '#f0d060',
+            background: 'var(--bg-tag)',
+            borderColor: 'var(--status-warn)',
           }}
         >
           <span>👁 Просмотр за</span>
           <strong>{viewedPseudonym ?? asParam}</strong>
           {viewedName && <span style={{ color: 'var(--status-warn)' }}>({viewedName})</span>}
-          <span className="ml-auto opacity-70">только чтение</span>
+          <span className="ml-auto opacity-70">админ-режим</span>
           <a
             href="/matching"
             className="underline text-[11px]"
@@ -112,7 +138,7 @@ export default function MatchingHeader({
         className="flex items-center justify-between gap-4 px-4 h-14 shrink-0"
         style={{
           background: 'var(--bg-input)',
-          borderBottom: '2px solid #000',
+          borderBottom: '2px solid var(--border-strong)',
         }}
       >
         {/* Left: session info */}
@@ -127,31 +153,70 @@ export default function MatchingHeader({
             className="hidden sm:flex items-center gap-3 shrink-0"
             style={{ fontSize: '0.6rem', textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: 'var(--text-muted)' }}
           >
-            <span>Группы по {targetGroupSize}</span>
+            {editingSize ? (
+              <span className="inline-flex items-center gap-1">
+                <span>Группы по</span>
+                <input
+                  value={sizeValue}
+                  onChange={(event) => setSizeValue(event.target.value)}
+                  type="number"
+                  min={2}
+                  className="w-12 px-1 py-0.5 border"
+                  style={{
+                    borderRadius: 0,
+                    borderColor: 'var(--border)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text)',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveGroupSize}
+                  disabled={savingSize}
+                  className="underline"
+                  style={{ color: 'var(--text)' }}
+                >
+                  {savingSize ? '…' : 'Сохранить'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSizeValue(String(targetGroupSize))
+                    setEditingSize(false)
+                  }}
+                  className="underline"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Отмена
+                </button>
+              </span>
+            ) : isAdmin && sessionStatus === 'active' ? (
+              <button
+                type="button"
+                onClick={() => setEditingSize(true)}
+                className="underline decoration-dotted underline-offset-2"
+                style={{
+                  font: 'inherit',
+                  letterSpacing: 'inherit',
+                  textTransform: 'inherit',
+                  color: 'var(--text-muted)',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                Группы по {targetGroupSize}
+              </button>
+            ) : (
+              <span>Группы по {targetGroupSize}</span>
+            )}
             {deadlineText && (
               <span>
                 Дедлайн:{' '}
-                <span style={urgent ? { color: '#C0392B', fontWeight: 600 } : {}}>
+                <span style={urgent ? { color: 'var(--accent)', fontWeight: 600 } : {}}>
                   {deadlineText}
                 </span>
-              </span>
-            )}
-            {userPseudonym && (
-              <span
-                style={{
-                  fontSize: '0.56rem',
-                  padding: '0.18rem 0.55rem',
-                  borderRadius: 0,
-                  fontWeight: 600,
-                  background: 'transparent',
-                  color: 'var(--text)',
-                  border: '1px solid var(--border-strong)',
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.1em',
-                  flexShrink: 0,
-                }}
-              >
-                Я: {userPseudonym}
               </span>
             )}
             {sessionStatus === 'frozen' ? (
@@ -168,6 +233,24 @@ export default function MatchingHeader({
 
         {/* Right: leave button + participants popover */}
         <div className="flex items-center gap-2 shrink-0">
+          {userPseudonym && (
+            <span
+              style={{
+                fontSize: '0.56rem',
+                padding: '0.18rem 0.55rem',
+                borderRadius: 0,
+                fontWeight: 600,
+                background: 'transparent',
+                color: 'var(--text)',
+                border: '1px solid var(--border-strong)',
+                textTransform: 'uppercase' as const,
+                letterSpacing: '0.1em',
+                flexShrink: 0,
+              }}
+            >
+              Я: {userPseudonym}
+            </span>
+          )}
         {sessionStatus === 'active' && !isImpersonating && (
           <button
             onClick={handleLeave}

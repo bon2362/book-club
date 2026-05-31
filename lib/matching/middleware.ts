@@ -38,10 +38,6 @@ export function withMatchingGuards(handler: Handler, options: Options = {}): Han
     if (asParam && isAdmin) {
       viewedUserId = asParam
       isImpersonating = true
-
-      if (mutates) {
-        return NextResponse.json({ error: 'Mutations disabled in admin view' }, { status: 403 })
-      }
     }
     // Non-admin with ?as= → silently ignore
 

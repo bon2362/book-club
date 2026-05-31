@@ -168,8 +168,7 @@ export default async function MatchingPage({
     tags: Array.isArray(b.tags) ? b.tags : [],
   }]))
 
-  // Frozen or impersonating = read-only
-  const isFrozenOrImpersonating = activeSession.status === 'frozen' || isImpersonating
+  const isReadOnly = activeSession.status === 'frozen'
 
   // Get current user's pseudonym (not impersonating) or null if impersonating
   const userPseudonym = !isImpersonating
@@ -206,8 +205,9 @@ export default async function MatchingPage({
             viewingUserId={viewingUserId}
             targetGroupSize={activeSession.targetGroupSize}
             moves={myMovesWithImpact}
-            frozen={isFrozenOrImpersonating}
+            frozen={isReadOnly}
             movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
+            mutationUserId={isImpersonating ? viewingUserId : undefined}
           />
         </div>
       </div>
@@ -249,7 +249,8 @@ export default async function MatchingPage({
               books={personalBooks}
               bookParticipants={bookParticipants}
               viewingUserId={viewingUserId}
-              frozen={isFrozenOrImpersonating}
+              frozen={isReadOnly}
+              mutationUserId={isImpersonating ? viewingUserId : undefined}
             />
           </div>
         </section>
@@ -333,6 +334,10 @@ function addMoveImpacts(
     if (!scenarioIncludesMove(scenario, viewingUserId, move.bookId)) return []
 
     const circleTitles = scenario.circles.map((circle) => bookTitleById.get(circle.bookId) ?? circle.bookId)
+    const circleBooks = scenario.circles.map((circle) => ({
+      bookId: circle.bookId,
+      title: bookTitleById.get(circle.bookId) ?? circle.bookId,
+    }))
     const moveCircle = scenario.circles.find((circle) => (
       circle.bookId === move.bookId && circle.members.some((member) => member.userId === viewingUserId)
     ))
@@ -348,6 +353,7 @@ function addMoveImpacts(
           ? `Этот ход меняет лучший сценарий: появится круг «${moveTitle}», а весь сценарий будет: ${circleTitles.join(' + ')}.`
           : `Этот ход меняет лучший сценарий: ${circleTitles.join(' + ')}.`,
         circleTitles,
+        circleBooks,
       },
     }
   })

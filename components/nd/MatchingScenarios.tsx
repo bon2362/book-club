@@ -23,11 +23,11 @@ interface Props {
   highlightedUserIds?: string[]
 }
 
-const tierLabel: Record<MatchingScenario['tier'], string> = {
-  leader: 'текущий лучший',
+const tierLabel: Record<MatchingScenario['tier'], string | null> = {
+  leader: 'лучший',
   'full-coverage': 'полное покрытие',
-  'best-achievable-partial': 'лучший частичный',
-  partial: 'частичный',
+  'best-achievable-partial': null,
+  partial: null,
   'blocked-better': 'может стать лучше',
 }
 
@@ -142,18 +142,20 @@ function ScenarioSetCard({
         >
           Сценарий {scenarioNumber}
         </h3>
-        <span
-          className="text-[10px]"
-          style={{
-            color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
-            borderBottom: '1px solid currentColor',
-            textTransform: 'uppercase' as const,
-            letterSpacing: '0.1em',
-            paddingBottom: 1,
-          }}
-        >
-          {tierLabel[scenario.tier]}
-        </span>
+        {tierLabel[scenario.tier] && (
+          <span
+            className="text-[10px]"
+            style={{
+              color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
+              borderBottom: '1px solid currentColor',
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.1em',
+              paddingBottom: 1,
+            }}
+          >
+            {tierLabel[scenario.tier]}
+          </span>
+        )}
         <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
           {scenario.score.coveredCount}/{scenario.score.totalCount} участни:ц
         </span>

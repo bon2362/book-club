@@ -17,6 +17,10 @@ export async function PATCH(
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const asUserId = new URL(req.url).searchParams.get('as')
+  if (asUserId && !session.user.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const body = await req.json().catch(() => null)
   const { status } = body ?? {}
@@ -26,7 +30,7 @@ export async function PATCH(
   }
 
   const { bookId } = params
-  const userId = session.user.id
+  const userId = asUserId ?? session.user.id
 
   // Verify user is signed up for this book
   const [signup] = await db
