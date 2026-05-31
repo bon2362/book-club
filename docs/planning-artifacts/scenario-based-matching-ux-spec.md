@@ -460,6 +460,64 @@ This slice must establish the core engine contract:
 - Hover/focus linked highlighting.
 - Admin UI changes.
 
+### Preserve Existing Matching-Session Contract
+
+Slice 1 is a rewrite of scenario calculation and scenario cards only. It must not remove, rewrite, or regress the surrounding matching-session functionality unless the change is explicitly called out in this spec.
+
+Features that must be preserved:
+
+- **Session creation flow**
+  - Admin can create a matching session from the admin panel.
+  - Creation keeps `name`, optional `deadlineAt`, and existing `targetGroupSize`.
+  - Only one `active` session exists at a time.
+  - No DB migration is introduced in Slice 1.
+- **Session lifecycle**
+  - `active` / `frozen` status behavior remains unchanged.
+  - Admin freeze still works and stores a valid frozen scenario representation.
+  - Frozen sessions remain read-only for participants.
+  - Deadline remains advisory; it does not auto-freeze the session.
+- **Participant identity and pseudonyms**
+  - Authenticated users can join the active session.
+  - Joining assigns a stable anonymous pseudonym from the existing pseudonym dictionary.
+  - Pseudonyms remain stable within the session.
+  - User ids are not shown in participant-facing matching UI.
+- **Participant widget/header**
+  - Header keeps session name, group-size label, deadline, active/frozen status, current user's pseudonym, leave button, and participant popover.
+  - Participant popover still shows pseudonyms and names according to the current admin/user visibility rules.
+- **Leave and rejoin**
+  - Participant can leave an active session.
+  - After leaving, `matching_session_participants` row is removed.
+  - Reopening `/matching` can auto-join them again with a new pseudonym while existing book signups/priorities remain.
+- **Admin impersonation**
+  - Admin can open `/matching?as=<userId>`.
+  - Impersonation shows that participant's personal list, scenario view, and personal moves.
+  - Impersonation remains read-only and blocks mutations.
+  - Admin view is audited in `admin_views`.
+- **Personal catalog/list behavior**
+  - User can add/remove books from their matching list.
+  - Drag-and-drop priority ordering remains.
+  - Rank nudge behavior remains.
+  - Books marked `reading` / `read` remain excluded from matching calculations.
+  - Status dropdown labels and behavior remain unchanged.
+- **Book detail modal**
+  - Clicking a book in catalog, scenarios, or moves opens the shared book detail modal.
+  - Modal keeps cover, author, metadata, tags, description, why-read text, text URL, recommendation link, participant chips, status dropdown, add/remove actions where applicable, close button, and Escape close.
+- **Realtime**
+  - Mutations still broadcast matching state changes.
+  - SSE remains primary realtime mechanism.
+  - Polling fallback remains.
+  - Other open clients still refresh without manual reload.
+- **Admin participant management**
+  - Admin can add/remove participants from an active session in the admin panel.
+  - Added participants receive pseudonyms using the same assignment logic.
+  - Changes broadcast realtime state updates.
+- **API compatibility**
+  - Existing matching endpoints remain available.
+  - `GET /api/matching/state` may add `scenarioSetOverview`, but should preserve transitional fields currently used by clients/tests where practical.
+  - Existing mutation guards for frozen sessions and impersonation remain.
+
+Non-regression tests should be updated or added if the implementation touches any of these areas.
+
 ### Target Data Contracts
 
 Add these exported types in `lib/matching/scenarios.ts`:
