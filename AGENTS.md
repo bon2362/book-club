@@ -21,7 +21,7 @@
 Tailwind также легитимен: токены проброшены в `tailwind.config.ts` → можно `className="text-accent"`.
 
 ### Токены (см. `app/globals.css`)
-`--bg #FFF` · `--bg-elevated #FAFAFA` · `--text #111` · `--text-body #333` ·
+`--bg #F9F5EE` · `--bg-elevated #EDE5D8` · `--bg-input #FFF` · `--text #111` · `--text-body #333` ·
 `--text-secondary #666` · `--text-muted #999` · `--accent #C0603A` · `--success #2D6A4F` ·
 `--border #E5E5E5` · `--border-strong #111` · `--shadow-card transparent` ·
 `--nd-serif` · `--nd-sans` · `--radius 0`.
