@@ -170,33 +170,48 @@ export default function MatchingHeader({
             style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
           >
             {editingSize ? (
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-baseline gap-1.5">
                 <span>Группы по</span>
                 <input
                   value={sizeValue}
                   onChange={(event) => setSizeValue(event.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveGroupSize(); if (e.key === 'Escape') { setSizeValue(String(targetGroupSize)); setEditingSize(false) } }}
                   type="number"
                   min={2}
-                  className="w-12 px-1 py-0.5 border"
+                  autoFocus
+                  className="nd-inline-number"
                   style={{
-                    borderRadius: 'var(--radius-sm)',
-                    borderColor: 'var(--border)',
-                    background: 'var(--bg-input)',
+                    width: '2.4em',
+                    font: 'inherit',
                     color: 'var(--text)',
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border-strong)',
+                    outline: 'none',
+                    padding: '0 0 1px',
+                    textAlign: 'center',
                   }}
                 />
                 <button
                   type="button"
                   onClick={handleSaveGroupSize}
                   disabled={savingSize}
-                  style={{ color: 'var(--text)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', font: 'inherit' }}
+                  style={{
+                    font: 'inherit',
+                    color: 'var(--accent)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: savingSize ? 'default' : 'pointer',
+                    padding: 0,
+                    fontWeight: 500,
+                  }}
                 >
                   {savingSize ? '…' : 'Сохранить'}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setSizeValue(String(targetGroupSize)); setEditingSize(false) }}
-                  style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', font: 'inherit' }}
+                  style={{ font: 'inherit', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   Отмена
                 </button>
