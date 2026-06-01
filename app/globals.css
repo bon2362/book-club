@@ -190,6 +190,7 @@ body {
 .nd-move-redesign:focus-within {
   border-color: rgba(181, 83, 43, 0.22);
   background: #FFFBF7;
+  box-shadow: 0 10px 26px rgba(85, 55, 28, 0.08);
 }
 .nd-move-impact-head {
   display: flex;
@@ -290,62 +291,6 @@ body {
   font-size: 0.78rem;
   color: var(--text-muted);
 }
-.nd-move-beneficiaries {
-  margin-top: 0.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.nd-move-beneficiaries-label {
-  font-size: 0.64rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-.nd-move-beneficiary-legend {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-.nd-move-beneficiary-legend-book {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.nd-move-beneficiary-row {
-  display: grid;
-  grid-template-columns: minmax(5.5rem, max-content) minmax(0, 1fr);
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.82rem;
-}
-.nd-move-beneficiary-name {
-  font-weight: 600;
-  color: var(--text);
-}
-.nd-move-beneficiary-flow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-muted);
-  min-width: 0;
-}
-.nd-move-beneficiary-before {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.nd-move-beneficiary-arrow {
-  color: #C9BDA9;
-}
-.nd-move-beneficiary-after {
-  font-weight: 600;
-  white-space: nowrap;
-}
 .nd-move-interest-strong {
   color: var(--accent);
 }
@@ -401,6 +346,47 @@ body {
   visibility: visible;
   margin-top: 0.6rem;
   transition-delay: 0s;
+}
+
+.nd-scenario-preview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px dashed rgba(181, 83, 43, 0.45);
+  border-radius: var(--radius-control);
+  color: var(--accent);
+  background: rgba(181, 83, 43, 0.045);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  animation: nd-preview-slide 0.2s ease-out;
+}
+.nd-scenario-preview-banner span:last-child {
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.nd-scenario-preview-card {
+  border: 1px dashed rgba(181, 83, 43, 0.45);
+  animation: nd-preview-slide 0.22s ease-out;
+}
+.nd-scenario-muted {
+  opacity: 0.38;
+  transition: opacity 0.16s ease, filter 0.16s ease;
+}
+@keyframes nd-preview-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Drag handle visibility ───────────────────────────────────────────────── */

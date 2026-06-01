@@ -19,6 +19,8 @@ interface Props {
   highlightedScenarioId?: string | null
   highlightedBookId?: string | null
   highlightedUserIds?: string[]
+  previewScenario?: MatchingScenario | null
+  previewMoveTitle?: string | null
 }
 
 const tierLabel: Record<MatchingScenario['tier'], string | null> = {
@@ -37,6 +39,8 @@ export default function MatchingScenarios({
   highlightedScenarioId = null,
   highlightedBookId = null,
   highlightedUserIds = [],
+  previewScenario = null,
+  previewMoveTitle = null,
 }: Props) {
   const [modalBook, setModalBook] = useState<BookInfo | null>(null)
   const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
@@ -71,6 +75,24 @@ export default function MatchingScenarios({
         className="list-none p-0 m-0 flex flex-col"
         style={{ background: 'var(--bg)', padding: '0.7rem', gap: '0.7rem', display: 'flex', flexDirection: 'column' }}
       >
+        {previewScenario && (
+          <>
+            <li className="nd-scenario-preview-banner">
+              <span>↑ Нашёлся расклад лучше</span>
+              {previewMoveTitle && <span>если добавить «{previewMoveTitle}»</span>}
+            </li>
+            <ScenarioSetCard
+              key={`preview-${previewScenario.id}`}
+              scenario={{ ...previewScenario, tier: 'leader' }}
+              scenarioNumber={1}
+              bookById={bookById}
+              onOpen={openModal}
+              highlightedUserIds={highlightedUserIds}
+              highlighted
+              variant="preview"
+            />
+          </>
+        )}
         {overview.scenarios.map((scenario, index) => (
           <ScenarioSetCard
             key={scenario.id}
@@ -83,6 +105,7 @@ export default function MatchingScenarios({
               scenario.id === highlightedScenarioId ||
               scenario.circles.some((circle) => circle.bookId === highlightedBookId)
             }
+            muted={previewScenario !== null}
           />
         ))}
       </ul>
@@ -97,6 +120,8 @@ function ScenarioSetCard({
   onOpen,
   highlightedUserIds,
   highlighted,
+  muted,
+  variant = 'current',
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
@@ -104,9 +129,12 @@ function ScenarioSetCard({
   onOpen: (book: BookInfo) => void
   highlightedUserIds: string[]
   highlighted: boolean
+  muted?: boolean
+  variant?: 'current' | 'preview'
 }) {
   const isLeader = scenario.tier === 'leader'
-  const isLinking = isLeader && highlightedUserIds.length > 0
+  const isPreview = variant === 'preview'
+  const isLinking = (isLeader || isPreview) && highlightedUserIds.length > 0
   const highlightedUserIdSet = new Set(highlightedUserIds)
   const scoreTitle = [
     `Покрытие: ${scenario.score.coveredCount}/${scenario.score.totalCount}`,
@@ -119,10 +147,13 @@ function ScenarioSetCard({
 
   return (
     <li
+      className={isPreview ? 'nd-scenario-preview-card' : muted ? 'nd-scenario-muted' : undefined}
       style={{
-        background: isLeader ? 'var(--accent-soft)' : highlighted ? 'rgba(192, 96, 58, 0.04)' : 'var(--bg-input)',
+        background: isPreview
+          ? '#FFF8F1'
+          : isLeader ? 'var(--accent-soft)' : highlighted ? 'rgba(192, 96, 58, 0.04)' : 'var(--bg-input)',
         borderRadius: 'var(--radius-card)',
-        boxShadow: isLeader ? 'none' : '0 1px 2px rgba(50,38,24,.04)',
+        boxShadow: isPreview ? '0 10px 26px rgba(85, 55, 28, 0.10)' : isLeader ? 'none' : '0 1px 2px rgba(50,38,24,.04)',
         padding: '0.85rem 1rem',
       }}
       data-highlighted={highlighted ? 'true' : 'false'}
@@ -140,9 +171,9 @@ function ScenarioSetCard({
             color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
           }}
         >
-          Сценарий {scenarioNumber}
+          {isPreview ? 'Если добавишь' : `Сценарий ${scenarioNumber}`}
         </h3>
-        {isLeader && (
+        {isPreview ? (
           <span
             style={{
               fontSize: '0.66rem',
@@ -155,7 +186,22 @@ function ScenarioSetCard({
               borderRadius: 'var(--radius-pill)',
             }}
           >
-            лучший
+            станет лучшим
+          </span>
+        ) : isLeader && (
+          <span
+            style={{
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.06em',
+              background: 'var(--accent)',
+              color: 'var(--bg-input)',
+              padding: '0.12rem 0.5rem',
+              borderRadius: 'var(--radius-pill)',
+            }}
+          >
+            лучший сейчас
           </span>
         )}
         {!isLeader && tierLabel[scenario.tier] && (

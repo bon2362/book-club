@@ -13,7 +13,7 @@ interface Props {
   frozen?: boolean
   viewingUserId: string
   mutationUserId?: string
-  onBeneficiaryHover?: (ids: Set<string>) => void
+  onMovePreview?: (move: MyMoveBook | null) => void
 }
 
 interface ModalState {
@@ -26,7 +26,7 @@ export default function MatchingMyMoves({
   frozen = false,
   viewingUserId,
   mutationUserId,
-  onBeneficiaryHover,
+  onMovePreview,
 }: Props) {
   const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
@@ -89,17 +89,15 @@ export default function MatchingMyMoves({
           style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.6rem 0.75rem 0' }}
         >
           {moves.map((move) => {
-            const beneficiaryIds = new Set(move.impact?.beneficiaries.map((b) => b.userId) ?? [])
-            const coverageGain = impactCoverageGain(move)
             return (
             <li
               key={move.bookId}
               className="nd-move-item nd-move-redesign"
               style={{ padding: '0.95rem 1.05rem' }}
-              onMouseEnter={() => onBeneficiaryHover?.(beneficiaryIds)}
-              onMouseLeave={() => onBeneficiaryHover?.(new Set())}
-              onFocus={() => onBeneficiaryHover?.(beneficiaryIds)}
-              onBlur={() => onBeneficiaryHover?.(new Set())}
+              onMouseEnter={() => onMovePreview?.(move)}
+              onMouseLeave={() => onMovePreview?.(null)}
+              onFocus={() => onMovePreview?.(move)}
+              onBlur={() => onMovePreview?.(null)}
             >
               <div className="nd-move-impact-head">
                 {move.impact && <ImpactMetricPills move={move} />}
@@ -135,29 +133,6 @@ export default function MatchingMyMoves({
                 </div>
               </div>
 
-              {move.impact && move.impact.beneficiaries.length > 0 && (
-                <div className="nd-move-beneficiaries">
-                  <div className="nd-move-beneficiaries-label">Кому это поможет</div>
-                  <div className="nd-move-beneficiary-legend">
-                    <span>сейчас в лучшем сценарии</span>
-                    <span className="nd-move-beneficiary-arrow">→</span>
-                    <span className="nd-move-beneficiary-legend-book">если добавишь: в круге «{move.title}»</span>
-                  </div>
-                  {move.impact.beneficiaries.map((beneficiary) => (
-                    <div className="nd-move-beneficiary-row" key={beneficiary.userId}>
-                      <span className="nd-move-beneficiary-name">{beneficiary.pseudonym}</span>
-                      <span className="nd-move-beneficiary-flow">
-                        <span className="nd-move-beneficiary-before">{formatBefore(beneficiary.before)}</span>
-                        <span className="nd-move-beneficiary-arrow">→</span>
-                        <span className={`nd-move-beneficiary-after ${interestClassName(beneficiary.after)}`}>
-                          {beneficiary.after}
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               <div className="nd-move-footer">
                 <span
                   className="nd-move-footer-note"
@@ -165,9 +140,7 @@ export default function MatchingMyMoves({
                 >
                   {firstPlaceHint === move.bookId
                     ? 'книга встанет на 1-е место в твоём списке'
-                    : coverageGain > 0
-                      ? 'Без тебя их не собрать'
-                      : '\u00A0'}
+                    : '← смотри слева, каким станет расклад'}
                 </span>
                 {!frozen && (
                   <button
@@ -268,15 +241,4 @@ function joinNamesText(names: string[]): string {
   if (names.length === 0) return 'Участники'
   if (names.length === 1) return names[0]
   return `${names.slice(0, -1).join(', ')} и ${names[names.length - 1]}`
-}
-
-function formatBefore(before: NonNullable<MyMoveBook['impact']>['beneficiaries'][number]['before']): string {
-  if (before.place === 'leftOut') return 'за бортом'
-  return `«${before.bookTitle}» · ${before.interest}`
-}
-
-function interestClassName(interest: string): string {
-  if (interest === 'очень хочу') return 'nd-move-interest-strong'
-  if (interest === 'хочу') return 'nd-move-interest-want'
-  return 'nd-move-interest-cover'
 }

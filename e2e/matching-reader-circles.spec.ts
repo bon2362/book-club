@@ -89,13 +89,16 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await expect(circlesPanel.getByRole('button', { name: circleBook.title, exact: true })).toBeVisible()
   await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible()
   await expect(movesPanel.getByText('Лучший ход')).not.toBeVisible()
-  await expect(movesPanel.getByText('Кому это поможет').first()).toBeVisible()
-  await expect(movesPanel.getByText('сейчас в лучшем сценарии').first()).toBeVisible()
-  await expect(movesPanel.getByText(`если добавишь: в круге «${moveBook.title}»`)).toBeVisible()
+  await expect(movesPanel.getByText('Кому это поможет')).not.toBeVisible()
+  await expect(movesPanel.getByText('← смотри слева, каким станет расклад').first()).toBeVisible()
   await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
   await expect(movesPanel.getByText('После добавления:')).not.toBeVisible()
   const moveCardPreview = movesPanel.locator('li').filter({ hasText: moveBook.title }).first()
   await moveCardPreview.hover()
+  await expect(circlesPanel.getByText('Нашёлся расклад лучше')).toBeVisible()
+  await expect(circlesPanel.getByText(`если добавить «${moveBook.title}»`)).toBeVisible()
+  await expect(circlesPanel.getByText('Если добавишь')).toBeVisible()
+  await expect(circlesPanel.getByText('станет лучшим')).toBeVisible()
   await expect(circlesPanel.getByText(firstPseudonym).first()).toHaveCSS('color', 'rgb(192, 96, 58)')
 
   await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first().click()
@@ -122,10 +125,9 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await dialog.getByRole('button', { name: 'Закрыть' }).click()
   await expect(dialog).not.toBeVisible()
 
-  const moveCard = page
+  const moveCard = movesPanel
     .locator('li')
     .filter({ hasText: moveBook.title })
-    .filter({ hasText: 'Кому это поможет' })
     .first()
   const addMoveResponse = page.waitForResponse(
     r => r.url().includes('/api/matching/books') && r.request().method() === 'POST',

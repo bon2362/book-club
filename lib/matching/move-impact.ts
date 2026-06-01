@@ -78,6 +78,7 @@ export function buildMoveImpact({
     summary: '',
     circleTitles: circleBooks.map((book) => book.title),
     circleBooks,
+    previewScenario: scenario,
     coverage: {
       before: currentLeader?.score.coveredCount ?? 0,
       after: scenario.score.coveredCount,

@@ -16,6 +16,14 @@ function score(coveredCount: number, strongInterestCount: number): MatchingScena
   }
 }
 
+const previewScenario: MatchingScenario = {
+  id: 'preview',
+  tier: 'leader',
+  score: score(3, 1),
+  leftOut: [],
+  circles: [],
+}
+
 function move(title: string, impact?: MyMoveBook['impact']): MyMoveBook {
   return {
     bookId: title.toLowerCase(),
@@ -97,6 +105,7 @@ describe('move impact helpers', () => {
 
     expect(impact?.coverage).toEqual({ before: 3, after: 4 })
     expect(impact?.strongInterest).toEqual({ before: 1, after: 3 })
+    expect(impact?.previewScenario).toBe(nextLeader)
     expect(impact?.beneficiaries).toEqual([
       {
         userId: 'u2',
@@ -303,6 +312,7 @@ describe('move impact helpers', () => {
         summary: '',
         circleTitles: [],
         circleBooks: [],
+        previewScenario,
         coverage: { before: 6, after: 6 },
         strongInterest: { before: 2, after: 5 },
         beneficiaries: [],
@@ -314,6 +324,7 @@ describe('move impact helpers', () => {
         summary: '',
         circleTitles: [],
         circleBooks: [],
+        previewScenario,
         coverage: { before: 6, after: 8 },
         strongInterest: { before: 2, after: 2 },
         beneficiaries: [],
@@ -325,6 +336,7 @@ describe('move impact helpers', () => {
         summary: '',
         circleTitles: [],
         circleBooks: [],
+        previewScenario,
         coverage: { before: 6, after: 8 },
         strongInterest: { before: 2, after: 4 },
         beneficiaries: [],
