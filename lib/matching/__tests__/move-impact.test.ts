@@ -232,6 +232,68 @@ describe('move impact helpers', () => {
     ])
   })
 
+  it('drops zero-sum moves that only swap in a left-out participant without coverage gain', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [{ userId: 'u2', pseudonym: 'Казарка' }],
+      circles: [
+        {
+          id: 'old',
+          bookId: 'old',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 1,
+          avgRank: 2,
+          worstRank: 3,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: 2, interest: 'очень хочу' },
+            { userId: 'u4', pseudonym: 'Окунь', rank: 3, interest: 'очень хочу' },
+          ],
+        },
+      ],
+    }
+    const nextLeader: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [{ userId: 'u3', pseudonym: 'Лягушка' }],
+      circles: [
+        {
+          id: 'new',
+          bookId: 'new',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 1,
+          avgRank: 3,
+          worstRank: 4,
+          unrankedCount: 1,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: null, interest: 'без ранга' },
+            { userId: 'u4', pseudonym: 'Окунь', rank: 4, interest: 'хочу' },
+          ],
+        },
+      ],
+    }
+
+    const impact = buildMoveImpact({
+      move: { ...move('New'), bookId: 'new' },
+      scenario: nextLeader,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([
+        ['old', 'Старая книга'],
+        ['new', 'Новая книга'],
+      ]),
+    })
+
+    expect(impact).toBeNull()
+  })
+
   it('sorts by coverage gain, then strong-interest gain, then title', () => {
     const moves = [
       move('Бета', {
