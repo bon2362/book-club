@@ -378,30 +378,6 @@ body {
 .nd-move-interest-cover {
   color: var(--success);
 }
-.nd-move-after {
-  margin-top: 0.8rem;
-  padding-left: 0.75rem;
-  border-left: 2px solid var(--accent);
-  font-size: 0.74rem;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-.nd-move-after b {
-  color: var(--text);
-}
-.nd-move-after button {
-  color: var(--text);
-  text-decoration: underline;
-  font: inherit;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-.nd-move-after button:hover,
-.nd-move-after button:focus {
-  color: var(--accent);
-}
 .nd-move-footer {
   display: flex;
   align-items: center;
@@ -493,12 +469,12 @@ body {
 
 .nd-chip-text + .nd-chip-text {
   position: relative;
-  padding-left: 0.6rem;
+  padding-left: 0.55rem;
 }
 .nd-chip-text + .nd-chip-text::before {
   content: "";
   position: absolute;
-  left: 0.1rem;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;

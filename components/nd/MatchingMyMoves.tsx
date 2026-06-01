@@ -8,15 +8,9 @@ import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
 
-interface BookInfo extends MatchingBookDetail {
-  id: string
-}
-
 interface Props {
   moves: MyMoveBook[]
   frozen?: boolean
-  bookById: Map<string, BookInfo>
-  bookParticipants: BookParticipant[]
   viewingUserId: string
   mutationUserId?: string
   onBeneficiaryHover?: (ids: Set<string>) => void
@@ -30,8 +24,6 @@ interface ModalState {
 export default function MatchingMyMoves({
   moves: initialMoves,
   frozen = false,
-  bookById,
-  bookParticipants,
   viewingUserId,
   mutationUserId,
   onBeneficiaryHover,
@@ -39,12 +31,10 @@ export default function MatchingMyMoves({
   const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
-  const [hoveredAdd, setHoveredAdd] = useState<string | null>(null)
   const [modalState, setModalState] = useState<ModalState | null>(null)
 
   useEffect(() => {
     setMoves(initialMoves)
-    setHoveredAdd(null)
     setModalState(null)
   }, [initialMoves])
 
@@ -89,12 +79,13 @@ export default function MatchingMyMoves({
           style={{ color: 'var(--text-muted)' }}
         >
           <div className="text-3xl mb-2">✅</div>
-          <p className="text-sm">Пока нет книг, где ваша заявка изменит лучший сценарий</p>
+          <p className="text-sm">Пока нет книг, где твоя заявка изменит лучший сценарий</p>
         </div>
       ) : (
         <ul className="list-none p-0 m-0">
           {moves.map((move, idx) => {
             const beneficiaryIds = new Set(move.impact?.beneficiaries.map((b) => b.userId) ?? [])
+            const coverageGain = impactCoverageGain(move)
             return (
             <li
               key={move.bookId}
@@ -164,52 +155,18 @@ export default function MatchingMyMoves({
                 </div>
               )}
 
-              {move.impact && (
-                <div className="nd-move-after">
-                  <b>После добавления:</b>{' '}
-                  <span>лучшим сценарием станет </span>
-                  {move.impact.circleBooks.map((book, index) => (
-                    <span key={book.bookId}>
-                      {index > 0 && ' + '}
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          const detailed = bookById.get(book.bookId)
-                          if (detailed) {
-                            openBook(
-                              detailed,
-                              bookParticipants.filter((p) => p.bookId === book.bookId),
-                            )
-                          }
-                        }}
-                      >
-                        {book.title}
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
               <div className="nd-move-footer">
                 <span className="nd-move-footer-note">
-                  {idx === 0 && move.impact?.beneficiaries.length ? 'Без тебя их не собрать' : '\u00A0'}
+                  {idx === 0 && coverageGain > 0 ? 'Без тебя их не собрать' : '\u00A0'}
                 </span>
                 {!frozen && (
                   <button
                     className="nd-move-cta"
                     onClick={() => handleAdd(move.bookId)}
-                    onMouseEnter={() => setHoveredAdd(move.bookId)}
-                    onMouseLeave={() => setHoveredAdd((current) => current === move.bookId ? null : current)}
-                    onFocus={() => setHoveredAdd(move.bookId)}
-                    onBlur={() => setHoveredAdd((current) => current === move.bookId ? null : current)}
+                    title="Книга встанет на первое место в твоём списке"
                     disabled={adding === move.bookId}
                   >
-                    {adding === move.bookId
-                      ? '…'
-                      : hoveredAdd === move.bookId
-                        ? 'Хочу читать * на первое место'
-                        : 'Хочу читать'}
+                    {adding === move.bookId ? '…' : 'Хочу читать'}
                   </button>
                 )}
               </div>
@@ -234,57 +191,67 @@ function ImpactMetricPills({ move }: { move: MyMoveBook }) {
       )}
       {strongInterestGain > 0 ? (
         <span className="nd-move-metric nd-move-metric-gain">↑ +{strongInterestGain} «очень хочу»</span>
-      ) : (
-        <span className="nd-move-metric nd-move-metric-muted">интерес без изменений</span>
-      )}
+      ) : null}
     </div>
   )
 }
 
 function MoveWhyText({ move }: { move: MyMoveBook }) {
   const beneficiaries = move.impact?.beneficiaries ?? []
-  const names = joinNames(beneficiaries.map((b) => b.pseudonym))
-  const coverageGain = impactCoverageGain(move)
-  const strongInterestGain = impactStrongInterestGain(move)
   const leftOut = beneficiaries.filter((b) => b.before.place === 'leftOut')
+  const upgraded = beneficiaries.filter((b) => b.before.place === 'circle')
   const strong = beneficiaries.filter((b) => b.after === 'очень хочу')
 
-  if (leftOut.length > 0 && coverageGain > 0) {
+  if (leftOut.length > 0) {
     return (
       <>
-        <b>{joinNames(leftOut.map((b) => b.pseudonym))}</b>
+        {renderNames(leftOut.map((b) => b.pseudonym))}
         {' сейчас за бортом. Добавишь эту книгу — и вы соберетесь в круг'}
         {strong.length > 0 && (
           <>
             {', где '}
-            <em>{joinNames(strong.map((b) => b.pseudonym))} очень хотят читать.</em>
+            <em>{joinNamesText(strong.map((b) => b.pseudonym))} очень хотят читать</em>
           </>
         )}
+        {'.'}
       </>
     )
   }
 
-  if (strongInterestGain > 0) {
+  if (upgraded.length > 0) {
     return (
       <>
-        <b>{names}</b>
+        {renderNames(upgraded.map((b) => b.pseudonym))}
         {' уже в сценарии, но эту книгу хотят '}
         <em>сильнее</em>
-        {'. Добавишь — лучший расклад станет ближе к их желаниям.'}
+        {'. Добавишь — соберутся вокруг неё, не потеряв покрытие.'}
       </>
     )
   }
 
   return (
     <>
-      <b>{names}</b>
-      {' смогут собраться с тобой в круг. Покрытие лучшего сценария '}
-      {coverageGain > 0 ? 'вырастет.' : 'сохранится.'}
+      {'Этот ход увеличит покрытие лучшего сценария.'}
     </>
   )
 }
 
-function joinNames(names: string[]): string {
+function renderNames(names: string[]) {
+  const normalized = names.length > 0 ? names : ['Участники']
+
+  return (
+    <>
+      {normalized.map((name, index) => (
+        <span key={`${name}-${index}`}>
+          {index > 0 && (index === normalized.length - 1 ? ' и ' : ', ')}
+          <b>{name}</b>
+        </span>
+      ))}
+    </>
+  )
+}
+
+function joinNamesText(names: string[]): string {
   if (names.length === 0) return 'Участники'
   if (names.length === 1) return names[0]
   return `${names.slice(0, -1).join(', ')} и ${names[names.length - 1]}`

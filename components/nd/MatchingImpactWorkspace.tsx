@@ -98,14 +98,12 @@ export default function MatchingImpactWorkspace({
       <section data-testid="matching-my-moves-panel" style={panel}>
         <div style={panelHeadStyle}>
           <h2 style={h2Style}>{movesHeading}</h2>
-          <p style={subStyle}>Добавь книгу и соберется новый сценарий</p>
+          <p style={subStyle}>Эти книги меняют лучший расклад. Добавишь — поможешь другим собраться вокруг того, что им ближе.</p>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem' }}>
           <MatchingMyMoves
             moves={moves}
             frozen={frozen}
-            bookById={bookById}
-            bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
             onBeneficiaryHover={(ids) => {

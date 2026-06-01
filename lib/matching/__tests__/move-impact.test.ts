@@ -78,6 +78,7 @@ describe('move impact helpers', () => {
             { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
             { userId: 'u2', pseudonym: 'Казарка', rank: 1, interest: 'очень хочу' },
             { userId: 'u3', pseudonym: 'Лягушка', rank: 2, interest: 'очень хочу' },
+            { userId: 'u4', pseudonym: 'Окунь', rank: 5, interest: 'хочу' },
           ],
         },
       ],
@@ -108,6 +109,125 @@ describe('move impact helpers', () => {
         pseudonym: 'Лягушка',
         before: { place: 'leftOut' },
         after: 'очень хочу',
+      },
+    ])
+  })
+
+  it('does not count passengers whose coverage and interest do not improve', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [],
+      circles: [
+        {
+          id: 'old',
+          bookId: 'old',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 1,
+          avgRank: 4,
+          worstRank: 5,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 3, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 4, interest: 'хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: 5, interest: 'хочу' },
+          ],
+        },
+      ],
+    }
+    const nextLeader: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [],
+      circles: [
+        {
+          id: 'new',
+          bookId: 'new',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 1,
+          avgRank: 4,
+          worstRank: 5,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 4, interest: 'хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: 5, interest: 'хочу' },
+          ],
+        },
+      ],
+    }
+
+    const impact = buildMoveImpact({
+      move: { ...move('New'), bookId: 'new' },
+      scenario: nextLeader,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([
+        ['old', 'Старая книга'],
+        ['new', 'Новая книга'],
+      ]),
+    })
+
+    expect(impact).toBeNull()
+  })
+
+  it('keeps a move when a left-out participant joins a strong-preference circle', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(2, 0),
+      leftOut: [{ userId: 'u2', pseudonym: 'Казарка' }],
+      circles: [],
+    }
+    const nextLeader: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(3, 2),
+      leftOut: [],
+      circles: [
+        {
+          id: 'new',
+          bookId: 'new',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 2,
+          avgRank: 1.5,
+          worstRank: 2,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 2, interest: 'очень хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: null, interest: 'без ранга' },
+          ],
+        },
+      ],
+    }
+
+    const impact = buildMoveImpact({
+      move: { ...move('New'), bookId: 'new' },
+      scenario: nextLeader,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([['new', 'Новая книга']]),
+    })
+
+    expect(impact?.coverage).toEqual({ before: 2, after: 3 })
+    expect(impact?.beneficiaries).toEqual([
+      {
+        userId: 'u2',
+        pseudonym: 'Казарка',
+        before: { place: 'leftOut' },
+        after: 'очень хочу',
+      },
+      {
+        userId: 'u3',
+        pseudonym: 'Лягушка',
+        before: { place: 'leftOut' },
+        after: 'без ранга',
       },
     ])
   })
