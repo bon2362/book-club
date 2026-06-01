@@ -139,9 +139,9 @@ export default function MatchingMyMoves({
                 <div className="nd-move-beneficiaries">
                   <div className="nd-move-beneficiaries-label">Кому это поможет</div>
                   <div className="nd-move-beneficiary-legend">
-                    <span>сейчас</span>
+                    <span>сейчас в лучшем сценарии</span>
                     <span className="nd-move-beneficiary-arrow">→</span>
-                    <span className="nd-move-beneficiary-legend-book">в круге «{move.title}»</span>
+                    <span className="nd-move-beneficiary-legend-book">если добавишь: в круге «{move.title}»</span>
                   </div>
                   {move.impact.beneficiaries.map((beneficiary) => (
                     <div className="nd-move-beneficiary-row" key={beneficiary.userId}>
