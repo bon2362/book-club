@@ -81,10 +81,7 @@ export default function MatchingScenarios({
             highlightedUserIds={highlightedUserIds}
             highlighted={
               scenario.id === highlightedScenarioId ||
-              scenario.circles.some((circle) => (
-                circle.bookId === highlightedBookId ||
-                circle.members.some((member) => highlightedUserIds.includes(member.userId))
-              ))
+              scenario.circles.some((circle) => circle.bookId === highlightedBookId)
             }
           />
         ))}
@@ -280,7 +277,7 @@ function CircleItem({
         >
           {book?.title ?? circle.bookId}
         </button>
-        <div className="flex flex-wrap mt-1.5" style={{ gap: '0.3rem 0' }}>
+        <div className="flex flex-wrap mt-1.5" style={{ gap: '0.3rem 0.55rem' }}>
           {circle.members.map((member) => (
             <ParticipantInterestChip
               key={member.userId}

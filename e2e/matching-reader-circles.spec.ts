@@ -48,12 +48,32 @@ test('matching shows reader circles, move hints, and full book details modal', a
     whyRead: 'Эта книга проверяет попап из Моих ходов',
     recommendationLink: 'Разбор https://example.com/move-recommendation',
   })
+  const fillerBookA = await createTestBook({
+    title: `E2E Filler A ${test.info().testId}`,
+    author: 'Filler Author',
+    description: 'Книга-заполнитель для рангов',
+  })
+  const fillerBookB = await createTestBook({
+    title: `E2E Filler B ${test.info().testId}`,
+    author: 'Filler Author',
+    description: 'Книга-заполнитель для рангов',
+  })
 
   await loginAsUser({ name: 'E2E Reader One' })
-  const firstPseudonym = await joinSessionAndAddBooks(page, session.id, [moveBook.id, circleBook.id])
+  const firstPseudonym = await joinSessionAndAddBooks(page, session.id, [
+    moveBook.id,
+    fillerBookA.id,
+    fillerBookB.id,
+    circleBook.id,
+  ])
 
   await loginAsUser({ name: 'E2E Reader Two' })
-  const secondPseudonym = await joinSessionAndAddBooks(page, session.id, [moveBook.id, circleBook.id])
+  const secondPseudonym = await joinSessionAndAddBooks(page, session.id, [
+    moveBook.id,
+    fillerBookA.id,
+    fillerBookB.id,
+    circleBook.id,
+  ])
 
   await loginAsUser({ name: 'E2E Reader Three' })
   const thirdPseudonym = await joinSessionAndAddBooks(page, session.id, [circleBook.id])
@@ -61,7 +81,7 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await page.goto('/matching')
   await expect(page.getByRole('heading', { name: 'Читательские круги' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Мои ходы' })).toBeVisible()
-  await expect(page.getByText('Добавь книгу и соберется новый сценарий')).toBeVisible()
+  await expect(page.getByText('Эти книги меняют лучший расклад.')).toBeVisible()
 
   const circlesPanel = page.getByTestId('matching-reader-circles-panel')
   const movesPanel = page.getByTestId('matching-my-moves-panel')
@@ -69,13 +89,11 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await expect(circlesPanel.getByRole('button', { name: circleBook.title, exact: true })).toBeVisible()
   await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible()
   await expect(movesPanel.getByText('Лучший ход')).toBeVisible()
-  await expect(movesPanel.getByText('Кому это поможет')).toBeVisible()
+  await expect(movesPanel.getByText('Кому это поможет').first()).toBeVisible()
   await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
-  await expect(movesPanel.getByText('После добавления:')).toBeVisible()
+  await expect(movesPanel.getByText('После добавления:')).not.toBeVisible()
   const moveCardPreview = movesPanel.locator('li').filter({ hasText: moveBook.title }).first()
   await moveCardPreview.hover()
-  await expect(movesPanel.getByText('лучшим сценарием станет')).toBeVisible()
-  await expect(moveCardPreview.getByRole('button', { name: moveBook.title, exact: true }).nth(1)).toBeVisible()
   await expect(circlesPanel.getByText(firstPseudonym).first()).toHaveCSS('color', 'rgb(192, 96, 58)')
 
   await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first().click()
@@ -112,11 +130,11 @@ test('matching shows reader circles, move hints, and full book details modal', a
   )
   const addButton = moveCard.getByRole('button', { name: 'Хочу читать' })
   await addButton.hover()
-  await expect(moveCard.getByRole('button', { name: 'Хочу читать * на первое место' })).toBeVisible()
-  await moveCard.getByRole('button', { name: 'Хочу читать * на первое место' }).click()
+  await expect(addButton).toHaveAttribute('title', /первое место/)
+  await expect(moveCard.getByRole('button', { name: 'Хочу читать * на первое место' })).not.toBeVisible()
+  await addButton.click()
   await addMoveResponse
 
-  await expect(page.getByText('Пока нет книг, где ваша заявка изменит лучший сценарий')).toBeVisible()
   await expect(catalogMine).toContainText(moveBook.title, { timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'Сценарий 1' })).toBeVisible()
   await expect(page.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
