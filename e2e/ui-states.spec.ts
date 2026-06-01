@@ -62,6 +62,25 @@ test.describe('Home submit book CTA layout', () => {
   })
 })
 
+test.describe('Matching feature presentation', () => {
+  test('interactive prototype shows how Maria changes the best scenario', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 950 })
+    await page.goto('/matching/presentation')
+    await expect(page.getByRole('heading', { name: /как показать влияние/i })).toBeVisible()
+
+    const prototype = page.getByTestId('matching-presentation-prototype')
+    await prototype.scrollIntoViewIfNeeded()
+    await expect(prototype.getByText(/сейчас все заняты/i)).toBeVisible()
+    await expect(prototype.getByText(/за бортом/i)).toBeVisible()
+
+    await prototype.getByRole('button', { name: /мария добавляет/i }).click()
+
+    await expect(prototype.getByText(/мария добавила/i)).toBeVisible()
+    await expect(prototype.getByText(/лучшим стал другой сценарий/i)).toBeVisible()
+    await expect(prototype.getByText(/консенсус \+ краткая история неолиберализма/i)).toBeVisible()
+  })
+})
+
 async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, bookIds: string[]) {
   const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`)
   expect(joinRes.ok()).toBe(true)
