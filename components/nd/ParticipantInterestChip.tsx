@@ -9,6 +9,8 @@ interface Props {
   personalStatus?: string | null
   viewingUserId?: string
   compact?: boolean
+  highlighted?: boolean
+  dimmed?: boolean
 }
 
 export default function ParticipantInterestChip({
@@ -18,6 +20,8 @@ export default function ParticipantInterestChip({
   personalStatus = null,
   viewingUserId,
   compact = false,
+  highlighted = false,
+  dimmed = false,
 }: Props) {
   const label = interestLabel(rank, personalStatus)
   const strong = isStrongInterest(rank) && personalStatus === null
@@ -32,13 +36,19 @@ export default function ParticipantInterestChip({
         gap: '0.25rem',
         fontSize: '0.78rem',
         color: 'var(--text-secondary)',
+        background: highlighted ? 'var(--accent-soft)' : 'transparent',
+        borderRadius: highlighted ? 6 : 0,
+        padding: highlighted ? '0.04rem 0.34rem' : 0,
+        margin: highlighted ? '0 -0.05rem' : 0,
+        opacity: dimmed ? 0.4 : 1,
+        transition: 'opacity 0.16s ease, background 0.16s ease',
       }}
       title={`${pseudonym}: ${rankTooltip(rank)}`}
     >
       <b
         style={{
           fontWeight: isMe ? 700 : 500,
-          color: strong ? 'var(--accent)' : 'inherit',
+          color: highlighted || strong ? 'var(--accent)' : 'inherit',
         }}
       >
         {pseudonym}
@@ -47,8 +57,8 @@ export default function ParticipantInterestChip({
         <span
           style={{
             fontSize: '0.72rem',
-            color: strong ? 'var(--accent)' : 'var(--text-muted)',
-            opacity: strong ? 0.85 : 1,
+            color: highlighted || strong ? 'var(--accent)' : 'var(--text-muted)',
+            opacity: highlighted || strong ? 0.85 : 1,
           }}
         >
           {label}

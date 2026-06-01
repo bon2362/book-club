@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
 import type { ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingScenarios from './MatchingScenarios'
@@ -61,6 +64,12 @@ export default function MatchingImpactWorkspace({
   mutationUserId,
 }: Props) {
   const scenarioCount = overview.scenarios.length
+  const [hoveredBeneficiaryIds, setHoveredBeneficiaryIds] = useState<string[]>([])
+  const highlightSet = useMemo(() => new Set(hoveredBeneficiaryIds), [hoveredBeneficiaryIds])
+
+  useEffect(() => {
+    setHoveredBeneficiaryIds([])
+  }, [moves])
 
   return (
     <div className="grid h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)', gap: '1.1rem' }}>
@@ -81,6 +90,7 @@ export default function MatchingImpactWorkspace({
             bookById={bookById}
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
+            highlightedUserIds={hoveredBeneficiaryIds}
           />
         </div>
       </section>
@@ -98,6 +108,14 @@ export default function MatchingImpactWorkspace({
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
+            onBeneficiaryHover={(ids) => {
+              const next = Array.from(ids)
+              if (
+                next.length === highlightSet.size &&
+                next.every((id) => highlightSet.has(id))
+              ) return
+              setHoveredBeneficiaryIds(next)
+            }}
           />
         </div>
       </section>
