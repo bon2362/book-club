@@ -68,14 +68,15 @@ test('matching shows reader circles, move hints, and full book details modal', a
   const catalogMine = page.getByTestId('matching-catalog-mine')
   await expect(circlesPanel.getByRole('button', { name: circleBook.title, exact: true })).toBeVisible()
   await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible()
-  await expect(page.getByText('Уже записались:')).toBeVisible()
+  await expect(movesPanel.getByText('Лучший ход')).toBeVisible()
+  await expect(movesPanel.getByText('Кому это поможет')).toBeVisible()
   await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
-  await expect(movesPanel.getByText('После добавления')).toBeHidden()
+  await expect(movesPanel.getByText('После добавления:')).toBeVisible()
   const moveCardPreview = movesPanel.locator('li').filter({ hasText: moveBook.title }).first()
   await moveCardPreview.hover()
-  await expect(movesPanel.getByText('После добавления')).toBeVisible()
-  await expect(movesPanel.getByText('Лучшим сценарием станет:')).toBeVisible()
+  await expect(movesPanel.getByText('лучшим сценарием станет')).toBeVisible()
   await expect(moveCardPreview.getByRole('button', { name: moveBook.title, exact: true }).nth(1)).toBeVisible()
+  await expect(circlesPanel.getByText(firstPseudonym).first()).toHaveCSS('color', 'rgb(192, 96, 58)')
 
   await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first().click()
   let dialog = page.getByRole('dialog', { name: moveBook.title })
@@ -104,7 +105,7 @@ test('matching shows reader circles, move hints, and full book details modal', a
   const moveCard = page
     .locator('li')
     .filter({ hasText: moveBook.title })
-    .filter({ hasText: 'Уже записались:' })
+    .filter({ hasText: 'Кому это поможет' })
     .first()
   const addMoveResponse = page.waitForResponse(
     r => r.url().includes('/api/matching/books') && r.request().method() === 'POST',

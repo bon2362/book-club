@@ -1,0 +1,154 @@
+import { buildMoveImpact, sortMovesByImpact } from '../move-impact'
+import type { MatchingScenario } from '../scenarios'
+import type { MyMoveBook } from '../my-moves'
+
+function score(coveredCount: number, strongInterestCount: number): MatchingScenario['score'] {
+  return {
+    coveredCount,
+    totalCount: 5,
+    coverageRatio: coveredCount / 5,
+    strongInterestCount,
+    rankedCount: coveredCount,
+    unrankedCount: 0,
+    rankSum: strongInterestCount,
+    avgRank: 1,
+    worstRank: 2,
+  }
+}
+
+function move(title: string, impact?: MyMoveBook['impact']): MyMoveBook {
+  return {
+    bookId: title.toLowerCase(),
+    title,
+    author: 'Author',
+    description: '',
+    coverUrl: null,
+    pages: null,
+    publishedDate: '',
+    textUrl: '',
+    whyRead: null,
+    recommendationLink: null,
+    tags: [],
+    existingParticipants: [],
+    impact,
+  }
+}
+
+describe('move impact helpers', () => {
+  it('builds beneficiaries with before leftOut/circle and before-after metrics', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [{ userId: 'u3', pseudonym: 'Лягушка' }],
+      circles: [
+        {
+          id: 'old:u2',
+          bookId: 'old',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 1,
+          avgRank: 2,
+          worstRank: 3,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 2, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 4, interest: 'хочу' },
+            { userId: 'u4', pseudonym: 'Окунь', rank: 5, interest: 'хочу' },
+          ],
+        },
+      ],
+    }
+    const nextLeader: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(4, 3),
+      leftOut: [],
+      circles: [
+        {
+          id: 'new:viewer+u2+u3',
+          bookId: 'new',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 3,
+          avgRank: 1.3,
+          worstRank: 2,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: 2, interest: 'очень хочу' },
+          ],
+        },
+      ],
+    }
+
+    const impact = buildMoveImpact({
+      move: { ...move('New'), bookId: 'new' },
+      scenario: nextLeader,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([
+        ['old', 'Старая книга'],
+        ['new', 'Новая книга'],
+      ]),
+    })
+
+    expect(impact?.coverage).toEqual({ before: 3, after: 4 })
+    expect(impact?.strongInterest).toEqual({ before: 1, after: 3 })
+    expect(impact?.beneficiaries).toEqual([
+      {
+        userId: 'u2',
+        pseudonym: 'Казарка',
+        before: { place: 'circle', bookTitle: 'Старая книга', interest: 'хочу' },
+        after: 'очень хочу',
+      },
+      {
+        userId: 'u3',
+        pseudonym: 'Лягушка',
+        before: { place: 'leftOut' },
+        after: 'очень хочу',
+      },
+    ])
+  })
+
+  it('sorts by coverage gain, then strong-interest gain, then title', () => {
+    const moves = [
+      move('Бета', {
+        scenarioId: 's',
+        scenarioTitle: 'Сценарий 1',
+        coverageLabel: '',
+        summary: '',
+        circleTitles: [],
+        circleBooks: [],
+        coverage: { before: 6, after: 6 },
+        strongInterest: { before: 2, after: 5 },
+        beneficiaries: [],
+      }),
+      move('Альфа', {
+        scenarioId: 's',
+        scenarioTitle: 'Сценарий 1',
+        coverageLabel: '',
+        summary: '',
+        circleTitles: [],
+        circleBooks: [],
+        coverage: { before: 6, after: 8 },
+        strongInterest: { before: 2, after: 2 },
+        beneficiaries: [],
+      }),
+      move('Гамма', {
+        scenarioId: 's',
+        scenarioTitle: 'Сценарий 1',
+        coverageLabel: '',
+        summary: '',
+        circleTitles: [],
+        circleBooks: [],
+        coverage: { before: 6, after: 8 },
+        strongInterest: { before: 2, after: 4 },
+        beneficiaries: [],
+      }),
+    ]
+
+    expect(sortMovesByImpact(moves).map((m) => m.title)).toEqual(['Гамма', 'Альфа', 'Бета'])
+  })
+})

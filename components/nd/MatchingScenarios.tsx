@@ -78,6 +78,7 @@ export default function MatchingScenarios({
             scenarioNumber={index + 1}
             bookById={bookById}
             onOpen={openModal}
+            highlightedUserIds={highlightedUserIds}
             highlighted={
               scenario.id === highlightedScenarioId ||
               scenario.circles.some((circle) => (
@@ -97,15 +98,19 @@ function ScenarioSetCard({
   scenarioNumber,
   bookById,
   onOpen,
+  highlightedUserIds,
   highlighted,
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
   bookById: Map<string, BookInfo>
   onOpen: (book: BookInfo) => void
+  highlightedUserIds: string[]
   highlighted: boolean
 }) {
   const isLeader = scenario.tier === 'leader'
+  const isLinking = isLeader && highlightedUserIds.length > 0
+  const highlightedUserIdSet = new Set(highlightedUserIds)
   const scoreTitle = [
     `Покрытие: ${scenario.score.coveredCount}/${scenario.score.totalCount}`,
     `Очень хотят: ${scenario.score.strongInterestCount}`,
@@ -178,6 +183,8 @@ function ScenarioSetCard({
             onOpen={onOpen}
             isFirst={idx === 0}
             isLeader={isLeader}
+            isLinking={isLinking}
+            highlightedUserIds={highlightedUserIdSet}
           />
         ))}
       </div>
@@ -189,7 +196,24 @@ function ScenarioSetCard({
         >
           <span>За бортом:</span>
           {scenario.leftOut.map((participant, idx) => (
-            <span key={participant.userId} style={{ color: 'var(--text-secondary)' }}>
+            <span
+              key={participant.userId}
+              style={{
+                color: isLinking && highlightedUserIdSet.has(participant.userId)
+                  ? 'var(--accent)'
+                  : 'var(--text-secondary)',
+                fontWeight: isLinking && highlightedUserIdSet.has(participant.userId) ? 700 : 400,
+                background: isLinking && highlightedUserIdSet.has(participant.userId)
+                  ? 'var(--accent-soft)'
+                  : 'transparent',
+                borderRadius: 5,
+                padding: isLinking && highlightedUserIdSet.has(participant.userId)
+                  ? '0.06rem 0.4rem'
+                  : 0,
+                opacity: isLinking && !highlightedUserIdSet.has(participant.userId) ? 0.4 : 1,
+                transition: 'opacity 0.16s ease, background 0.16s ease',
+              }}
+            >
               {idx > 0 && <span style={{ color: 'var(--hair)', margin: '0 0.2rem' }}>·</span>}
               {participant.pseudonym}
             </span>
@@ -206,12 +230,16 @@ function CircleItem({
   onOpen,
   isFirst,
   isLeader,
+  isLinking,
+  highlightedUserIds,
 }: {
   circle: MatchingCircle
   book: BookInfo | undefined
   onOpen: (book: BookInfo) => void
   isFirst: boolean
   isLeader: boolean
+  isLinking: boolean
+  highlightedUserIds: Set<string>
 }) {
   return (
     <div
@@ -259,6 +287,8 @@ function CircleItem({
               userId={member.userId}
               pseudonym={member.pseudonym}
               rank={member.rank}
+              highlighted={isLinking && highlightedUserIds.has(member.userId)}
+              dimmed={isLinking && !highlightedUserIds.has(member.userId)}
             />
           ))}
         </div>

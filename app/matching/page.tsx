@@ -17,6 +17,7 @@ import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingHeader from '@/components/nd/MatchingHeader'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
+import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
 
 export default async function MatchingPage({
   searchParams,
@@ -164,7 +165,7 @@ export default async function MatchingPage({
     scenarioInput,
     viewingUserId,
     bookTitleById,
-    scenarioSetOverview.leader?.id ?? null,
+    scenarioSetOverview.leader,
   )
   const bookById = new Map(personalBooks.map((b) => [b.bookId, {
     ...b,
@@ -323,9 +324,9 @@ function addMoveImpacts(
   scenarioInput: GenerateScenariosInput,
   viewingUserId: string,
   bookTitleById: Map<string, string>,
-  currentLeaderId: string | null,
+  currentLeader: MatchingScenario | null,
 ): MyMoveBook[] {
-  return moves.flatMap((move) => {
+  return sortMovesByImpact(moves.flatMap((move) => {
     const hasSignup = scenarioInput.signups.some((signup) => (
       signup.userId === viewingUserId && signup.bookId === move.bookId
     ))
@@ -340,33 +341,23 @@ function addMoveImpacts(
     })
     const scenario = nextOverview.leader
 
-    if (!scenario || scenario.id === currentLeaderId) return []
+    if (!scenario || scenario.id === currentLeader?.id) return []
     if (!scenarioIncludesMove(scenario, viewingUserId, move.bookId)) return []
 
-    const circleTitles = scenario.circles.map((circle) => bookTitleById.get(circle.bookId) ?? circle.bookId)
-    const circleBooks = scenario.circles.map((circle) => ({
-      bookId: circle.bookId,
-      title: bookTitleById.get(circle.bookId) ?? circle.bookId,
-    }))
-    const moveCircle = scenario.circles.find((circle) => (
-      circle.bookId === move.bookId && circle.members.some((member) => member.userId === viewingUserId)
-    ))
-    const moveTitle = bookTitleById.get(move.bookId) ?? move.title
+    const impact = buildMoveImpact({
+      move,
+      scenario,
+      currentLeader,
+      viewingUserId,
+      bookTitleById,
+    })
+    if (!impact) return []
 
     return {
       ...move,
-      impact: {
-        scenarioId: scenario.id,
-        scenarioTitle: 'Сценарий 1',
-        coverageLabel: `${scenario.score.coveredCount}/${scenario.score.totalCount} участни:ц`,
-        summary: moveCircle
-          ? `Этот ход меняет лучший сценарий: появится круг «${moveTitle}», а весь сценарий будет: ${circleTitles.join(' + ')}.`
-          : `Этот ход меняет лучший сценарий: ${circleTitles.join(' + ')}.`,
-        circleTitles,
-        circleBooks,
-      },
+      impact,
     }
-  })
+  }))
 }
 
 function scenarioIncludesMove(
