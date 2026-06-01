@@ -131,6 +131,48 @@ test.describe('Matching layout', () => {
     expect(movesBox!.y + movesBox!.height).toBeLessThanOrEqual(viewport.height + 1)
     expect(catalogBox!.y).toBeGreaterThanOrEqual(viewport.height - 24)
   })
+
+  test('participant chip separators keep space away from names', async ({
+    page,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
+    const circleBook = await createTestBook({ title: `UI Chip Circle ${Date.now()}`, author: 'Layout Author' })
+    const moveBook = await createTestBook({ title: `UI Chip Move ${Date.now()}`, author: 'Layout Author' })
+    const fillerBookA = await createTestBook({ title: `UI Chip Filler A ${Date.now()}`, author: 'Layout Author' })
+    const fillerBookB = await createTestBook({ title: `UI Chip Filler B ${Date.now()}`, author: 'Layout Author' })
+
+    await loginAsUser({ name: 'UI Chip One' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [moveBook.id, fillerBookA.id, fillerBookB.id, circleBook.id])
+    await loginAsUser({ name: 'UI Chip Two' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [moveBook.id, fillerBookA.id, fillerBookB.id, circleBook.id])
+    await loginAsUser({ name: 'UI Chip Three' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
+
+    await page.goto('/matching')
+    const circlesPanel = page.getByTestId('matching-reader-circles-panel')
+    const movesPanel = page.getByTestId('matching-my-moves-panel')
+    await expect(circlesPanel).toBeVisible()
+    await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible()
+
+    await movesPanel.locator('li').filter({ hasText: moveBook.title }).first().hover()
+
+    const chipTextOffsets = await circlesPanel.locator('.nd-chip-text').evaluateAll((chips) => (
+      chips.filter((chip) => chip.previousElementSibling?.classList.contains('nd-chip-text')).map((chip) => {
+        const chipBox = chip.getBoundingClientRect()
+        const nameBox = chip.querySelector('b')?.getBoundingClientRect()
+        return nameBox ? nameBox.left - chipBox.left : 0
+      })
+    ))
+
+    expect(chipTextOffsets.length).toBeGreaterThan(0)
+    for (const offset of chipTextOffsets) {
+      expect(offset).toBeGreaterThanOrEqual(8)
+    }
+  })
 })
 
 test.describe('Admin user drawer layout', () => {
