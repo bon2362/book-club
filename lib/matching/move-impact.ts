@@ -64,7 +64,12 @@ export function buildMoveImpact({
     ))
 
   const coverageGain = scenario.score.coveredCount - (currentLeader?.score.coveredCount ?? 0)
-  if (coverageGain <= 0 && beneficiaries.length === 0) return null
+  // A left-out participant is only a real beneficiary when total coverage grows.
+  // If coverage is flat, someone else was displaced, so the move is zero-sum.
+  const meaningfulBeneficiaries = beneficiaries.filter((beneficiary) => (
+    beneficiary.before.place === 'leftOut' ? coverageGain > 0 : true
+  ))
+  if (meaningfulBeneficiaries.length === 0) return null
 
   return {
     scenarioId: scenario.id,
@@ -81,7 +86,7 @@ export function buildMoveImpact({
       before: currentLeader?.score.strongInterestCount ?? 0,
       after: scenario.score.strongInterestCount,
     },
-    beneficiaries,
+    beneficiaries: meaningfulBeneficiaries,
   }
 }
 

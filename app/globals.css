@@ -175,27 +175,21 @@ body {
   -moz-appearance: textfield;
 }
 
-/* ── Move item: плавное раскрытие блока «После добавления» ───────────────── */
+/* ── Move item cards ─────────────────────────────────────────────────────── */
 
 .nd-move-item {
   transition: background 0.18s ease;
 }
-.nd-move-item:hover,
-.nd-move-item:focus-within {
-  background: #FAF6EE;
-  border-radius: var(--radius-control);
-}
 .nd-move-redesign {
   background: var(--bg-input);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-card);
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 .nd-move-redesign:hover,
 .nd-move-redesign:focus-within {
+  border-color: rgba(181, 83, 43, 0.22);
   background: #FFFBF7;
-}
-.nd-move-top {
-  border-left: 2px solid var(--accent);
-  box-shadow: 0 1px 2px rgba(181, 83, 43, 0.05), 0 8px 22px rgba(181, 83, 43, 0.07);
 }
 .nd-move-impact-head {
   display: flex;
@@ -203,37 +197,7 @@ body {
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.nd-move-rank-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.64rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-muted);
-}
-.nd-move-top .nd-move-rank-pill {
-  color: var(--accent);
-}
-.nd-move-rank-number {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-pill);
-  background: var(--chip-bg);
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-.nd-move-top .nd-move-rank-number {
-  background: var(--accent);
-  color: var(--bg-input);
-}
 .nd-move-metrics {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -338,6 +302,19 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+}
+.nd-move-beneficiary-legend {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.nd-move-beneficiary-legend-book {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .nd-move-beneficiary-row {
   display: grid;

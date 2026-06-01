@@ -165,8 +165,8 @@ function ScenarioSetCard({
         )}
         <span className="ml-auto" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
           {scenario.score.coveredCount === scenario.score.totalCount
-            ? `все ${scenario.score.totalCount} участников`
-            : `${scenario.score.coveredCount} из ${scenario.score.totalCount} участников`}
+            ? `Покрытие: все ${scenario.score.totalCount}`
+            : `Покрытие: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`}
         </span>
       </div>
 

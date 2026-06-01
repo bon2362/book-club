@@ -31,10 +31,12 @@ export default function MatchingMyMoves({
   const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
+  const [firstPlaceHint, setFirstPlaceHint] = useState<string | null>(null)
   const [modalState, setModalState] = useState<ModalState | null>(null)
 
   useEffect(() => {
     setMoves(initialMoves)
+    setFirstPlaceHint(null)
     setModalState(null)
   }, [initialMoves])
 
@@ -82,28 +84,24 @@ export default function MatchingMyMoves({
           <p className="text-sm">Пока нет книг, где твоя заявка изменит лучший сценарий</p>
         </div>
       ) : (
-        <ul className="list-none p-0 m-0">
-          {moves.map((move, idx) => {
+        <ul
+          className="list-none m-0"
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.6rem 0.75rem 0' }}
+        >
+          {moves.map((move) => {
             const beneficiaryIds = new Set(move.impact?.beneficiaries.map((b) => b.userId) ?? [])
             const coverageGain = impactCoverageGain(move)
             return (
             <li
               key={move.bookId}
-              className={`nd-move-item nd-move-redesign ${idx === 0 ? 'nd-move-top' : ''}`}
-              style={{
-                padding: '0.95rem 1.05rem',
-                borderTop: idx === 0 ? 'none' : '1px solid var(--hair)',
-              }}
+              className="nd-move-item nd-move-redesign"
+              style={{ padding: '0.95rem 1.05rem' }}
               onMouseEnter={() => onBeneficiaryHover?.(beneficiaryIds)}
               onMouseLeave={() => onBeneficiaryHover?.(new Set())}
               onFocus={() => onBeneficiaryHover?.(beneficiaryIds)}
               onBlur={() => onBeneficiaryHover?.(new Set())}
             >
               <div className="nd-move-impact-head">
-                <span className="nd-move-rank-pill">
-                  <span className="nd-move-rank-number">{idx + 1}</span>
-                  <span>{idx === 0 ? 'Лучший ход' : 'Ход'}</span>
-                </span>
                 {move.impact && <ImpactMetricPills move={move} />}
               </div>
 
@@ -140,6 +138,11 @@ export default function MatchingMyMoves({
               {move.impact && move.impact.beneficiaries.length > 0 && (
                 <div className="nd-move-beneficiaries">
                   <div className="nd-move-beneficiaries-label">Кому это поможет</div>
+                  <div className="nd-move-beneficiary-legend">
+                    <span>сейчас</span>
+                    <span className="nd-move-beneficiary-arrow">→</span>
+                    <span className="nd-move-beneficiary-legend-book">в круге «{move.title}»</span>
+                  </div>
                   {move.impact.beneficiaries.map((beneficiary) => (
                     <div className="nd-move-beneficiary-row" key={beneficiary.userId}>
                       <span className="nd-move-beneficiary-name">{beneficiary.pseudonym}</span>
@@ -156,14 +159,24 @@ export default function MatchingMyMoves({
               )}
 
               <div className="nd-move-footer">
-                <span className="nd-move-footer-note">
-                  {idx === 0 && coverageGain > 0 ? 'Без тебя их не собрать' : '\u00A0'}
+                <span
+                  className="nd-move-footer-note"
+                  style={firstPlaceHint === move.bookId ? { color: 'var(--accent)' } : undefined}
+                >
+                  {firstPlaceHint === move.bookId
+                    ? 'книга встанет на 1-е место в твоём списке'
+                    : coverageGain > 0
+                      ? 'Без тебя их не собрать'
+                      : '\u00A0'}
                 </span>
                 {!frozen && (
                   <button
                     className="nd-move-cta"
                     onClick={() => handleAdd(move.bookId)}
-                    title="Книга встанет на первое место в твоём списке"
+                    onMouseEnter={() => setFirstPlaceHint(move.bookId)}
+                    onMouseLeave={() => setFirstPlaceHint((cur) => (cur === move.bookId ? null : cur))}
+                    onFocus={() => setFirstPlaceHint(move.bookId)}
+                    onBlur={() => setFirstPlaceHint((cur) => (cur === move.bookId ? null : cur))}
                     disabled={adding === move.bookId}
                   >
                     {adding === move.bookId ? '…' : 'Хочу читать'}
