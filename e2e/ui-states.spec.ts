@@ -160,6 +160,15 @@ test.describe('Matching layout', () => {
 
     await movesPanel.locator('li').filter({ hasText: moveBook.title }).first().hover()
 
+    await expect(circlesPanel.locator('.nd-scenario-preview-card')).toBeVisible()
+    await expect(circlesPanel.locator('.nd-scenario-preview-slot')).toHaveClass(/is-open/)
+    await expect.poll(async () => {
+      const maxHeight = await circlesPanel.locator('.nd-scenario-preview-clip').evaluate((element) => (
+        window.getComputedStyle(element).maxHeight
+      ))
+      return Number.parseFloat(maxHeight)
+    }).toBeGreaterThan(0)
+
     const chipTextOffsets = await circlesPanel.locator('.nd-chip-text').evaluateAll((chips) => (
       chips.filter((chip) => chip.previousElementSibling?.classList.contains('nd-chip-text')).map((chip) => {
         const chipBox = chip.getBoundingClientRect()

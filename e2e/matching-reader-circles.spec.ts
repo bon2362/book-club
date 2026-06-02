@@ -90,15 +90,24 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible()
   await expect(movesPanel.getByText('Лучший ход')).not.toBeVisible()
   await expect(movesPanel.getByText('Кому это поможет')).not.toBeVisible()
-  await expect(movesPanel.getByText('← смотри слева, каким станет расклад').first()).toBeVisible()
+  await expect(movesPanel.getByText('← смотри слева, каким станет расклад').first()).not.toBeVisible()
   await expect(movesPanel.getByText('очень хочу').first()).toBeVisible()
   await expect(movesPanel.getByText('После добавления:')).not.toBeVisible()
   const moveCardPreview = movesPanel.locator('li').filter({ hasText: moveBook.title }).first()
   await moveCardPreview.hover()
+  await expect(moveCardPreview.getByText('← смотри слева, каким станет расклад')).toBeVisible()
   await expect(circlesPanel.getByText('Нашёлся расклад лучше')).toBeVisible()
-  await expect(circlesPanel.getByText(`если добавить «${moveBook.title}»`)).toBeVisible()
+  await expect(circlesPanel.getByText(`«${moveBook.title}»`)).toBeVisible()
   await expect(circlesPanel.getByText('Если добавишь')).toBeVisible()
   await expect(circlesPanel.getByText('станет лучшим')).toBeVisible()
+  await expect(circlesPanel.locator('.nd-scenario-preview-card')).toBeVisible()
+  await expect(circlesPanel.locator('.nd-scenario-preview-slot')).toHaveClass(/is-open/)
+  await expect.poll(async () => {
+    const maxHeight = await circlesPanel.locator('.nd-scenario-preview-clip').evaluate((element) => (
+      window.getComputedStyle(element).maxHeight
+    ))
+    return Number.parseFloat(maxHeight)
+  }).toBeGreaterThan(0)
   await expect(circlesPanel.getByText(firstPseudonym).first()).toHaveCSS('color', 'rgb(192, 96, 58)')
 
   await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first().click()

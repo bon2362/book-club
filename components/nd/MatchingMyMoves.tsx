@@ -32,13 +32,20 @@ export default function MatchingMyMoves({
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
   const [firstPlaceHint, setFirstPlaceHint] = useState<string | null>(null)
+  const [previewedMoveId, setPreviewedMoveId] = useState<string | null>(null)
   const [modalState, setModalState] = useState<ModalState | null>(null)
 
   useEffect(() => {
     setMoves(initialMoves)
     setFirstPlaceHint(null)
+    setPreviewedMoveId(null)
     setModalState(null)
   }, [initialMoves])
+
+  function previewMove(move: MyMoveBook | null) {
+    setPreviewedMoveId(move?.bookId ?? null)
+    onMovePreview?.(move)
+  }
 
   async function handleAdd(bookId: string) {
     if (frozen) return
@@ -94,10 +101,10 @@ export default function MatchingMyMoves({
               key={move.bookId}
               className="nd-move-item nd-move-redesign"
               style={{ padding: '0.95rem 1.05rem' }}
-              onMouseEnter={() => onMovePreview?.(move)}
-              onMouseLeave={() => onMovePreview?.(null)}
-              onFocus={() => onMovePreview?.(move)}
-              onBlur={() => onMovePreview?.(null)}
+              onMouseEnter={() => previewMove(move)}
+              onMouseLeave={() => previewMove(null)}
+              onFocus={() => previewMove(move)}
+              onBlur={() => previewMove(null)}
             >
               <div className="nd-move-impact-head">
                 {move.impact && <ImpactMetricPills move={move} />}
@@ -140,7 +147,7 @@ export default function MatchingMyMoves({
                 >
                   {firstPlaceHint === move.bookId
                     ? 'книга встанет на 1-е место в твоём списке'
-                    : '← смотри слева, каким станет расклад'}
+                    : previewedMoveId === move.bookId ? '← смотри слева, каким станет расклад' : '\u00A0'}
                 </span>
                 {!frozen && (
                   <button
