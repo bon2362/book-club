@@ -817,6 +817,11 @@ const RESOURCES = [
     url: 'https://github.com/bon2362/book-club',
     desc: 'Исходный код, Issues (бэклог), Pull Requests, Actions. Ведётся как полноценный проект с labels и milestone',
   },
+  {
+    title: 'Дизайн-система',
+    url: 'https://www.slowreading.club/styleguide',
+    desc: 'Живая витрина: кнопки, инпуты, карточки, чипы, типографика. Единственный источник правды по токенам и примитивам — всё новое копируется отсюда',
+  },
 ]
 
 const STATS = [
