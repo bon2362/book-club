@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import type { ScenarioSetOverview } from '@/lib/matching/scenarios'
+import type { MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingScenarios from './MatchingScenarios'
 import MatchingMyMoves from './MatchingMyMoves'
@@ -64,11 +64,15 @@ export default function MatchingImpactWorkspace({
   mutationUserId,
 }: Props) {
   const scenarioCount = overview.scenarios.length
-  const [hoveredBeneficiaryIds, setHoveredBeneficiaryIds] = useState<string[]>([])
-  const highlightSet = useMemo(() => new Set(hoveredBeneficiaryIds), [hoveredBeneficiaryIds])
+  const [previewMove, setPreviewMove] = useState<MyMoveBook | null>(null)
+  const previewBeneficiaryIds = useMemo(
+    () => previewMove?.impact?.beneficiaries.map((beneficiary) => beneficiary.userId) ?? [],
+    [previewMove],
+  )
+  const previewScenario: MatchingScenario | null = previewMove?.impact?.previewScenario ?? null
 
   useEffect(() => {
-    setHoveredBeneficiaryIds([])
+    setPreviewMove(null)
   }, [moves])
 
   return (
@@ -90,7 +94,9 @@ export default function MatchingImpactWorkspace({
             bookById={bookById}
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
-            highlightedUserIds={hoveredBeneficiaryIds}
+            previewScenario={previewScenario}
+            previewMoveTitle={previewMove?.title ?? null}
+            highlightedUserIds={previewBeneficiaryIds}
           />
         </div>
       </section>
@@ -106,14 +112,7 @@ export default function MatchingImpactWorkspace({
             frozen={frozen}
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
-            onBeneficiaryHover={(ids) => {
-              const next = Array.from(ids)
-              if (
-                next.length === highlightSet.size &&
-                next.every((id) => highlightSet.has(id))
-              ) return
-              setHoveredBeneficiaryIds(next)
-            }}
+            onMovePreview={setPreviewMove}
           />
         </div>
       </section>

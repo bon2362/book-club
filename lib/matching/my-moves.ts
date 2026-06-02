@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { signupBooks, books, matchingSessionParticipants, bookPriorities } from '@/lib/db/schema'
 import { eq, and, inArray, notInArray, isNull } from 'drizzle-orm'
-import type { GroupMember } from './scenarios'
+import type { GroupMember, MatchingScenario } from './scenarios'
 
 export interface MyMoveBook {
   bookId: string
@@ -23,6 +23,7 @@ export interface MyMoveBook {
     summary: string
     circleTitles: string[]
     circleBooks: { bookId: string; title: string }[]
+    previewScenario: MatchingScenario
     coverage: { before: number; after: number }
     strongInterest: { before: number; after: number }
     beneficiaries: {
