@@ -212,10 +212,12 @@ function MoveWhyText({ move }: { move: MyMoveBook }) {
   }
 
   if (upgraded.length > 0) {
+    const interestVerb = upgraded.length === 1 ? 'хочет' : 'хотят'
+
     return (
       <>
         {renderNames(upgraded.map((b) => b.pseudonym))}
-        {' уже в сценарии, но эту книгу хотят '}
+        {` уже в сценарии, но эту книгу ${interestVerb} `}
         <em>сильнее</em>
         {'. Добавишь — соберутся вокруг неё, не потеряв покрытие.'}
       </>
