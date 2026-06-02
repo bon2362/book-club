@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import type { MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingScenarios from './MatchingScenarios'
 import MatchingMyMoves from './MatchingMyMoves'
@@ -65,14 +65,25 @@ export default function MatchingImpactWorkspace({
 }: Props) {
   const scenarioCount = overview.scenarios.length
   const [previewMove, setPreviewMove] = useState<MyMoveBook | null>(null)
+  const [lastMove, setLastMove] = useState<MyMoveBook | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const visiblePreviewMove = previewMove ?? lastMove
   const previewBeneficiaryIds = useMemo(
-    () => previewMove?.impact?.beneficiaries.map((beneficiary) => beneficiary.userId) ?? [],
-    [previewMove],
+    () => visiblePreviewMove?.impact?.beneficiaries.map((beneficiary) => beneficiary.userId) ?? [],
+    [visiblePreviewMove],
   )
-  const previewScenario: MatchingScenario | null = previewMove?.impact?.previewScenario ?? null
+
+  const handlePreview = useCallback((move: MyMoveBook | null) => {
+    setPreviewMove(move)
+    if (move) {
+      setLastMove(move)
+      scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
 
   useEffect(() => {
     setPreviewMove(null)
+    setLastMove(null)
   }, [moves])
 
   return (
@@ -88,14 +99,14 @@ export default function MatchingImpactWorkspace({
             )}
           </h2>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem' }}>
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem', overflowAnchor: 'none' }}>
           <MatchingScenarios
             overview={overview}
             bookById={bookById}
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
-            previewScenario={previewScenario}
-            previewMoveTitle={previewMove?.title ?? null}
+            previewOpen={previewMove !== null}
+            previewMove={visiblePreviewMove}
             highlightedUserIds={previewBeneficiaryIds}
           />
         </div>
@@ -112,7 +123,7 @@ export default function MatchingImpactWorkspace({
             frozen={frozen}
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
-            onMovePreview={setPreviewMove}
+            onMovePreview={handlePreview}
           />
         </div>
       </section>

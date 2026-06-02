@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import type { MatchingCircle, MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
+import type { MyMoveBook } from '@/lib/matching/my-moves'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
@@ -19,8 +20,8 @@ interface Props {
   highlightedScenarioId?: string | null
   highlightedBookId?: string | null
   highlightedUserIds?: string[]
-  previewScenario?: MatchingScenario | null
-  previewMoveTitle?: string | null
+  previewMove?: MyMoveBook | null
+  previewOpen?: boolean
 }
 
 const tierLabel: Record<MatchingScenario['tier'], string | null> = {
@@ -39,12 +40,13 @@ export default function MatchingScenarios({
   highlightedScenarioId = null,
   highlightedBookId = null,
   highlightedUserIds = [],
-  previewScenario = null,
-  previewMoveTitle = null,
+  previewMove = null,
+  previewOpen = false,
 }: Props) {
   const [modalBook, setModalBook] = useState<BookInfo | null>(null)
   const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
   const closeModal = useCallback(() => setModalBook(null), [])
+  const previewScenario = previewMove?.impact?.previewScenario ?? null
 
   if (overview.scenarios.length === 0) {
     return (
@@ -75,24 +77,27 @@ export default function MatchingScenarios({
         className="list-none p-0 m-0 flex flex-col"
         style={{ background: 'var(--bg)', padding: '0.7rem', gap: '0.7rem', display: 'flex', flexDirection: 'column' }}
       >
-        {previewScenario && (
-          <>
-            <li className="nd-scenario-preview-banner">
-              <span>↑ Нашёлся расклад лучше</span>
-              {previewMoveTitle && <span>если добавить «{previewMoveTitle}»</span>}
-            </li>
-            <ScenarioSetCard
-              key={`preview-${previewScenario.id}`}
-              scenario={{ ...previewScenario, tier: 'leader' }}
-              scenarioNumber={1}
-              bookById={bookById}
-              onOpen={openModal}
-              highlightedUserIds={highlightedUserIds}
-              highlighted
-              variant="preview"
-            />
-          </>
-        )}
+        <li className={`nd-scenario-preview-slot ${previewOpen ? 'is-open' : ''}`} aria-hidden={!previewOpen}>
+          <div className="nd-scenario-preview-clip">
+            {previewScenario && (
+              <>
+                <div className="nd-scenario-preview-banner">
+                  <span>↑ Нашёлся расклад лучше</span>
+                </div>
+                <ScenarioSetCard
+                  scenario={{ ...previewScenario, tier: 'leader' }}
+                  scenarioNumber={1}
+                  bookById={bookById}
+                  onOpen={openModal}
+                  highlightedUserIds={highlightedUserIds}
+                  highlighted
+                  variant="preview"
+                  previewMoveTitle={previewMove?.title ?? null}
+                />
+              </>
+            )}
+          </div>
+        </li>
         {overview.scenarios.map((scenario, index) => (
           <ScenarioSetCard
             key={scenario.id}
@@ -105,7 +110,7 @@ export default function MatchingScenarios({
               scenario.id === highlightedScenarioId ||
               scenario.circles.some((circle) => circle.bookId === highlightedBookId)
             }
-            muted={previewScenario !== null}
+            muted={previewOpen}
           />
         ))}
       </ul>
@@ -122,6 +127,7 @@ function ScenarioSetCard({
   highlighted,
   muted,
   variant = 'current',
+  previewMoveTitle = null,
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
@@ -131,6 +137,7 @@ function ScenarioSetCard({
   highlighted: boolean
   muted?: boolean
   variant?: 'current' | 'preview'
+  previewMoveTitle?: string | null
 }) {
   const isLeader = scenario.tier === 'leader'
   const isPreview = variant === 'preview'
@@ -147,7 +154,10 @@ function ScenarioSetCard({
 
   return (
     <li
-      className={isPreview ? 'nd-scenario-preview-card' : muted ? 'nd-scenario-muted' : undefined}
+      className={[
+        isPreview ? 'nd-scenario-preview-card' : 'nd-scenario-current',
+        !isPreview && muted ? 'nd-scenario-muted' : '',
+      ].filter(Boolean).join(' ')}
       style={{
         background: isPreview
           ? '#FFF8F1'
@@ -173,6 +183,22 @@ function ScenarioSetCard({
         >
           {isPreview ? 'Если добавишь' : `Сценарий ${scenarioNumber}`}
         </h3>
+        {isPreview && previewMoveTitle && (
+          <span
+            style={{
+              minWidth: 0,
+              color: 'var(--text-secondary)',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={previewMoveTitle}
+          >
+            «{previewMoveTitle}»
+          </span>
+        )}
         {isPreview ? (
           <span
             style={{
