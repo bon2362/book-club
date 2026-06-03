@@ -6,6 +6,14 @@ import { removeBookFromSignup } from '@/lib/signup-books'
 import { db } from '@/lib/db'
 import { bookPriorities } from '@/lib/db/schema'
 import { eq, and, gt, sql } from 'drizzle-orm'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 export async function DELETE(req: NextRequest) {
   const session = await auth()
@@ -17,6 +25,9 @@ export async function DELETE(req: NextRequest) {
   if (!userId || !bookId) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
+
+  const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
+  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   await db.transaction(async (tx) => {
     await removeBookFromSignup(userId, bookId, tx)
@@ -36,6 +47,22 @@ export async function DELETE(req: NextRequest) {
       .update(bookPriorities)
       .set({ rank: sql`${bookPriorities.rank} - 1` })
       .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, priorityRow.rank)))
+  })
+
+  if (activeSessionId) {
+    await finalizeMatchingMutationEffects({
+      sessionId: activeSessionId,
+      targetUserId: userId,
+      actorUserId: session.user.id!,
+      bookId,
+      kind: 'book_removed',
+      source: 'admin',
+      before,
+    })
+  }
+  await broadcastActiveMatchingStateChangeForParticipant(userId, {
+    kind: 'admin_book_removed',
+    bookId,
   })
 
   return NextResponse.json({ ok: true })

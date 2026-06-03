@@ -6,6 +6,10 @@ import { db } from '@/lib/db'
 import { matchingSessions, signupBooks, bookPriorities } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
 import { broadcast } from '@/lib/matching/realtime/hub'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 type Params = { params: { bookId: string } }
 
@@ -26,6 +30,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
   const userId = asUserId ?? session.user.id
   const { bookId } = params
+  const before = await captureMatchingMutationSnapshot(activeSession.id)
 
   await db.delete(signupBooks).where(
     and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId))
@@ -48,6 +53,15 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, remaining[i].bookId)))
   }
 
+  await finalizeMatchingMutationEffects({
+    sessionId: activeSession.id,
+    targetUserId: userId,
+    actorUserId: session.user.id,
+    bookId,
+    kind: 'book_removed',
+    source: asUserId ? 'admin' : 'matching',
+    before,
+  })
   broadcast(activeSession.id, 'state_changed', { userId, kind: 'book_removed', bookId })
 
   return NextResponse.json({ ok: true }, { status: 200 })

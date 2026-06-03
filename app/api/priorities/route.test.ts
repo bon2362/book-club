@@ -6,6 +6,10 @@ import { GET, PUT } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
 import * as activityModule from '@/lib/user-activity'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
 
 jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
@@ -22,12 +26,23 @@ jest.mock('@/lib/user-activity', () => ({
   buildUserActivityDedupeKey: jest.fn(() => 'priorities-dedupe-key'),
   bestEffortRecordUserActivity: jest.fn(),
 }))
+jest.mock('@/lib/matching/realtime/state-change', () => ({
+  broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
+  getActiveMatchingSessionIdForParticipant: jest.fn(),
+}))
+jest.mock('@/lib/matching/mutation-effects', () => ({
+  captureMatchingMutationSnapshot: jest.fn(),
+  finalizeMatchingMutationEffects: jest.fn(),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
+const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
+const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockGetActiveSessionId.mockResolvedValue(null)
   ;(db.transaction as jest.Mock).mockImplementation(async (callback) => callback(db))
 })
 
@@ -142,5 +157,9 @@ describe('PUT /api/priorities', () => {
       source: 'api',
       metadata: { booksCount: 2 },
     }))
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1', {
+      kind: 'external_ranks_updated',
+      bookIds: ['book-a', 'book-b'],
+    })
   })
 })

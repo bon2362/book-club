@@ -6,6 +6,14 @@ import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
 import { getUserContactEmail } from '@/lib/user-email'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -20,6 +28,9 @@ export async function POST(req: NextRequest) {
   if (!name?.trim() || typeof contacts !== 'string' || !Array.isArray(selectedBookIds)) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
+
+  const activeSessionId = await getActiveMatchingSessionIdForParticipant(pgUserId)
+  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   let result
   try {
@@ -94,6 +105,23 @@ export async function POST(req: NextRequest) {
       console.error('Failed to enqueue signup notification')
     })
   }
+
+  if (activeSessionId) {
+    await finalizeMatchingMutationEffects({
+      sessionId: activeSessionId,
+      targetUserId: pgUserId,
+      actorUserId: pgUserId,
+      bookId: null,
+      kind: 'catalog_signup_updated',
+      source: 'catalog',
+      before,
+      metadata: { selectedBookIds: result.addedBookIds },
+    })
+  }
+  await broadcastActiveMatchingStateChangeForParticipant(pgUserId, {
+    kind: 'catalog_signup_updated',
+    selectedBookIds: result.addedBookIds,
+  })
 
   return NextResponse.json({ ok: true })
 }

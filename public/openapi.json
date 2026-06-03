@@ -668,6 +668,95 @@
             "$ref": "#/components/schemas/DateTime"
           }
         }
+      },
+      "MatchingFeedEvent": {
+        "type": "object",
+        "description": "In-memory событие matching-ленты. Сохраняются только события, которые изменили расклад.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "best",
+              "leftout"
+            ]
+          },
+          "actor": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "pseudonym": {
+                "type": "string"
+              }
+            }
+          },
+          "bookId": {
+            "type": "string"
+          }
+        }
+      },
+      "MatchingPreferenceEvent": {
+        "type": "object",
+        "description": "Персистентное событие изменения предпочтений в matching-сессии.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "actorUserId": {
+            "type": "string"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "book_added",
+              "book_removed",
+              "status_changed",
+              "catalog_signup_updated",
+              "priorities_updated"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "matching",
+              "catalog",
+              "profile",
+              "admin"
+            ]
+          },
+          "bookId": {
+            "type": "string",
+            "nullable": true
+          },
+          "before": {
+            "type": "object",
+            "nullable": true
+          },
+          "after": {
+            "type": "object",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/DateTime"
+          }
+        }
       }
     }
   },
@@ -1484,6 +1573,94 @@
         }
       }
     },
+    "/api/matching/feed": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Лента значимых событий matching-сессии",
+        "description": "Возвращает in-memory ленту событий `best` и `leftout`. Доступна участникам указанной сессии и администраторам.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "description": "Matching session id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MatchingFeedEvent"
+                      }
+                    }
+                  },
+                  "required": [
+                    "events"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin": {
       "get": {
         "tags": [
@@ -1568,6 +1745,113 @@
                       "nullable": true
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/matching/preference-events": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Аналитика изменений предпочтений matching",
+        "description": "Возвращает события из `matching_preference_events`; доступно только администраторам.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorUserId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bookId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preference events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MatchingPreferenceEvent"
+                      }
+                    }
+                  },
+                  "required": [
+                    "events"
+                  ]
                 }
               }
             }

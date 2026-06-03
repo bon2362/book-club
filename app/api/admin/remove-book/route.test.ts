@@ -6,6 +6,10 @@ import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
 import * as signups from '@/lib/signup-books'
 import { db } from '@/lib/db'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signup-books', () => ({ removeBookFromSignup: jest.fn() }))
@@ -17,9 +21,19 @@ jest.mock('@/lib/db', () => ({
     transaction: jest.fn(),
   },
 }))
+jest.mock('@/lib/matching/realtime/state-change', () => ({
+  broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
+  getActiveMatchingSessionIdForParticipant: jest.fn(),
+}))
+jest.mock('@/lib/matching/mutation-effects', () => ({
+  captureMatchingMutationSnapshot: jest.fn(),
+  finalizeMatchingMutationEffects: jest.fn(),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockRemoveBook = signups.removeBookFromSignup as jest.Mock
+const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
+const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/admin/remove-book', {
@@ -30,6 +44,8 @@ function makeRequest(body: object) {
 }
 
 beforeEach(() => {
+  jest.clearAllMocks()
+  mockGetActiveSessionId.mockResolvedValue(null)
   ;(db.transaction as jest.Mock).mockImplementation(async (callback) => callback(db))
   // Default: no priority row found → priority step is skipped
   const defaultChain = {
@@ -116,6 +132,10 @@ describe('DELETE /api/admin/remove-book', () => {
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(signups.removeBookFromSignup).toHaveBeenCalledWith('pg-user-1', 'book-a', db)
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('pg-user-1', {
+      kind: 'admin_book_removed',
+      bookId: 'book-a',
+    })
   })
 })
 

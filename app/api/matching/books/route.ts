@@ -6,6 +6,10 @@ import { db } from '@/lib/db'
 import { matchingSessions, signupBooks, bookPriorities } from '@/lib/db/schema'
 import { asc, eq } from 'drizzle-orm'
 import { broadcast } from '@/lib/matching/realtime/hub'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -26,6 +30,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const bookId = typeof body.bookId === 'string' ? body.bookId.trim() : ''
   if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
+
+  const before = await captureMatchingMutationSnapshot(activeSession.id)
 
   await db
     .insert(signupBooks)
@@ -55,6 +61,15 @@ export async function POST(req: NextRequest) {
       })
   }
 
+  await finalizeMatchingMutationEffects({
+    sessionId: activeSession.id,
+    targetUserId: userId,
+    actorUserId: session.user.id,
+    bookId,
+    kind: 'book_added',
+    source: asUserId ? 'admin' : 'matching',
+    before,
+  })
   broadcast(activeSession.id, 'state_changed', { userId, kind: 'book_added', bookId })
 
   return NextResponse.json({ ok: true }, { status: 200 })

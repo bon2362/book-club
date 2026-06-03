@@ -16,8 +16,11 @@ import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
 import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingHeader from '@/components/nd/MatchingHeader'
-import { assignPseudonym } from '@/lib/matching/pseudonyms'
+import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
+import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
+import { getFeed } from '@/lib/matching/realtime/feed'
+import { getAdriftCause, isViewerAdrift } from '@/lib/matching/adrift'
 
 export default async function MatchingPage({
   searchParams,
@@ -62,35 +65,28 @@ export default async function MatchingPage({
     )
   }
 
-  // Auto-join: if not impersonating and session is active, ensure user is a participant
-  if (!isImpersonating && activeSession.status === 'active') {
-    const existing = await db
-      .select({ userId: matchingSessionParticipants.userId })
-      .from(matchingSessionParticipants)
-      .where(
-        and(
-          eq(matchingSessionParticipants.sessionId, activeSession.id),
-          eq(matchingSessionParticipants.userId, session.user.id!),
-        ),
-      )
-      .limit(1)
-
-    if (existing.length === 0) {
-      const taken = await db
+  const [currentParticipant] = !isImpersonating
+    ? await db
         .select({ pseudonym: matchingSessionParticipants.pseudonym })
         .from(matchingSessionParticipants)
-        .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
-      const takenSet = new Set(taken.map((r) => r.pseudonym))
-      const pseudonym = assignPseudonym(takenSet)
-      await db
-        .insert(matchingSessionParticipants)
-        .values({
-          sessionId: activeSession.id,
-          userId: session.user.id!,
-          pseudonym,
-        })
-        .onConflictDoNothing()
-    }
+        .where(
+          and(
+            eq(matchingSessionParticipants.sessionId, activeSession.id),
+            eq(matchingSessionParticipants.userId, session.user.id!),
+          ),
+        )
+        .limit(1)
+    : []
+
+  if (!isImpersonating && activeSession.status === 'active' && !currentParticipant) {
+    const pseudonym = await getOrCreatePseudonymReservation(activeSession.id, session.user.id!)
+    return (
+      <MatchingWelcome
+        sessionId={activeSession.id}
+        sessionName={activeSession.name}
+        pseudonym={pseudonym}
+      />
+    )
   }
 
   const [participants, personalBooks, myMoves] = await Promise.all([
@@ -160,6 +156,8 @@ export default async function MatchingPage({
       : emptyScenarioSetOverview(scenarioParticipants, activeSession.minGroupSize, activeSession.maxGroupSize)
 
   const bookTitleById = new Map(personalBooks.map((book) => [book.bookId, book.title]))
+  const feedEvents = getFeed(activeSession.id)
+  const feedBookTitles = Object.fromEntries(bookTitleById)
   const myMovesWithImpact = addMoveImpacts(
     myMoves,
     scenarioInput,
@@ -174,6 +172,18 @@ export default async function MatchingPage({
   }]))
 
   const isReadOnly = activeSession.status === 'frozen'
+  const adriftCause = getAdriftCause(activeSession.id, viewingUserId)
+  const adrift = isViewerAdrift(scenarioSetOverview, viewingUserId)
+    ? {
+        reason: adriftCause ? 'change' as const : 'never' as const,
+        cause: adriftCause
+          ? {
+              ...adriftCause,
+              bookTitle: bookTitleById.get(adriftCause.bookId) ?? null,
+            }
+          : null,
+      }
+    : null
 
   // Get current user's pseudonym (not impersonating) or null if impersonating
   const userPseudonym = !isImpersonating
@@ -200,6 +210,8 @@ export default async function MatchingPage({
           viewedName={viewedParticipant?.name ?? null}
           asParam={asParam}
           userPseudonym={userPseudonym}
+          feedEvents={feedEvents}
+          feedBookTitles={feedBookTitles}
         />
 
         {/* First viewport: scenarios + moves */}
@@ -213,6 +225,7 @@ export default async function MatchingPage({
             frozen={isReadOnly}
             movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
             mutationUserId={isImpersonating ? viewingUserId : undefined}
+            adrift={adrift}
           />
         </div>
       </div>

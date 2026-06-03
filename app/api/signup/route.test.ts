@@ -7,6 +7,10 @@ import * as authModule from '@/lib/auth'
 import * as signups from '@/lib/signup-books'
 import * as dbModule from '@/lib/db'
 import * as activityModule from '@/lib/user-activity'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signup-books', () => ({ upsertSignupByBookIds: jest.fn() }))
@@ -30,11 +34,21 @@ jest.mock('@/lib/user-activity', () => ({
   buildUserActivityDedupeKey: jest.fn(() => 'dedupe-key'),
   bestEffortRecordUserActivity: jest.fn(),
 }))
+jest.mock('@/lib/matching/realtime/state-change', () => ({
+  broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
+  getActiveMatchingSessionIdForParticipant: jest.fn(),
+}))
+jest.mock('@/lib/matching/mutation-effects', () => ({
+  captureMatchingMutationSnapshot: jest.fn(),
+  finalizeMatchingMutationEffects: jest.fn(),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockUpsertSignupByBookIds = signups.upsertSignupByBookIds as jest.Mock
 const mockInsert = dbModule.db.insert as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
+const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
+const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/signup', {
@@ -51,6 +65,7 @@ function upsertResult(books: string[] = [], bookIds: string[] = books.map((_, i)
 describe('POST /api/signup', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockGetActiveSessionId.mockResolvedValue(null)
   })
 
   it('возвращает 401 без сессии', async () => {
@@ -113,6 +128,10 @@ describe('POST /api/signup', () => {
       source: 'api',
       metadata: expect.objectContaining({ selectedBooksCount: 1, addedBooksCount: 1 }),
     }))
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1', {
+      kind: 'catalog_signup_updated',
+      selectedBookIds: ['book-a'],
+    })
   })
 
   it('не принимает legacy selectedBooks по названиям', async () => {

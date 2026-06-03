@@ -4,6 +4,10 @@
 import { PATCH } from './route'
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({
@@ -14,9 +18,19 @@ jest.mock('@/lib/db', () => ({
     transaction: jest.fn(),
   },
 }))
+jest.mock('@/lib/matching/realtime/state-change', () => ({
+  broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
+  getActiveMatchingSessionIdForParticipant: jest.fn(),
+}))
+jest.mock('@/lib/matching/mutation-effects', () => ({
+  captureMatchingMutationSnapshot: jest.fn(),
+  finalizeMatchingMutationEffects: jest.fn(),
+}))
 
 import { auth } from '@/lib/auth'
 const mockAuth = auth as jest.Mock
+const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
+const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/admin/signup-books', {
@@ -28,6 +42,7 @@ function makeRequest(body: object) {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockGetActiveSessionId.mockResolvedValue(null)
   ;(db.transaction as jest.Mock).mockImplementation(async (callback) => callback(db))
   // Default: signup row NOT found → 404
   const defaultChain = {
@@ -106,6 +121,11 @@ describe('PATCH /api/admin/signup-books — happy path', () => {
     expect(data.ok).toBe(true)
     expect(db.update).toHaveBeenCalledTimes(1)
     expect(db.delete).not.toHaveBeenCalled()
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('u1', {
+      kind: 'admin_personal_status_updated',
+      bookId: 'b1',
+      status: 'reading',
+    })
   })
 
   it('returns 200 and rerranks when status = read and user has priority row', async () => {

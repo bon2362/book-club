@@ -7,6 +7,7 @@ import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
 import { broadcast } from '@/lib/matching/realtime/hub'
+import { consumePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
 
 interface Params { params: { id: string } }
 
@@ -48,14 +49,17 @@ export async function POST(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true, pseudonym: existing.pseudonym }, { status: 200 })
   }
 
-  // Assign a new unique pseudonym
+  // Assign a new unique pseudonym, preferring the welcome-screen reservation.
   const taken = await db
     .select({ pseudonym: matchingSessionParticipants.pseudonym })
     .from(matchingSessionParticipants)
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
 
   const takenSet = new Set(taken.map(r => r.pseudonym))
-  const pseudonym = assignPseudonym(takenSet)
+  const reserved = await consumePseudonymReservation(sessionId, userId)
+  const pseudonym = reserved && !takenSet.has(reserved)
+    ? reserved
+    : assignPseudonym(takenSet)
 
   await db.insert(matchingSessionParticipants).values({
     sessionId,

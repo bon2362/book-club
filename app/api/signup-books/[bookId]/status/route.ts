@@ -3,9 +3,16 @@ export const dynamic = 'force-dynamic'
 import { auth } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { matchingSessions, signupBooks } from '@/lib/db/schema'
+import { signupBooks } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -31,6 +38,8 @@ export async function PATCH(
 
   const { bookId } = params
   const userId = asUserId ?? session.user.id
+  const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
+  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   // Verify user is signed up for this book
   const [signup] = await db
@@ -48,20 +57,23 @@ export async function PATCH(
     .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
     .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 
-  const [activeSession] = await db
-    .select({ id: matchingSessions.id })
-    .from(matchingSessions)
-    .where(eq(matchingSessions.status, 'active'))
-    .limit(1)
-
-  if (activeSession) {
-    broadcast(activeSession.id, 'state_changed', {
-      userId,
-      kind: 'personal_status_updated',
+  if (activeSessionId) {
+    await finalizeMatchingMutationEffects({
+      sessionId: activeSessionId,
+      targetUserId: userId,
+      actorUserId: session.user.id,
       bookId,
-      status: status ?? null,
+      kind: 'status_changed',
+      source: asUserId ? 'admin' : 'catalog',
+      before,
+      metadata: { status: status ?? null },
     })
   }
+  await broadcastActiveMatchingStateChangeForParticipant(userId, {
+    kind: 'personal_status_updated',
+    bookId,
+    status: status ?? null,
+  })
 
   return NextResponse.json({ ok: true })
 }

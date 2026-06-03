@@ -7,6 +7,14 @@ import { db } from '@/lib/db'
 import { bookPriorities, books as booksTable, users } from '@/lib/db/schema'
 import { eq, asc, inArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 export async function GET() {
   const session = await auth()
@@ -56,6 +64,8 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Some books were not found' }, { status: 400 })
   }
   const now = new Date()
+  const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
+  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   await db.transaction(async (tx) => {
     await tx
@@ -88,6 +98,22 @@ export async function PUT(req: NextRequest) {
   })
 
   revalidatePath('/admin')
+  if (activeSessionId) {
+    await finalizeMatchingMutationEffects({
+      sessionId: activeSessionId,
+      targetUserId: userId,
+      actorUserId: userId,
+      bookId: null,
+      kind: 'priorities_updated',
+      source: 'profile',
+      before,
+      metadata: { bookIds: validBookIds },
+    })
+  }
+  await broadcastActiveMatchingStateChangeForParticipant(userId, {
+    kind: 'external_ranks_updated',
+    bookIds: validBookIds,
+  })
 
   return NextResponse.json({ ok: true })
 }

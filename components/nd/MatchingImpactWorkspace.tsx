@@ -5,8 +5,10 @@ import type { ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingScenarios from './MatchingScenarios'
 import MatchingMyMoves from './MatchingMyMoves'
+import MatchingAdriftBanner from './MatchingAdriftBanner'
 import type { BookParticipant } from './MatchingPersonalList'
 import type { MatchingBookDetail } from './MatchingBookDetailModal'
+import type { AdriftCause } from '@/lib/matching/feed-events'
 
 interface BookInfo extends MatchingBookDetail {
   id: string
@@ -21,6 +23,10 @@ interface Props {
   frozen: boolean
   movesHeading: string
   mutationUserId?: string
+  adrift?: {
+    reason: 'change' | 'never'
+    cause: (AdriftCause & { bookTitle?: string | null }) | null
+  } | null
 }
 
 const panel: React.CSSProperties = {
@@ -62,6 +68,7 @@ export default function MatchingImpactWorkspace({
   frozen,
   movesHeading,
   mutationUserId,
+  adrift = null,
 }: Props) {
   const scenarioCount = overview.scenarios.length
   const [previewMove, setPreviewMove] = useState<MyMoveBook | null>(null)
@@ -81,13 +88,19 @@ export default function MatchingImpactWorkspace({
     }
   }, [])
 
+  const handleFixAdrift = useCallback(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
   useEffect(() => {
     setPreviewMove(null)
     setLastMove(null)
   }, [moves])
 
   return (
-    <div className="grid h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)', gap: '1.1rem' }}>
+    <div className="flex flex-col h-full min-h-0">
+      {adrift && <MatchingAdriftBanner reason={adrift.reason} cause={adrift.cause} onFix={handleFixAdrift} />}
+      <div className="grid flex-1 min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)', gap: '1.1rem' }}>
       <section data-testid="matching-reader-circles-panel" style={panel}>
         <div style={panelHeadStyle}>
           <h2 style={h2Style}>
@@ -127,6 +140,7 @@ export default function MatchingImpactWorkspace({
           />
         </div>
       </section>
+      </div>
     </div>
   )
 }
