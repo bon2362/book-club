@@ -671,13 +671,14 @@
       },
       "MatchingFeedEvent": {
         "type": "object",
-        "description": "In-memory событие matching-ленты. Сохраняются только события, которые изменили расклад.",
+        "description": "Публичное событие matching-ленты. Содержит псевдонимы участников и агрегаты сценария без внутренних userId.",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "number"
           },
           "ts": {
-            "$ref": "#/components/schemas/DateTime"
+            "type": "number",
+            "description": "Unix timestamp в миллисекундах"
           },
           "type": {
             "type": "string",
@@ -689,18 +690,76 @@
           "actor": {
             "type": "object",
             "properties": {
-              "userId": {
-                "type": "string"
-              },
               "pseudonym": {
                 "type": "string"
               }
-            }
+            },
+            "required": [
+              "pseudonym"
+            ]
+          },
+          "affected": {
+            "type": "object",
+            "description": "Только для событий leftout.",
+            "properties": {
+              "pseudonym": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "pseudonym"
+            ]
+          },
+          "mutationKind": {
+            "type": "string",
+            "enum": [
+              "book_added",
+              "book_removed",
+              "rank_changed",
+              "status_changed",
+              "catalog_signup_updated",
+              "priorities_updated"
+            ]
+          },
+          "before": {
+            "$ref": "#/components/schemas/MatchingFeedScenarioSummary"
+          },
+          "after": {
+            "$ref": "#/components/schemas/MatchingFeedScenarioSummary"
           },
           "bookId": {
             "type": "string"
           }
-        }
+        },
+        "required": [
+          "id",
+          "ts",
+          "type",
+          "actor",
+          "bookId",
+          "mutationKind"
+        ]
+      },
+      "MatchingFeedScenarioSummary": {
+        "type": "object",
+        "nullable": true,
+        "description": "Агрегированное состояние сценария без внутренних списков userId/bookId.",
+        "properties": {
+          "coveredCount": {
+            "type": "number"
+          },
+          "totalCount": {
+            "type": "number"
+          },
+          "strongInterestCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "coveredCount",
+          "totalCount",
+          "strongInterestCount"
+        ]
       },
       "MatchingPreferenceEvent": {
         "type": "object",

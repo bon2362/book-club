@@ -3,17 +3,42 @@ import { db } from '@/lib/db'
 import { matchingPreferenceEvents, matchingSessionParticipants } from '@/lib/db/schema'
 import {
   buildFeedEventsForMutation,
-  type FeedEventDraft,
   type MatchingMutationKind,
 } from '../feed-events'
 import type { MatchingScenario } from '../scenarios'
 
 export type FeedEventType = 'best' | 'leftout'
 
-export type FeedEvent = FeedEventDraft & {
+export interface PublicFeedActor {
+  pseudonym: string
+}
+
+export interface PublicFeedScenarioSummary {
+  coveredCount: number
+  totalCount: number
+  strongInterestCount: number
+}
+
+interface PublicFeedEventBase {
   id: number
   ts: number
+  actor: PublicFeedActor
+  bookId: string
+  mutationKind: MatchingMutationKind
 }
+
+export interface PublicBestFeedEvent extends PublicFeedEventBase {
+  type: 'best'
+  before: PublicFeedScenarioSummary | null
+  after: PublicFeedScenarioSummary | null
+}
+
+export interface PublicLeftoutFeedEvent extends PublicFeedEventBase {
+  type: 'leftout'
+  affected: PublicFeedActor
+}
+
+export type FeedEvent = PublicBestFeedEvent | PublicLeftoutFeedEvent
 
 const BUFFER_SIZE = 100
 
@@ -72,11 +97,30 @@ export async function fetchFeedForSession(
       now: row.occurredAt.getTime(),
     })
 
-    return drafts.map((draft) => ({
-      ...draft,
-      id: ++id,
-      ts: row.occurredAt.getTime(),
-    }))
+    return drafts.map((draft): FeedEvent => {
+      const base = {
+        id: ++id,
+        ts: row.occurredAt.getTime(),
+        actor: { pseudonym: draft.actor.pseudonym },
+        bookId: draft.bookId,
+        mutationKind: draft.mutationKind,
+      }
+
+      if (draft.type === 'best') {
+        return {
+          ...base,
+          type: 'best',
+          before: toPublicSummary(draft.before),
+          after: toPublicSummary(draft.after),
+        }
+      }
+
+      return {
+        ...base,
+        type: 'leftout',
+        affected: { pseudonym: draft.affected.pseudonym },
+      }
+    })
   })
 
   return persistentEvents.slice(-limit)
@@ -96,4 +140,17 @@ function isMatchingMutationKind(value: string): value is MatchingMutationKind {
 function asMatchingScenario(value: unknown): MatchingScenario | null {
   if (!value || typeof value !== 'object') return null
   return value as MatchingScenario
+}
+
+function toPublicSummary(summary: {
+  coveredCount: number
+  totalCount: number
+  strongInterestCount: number
+} | null): PublicFeedScenarioSummary | null {
+  if (!summary) return null
+  return {
+    coveredCount: summary.coveredCount,
+    totalCount: summary.totalCount,
+    strongInterestCount: summary.strongInterestCount,
+  }
 }

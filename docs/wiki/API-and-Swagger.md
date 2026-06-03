@@ -40,7 +40,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET/PUT | `/api/priorities` | Читать и сохранять приоритеты. |
 | GET/POST | `/api/submissions` | Читать и создавать свои заявки. |
 | DELETE | `/api/submissions/{id}` | Удалить свою заявку. |
-| GET | `/api/matching/feed` | Лента значимых событий active matching-сессии (`best`, `leftout`) для участников и админов. |
+| GET | `/api/matching/feed` | Лента значимых событий active matching-сессии (`best`, `leftout`) для участников и админов; отдаёт псевдонимы и агрегаты без внутренних `userId`. |
 
 ## Основные admin endpoints
 

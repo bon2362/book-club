@@ -40,7 +40,16 @@ function selectChain(rows: unknown[]) {
 describe('GET /api/matching/feed', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockFetchFeedForSession.mockResolvedValue([{ type: 'best', bookId: 'book-1' }])
+    mockFetchFeedForSession.mockResolvedValue([{
+      id: 1,
+      ts: 1,
+      type: 'best',
+      actor: { pseudonym: 'Лиса' },
+      bookId: 'book-1',
+      mutationKind: 'book_added',
+      before: null,
+      after: { coveredCount: 3, totalCount: 5, strongInterestCount: 2 },
+    }])
   })
 
   it('returns 401 for anonymous users', async () => {
@@ -67,7 +76,12 @@ describe('GET /api/matching/feed', () => {
     const body = await res.json()
 
     expect(res.status).toBe(200)
-    expect(body.events).toEqual([{ type: 'best', bookId: 'book-1' }])
+    expect(body.events).toEqual([expect.objectContaining({
+      type: 'best',
+      actor: { pseudonym: 'Лиса' },
+      bookId: 'book-1',
+    })])
+    expect(JSON.stringify(body.events)).not.toContain('userId')
     expect(mockFetchFeedForSession).toHaveBeenCalledWith('session-1')
   })
 

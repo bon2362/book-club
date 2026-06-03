@@ -94,10 +94,19 @@ describe('matching realtime feed', () => {
         id: 1,
         ts: occurredAt.getTime(),
         type: 'best',
-        actor: { userId: 'u1', pseudonym: 'Лиса' },
+        actor: { pseudonym: 'Лиса' },
         bookId: 'book-1',
+        before: null,
+        after: {
+          coveredCount: 3,
+          totalCount: 5,
+          strongInterestCount: 3,
+        },
       }),
     ])
+    expect(JSON.stringify(events)).not.toContain('userId')
+    expect(JSON.stringify(events)).not.toContain('leftOutUserIds')
+    expect(JSON.stringify(events)).not.toContain('circleBookIds')
   })
 
   it('rebuilds newly-left-out events from leader snapshots', async () => {
@@ -118,12 +127,13 @@ describe('matching realtime feed', () => {
     expect(events).toEqual([
       expect.objectContaining({
         type: 'leftout',
-        actor: { userId: 'u1', pseudonym: 'Лиса' },
-        affected: { userId: 'u2', pseudonym: 'Белка' },
+        actor: { pseudonym: 'Лиса' },
+        affected: { pseudonym: 'Белка' },
         bookId: 'book-2',
         ts: occurredAt.getTime(),
       }),
     ])
+    expect(JSON.stringify(events)).not.toContain('userId')
   })
 
   it('ignores non-feed preference events', async () => {
