@@ -1,5 +1,24 @@
-import { appendFeed, getFeed } from '../feed'
+import { appendFeed, fetchFeedForSession, getFeed } from '../feed'
 import type { FeedScenarioSummary } from '../../feed-events'
+
+jest.mock('@/lib/db', () => ({ db: {} }))
+jest.mock('@/lib/db/schema', () => ({
+  matchingPreferenceEvents: {
+    id: 'matchingPreferenceEvents.id',
+    actorUserId: 'matchingPreferenceEvents.actorUserId',
+    eventType: 'matchingPreferenceEvents.eventType',
+    bookId: 'matchingPreferenceEvents.bookId',
+    before: 'matchingPreferenceEvents.before',
+    after: 'matchingPreferenceEvents.after',
+    occurredAt: 'matchingPreferenceEvents.occurredAt',
+    sessionId: 'matchingPreferenceEvents.sessionId',
+  },
+  matchingSessionParticipants: {
+    sessionId: 'matchingSessionParticipants.sessionId',
+    userId: 'matchingSessionParticipants.userId',
+    pseudonym: 'matchingSessionParticipants.pseudonym',
+  },
+}))
 
 function summary(coveredCount: number): FeedScenarioSummary {
   return {
@@ -88,5 +107,54 @@ describe('matching realtime feed', () => {
     events.length = 0
 
     expect(getFeed('session-feed-copy')).toHaveLength(1)
+  })
+
+  it('rebuilds feed events from persistent preference events', async () => {
+    const occurredAt = new Date('2026-06-03T07:00:00Z')
+    const select = jest.fn()
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue([{
+          id: 'preference-event-1',
+          actorUserId: 'u1',
+          eventType: 'book_added',
+          bookId: 'book-1',
+          before: null,
+          after: {
+            id: 'scenario-1',
+            tier: 'leader',
+            circles: [{ id: 'circle-1', bookId: 'book-1', members: [], size: 3 }],
+            leftOut: [],
+            score: {
+              coveredCount: 3,
+              totalCount: 5,
+              strongInterestCount: 2,
+              avgRank: 1,
+              worstRank: 2,
+              unrankedCount: 0,
+              rankSum: 3,
+            },
+          },
+          occurredAt,
+        }]),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockResolvedValue([{ userId: 'u1', pseudonym: 'Лиса' }]),
+      })
+
+    const events = await fetchFeedForSession('session-persistent', 100, { select } as never)
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        id: 1,
+        ts: occurredAt.getTime(),
+        type: 'best',
+        actor: { userId: 'u1', pseudonym: 'Лиса' },
+        bookId: 'book-1',
+      }),
+    ])
   })
 })

@@ -5,7 +5,7 @@ import { GET } from './route'
 import { NextRequest } from 'next/server'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
-import { getFeed } from '@/lib/matching/realtime/feed'
+import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn() } }))
@@ -17,12 +17,12 @@ jest.mock('@/lib/db/schema', () => ({
   },
 }))
 jest.mock('@/lib/matching/realtime/feed', () => ({
-  getFeed: jest.fn(),
+  fetchFeedForSession: jest.fn(),
 }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
-const mockGetFeed = getFeed as jest.Mock
+const mockFetchFeedForSession = fetchFeedForSession as jest.Mock
 
 function makeReq(sessionId?: string) {
   const suffix = sessionId ? `?session=${sessionId}` : ''
@@ -40,7 +40,7 @@ function selectChain(rows: unknown[]) {
 describe('GET /api/matching/feed', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockGetFeed.mockReturnValue([{ type: 'best', bookId: 'book-1' }])
+    mockFetchFeedForSession.mockResolvedValue([{ type: 'best', bookId: 'book-1' }])
   })
 
   it('returns 401 for anonymous users', async () => {
@@ -68,7 +68,7 @@ describe('GET /api/matching/feed', () => {
 
     expect(res.status).toBe(200)
     expect(body.events).toEqual([{ type: 'best', bookId: 'book-1' }])
-    expect(mockGetFeed).toHaveBeenCalledWith('session-1')
+    expect(mockFetchFeedForSession).toHaveBeenCalledWith('session-1')
   })
 
   it('returns feed events for session participants', async () => {

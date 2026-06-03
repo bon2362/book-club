@@ -5,7 +5,7 @@ import { and, eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessionParticipants, matchingSessions } from '@/lib/db/schema'
-import { getFeed } from '@/lib/matching/realtime/feed'
+import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -37,5 +37,5 @@ export async function GET(req: NextRequest) {
     if (!participant) return NextResponse.json({ error: 'Not a participant' }, { status: 403 })
   }
 
-  return NextResponse.json({ events: getFeed(sessionId) })
+  return NextResponse.json({ events: await fetchFeedForSession(sessionId) })
 }
