@@ -103,7 +103,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 | POST | `/api/admin/matching/sessions/:id/participants` | Добавить участника из базы пользователей (только admin, только active) |
 | DELETE | `/api/admin/matching/sessions/:id/participants/:userId` | Убрать участника из сессии (только admin, только active) |
 | GET | `/api/matching/stream?session=<id>` | SSE-канал с событиями сессии |
-| GET | `/api/matching/feed?session=<id>` | In-memory лента событий сессии (`best`, `leftout`) |
+| GET | `/api/matching/feed?session=<id>` | Лента значимых событий сессии (`best`, `leftout`) из `matching_preference_events`; ответ содержит только псевдонимы и агрегаты без `userId` |
 | GET | `/api/matching/state?session=<id>&as=<userId>` | Текущее состояние (personalBooks, myMoves, legacy `scenarios`/`scenarioOverview`, новый `scenarioSetOverview`) |
 | POST | `/api/matching/books` | Добавить книгу в личный список и поставить её на первое место в персональном ранкинге |
 | DELETE | `/api/matching/books/:bookId` | Удалить книгу из личного списка |
@@ -116,7 +116,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 
 - **SSE-хаб** (`lib/matching/realtime/hub.ts`): in-memory, per-session, до 50 подписчиков. Monotonic `event_id`. Heartbeat `: ping` каждые 25 секунд.
 - **Presence** (`lib/matching/realtime/presence.ts`): in-memory, время последнего `heartbeat`. Пользователь считается online, если heartbeat был ≤55 секунд назад. Sweep каждые 10 секунд.
-- **Feed** (`lib/matching/realtime/feed.ts`): ring-buffer на 100 событий; классифицирует только события, которые меняют расклад: `best` («Новый лучший сценарий») и `leftout` («участник остался или осталась за бортом»). Feed in-memory, между рестартами процесса не сохраняется.
+- **Feed** (`lib/matching/realtime/feed.ts`): восстанавливает до 100 значимых событий из `matching_preference_events`; классифицирует только события, которые меняют расклад: `best` («Новый лучший сценарий») и `leftout` («участник остался или осталась за бортом»). Участникам отдаётся публичный DTO: псевдонимы вместо `userId`, а summary сценария содержит только агрегаты (`coveredCount`, `totalCount`, `strongInterestCount`).
 - **Adrift cause** (`lib/matching/adrift.ts`): in-memory причина, почему конкретный участник выпал из текущего leader-сценария. Если причина потеряна при рестарте, UI деградирует к мягкому состоянию «пока не собрался круг».
 - **Polling-фолбэк**: `MatchingRealtimeClient` переключается на polling `/api/matching/state` каждые 3 секунды, если SSE падает 3 раза и backoff ≥ 30 секунд.
 
@@ -378,7 +378,7 @@ Zero-sum ход — это действие, где один участник в
 | `lib/matching/middleware.ts` | Shared guards: auth, `?as=`, session freeze check, audit log |
 | `lib/matching/realtime/hub.ts` | In-memory SSE broadcast hub |
 | `lib/matching/realtime/presence.ts` | In-memory presence tracker |
-| `lib/matching/realtime/feed.ts` | Ring-buffer feed с классификацией событий |
+| `lib/matching/realtime/feed.ts` | Persistent feed с классификацией событий и публичным DTO без внутренних userId |
 | `components/nd/MatchingPersonalList.tsx` | Drag-and-drop список книг участника |
 | `components/nd/MatchingScenarios.tsx` | Карточки сценариев с цветовым кодированием |
 | `components/nd/MatchingMyMoves.tsx` | Секция «Мои ходы» |
