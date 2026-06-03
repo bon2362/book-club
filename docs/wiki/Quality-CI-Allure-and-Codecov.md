@@ -12,7 +12,7 @@
 
 Бежит на каждый pull request. Состоит из двух параллельных job (`quality`, `build`) и финального gate-job `ci`, который требует, чтобы оба прошли. Это единственная required-проверка branch protection — мерж ждёт только её (~80 секунд).
 
-- **`quality`** — `npm ci`, ESLint, secret scan, TypeScript typecheck, Jest unit-тесты с coverage, загрузка coverage в Codecov.
+- **`quality`** — `npm ci`, ESLint, secret scan, TypeScript typecheck, Jest unit-тесты с coverage, загрузка coverage в Codecov. Codecov не является блокирующей проверкой: upload имеет короткий timeout и `continue-on-error`, чтобы внешний сервис не держал merge-gate.
 - **`build`** — проверка, что `next build` проходит с прод-секретами.
 
 ### `E2E (nightly)` — Playwright, НЕ блокирует мерж
@@ -58,7 +58,7 @@ Codecov показывает покрытие unit-тестами:
 
 - project target: 80%;
 - patch target: 70%;
-- CI не падает, если сам Codecov временно недоступен.
+- CI не падает, если сам Codecov временно недоступен или upload завис: обязательный gate держат Jest coverage thresholds, lint, secret scan, typecheck и build.
 
 ## Playwright E2E
 

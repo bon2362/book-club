@@ -53,6 +53,8 @@ jobs:
           SKIP_ENV_VALIDATION: 'true'
 
       - name: Upload coverage to Codecov
+        timeout-minutes: 2
+        continue-on-error: true
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage/lcov.info

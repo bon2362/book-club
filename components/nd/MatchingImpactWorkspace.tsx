@@ -120,7 +120,7 @@ export default function MatchingImpactWorkspace({
             viewingUserId={viewingUserId}
             previewOpen={previewMove !== null}
             previewMove={visiblePreviewMove}
-            highlightedUserIds={previewBeneficiaryIds}
+            highlightedUserIds={previewMove ? previewBeneficiaryIds : []}
           />
         </div>
       </section>

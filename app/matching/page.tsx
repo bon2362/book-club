@@ -13,13 +13,12 @@ import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
-import MatchingRankNudge from '@/components/nd/MatchingRankNudge'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingHeader from '@/components/nd/MatchingHeader'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
 import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
-import { getFeed } from '@/lib/matching/realtime/feed'
+import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
 import { getAdriftCause, isViewerAdrift } from '@/lib/matching/adrift'
 
 export default async function MatchingPage({
@@ -111,7 +110,6 @@ export default async function MatchingPage({
     : null
 
   // Fetch per-book participant signups for chips in the popup (all catalog books, not just user's list)
-  const inListBookIds = personalBooks.filter((b) => b.isInList).map((b) => b.bookId)
   const bookParticipants: BookParticipant[] =
     participantUserIds.length > 0
       ? await db
@@ -156,7 +154,7 @@ export default async function MatchingPage({
       : emptyScenarioSetOverview(scenarioParticipants, activeSession.minGroupSize, activeSession.maxGroupSize)
 
   const bookTitleById = new Map(personalBooks.map((book) => [book.bookId, book.title]))
-  const feedEvents = getFeed(activeSession.id)
+  const feedEvents = await fetchFeedForSession(activeSession.id)
   const feedBookTitles = Object.fromEntries(bookTitleById)
   const myMovesWithImpact = addMoveImpacts(
     myMoves,
@@ -252,12 +250,6 @@ export default async function MatchingPage({
             </p>
           )}
         </div>
-
-        {!isImpersonating && (
-          <MatchingRankNudge
-            show={inListBookIds.length > 0 && personalBooks.filter((b) => b.isInList).every((b) => b.rank === null)}
-          />
-        )}
 
         {/* Two-column grid aligned with top row — MatchingPersonalList renders a fragment with two sections */}
         <div

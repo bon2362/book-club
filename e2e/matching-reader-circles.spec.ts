@@ -45,6 +45,27 @@ test('matching shows welcome screen until the reader explicitly joins', async ({
   await expect(page.getByRole('heading', { name: 'Читательские круги' })).toBeVisible()
 })
 
+test('matching catalog does not show the rank nudge banner', async ({
+  page,
+  createMatchingSession,
+  createTestBook,
+  loginAsUser,
+}) => {
+  const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
+  const book = await createTestBook({
+    title: `E2E Unranked Book ${test.info().testId}`,
+    author: 'Nudge Author',
+  })
+
+  await loginAsUser({ name: 'E2E Nudge Reader' })
+  await page.request.post(`/api/matching/sessions/${session.id}/join`)
+  await page.request.post('/api/matching/books', { data: { bookId: book.id } })
+
+  await page.goto('/matching')
+  await expect(page.getByTestId('matching-catalog-panel')).toBeVisible()
+  await expect(page.getByText('Расставь ранги, чтобы улучшить выбор сценариев')).not.toBeVisible()
+})
+
 test('matching shows reader circles, move hints, and full book details modal', async ({
   page,
   createMatchingSession,
@@ -131,6 +152,9 @@ test('matching shows reader circles, move hints, and full book details modal', a
     return Number.parseFloat(maxHeight)
   }).toBeGreaterThan(0)
   await expect(circlesPanel.getByText(firstPseudonym).first()).toHaveCSS('color', 'rgb(192, 96, 58)')
+  await circlesPanel.hover()
+  await expect(circlesPanel.locator('.nd-scenario-preview-slot')).not.toHaveClass(/is-open/)
+  await expect(circlesPanel.locator('.nd-scenario-current').first().locator('.nd-chip-text').first()).toHaveCSS('opacity', '1')
 
   await movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first().click()
   let dialog = page.getByRole('dialog', { name: moveBook.title })
@@ -171,6 +195,9 @@ test('matching shows reader circles, move hints, and full book details modal', a
   await addMoveResponse
 
   await expect(catalogMine).toContainText(moveBook.title, { timeout: 15_000 })
+  await page.reload()
+  await expect(page.getByText('Лента')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('matching-feed')).not.toBeVisible()
   await expect(page.getByRole('heading', { name: 'Сценарий 1' })).toBeVisible()
   await expect(page.getByRole('button', { name: moveBook.title, exact: true })).toBeVisible()
   await expect(page.getByText('Покрытие: все 3').first()).toBeVisible()
