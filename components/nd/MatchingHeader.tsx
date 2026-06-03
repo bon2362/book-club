@@ -439,9 +439,70 @@ export default function MatchingHeader({
             bookTitles={feedBookTitles}
             open={feedOpen}
             onToggle={() => setFeedOpen((value) => !value)}
+            userPseudonym={userPseudonym}
           />
         )}
       </header>
+    </>
+  )
+}
+
+/** Цветной чип-тег для типа события в ленте */
+function FeedKeyChip({ event, size = 'normal' }: { event: FeedEvent; size?: 'normal' | 'compact' }) {
+  const isWarn = event.type === 'leftout'
+  const icon = isWarn ? '⚠' : '★'
+  const label = isWarn ? 'За бортом' : 'Лучший расклад'
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.3rem',
+        padding: size === 'compact' ? '0.1rem 0.4rem' : '0.16rem 0.55rem',
+        borderRadius: 'var(--radius-pill)',
+        fontWeight: 700,
+        fontSize: size === 'compact' ? '0.72rem' : '0.8rem',
+        whiteSpace: 'nowrap',
+        color: isWarn ? 'var(--status-warn)' : 'var(--accent)',
+        background: isWarn ? 'var(--status-warn-soft)' : 'var(--accent-soft)',
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: size === 'compact' ? '0.65rem' : '0.75rem' }}>{icon}</span>
+      {label}
+    </span>
+  )
+}
+
+/** Пульсирующая live-точка */
+function LiveDot() {
+  return (
+    <>
+      <style>{`
+        .t-live-dot {
+          position: relative;
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          background: var(--accent);
+          flex-shrink: 0;
+        }
+        .t-ping-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: var(--accent);
+          animation: t-ping 2.2s ease-out infinite;
+        }
+        @keyframes t-ping {
+          0%   { transform: scale(1); opacity: 0.45; }
+          100% { transform: scale(2.6); opacity: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .t-ping-ring { animation: none; }
+        }
+      `}</style>
+      <span className="t-live-dot" aria-hidden="true">
+        <span className="t-ping-ring" />
+      </span>
     </>
   )
 }
@@ -451,11 +512,13 @@ function MatchingFeedTicker({
   bookTitles,
   open,
   onToggle,
+  userPseudonym,
 }: {
   events: FeedEvent[]
   bookTitles: Record<string, string>
   open: boolean
   onToggle: () => void
+  userPseudonym: string | null
 }) {
   const latest = events[events.length - 1]
 
@@ -470,24 +533,32 @@ function MatchingFeedTicker({
           alignItems: 'center',
           gap: '0.55rem',
           border: '1px solid var(--hair)',
-          background: 'var(--bg-input)',
+          borderRadius: 'var(--radius)',
+          background: 'var(--chip-bg)',
+          boxShadow: '0 1px 2px rgba(50,38,24,.04)',
           color: 'var(--text)',
           padding: '0.55rem 0.7rem',
           cursor: 'pointer',
           textAlign: 'left',
         }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget
+          el.style.borderColor = 'var(--accent)'
+          el.style.boxShadow = '0 2px 6px rgba(50,38,24,.10)'
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget
+          el.style.borderColor = 'var(--hair)'
+          el.style.boxShadow = '0 1px 2px rgba(50,38,24,.04)'
+        }}
       >
-        <span aria-hidden="true" style={{ color: latest.type === 'leftout' ? 'var(--status-warn)' : 'var(--accent)' }}>
-          {latest.type === 'leftout' ? '!' : '*'}
-        </span>
+        <LiveDot />
         <span style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', fontWeight: 700 }}>
           Лента
         </span>
-        <strong style={{ fontFamily: 'var(--nd-serif)', color: latest.type === 'leftout' ? 'var(--status-warn)' : 'var(--accent)' }}>
-          {feedTitle(latest)}
-        </strong>
+        <FeedKeyChip event={latest} />
         <span className="hidden sm:inline" style={{ color: 'var(--text-muted)', fontSize: '0.76rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {feedDetail(latest, bookTitles)}
+          {feedDetail(latest, bookTitles, userPseudonym)}
         </span>
         <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.72rem' }}>{relativeFeedTime(latest.ts)}</span>
         <span aria-hidden="true" style={{ color: 'var(--text-muted)' }}>{open ? '⌃' : '⌄'}</span>
@@ -516,11 +587,9 @@ function MatchingFeedTicker({
               }}
             >
               <span style={{ color: 'var(--text-muted)' }}>{relativeFeedTime(event.ts)}</span>
-              <span>
-                <strong style={{ color: event.type === 'leftout' ? 'var(--status-warn)' : 'var(--accent)', fontFamily: 'var(--nd-serif)' }}>
-                  {feedTitle(event)}
-                </strong>
-                <span style={{ color: 'var(--text-muted)' }}> — {feedDetail(event, bookTitles)}</span>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <FeedKeyChip event={event} size="compact" />
+                <span style={{ color: 'var(--text-muted)' }}>{feedDetail(event, bookTitles, userPseudonym)}</span>
               </span>
             </li>
           ))}
@@ -530,24 +599,38 @@ function MatchingFeedTicker({
   )
 }
 
-function feedTitle(event: FeedEvent): string {
-  if (event.type === 'best') return 'Новый лучший сценарий'
-  return `${event.affected.pseudonym} остал:ась за бортом`
-}
-
-function feedDetail(event: FeedEvent, bookTitles: Record<string, string>): string {
+/**
+ * Строка детали события для тикера/лога.
+ * userPseudonym — псевдоним залогиненного пользователя (null когда не известен).
+ * Сравнение по псевдониму безопасно: они уникальны внутри сессии.
+ */
+function feedDetail(event: FeedEvent, bookTitles: Record<string, string>, userPseudonym: string | null): string {
   const title = bookTitles[event.bookId] ?? 'книгу'
-  const verb = event.mutationKind === 'book_removed'
-    ? 'убрал:а'
-    : event.mutationKind === 'book_added'
-      ? 'добавил:а'
-      : 'изменил:а'
+  const isActorViewer = !!userPseudonym && event.actor.pseudonym === userPseudonym
+  const actorName = isActorViewer ? 'вы' : event.actor.pseudonym
 
-  if (event.type === 'best' && event.before && event.after && event.after.coveredCount > event.before.coveredCount) {
-    return `покрытие ${event.before.coveredCount} → ${event.after.coveredCount} участников после того как ${event.actor.pseudonym} ${verb} «${title}»`
+  let verb: string
+  if (isActorViewer) {
+    verb = event.mutationKind === 'book_removed' ? 'убрали'
+      : event.mutationKind === 'book_added' ? 'добавили'
+      : 'изменили'
+  } else {
+    verb = event.mutationKind === 'book_removed' ? 'убрал:а'
+      : event.mutationKind === 'book_added' ? 'добавил:а'
+      : 'изменил:а'
   }
 
-  return `после того как ${event.actor.pseudonym} ${verb} «${title}»`
+  if (event.type === 'best' && event.before && event.after && event.after.coveredCount > event.before.coveredCount) {
+    return `покрытие ${event.before.coveredCount} → ${event.after.coveredCount} участников после того как ${actorName} ${verb} «${title}»`
+  }
+
+  if (event.type === 'leftout') {
+    const isAffectedViewer = !!userPseudonym && event.affected.pseudonym === userPseudonym
+    const affectedName = isAffectedViewer ? 'вы' : event.affected.pseudonym
+    return `${affectedName} — после того как ${actorName} ${verb} «${title}»`
+  }
+
+  return `после того как ${actorName} ${verb} «${title}»`
 }
 
 function relativeFeedTime(ts: number): string {

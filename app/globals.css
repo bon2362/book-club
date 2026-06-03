@@ -45,6 +45,7 @@
   --status-ok-hover:  #16A34A;
   --status-fail:      #EF4444;   /* ● красный — failure / error */
   --status-warn:      #F59E0B;   /* ● жёлтый — pending / warning */
+  --status-warn-soft: #F3E8D1;   /* мягкий warm warn — фон баннера/чипов */
 
   /* ── Matching participant chips ───────────────────────────────────────── */
   --pseudonym-1-bg:     #EFE6FF;
