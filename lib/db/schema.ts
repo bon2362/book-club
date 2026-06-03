@@ -217,6 +217,38 @@ export const matchingSessionParticipants = pgTable('matching_session_participant
   sessionPseudoUniq: uniqueIndex('matching_session_participants_session_pseudo_idx').on(t.sessionId, t.pseudonym),
 }))
 
+export const matchingPseudonymReservations = pgTable('matching_pseudonym_reservations', {
+  sessionId:  text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  userId:     text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  pseudonym:  text('pseudonym').notNull(),
+  reservedAt: timestamp('reserved_at', { mode: 'date' }).notNull().defaultNow(),
+  expiresAt:  timestamp('expires_at', { mode: 'date' }).notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.sessionId, t.userId] }),
+  sessionPseudoUniq: uniqueIndex('matching_pseudonym_reservations_session_pseudo_idx').on(t.sessionId, t.pseudonym),
+  expiresAtIdx: index('matching_pseudonym_reservations_expires_at_idx').on(t.expiresAt),
+}))
+
+export const matchingPreferenceEvents = pgTable('matching_preference_events', {
+  id:          text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId:   text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  userId:      text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  actorUserId: text('actor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  eventType:   text('event_type').notNull(),
+  source:      text('source').notNull(),
+  bookId:      text('book_id').references(() => books.id, { onDelete: 'set null' }),
+  before:      jsonb('before'),
+  after:       jsonb('after'),
+  metadata:    jsonb('metadata'),
+  occurredAt:  timestamp('occurred_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  sessionOccurredAtIdx: index('matching_preference_events_session_occurred_at_idx').on(t.sessionId, t.occurredAt),
+  userOccurredAtIdx:    index('matching_preference_events_user_occurred_at_idx').on(t.userId, t.occurredAt),
+  actorOccurredAtIdx:   index('matching_preference_events_actor_occurred_at_idx').on(t.actorUserId, t.occurredAt),
+  typeOccurredAtIdx:    index('matching_preference_events_type_occurred_at_idx').on(t.eventType, t.occurredAt),
+  bookIdIdx:            index('matching_preference_events_book_id_idx').on(t.bookId),
+}))
+
 export const adminViews = pgTable('admin_views', {
   id:           text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   adminId:      text('admin_id').notNull().references(() => users.id, { onDelete: 'cascade' }),

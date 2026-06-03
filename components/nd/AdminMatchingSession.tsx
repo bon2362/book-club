@@ -21,6 +21,18 @@ interface AuditEntry {
   adminName: string | null
 }
 
+interface PreferenceEvent {
+  id: string
+  sessionId: string
+  userId: string
+  actorUserId: string
+  eventType: string
+  source: string
+  bookId: string | null
+  metadata: { bookTitle?: string | null; selectedBookIds?: string[]; bookIds?: string[] } | null
+  occurredAt: string
+}
+
 interface Participant {
   userId: string
   pseudonym: string
@@ -60,6 +72,8 @@ export default function AdminMatchingSession() {
   const [error, setError] = useState<string | null>(null)
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
   const [auditLoading, setAuditLoading] = useState(false)
+  const [preferenceEvents, setPreferenceEvents] = useState<PreferenceEvent[]>([])
+  const [preferenceEventsLoading, setPreferenceEventsLoading] = useState(false)
 
   const [participants, setParticipants] = useState<Participant[]>([])
   const [allUsers, setAllUsers] = useState<AllUser[]>([])
@@ -104,6 +118,17 @@ export default function AdminMatchingSession() {
     }
   }, [])
 
+  const loadPreferenceEvents = useCallback(async (sessionId: string) => {
+    setPreferenceEventsLoading(true)
+    try {
+      const res = await fetch(`/api/admin/matching/preference-events?sessionId=${encodeURIComponent(sessionId)}&limit=100`)
+      const json = await res.json()
+      if (res.ok) setPreferenceEvents(json.events ?? [])
+    } finally {
+      setPreferenceEventsLoading(false)
+    }
+  }, [])
+
   const loadParticipants = useCallback(async (sessionId: string) => {
     setParticipantsLoading(true)
     try {
@@ -125,10 +150,11 @@ export default function AdminMatchingSession() {
     const active = sessions.find(s => s.status === 'active')
     if (active) {
       loadAudit(active.id)
+      loadPreferenceEvents(active.id)
       loadParticipants(active.id)
       loadAllUsers()
     }
-  }, [sessions, loadAudit, loadParticipants, loadAllUsers])
+  }, [sessions, loadAudit, loadPreferenceEvents, loadParticipants, loadAllUsers])
 
   const activeSession = sessions.find(s => s.status === 'active')
   const [freezing, setFreezing] = useState(false)
@@ -429,6 +455,72 @@ export default function AdminMatchingSession() {
       {activeSession && (
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            Аналитика изменений предпочтений
+            <button onClick={() => loadPreferenceEvents(activeSession.id)} style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}>
+              ↺
+            </button>
+          </div>
+          {preferenceEventsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Загрузка…</p>}
+          {!preferenceEventsLoading && preferenceEvents.length === 0 && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+              После входа в сессию участники ещё не меняли предпочтения.
+            </p>
+          )}
+          {!preferenceEventsLoading && preferenceEvents.length > 0 && (
+            <>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
+                {Object.entries(countPreferenceEvents(preferenceEvents)).map(([type, count]) => (
+                  <span
+                    key={type}
+                    style={{
+                      border: '1px solid var(--border)',
+                      borderBottom: '2px solid var(--border-strong)',
+                      padding: '0.25rem 0.45rem',
+                      fontSize: '0.7rem',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    {eventTypeLabel(type)}: {count}
+                  </span>
+                ))}
+              </div>
+              <table
+                data-testid="admin-matching-preference-events"
+                style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}
+              >
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                    <th style={{ padding: '3px 8px 3px 0' }}>Когда</th>
+                    <th style={{ padding: '3px 8px' }}>Событие</th>
+                    <th style={{ padding: '3px 8px' }}>Источник</th>
+                    <th style={{ padding: '3px 8px' }}>Участник</th>
+                    <th style={{ padding: '3px 8px' }}>Актор</th>
+                    <th style={{ padding: '3px 8px' }}>Деталь</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preferenceEvents.slice(0, 25).map(event => (
+                    <tr key={event.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '3px 8px 3px 0', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {new Date(event.occurredAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td style={{ padding: '3px 8px', color: 'var(--text-body)' }}>{eventTypeLabel(event.eventType)}</td>
+                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{sourceLabel(event.source)}</td>
+                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{displayParticipant(event.userId, participants)}</td>
+                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{displayParticipant(event.actorUserId, participants)}</td>
+                      <td style={{ padding: '3px 8px', color: 'var(--text-muted)' }}>{eventDetail(event)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      )}
+
+      {activeSession && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             Журнал просмотров (admin_views)
             <button onClick={() => loadAudit(activeSession.id)} style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}>
               ↺
@@ -507,4 +599,41 @@ export default function AdminMatchingSession() {
       )}
     </div>
   )
+}
+
+function countPreferenceEvents(events: PreferenceEvent[]): Record<string, number> {
+  return events.reduce<Record<string, number>>((acc, event) => {
+    acc[event.eventType] = (acc[event.eventType] ?? 0) + 1
+    return acc
+  }, {})
+}
+
+function eventTypeLabel(eventType: string): string {
+  if (eventType === 'book_added') return 'Добавлена книга'
+  if (eventType === 'book_removed') return 'Убрана книга'
+  if (eventType === 'rank_changed') return 'Ранги'
+  if (eventType === 'status_changed') return 'Статус'
+  if (eventType === 'catalog_signup_updated') return 'Список'
+  if (eventType === 'priorities_updated') return 'Приоритеты'
+  return eventType
+}
+
+function sourceLabel(source: string): string {
+  if (source === 'matching') return 'Матчинг'
+  if (source === 'catalog') return 'Каталог'
+  if (source === 'profile') return 'Профиль'
+  if (source === 'admin') return 'Админка'
+  return source
+}
+
+function displayParticipant(userId: string, participants: Participant[]): string {
+  const participant = participants.find((item) => item.userId === userId)
+  return participant?.pseudonym ?? `${userId.slice(0, 12)}…`
+}
+
+function eventDetail(event: PreferenceEvent): string {
+  if (event.metadata?.bookTitle) return event.metadata.bookTitle
+  if (event.metadata?.selectedBookIds) return `${event.metadata.selectedBookIds.length} книг`
+  if (event.metadata?.bookIds) return `${event.metadata.bookIds.length} книг`
+  return event.bookId ?? '—'
 }

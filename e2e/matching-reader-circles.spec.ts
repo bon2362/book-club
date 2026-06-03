@@ -23,6 +23,28 @@ async function joinSessionAndAddBooks(page: Page, sessionId: string, bookIds: st
   return joinBody.pseudonym
 }
 
+test('matching shows welcome screen until the reader explicitly joins', async ({
+  page,
+  createMatchingSession,
+  loginAsUser,
+}) => {
+  await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
+  await loginAsUser({ name: 'E2E Welcome Reader' })
+
+  await page.goto('/matching')
+  await expect(page.getByRole('heading', { name: 'Добро пожаловать' })).toBeVisible()
+  await expect(page.getByText('Ваш ник')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Войти' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Читательские круги' })).not.toBeVisible()
+
+  await page.getByRole('button', { name: 'Войти' }).click()
+  await expect(page.getByRole('heading', { name: 'Читательские круги' })).toBeVisible({ timeout: 15_000 })
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Добро пожаловать' })).not.toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Читательские круги' })).toBeVisible()
+})
+
 test('matching shows reader circles, move hints, and full book details modal', async ({
   page,
   createMatchingSession,

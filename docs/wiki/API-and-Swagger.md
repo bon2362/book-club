@@ -40,6 +40,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET/PUT | `/api/priorities` | Читать и сохранять приоритеты. |
 | GET/POST | `/api/submissions` | Читать и создавать свои заявки. |
 | DELETE | `/api/submissions/{id}` | Удалить свою заявку. |
+| GET | `/api/matching/feed` | Лента значимых событий active matching-сессии (`best`, `leftout`) для участников и админов. |
 
 ## Основные admin endpoints
 
@@ -51,6 +52,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET/POST | `/api/admin/books` | Каталог книг. |
 | PATCH | `/api/admin/books/{id}` | Обновить книгу. |
 | PUT | `/api/admin/books/reorder` | Обновить порядок книг. |
+| GET | `/api/admin/matching/preference-events` | Аналитика изменений предпочтений в matching-сессиях. |
 | GET | `/api/admin/feedback` | Фидбек-сообщения. |
 | GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |
 

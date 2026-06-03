@@ -1,14 +1,9 @@
-export type FeedEventType =
-  | 'book_added_new_group'
-  | 'book_added_no_change'
-  | 'book_removed_group_disappeared'
-  | 'book_removed_no_change'
+import type { FeedEventDraft } from '../feed-events'
 
-export interface FeedEvent {
+export type FeedEventType = 'best' | 'leftout'
+
+export type FeedEvent = FeedEventDraft & {
   id: number
-  type: FeedEventType
-  actor: string  // pseudonym
-  bookId: string
   ts: number
 }
 
@@ -23,7 +18,7 @@ function nextId(sessionId: string): number {
   return n
 }
 
-export function appendFeed(sessionId: string, event: Omit<FeedEvent, 'id' | 'ts'>): FeedEvent {
+export function appendFeed(sessionId: string, event: FeedEventDraft): FeedEvent {
   let buf = buffers.get(sessionId)
   if (!buf) {
     buf = []

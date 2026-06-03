@@ -4,10 +4,15 @@
 import { POST } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
+import * as mutationEffects from '@/lib/matching/mutation-effects'
 import { bookPriorities, signupBooks } from '@/lib/db/schema'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn() } }))
+jest.mock('@/lib/matching/mutation-effects', () => ({
+  captureMatchingMutationSnapshot: jest.fn(),
+  finalizeMatchingMutationEffects: jest.fn(),
+}))
 jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
   signupBooks: {},
@@ -16,6 +21,8 @@ jest.mock('@/lib/db/schema', () => ({
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
+const mockCaptureSnapshot = mutationEffects.captureMatchingMutationSnapshot as jest.Mock
+const mockFinalizeEffects = mutationEffects.finalizeMatchingMutationEffects as jest.Mock
 
 function makeReq(body: object, asUserId?: string) {
   const suffix = asUserId ? `?as=${asUserId}` : ''
@@ -30,7 +37,11 @@ const userSession = { user: { id: 'user1', isAdmin: false } }
 const adminSession = { user: { id: 'admin1', isAdmin: true } }
 
 describe('POST /api/matching/books', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockCaptureSnapshot.mockResolvedValue({ context: { overview: { leader: null } } })
+    mockFinalizeEffects.mockResolvedValue(undefined)
+  })
 
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
@@ -90,6 +101,14 @@ describe('POST /api/matching/books', () => {
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(1, { userId: 'user1', bookId: 'b1', rank: 1 })
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(2, { userId: 'user1', bookId: 'b2', rank: 2 })
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(3, { userId: 'user1', bookId: 'b3', rank: 3 })
+    expect(mockFinalizeEffects).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: 's1',
+      targetUserId: 'user1',
+      actorUserId: 'user1',
+      bookId: 'b1',
+      kind: 'book_added',
+      source: 'matching',
+    }))
   })
 
   it('lets admin add and promote a book for an impersonated participant', async () => {
@@ -117,6 +136,11 @@ describe('POST /api/matching/books', () => {
     expect(res.status).toBe(200)
     expect(insertChain.values).toHaveBeenCalledWith({ userId: 'participant1', bookId: 'b1' })
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(1, { userId: 'participant1', bookId: 'b1', rank: 1 })
+    expect(mockFinalizeEffects).toHaveBeenCalledWith(expect.objectContaining({
+      targetUserId: 'participant1',
+      actorUserId: 'admin1',
+      source: 'admin',
+    }))
   })
 
   it('rejects non-admin impersonated mutations', async () => {

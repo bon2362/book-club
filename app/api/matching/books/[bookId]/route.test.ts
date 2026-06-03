@@ -4,9 +4,14 @@
 import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
+import * as mutationEffects from '@/lib/matching/mutation-effects'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), delete: jest.fn(), update: jest.fn() } }))
+jest.mock('@/lib/matching/mutation-effects', () => ({
+  captureMatchingMutationSnapshot: jest.fn(),
+  finalizeMatchingMutationEffects: jest.fn(),
+}))
 jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
   signupBooks: {},
@@ -15,6 +20,8 @@ jest.mock('@/lib/db/schema', () => ({
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
+const mockCaptureSnapshot = mutationEffects.captureMatchingMutationSnapshot as jest.Mock
+const mockFinalizeEffects = mutationEffects.finalizeMatchingMutationEffects as jest.Mock
 
 function makeReq(bookId: string, asUserId?: string) {
   const suffix = asUserId ? `?as=${asUserId}` : ''
@@ -27,7 +34,11 @@ const userSession = { user: { id: 'user1', isAdmin: false } }
 const adminSession = { user: { id: 'admin1', isAdmin: true } }
 
 describe('DELETE /api/matching/books/[bookId]', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockCaptureSnapshot.mockResolvedValue({ context: { overview: { leader: null } } })
+    mockFinalizeEffects.mockResolvedValue(undefined)
+  })
 
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
@@ -68,6 +79,14 @@ describe('DELETE /api/matching/books/[bookId]', () => {
     expect(res.status).toBe(200)
     expect(mockDb.delete).toHaveBeenCalledTimes(2)
     expect(mockDb.update).toHaveBeenCalledTimes(2)
+    expect(mockFinalizeEffects).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: 's1',
+      targetUserId: 'user1',
+      actorUserId: 'user1',
+      bookId: 'b1',
+      kind: 'book_removed',
+      source: 'matching',
+    }))
   })
 
   it('lets admin delete a book for an impersonated participant', async () => {
@@ -86,6 +105,11 @@ describe('DELETE /api/matching/books/[bookId]', () => {
 
     expect(res.status).toBe(200)
     expect(mockDb.delete).toHaveBeenCalledTimes(2)
+    expect(mockFinalizeEffects).toHaveBeenCalledWith(expect.objectContaining({
+      targetUserId: 'participant1',
+      actorUserId: 'admin1',
+      source: 'admin',
+    }))
   })
 
   it('rejects non-admin impersonated mutations', async () => {

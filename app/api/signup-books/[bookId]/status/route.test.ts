@@ -4,19 +4,29 @@
 import { PATCH } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), update: jest.fn() } }))
 jest.mock('@/lib/db/schema', () => ({
-  matchingSessions: {},
   signupBooks: {},
 }))
-jest.mock('@/lib/matching/realtime/hub', () => ({ broadcast: jest.fn() }))
+jest.mock('@/lib/matching/realtime/state-change', () => ({
+  broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
+  getActiveMatchingSessionIdForParticipant: jest.fn(),
+}))
+jest.mock('@/lib/matching/mutation-effects', () => ({
+  captureMatchingMutationSnapshot: jest.fn(),
+  finalizeMatchingMutationEffects: jest.fn(),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
-const mockBroadcast = broadcast as jest.Mock
+const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
+const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
 
 function makeReq(body: object, asUserId?: string) {
   const suffix = asUserId ? `?as=${asUserId}` : ''
@@ -32,7 +42,10 @@ const adminSession = { user: { id: 'admin1', isAdmin: true } }
 const params = { params: { bookId: 'book-1' } }
 
 describe('PATCH /api/signup-books/[bookId]/status', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockGetActiveSessionId.mockResolvedValue(null)
+  })
 
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
@@ -55,21 +68,14 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
     expect(res.status).toBe(404)
   })
 
-  it('updates status and broadcasts matching state changes for the active session', async () => {
+  it('updates status and asks matching to broadcast for session participants', async () => {
     mockAuth.mockResolvedValue(userSession)
     const signupChain = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
     }
-    const activeSessionChain = {
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ id: 'session-1' }]),
-    }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce(signupChain)
-      .mockReturnValueOnce(activeSessionChain)
+    mockDb.select = jest.fn().mockReturnValueOnce(signupChain)
     const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
     mockDb.update = jest.fn().mockReturnValue(updateChain)
 
@@ -77,8 +83,7 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
 
     expect(res.status).toBe(200)
     expect(mockDb.update).toHaveBeenCalled()
-    expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      userId: 'user1',
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user1', {
       kind: 'personal_status_updated',
       bookId: 'book-1',
       status: 'reading',
@@ -92,22 +97,14 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
     }
-    const activeSessionChain = {
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ id: 'session-1' }]),
-    }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce(signupChain)
-      .mockReturnValueOnce(activeSessionChain)
+    mockDb.select = jest.fn().mockReturnValueOnce(signupChain)
     const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
     mockDb.update = jest.fn().mockReturnValue(updateChain)
 
     const res = await PATCH(makeReq({ status: 'read' }, 'participant1'), params)
 
     expect(res.status).toBe(200)
-    expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      userId: 'participant1',
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('participant1', {
       kind: 'personal_status_updated',
       bookId: 'book-1',
       status: 'read',

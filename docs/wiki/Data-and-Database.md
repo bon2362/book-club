@@ -12,6 +12,12 @@ erDiagram
     books ||--o{ signup_books : selected
     user ||--o{ book_priorities : ranks
     books ||--o{ book_priorities : ranked
+    user ||--o{ matching_session_participants : joins
+    matching_sessions ||--o{ matching_session_participants : contains
+    user ||--o{ matching_pseudonym_reservations : reserves
+    matching_sessions ||--o{ matching_pseudonym_reservations : previews
+    user ||--o{ matching_preference_events : changes
+    matching_sessions ||--o{ matching_preference_events : records
     user ||--o{ book_submissions : submits
     books ||--o{ book_submissions : may_publish_from
     user ||--o{ feedback : may_send
@@ -62,6 +68,40 @@ erDiagram
       text book_id
       integer rank
     }
+
+    matching_sessions {
+      text id
+      text status
+      integer min_group_size
+      integer max_group_size
+      timestamp deadline_at
+      jsonb frozen_scenario_json
+    }
+
+    matching_session_participants {
+      text session_id
+      text user_id
+      text pseudonym
+      timestamp joined_at
+    }
+
+    matching_pseudonym_reservations {
+      text session_id
+      text user_id
+      text pseudonym
+      timestamp expires_at
+    }
+
+    matching_preference_events {
+      text id
+      text session_id
+      text user_id
+      text actor_user_id
+      text event_type
+      text source
+      text book_id
+      timestamp occurred_at
+    }
 ```
 
 ## Основные таблицы
@@ -81,6 +121,8 @@ erDiagram
 | `telegram_preauth_tokens` | Короткоживущие токены Telegram-входа. | Нужны для безопасного Telegram redirect flow. |
 | `matching_sessions` | Matching-сессии (имя, статус, дедлайн, метрики заморозки). | Координирует выбор читательских групп. |
 | `matching_session_participants` | Участники каждой сессии с псевдонимами. | Псевдоним стабилен в рамках сессии, новый в каждой следующей. |
+| `matching_pseudonym_reservations` | Временные резервы псевдонимов для welcome screen. | Позволяет показать будущий псевдоним до явного входа, не влияя на сценарии. |
+| `matching_preference_events` | Аналитика изменений предпочтений в matching-сессиях. | Помогает администратору видеть, какие действия меняли лучший сценарий и состояние участников. |
 | `admin_views` | Аудит-лог: когда и кого просматривал администратор через `?as=`. | Прозрачность admin impersonation. |
 
 ## Как связаны пользователь и способ входа
@@ -97,6 +139,9 @@ erDiagram
 - `user_activity_events`
 - `signup_books`
 - `book_priorities`
+- `matching_session_participants`
+- `matching_pseudonym_reservations`
+- `matching_preference_events`
 - `book_submissions`
 - `telegram_preauth_tokens`
 
@@ -114,6 +159,8 @@ erDiagram
 - `0028_matching_tables.sql` — таблицы `matching_sessions`, `matching_session_participants`, `admin_views`.
 - `0029_matching_signup_books.sql` — FK-связь `signup_books` с matching.
 - `0030_matching_freeze_metrics.sql` — колонки метрик заморозки в `matching_sessions`.
+- `0034_matching_pseudonym_reservations.sql` — временные резервы псевдонимов для welcome screen.
+- `0035_matching_preference_events.sql` — персистентная аналитика изменений предпочтений в matching.
 
 ## Практический вывод
 

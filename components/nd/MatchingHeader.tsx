@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import type { FeedEvent } from '@/lib/matching/realtime/feed'
 
 interface Participant {
   userId: string
@@ -23,6 +24,8 @@ interface Props {
   viewedName: string | null
   asParam: string | null
   userPseudonym: string | null
+  feedEvents?: FeedEvent[]
+  feedBookTitles?: Record<string, string>
 }
 
 function useDeadlineText(deadlineAt: string | null): { text: string; urgent: boolean } {
@@ -83,6 +86,8 @@ export default function MatchingHeader({
   viewedName,
   asParam,
   userPseudonym,
+  feedEvents = [],
+  feedBookTitles = {},
 }: Props) {
   const { text: deadlineText, urgent } = useDeadlineText(deadlineAt)
   const [leaving, setLeaving] = useState(false)
@@ -90,6 +95,7 @@ export default function MatchingHeader({
   const [minSizeValue, setMinSizeValue] = useState(String(minGroupSize))
   const [maxSizeValue, setMaxSizeValue] = useState(String(maxGroupSize))
   const [savingSize, setSavingSize] = useState(false)
+  const [feedOpen, setFeedOpen] = useState(false)
 
   useEffect(() => {
     setMinSizeValue(String(minGroupSize))
@@ -170,13 +176,14 @@ export default function MatchingHeader({
       )}
 
       <header
-        className="flex items-center justify-between gap-4 shrink-0"
+        className="shrink-0"
         style={{
           background: 'var(--bg-input)',
           borderBottom: '1px solid var(--hair)',
           padding: '1rem 1.4rem 0.85rem',
         }}
       >
+        <div className="flex items-center justify-between gap-4">
         {/* Left: session name + meta */}
         <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
           <h1
@@ -425,7 +432,126 @@ export default function MatchingHeader({
             </button>
           )}
         </div>
+        </div>
+        {feedEvents.length > 0 && (
+          <MatchingFeedTicker
+            events={feedEvents}
+            bookTitles={feedBookTitles}
+            open={feedOpen}
+            onToggle={() => setFeedOpen((value) => !value)}
+          />
+        )}
       </header>
     </>
   )
+}
+
+function MatchingFeedTicker({
+  events,
+  bookTitles,
+  open,
+  onToggle,
+}: {
+  events: FeedEvent[]
+  bookTitles: Record<string, string>
+  open: boolean
+  onToggle: () => void
+}) {
+  const latest = events[events.length - 1]
+
+  return (
+    <div style={{ marginTop: '0.85rem', borderTop: '1px solid var(--hair)', paddingTop: '0.65rem' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.55rem',
+          border: '1px solid var(--hair)',
+          background: 'var(--bg-input)',
+          color: 'var(--text)',
+          padding: '0.55rem 0.7rem',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <span aria-hidden="true" style={{ color: latest.type === 'leftout' ? 'var(--status-warn)' : 'var(--accent)' }}>
+          {latest.type === 'leftout' ? '!' : '*'}
+        </span>
+        <span style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', fontWeight: 700 }}>
+          Лента
+        </span>
+        <strong style={{ fontFamily: 'var(--nd-serif)', color: latest.type === 'leftout' ? 'var(--status-warn)' : 'var(--accent)' }}>
+          {feedTitle(latest)}
+        </strong>
+        <span className="hidden sm:inline" style={{ color: 'var(--text-muted)', fontSize: '0.76rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {feedDetail(latest, bookTitles)}
+        </span>
+        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.72rem' }}>{relativeFeedTime(latest.ts)}</span>
+        <span aria-hidden="true" style={{ color: 'var(--text-muted)' }}>{open ? '⌃' : '⌄'}</span>
+      </button>
+      {open && (
+        <ol
+          data-testid="matching-feed"
+          style={{
+            listStyle: 'none',
+            margin: 0,
+            padding: '0.65rem 0.2rem 0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.55rem',
+          }}
+        >
+          {[...events].reverse().map((event) => (
+            <li
+              key={event.id}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '4.5rem minmax(0, 1fr)',
+                gap: '0.7rem',
+                fontSize: '0.78rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <span style={{ color: 'var(--text-muted)' }}>{relativeFeedTime(event.ts)}</span>
+              <span>
+                <strong style={{ color: event.type === 'leftout' ? 'var(--status-warn)' : 'var(--accent)', fontFamily: 'var(--nd-serif)' }}>
+                  {feedTitle(event)}
+                </strong>
+                <span style={{ color: 'var(--text-muted)' }}> — {feedDetail(event, bookTitles)}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+function feedTitle(event: FeedEvent): string {
+  if (event.type === 'best') return 'Новый лучший сценарий'
+  return `${event.affected.pseudonym} остал:ась за бортом`
+}
+
+function feedDetail(event: FeedEvent, bookTitles: Record<string, string>): string {
+  const title = bookTitles[event.bookId] ?? 'книгу'
+  const verb = event.mutationKind === 'book_removed'
+    ? 'убрал:а'
+    : event.mutationKind === 'book_added'
+      ? 'добавил:а'
+      : 'изменил:а'
+
+  if (event.type === 'best' && event.before && event.after && event.after.coveredCount > event.before.coveredCount) {
+    return `покрытие ${event.before.coveredCount} → ${event.after.coveredCount} участников после того как ${event.actor.pseudonym} ${verb} «${title}»`
+  }
+
+  return `после того как ${event.actor.pseudonym} ${verb} «${title}»`
+}
+
+function relativeFeedTime(ts: number): string {
+  const minutes = Math.max(1, Math.round((Date.now() - ts) / 60_000))
+  if (minutes < 60) return `${minutes} мин`
+  return `${Math.round(minutes / 60)} ч`
 }

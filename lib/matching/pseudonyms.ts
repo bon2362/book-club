@@ -59,3 +59,23 @@ export function assignPseudonym(takenSet: ReadonlySet<string>): string {
   if (available.length === 0) throw new PseudonymExhaustedError()
   return available[Math.floor(Math.random() * available.length)]
 }
+
+function stableIndex(seed: string): number {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash) % ANIMALS.length
+}
+
+export function assignStablePseudonym(takenSet: ReadonlySet<string>, seed: string): string {
+  if (takenSet.size >= ANIMALS.length) throw new PseudonymExhaustedError()
+
+  const start = stableIndex(seed)
+  for (let offset = 0; offset < ANIMALS.length; offset++) {
+    const candidate = ANIMALS[(start + offset) % ANIMALS.length]
+    if (!takenSet.has(candidate)) return candidate
+  }
+
+  throw new PseudonymExhaustedError()
+}

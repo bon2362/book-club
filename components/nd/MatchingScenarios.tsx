@@ -89,6 +89,7 @@ export default function MatchingScenarios({
                   scenarioNumber={1}
                   bookById={bookById}
                   onOpen={openModal}
+                  viewingUserId={viewingUserId}
                   highlightedUserIds={highlightedUserIds}
                   highlighted
                   variant="preview"
@@ -105,6 +106,7 @@ export default function MatchingScenarios({
             scenarioNumber={index + 1}
             bookById={bookById}
             onOpen={openModal}
+            viewingUserId={viewingUserId}
             highlightedUserIds={highlightedUserIds}
             highlighted={
               scenario.id === highlightedScenarioId ||
@@ -123,6 +125,7 @@ function ScenarioSetCard({
   scenarioNumber,
   bookById,
   onOpen,
+  viewingUserId,
   highlightedUserIds,
   highlighted,
   muted,
@@ -133,6 +136,7 @@ function ScenarioSetCard({
   scenarioNumber: number
   bookById: Map<string, BookInfo>
   onOpen: (book: BookInfo) => void
+  viewingUserId: string
   highlightedUserIds: string[]
   highlighted: boolean
   muted?: boolean
@@ -143,6 +147,7 @@ function ScenarioSetCard({
   const isPreview = variant === 'preview'
   const isLinking = (isLeader || isPreview) && highlightedUserIds.length > 0
   const highlightedUserIdSet = new Set(highlightedUserIds)
+  const hasViewerLeftOut = scenario.leftOut.some((participant) => participant.userId === viewingUserId)
   const scoreTitle = [
     `Покрытие: ${scenario.score.coveredCount}/${scenario.score.totalCount}`,
     `Очень хотят: ${scenario.score.strongInterestCount}`,
@@ -164,6 +169,7 @@ function ScenarioSetCard({
           : isLeader ? 'var(--accent-soft)' : highlighted ? 'rgba(192, 96, 58, 0.04)' : 'var(--bg-input)',
         borderRadius: 'var(--radius-card)',
         boxShadow: isPreview ? '0 10px 26px rgba(85, 55, 28, 0.10)' : isLeader ? 'none' : '0 1px 2px rgba(50,38,24,.04)',
+        borderLeft: hasViewerLeftOut ? '3px solid var(--status-warn)' : undefined,
         padding: '0.85rem 1rem',
       }}
       data-highlighted={highlighted ? 'true' : 'false'}
@@ -265,31 +271,49 @@ function ScenarioSetCard({
         >
           <span>За бортом:</span>
           {scenario.leftOut.map((participant, idx) => (
-            <span
+            <LeftOutName
               key={participant.userId}
-              style={{
-                color: isLinking && highlightedUserIdSet.has(participant.userId)
-                  ? 'var(--accent)'
-                  : 'var(--text-secondary)',
-                fontWeight: isLinking && highlightedUserIdSet.has(participant.userId) ? 700 : 400,
-                background: isLinking && highlightedUserIdSet.has(participant.userId)
-                  ? 'var(--accent-soft)'
-                  : 'transparent',
-                borderRadius: 5,
-                padding: isLinking && highlightedUserIdSet.has(participant.userId)
-                  ? '0.06rem 0.4rem'
-                  : 0,
-                opacity: isLinking && !highlightedUserIdSet.has(participant.userId) ? 0.4 : 1,
-                transition: 'opacity 0.16s ease, background 0.16s ease',
-              }}
-            >
-              {idx > 0 && <span style={{ color: 'var(--hair)', margin: '0 0.2rem' }}>·</span>}
-              {participant.pseudonym}
-            </span>
+              participant={participant}
+              isMe={participant.userId === viewingUserId}
+              isLinked={isLinking && highlightedUserIdSet.has(participant.userId)}
+              isDimmed={isLinking && !highlightedUserIdSet.has(participant.userId)}
+              prefix={idx > 0}
+            />
           ))}
         </div>
       )}
     </li>
+  )
+}
+
+function LeftOutName({
+  participant,
+  isMe,
+  isLinked,
+  isDimmed,
+  prefix,
+}: {
+  participant: { userId: string; pseudonym: string }
+  isMe: boolean
+  isLinked: boolean
+  isDimmed: boolean
+  prefix: boolean
+}) {
+  return (
+    <span
+      style={{
+        color: isMe ? 'var(--status-warn)' : isLinked ? 'var(--accent)' : 'var(--text-secondary)',
+        fontWeight: isMe || isLinked ? 700 : 400,
+        background: isLinked ? 'var(--accent-soft)' : 'transparent',
+        borderRadius: 'var(--radius)',
+        padding: isLinked ? '0.06rem 0.4rem' : 0,
+        opacity: isDimmed && !isMe ? 0.4 : 1,
+        transition: 'opacity 0.16s ease, background 0.16s ease',
+      }}
+    >
+      {prefix && <span style={{ color: 'var(--hair)', margin: '0 0.2rem' }}>·</span>}
+      {participant.pseudonym}{isMe ? ' · вы' : ''}
+    </span>
   )
 }
 

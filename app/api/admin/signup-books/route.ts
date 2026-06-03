@@ -6,6 +6,14 @@ import { db } from '@/lib/db'
 import { bookPriorities, signupBooks } from '@/lib/db/schema'
 import { removeBookFromSignup } from '@/lib/signup-books'
 import { and, eq, gt, sql } from 'drizzle-orm'
+import {
+  broadcastActiveMatchingStateChangeForParticipant,
+  getActiveMatchingSessionIdForParticipant,
+} from '@/lib/matching/realtime/state-change'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -28,6 +36,9 @@ export async function PATCH(req: NextRequest) {
   if (status !== null && status !== undefined && !VALID_STATUSES.has(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
+
+  const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
+  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   let signupExists = false
   await db.transaction(async (tx) => {
@@ -74,6 +85,24 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
   }
 
+  if (activeSessionId) {
+    await finalizeMatchingMutationEffects({
+      sessionId: activeSessionId,
+      targetUserId: userId,
+      actorUserId: session.user.id!,
+      bookId,
+      kind: 'status_changed',
+      source: 'admin',
+      before,
+      metadata: { status: status ?? null },
+    })
+  }
+  await broadcastActiveMatchingStateChangeForParticipant(userId, {
+    kind: 'admin_personal_status_updated',
+    bookId,
+    status: status ?? null,
+  })
+
   return NextResponse.json({ ok: true })
 }
 
@@ -87,6 +116,9 @@ export async function DELETE(req: NextRequest) {
   if (!userId || !bookId) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
+
+  const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
+  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   await db.transaction(async (tx) => {
     const [existing] = await tx
@@ -107,6 +139,22 @@ export async function DELETE(req: NextRequest) {
         .set({ rank: sql`${bookPriorities.rank} - 1` })
         .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, existing.rank)))
     }
+  })
+
+  if (activeSessionId) {
+    await finalizeMatchingMutationEffects({
+      sessionId: activeSessionId,
+      targetUserId: userId,
+      actorUserId: session.user.id!,
+      bookId,
+      kind: 'book_removed',
+      source: 'admin',
+      before,
+    })
+  }
+  await broadcastActiveMatchingStateChangeForParticipant(userId, {
+    kind: 'admin_book_removed',
+    bookId,
   })
 
   return NextResponse.json({ ok: true })
