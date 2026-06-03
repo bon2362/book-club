@@ -99,7 +99,7 @@ export default function MatchingImpactWorkspace({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {adrift && <MatchingAdriftBanner reason={adrift.reason} cause={adrift.cause} onFix={handleFixAdrift} />}
+      {adrift && <MatchingAdriftBanner reason={adrift.reason} cause={adrift.cause} onFix={handleFixAdrift} viewingUserId={viewingUserId} />}
       <div className="grid flex-1 min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)', gap: '1.1rem' }}>
       <section data-testid="matching-reader-circles-panel" style={panel}>
         <div style={panelHeadStyle}>
