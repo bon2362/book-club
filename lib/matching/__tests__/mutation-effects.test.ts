@@ -1,28 +1,16 @@
 import { finalizeMatchingMutationEffects } from '../mutation-effects'
 import type { MatchingScenario } from '../scenarios'
 import { fetchScenarioContextForSession } from '../scenario-input'
-import { buildFeedEventsForMutation } from '../feed-events'
-import { clearAdriftCause, rememberAdriftCausesFromEvents } from '../adrift'
 import { recordMatchingPreferenceEvent } from '../preference-events'
 
 jest.mock('../scenario-input', () => ({
   fetchScenarioContextForSession: jest.fn(),
-}))
-jest.mock('../feed-events', () => ({
-  buildFeedEventsForMutation: jest.fn(),
-}))
-jest.mock('../adrift', () => ({
-  clearAdriftCause: jest.fn(),
-  rememberAdriftCausesFromEvents: jest.fn(),
 }))
 jest.mock('../preference-events', () => ({
   recordMatchingPreferenceEvent: jest.fn(),
 }))
 
 const mockFetchContext = fetchScenarioContextForSession as jest.Mock
-const mockBuildFeedEvents = buildFeedEventsForMutation as jest.Mock
-const mockClearAdrift = clearAdriftCause as jest.Mock
-const mockRememberAdrift = rememberAdriftCausesFromEvents as jest.Mock
 const mockRecordEvent = recordMatchingPreferenceEvent as jest.Mock
 
 function scenario(id: string, coveredCount: number, leftOut: MatchingScenario['leftOut']): MatchingScenario {
@@ -78,18 +66,10 @@ describe('finalizeMatchingMutationEffects', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockFetchContext.mockResolvedValue(afterContext)
-    mockBuildFeedEvents.mockReturnValue([
-      {
-        type: 'leftout',
-        actor: { userId: 'actor', pseudonym: 'Лиса' },
-        affected: { userId: 'target', pseudonym: 'Белка' },
-        bookId: 'book-1',
-      },
-    ])
     mockRecordEvent.mockResolvedValue(undefined)
   })
 
-  it('derives feed events, updates adrift state, and records persistent analytics', async () => {
+  it('records persistent analytics for a mutation', async () => {
     await finalizeMatchingMutationEffects({
       sessionId: 'session-1',
       targetUserId: 'target',
@@ -101,16 +81,6 @@ describe('finalizeMatchingMutationEffects', () => {
       metadata: { via: 'test' },
     })
 
-    expect(mockBuildFeedEvents).toHaveBeenCalledWith(expect.objectContaining({
-      actor: { userId: 'actor', pseudonym: 'Лиса' },
-      bookId: 'book-1',
-      kind: 'book_added',
-      leaderBefore: beforeLeader,
-      leaderAfter: afterLeader,
-    }))
-    expect(mockRememberAdrift).toHaveBeenCalledWith('session-1', [expect.objectContaining({ type: 'leftout' })])
-    expect(mockClearAdrift).toHaveBeenCalledWith('session-1', 'actor')
-    expect(mockClearAdrift).toHaveBeenCalledWith('session-1', 'target')
     expect(mockRecordEvent).toHaveBeenCalledWith(expect.objectContaining({
       sessionId: 'session-1',
       userId: 'target',
@@ -135,7 +105,6 @@ describe('finalizeMatchingMutationEffects', () => {
       before: { context: contextWithLeader(beforeLeader) },
     })
 
-    expect(mockBuildFeedEvents).not.toHaveBeenCalled()
     expect(mockRecordEvent).toHaveBeenCalledWith(expect.objectContaining({
       actorUserId: 'admin',
       eventType: 'priorities_updated',

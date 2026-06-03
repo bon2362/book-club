@@ -178,3 +178,19 @@ function leaderSignature(leader: MatchingScenario | null): string {
     leftOutIds,
   ].join('::')
 }
+
+export function isMatchingMutationKind(value: string): value is MatchingMutationKind {
+  return [
+    'book_added',
+    'book_removed',
+    'rank_changed',
+    'status_changed',
+    'catalog_signup_updated',
+    'priorities_updated',
+  ].includes(value)
+}
+
+export function asMatchingScenario(value: unknown): MatchingScenario | null {
+  if (!value || typeof value !== 'object') return null
+  return value as MatchingScenario
+}
