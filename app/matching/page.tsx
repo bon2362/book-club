@@ -19,7 +19,7 @@ import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
 import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
 import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
-import { getAdriftCause, isViewerAdrift } from '@/lib/matching/adrift'
+import { fetchAdriftCauseForUser, isViewerAdrift } from '@/lib/matching/adrift'
 
 export default async function MatchingPage({
   searchParams,
@@ -170,8 +170,11 @@ export default async function MatchingPage({
   }]))
 
   const isReadOnly = activeSession.status === 'frozen'
-  const adriftCause = getAdriftCause(activeSession.id, viewingUserId)
-  const adrift = isViewerAdrift(scenarioSetOverview, viewingUserId)
+  const viewerIsAdrift = isViewerAdrift(scenarioSetOverview, viewingUserId)
+  const adriftCause = viewerIsAdrift
+    ? await fetchAdriftCauseForUser(activeSession.id, viewingUserId)
+    : null
+  const adrift = viewerIsAdrift
     ? {
         reason: adriftCause ? 'change' as const : 'never' as const,
         cause: adriftCause
