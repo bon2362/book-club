@@ -2,7 +2,6 @@ import { finalizeMatchingMutationEffects } from '../mutation-effects'
 import type { MatchingScenario } from '../scenarios'
 import { fetchScenarioContextForSession } from '../scenario-input'
 import { buildFeedEventsForMutation } from '../feed-events'
-import { appendFeed } from '../realtime/feed'
 import { clearAdriftCause, rememberAdriftCausesFromEvents } from '../adrift'
 import { recordMatchingPreferenceEvent } from '../preference-events'
 
@@ -11,9 +10,6 @@ jest.mock('../scenario-input', () => ({
 }))
 jest.mock('../feed-events', () => ({
   buildFeedEventsForMutation: jest.fn(),
-}))
-jest.mock('../realtime/feed', () => ({
-  appendFeed: jest.fn(),
 }))
 jest.mock('../adrift', () => ({
   clearAdriftCause: jest.fn(),
@@ -25,7 +21,6 @@ jest.mock('../preference-events', () => ({
 
 const mockFetchContext = fetchScenarioContextForSession as jest.Mock
 const mockBuildFeedEvents = buildFeedEventsForMutation as jest.Mock
-const mockAppendFeed = appendFeed as jest.Mock
 const mockClearAdrift = clearAdriftCause as jest.Mock
 const mockRememberAdrift = rememberAdriftCausesFromEvents as jest.Mock
 const mockRecordEvent = recordMatchingPreferenceEvent as jest.Mock
@@ -94,7 +89,7 @@ describe('finalizeMatchingMutationEffects', () => {
     mockRecordEvent.mockResolvedValue(undefined)
   })
 
-  it('appends feed events, updates adrift state, and records persistent analytics', async () => {
+  it('derives feed events, updates adrift state, and records persistent analytics', async () => {
     await finalizeMatchingMutationEffects({
       sessionId: 'session-1',
       targetUserId: 'target',
@@ -113,7 +108,6 @@ describe('finalizeMatchingMutationEffects', () => {
       leaderBefore: beforeLeader,
       leaderAfter: afterLeader,
     }))
-    expect(mockAppendFeed).toHaveBeenCalledWith('session-1', expect.objectContaining({ type: 'leftout' }))
     expect(mockRememberAdrift).toHaveBeenCalledWith('session-1', [expect.objectContaining({ type: 'leftout' })])
     expect(mockClearAdrift).toHaveBeenCalledWith('session-1', 'actor')
     expect(mockClearAdrift).toHaveBeenCalledWith('session-1', 'target')
@@ -163,6 +157,5 @@ describe('finalizeMatchingMutationEffects', () => {
     })
 
     expect(mockRecordEvent).not.toHaveBeenCalled()
-    expect(mockAppendFeed).not.toHaveBeenCalled()
   })
 })

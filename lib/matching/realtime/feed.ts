@@ -17,31 +17,6 @@ export type FeedEvent = FeedEventDraft & {
 
 const BUFFER_SIZE = 100
 
-const buffers = new Map<string, FeedEvent[]>()
-const idCounters = new Map<string, number>()
-
-function nextId(sessionId: string): number {
-  const n = (idCounters.get(sessionId) ?? 0) + 1
-  idCounters.set(sessionId, n)
-  return n
-}
-
-export function appendFeed(sessionId: string, event: FeedEventDraft): FeedEvent {
-  let buf = buffers.get(sessionId)
-  if (!buf) {
-    buf = []
-    buffers.set(sessionId, buf)
-  }
-  const entry: FeedEvent = { ...event, id: nextId(sessionId), ts: Date.now() }
-  buf.push(entry)
-  if (buf.length > BUFFER_SIZE) buf.shift()
-  return entry
-}
-
-export function getFeed(sessionId: string): FeedEvent[] {
-  return [...(buffers.get(sessionId) ?? [])]
-}
-
 export async function fetchFeedForSession(
   sessionId: string,
   limit = BUFFER_SIZE,
@@ -62,7 +37,7 @@ export async function fetchFeedForSession(
     .orderBy(desc(matchingPreferenceEvents.occurredAt))
     .limit(limit)
 
-  if (rows.length === 0) return getFeed(sessionId)
+  if (rows.length === 0) return []
 
   const actorIds = Array.from(new Set(rows.map((row) => row.actorUserId)))
   const participants = actorIds.length > 0

@@ -1,7 +1,6 @@
 import type { MatchingMutationKind } from './feed-events'
 import type { MatchingScenarioContext } from './scenario-input'
 import { buildFeedEventsForMutation } from './feed-events'
-import { appendFeed } from './realtime/feed'
 import { clearAdriftCause, rememberAdriftCausesFromEvents } from './adrift'
 import { fetchScenarioContextForSession } from './scenario-input'
 import { recordMatchingPreferenceEvent } from './preference-events'
@@ -57,7 +56,6 @@ export async function finalizeMatchingMutationEffects({
       })
     : []
 
-  for (const event of feedEvents) appendFeed(sessionId, event)
   rememberAdriftCausesFromEvents(sessionId, feedEvents.filter((event) => event.type === 'leftout'))
 
   const leftOutAfter = new Set(after.context.overview.leader?.leftOut.map((participant) => participant.userId) ?? [])
