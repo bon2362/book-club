@@ -78,17 +78,40 @@ const rowBase: React.CSSProperties = {
   cursor: 'pointer',
 }
 
+// ── Co-signups line ────────────────────────────────────────────────────────────
+function CoSignups({ others }: { others: BookParticipant[] }) {
+  if (others.length === 0) return null
+  const names = others.map((p) => p.pseudonym)
+  return (
+    <div
+      style={{
+        fontSize: '0.72rem',
+        color: 'var(--text-muted)',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        marginTop: '0.12rem',
+      }}
+      title={`Тоже записались: ${names.join(', ')}`}
+    >
+      <span style={{ opacity: 0.7 }}>тоже записались: </span>
+      <span style={{ color: 'var(--text-secondary)' }}>{names.join(' · ')}</span>
+    </div>
+  )
+}
+
 // ── SortableRow ───────────────────────────────────────────────────────────────
 interface SortableRowProps {
   book: CatalogBook
   index: number
   frozen: boolean
   isFirst: boolean
+  others: BookParticipant[]
   onClick: (book: CatalogBook) => void
   onRemove: (bookId: string) => void
 }
 
-function SortableRow({ book, index, frozen, isFirst, onClick, onRemove }: SortableRowProps) {
+function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: book.bookId,
     disabled: frozen,
@@ -157,6 +180,7 @@ function SortableRow({ book, index, frozen, isFirst, onClick, onRemove }: Sortab
         <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {book.author}
         </div>
+        <CoSignups others={others} />
       </div>
 
       {/* «Убрать из списка» — absolute over row, appears on hover via CSS */}
@@ -189,10 +213,11 @@ function SortableRow({ book, index, frozen, isFirst, onClick, onRemove }: Sortab
 interface StatusRowProps {
   book: CatalogBook
   isFirst: boolean
+  others: BookParticipant[]
   onClick: (book: CatalogBook) => void
 }
 
-function StatusRow({ book, isFirst, onClick }: StatusRowProps) {
+function StatusRow({ book, isFirst, others, onClick }: StatusRowProps) {
   const statusIcon = book.personalStatus === 'reading' ? '📖' : '✓'
   return (
     <li
@@ -226,6 +251,7 @@ function StatusRow({ book, isFirst, onClick }: StatusRowProps) {
         <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {book.author}
         </div>
+        <CoSignups others={others} />
       </div>
     </li>
   )
@@ -366,6 +392,12 @@ export default function MatchingPersonalList({
   const activeBooks = books.filter((b) => b.isInList && b.personalStatus === null)
   const statusBooks = books.filter((b) => b.isInList && b.personalStatus !== null)
   const catalogOnlyBooks = books.filter((b) => !b.isInList)
+
+  const othersFor = useCallback(
+    (bookId: string) =>
+      bookParticipants.filter((p) => p.bookId === bookId && p.userId !== viewingUserId),
+    [bookParticipants, viewingUserId],
+  )
 
   function rerank(updatedBooks: CatalogBook[]): CatalogBook[] {
     let rankCounter = 0
@@ -555,6 +587,7 @@ export default function MatchingPersonalList({
                       index={idx}
                       frozen={frozen}
                       isFirst={idx === 0}
+                      others={othersFor(book.bookId)}
                       onClick={setModalBook}
                       onRemove={handleRemoveFromList}
                     />
@@ -577,7 +610,7 @@ export default function MatchingPersonalList({
               </div>
               <ul className="list-none p-0 m-0">
                 {statusBooks.map((book, idx) => (
-                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} onClick={setModalBook} />
+                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} others={othersFor(book.bookId)} onClick={setModalBook} />
                 ))}
               </ul>
             </>
