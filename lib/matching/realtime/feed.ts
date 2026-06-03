@@ -2,10 +2,11 @@ import { and, desc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matchingPreferenceEvents, matchingSessionParticipants } from '@/lib/db/schema'
 import {
+  asMatchingScenario,
   buildFeedEventsForMutation,
+  isMatchingMutationKind,
   type MatchingMutationKind,
 } from '../feed-events'
-import type { MatchingScenario } from '../scenarios'
 
 export type FeedEventType = 'best' | 'leftout'
 
@@ -124,22 +125,6 @@ export async function fetchFeedForSession(
   })
 
   return persistentEvents.slice(-limit)
-}
-
-function isMatchingMutationKind(value: string): value is MatchingMutationKind {
-  return [
-    'book_added',
-    'book_removed',
-    'rank_changed',
-    'status_changed',
-    'catalog_signup_updated',
-    'priorities_updated',
-  ].includes(value)
-}
-
-function asMatchingScenario(value: unknown): MatchingScenario | null {
-  if (!value || typeof value !== 'object') return null
-  return value as MatchingScenario
 }
 
 function toPublicSummary(summary: {
