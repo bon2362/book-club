@@ -146,8 +146,6 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
             </p>
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: '104px minmax(0, 1fr)',
                 marginTop: '1.5rem',
                 border: '1px solid var(--hair)',
                 background: 'var(--bg-input)',
@@ -158,14 +156,13 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
                 aria-label={`Иллюстрация ника ${pseudonym}`}
                 style={{
                   position: 'relative',
-                  minHeight: 132,
-                  borderRight: '1px solid var(--hair)',
+                  width: '100%',
+                  aspectRatio: '3 / 2',
+                  borderBottom: '1px solid var(--hair)',
                   background: 'var(--bg-elevated)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flexDirection: 'column',
-                  gap: '0.5rem',
                   color: 'var(--accent)',
                   overflow: 'hidden',
                 }}
@@ -176,20 +173,20 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
                     src={photo!.file}
                     alt={`Фотография: ${pseudonym}`}
                     fill
-                    sizes="132px"
-                    style={{ objectFit: 'cover', borderRadius: 'var(--radius)' }}
+                    sizes="(max-width: 432px) 100vw, 432px"
+                    style={{ objectFit: 'contain', borderRadius: 'var(--radius)' }}
                     onError={() => setPhotoError(true)}
                   />
                 ) : (
-                  <>
-                    <span data-testid="welcome-species-glyph" aria-hidden="true" style={{ fontFamily: 'var(--nd-serif)', fontSize: '2.4rem', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                    <span data-testid="welcome-species-glyph" aria-hidden="true" style={{ fontFamily: 'var(--nd-serif)', fontSize: '3rem', fontWeight: 700 }}>
                       {glyph}
                     </span>
                     <span style={{ ...microStyle, color: 'var(--text-muted)', textAlign: 'center' }}>{pseudonym}</span>
-                  </>
+                  </div>
                 )}
               </div>
-              <div style={{ padding: '0.95rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ padding: '0.95rem 1rem' }}>
                 <div style={microStyle}>Ваш ник</div>
                 <div style={{ marginTop: '0.25rem', fontFamily: 'var(--nd-serif)', fontSize: '1.7rem', lineHeight: 1.05, fontWeight: 700 }}>
                   {pseudonym}

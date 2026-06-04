@@ -127,7 +127,8 @@ async function main() {
       if (!r.ok) { misses.push({ name, reason: r.reason }); console.warn(`SKIP ${name}: ${r.reason}`); continue }
       const slug = slugify(name)
       const buf = Buffer.from(await (await fetch(r.thumbUrl, { headers: { 'User-Agent': UA } })).arrayBuffer())
-      await sharp(buf).resize(320, 320, { fit: 'cover', position: 'centre' }).webp({ quality: 80 })
+      // fit:'inside' — сохраняем пропорции (без кропа), длинная сторона ≤ 512
+      await sharp(buf).resize(512, 512, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 })
         .toFile(path.join(OUT_DIR, `${slug}.webp`))
       manifest[name] = { file: `/matching/species/${slug}.webp`, author: r.author, license: r.license, sourceUrl: r.sourceUrl }
       console.log(`OK  ${name} -> ${slug}.webp [${r.license}]`)
