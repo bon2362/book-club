@@ -57,25 +57,18 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
         }}
       >
         {/* Warning icon */}
-        <div
+        <span
           aria-hidden="true"
           style={{
-            width: 30,
-            height: 30,
-            borderRadius: '50%',
-            background: 'var(--bg-input)',
+            fontSize: '1.4rem',
             color: 'var(--status-warn)',
-            boxShadow: '0 0 0 4px color-mix(in srgb, var(--status-warn) 10%, transparent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1rem',
             flexShrink: 0,
-            marginTop: '0.15rem',
+            lineHeight: 1,
+            marginTop: '0.18rem',
           }}
         >
           ⚠
-        </div>
+        </span>
 
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>

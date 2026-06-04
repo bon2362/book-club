@@ -178,7 +178,7 @@ export default function MatchingHeader({
       <header
         className="shrink-0"
         style={{
-          background: 'var(--bg-input)',
+          background: 'var(--bg)',
           borderBottom: '1px solid var(--hair)',
           padding: '1rem 1.4rem 0.85rem',
         }}
@@ -448,10 +448,28 @@ export default function MatchingHeader({
 }
 
 /** Цветной чип-тег для типа события в ленте */
-function FeedKeyChip({ event, size = 'normal' }: { event: FeedEvent; size?: 'normal' | 'compact' }) {
+function FeedKeyChip({
+  event,
+  size = 'normal',
+  userPseudonym,
+}: {
+  event: FeedEvent
+  size?: 'normal' | 'compact'
+  userPseudonym?: string | null
+}) {
   const isWarn = event.type === 'leftout'
   const icon = isWarn ? '⚠' : '★'
-  const label = isWarn ? 'За бортом' : 'Лучший расклад'
+
+  let label: string
+  if (event.type === 'best') {
+    label = 'Лучший расклад'
+  } else {
+    const isAffectedViewer = !!userPseudonym && event.affected.pseudonym === userPseudonym
+    label = isAffectedViewer
+      ? 'Вы остались за бортом'
+      : `${event.affected.pseudonym} остал:ась за бортом`
+  }
+
   return (
     <span
       style={{
@@ -524,77 +542,100 @@ function MatchingFeedTicker({
 
   return (
     <div style={{ marginTop: '0.85rem', borderTop: '1px solid var(--hair)', paddingTop: '0.65rem' }}>
-      <button
-        type="button"
-        onClick={onToggle}
+      {/* Скруглённый контейнер — clips button + expanded list к одним углам */}
+      <div
         style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.55rem',
           border: '1px solid var(--hair)',
-          borderRadius: 'var(--radius)',
-          background: 'var(--chip-bg)',
+          borderRadius: 'var(--radius-card)',
+          overflow: 'hidden',
           boxShadow: '0 1px 2px rgba(50,38,24,.04)',
-          color: 'var(--text)',
-          padding: '0.55rem 0.7rem',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-        onMouseEnter={(e) => {
-          const el = e.currentTarget
-          el.style.borderColor = 'var(--accent)'
-          el.style.boxShadow = '0 2px 6px rgba(50,38,24,.10)'
-        }}
-        onMouseLeave={(e) => {
-          const el = e.currentTarget
-          el.style.borderColor = 'var(--hair)'
-          el.style.boxShadow = '0 1px 2px rgba(50,38,24,.04)'
         }}
       >
-        <LiveDot />
-        <span style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', fontWeight: 700 }}>
-          Лента
-        </span>
-        <FeedKeyChip event={latest} />
-        <span className="hidden sm:inline" style={{ color: 'var(--text-muted)', fontSize: '0.76rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {feedDetail(latest, bookTitles, userPseudonym)}
-        </span>
-        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.72rem' }}>{relativeFeedTime(latest.ts)}</span>
-        <span aria-hidden="true" style={{ color: 'var(--text-muted)' }}>{open ? '⌃' : '⌄'}</span>
-      </button>
-      {open && (
-        <ol
-          data-testid="matching-feed"
+        <button
+          type="button"
+          onClick={onToggle}
           style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: '0.65rem 0.2rem 0',
+            width: '100%',
             display: 'flex',
-            flexDirection: 'column',
+            alignItems: 'center',
             gap: '0.55rem',
+            border: 'none',
+            background: 'var(--chip-bg)',
+            color: 'var(--text)',
+            padding: '0.55rem 0.7rem',
+            cursor: 'pointer',
+            textAlign: 'left',
+            transition: 'background 0.12s ease',
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--chip-bg)' }}
         >
-          {[...events].reverse().map((event) => (
-            <li
-              key={event.id}
+          <LiveDot />
+          <span style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', fontWeight: 700 }}>
+            Лента
+          </span>
+          <FeedKeyChip event={latest} userPseudonym={userPseudonym} />
+          <span className="hidden sm:inline" style={{ color: 'var(--text-muted)', fontSize: '0.76rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {feedDetail(latest, bookTitles, userPseudonym)}
+          </span>
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{relativeFeedTime(latest.ts)}</span>
+            <span
               style={{
-                display: 'grid',
-                gridTemplateColumns: '4.5rem minmax(0, 1fr)',
-                gap: '0.7rem',
-                fontSize: '0.78rem',
-                color: 'var(--text-secondary)',
+                minWidth: 18,
+                height: 18,
+                borderRadius: 'var(--radius-pill)',
+                background: latest.type === 'leftout' ? 'var(--status-warn)' : 'var(--accent)',
+                color: 'var(--bg-input)',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 0.3rem',
               }}
             >
-              <span style={{ color: 'var(--text-muted)' }}>{relativeFeedTime(event.ts)}</span>
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap' }}>
-                <FeedKeyChip event={event} size="compact" />
-                <span style={{ color: 'var(--text-muted)' }}>{feedDetail(event, bookTitles, userPseudonym)}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
+              {events.length}
+            </span>
+            <span aria-hidden="true" style={{ color: 'var(--text-muted)' }}>{open ? '⌃' : '⌄'}</span>
+          </span>
+        </button>
+
+        {open && (
+          <ol
+            data-testid="matching-feed"
+            style={{
+              listStyle: 'none',
+              margin: 0,
+              padding: '0.6rem 0.85rem 0.7rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.55rem',
+              background: 'var(--bg-input)',
+              borderTop: '1px solid var(--hair)',
+            }}
+          >
+            {[...events].reverse().map((event) => (
+              <li
+                key={event.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '4.5rem minmax(0, 1fr)',
+                  gap: '0.7rem',
+                  fontSize: '0.78rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <span style={{ color: 'var(--text-muted)' }}>{relativeFeedTime(event.ts)}</span>
+                <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <FeedKeyChip event={event} size="compact" userPseudonym={userPseudonym} />
+                  <span style={{ color: 'var(--text-muted)' }}>{feedDetail(event, bookTitles, userPseudonym)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   )
 }
@@ -625,9 +666,8 @@ function feedDetail(event: FeedEvent, bookTitles: Record<string, string>, userPs
   }
 
   if (event.type === 'leftout') {
-    const isAffectedViewer = !!userPseudonym && event.affected.pseudonym === userPseudonym
-    const affectedName = isAffectedViewer ? 'вы' : event.affected.pseudonym
-    return `${affectedName} — после того как ${actorName} ${verb} «${title}»`
+    // affected уже показан в FeedKeyChip — здесь только действие актора
+    return `${actorName} ${verb} «${title}»`
   }
 
   return `после того как ${actorName} ${verb} «${title}»`
