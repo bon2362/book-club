@@ -135,6 +135,12 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 
 Фото собираются вручную скриптом `scripts/fetch-pseudonym-photos.ts` и хранятся в `public/matching/species/`. Манифест с путями, авторами и лицензиями — `lib/matching/species-images.generated.ts`.
 
+**Как поменять фото конкретного вида:**
+- *Другое заглавное фото статьи Википедии* — добавить ник в таблицу `MANUAL_TITLES` (ник → название статьи).
+- *Конкретный файл Commons* (не заглавное фото, например иллюстрация из середины статьи) — добавить ник в таблицу `MANUAL_FILES` (ник → имя файла без префикса `File:`).
+- Обновить **один** ник, не перегоняя все: `npx ts-node --transpile-only -P tsconfig.scripts.json scripts/fetch-pseudonym-photos.ts «Ник»` — остальной манифест сохраняется.
+- *Посмотреть все используемые фото разом* — `npx ts-node --transpile-only -P tsconfig.scripts.json scripts/build-species-gallery.ts`, затем открыть `species-gallery.html` (временный файл, в `.gitignore`).
+
 Только `POST /api/matching/sessions/:id/join` создаёт участника. После этого список пользователя, ранги и статусы начинают влиять на сценарии, ленту и аналитику.
 
 ## Лента и «за бортом»
