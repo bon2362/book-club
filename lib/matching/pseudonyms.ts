@@ -60,6 +60,22 @@ export function assignPseudonym(takenSet: ReadonlySet<string>): string {
   return available[Math.floor(Math.random() * available.length)]
 }
 
+/**
+ * Случайный свободный ник, ОТЛИЧНЫЙ от `exclude` (для кнопки «другой ник»).
+ * Если других свободных нет — возвращает `exclude` (если он валиден), иначе любой свободный.
+ */
+export function assignRandomPseudonymExcluding(
+  takenSet: ReadonlySet<string>,
+  exclude: string | null,
+): string {
+  const available = ANIMALS.filter(a => !takenSet.has(a) && a !== exclude)
+  if (available.length === 0) {
+    if (exclude && !takenSet.has(exclude)) return exclude
+    return assignPseudonym(takenSet)
+  }
+  return available[Math.floor(Math.random() * available.length)]
+}
+
 function stableIndex(seed: string): number {
   let hash = 0
   for (let i = 0; i < seed.length; i++) {

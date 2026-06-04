@@ -4,7 +4,7 @@ import {
   matchingPseudonymReservations,
   matchingSessionParticipants,
 } from '@/lib/db/schema'
-import { assignStablePseudonym } from './pseudonyms'
+import { assignStablePseudonym, assignRandomPseudonymExcluding } from './pseudonyms'
 
 const RESERVATION_TTL_MS = 30 * 60 * 1000
 const MAX_ASSIGN_ATTEMPTS = 5
@@ -58,6 +58,59 @@ export async function getOrCreatePseudonymReservation(
       .returning({
         pseudonym: matchingPseudonymReservations.pseudonym,
       })
+    if (inserted) return inserted.pseudonym
+  }
+
+  throw new Error('PSEUDONYM_RESERVATION_FAILED')
+}
+
+/**
+ * Перевыбрать ник на новый случайный свободный (кнопка «другой ник» на welcome-экране).
+ * Перезаписывает бронь пользователя. Возвращает новый ник.
+ */
+export async function rerollPseudonymReservation(
+  sessionId: string,
+  userId: string,
+): Promise<string> {
+  const now = new Date()
+
+  const [current] = await db
+    .select({ pseudonym: matchingPseudonymReservations.pseudonym })
+    .from(matchingPseudonymReservations)
+    .where(
+      and(
+        eq(matchingPseudonymReservations.sessionId, sessionId),
+        eq(matchingPseudonymReservations.userId, userId),
+        gt(matchingPseudonymReservations.expiresAt, now),
+      ),
+    )
+    .limit(1)
+  const currentPseudonym = current?.pseudonym ?? null
+
+  await db
+    .delete(matchingPseudonymReservations)
+    .where(
+      and(
+        eq(matchingPseudonymReservations.sessionId, sessionId),
+        eq(matchingPseudonymReservations.userId, userId),
+      ),
+    )
+
+  for (let attempt = 0; attempt < MAX_ASSIGN_ATTEMPTS; attempt++) {
+    const taken = await getTakenPseudonyms(sessionId, userId, now)
+    const pseudonym = assignRandomPseudonymExcluding(taken, currentPseudonym)
+
+    const [inserted] = await db
+      .insert(matchingPseudonymReservations)
+      .values({
+        sessionId,
+        userId,
+        pseudonym,
+        reservedAt: now,
+        expiresAt: reservationExpiry(now),
+      })
+      .onConflictDoNothing()
+      .returning({ pseudonym: matchingPseudonymReservations.pseudonym })
     if (inserted) return inserted.pseudonym
   }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import {
   type PreferenceEventMetadata,
@@ -256,6 +257,24 @@ export default function AdminMatchingSession() {
       <h3 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
         Matching-сессия
       </h3>
+
+      <Link
+        href="/admin/gallery"
+        data-testid="admin-gallery-link"
+        style={{
+          display: 'inline-block',
+          marginBottom: '1rem',
+          padding: '0.35rem 0.7rem',
+          border: '1px solid var(--border-strong)',
+          color: 'var(--text)',
+          textDecoration: 'none',
+          fontSize: '0.72rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}
+      >
+        🖼 Галерея фото видов
+      </Link>
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Загрузка…</p>}
       {error && <p style={{ color: 'var(--accent)' }}>{error}</p>}

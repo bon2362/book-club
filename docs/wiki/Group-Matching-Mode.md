@@ -129,6 +129,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 - объясняет, зачем нужна сессия;
 - показывает псевдоним из `matching_pseudonym_reservations`;
 - показывает иллюстрацию псевдонима: фотографию вида или букву-категорию как запасной вариант;
+- даёт кнопку «Другой ник» — перевыбрать предварительный псевдоним на другой случайный свободный (до вступления). Перезаписывает бронь `matching_pseudonym_reservations`; после «Войти» ник фиксируется;
 - даёт кнопку «Войти».
 
 ### Фотографии видов-псевдонимов
@@ -141,7 +142,11 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 - *Другое заглавное фото статьи Википедии* — добавить ник в таблицу `MANUAL_TITLES` (ник → название статьи).
 - *Конкретный файл Commons* (не заглавное фото, например иллюстрация из середины статьи) — добавить ник в таблицу `MANUAL_FILES` (ник → имя файла без префикса `File:`).
 - Обновить **один** ник, не перегоняя все: `npx ts-node --transpile-only -P tsconfig.scripts.json scripts/fetch-pseudonym-photos.ts «Ник»` — остальной манифест сохраняется.
-- *Посмотреть все используемые фото разом* — `npx ts-node --transpile-only -P tsconfig.scripts.json scripts/build-species-gallery.ts`, затем открыть `species-gallery.html` (временный файл, в `.gitignore`).
+- *Посмотреть все используемые фото разом* — на сайте есть страница **`/admin/gallery`** (только для админа, ссылка во вкладке «Матчинг» админки): сетка всех фото с ником, лицензией и ссылкой на Commons. Альтернатива офлайн — `npx ts-node --transpile-only -P tsconfig.scripts.json scripts/build-species-gallery.ts` → `species-gallery.html` (в `.gitignore`).
+
+### Карта сайта (`/admin/sitemap`)
+
+Страница `/admin/sitemap` (только для админа, ссылка в админке) — список всех страниц сайта. Генерируется из файловой структуры скриптом `scripts/build-routes.ts` (сканирует `app/**/page.tsx`) в `lib/site-routes.generated.ts`. Перегенерировать при добавлении/удалении страниц: `npx ts-node --transpile-only -P tsconfig.scripts.json scripts/build-routes.ts`.
 
 Только `POST /api/matching/sessions/:id/join` создаёт участника. После этого список пользователя, ранги и статусы начинают влиять на сценарии, ленту и аналитику.
 
