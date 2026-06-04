@@ -33,7 +33,26 @@ function stripHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
 }
 
-const ACCEPT = /^(cc0|public domain|cc by)/i // покрывает CC0, Public domain, CC BY, CC BY-SA
+// свободные лицензии с атрибуцией: CC0, Public domain, CC BY(-SA), GFDL,
+// Copyrighted free use, Attribution
+const ACCEPT = /^(cc0|public domain|cc by|gfdl|copyrighted free use|attribution)/i
+
+// Ники, чья статья — disambiguation / без фото / под другим названием.
+// Значение — точное название статьи ru.wikipedia (проверено: standard + есть фото).
+// Имя файла всё равно строится из самого ника (slugify(name)).
+const MANUAL_TITLES: Record<string, string> = {
+  Кугуар: 'Пума', Норка: 'Американская норка', Панда: 'Большая панда',
+  Альбатрос: 'Альбатросовые', Ворона: 'Серая ворона', Горлица: 'Горлицы',
+  Дятел: 'Дятловые', Казарка: 'Казарки', Кайра: 'Кайры', Камышёвка: 'Камышовки',
+  Малиновка: 'Зарянка', Мухоловка: 'Мухоловковые', Нырок: 'Нырки', Овсянка: 'Овсянковые',
+  Орёл: 'Орлы', Орлан: 'Орланы', Синица: 'Синицы', Славка: 'Славки', Тетерев: 'Тетерева',
+  Чечётка: 'Чечётки', Бычок: 'Бычковые', Кутум: 'Кутум (рыба)', Мурена: 'Мурены',
+  Навага: 'Дальневосточная навага', Рак: 'Десятиногие раки', Скат: 'Скаты',
+  Судак: 'Обыкновенный судак', Угорь: 'Речной угорь', Бражник: 'Бражники',
+  Веснянка: 'Веснянки', Усач: 'Усачи (жуки)', Клоп: 'Настоящие щитники',
+  Мотылёк: 'Чешуекрылые', Осётр: 'Русский осётр', Сайра: 'Сайры', Таймень: 'Таймени',
+  Мартын: 'Чайковые', Маралка: 'Марал', Пузанок: 'Алоза', Листоед: 'Листоеды',
+}
 
 interface ManifestEntry { file: string; author: string; license: string; sourceUrl: string }
 
@@ -63,7 +82,8 @@ type ResolveResult =
 
 async function resolve(name: string): Promise<ResolveResult> {
   // 1) заглавное изображение статьи через REST summary (надёжнее pageimages, ловит disambiguation)
-  const summary = await getJson(REST_SUMMARY + encodeURIComponent(name))
+  const title = MANUAL_TITLES[name] ?? name
+  const summary = await getJson(REST_SUMMARY + encodeURIComponent(title))
   if (summary?.type === 'disambiguation') return { ok: false, reason: 'disambiguation' }
   const src: string | undefined = summary?.originalimage?.source ?? summary?.thumbnail?.source
   if (!src) return { ok: false, reason: 'no-image' }
