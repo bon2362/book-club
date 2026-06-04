@@ -63,7 +63,8 @@ import { ANIMALS } from '../lib/matching/pseudonyms'
 
 const OUT_DIR = path.resolve(__dirname, '..', 'public', 'matching', 'species')
 const MANIFEST = path.resolve(__dirname, '..', 'lib', 'matching', 'species-images.generated.ts')
-const WIKI_API = 'https://ru.wikipedia.org/w/api.php'
+const REST_SUMMARY = 'https://ru.wikipedia.org/api/rest_v1/page/summary/'
+const COMMONS_API = 'https://commons.wikimedia.org/w/api.php'
 const UA = 'slowreading.club pseudonym-photo-fetch/1.0 (bon2362@gmail.com)'
 
 const TRANSLIT: Record<string, string> = {
@@ -84,43 +85,52 @@ const ACCEPT = /^(cc0|public domain|cc by)/i // покрывает CC0, Public d
 
 interface ManifestEntry { file: string; author: string; license: string; sourceUrl: string }
 
-async function api(params: Record<string, string>): Promise<any> {
-  const url = `${WIKI_API}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`
+async function getJson(url: string): Promise<any> {
   const res = await fetch(url, { headers: { 'User-Agent': UA } })
-  if (!res.ok) throw new Error(`API ${res.status}`)
+  if (!res.ok) throw new Error(`${res.status} ${url}`)
   return res.json()
 }
 
-async function resolve(name: string): Promise<(ManifestEntry & { thumbUrl: string }) | null> {
-  // 1) заглавное изображение статьи
-  const page = await api({ action: 'query', prop: 'pageimages', piprop: 'original', titles: name })
-  const pages = page?.query?.pages ?? {}
-  const first: any = Object.values(pages)[0]
-  const fileTitle: string | undefined = first?.pageimage
-  if (!fileTitle) return null
+/** Имя файла из upload.wikimedia.org URL → 'Portrait_of_owls.jpg' (декодированное). */
+function fileNameFromUrl(src: string): string | null {
+  try {
+    const last = new URL(src).pathname.split('/').pop()
+    return last ? decodeURIComponent(last) : null
+  } catch {
+    return null
+  }
+}
 
-  // 2) лицензия + thumbnail по файлу
-  const info = await api({
-    action: 'query', prop: 'imageinfo', titles: `File:${fileTitle}`,
-    iiprop: 'extmetadata|url', iiurlwidth: '640',
-  })
-  const ipages = info?.query?.pages ?? {}
-  const ifirst: any = Object.values(ipages)[0]
-  const ii = ifirst?.imageinfo?.[0]
+async function resolve(name: string): Promise<(Omit<ManifestEntry, 'file'> & { thumbUrl: string }) | null> {
+  // 1) заглавное изображение статьи через REST summary (надёжнее pageimages, ловит disambiguation)
+  const summary = await getJson(REST_SUMMARY + encodeURIComponent(name))
+  if (summary?.type === 'disambiguation') return null
+  const src: string | undefined = summary?.originalimage?.source ?? summary?.thumbnail?.source
+  if (!src) return null
+  const fileName = fileNameFromUrl(src)
+  if (!fileName) return null
+
+  // 2) лицензия + thumbnail по файлу с Commons
+  const info = await getJson(
+    `${COMMONS_API}?${new URLSearchParams({
+      action: 'query', titles: `File:${fileName}`, prop: 'imageinfo',
+      iiprop: 'extmetadata|url', iiurlwidth: '640', format: 'json', origin: '*',
+    })}`,
+  )
+  const pages = info?.query?.pages ?? {}
+  const first: any = Object.values(pages)[0]
+  const ii = first?.imageinfo?.[0]
   if (!ii) return null
   const meta = ii.extmetadata ?? {}
   const license = stripHtml(meta.LicenseShortName?.value ?? '')
   if (!ACCEPT.test(license)) return null
   const author = stripHtml(meta.Artist?.value ?? '') || 'Wikimedia Commons'
-  const thumbUrl: string = ii.thumburl ?? ii.url
-  if (!thumbUrl) return null
-
+  const thumbUrl: string = ii.thumburl ?? ii.url ?? src
   return {
     thumbUrl,
-    file: '', // заполнится после ресайза
     author,
     license,
-    sourceUrl: ii.descriptionurl ?? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileTitle)}`,
+    sourceUrl: ii.descriptionurl ?? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName)}`,
   }
 }
 
