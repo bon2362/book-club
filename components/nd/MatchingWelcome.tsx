@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import {
   getPseudonymIllustrationGlyph,
   getPseudonymIllustrationKind,
+  getPseudonymPhoto,
 } from '@/lib/matching/pseudonym-illustrations'
 
 interface Props {
@@ -50,6 +52,9 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
   const [error, setError] = useState<string | null>(null)
   const kind = getPseudonymIllustrationKind(pseudonym)
   const glyph = getPseudonymIllustrationGlyph(kind)
+  const photo = getPseudonymPhoto(pseudonym)
+  const [photoError, setPhotoError] = useState(false)
+  const showPhoto = photo !== null && !photoError
 
   async function handleJoin() {
     setJoining(true)
@@ -149,8 +154,10 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
               }}
             >
               <div
+                data-testid="welcome-illustration"
                 aria-label={`Иллюстрация ника ${pseudonym}`}
                 style={{
+                  position: 'relative',
                   minHeight: 132,
                   borderRight: '1px solid var(--hair)',
                   background: 'var(--bg-elevated)',
@@ -160,12 +167,27 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
                   flexDirection: 'column',
                   gap: '0.5rem',
                   color: 'var(--accent)',
+                  overflow: 'hidden',
                 }}
               >
-                <span aria-hidden="true" style={{ fontFamily: 'var(--nd-serif)', fontSize: '2.4rem', fontWeight: 700 }}>
-                  {glyph}
-                </span>
-                <span style={{ ...microStyle, color: 'var(--text-muted)', textAlign: 'center' }}>{pseudonym}</span>
+                {showPhoto ? (
+                  <Image
+                    data-testid="welcome-species-photo"
+                    src={photo!.file}
+                    alt={`Фотография: ${pseudonym}`}
+                    fill
+                    sizes="132px"
+                    style={{ objectFit: 'cover', borderRadius: 'var(--radius)' }}
+                    onError={() => setPhotoError(true)}
+                  />
+                ) : (
+                  <>
+                    <span data-testid="welcome-species-glyph" aria-hidden="true" style={{ fontFamily: 'var(--nd-serif)', fontSize: '2.4rem', fontWeight: 700 }}>
+                      {glyph}
+                    </span>
+                    <span style={{ ...microStyle, color: 'var(--text-muted)', textAlign: 'center' }}>{pseudonym}</span>
+                  </>
+                )}
               </div>
               <div style={{ padding: '0.95rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={microStyle}>Ваш ник</div>
@@ -177,6 +199,11 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
                 </div>
               </div>
             </div>
+            {showPhoto && photo && (
+              <p style={{ margin: '0.4rem 0 0', ...microStyle, color: 'var(--text-muted)' }}>
+                фото: {photo.author} · {photo.license}
+              </p>
+            )}
             <p style={{ margin: '0.85rem 0 0', fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
               Мы <strong style={{ color: 'var(--text)' }}>не показываем настоящие имена</strong>. Тебе присвоен ник «<strong style={{ color: 'var(--text)' }}>{pseudonym}</strong>».
             </p>

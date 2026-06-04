@@ -1,3 +1,11 @@
+import { SPECIES_PHOTOS, type PseudonymPhoto } from './species-images.generated'
+
+export type { PseudonymPhoto }
+
+export function getPseudonymPhoto(pseudonym: string): PseudonymPhoto | null {
+  return SPECIES_PHOTOS[pseudonym] ?? null
+}
+
 const BIRDS = new Set([
   'Аист', 'Альбатрос', 'Баклан', 'Беркут', 'Бойник', 'Буревестник', 'Вальдшнеп',
   'Воробей', 'Ворон', 'Ворона', 'Гагара', 'Гагарка', 'Глухарь', 'Голубь',
