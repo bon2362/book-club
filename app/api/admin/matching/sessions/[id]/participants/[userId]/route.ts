@@ -6,14 +6,16 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { broadcast } from '@/lib/matching/realtime/hub'
+import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
 
 interface Params { params: { id: string; userId: string } }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const session = await auth()
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.isAdmin || !session.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const adminId = session.user.id
   const { id: sessionId, userId } = params
 
   const [matchingSession] = await db
@@ -28,6 +30,15 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (matchingSession.status !== 'active') {
     return NextResponse.json({ error: 'Session is not active' }, { status: 409 })
   }
+
+  // Record the analytics event BEFORE deleting the participant row (pseudonym
+  // snapshot + membership guard need the row to still exist). Actor = admin.
+  await recordParticipantLeftEvent({
+    sessionId,
+    userId,
+    actorUserId: adminId,
+    source: 'admin',
+  }).catch(() => {}) // analytics must never block the removal
 
   await db
     .delete(matchingSessionParticipants)

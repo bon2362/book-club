@@ -1,11 +1,11 @@
 /**
  * @jest-environment node
  */
-import { recordMatchingPreferenceEvent } from '../preference-events'
+import { recordMatchingPreferenceEvent, recordParticipantLeftEvent } from '../preference-events'
 
 jest.mock('@/lib/db', () => ({ db: {} }))
 
-function makeDb(participants: Array<{ joinedAt: Date }>) {
+function makeDb(participants: Array<{ joinedAt?: Date; pseudonym?: string }>) {
   const participantChain = {
     from: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
@@ -94,5 +94,42 @@ describe('recordMatchingPreferenceEvent', () => {
       after: null,
       metadata: null,
     }))
+  })
+})
+
+describe('recordParticipantLeftEvent', () => {
+  it('пишет событие participant_left со снимком псевдонима', async () => {
+    const { db, insertChain } = makeDb([
+      { pseudonym: 'Белка', joinedAt: new Date('2020-01-01T00:00:00Z') },
+    ])
+
+    await recordParticipantLeftEvent({
+      sessionId: 'session-1',
+      userId: 'user-1',
+      actorUserId: 'admin-1',
+      source: 'admin',
+    }, db as never)
+
+    expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: 'session-1',
+      userId: 'user-1',
+      actorUserId: 'admin-1',
+      eventType: 'participant_left',
+      source: 'admin',
+      metadata: { pseudonym: 'Белка' },
+    }))
+  })
+
+  it('не пишет событие, если участник уже не в сессии', async () => {
+    const { db } = makeDb([])
+
+    await recordParticipantLeftEvent({
+      sessionId: 'session-1',
+      userId: 'user-1',
+      actorUserId: 'user-1',
+      source: 'matching',
+    }, db as never)
+
+    expect(db.insert).not.toHaveBeenCalled()
   })
 })

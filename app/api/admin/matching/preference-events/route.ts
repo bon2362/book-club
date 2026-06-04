@@ -2,9 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { and, desc, eq, type SQL } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingPreferenceEvents } from '@/lib/db/schema'
+import { matchingPreferenceEvents, matchingSessionParticipants, users } from '@/lib/db/schema'
 
 const DEFAULT_LIMIT = 100
 const MAX_LIMIT = 500
@@ -39,12 +40,25 @@ export async function GET(req: NextRequest) {
   if (source) conditions.push(eq(matchingPreferenceEvents.source, source))
   if (bookId) conditions.push(eq(matchingPreferenceEvents.bookId, bookId))
 
+  // Aliases so we can resolve display names for both the affected user and the
+  // actor. Names come from `users` (persist even after a participant leaves);
+  // pseudonyms come from `matching_session_participants` (null once they leave —
+  // for that case the pseudonym is stored in the event metadata at write time).
+  const eventUser = alias(users, 'event_user')
+  const eventActor = alias(users, 'event_actor')
+  const eventUserParticipant = alias(matchingSessionParticipants, 'event_user_participant')
+  const eventActorParticipant = alias(matchingSessionParticipants, 'event_actor_participant')
+
   let query = db
     .select({
       id: matchingPreferenceEvents.id,
       sessionId: matchingPreferenceEvents.sessionId,
       userId: matchingPreferenceEvents.userId,
       actorUserId: matchingPreferenceEvents.actorUserId,
+      userName: eventUser.name,
+      actorName: eventActor.name,
+      userPseudonym: eventUserParticipant.pseudonym,
+      actorPseudonym: eventActorParticipant.pseudonym,
       eventType: matchingPreferenceEvents.eventType,
       source: matchingPreferenceEvents.source,
       bookId: matchingPreferenceEvents.bookId,
@@ -54,6 +68,22 @@ export async function GET(req: NextRequest) {
       occurredAt: matchingPreferenceEvents.occurredAt,
     })
     .from(matchingPreferenceEvents)
+    .leftJoin(eventUser, eq(eventUser.id, matchingPreferenceEvents.userId))
+    .leftJoin(eventActor, eq(eventActor.id, matchingPreferenceEvents.actorUserId))
+    .leftJoin(
+      eventUserParticipant,
+      and(
+        eq(eventUserParticipant.sessionId, matchingPreferenceEvents.sessionId),
+        eq(eventUserParticipant.userId, matchingPreferenceEvents.userId),
+      ),
+    )
+    .leftJoin(
+      eventActorParticipant,
+      and(
+        eq(eventActorParticipant.sessionId, matchingPreferenceEvents.sessionId),
+        eq(eventActorParticipant.userId, matchingPreferenceEvents.actorUserId),
+      ),
+    )
     .$dynamic()
 
   if (conditions.length > 0) {

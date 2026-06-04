@@ -19,6 +19,7 @@ function makeReq(query = '') {
 function mockSelect(events: unknown[]) {
   const chain = {
     from: jest.fn().mockReturnThis(),
+    leftJoin: jest.fn().mockReturnThis(),
     $dynamic: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
@@ -49,6 +50,10 @@ describe('GET /api/admin/matching/preference-events', () => {
         sessionId: 'session-1',
         userId: 'user-1',
         actorUserId: 'admin-1',
+        userName: 'Иван',
+        actorName: 'Админ',
+        userPseudonym: 'Белка',
+        actorPseudonym: null,
         eventType: 'priority_reordered',
         source: 'matching_feed',
         bookId: 'book-1',
@@ -65,6 +70,12 @@ describe('GET /api/admin/matching/preference-events', () => {
     expect(res.status).toBe(200)
     expect(data.events).toHaveLength(1)
     expect(data.events[0].id).toBe('event-1')
+    expect(data.events[0]).toMatchObject({
+      userName: 'Иван',
+      actorName: 'Админ',
+      userPseudonym: 'Белка',
+      actorPseudonym: null,
+    })
   })
 
   it('applies supported filters and caps limit', async () => {

@@ -11,6 +11,8 @@ export interface PreferenceEventMetadata {
   // Priorities — ordered by rank (resolved titles).
   rankedBookTitles?: string[]
   status?: string | null
+  // participant_left — pseudonym snapshot (the participant row is deleted on leave).
+  pseudonym?: string | null
   // Legacy/historical events stored only id arrays — kept for graceful fallback.
   selectedBookIds?: string[]
   bookIds?: string[]
@@ -18,8 +20,26 @@ export interface PreferenceEventMetadata {
 
 export interface PreferenceEventLike {
   eventType: string
+  source?: string
   bookId: string | null
   metadata: PreferenceEventMetadata | null
+}
+
+export interface ParticipantIdentity {
+  name?: string | null
+  pseudonym?: string | null
+  userId: string
+}
+
+// Renders a participant as «Имя (Псевдоним)» with graceful fallbacks:
+// name + pseudonym → «Имя (Псевдоним)»; only one → that one; neither → short id.
+export function formatParticipant({ name, pseudonym, userId }: ParticipantIdentity): string {
+  const trimmedName = name?.trim() || null
+  const trimmedPseudonym = pseudonym?.trim() || null
+  if (trimmedName && trimmedPseudonym) return `${trimmedName} (${trimmedPseudonym})`
+  if (trimmedName) return trimmedName
+  if (trimmedPseudonym) return trimmedPseudonym
+  return `${userId.slice(0, 12)}…`
 }
 
 export function eventTypeLabel(eventType: string): string {
@@ -29,6 +49,7 @@ export function eventTypeLabel(eventType: string): string {
   if (eventType === 'status_changed') return 'Статус'
   if (eventType === 'catalog_signup_updated') return 'Изменён набор'
   if (eventType === 'priorities_updated') return 'Приоритеты'
+  if (eventType === 'participant_left') return 'Покинул:а сессию'
   return eventType
 }
 
@@ -41,6 +62,11 @@ export function sourceLabel(source: string): string {
 }
 
 export function eventDetail(event: PreferenceEventLike): string {
+  // Lifecycle event without a book: clarify admin removals.
+  if (event.eventType === 'participant_left') {
+    return event.source === 'admin' ? 'удалён:а админом' : '—'
+  }
+
   const m = event.metadata
   if (m) {
     // Single-book add/remove/status.
