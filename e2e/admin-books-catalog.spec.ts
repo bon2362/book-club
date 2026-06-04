@@ -88,9 +88,12 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     const publishedSection = page.getByTestId('admin-catalog-section-published')
     await expect(publishedSection.getByTestId(`admin-book-row-${createdBookId}`)).toBeVisible({ timeout: 5000 })
 
-    // Reload — должна остаться опубликованной
+    // Reload — должна остаться опубликованной.
+    // НЕ networkidle: после reload восстанавливается ?tab=catalog, каталог
+    // рендерит обложки через next/image; недоступный внешний хост (imwerden.de)
+    // держит /_next/image открытым → idle не наступает. expect ниже ждёт гидрацию.
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await page.getByTestId('admin-tab-catalog').click()
     await expect(
       page.getByTestId('admin-catalog-section-published').getByTestId(`admin-book-row-${createdBookId}`)
@@ -116,9 +119,9 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
       page.getByTestId('admin-catalog-section-hidden').getByTestId(`admin-book-row-${createdBookId}`)
     ).toBeVisible({ timeout: 5000 })
 
-    // Reload — скрыта осталась
+    // Reload — скрыта осталась (см. коммент выше: domcontentloaded, не networkidle)
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await page.getByTestId('admin-tab-catalog').click()
     await expect(
       page.getByTestId('admin-catalog-section-hidden').getByTestId(`admin-book-row-${createdBookId}`)

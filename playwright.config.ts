@@ -57,6 +57,11 @@ if (!Object.keys(TEST_ENV).length && !process.env.CI) {
   )
 }
 
+// Порт сервера под тесты. По умолчанию 3000; можно переопределить через
+// PLAYWRIGHT_PORT, если 3000 занят другим локальным процессом.
+const PORT = process.env.PLAYWRIGHT_PORT || '3000'
+const BASE_URL = `http://127.0.0.1:${PORT}`
+
 export default defineConfig({
   testDir: './e2e',
   globalSetup: require.resolve('./e2e/global-setup'),
@@ -81,7 +86,7 @@ export default defineConfig({
     ? [['list'], ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: false }]]
     : 'list',
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -98,8 +103,8 @@ export default defineConfig({
     // билд сразу. Сборка делается отдельным шагом в CI (.github/workflows/
     // ci.yml, job e2e) перед запуском Playwright.
     // Локально оставляем dev для быстрого hot-reload цикла.
-    command: process.env.CI ? 'npm run start' : 'npm run dev',
-    url: 'http://127.0.0.1:3000',
+    command: process.env.CI ? `npm run start -- -p ${PORT}` : `npm run dev -- -p ${PORT}`,
+    url: BASE_URL,
     // На CI всегда поднимаем свежий сервер; локально переиспользуем
     // уже запущенный dev, если он есть.
     reuseExistingServer: !process.env.CI,
