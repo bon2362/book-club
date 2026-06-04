@@ -179,8 +179,7 @@ export default function MatchingHeader({
         className="shrink-0"
         style={{
           background: 'var(--bg)',
-          borderBottom: '1px solid var(--hair)',
-          padding: '1rem 1.4rem 0.85rem',
+          padding: '0.65rem 1.4rem 0.6rem',
         }}
       >
         <div className="flex items-center justify-between gap-4">
@@ -336,7 +335,7 @@ export default function MatchingHeader({
                     <div
                       key={p.userId}
                       className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
-                      style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)', border: '2px solid var(--bg-input)' }}
+                      style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
                       title={p.pseudonym}
                     >
                       {p.pseudonym[0].toUpperCase()}
@@ -345,7 +344,7 @@ export default function MatchingHeader({
                   {participants.length > 5 && (
                     <div
                       className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold"
-                      style={{ background: 'var(--chip-bg)', color: 'var(--text-muted)', border: '2px solid var(--bg-input)' }}
+                      style={{ background: 'var(--chip-bg)', color: 'var(--text-muted)' }}
                     >
                       +{participants.length - 5}
                     </div>
@@ -541,7 +540,7 @@ function MatchingFeedTicker({
   const latest = events[events.length - 1]
 
   return (
-    <div style={{ marginTop: '0.85rem', borderTop: '1px solid var(--hair)', paddingTop: '0.65rem' }}>
+    <div style={{ marginTop: '0.45rem' }}>
       {/* Скруглённый контейнер — clips button + expanded list к одним углам */}
       <div
         style={{
@@ -560,15 +559,15 @@ function MatchingFeedTicker({
             alignItems: 'center',
             gap: '0.55rem',
             border: 'none',
-            background: 'var(--chip-bg)',
+            background: 'var(--bg-input)',
             color: 'var(--text)',
             padding: '0.55rem 0.7rem',
             cursor: 'pointer',
             textAlign: 'left',
             transition: 'background 0.12s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--chip-bg)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--chip-bg)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-input)' }}
         >
           <LiveDot />
           <span style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', fontWeight: 700 }}>
