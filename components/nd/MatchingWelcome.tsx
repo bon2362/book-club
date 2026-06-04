@@ -45,16 +45,34 @@ const microStyle: React.CSSProperties = {
   color: 'var(--text-muted)',
 }
 
-export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: Props) {
+export default function MatchingWelcome({ sessionId, sessionName, pseudonym: initialPseudonym }: Props) {
   const router = useRouter()
+  const [pseudonym, setPseudonym] = useState(initialPseudonym)
   const [joining, setJoining] = useState(false)
   const [joined, setJoined] = useState(false)
+  const [rerolling, setRerolling] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const kind = getPseudonymIllustrationKind(pseudonym)
   const glyph = getPseudonymIllustrationGlyph(kind)
   const photo = getPseudonymPhoto(pseudonym)
   const [photoError, setPhotoError] = useState(false)
   const showPhoto = photo !== null && !photoError
+
+  async function handleReroll() {
+    setRerolling(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/matching/sessions/${sessionId}/pseudonym`, { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error ?? 'Не удалось сменить ник')
+      setPhotoError(false)
+      setPseudonym(json.pseudonym)
+    } catch (event) {
+      setError(event instanceof Error ? event.message : 'Не удалось сменить ник')
+    } finally {
+      setRerolling(false)
+    }
+  }
 
   async function handleJoin() {
     setJoining(true)
@@ -188,12 +206,35 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym }: P
               </div>
               <div style={{ padding: '0.95rem 1rem' }}>
                 <div style={microStyle}>Ваш ник</div>
-                <div style={{ marginTop: '0.25rem', fontFamily: 'var(--nd-serif)', fontSize: '1.7rem', lineHeight: 1.05, fontWeight: 700 }}>
+                <div data-testid="welcome-pseudonym" style={{ marginTop: '0.25rem', fontFamily: 'var(--nd-serif)', fontSize: '1.7rem', lineHeight: 1.05, fontWeight: 700 }}>
                   {pseudonym}
                 </div>
                 <div style={{ marginTop: '0.45rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                   Сессия: {sessionName}
                 </div>
+                <button
+                  type="button"
+                  data-testid="welcome-reroll"
+                  onClick={handleReroll}
+                  disabled={rerolling || joining}
+                  style={{
+                    marginTop: '0.7rem',
+                    padding: '0.4rem 0.7rem',
+                    background: 'none',
+                    border: '1px solid var(--border-strong)',
+                    borderRadius: 'var(--radius)',
+                    color: 'var(--text)',
+                    fontFamily: 'var(--nd-sans)',
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    cursor: rerolling || joining ? 'default' : 'pointer',
+                    opacity: rerolling ? 0.6 : 1,
+                  }}
+                >
+                  {rerolling ? 'Меняем…' : '↻ Другой ник'}
+                </button>
               </div>
             </div>
             {showPhoto && photo && (

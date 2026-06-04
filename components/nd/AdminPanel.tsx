@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Fragment, useLayoutEffect, useRef, useMemo } from 'react'
+import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
 import type { BookWithCover } from '@/lib/books-with-covers'
@@ -706,6 +707,23 @@ export default function AdminPanel({
           <button style={tabStyle(view === 'matching')} onClick={() => selectView('matching')} data-testid="admin-tab-matching">
             Матчинг
           </button>
+        </div>
+
+        <div style={{ margin: '0.5rem 0 1rem' }}>
+          <Link
+            href="/admin/sitemap"
+            data-testid="admin-sitemap-link"
+            style={{
+              fontFamily: 'var(--nd-sans)',
+              fontSize: '0.62rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              color: 'var(--text-muted)',
+              textDecoration: 'none',
+            }}
+          >
+            🗺 Карта сайта
+          </Link>
         </div>
 
         {view === 'intro' && <IntroEditor />}

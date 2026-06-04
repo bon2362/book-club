@@ -43,6 +43,16 @@ test('matching shows welcome screen until the reader explicitly joins', async ({
   const hasGlyph = await page.getByTestId('welcome-species-glyph').count()
   expect(hasImg + hasGlyph).toBeGreaterThan(0)
 
+  // смена ника на другой случайный: меняется на месте и сохраняется после перезагрузки
+  const nickValue = page.getByTestId('welcome-pseudonym')
+  const beforeNick = (await nickValue.textContent())?.trim() ?? ''
+  await page.getByTestId('welcome-reroll').click()
+  await expect(nickValue).not.toHaveText(beforeNick)
+  const afterNick = (await nickValue.textContent())?.trim() ?? ''
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+  await expect(page.getByTestId('welcome-pseudonym')).toHaveText(afterNick)
+
   await expect(page.getByRole('heading', { name: 'Читательские круги' })).not.toBeVisible()
 
   await page.getByRole('button', { name: 'Войти' }).click()

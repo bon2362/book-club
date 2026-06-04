@@ -1,4 +1,4 @@
-import { ANIMALS, assignPseudonym, assignStablePseudonym, PseudonymExhaustedError } from '../pseudonyms'
+import { ANIMALS, assignPseudonym, assignStablePseudonym, assignRandomPseudonymExcluding, PseudonymExhaustedError } from '../pseudonyms'
 
 describe('ANIMALS', () => {
   it('contains at least 200 entries', () => {
@@ -75,5 +75,33 @@ describe('assignStablePseudonym', () => {
     const all = new Set(ANIMALS)
 
     expect(() => assignStablePseudonym(all, 'session-1:user-1')).toThrow(PseudonymExhaustedError)
+  })
+})
+
+describe('assignRandomPseudonymExcluding', () => {
+  it('returns a pseudonym different from exclude when others are available', () => {
+    const exclude = ANIMALS[0]
+    for (let i = 0; i < 20; i++) {
+      const result = assignRandomPseudonymExcluding(new Set(), exclude)
+      expect(result).not.toBe(exclude)
+      expect(ANIMALS).toContain(result)
+    }
+  })
+
+  it('does not return a taken pseudonym', () => {
+    const taken = new Set(ANIMALS.slice(1)) // всё занято, кроме ANIMALS[0]
+    const result = assignRandomPseudonymExcluding(taken, 'нет-такого')
+    expect(result).toBe(ANIMALS[0])
+  })
+
+  it('falls back to exclude when it is the only free pseudonym', () => {
+    const exclude = ANIMALS[0]
+    const taken = new Set(ANIMALS.slice(1)) // свободен только exclude
+    expect(assignRandomPseudonymExcluding(taken, exclude)).toBe(exclude)
+  })
+
+  it('throws when everything is taken and exclude is also taken', () => {
+    const all = new Set(ANIMALS)
+    expect(() => assignRandomPseudonymExcluding(all, ANIMALS[0])).toThrow(PseudonymExhaustedError)
   })
 })
