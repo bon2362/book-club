@@ -54,6 +54,13 @@ const MANUAL_TITLES: Record<string, string> = {
   Мартын: 'Чайковые', Маралка: 'Марал', Пузанок: 'Алоза', Листоед: 'Листоеды',
 }
 
+// Ники, для которых вручную выбран КОНКРЕТНЫЙ файл Commons (а не lead-image статьи).
+// Значение — имя файла без префикса `File:` (как в URL страницы файла, пробелы или _ — оба ок).
+// Имеет приоритет над MANUAL_TITLES и авто-резолвом.
+const MANUAL_FILES: Record<string, string> = {
+  Мальма: 'Dolly-Varden- Morgan Bond, U of Washington edit (15651417154).jpg',
+}
+
 interface ManifestEntry { file: string; author: string; license: string; sourceUrl: string }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,17 +87,8 @@ type ResolveResult =
   | { ok: true; author: string; license: string; sourceUrl: string; thumbUrl: string }
   | { ok: false; reason: string }
 
-async function resolve(name: string): Promise<ResolveResult> {
-  // 1) заглавное изображение статьи через REST summary (надёжнее pageimages, ловит disambiguation)
-  const title = MANUAL_TITLES[name] ?? name
-  const summary = await getJson(REST_SUMMARY + encodeURIComponent(title))
-  if (summary?.type === 'disambiguation') return { ok: false, reason: 'disambiguation' }
-  const src: string | undefined = summary?.originalimage?.source ?? summary?.thumbnail?.source
-  if (!src) return { ok: false, reason: 'no-image' }
-  const fileName = fileNameFromUrl(src)
-  if (!fileName) return { ok: false, reason: 'no-filename' }
-
-  // 2) лицензия + thumbnail по файлу с Commons
+/** Лицензия + thumbnail по имени файла Commons. fallbackSrc — если у файла нет thumburl. */
+async function fetchFileInfo(fileName: string, fallbackSrc?: string): Promise<ResolveResult> {
   const info = await getJson(
     `${COMMONS_API}?${new URLSearchParams({
       action: 'query', titles: `File:${fileName}`, prop: 'imageinfo',
@@ -106,7 +104,8 @@ async function resolve(name: string): Promise<ResolveResult> {
   const license = stripHtml(meta.LicenseShortName?.value ?? '')
   if (!ACCEPT.test(license)) return { ok: false, reason: `license:${license || 'unknown'}` }
   const author = stripHtml(meta.Artist?.value ?? '') || 'Wikimedia Commons'
-  const thumbUrl: string = ii.thumburl ?? ii.url ?? src
+  const thumbUrl: string = ii.thumburl ?? ii.url ?? fallbackSrc ?? ''
+  if (!thumbUrl) return { ok: false, reason: 'no-thumb' }
   return {
     ok: true,
     thumbUrl,
@@ -116,12 +115,47 @@ async function resolve(name: string): Promise<ResolveResult> {
   }
 }
 
+async function resolve(name: string): Promise<ResolveResult> {
+  // 0) Явно выбранный файл Commons имеет приоритет
+  const forcedFile = MANUAL_FILES[name]
+  if (forcedFile) return fetchFileInfo(forcedFile)
+
+  // 1) заглавное изображение статьи через REST summary (надёжнее pageimages, ловит disambiguation)
+  const title = MANUAL_TITLES[name] ?? name
+  const summary = await getJson(REST_SUMMARY + encodeURIComponent(title))
+  if (summary?.type === 'disambiguation') return { ok: false, reason: 'disambiguation' }
+  const src: string | undefined = summary?.originalimage?.source ?? summary?.thumbnail?.source
+  if (!src) return { ok: false, reason: 'no-image' }
+  const fileName = fileNameFromUrl(src)
+  if (!fileName) return { ok: false, reason: 'no-filename' }
+
+  // 2) лицензия + thumbnail по файлу с Commons
+  return fetchFileInfo(fileName, src)
+}
+
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true })
-  const manifest: Record<string, ManifestEntry> = {}
+
+  // Опциональный аргумент — обновить только один ник, остальной манифест сохранить.
+  //   npx ts-node ... scripts/fetch-pseudonym-photos.ts Мальма
+  const only = process.argv[2]
+  let names: readonly string[] = ANIMALS
+  let manifest: Record<string, ManifestEntry> = {}
+  if (only) {
+    if (!ANIMALS.includes(only)) {
+      console.error(`Ник "${only}" не найден в ANIMALS (lib/matching/pseudonyms.ts)`)
+      process.exit(1)
+    }
+    // стартуем от текущего манифеста, чтобы не потерять остальные записи
+    const existing = (await import('../lib/matching/species-images.generated')).SPECIES_PHOTOS
+    manifest = { ...existing }
+    names = [only]
+    console.log(`Обновляю только: ${only}`)
+  }
+
   const misses: { name: string; reason: string }[] = []
 
-  for (const name of ANIMALS) {
+  for (const name of names) {
     try {
       const r = await resolve(name)
       if (!r.ok) { misses.push({ name, reason: r.reason }); console.warn(`SKIP ${name}: ${r.reason}`); continue }

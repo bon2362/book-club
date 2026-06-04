@@ -933,9 +933,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Мальма": {
     "file": "/matching/species/malma.webp",
-    "author": "Dollyvarden",
-    "license": "CC BY 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Dolly_2.jpg"
+    "author": "Bering Land Bridge National Preserve",
+    "license": "CC BY-SA 2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Dolly-Varden-_Morgan_Bond,_U_of_Washington_edit_(15651417154).jpg"
   },
   "Минтай": {
     "file": "/matching/species/mintay.webp",
