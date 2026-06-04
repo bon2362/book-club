@@ -35,6 +35,14 @@ test('matching shows welcome screen until the reader explicitly joins', async ({
   await expect(page.getByRole('heading', { name: 'Добро пожаловать' })).toBeVisible()
   await expect(page.getByText('Ваш ник')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Войти' })).toBeVisible()
+
+  // Ячейка-иллюстрация ника рендерится: либо фото (img), либо буква-глиф
+  const illustration = page.getByTestId('welcome-illustration')
+  await expect(illustration).toBeVisible()
+  const hasImg = await illustration.locator('img').count()
+  const hasGlyph = await page.getByTestId('welcome-species-glyph').count()
+  expect(hasImg + hasGlyph).toBeGreaterThan(0)
+
   await expect(page.getByRole('heading', { name: 'Читательские круги' })).not.toBeVisible()
 
   await page.getByRole('button', { name: 'Войти' }).click()

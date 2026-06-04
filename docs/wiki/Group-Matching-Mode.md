@@ -126,8 +126,14 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 
 - объясняет, зачем нужна сессия;
 - показывает псевдоним из `matching_pseudonym_reservations`;
-- показывает нейтральную иллюстрацию псевдонима;
+- показывает иллюстрацию псевдонима: фотографию вида или букву-категорию как запасной вариант;
 - даёт кнопку «Войти».
+
+### Фотографии видов-псевдонимов
+
+На приветственном экране `/matching` отображается фотография вида-псевдонима. Источник фотографий — Wikimedia Commons, лицензии PD, CC0, CC-BY, CC-BY-SA. Под каждым фото выводится атрибуция автора и лицензии. Если для конкретного вида фото не найдено — показывается буква-категория (как и внутри самой сессии). Сейчас фото доступны для 164 из 212 ников.
+
+Фото собираются вручную скриптом `scripts/fetch-pseudonym-photos.ts` и хранятся в `public/matching/species/`. Манифест с путями, авторами и лицензиями — `lib/matching/species-images.generated.ts`.
 
 Только `POST /api/matching/sessions/:id/join` создаёт участника. После этого список пользователя, ранги и статусы начинают влиять на сценарии, ленту и аналитику.
 
@@ -383,6 +389,8 @@ Zero-sum ход — это действие, где один участник в
 | `components/nd/MatchingScenarios.tsx` | Карточки сценариев с цветовым кодированием |
 | `components/nd/MatchingMyMoves.tsx` | Секция «Мои ходы» |
 | `components/nd/MatchingBookDetailModal.tsx` | Общий попап деталей книги для всех matching-секций |
+| `components/nd/MatchingWelcome.tsx` | Приветственный экран с фото/буквой-глифом вида-псевдонима |
+| `lib/matching/species-images.generated.ts` | Манифест фото видов (164 вида, пути + атрибуция) |
 | `components/nd/matching-shared.ts` | Общие подписи статусов и палитра псевдонимов |
 | `components/nd/MatchingRankNudge.tsx` | Баннер-нападка для участников без рангов |
 | `components/nd/MatchingRealtimeClient.tsx` | SSE-клиент с polling-фолбэком и heartbeat |
