@@ -1,6 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import {
+  type PreferenceEventMetadata,
+  eventDetail,
+  eventTypeLabel,
+  sourceLabel,
+} from '@/lib/matching/preference-event-display'
 
 interface MatchingSession {
   id: string
@@ -29,7 +35,7 @@ interface PreferenceEvent {
   eventType: string
   source: string
   bookId: string | null
-  metadata: { bookTitle?: string | null; selectedBookIds?: string[]; bookIds?: string[] } | null
+  metadata: PreferenceEventMetadata | null
   occurredAt: string
 }
 
@@ -608,32 +614,7 @@ function countPreferenceEvents(events: PreferenceEvent[]): Record<string, number
   }, {})
 }
 
-function eventTypeLabel(eventType: string): string {
-  if (eventType === 'book_added') return 'Добавлена книга'
-  if (eventType === 'book_removed') return 'Убрана книга'
-  if (eventType === 'rank_changed') return 'Ранги'
-  if (eventType === 'status_changed') return 'Статус'
-  if (eventType === 'catalog_signup_updated') return 'Список'
-  if (eventType === 'priorities_updated') return 'Приоритеты'
-  return eventType
-}
-
-function sourceLabel(source: string): string {
-  if (source === 'matching') return 'Матчинг'
-  if (source === 'catalog') return 'Каталог'
-  if (source === 'profile') return 'Профиль'
-  if (source === 'admin') return 'Админка'
-  return source
-}
-
 function displayParticipant(userId: string, participants: Participant[]): string {
   const participant = participants.find((item) => item.userId === userId)
   return participant?.pseudonym ?? `${userId.slice(0, 12)}…`
-}
-
-function eventDetail(event: PreferenceEvent): string {
-  if (event.metadata?.bookTitle) return event.metadata.bookTitle
-  if (event.metadata?.selectedBookIds) return `${event.metadata.selectedBookIds.length} книг`
-  if (event.metadata?.bookIds) return `${event.metadata.bookIds.length} книг`
-  return event.bookId ?? '—'
 }

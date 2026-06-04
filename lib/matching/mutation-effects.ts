@@ -38,6 +38,24 @@ export async function finalizeMatchingMutationEffects({
   const after = await captureMatchingMutationSnapshot(sessionId)
   if (!after) return
 
+  const titleFor = (id: string) => after.context.bookTitleById.get(id) ?? id
+
+  // Enrich any book-id arrays in metadata with human-readable titles so the
+  // admin UI can show *which* books were touched without its own id→title map.
+  const idArrayKeys: Array<[idKey: string, titleKey: string]> = [
+    ['addedBookIds', 'addedBookTitles'],
+    ['removedBookIds', 'removedBookTitles'],
+    ['rankedBookIds', 'rankedBookTitles'],
+  ]
+  const enrichedMetadata: Record<string, unknown> = { ...metadata }
+  for (const [idKey, titleKey] of idArrayKeys) {
+    const ids = metadata[idKey]
+    if (Array.isArray(ids)) {
+      enrichedMetadata[titleKey] = (ids as string[]).map(titleFor)
+    }
+  }
+  enrichedMetadata.bookTitle = bookId ? after.context.bookTitleById.get(bookId) ?? null : null
+
   await recordMatchingPreferenceEvent({
     sessionId,
     userId: targetUserId,
@@ -47,9 +65,6 @@ export async function finalizeMatchingMutationEffects({
     bookId,
     before: before?.context.overview.leader ?? null,
     after: after.context.overview.leader,
-    metadata: {
-      ...metadata,
-      bookTitle: bookId ? after.context.bookTitleById.get(bookId) ?? null : null,
-    },
+    metadata: enrichedMetadata,
   })
 }

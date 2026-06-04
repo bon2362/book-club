@@ -107,7 +107,7 @@ export async function PUT(req: NextRequest) {
       kind: 'priorities_updated',
       source: 'profile',
       before,
-      metadata: { bookIds: validBookIds },
+      metadata: { rankedBookIds: validBookIds },
     })
   }
   await broadcastActiveMatchingStateChangeForParticipant(userId, {
