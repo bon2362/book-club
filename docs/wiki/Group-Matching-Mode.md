@@ -70,7 +70,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 | `source` | text | `matching`, `catalog`, `profile`, `admin` |
 | `book_id` | text FK → books? | Книга, если событие относится к одной книге |
 | `before` / `after` | jsonb? | Лидер-сценарий до/после изменения |
-| `metadata` | jsonb? | Snapshot деталей: название книги, список bookIds, статус |
+| `metadata` | jsonb? | Snapshot деталей с уже разрешёнными названиями книг. Для одиночных действий — `bookTitle`. Для `catalog_signup_updated` — дельта набора: `addedBookIds`/`removedBookIds` + читаемые `addedBookTitles`/`removedBookTitles`. Для `priorities_updated` — упорядоченный `rankedBookIds` + `rankedBookTitles`. Названия дописываются в `finalizeMatchingMutationEffects` через `bookTitleById`, поэтому админка показывает «какие именно книги» без собственного резолва id→title. Статусные события несут `status`. |
 | `occurred_at` | timestamp | Когда произошло |
 
 Событие пишется только если пользователь уже был участником этой сессии на момент изменения (`occurred_at >= joined_at`).

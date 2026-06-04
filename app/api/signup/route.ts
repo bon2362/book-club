@@ -115,7 +115,10 @@ export async function POST(req: NextRequest) {
       kind: 'catalog_signup_updated',
       source: 'catalog',
       before,
-      metadata: { selectedBookIds: result.addedBookIds },
+      metadata: {
+        addedBookIds: result.newlyAddedBookIds,
+        removedBookIds: result.removedBookIds,
+      },
     })
   }
   await broadcastActiveMatchingStateChangeForParticipant(pgUserId, {

@@ -26,8 +26,10 @@ export interface UserSignup {
 
 export interface UpsertResult {
   isNew: boolean
-  addedBooks: string[]    // titles
-  addedBookIds: string[]
+  addedBooks: string[]    // titles — full resulting selection
+  addedBookIds: string[]  // full resulting selection (NOT a delta)
+  newlyAddedBookIds: string[] // delta: books added in this call
+  removedBookIds: string[]    // delta: books removed in this call
 }
 
 interface SignupBookInput {
@@ -118,6 +120,9 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
   const normalized = Array.from(unique.values())
   const newBookIds = normalized.map(b => b.id)
 
+  let newlyAddedBookIds: string[] = []
+  let removedBookIds: string[] = []
+
   await db.transaction(async (tx) => {
     // Fetch current signups to determine what changed
     const existing = await tx
@@ -128,6 +133,8 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
     const existingIds = new Set(existing.map(e => e.bookId))
     const toDelete = Array.from(existingIds).filter(id => !newBookIds.includes(id))
     const toAdd = newBookIds.filter(id => !existingIds.has(id))
+    newlyAddedBookIds = toAdd
+    removedBookIds = toDelete
 
     // Delete only removed books (preserves personal_status on remaining rows)
     if (toDelete.length > 0) {
@@ -145,7 +152,13 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
     }
   })
 
-  return { isNew: false, addedBooks: normalized.map(book => book.title), addedBookIds: normalized.map(book => book.id) }
+  return {
+    isNew: false,
+    addedBooks: normalized.map(book => book.title),
+    addedBookIds: normalized.map(book => book.id),
+    newlyAddedBookIds,
+    removedBookIds,
+  }
 }
 
 export async function upsertSignupByBookIds(userId: string, bookIds: string[]): Promise<UpsertResult> {

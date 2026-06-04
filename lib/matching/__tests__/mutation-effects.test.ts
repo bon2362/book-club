@@ -112,6 +112,61 @@ describe('finalizeMatchingMutationEffects', () => {
     }))
   })
 
+  it('обогащает id-массивы метаданных названиями книг (catalog delta)', async () => {
+    mockFetchContext.mockResolvedValue({
+      ...afterContext,
+      bookTitleById: new Map([
+        ['book-1', 'Дюна'],
+        ['book-2', '1984'],
+      ]),
+    })
+
+    await finalizeMatchingMutationEffects({
+      sessionId: 'session-1',
+      targetUserId: 'target',
+      actorUserId: 'target',
+      bookId: null,
+      kind: 'catalog_signup_updated',
+      source: 'catalog',
+      before: null,
+      metadata: { addedBookIds: ['book-1'], removedBookIds: ['book-2'] },
+    })
+
+    expect(mockRecordEvent).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({
+        addedBookIds: ['book-1'],
+        removedBookIds: ['book-2'],
+        addedBookTitles: ['Дюна'],
+        removedBookTitles: ['1984'],
+        bookTitle: null,
+      }),
+    }))
+  })
+
+  it('обогащает rankedBookIds, неизвестный id остаётся как есть', async () => {
+    mockFetchContext.mockResolvedValue({
+      ...afterContext,
+      bookTitleById: new Map([['book-1', 'Дюна']]),
+    })
+
+    await finalizeMatchingMutationEffects({
+      sessionId: 'session-1',
+      targetUserId: 'target',
+      actorUserId: 'target',
+      bookId: null,
+      kind: 'priorities_updated',
+      source: 'profile',
+      before: null,
+      metadata: { rankedBookIds: ['book-1', 'book-missing'] },
+    })
+
+    expect(mockRecordEvent).toHaveBeenCalledWith(expect.objectContaining({
+      metadata: expect.objectContaining({
+        rankedBookTitles: ['Дюна', 'book-missing'],
+      }),
+    }))
+  })
+
   it('does nothing when the scenario context is unavailable', async () => {
     mockFetchContext.mockResolvedValue(null)
 

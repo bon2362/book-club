@@ -11,6 +11,7 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
+import { finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signup-books', () => ({ upsertSignupByBookIds: jest.fn() }))
@@ -49,6 +50,7 @@ const mockInsert = dbModule.db.insert as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
+const mockFinalizeEffects = finalizeMatchingMutationEffects as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/signup', {
@@ -58,8 +60,14 @@ function makeRequest(body: object) {
   })
 }
 
-function upsertResult(books: string[] = [], bookIds: string[] = books.map((_, i) => `book-${i + 1}`), isNew = false) {
-  return { isNew, addedBooks: books, addedBookIds: bookIds }
+function upsertResult(
+  books: string[] = [],
+  bookIds: string[] = books.map((_, i) => `book-${i + 1}`),
+  isNew = false,
+  newlyAddedBookIds: string[] = bookIds,
+  removedBookIds: string[] = [],
+) {
+  return { isNew, addedBooks: books, addedBookIds: bookIds, newlyAddedBookIds, removedBookIds }
 }
 
 describe('POST /api/signup', () => {
@@ -132,6 +140,27 @@ describe('POST /api/signup', () => {
       kind: 'catalog_signup_updated',
       selectedBookIds: ['book-a'],
     })
+  })
+
+  it('при активной сессии пишет событие предпочтений с дельтой добавленных/убранных книг', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockGetActiveSessionId.mockResolvedValue('session-1')
+    // добавлена book-b, убрана book-x
+    mockUpsertSignupByBookIds.mockResolvedValue(
+      upsertResult(['Book A', 'Book B'], ['book-a', 'book-b'], false, ['book-b'], ['book-x']),
+    )
+
+    const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBookIds: ['book-a', 'book-b'] }))
+
+    expect(res.status).toBe(200)
+    expect(mockFinalizeEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session-1',
+        kind: 'catalog_signup_updated',
+        source: 'catalog',
+        metadata: { addedBookIds: ['book-b'], removedBookIds: ['book-x'] },
+      }),
+    )
   })
 
   it('не принимает legacy selectedBooks по названиям', async () => {

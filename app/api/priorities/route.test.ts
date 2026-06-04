@@ -10,6 +10,7 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
+import { finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
 
 jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
@@ -39,6 +40,7 @@ const mockAuth = authModule.auth as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
+const mockFinalizeEffects = finalizeMatchingMutationEffects as jest.Mock
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -161,5 +163,33 @@ describe('PUT /api/priorities', () => {
       kind: 'external_ranks_updated',
       bookIds: ['book-a', 'book-b'],
     })
+  })
+
+  it('при активной сессии пишет событие предпочтений с упорядоченным списком книг', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
+    mockGetActiveSessionId.mockResolvedValue('session-1')
+    ;(db.select as jest.Mock).mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue([{ id: 'book-a' }, { id: 'book-b' }]),
+      }),
+    })
+    ;(db.insert as jest.Mock).mockReturnValue({ values: jest.fn().mockResolvedValue(undefined) })
+    ;(db.delete as jest.Mock).mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) })
+    ;(db.update as jest.Mock).mockReturnValue({
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockResolvedValue(undefined),
+    })
+
+    const res = await PUT(makePut({ bookIds: ['book-b', 'book-a'] }))
+
+    expect(res.status).toBe(200)
+    expect(mockFinalizeEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session-1',
+        kind: 'priorities_updated',
+        source: 'profile',
+        metadata: { rankedBookIds: ['book-b', 'book-a'] },
+      }),
+    )
   })
 })
