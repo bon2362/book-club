@@ -5,6 +5,7 @@ import {
   type PreferenceEventMetadata,
   eventDetail,
   eventTypeLabel,
+  formatParticipant,
   sourceLabel,
 } from '@/lib/matching/preference-event-display'
 
@@ -32,6 +33,10 @@ interface PreferenceEvent {
   sessionId: string
   userId: string
   actorUserId: string
+  userName: string | null
+  actorName: string | null
+  userPseudonym: string | null
+  actorPseudonym: string | null
   eventType: string
   source: string
   bookId: string | null
@@ -512,8 +517,8 @@ export default function AdminMatchingSession() {
                       </td>
                       <td style={{ padding: '3px 8px', color: 'var(--text-body)' }}>{eventTypeLabel(event.eventType)}</td>
                       <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{sourceLabel(event.source)}</td>
-                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{displayParticipant(event.userId, participants)}</td>
-                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{displayParticipant(event.actorUserId, participants)}</td>
+                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{formatParticipant({ name: event.userName, pseudonym: event.userPseudonym ?? event.metadata?.pseudonym, userId: event.userId })}</td>
+                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{formatParticipant({ name: event.actorName, pseudonym: event.actorPseudonym, userId: event.actorUserId })}</td>
                       <td style={{ padding: '3px 8px', color: 'var(--text-muted)' }}>{eventDetail(event)}</td>
                     </tr>
                   ))}
@@ -612,9 +617,4 @@ function countPreferenceEvents(events: PreferenceEvent[]): Record<string, number
     acc[event.eventType] = (acc[event.eventType] ?? 0) + 1
     return acc
   }, {})
-}
-
-function displayParticipant(userId: string, participants: Participant[]): string {
-  const participant = participants.find((item) => item.userId === userId)
-  return participant?.pseudonym ?? `${userId.slice(0, 12)}…`
 }

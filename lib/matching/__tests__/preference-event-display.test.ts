@@ -1,6 +1,7 @@
 import {
   eventDetail,
   eventTypeLabel,
+  formatParticipant,
   sourceLabel,
   type PreferenceEventLike,
 } from '../preference-event-display'
@@ -9,7 +10,8 @@ const event = (
   eventType: string,
   metadata: PreferenceEventLike['metadata'],
   bookId: string | null = null,
-): PreferenceEventLike => ({ eventType, bookId, metadata })
+  source?: string,
+): PreferenceEventLike => ({ eventType, bookId, metadata, source })
 
 describe('eventTypeLabel', () => {
   it('переименовывает catalog_signup_updated в «Изменён набор»', () => {
@@ -22,8 +24,34 @@ describe('eventTypeLabel', () => {
     expect(eventTypeLabel('priorities_updated')).toBe('Приоритеты')
   })
 
+  it('переводит participant_left', () => {
+    expect(eventTypeLabel('participant_left')).toBe('Покинул:а сессию')
+  })
+
   it('возвращает исходный код для неизвестного типа', () => {
     expect(eventTypeLabel('mystery')).toBe('mystery')
+  })
+})
+
+describe('formatParticipant', () => {
+  it('имя и псевдоним → «Имя (Псевдоним)»', () => {
+    expect(formatParticipant({ name: 'Иван', pseudonym: 'Белка', userId: 'u1' })).toBe('Иван (Белка)')
+  })
+
+  it('только имя', () => {
+    expect(formatParticipant({ name: 'Иван', pseudonym: null, userId: 'u1' })).toBe('Иван')
+  })
+
+  it('только псевдоним', () => {
+    expect(formatParticipant({ name: null, pseudonym: 'Белка', userId: 'u1' })).toBe('Белка')
+  })
+
+  it('ничего нет → короткий id', () => {
+    expect(formatParticipant({ name: null, pseudonym: null, userId: '24a75fbc-a1f9-1234' })).toBe('24a75fbc-a1f…')
+  })
+
+  it('пустые строки трактуются как отсутствие', () => {
+    expect(formatParticipant({ name: '  ', pseudonym: 'Белка', userId: 'u1' })).toBe('Белка')
   })
 })
 
@@ -69,6 +97,14 @@ describe('eventDetail', () => {
     expect(
       eventDetail(event('catalog_signup_updated', { addedBookTitles: [], removedBookTitles: [] }, 'b9')),
     ).toBe('b9')
+  })
+
+  it('participant_left: самостоятельный выход — тире', () => {
+    expect(eventDetail(event('participant_left', { pseudonym: 'Белка' }, null, 'matching'))).toBe('—')
+  })
+
+  it('participant_left: удаление админом помечается', () => {
+    expect(eventDetail(event('participant_left', { pseudonym: 'Белка' }, null, 'admin'))).toBe('удалён:а админом')
   })
 
   it('без метаданных показывает bookId или тире', () => {

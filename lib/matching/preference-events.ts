@@ -64,3 +64,45 @@ export async function recordMatchingPreferenceEvent(
 
   return { recorded: true, eventId: created.id }
 }
+
+export interface RecordParticipantLeftEventInput {
+  sessionId: string
+  userId: string
+  actorUserId: string
+  source: 'matching' | 'admin'
+}
+
+/**
+ * Persists a `participant_left` analytics event. MUST be called BEFORE the
+ * participant row is deleted — it snapshots the pseudonym (lost on delete) and
+ * relies on the row still existing to pass the membership guard.
+ */
+export async function recordParticipantLeftEvent(
+  input: RecordParticipantLeftEventInput,
+  dbClient: DbClient = db,
+): Promise<void> {
+  const [participant] = await dbClient
+    .select({ pseudonym: matchingSessionParticipants.pseudonym })
+    .from(matchingSessionParticipants)
+    .where(
+      and(
+        eq(matchingSessionParticipants.sessionId, input.sessionId),
+        eq(matchingSessionParticipants.userId, input.userId),
+      ),
+    )
+    .limit(1)
+
+  if (!participant) return
+
+  await recordMatchingPreferenceEvent(
+    {
+      sessionId: input.sessionId,
+      userId: input.userId,
+      actorUserId: input.actorUserId,
+      eventType: 'participant_left',
+      source: input.source,
+      metadata: { pseudonym: participant.pseudonym },
+    },
+    dbClient,
+  )
+}

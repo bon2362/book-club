@@ -66,14 +66,16 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 | `session_id` | text FK → matching_sessions | Сессия |
 | `user_id` | text FK → user | Чьи предпочтения изменились |
 | `actor_user_id` | text FK → user | Кто сделал изменение; для админки может отличаться от `user_id` |
-| `event_type` | text | `book_added`, `book_removed`, `status_changed`, `catalog_signup_updated`, `priorities_updated` |
+| `event_type` | text | `book_added`, `book_removed`, `status_changed`, `catalog_signup_updated`, `priorities_updated`, `participant_left` |
 | `source` | text | `matching`, `catalog`, `profile`, `admin` |
 | `book_id` | text FK → books? | Книга, если событие относится к одной книге |
 | `before` / `after` | jsonb? | Лидер-сценарий до/после изменения |
-| `metadata` | jsonb? | Snapshot деталей с уже разрешёнными названиями книг. Для одиночных действий — `bookTitle`. Для `catalog_signup_updated` — дельта набора: `addedBookIds`/`removedBookIds` + читаемые `addedBookTitles`/`removedBookTitles`. Для `priorities_updated` — упорядоченный `rankedBookIds` + `rankedBookTitles`. Названия дописываются в `finalizeMatchingMutationEffects` через `bookTitleById`, поэтому админка показывает «какие именно книги» без собственного резолва id→title. Статусные события несут `status`. |
+| `metadata` | jsonb? | Snapshot деталей с уже разрешёнными названиями книг. Для одиночных действий — `bookTitle`. Для `catalog_signup_updated` — дельта набора: `addedBookIds`/`removedBookIds` + читаемые `addedBookTitles`/`removedBookTitles`. Для `priorities_updated` — упорядоченный `rankedBookIds` + `rankedBookTitles`. Названия дописываются в `finalizeMatchingMutationEffects` через `bookTitleById`, поэтому админка показывает «какие именно книги» без собственного резолва id→title. Статусные события несут `status`. Событие `participant_left` несёт `pseudonym` (снимок, т.к. строка участника удаляется при выходе). |
 | `occurred_at` | timestamp | Когда произошло |
 
 Событие пишется только если пользователь уже был участником этой сессии на момент изменения (`occurred_at >= joined_at`).
+
+При выходе участника (`DELETE …/leave`) и при удалении участника админом (`DELETE …/participants/:userId`) **до** удаления строки пишется событие `participant_left` (`recordParticipantLeftEvent`): `source` = `matching` (сам ушёл) либо `admin` (удалил админ), а псевдоним сохраняется в `metadata.pseudonym`. Запись обязана идти до удаления — иначе теряется псевдоним и не проходит membership-guard.
 
 ### `admin_views`
 Аудит-лог просмотров участников администратором через `?as=` режим.
@@ -98,7 +100,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 | POST | `/api/matching/sessions/:id/freeze` | Заморозить сессию (только admin) |
 | POST | `/api/matching/sessions/:id/heartbeat` | Обновить presence (участники; для admin — no-op) |
 | GET | `/api/matching/sessions/:id/audit-log` | Журнал admin_views для сессии (только admin) |
-| GET | `/api/admin/matching/preference-events` | Аналитика изменений предпочтений; фильтры `sessionId`, `userId`, `actorUserId`, `eventType`, `source`, `bookId`, `limit` |
+| GET | `/api/admin/matching/preference-events` | Аналитика изменений предпочтений; фильтры `sessionId`, `userId`, `actorUserId`, `eventType`, `source`, `bookId`, `limit`. Каждое событие обогащено именами: `userName`/`actorName` (из `users`, есть даже у вышедших) и `userPseudonym`/`actorPseudonym` (из участников, `null` после выхода — тогда псевдоним берётся из `metadata.pseudonym`). Админка рисует «Имя (Псевдоним)». |
 | GET | `/api/admin/matching/sessions/:id/participants` | Список участников с именами (только admin) |
 | POST | `/api/admin/matching/sessions/:id/participants` | Добавить участника из базы пользователей (только admin, только active) |
 | DELETE | `/api/admin/matching/sessions/:id/participants/:userId` | Убрать участника из сессии (только admin, только active) |

@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { broadcast } from '@/lib/matching/realtime/hub'
+import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
 
 interface Params { params: { id: string } }
 
@@ -29,6 +30,15 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (matchingSession.status !== 'active') {
     return NextResponse.json({ error: 'Session is not active' }, { status: 409 })
   }
+
+  // Record the analytics event BEFORE deleting the participant row (pseudonym
+  // is captured there and the membership guard needs the row to still exist).
+  await recordParticipantLeftEvent({
+    sessionId,
+    userId,
+    actorUserId: userId,
+    source: 'matching',
+  }).catch(() => {}) // analytics must never block the leave action
 
   await db
     .delete(matchingSessionParticipants)
