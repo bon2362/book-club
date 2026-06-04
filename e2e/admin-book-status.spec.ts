@@ -55,7 +55,10 @@ test.describe('AdminPanel — изменение статуса книги', () 
 
     // Переключаемся на вкладку "Каталог"
     await page.getByTestId('admin-tab-catalog').click()
-    await page.waitForLoadState('networkidle')
+    // НЕ networkidle: каталог рендерит обложки через next/image; недоступный
+    // внешний хост (imwerden.de) держит запрос /_next/image открытым и idle
+    // никогда не наступает. Дальнейшие expect(...).toBeVisible() сами ждут гидрацию.
+    await page.waitForLoadState('domcontentloaded')
 
     // Находим строку нашей книги
     const bookRow = page.getByTestId(`admin-book-row-${book.id}`)
@@ -69,9 +72,11 @@ test.describe('AdminPanel — изменение статуса книги', () 
 
     await expect(bookRow).toContainText('Reading')
 
-    // Ключевая проверка: перезагрузка → статус должен сохраниться
+    // Ключевая проверка: перезагрузка → статус должен сохраниться.
+    // После reload восстанавливается ?tab=catalog, поэтому ждём только
+    // domcontentloaded (см. коммент выше про обложки и networkidle).
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await page.getByTestId('admin-tab-catalog').click()
 
     const bookRowAfterReload = page.getByTestId(`admin-book-row-${book.id}`)
