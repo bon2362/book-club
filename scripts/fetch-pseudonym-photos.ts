@@ -47,21 +47,28 @@ async function getJson(url: string): Promise<any> {
 /** Имя файла из upload.wikimedia.org URL → 'Portrait_of_owls.jpg' (декодированное). */
 function fileNameFromUrl(src: string): string | null {
   try {
-    const last = new URL(src).pathname.split('/').pop()
-    return last ? decodeURIComponent(last) : null
+    const parts = new URL(src).pathname.split('/').filter(Boolean)
+    // Для thumb-URL (.../thumb/x/xx/Name.jpg/640px-Name.jpg) реальное имя файла —
+    // предпоследний сегмент; для прямого URL — последний.
+    const name = parts.includes('thumb') ? parts[parts.length - 2] : parts[parts.length - 1]
+    return name ? decodeURIComponent(name) : null
   } catch {
     return null
   }
 }
 
-async function resolve(name: string): Promise<(Omit<ManifestEntry, 'file'> & { thumbUrl: string }) | null> {
+type ResolveResult =
+  | { ok: true; author: string; license: string; sourceUrl: string; thumbUrl: string }
+  | { ok: false; reason: string }
+
+async function resolve(name: string): Promise<ResolveResult> {
   // 1) заглавное изображение статьи через REST summary (надёжнее pageimages, ловит disambiguation)
   const summary = await getJson(REST_SUMMARY + encodeURIComponent(name))
-  if (summary?.type === 'disambiguation') return null
+  if (summary?.type === 'disambiguation') return { ok: false, reason: 'disambiguation' }
   const src: string | undefined = summary?.originalimage?.source ?? summary?.thumbnail?.source
-  if (!src) return null
+  if (!src) return { ok: false, reason: 'no-image' }
   const fileName = fileNameFromUrl(src)
-  if (!fileName) return null
+  if (!fileName) return { ok: false, reason: 'no-filename' }
 
   // 2) лицензия + thumbnail по файлу с Commons
   const info = await getJson(
@@ -74,13 +81,14 @@ async function resolve(name: string): Promise<(Omit<ManifestEntry, 'file'> & { t
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const first: any = Object.values(pages)[0]
   const ii = first?.imageinfo?.[0]
-  if (!ii) return null
+  if (!ii) return { ok: false, reason: 'no-license-info' }
   const meta = ii.extmetadata ?? {}
   const license = stripHtml(meta.LicenseShortName?.value ?? '')
-  if (!ACCEPT.test(license)) return null
+  if (!ACCEPT.test(license)) return { ok: false, reason: `license:${license || 'unknown'}` }
   const author = stripHtml(meta.Artist?.value ?? '') || 'Wikimedia Commons'
   const thumbUrl: string = ii.thumburl ?? ii.url ?? src
   return {
+    ok: true,
     thumbUrl,
     author,
     license,
@@ -91,12 +99,12 @@ async function resolve(name: string): Promise<(Omit<ManifestEntry, 'file'> & { t
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true })
   const manifest: Record<string, ManifestEntry> = {}
-  const misses: string[] = []
+  const misses: { name: string; reason: string }[] = []
 
   for (const name of ANIMALS) {
     try {
       const r = await resolve(name)
-      if (!r) { misses.push(name); continue }
+      if (!r.ok) { misses.push({ name, reason: r.reason }); console.warn(`SKIP ${name}: ${r.reason}`); continue }
       const slug = slugify(name)
       const buf = Buffer.from(await (await fetch(r.thumbUrl, { headers: { 'User-Agent': UA } })).arrayBuffer())
       await sharp(buf).resize(320, 320, { fit: 'cover', position: 'centre' }).webp({ quality: 80 })
@@ -104,7 +112,7 @@ async function main() {
       manifest[name] = { file: `/matching/species/${slug}.webp`, author: r.author, license: r.license, sourceUrl: r.sourceUrl }
       console.log(`OK  ${name} -> ${slug}.webp [${r.license}]`)
     } catch (e) {
-      misses.push(name)
+      misses.push({ name, reason: `error:${(e as Error).message}` })
       console.warn(`SKIP ${name}: ${(e as Error).message}`)
     }
     await new Promise((res) => setTimeout(res, 200)) // вежливый rate-limit
@@ -115,7 +123,8 @@ async function main() {
     `export interface PseudonymPhoto { file: string; author: string; license: string; sourceUrl: string }\n` +
     `export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = ${JSON.stringify(manifest, null, 2)}\n`
   fs.writeFileSync(MANIFEST, body)
-  console.log(`\nDone. ${Object.keys(manifest).length} photos, ${misses.length} misses:`, misses.join(', '))
+  console.log(`\nDone. ${Object.keys(manifest).length} photos, ${misses.length} misses:`)
+  for (const m of misses) console.log(`  - ${m.name}: ${m.reason}`)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
