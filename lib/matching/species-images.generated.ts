@@ -33,9 +33,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Верблюд": {
     "file": "/matching/species/verblyud.webp",
-    "author": "Готлиб XI",
+    "author": "Alexandr frolov",
     "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Montage_of_Camelus.png"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Camelus_bactrianus_in_western_Mongolia_06.jpg"
   },
   "Волк": {
     "file": "/matching/species/volk.webp",
@@ -129,15 +129,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Кит": {
     "file": "/matching/species/kit.webp",
-    "author": "The original uploader was Zorankovacevic at English Wikipedia.",
-    "license": "CC BY-SA 2.5",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Jumping_Humpback_whale.jpg"
+    "author": "Giles Laurent",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:001_Humpback_whale_breaching_in_Ballena_Marine_National_Park_Photo_by_Giles_Laurent.jpg"
   },
   "Козуля": {
     "file": "/matching/species/kozulya.webp",
-    "author": "Anastasiya Lvova",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Three_kozuli.jpg"
+    "author": "Bengt Nyman from Vaxholm, Sweden",
+    "license": "CC BY 2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Capreolus_capreolus_SNY00933_(51291669222).jpg"
   },
   "Кот": {
     "file": "/matching/species/kot.webp",
@@ -201,9 +201,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Медведь": {
     "file": "/matching/species/medved.webp",
-    "author": "MathKnight",
+    "author": "Arturo de Frias Marques",
     "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ursidae-01.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Polar_Bear_AdF.jpg"
   },
   "Мышь": {
     "file": "/matching/species/mysh.webp",
@@ -213,9 +213,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Нарвал": {
     "file": "/matching/species/narval.webp",
-    "author": "пресс-служба ПАО \"Газпром нефть\"",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:%D0%9D%D0%B0%D1%80%D0%B2%D0%B0%D0%BB_%D0%B2_%D1%80%D0%BE%D1%81%D1%81%D0%B8%D0%B9%D1%81%D0%BA%D0%BE%D0%B9_%D0%90%D1%80%D0%BA%D1%82%D0%B8%D0%BA%D0%B5.jpg"
+    "author": "The Public Domain Review",
+    "license": "Public domain",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Narwhal_-_KB_(48754862101).jpg"
   },
   "Норка": {
     "file": "/matching/species/norka.webp",
@@ -237,9 +237,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Олень": {
     "file": "/matching/species/olen.webp",
-    "author": "This image is a derivative work of the following images: File:White-tailed deer.jpg (USDA photo by Scott Bauer) File:RangiferTarandus.jpg (uploaded by User:Sydpolen) File:Red deer stag 2009 denmark.jpg (uploaded by User:Atomicbre) File:The barasingha.jpg (uploaded by aloshbennett) File:Dama dama 002.jpg (uploaded by User:Lily_M))",
+    "author": "derivative work: Massimo Catarinella (talk) Red_deer_stag.jpg: Mehmet Karatay",
     "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Family_Cervidae_five_species.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:RedDeerStag.jpg"
   },
   "Осёл": {
     "file": "/matching/species/osyol.webp",
@@ -249,9 +249,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Пантера": {
     "file": "/matching/species/pantera.webp",
-    "author": "Termininja",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Panthera_Diversity.jpg"
+    "author": "Bruce McAdam from Reykjavik, Iceland",
+    "license": "CC BY-SA 2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Black_Panther_by_Bruce_McAdam.jpg"
   },
   "Панда": {
     "file": "/matching/species/panda.webp",
@@ -267,9 +267,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Пингвин": {
     "file": "/matching/species/pingvin.webp",
-    "author": "PaleoMatt",
+    "author": "Photo by David J. Stang",
     "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Penguins_collage.png"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Spheniscus_demersus_19zz.jpg"
   },
   "Пума": {
     "file": "/matching/species/puma.webp",
@@ -279,9 +279,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Рысь": {
     "file": "/matching/species/rys.webp",
-    "author": "PaleoMatt",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lynx_collage.png"
+    "author": "This image was produced by me, David Castor (user:dcastor). The pictures I submit to the Wikipedia Project are released to the public domain. This gives you the right to use them in any way you like, without any kind of notification. This said, I would still appreciate to be mentioned as the originator whenever you think it complies well with your use of the picture. A message to me about how it has been used would also be welcome. You are obviously not required to respond to these wishes of mine, just in a friendly manner encouraged to. (All my photos are placed in Category:Images by David Castor or a subcategory thereof.)",
+    "license": "Public domain",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lynx_lynx-4.JPG"
   },
   "Серна": {
     "file": "/matching/species/serna.webp",
@@ -297,15 +297,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Скунс": {
     "file": "/matching/species/skuns.webp",
-    "author": "Inao Tomfriedel U.Name.Me Bkentosh",
+    "author": "Remove \"cropped\" from file name and see original file",
     "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Mephitidae.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Striped_Skunk_(Mephitis_mephitis)_DSC_0030_cropped.jpg"
   },
   "Слон": {
     "file": "/matching/species/slon.webp",
-    "author": "Yathin S Krishnappa (File:Elephas maximus (Bandipur).jpg) Thomas Breuer (File:Loxodontacyclotis.jpg)) Muhammad Mahdi Karim Facebook The making of this document was supported by Wikimedia CH. (Submit your project!) For all the files concerned, please see the category Supported by Wikimedia CH. العربية ∙ বাংলা ∙ čeština ∙ Deutsch ∙ English ∙ Esperanto ∙ español ∙ français ∙ galego ∙ हिन्दी ∙ magyar ∙ italiano ∙ 日本語 ∙ македонски ∙ Nederlands ∙ português do Brasil ∙ rumantsch ∙ русский ∙ sicilianu ∙ slovenščina ∙ தமிழ் ∙ українська ∙ 中文 ∙ +/− (File:African Bush Elephant.jpg) Derivative work: Sittaco",
-    "license": "CC BY 2.5",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Elephant_Diversity.jpg"
+    "author": "Senthiaathavan",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Baby_Sri_Lankan_elephant_(Elephas_maximus_maximus).jpg"
   },
   "Соболь": {
     "file": "/matching/species/sobol.webp",
@@ -351,15 +351,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Хорёк": {
     "file": "/matching/species/horyok.webp",
-    "author": "Punetor i Rregullt5",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Weasels_together.jpg"
-  },
-  "Хорь": {
-    "file": "/matching/species/hor.webp",
-    "author": "Punetor i Rregullt5",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Weasels_together.jpg"
+    "author": "Nicolas Weghaupt",
+    "license": "CC0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Mustela_putorius_(4).JPG"
   },
   "Шакал": {
     "file": "/matching/species/shakal.webp",
@@ -375,15 +369,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Аист": {
     "file": "/matching/species/aist.webp",
-    "author": "Termininja",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ciconia_Diversity.jpg"
+    "author": "Carlos Delgado",
+    "license": "CC BY-SA 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ciconia_ciconia_-_01.jpg"
   },
   "Альбатрос": {
     "file": "/matching/species/albatros.webp",
-    "author": "Michal Klajban based on the mentioned works",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Diomedeidae_collage.jpg"
+    "author": "JJ Harrison",
+    "license": "CC BY-SA 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Royal_Albatross_-_east_of_the_Tasman_Peninsula,_Tasmania.jpg"
   },
   "Баклан": {
     "file": "/matching/species/baklan.webp",
@@ -405,9 +399,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Вальдшнеп": {
     "file": "/matching/species/valdshnep.webp",
-    "author": "Johann Friedrich Naumann",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Scolopax_rusticola.jpg"
+    "author": "Hugh Venables",
+    "license": "CC BY-SA 2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Woodcock_(Scolopax_rusticola)_-_geograph.org.uk_-_1036177.jpg"
   },
   "Воробей": {
     "file": "/matching/species/vorobey.webp",
@@ -537,15 +531,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Козодой": {
     "file": "/matching/species/kozodoy.webp",
-    "author": "Jenny Th",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Caprimulgus_europaeus_1200x855.jpg"
+    "author": "Allissondias",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:M%C3%A3e-da-lua-gigante_(Nyctibius_grandis).jpg"
   },
   "Колибри": {
     "file": "/matching/species/kolibri.webp",
-    "author": "Ernst Haeckel",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Haeckel_Trochilidae.jpg"
+    "author": "User:Mdf",
+    "license": "CC BY-SA 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Archilochus-alexandri-002-edit.jpg"
   },
   "Коноплянка": {
     "file": "/matching/species/konoplyanka.webp",
@@ -651,9 +645,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Перепел": {
     "file": "/matching/species/perepel.webp",
-    "author": "Luis Miguel Bugallo Sánchez (Lmbuga Commons)(Lmbuga Galipedia) Publicada por/Publish by: Luis Miguel Bugallo Sánchez",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Coturnix_coturnix_(Lmbuga).jpg"
+    "author": "Tisha Mukherjee",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rain_Quail_in_Bhigwan_August_2025_by_Tisha_Mukherjee_13.jpg"
   },
   "Петух": {
     "file": "/matching/species/petuh.webp",
@@ -717,9 +711,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Сова": {
     "file": "/matching/species/sova.webp",
-    "author": "This images belongs to his respective owners.",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Portrait_of_owls.jpg"
+    "author": "H. Zell",
+    "license": "CC BY-SA 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bubo_scandiacus_-_Karlsruhe_Zoo_01.jpg"
   },
   "Сокол": {
     "file": "/matching/species/sokol.webp",
@@ -741,9 +735,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Тетерев": {
     "file": "/matching/species/teterev.webp",
-    "author": "Wikimedia Commons",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Black_Grouse.jpg"
+    "author": "Vnp at de.wikipedia",
+    "license": "CC BY-SA 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Birkhahn.jpg"
   },
   "Трясогузка": {
     "file": "/matching/species/tryasoguzka.webp",
@@ -783,9 +777,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Чечевица": {
     "file": "/matching/species/chechevitsa.webp",
-    "author": "Victor M. Vicente Selvas",
-    "license": "CC0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Vicia_culinaris_-_Flors_llenties1.jpg"
+    "author": "Paul Danese",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:20250917_house_finch_eating_dogwood_drupe_casa_PD209643.jpg"
   },
   "Чечётка": {
     "file": "/matching/species/chechyotka.webp",
@@ -813,15 +807,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Щурка": {
     "file": "/matching/species/schurka.webp",
-    "author": "Charles J. Sharp",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:African_bee-eaters_composite.jpg"
+    "author": "A.Savin",
+    "license": "FAL",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:SL_Bundala_NP_asv2020-01_img08.jpg"
   },
   "Акула": {
     "file": "/matching/species/akula.webp",
-    "author": "LittleJerry",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:TDpGUipa.jpg"
+    "author": "Hermanus Backpackers",
+    "license": "CC BY 2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Great_white_shark_south_africa.jpg"
   },
   "Белуга": {
     "file": "/matching/species/beluga.webp",
@@ -837,9 +831,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Горбуша": {
     "file": "/matching/species/gorbusha.webp",
-    "author": "Timothy Knepp",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pink_salmon_FWS.jpg"
+    "author": "Totti",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Oncorhynchus_gorbuscha_karafutomasu.jpg"
   },
   "Дельфин": {
     "file": "/matching/species/delfin.webp",
@@ -861,15 +855,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Камбала": {
     "file": "/matching/species/kambala.webp",
-    "author": "Hans Hillewaert",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pleuronectes_platessa.jpg"
+    "author": "Liné1",
+    "license": "CC BY 2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pleuronectes_platessa.carrelet02.jpg"
   },
   "Карась": {
     "file": "/matching/species/karas.webp",
-    "author": "George Chernilevsky",
+    "author": "User:Viridiflavus",
     "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Carassius_gibelio_2008_G1.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:CarassiusCarassius7.jpg"
   },
   "Карп": {
     "file": "/matching/species/karp.webp",
@@ -879,9 +873,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Кета": {
     "file": "/matching/species/keta.webp",
-    "author": "NOAA",
+    "author": "Roger Tabor/USFWS",
     "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Oncorhynchus_keta.jpeg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chum_salmon_Allison_Springs_Creek.png"
   },
   "Кефаль": {
     "file": "/matching/species/kefal.webp",
@@ -891,9 +885,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Краб": {
     "file": "/matching/species/krab.webp",
-    "author": "Hans Hillewaert",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Liocarcinus_vernalis.jpg"
+    "author": "Rushenb",
+    "license": "CC BY-SA 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ocypode-ceratophthalma-horned-ghost-crab-krabi-thailand.jpg"
   },
   "Креветка": {
     "file": "/matching/species/krevetka.webp",
@@ -903,21 +897,21 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Кутум": {
     "file": "/matching/species/kutum.webp",
-    "author": "mrjahan",
+    "author": "Post of Azerbaijan",
     "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kutum.gif"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Stamps_of_Azerbaijan,_1993-195.jpg"
   },
   "Лещ": {
     "file": "/matching/species/lesch.webp",
-    "author": "Piet Spaans",
-    "license": "CC BY 2.5",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:AbramisBramaCarpBream.JPG"
+    "author": "Микова Наталия",
+    "license": "Public domain",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Carp_bream.jpg"
   },
   "Линь": {
     "file": "/matching/species/lin.webp",
-    "author": "Viridiflavus",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:FemaleTench1.JPG"
+    "author": "Mattia Nocciola",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tinca_tinca_Natural_History_Museum_University_of_Pisa_2.jpg"
   },
   "Лосось": {
     "file": "/matching/species/losos.webp",
@@ -927,9 +921,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Макрель": {
     "file": "/matching/species/makrel.webp",
-    "author": "Wikimedia Commons",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sccav_u0.gif"
+    "author": "Simões, N.; Zarco Perello, S.; Moreno Mendoza, R.",
+    "license": "CC BY 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Scomberomorus_maculatus_in_Madagascar_Reef_01.jpg"
   },
   "Мальма": {
     "file": "/matching/species/malma.webp",
@@ -939,9 +933,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Минтай": {
     "file": "/matching/species/mintay.webp",
-    "author": "National Oceanic and Atmospheric Administration",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Walleye_pollock.jpg"
+    "author": "Totti",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Theragra_chalcogramma_Marinepia.jpg"
   },
   "Мойва": {
     "file": "/matching/species/moyva.webp",
@@ -969,33 +963,33 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Нельма": {
     "file": "/matching/species/nelma.webp",
-    "author": "Fridtjof Nansen",
+    "author": "AnonymousUnknown author",
     "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:P131a_Alexei,_the_cook,_with_a_nyelma_(Stenodus_nelma).jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Stenodus_nelma.jpg"
   },
   "Нерка": {
     "file": "/matching/species/nerka.webp",
-    "author": "David Menke",
+    "author": "USFWS Mountain-Prairie",
     "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Oncorhynchus_nerka_2.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Zombie_Fish_(Kokanee_Salmon)_(22583777446).jpg"
   },
   "Окунь": {
     "file": "/matching/species/okun.webp",
-    "author": "GeSHaFish",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Perca_fluviatilis-female_Siverskiy_Donets_River_Ukraine.jpg"
+    "author": "Gilles San Martin",
+    "license": "CC BY-SA 2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Perca_fluviatilis_-_Perche_commune_-_European_perch_Cropped.jpg"
   },
   "Осётр": {
     "file": "/matching/species/osyotr.webp",
-    "author": "Daniel Döhne",
+    "author": "Haplochromis",
     "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Waxdick_(Acipenser_gueldenstaedtii_)_-_crop.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Acipenser_baerii_Kopf.JPG"
   },
   "Палтус": {
     "file": "/matching/species/paltus.webp",
-    "author": "Matthieu Godbout",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hippoglossus-hippoglossus-idlm2005.jpg"
+    "author": "Krüger",
+    "license": "Public domain",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hippoglossus_hippoglossus1.jpg"
   },
   "Пескарь": {
     "file": "/matching/species/peskar.webp",
@@ -1017,15 +1011,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Рак": {
     "file": "/matching/species/rak.webp",
-    "author": "File:Sally Lightfoot crab (4202519454).jpg: Magnus Manske (uploader), Original by Peter Wilton [1] File:Christmas Island (5775073180).jpg: [2] by DIAC Images File:Lysmata amboinensis in Tropicarium-Oceanarium Budapest.JPG: Хомелка File:RNK jastog.jpg: Ranko",
+    "author": "Lorenz Seebauer",
     "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Decapoda_montage.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Galizischer_Sumpfkrebs.jpg"
   },
   "Рыбец": {
     "file": "/matching/species/rybets.webp",
-    "author": "No machine-readable author provided. Tokic assumed (based on copyright claims).",
-    "license": "CC BY-SA 2.5",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Vimba_vimba.jpg"
+    "author": "Emőke Dénes",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cypriniformes_-_Vimba_vimba_-_3.jpg"
   },
   "Сайда": {
     "file": "/matching/species/sayda.webp",
@@ -1035,15 +1029,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Сайра": {
     "file": "/matching/species/sayra.webp",
-    "author": "tsuchiya.yoshihiro",
-    "license": "CC BY 2.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sanma_for_sashimi_by_tsuchiya.yoshihiro.jpg"
+    "author": "Thomas Pennant (Author), Moses Griffith (artist), Peter Mazell (engraver)",
+    "license": "Public domain",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Greater_Weever_-_Saury_-_from_A_Tour_in_Scotland_-_Moses_Griffith_-_Peter_Mazell.jpg"
   },
   "Сардина": {
     "file": "/matching/species/sardina.webp",
-    "author": "Daniel Ventura",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sardin_from_sardegna_1.jpg"
+    "author": "Etrusko25",
+    "license": "Public domain",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sardina_pilchardus1.jpg"
   },
   "Сёмга": {
     "file": "/matching/species/syomga.webp",
@@ -1053,27 +1047,27 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Сиг": {
     "file": "/matching/species/sig.webp",
-    "author": "see Iduns kokbok",
+    "author": "Bloch, Marcus Elieser",
     "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sik,_Iduns_kokbok.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Coregonus_lavaretus.jpg"
   },
   "Скат": {
     "file": "/matching/species/skat.webp",
-    "author": "BEDO (Thailand)",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Taeniura_meyeni.jpg"
+    "author": "Roberto Pillon",
+    "license": "CC BY 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Torpedo_marmorata_corsica.jpg"
   },
   "Ставрида": {
     "file": "/matching/species/stavrida.webp",
-    "author": "Вадим де Голь",
-    "license": "CC BY-SA 4.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Stavrida.jpg"
+    "author": "Izuzuki",
+    "license": "CC BY 2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:MaAji.jpg"
   },
   "Стерлядь": {
     "file": "/matching/species/sterlyad.webp",
-    "author": "Karelj",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Acipenser_ruthenus_Prague_Vltava_1.jpg"
+    "author": "High Contrast",
+    "license": "CC BY 3.0 de",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sterlet_(Acipenser_ruthenus).JPG"
   },
   "Судак": {
     "file": "/matching/species/sudak.webp",
@@ -1113,9 +1107,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Хариус": {
     "file": "/matching/species/harius.webp",
-    "author": "Zsoldos Márton",
+    "author": "Marrabbio2",
     "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Thymallus_thymallus_P%C3%A9nzes_p%C3%A9r.jpg"
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Thymallus_thymallus_acqMilano.jpg"
   },
   "Чехонь": {
     "file": "/matching/species/chehon.webp",
@@ -1131,9 +1125,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Язь": {
     "file": "/matching/species/yaz.webp",
-    "author": "Viridiflavus",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:LeuciscusIdusWindeIde56cm_21-4-2009_16-46-58.JPG"
+    "author": "Piet Spaans",
+    "license": "CC BY 2.5",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:LeuciscusIdusHead.JPG"
   },
   "Богомол": {
     "file": "/matching/species/bogomol.webp",
@@ -1143,9 +1137,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Бражник": {
     "file": "/matching/species/brazhnik.webp",
-    "author": "Anaxibia",
-    "license": "CC BY-SA 3.0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Acherontia_lachesis_0202.JPG"
+    "author": "Daniel Schwen",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tobacco_Hornworm_1.jpg"
   },
   "Веснянка": {
     "file": "/matching/species/vesnyanka.webp",
@@ -1161,9 +1155,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Жук": {
     "file": "/matching/species/zhuk.webp",
-    "author": "Wikipedia Loves Art participant \"etee_in_Space_Ceetee\"",
-    "license": "CC BY-SA 2.5",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:WLA_vanda_Collection_of_Beetles.jpg"
+    "author": "Andrew Biks",
+    "license": "CC BY 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:%D0%96%D1%83%D0%BA-%D0%BD%D0%BE%D1%81%D0%BE%D1%80%D0%BE%D0%B3_-_%D0%B6%D0%B8%D0%B2%D0%BE%D0%B9_%D1%82%D0%B0%D0%BD%D0%BA.jpg"
   },
   "Жужелица": {
     "file": "/matching/species/zhuzhelitsa.webp",
@@ -1203,9 +1197,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Саранча": {
     "file": "/matching/species/sarancha.webp",
-    "author": "Compton Tucker, NASA GSFC",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:DesertLocust.jpeg"
+    "author": "Charles J. Sharp",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Garden_locust_(Acanthacris_ruficornis).jpg"
   },
   "Светляк": {
     "file": "/matching/species/svetlyak.webp",
@@ -1227,15 +1221,15 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Шмель": {
     "file": "/matching/species/shmel.webp",
-    "author": "Loyna",
-    "license": "CC BY-SA 2.5",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bumblebee_2006.jpg"
+    "author": "Ivar Leidus",
+    "license": "CC BY-SA 4.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bombus_lucorum_-_Epilobium_angustifolium_-_Keila.jpg"
   },
   "Мотылёк": {
     "file": "/matching/species/motylyok.webp",
-    "author": "Morin",
-    "license": "Public domain",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Babochki_rus_enc.jpg"
+    "author": "Ilia Ustyantsev from Russia",
+    "license": "CC BY-SA 2.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ostrinia_nubilalis_-_European_corn_borer_-_%D0%9A%D1%83%D0%BA%D1%83%D1%80%D1%83%D0%B7%D0%BD%D1%8B%D0%B9_%D0%BC%D0%BE%D1%82%D1%8B%D0%BB%D1%91%D0%BA_(26972585408).jpg"
   },
   "Клоп": {
     "file": "/matching/species/klop.webp",
@@ -1245,9 +1239,9 @@ export const SPECIES_PHOTOS: Record<string, PseudonymPhoto> = {
   },
   "Листоед": {
     "file": "/matching/species/listoed.webp",
-    "author": "Francisco Welter-Schultes",
-    "license": "CC0",
-    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chrysomela-populi-08-fws.jpg"
+    "author": "Magne Flåten",
+    "license": "CC BY-SA 3.0",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chrysomela_populi_MF.jpg"
   },
   "Скарабей": {
     "file": "/matching/species/skarabey.webp",

@@ -34,8 +34,8 @@ function stripHtml(s: string): string {
 }
 
 // свободные лицензии с атрибуцией: CC0, Public domain, CC BY(-SA), GFDL,
-// Copyrighted free use, Attribution
-const ACCEPT = /^(cc0|public domain|cc by|gfdl|copyrighted free use|attribution)/i
+// Copyrighted free use, Attribution, FAL (Free Art License)
+const ACCEPT = /^(cc0|public domain|cc by|gfdl|copyrighted free use|attribution|fal)/i
 
 // Ники, чья статья — disambiguation / без фото / под другим названием.
 // Значение — точное название статьи ru.wikipedia (проверено: standard + есть фото).
@@ -59,6 +59,63 @@ const MANUAL_TITLES: Record<string, string> = {
 // Имеет приоритет над MANUAL_TITLES и авто-резолвом.
 const MANUAL_FILES: Record<string, string> = {
   Мальма: 'Dolly-Varden- Morgan Bond, U of Washington edit (15651417154).jpg',
+  Аист: 'Ciconia ciconia - 01.jpg',
+  Акула: 'Great white shark south africa.jpg',
+  Альбатрос: 'Royal Albatross - east of the Tasman Peninsula, Tasmania.jpg',
+  Бражник: 'Tobacco Hornworm 1.jpg',
+  Вальдшнеп: 'Woodcock (Scolopax rusticola) - geograph.org.uk - 1036177.jpg',
+  Верблюд: 'Camelus bactrianus in western Mongolia 06.jpg',
+  Горбуша: 'Oncorhynchus gorbuscha karafutomasu.jpg',
+  Жук: 'Жук-носорог - живой танк.jpg',
+  Камбала: 'Pleuronectes platessa.carrelet02.jpg',
+  Карась: 'CarassiusCarassius7.jpg',
+  Кета: 'Chum salmon Allison Springs Creek.png',
+  Кит: '001 Humpback whale breaching in Ballena Marine National Park Photo by Giles Laurent.jpg',
+  Козодой: 'Mãe-da-lua-gigante (Nyctibius grandis).jpg',
+  Козуля: 'Capreolus capreolus SNY00933 (51291669222).jpg',
+  Колибри: 'Archilochus-alexandri-002-edit.jpg',
+  Краб: 'Ocypode-ceratophthalma-horned-ghost-crab-krabi-thailand.jpg',
+  Кутум: 'Stamps of Azerbaijan, 1993-195.jpg',
+  Лещ: 'Carp bream.jpg',
+  Линь: 'Tinca tinca Natural History Museum University of Pisa 2.jpg',
+  Листоед: 'Chrysomela populi MF.jpg',
+  Макрель: 'Scomberomorus maculatus in Madagascar Reef 01.jpg',
+  Медведь: 'Polar Bear AdF.jpg',
+  Минтай: 'Theragra chalcogramma Marinepia.jpg',
+  Мойва: 'Mallotus villosus.gif',
+  Мотылёк: 'Ostrinia nubilalis - European corn borer - Кукурузный мотылёк (26972585408).jpg',
+  Нарвал: 'Narwhal - KB (48754862101).jpg',
+  Нельма: 'Stenodus nelma.jpg',
+  Нерка: 'Zombie Fish (Kokanee Salmon) (22583777446).jpg',
+  Окунь: 'Perca fluviatilis - Perche commune - European perch Cropped.jpg',
+  Олень: 'RedDeerStag.jpg',
+  Осётр: 'Acipenser baerii Kopf.JPG',
+  Палтус: 'Hippoglossus hippoglossus1.jpg',
+  Пантера: 'Black Panther by Bruce McAdam.jpg',
+  Перепел: 'Rain Quail in Bhigwan August 2025 by Tisha Mukherjee 13.jpg',
+  Пингвин: 'Spheniscus demersus 19zz.jpg',
+  Рак: 'Galizischer Sumpfkrebs.jpg',
+  Рыбец: 'Cypriniformes - Vimba vimba - 3.jpg',
+  Рысь: 'Lynx lynx-4.JPG',
+  Сайра: 'Greater Weever - Saury - from A Tour in Scotland - Moses Griffith - Peter Mazell.jpg',
+  Саранча: 'Garden locust (Acanthacris ruficornis).jpg',
+  Сардина: 'Sardina pilchardus1.jpg',
+  Светляк: 'Firefly Nevit 02670 cr.jpg',
+  Сиг: 'Coregonus lavaretus.jpg',
+  Скат: 'Torpedo marmorata corsica.jpg',
+  Скунс: 'Striped Skunk (Mephitis mephitis) DSC 0030 cropped.jpg',
+  Слон: 'Baby Sri Lankan elephant (Elephas maximus maximus).jpg',
+  Сова: 'Bubo scandiacus - Karlsruhe Zoo 01.jpg',
+  Ставрида: 'MaAji.jpg',
+  Стерлядь: 'Sterlet (Acipenser ruthenus).JPG',
+  Тетерев: 'Birkhahn.jpg',
+  Хариус: 'Thymallus thymallus acqMilano.jpg',
+  Хорёк: 'Mustela putorius (4).JPG',
+  Чехонь: 'Pelecus cultratus1.jpg',
+  Чечевица: '20250917 house finch eating dogwood drupe casa PD209643.jpg',
+  Шмель: 'Bombus lucorum - Epilobium angustifolium - Keila.jpg',
+  Щурка: 'SL Bundala NP asv2020-01 img08.jpg',
+  Язь: 'LeuciscusIdusHead.JPG',
 }
 
 interface ManifestEntry { file: string; author: string; license: string; sourceUrl: string }
@@ -136,21 +193,22 @@ async function resolve(name: string): Promise<ResolveResult> {
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true })
 
-  // Опциональный аргумент — обновить только один ник, остальной манифест сохранить.
-  //   npx ts-node ... scripts/fetch-pseudonym-photos.ts Мальма
-  const only = process.argv[2]
+  // Опциональные аргументы — обновить только перечисленные ники, остальной манифест сохранить.
+  //   npx ts-node ... scripts/fetch-pseudonym-photos.ts Мальма Окунь Сова
+  const only = process.argv.slice(2)
   let names: readonly string[] = ANIMALS
   let manifest: Record<string, ManifestEntry> = {}
-  if (only) {
-    if (!ANIMALS.includes(only)) {
-      console.error(`Ник "${only}" не найден в ANIMALS (lib/matching/pseudonyms.ts)`)
+  if (only.length > 0) {
+    const unknown = only.filter((n) => !ANIMALS.includes(n))
+    if (unknown.length > 0) {
+      console.error(`Ники не найдены в ANIMALS (lib/matching/pseudonyms.ts): ${unknown.join(', ')}`)
       process.exit(1)
     }
     // стартуем от текущего манифеста, чтобы не потерять остальные записи
     const existing = (await import('../lib/matching/species-images.generated')).SPECIES_PHOTOS
     manifest = { ...existing }
-    names = [only]
-    console.log(`Обновляю только: ${only}`)
+    names = only
+    console.log(`Обновляю только: ${only.join(', ')}`)
   }
 
   const misses: { name: string; reason: string }[] = []
