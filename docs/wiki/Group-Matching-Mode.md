@@ -131,7 +131,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 
 ### Фотографии видов-псевдонимов
 
-На приветственном экране `/matching` отображается фотография вида-псевдонима. Источник фотографий — Wikimedia Commons, лицензии PD, CC0, CC-BY, CC-BY-SA. Под каждым фото выводится атрибуция автора и лицензии. Если для конкретного вида фото не найдено — показывается буква-категория (как и внутри самой сессии). Сейчас фото доступны для 164 из 212 ников.
+На приветственном экране `/matching` отображается фотография вида-псевдонима. Источник фотографий — Wikimedia Commons, свободные лицензии (PD, CC0, CC-BY, CC-BY-SA, GFDL, Attribution, Copyrighted free use). Под каждым фото выводится атрибуция автора и лицензии. Если для конкретного вида фото не найдено — показывается буква-категория (как и внутри самой сессии). Сейчас фото доступны для 209 из 212 ников (без фото остаются только названия, не являющиеся видами животных). Для ников, чья статья — страница неоднозначности или озаглавлена иначе, в скрипте `scripts/fetch-pseudonym-photos.ts` задана таблица соответствий `MANUAL_TITLES`.
 
 Фото собираются вручную скриптом `scripts/fetch-pseudonym-photos.ts` и хранятся в `public/matching/species/`. Манифест с путями, авторами и лицензиями — `lib/matching/species-images.generated.ts`.
 
@@ -390,7 +390,7 @@ Zero-sum ход — это действие, где один участник в
 | `components/nd/MatchingMyMoves.tsx` | Секция «Мои ходы» |
 | `components/nd/MatchingBookDetailModal.tsx` | Общий попап деталей книги для всех matching-секций |
 | `components/nd/MatchingWelcome.tsx` | Приветственный экран с фото/буквой-глифом вида-псевдонима |
-| `lib/matching/species-images.generated.ts` | Манифест фото видов (164 вида, пути + атрибуция) |
+| `lib/matching/species-images.generated.ts` | Манифест фото видов (209 видов, пути + атрибуция) |
 | `components/nd/matching-shared.ts` | Общие подписи статусов и палитра псевдонимов |
 | `components/nd/MatchingRankNudge.tsx` | Баннер-нападка для участников без рангов |
 | `components/nd/MatchingRealtimeClient.tsx` | SSE-клиент с polling-фолбэком и heartbeat |
