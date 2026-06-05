@@ -77,17 +77,6 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 
 При выходе участника (`DELETE …/leave`) и при удалении участника админом (`DELETE …/participants/:userId`) **до** удаления строки пишется событие `participant_left` (`recordParticipantLeftEvent`): `source` = `matching` (сам ушёл) либо `admin` (удалил админ), а псевдоним сохраняется в `metadata.pseudonym`. Запись обязана идти до удаления — иначе теряется псевдоним и не проходит membership-guard.
 
-### `admin_views`
-Аудит-лог просмотров участников администратором через `?as=` режим.
-
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | text PK | UUID |
-| `admin_id` | text FK → user | Кто смотрел |
-| `viewed_user_id` | text FK → user | Кого смотрели |
-| `session_id` | text FK → matching_sessions? | В рамках какой сессии |
-| `ts` | timestamp | Время просмотра |
-
 ## API-эндпоинты
 
 | Метод | Путь | Описание |
@@ -99,8 +88,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 | DELETE | `/api/matching/sessions/:id/leave` | Покинуть сессию (только активные сессии) |
 | POST | `/api/matching/sessions/:id/freeze` | Заморозить сессию (только admin) |
 | POST | `/api/matching/sessions/:id/heartbeat` | Обновить presence (участники; для admin — no-op) |
-| GET | `/api/matching/sessions/:id/audit-log` | Журнал admin_views для сессии (только admin) |
-| GET | `/api/admin/matching/preference-events` | Аналитика изменений предпочтений; фильтры `sessionId`, `userId`, `actorUserId`, `eventType`, `source`, `bookId`, `limit`. Каждое событие обогащено именами: `userName`/`actorName` (из `users`, есть даже у вышедших) и `userPseudonym`/`actorPseudonym` (из участников, `null` после выхода — тогда псевдоним берётся из `metadata.pseudonym`). Админка рисует «Имя (Псевдоним)». |
+| GET | `/api/admin/matching/preference-events` | Аналитика изменений предпочтений; фильтры `sessionId`, `userId`, `actorUserId`, `eventType`, `source`, `bookId`, `limit`. Работает для **любой** сессии (активной или зафиксированной) — админка позволяет выбрать сессию и смотреть её историю. Каждое событие обогащено именами: `userName`/`actorName` (из `users`, есть даже у вышедших) и `userPseudonym`/`actorPseudonym` (из участников, `null` после выхода — тогда псевдоним берётся из `metadata.pseudonym`). Админка рисует «Имя (Псевдоним)». |
 | GET | `/api/admin/matching/sessions/:id/participants` | Список участников с именами (только admin) |
 | POST | `/api/admin/matching/sessions/:id/participants` | Добавить участника из базы пользователей (только admin, только active) |
 | DELETE | `/api/admin/matching/sessions/:id/participants/:userId` | Убрать участника из сессии (только admin, только active) |
@@ -356,8 +344,7 @@ Zero-sum ход — это действие, где один участник в
 - Показывает личный список и «Мои ходы» участника.
 - Баннер «Просмотр за [псевдоним]».
 - Админ может добавлять/удалять книги участника, менять порядок и статусы. Client вызывает мутационные endpoints с `?as=<userId>`.
-- Каждый успешный просмотр записывается в `admin_views`.
-- Таблица просмотров видна в Админ-панели → Матчинг → «Журнал просмотров».
+- Просмотры `?as=` нигде не логируются (бывшая таблица `admin_views` удалена за ненадобностью).
 
 ## Управление участниками
 
@@ -369,11 +356,11 @@ Zero-sum ход — это действие, где один участник в
 
 ### Администратор управляет составом
 
-Вкладка «Матчинг» в Админ-панели → блок «Участники» (только в активной сессии):
-- Таблица текущих участников: псевдоним, имя/id пользователя, время вступления, кнопка «Убрать»
-- Форма добавления: выпадающий список пользователей, не состоящих в сессии → «Добавить»
+Вкладка «Матчинг» в Админ-панели → переключатель сессий (чипы) позволяет выбрать любую сессию — активную или зафиксированную — и посмотреть её состав, метрики заморозки и аналитику изменений предпочтений. Управление составом доступно только для активной сессии:
+- Таблица участников: псевдоним, имя/id пользователя, время вступления; для активной — кнопка «Убрать»
+- Форма добавления (только для активной): выпадающий список пользователей, не состоящих в сессии → «Добавить»
 
-Добавление работает по той же логике что и auto-join: присваивает уникальный животный псевдоним. Оба действия работают только для `status = active` и отправляют SSE-событие `state_changed` всем подключённым клиентам.
+Зафиксированные сессии открываются в режиме только-чтения. Добавление работает по той же логике что и auto-join: присваивает уникальный животный псевдоним. Мутации работают только для `status = active` и отправляют SSE-событие `state_changed` всем подключённым клиентам.
 
 ## Заморозка сессии
 
@@ -394,7 +381,7 @@ Zero-sum ход — это действие, где один участник в
 | `lib/matching/personal-list.ts` | Личный список книг участника с рангами |
 | `lib/matching/scenarios.ts` | Сценарий engine (pure function) |
 | `lib/matching/my-moves.ts` | «Мои ходы» — книги, которых не хватает одного участника |
-| `lib/matching/middleware.ts` | Shared guards: auth, `?as=`, session freeze check, audit log |
+| `lib/matching/middleware.ts` | Shared guards: auth, `?as=`, session freeze check |
 | `lib/matching/realtime/hub.ts` | In-memory SSE broadcast hub |
 | `lib/matching/realtime/presence.ts` | In-memory presence tracker |
 | `lib/matching/realtime/feed.ts` | Persistent feed с классификацией событий и публичным DTO без внутренних userId |
@@ -408,10 +395,12 @@ Zero-sum ход — это действие, где один участник в
 | `components/nd/MatchingRankNudge.tsx` | Баннер-нападка для участников без рангов |
 | `components/nd/MatchingRealtimeClient.tsx` | SSE-клиент с polling-фолбэком и heartbeat |
 | `components/nd/MatchingRealtimeWrapper.tsx` | Server → Client bridge для router.refresh() |
-| `components/nd/AdminMatchingSession.tsx` | Admin UI: создание/заморозка сессии, журнал просмотров |
+| `components/nd/AdminMatchingSession.tsx` | Admin UI: переключатель сессий, создание/заморозка, состав, аналитика предпочтений (для любой сессии) |
+| `lib/matching/preference-event-display.ts` | Чистые хелперы отображения аналитики: лейблы событий, `formatParticipant`, `eventDetail` |
 | `app/api/matching/` | Все API-эндпоинты матчинга |
 | `drizzle/0028_matching_tables.sql` | Миграция: matching_sessions, participants, admin_views |
 | `drizzle/0029_matching_signup_books.sql` | Миграция: добавление matching FK в signup_books |
 | `drizzle/0030_matching_freeze_metrics.sql` | Миграция: метрики заморозки |
 | `drizzle/0031_signup_books_personal_status.sql` | Миграция: personal_status на signup_books |
+| `drizzle/0036_drop_admin_views.sql` | Миграция: удаление таблицы `admin_views` |
 | `app/api/signup-books/[bookId]/status/route.ts` | PATCH: обновить personal_status |

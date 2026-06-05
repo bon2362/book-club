@@ -19,14 +19,9 @@ interface MatchingSession {
   deadlineAt: string | null
   createdAt: string
   frozenAt: string | null
-}
-
-interface AuditEntry {
-  id: string
-  adminId: string
-  viewedUserId: string
-  ts: string
-  adminName: string | null
+  metricGroupsCount?: number | null
+  metricCoverage?: number | null
+  metricTop3HitRate?: number | null
 }
 
 interface PreferenceEvent {
@@ -75,15 +70,28 @@ const btn: React.CSSProperties = {
   background: 'none',
   padding: '4px 10px',
   cursor: 'pointer',
-  borderRadius: 2,
+  borderRadius: 'var(--radius)',
+}
+
+const microLabel: React.CSSProperties = {
+  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+  textTransform: 'uppercase',
+  letterSpacing: '0.13em',
+  fontSize: '0.6rem',
+  color: 'var(--text-muted)',
+}
+
+function statusRu(status: string): string {
+  if (status === 'active') return 'Активная'
+  if (status === 'frozen') return 'Зафиксирована'
+  return status
 }
 
 export default function AdminMatchingSession() {
   const [sessions, setSessions] = useState<MatchingSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
-  const [auditLoading, setAuditLoading] = useState(false)
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [preferenceEvents, setPreferenceEvents] = useState<PreferenceEvent[]>([])
   const [preferenceEventsLoading, setPreferenceEventsLoading] = useState(false)
 
@@ -119,17 +127,6 @@ export default function AdminMatchingSession() {
 
   useEffect(() => { load() }, [load])
 
-  const loadAudit = useCallback(async (sessionId: string) => {
-    setAuditLoading(true)
-    try {
-      const res = await fetch(`/api/matching/sessions/${sessionId}/audit-log`)
-      const json = await res.json()
-      if (res.ok) setAuditLog(json.data ?? [])
-    } finally {
-      setAuditLoading(false)
-    }
-  }, [])
-
   const loadPreferenceEvents = useCallback(async (sessionId: string) => {
     setPreferenceEventsLoading(true)
     try {
@@ -158,32 +155,41 @@ export default function AdminMatchingSession() {
     if (res.ok) setAllUsers(json.data ?? [])
   }, [])
 
+  // Default selection: active session, otherwise the most recent one.
   useEffect(() => {
-    const active = sessions.find(s => s.status === 'active')
-    if (active) {
-      loadAudit(active.id)
-      loadPreferenceEvents(active.id)
-      loadParticipants(active.id)
-      loadAllUsers()
-    }
-  }, [sessions, loadAudit, loadPreferenceEvents, loadParticipants, loadAllUsers])
+    if (sessions.length === 0) return
+    setSelectedSessionId(prev => {
+      if (prev && sessions.some(s => s.id === prev)) return prev
+      return (sessions.find(s => s.status === 'active') ?? sessions[0]).id
+    })
+  }, [sessions])
+
+  // Load data for whichever session is selected (active or frozen).
+  useEffect(() => {
+    if (!selectedSessionId) return
+    loadPreferenceEvents(selectedSessionId)
+    loadParticipants(selectedSessionId)
+    loadAllUsers()
+  }, [selectedSessionId, loadPreferenceEvents, loadParticipants, loadAllUsers])
 
   const activeSession = sessions.find(s => s.status === 'active')
+  const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null
+  const isSelectedActive = selectedSession?.status === 'active'
   const [freezing, setFreezing] = useState(false)
   const [freezeError, setFreezeError] = useState<string | null>(null)
 
   async function handleAddParticipant() {
-    if (!activeSession || !selectedUserId) return
+    if (!selectedSession || selectedSession.status !== 'active' || !selectedUserId) return
     setAddingParticipant(true)
     try {
-      const res = await fetch(`/api/admin/matching/sessions/${activeSession.id}/participants`, {
+      const res = await fetch(`/api/admin/matching/sessions/${selectedSession.id}/participants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: selectedUserId }),
       })
       if (res.ok) {
         setSelectedUserId('')
-        await loadParticipants(activeSession.id)
+        await loadParticipants(selectedSession.id)
       }
     } finally {
       setAddingParticipant(false)
@@ -191,15 +197,15 @@ export default function AdminMatchingSession() {
   }
 
   async function handleRemoveParticipant(userId: string) {
-    if (!activeSession) return
+    if (!selectedSession || selectedSession.status !== 'active') return
     setRemovingUserId(userId)
     try {
       const res = await fetch(
-        `/api/admin/matching/sessions/${activeSession.id}/participants/${userId}`,
+        `/api/admin/matching/sessions/${selectedSession.id}/participants/${userId}`,
         { method: 'DELETE' },
       )
       if (res.ok) {
-        await loadParticipants(activeSession.id)
+        await loadParticipants(selectedSession.id)
       }
     } finally {
       setRemovingUserId(null)
@@ -279,44 +285,153 @@ export default function AdminMatchingSession() {
       {loading && <p style={{ color: 'var(--text-muted)' }}>Загрузка…</p>}
       {error && <p style={{ color: 'var(--accent)' }}>{error}</p>}
 
-      {!loading && activeSession && (
-        <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: 3 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Активная сессия</div>
-          <div>Название: {activeSession.name}</div>
-          <div>
-            Размер группы: {activeSession.minGroupSize === activeSession.maxGroupSize
-              ? activeSession.minGroupSize
-              : `${activeSession.minGroupSize}-${activeSession.maxGroupSize}`}
+      {/* Session switcher — pick any session (active or frozen) to inspect */}
+      {!loading && sessions.length > 0 && (
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ ...microLabel, marginBottom: '0.5rem' }}>Сессии</div>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {sessions.map(s => {
+              const active = s.id === selectedSessionId
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedSessionId(s.id)}
+                  data-testid="matching-session-chip"
+                  style={{
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    padding: '0.3rem 0.6rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    background: active ? 'var(--text)' : 'var(--bg-input)',
+                    color: active ? 'var(--bg-input)' : 'var(--text-body)',
+                    borderBottom: s.status === 'active'
+                      ? '2px solid var(--success)'
+                      : '2px solid var(--border-strong)',
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: '0.4rem',
+                  }}
+                >
+                  <span>{s.name}</span>
+                  <span style={{
+                    fontSize: '0.58rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    opacity: 0.7,
+                  }}>
+                    {statusRu(s.status)}
+                  </span>
+                </button>
+              )
+            })}
           </div>
-          {activeSession.deadlineAt && (
-            <div>Дедлайн: {new Date(activeSession.deadlineAt).toLocaleString('ru-RU')}</div>
+        </div>
+      )}
+
+      {/* Selected session detail */}
+      {!loading && selectedSession && (
+        <div
+          style={{
+            marginBottom: '1.5rem',
+            padding: '0.9rem',
+            border: '1px solid var(--border-strong)',
+            borderLeft: isSelectedActive ? '2px solid var(--success)' : '2px solid var(--accent)',
+            borderRadius: 'var(--radius)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontSize: '1.05rem', color: 'var(--text)' }}>
+              {selectedSession.name}
+            </div>
+            <span style={{
+              ...microLabel,
+              color: isSelectedActive ? 'var(--success)' : 'var(--accent)',
+              borderBottom: '1px solid currentColor',
+            }}>
+              {statusRu(selectedSession.status)}
+            </span>
+          </div>
+
+          <div style={{ marginTop: '0.6rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', color: 'var(--text-body)' }}>
+            <span>
+              Размер: {selectedSession.minGroupSize === selectedSession.maxGroupSize
+                ? selectedSession.minGroupSize
+                : `${selectedSession.minGroupSize}–${selectedSession.maxGroupSize}`}
+            </span>
+            <span>Создана: {new Date(selectedSession.createdAt).toLocaleDateString('ru-RU')}</span>
+            {selectedSession.deadlineAt && (
+              <span>Дедлайн: {new Date(selectedSession.deadlineAt).toLocaleString('ru-RU')}</span>
+            )}
+            {selectedSession.frozenAt && (
+              <span>Зафиксирована: {new Date(selectedSession.frozenAt).toLocaleDateString('ru-RU')}</span>
+            )}
+          </div>
+
+          {/* Freeze metrics for frozen sessions */}
+          {!isSelectedActive && (
+            selectedSession.metricGroupsCount != null ||
+            selectedSession.metricCoverage != null ||
+            selectedSession.metricTop3HitRate != null
+          ) && (
+            <div style={{ marginTop: '0.7rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {selectedSession.metricGroupsCount != null && (
+                <div>
+                  <div style={microLabel}>Групп</div>
+                  <div style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontSize: '1.1rem' }}>{selectedSession.metricGroupsCount}</div>
+                </div>
+              )}
+              {selectedSession.metricCoverage != null && (
+                <div>
+                  <div style={microLabel}>Охват</div>
+                  <div style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontSize: '1.1rem' }}>{selectedSession.metricCoverage}</div>
+                </div>
+              )}
+              {selectedSession.metricTop3HitRate != null && (
+                <div>
+                  <div style={microLabel}>Топ-3 попадание</div>
+                  <div style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontSize: '1.1rem' }}>
+                    {Math.round(selectedSession.metricTop3HitRate * 100)}%
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <a
-              href="/matching"
-              style={{ color: 'var(--text-body)', textDecoration: 'underline', fontSize: '0.78rem' }}
-            >
-              Открыть страницу матчинга →
-            </a>
-            <button
-              onClick={handleFreeze}
-              disabled={freezing}
-              style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
-              data-testid="admin-freeze-session"
-            >
-              {freezing ? 'Фиксирую…' : 'Зафиксировать'}
-            </button>
-          </div>
+
+          {isSelectedActive && (
+            <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <a
+                href="/matching"
+                style={{ color: 'var(--text-body)', textDecoration: 'underline', fontSize: '0.78rem' }}
+              >
+                Открыть страницу матчинга →
+              </a>
+              <button
+                onClick={handleFreeze}
+                disabled={freezing}
+                style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                data-testid="admin-freeze-session"
+              >
+                {freezing ? 'Фиксирую…' : 'Зафиксировать'}
+              </button>
+            </div>
+          )}
+          {!isSelectedActive && (
+            <p style={{ ...microLabel, marginTop: '0.7rem' }}>
+              Сессия зафиксирована — данные доступны только для просмотра
+            </p>
+          )}
           {freezeError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem', marginTop: 4 }}>{freezeError}</p>}
         </div>
       )}
 
-      {!loading && activeSession && (
-        <div style={{ marginBottom: '1.5rem', padding: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: 3 }}>
-          <div style={{ fontWeight: 600, marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {!loading && selectedSession && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ ...microLabel, marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             Участники ({participants.length})
             <button
-              onClick={() => loadParticipants(activeSession.id)}
+              onClick={() => loadParticipants(selectedSession.id)}
               style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}
             >
               ↺
@@ -336,7 +451,7 @@ export default function AdminMatchingSession() {
                   <th style={{ padding: '3px 8px 3px 0' }}>Псевдоним</th>
                   <th style={{ padding: '3px 8px' }}>Пользователь</th>
                   <th style={{ padding: '3px 8px' }}>Вступил</th>
-                  <th style={{ padding: '3px 8px' }}></th>
+                  {isSelectedActive && <th style={{ padding: '3px 8px' }}></th>}
                 </tr>
               </thead>
               <tbody>
@@ -355,49 +470,53 @@ export default function AdminMatchingSession() {
                     <td style={{ padding: '3px 8px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(p.joinedAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td style={{ padding: '3px 8px' }}>
-                      <button
-                        onClick={() => handleRemoveParticipant(p.userId)}
-                        disabled={removingUserId === p.userId}
-                        style={{ ...btn, fontSize: '0.7rem', padding: '1px 6px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
-                      >
-                        {removingUserId === p.userId ? '…' : 'Убрать'}
-                      </button>
-                    </td>
+                    {isSelectedActive && (
+                      <td style={{ padding: '3px 8px' }}>
+                        <button
+                          onClick={() => handleRemoveParticipant(p.userId)}
+                          disabled={removingUserId === p.userId}
+                          style={{ ...btn, fontSize: '0.7rem', padding: '1px 6px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
+                        >
+                          {removingUserId === p.userId ? '…' : 'Убрать'}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <select
-              value={selectedUserId}
-              onChange={e => setSelectedUserId(e.target.value)}
-              style={{ ...fieldInput, width: 'auto', minWidth: 160, border: '1px solid var(--border)', padding: '4px 6px', borderRadius: 2 }}
-            >
-              <option value="">— выбрать пользователя —</option>
-              {allUsers
-                .filter(u => !participants.some(p => p.userId === u.id))
-                .map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.name ?? u.id.slice(0, 12) + '…'}
-                  </option>
-                ))}
-            </select>
-            <button
-              onClick={handleAddParticipant}
-              disabled={!selectedUserId || addingParticipant}
-              style={{ ...btn, opacity: !selectedUserId || addingParticipant ? 0.5 : 1 }}
-            >
-              {addingParticipant ? 'Добавляю…' : 'Добавить'}
-            </button>
-          </div>
+          {isSelectedActive && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <select
+                value={selectedUserId}
+                onChange={e => setSelectedUserId(e.target.value)}
+                style={{ ...fieldInput, width: 'auto', minWidth: 160, border: '1px solid var(--border)', padding: '4px 6px', borderRadius: 'var(--radius)' }}
+              >
+                <option value="">— выбрать пользователя —</option>
+                {allUsers
+                  .filter(u => !participants.some(p => p.userId === u.id))
+                  .map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.name ?? u.id.slice(0, 12) + '…'}
+                    </option>
+                  ))}
+              </select>
+              <button
+                onClick={handleAddParticipant}
+                disabled={!selectedUserId || addingParticipant}
+                style={{ ...btn, opacity: !selectedUserId || addingParticipant ? 0.5 : 1 }}
+              >
+                {addingParticipant ? 'Добавляю…' : 'Добавить'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {!loading && !activeSession && (
-        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Активных сессий нет.</p>
+      {!loading && sessions.length === 0 && (
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Сессий пока нет.</p>
       )}
 
       <div style={{ marginBottom: '1.5rem' }}>
@@ -482,18 +601,20 @@ export default function AdminMatchingSession() {
         </form>
       </div>
 
-      {activeSession && (
+      {selectedSession && (
         <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ ...microLabel, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             Аналитика изменений предпочтений
-            <button onClick={() => loadPreferenceEvents(activeSession.id)} style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}>
+            <button onClick={() => loadPreferenceEvents(selectedSession.id)} style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}>
               ↺
             </button>
           </div>
           {preferenceEventsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Загрузка…</p>}
           {!preferenceEventsLoading && preferenceEvents.length === 0 && (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-              После входа в сессию участники ещё не меняли предпочтения.
+              {isSelectedActive
+                ? 'После входа в сессию участники ещё не меняли предпочтения.'
+                : 'В этой сессии не было изменений предпочтений.'}
             </p>
           )}
           {!preferenceEventsLoading && preferenceEvents.length > 0 && (
@@ -545,86 +666,6 @@ export default function AdminMatchingSession() {
               </table>
             </>
           )}
-        </div>
-      )}
-
-      {activeSession && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            Журнал просмотров (admin_views)
-            <button onClick={() => loadAudit(activeSession.id)} style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}>
-              ↺
-            </button>
-          </div>
-          {auditLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Загрузка…</p>}
-          {!auditLoading && auditLog.length === 0 && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Просмотров за других участников не было.</p>
-          )}
-          {!auditLoading && auditLog.length > 0 && (
-            <table
-              data-testid="admin-audit-log"
-              style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}
-            >
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                  <th style={{ padding: '3px 8px 3px 0' }}>Когда</th>
-                  <th style={{ padding: '3px 8px' }}>Администратор</th>
-                  <th style={{ padding: '3px 8px' }}>Просматривал</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLog.map(entry => (
-                  <tr key={entry.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '3px 8px 3px 0', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      {new Date(entry.ts).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>
-                      {entry.adminName ?? entry.adminId.slice(0, 8)}
-                    </td>
-                    <td style={{ padding: '3px 8px' }}>
-                      <a
-                        href={`/matching?as=${entry.viewedUserId}`}
-                        style={{ color: 'var(--text-body)', textDecoration: 'underline' }}
-                        title={entry.viewedUserId}
-                      >
-                        {entry.viewedUserId.slice(0, 12)}…
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      {sessions.filter(s => s.status !== 'active').length > 0 && (
-        <div>
-          <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Прошлые сессии</div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                <th style={{ padding: '4px 8px 4px 0' }}>Название</th>
-                <th style={{ padding: '4px 8px' }}>Статус</th>
-                <th style={{ padding: '4px 8px' }}>Создана</th>
-                <th style={{ padding: '4px 8px' }}>Заморожена</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.filter(s => s.status !== 'active').map(s => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '4px 8px 4px 0' }}>{s.name}</td>
-                  <td style={{ padding: '4px 8px', color: 'var(--text-secondary)' }}>{s.status}</td>
-                  <td style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>
-                    {new Date(s.createdAt).toLocaleDateString('ru-RU')}
-                  </td>
-                  <td style={{ padding: '4px 8px', color: 'var(--text-muted)' }}>
-                    {s.frozenAt ? new Date(s.frozenAt).toLocaleDateString('ru-RU') : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>

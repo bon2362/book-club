@@ -248,14 +248,3 @@ export const matchingPreferenceEvents = pgTable('matching_preference_events', {
   typeOccurredAtIdx:    index('matching_preference_events_type_occurred_at_idx').on(t.eventType, t.occurredAt),
   bookIdIdx:            index('matching_preference_events_book_id_idx').on(t.bookId),
 }))
-
-export const adminViews = pgTable('admin_views', {
-  id:           text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  adminId:      text('admin_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  viewedUserId: text('viewed_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  sessionId:    text('session_id').references(() => matchingSessions.id, { onDelete: 'cascade' }),
-  ts:           timestamp('ts', { mode: 'date' }).notNull().defaultNow(),
-}, (t) => ({
-  adminIdIdx: index('admin_views_admin_id_idx').on(t.adminId),
-  tsIdx:      index('admin_views_ts_idx').on(t.ts),
-}))

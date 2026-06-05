@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingSessions, adminViews } from '@/lib/db/schema'
+import { matchingSessions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 export interface MatchingContext {
@@ -26,20 +26,6 @@ export function withMatchingGuards(handler: Handler, options: Options = {}): Han
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const callerId = session.user.id
-    const isAdmin = session.user.isAdmin ?? false
-
-    // Handle ?as= impersonation
-    const asParam = req.nextUrl.searchParams.get('as')
-    let viewedUserId: string | null = null
-    let isImpersonating = false
-
-    if (asParam && isAdmin) {
-      viewedUserId = asParam
-      isImpersonating = true
-    }
-    // Non-admin with ?as= → silently ignore
 
     // For mutating endpoints, verify active non-frozen session
     if (mutates) {
@@ -71,23 +57,7 @@ export function withMatchingGuards(handler: Handler, options: Options = {}): Han
       }
     }
 
-    const response = await handler(req, ctx)
-
-    // Async audit log for successful impersonated reads
-    if (isImpersonating && !mutates && response.status >= 200 && response.status < 300) {
-      const sessionId = ctx.params.id ?? req.nextUrl.searchParams.get('session') ?? null
-      // Fire-and-forget
-      db.insert(adminViews).values({
-        adminId: callerId,
-        viewedUserId: viewedUserId!,
-        sessionId,
-      }).catch(() => {
-        // audit log failure is non-critical
-      })
-    }
-
-    // Set effective userId in response header for downstream use
-    return response
+    return handler(req, ctx)
   }
 }
 
