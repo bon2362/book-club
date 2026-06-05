@@ -97,7 +97,7 @@ PK: `(session_id, user_id)`. Unique: `(session_id, pseudonym)`.
 | GET | `/api/matching/state?session=<id>&as=<userId>` | Текущее состояние (personalBooks, myMoves, legacy `scenarios`/`scenarioOverview`, новый `scenarioSetOverview`) |
 | POST | `/api/matching/books` | Добавить книгу в личный список и поставить её на первое место в персональном ранкинге |
 | DELETE | `/api/matching/books/:bookId` | Удалить книгу из личного списка |
-| PATCH | `/api/matching/priorities` | Обновить порядок книг |
+| PATCH | `/api/matching/priorities` | Обновить порядок книг (drag-and-drop в «Моих книгах»). Пишет событие аналитики `priorities_updated` (`source: matching`) с упорядоченным `rankedBookIds`. |
 | PATCH | `/api/signup-books/:bookId/status` | Обновить personal_status книги (`reading` / `read` / `null`) |
 
 Для admin impersonation мутационные endpoints личного списка (`/api/matching/books`, `/api/matching/books/:bookId`, `/api/matching/priorities`, `/api/signup-books/:bookId/status`) поддерживают query `?as=<userId>`. Параметр работает только для админов; обычным пользователям возвращается `403`.
