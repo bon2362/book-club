@@ -193,6 +193,7 @@ export const matchingSessions = pgTable('matching_sessions', {
   status:             text('status').notNull().default('active'), // 'active' | 'frozen'
   minGroupSize:       integer('min_group_size').notNull().default(3),
   maxGroupSize:       integer('max_group_size').notNull().default(3),
+  stateVersion:       integer('state_version').notNull().default(0),
   frozenAt:                        timestamp('frozen_at', { mode: 'date' }),
   frozenScenarioJson:              jsonb('frozen_scenario_json'),
   metricGroupsCount:               integer('metric_groups_count'),
