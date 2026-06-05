@@ -132,10 +132,7 @@ describe('DELETE /api/admin/remove-book', () => {
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(signups.removeBookFromSignup).toHaveBeenCalledWith('pg-user-1', 'book-a', db)
-    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('pg-user-1', {
-      kind: 'admin_book_removed',
-      bookId: 'book-a',
-    })
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('pg-user-1')
   })
 })
 

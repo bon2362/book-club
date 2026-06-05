@@ -121,11 +121,7 @@ describe('PATCH /api/admin/signup-books — happy path', () => {
     expect(data.ok).toBe(true)
     expect(db.update).toHaveBeenCalledTimes(1)
     expect(db.delete).not.toHaveBeenCalled()
-    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('u1', {
-      kind: 'admin_personal_status_updated',
-      bookId: 'b1',
-      status: 'reading',
-    })
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('u1')
   })
 
   it('returns 200 and rerranks when status = read and user has priority row', async () => {
