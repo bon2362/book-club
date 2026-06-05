@@ -67,6 +67,13 @@ function makeReq(sessionId: string, asParam?: string) {
 }
 
 const userSession = { user: { id: 'u1', isAdmin: false } }
+const adminSession = { user: { id: 'admin1', isAdmin: true } }
+
+const activeSession = { id: 's1', status: 'active', minGroupSize: 3, maxGroupSize: 3 }
+const participantRows = [
+  { userId: 'u1', pseudonym: 'Пчела' },
+  { userId: 'u2', pseudonym: 'Мальма' },
+]
 
 describe('GET /api/matching/state', () => {
   beforeEach(() => jest.clearAllMocks())
@@ -96,8 +103,8 @@ describe('GET /api/matching/state', () => {
 
   it('returns 200 with state for authenticated user', async () => {
     mockAuth.mockResolvedValue(userSession)
-    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active', minGroupSize: 3, maxGroupSize: 3 }]) }
-    const participantsChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([activeSession]) }
+    const participantsChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue(participantRows) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionChain)
       .mockReturnValue(participantsChain)
@@ -110,5 +117,53 @@ describe('GET /api/matching/state', () => {
     expect(json).toHaveProperty('scenarioSetOverview')
     expect(json).toHaveProperty('myMoves')
     expect(json).toHaveProperty('sessionStatus')
+  })
+
+  it('returns 403 when regular user is not a session participant', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'outsider', isAdmin: false } })
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([activeSession]) }
+    const participantsChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue(participantRows) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValue(participantsChain)
+
+    const res = await GET(makeReq('s1'))
+
+    expect(res.status).toBe(403)
+  })
+
+  it('replaces participant ids with pseudonyms for regular users', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([activeSession]) }
+    const participantsChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue(participantRows) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValue(participantsChain)
+
+    const res = await GET(makeReq('s1'))
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scenarioOverview.leftOut).toEqual([
+      { userId: 'Пчела', pseudonym: 'Пчела' },
+      { userId: 'Мальма', pseudonym: 'Мальма' },
+    ])
+    expect(JSON.stringify(json)).not.toContain('"u1"')
+    expect(JSON.stringify(json)).not.toContain('"u2"')
+  })
+
+  it('keeps internal ids for admins', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([activeSession]) }
+    const participantsChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue(participantRows) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValue(participantsChain)
+
+    const res = await GET(makeReq('s1', 'u1'))
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scenarioOverview.leftOut).toEqual(participantRows)
   })
 })

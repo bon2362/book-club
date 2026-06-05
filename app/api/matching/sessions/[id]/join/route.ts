@@ -67,7 +67,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     pseudonym,
   })
 
-  broadcast(sessionId, 'state_changed', { userId, kind: 'participant_joined' })
+  broadcast(sessionId, 'state_changed', { kind: 'participant_joined' })
 
   return NextResponse.json({ success: true, pseudonym }, { status: 201 })
 }

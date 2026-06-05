@@ -15,6 +15,11 @@ import {
   type ScenarioOverview,
   type ScenarioSetOverview,
 } from '@/lib/matching/scenarios'
+import {
+  publicizeMyMoves,
+  publicizeScenarioOverview,
+  publicizeScenarioSetOverview,
+} from '@/lib/matching/public-state'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -31,11 +36,6 @@ export async function GET(req: NextRequest) {
 
   if (!matchSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
 
-  // Support ?as= for admin impersonation (Epic 4) — userId used for personal data
-  const asParam = req.nextUrl.searchParams.get('as')
-  const isAdmin = session.user.isAdmin
-  const effectiveUserId = (isAdmin && asParam) ? asParam : session.user.id
-
   const participants = await db
     .select({
       userId: matchingSessionParticipants.userId,
@@ -45,6 +45,16 @@ export async function GET(req: NextRequest) {
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
 
   const participantUserIds = participants.map(p => p.userId)
+  const isAdmin = session.user.isAdmin ?? false
+  const currentParticipant = participants.find((participant) => participant.userId === session.user.id)
+
+  if (!isAdmin && !currentParticipant) {
+    return NextResponse.json({ error: 'Not a participant' }, { status: 403 })
+  }
+
+  // Support ?as= for admin impersonation (Epic 4) — userId used for personal data
+  const asParam = req.nextUrl.searchParams.get('as')
+  const effectiveUserId = (isAdmin && asParam) ? asParam : session.user.id
 
   const [personalBooks, myMoves] = await Promise.all([
     fetchCatalogWithPersonalData(effectiveUserId),
@@ -90,12 +100,17 @@ export async function GET(req: NextRequest) {
     scenarioOverview = generateScenarioOverview(scenarioInput)
   }
 
+  const publicUserIdByInternalId = new Map(participants.map((participant) => [
+    participant.userId,
+    isAdmin ? participant.userId : participant.pseudonym,
+  ]))
+
   return NextResponse.json({
     personalBooks,
-    myMoves,
-    scenarios: scenarioOverview.current,
-    scenarioOverview,
-    scenarioSetOverview,
+    myMoves: isAdmin ? myMoves : publicizeMyMoves(myMoves, publicUserIdByInternalId),
+    scenarios: isAdmin ? scenarioOverview.current : publicizeScenarioOverview(scenarioOverview, publicUserIdByInternalId).current,
+    scenarioOverview: isAdmin ? scenarioOverview : publicizeScenarioOverview(scenarioOverview, publicUserIdByInternalId),
+    scenarioSetOverview: isAdmin ? scenarioSetOverview : publicizeScenarioSetOverview(scenarioSetOverview, publicUserIdByInternalId),
     sessionStatus: matchSession.status,
   })
 }

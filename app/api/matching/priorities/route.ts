@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest) {
     .from(bookPriorities)
     .where(eq(bookPriorities.userId, userId))
 
-  broadcast(activeSession.id, 'state_changed', { userId, kind: 'ranks_updated' })
+  broadcast(activeSession.id, 'state_changed', { kind: 'ranks_updated' })
 
   return NextResponse.json({ ranks: canonical }, { status: 200 })
 }

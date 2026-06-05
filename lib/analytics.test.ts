@@ -3,9 +3,11 @@ jest.unmock('@/lib/analytics')
 
 import posthog from 'posthog-js'
 import {
+  capturePageview,
   initPostHog,
   identifyUser,
   resetIdentity,
+  sanitizeAnalyticsUrl,
   __resetForTesting,
 } from './analytics'
 
@@ -75,5 +77,28 @@ describe('resetIdentity', () => {
   it('calls posthog.reset on reset', () => {
     resetIdentity()
     expect(posthog.reset).toHaveBeenCalled()
+  })
+})
+
+describe('capturePageview', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+    initPostHog()
+  })
+
+  it('redacts sensitive query params before sending pageviews', () => {
+    capturePageview('https://www.slowreading.club/auth/telegram?uid=user-uuid&token=secret&ts=123&username=ivan&next=%2Fmatching')
+
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview', {
+      $current_url: 'https://www.slowreading.club/auth/telegram?next=%2Fmatching',
+    })
+  })
+})
+
+describe('sanitizeAnalyticsUrl', () => {
+  it('removes known identity and token params but preserves safe params and hash', () => {
+    const result = sanitizeAnalyticsUrl('https://www.slowreading.club/path?token=t&email=a%40b.test&book=b1#details')
+
+    expect(result).toBe('https://www.slowreading.club/path?book=b1#details')
   })
 })

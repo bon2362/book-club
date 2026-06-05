@@ -20,6 +20,10 @@ import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
 import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
 import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
 import { fetchAdriftCauseForUser, isViewerAdrift } from '@/lib/matching/adrift'
+import {
+  publicizeMyMoves,
+  publicizeScenarioSetOverview,
+} from '@/lib/matching/public-state'
 
 export default async function MatchingPage({
   searchParams,
@@ -190,6 +194,37 @@ export default async function MatchingPage({
   const userPseudonym = !isImpersonating
     ? participants.find((p) => p.userId === session.user.id)?.pseudonym ?? null
     : null
+  const publicUserIdByInternalId = new Map(participants.map((participant) => [
+    participant.userId,
+    isAdmin ? participant.userId : participant.pseudonym,
+  ]))
+  const clientViewingUserId = isAdmin
+    ? viewingUserId
+    : publicUserIdByInternalId.get(viewingUserId) ?? userPseudonym ?? viewingUserId
+  const clientScenarioSetOverview = isAdmin
+    ? scenarioSetOverview
+    : publicizeScenarioSetOverview(scenarioSetOverview, publicUserIdByInternalId)
+  const clientBookParticipants = isAdmin
+    ? bookParticipants
+    : bookParticipants.map((participant) => ({
+        ...participant,
+        userId: publicUserIdByInternalId.get(participant.userId) ?? participant.pseudonym,
+      }))
+  const clientMoves = isAdmin
+    ? myMovesWithImpact
+    : publicizeMyMoves(myMovesWithImpact, publicUserIdByInternalId)
+  const clientAdrift = isAdmin || !adrift?.cause
+    ? adrift
+    : {
+        ...adrift,
+        cause: {
+          ...adrift.cause,
+          actor: {
+            ...adrift.cause.actor,
+            userId: publicUserIdByInternalId.get(adrift.cause.actor.userId) ?? adrift.cause.actor.pseudonym,
+          },
+        },
+      }
 
   return (
     <div
@@ -204,7 +239,11 @@ export default async function MatchingPage({
           minGroupSize={activeSession.minGroupSize}
           maxGroupSize={activeSession.maxGroupSize}
           deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
-          participants={participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym, name: p.name ?? null }))}
+          participants={participants.map((p) => ({
+            userId: isAdmin ? p.userId : p.pseudonym,
+            pseudonym: p.pseudonym,
+            name: isAdmin ? p.name ?? null : null,
+          }))}
           isAdmin={isAdmin}
           isImpersonating={isImpersonating}
           viewedPseudonym={viewedParticipant?.pseudonym ?? null}
@@ -218,15 +257,15 @@ export default async function MatchingPage({
         {/* First viewport: scenarios + moves */}
         <div className="flex-1 min-h-0 p-4">
           <MatchingImpactWorkspace
-            overview={scenarioSetOverview}
+            overview={clientScenarioSetOverview}
             bookById={bookById}
-            bookParticipants={bookParticipants}
-            viewingUserId={viewingUserId}
-            moves={myMovesWithImpact}
+            bookParticipants={clientBookParticipants}
+            viewingUserId={clientViewingUserId}
+            moves={clientMoves}
             frozen={isReadOnly}
             movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
             mutationUserId={isImpersonating ? viewingUserId : undefined}
-            adrift={adrift}
+            adrift={clientAdrift}
           />
         </div>
       </div>
@@ -265,8 +304,8 @@ export default async function MatchingPage({
         >
           <MatchingPersonalList
             books={personalBooks}
-            bookParticipants={bookParticipants}
-            viewingUserId={viewingUserId}
+            bookParticipants={clientBookParticipants}
+            viewingUserId={clientViewingUserId}
             frozen={isReadOnly}
             mutationUserId={isImpersonating ? viewingUserId : undefined}
           />

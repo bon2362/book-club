@@ -62,7 +62,6 @@ describe('DELETE /api/matching/sessions/[id]/leave', () => {
     const deleteOrder = (mockDb.delete as jest.Mock).mock.invocationCallOrder[0]
     expect(recordOrder).toBeLessThan(deleteOrder)
     expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      userId: 'user-1',
       kind: 'participant_left',
     })
   })

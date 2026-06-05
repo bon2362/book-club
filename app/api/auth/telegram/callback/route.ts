@@ -24,10 +24,8 @@ export async function GET(req: NextRequest) {
   const { token } = await createTelegramPreauthToken(user.id)
 
   const url = new URL('/auth/telegram', origin)
-  url.searchParams.set('uid', user.id)
   url.searchParams.set('token', token)
   url.searchParams.set('ts', ts)
-  if (username) url.searchParams.set('username', username)
 
   return NextResponse.redirect(url)
 }

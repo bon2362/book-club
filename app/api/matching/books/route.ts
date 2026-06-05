@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     source: asUserId ? 'admin' : 'matching',
     before,
   })
-  broadcast(activeSession.id, 'state_changed', { userId, kind: 'book_added', bookId })
+  broadcast(activeSession.id, 'state_changed', { kind: 'book_added', bookId })
 
   return NextResponse.json({ ok: true }, { status: 200 })
 }

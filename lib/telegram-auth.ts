@@ -42,20 +42,19 @@ export async function createTelegramPreauthToken(userId: string, now = new Date(
   return { token, expiresAt }
 }
 
-export async function consumeTelegramPreauthToken(userId: string, token: string, now = new Date()) {
+export async function consumeTelegramPreauthToken(token: string, now = new Date()): Promise<string | null> {
   const tokenHash = hashTelegramPreauthToken(token)
   const [row] = await db
     .update(telegramPreauthTokens)
     .set({ usedAt: now })
     .where(and(
       eq(telegramPreauthTokens.tokenHash, tokenHash),
-      eq(telegramPreauthTokens.userId, userId),
       isNull(telegramPreauthTokens.usedAt),
       gt(telegramPreauthTokens.expiresAt, now)
     ))
     .returning({ userId: telegramPreauthTokens.userId })
 
-  return Boolean(row)
+  return row?.userId ?? null
 }
 
 export async function cleanupTelegramPreauthTokens(now = new Date()) {

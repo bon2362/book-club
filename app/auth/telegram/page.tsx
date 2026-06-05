@@ -10,17 +10,15 @@ function TelegramAuthInner() {
   const router = useRouter()
 
   useEffect(() => {
-    const uid = searchParams.get('uid')
     const token = searchParams.get('token')
     const ts = searchParams.get('ts')
-    const username = searchParams.get('username') ?? undefined
 
-    if (!uid || !token || !ts) {
+    if (!token || !ts) {
       router.replace('/')
       return
     }
 
-    signIn('telegram-preauth', { uid, token, ts, username, redirect: false }).then((result) => {
+    signIn('telegram-preauth', { token, ts, redirect: false }).then((result) => {
       if (result?.error) {
         router.replace('/?auth=failed')
       } else {

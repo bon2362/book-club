@@ -1022,7 +1022,7 @@
         ],
         "responses": {
           "302": {
-            "description": "Redirect to /auth/telegram or /?auth=failed"
+            "description": "Redirect to /auth/telegram with a short-lived token and timestamp, or /?auth=failed. The redirect URL does not include the internal user id or Telegram username."
           }
         }
       }

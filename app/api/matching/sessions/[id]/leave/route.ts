@@ -49,7 +49,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       ),
     )
 
-  broadcast(sessionId, 'state_changed', { userId, kind: 'participant_left' })
+  broadcast(sessionId, 'state_changed', { kind: 'participant_left' })
 
   return NextResponse.json({ success: true })
 }

@@ -81,8 +81,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   await db.insert(matchingSessionParticipants).values({ sessionId, userId, pseudonym })
 
-  broadcast(sessionId, 'state_changed', { userId, kind: 'participant_joined' })
+  broadcast(sessionId, 'state_changed', { kind: 'participant_joined' })
 
   return NextResponse.json({ success: true, pseudonym }, { status: 201 })
 }
-
