@@ -194,6 +194,7 @@ function MoveWhyText({ move }: { move: MyMoveBook }) {
   const leftOut = beneficiaries.filter((b) => b.before.place === 'leftOut')
   const upgraded = beneficiaries.filter((b) => b.before.place === 'circle')
   const strong = beneficiaries.filter((b) => b.after === 'очень хочу')
+  const strongInterestVerb = strong.length === 1 ? 'хочет' : 'хотят'
 
   if (leftOut.length > 0) {
     return (
@@ -203,7 +204,7 @@ function MoveWhyText({ move }: { move: MyMoveBook }) {
         {strong.length > 0 && (
           <>
             {', где '}
-            <em>{joinNamesText(strong.map((b) => b.pseudonym))} очень хотят читать</em>
+            <em>{joinNamesText(strong.map((b) => b.pseudonym))} очень {strongInterestVerb} читать</em>
           </>
         )}
         {'.'}
