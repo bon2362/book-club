@@ -11,7 +11,7 @@ import {
   books,
 } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
-import { generateScenarios } from '@/lib/matching/scenarios'
+import { filterSignupsByMode, generateScenarios, type OptimizationMode } from '@/lib/matching/scenarios'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 
 type Params = { params: { id: string } }
@@ -28,6 +28,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   if (!matchSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
   if (matchSession.status === 'frozen') return NextResponse.json({ error: 'Already frozen' }, { status: 409 })
+  const mode = (matchSession.optimizationMode ?? 'coverage') as OptimizationMode
 
   // Fetch participants and data for scenario generation
   const participants = await db
@@ -56,15 +57,18 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const sessionBooks = allBooks
     .filter(b => signedUpBookIds.has(b.id))
     .map(b => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
+  const ranks = allRanks.map((rank) => ({ userId: rank.userId, bookId: rank.bookId, rank: rank.rank }))
+  const signups = filterSignupsByMode(allSignups, ranks, mode)
 
   const scenarios = generateScenarios({
     participants: participantUserIds.map(uid => ({ userId: uid, pseudonym: uid })),
     books: sessionBooks,
-    signups: allSignups,
-    ranks: allRanks,
+    signups,
+    ranks,
     minGroupSize: matchSession.minGroupSize,
     maxGroupSize: matchSession.maxGroupSize,
     maxResults: 10,
+    mode,
   })
 
   const leader = scenarios[0] ?? null

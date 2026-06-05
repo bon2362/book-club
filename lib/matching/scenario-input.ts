@@ -9,8 +9,10 @@ import {
 } from '@/lib/db/schema'
 import {
   emptyScenarioSetOverview,
+  filterSignupsByMode,
   generateScenarioSets,
   type GenerateScenariosInput,
+  type OptimizationMode,
   type ScenarioSetOverview,
 } from './scenarios'
 
@@ -24,6 +26,7 @@ export async function fetchScenarioInputForSession(
   sessionId: string,
   minGroupSize: number,
   maxGroupSize: number,
+  mode: OptimizationMode = 'coverage',
 ): Promise<GenerateScenariosInput> {
   const participants = await db
     .select({
@@ -55,15 +58,22 @@ export async function fetchScenarioInputForSession(
 
   const signedUpBookIds = new Set(allSignups.map((signup) => signup.bookId))
   const activeSignups = allSignups.filter((signup) => signup.personalStatus === null)
+  const ranks = allRanks.map((rank) => ({ userId: rank.userId, bookId: rank.bookId, rank: rank.rank }))
+  const signups = filterSignupsByMode(
+    activeSignups.map((signup) => ({ userId: signup.userId, bookId: signup.bookId })),
+    ranks,
+    mode,
+  )
 
   return {
     participants,
     books: allBooks.filter((book) => signedUpBookIds.has(book.id)).map((book) => ({ bookId: book.id })),
-    signups: activeSignups.map((signup) => ({ userId: signup.userId, bookId: signup.bookId })),
-    ranks: allRanks.map((rank) => ({ userId: rank.userId, bookId: rank.bookId, rank: rank.rank })),
+    signups,
+    ranks,
     minGroupSize,
     maxGroupSize,
     maxResults: 10,
+    mode,
   }
 }
 
@@ -73,6 +83,7 @@ export async function fetchScenarioContextForSession(sessionId: string): Promise
       id: matchingSessions.id,
       minGroupSize: matchingSessions.minGroupSize,
       maxGroupSize: matchingSessions.maxGroupSize,
+      optimizationMode: matchingSessions.optimizationMode,
     })
     .from(matchingSessions)
     .where(eq(matchingSessions.id, sessionId))
@@ -84,10 +95,12 @@ export async function fetchScenarioContextForSession(sessionId: string): Promise
     sessionId,
     matchingSession.minGroupSize,
     matchingSession.maxGroupSize,
+    (matchingSession.optimizationMode ?? 'coverage') as OptimizationMode,
   )
+  const mode = input.mode ?? 'coverage'
   const overview = input.participants.length >= matchingSession.minGroupSize
     ? generateScenarioSets(input)
-    : emptyScenarioSetOverview(input.participants, matchingSession.minGroupSize, matchingSession.maxGroupSize)
+    : emptyScenarioSetOverview(input.participants, matchingSession.minGroupSize, matchingSession.maxGroupSize, mode)
 
   const bookRows = await db
     .select({ id: books.id, title: books.title })

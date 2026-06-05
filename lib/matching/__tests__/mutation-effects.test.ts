@@ -47,6 +47,7 @@ const afterContext = {
     totalCount: 1,
     minGroupSize: 3,
     maxGroupSize: 3,
+    mode: 'coverage' as const,
   },
   bookTitleById: new Map([['book-1', 'Книга']]),
 }

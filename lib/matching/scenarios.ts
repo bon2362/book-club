@@ -18,6 +18,8 @@ export interface ScenarioRank {
   rank: number | null
 }
 
+export type OptimizationMode = 'coverage' | 'satisfaction'
+
 export interface GroupMember {
   userId: string
   pseudonym: string
@@ -48,6 +50,7 @@ export interface ScenarioOverview {
   totalCount: number
   minGroupSize: number
   maxGroupSize: number
+  mode: OptimizationMode
 }
 
 export interface MatchingCircle {
@@ -88,6 +91,7 @@ export interface ScenarioSetOverview {
   totalCount: number
   minGroupSize: number
   maxGroupSize: number
+  mode: OptimizationMode
 }
 
 export interface GenerateScenariosInput {
@@ -98,6 +102,7 @@ export interface GenerateScenariosInput {
   minGroupSize: number
   maxGroupSize: number
   maxResults?: number
+  mode?: OptimizationMode
 }
 
 interface CircleState {
@@ -162,6 +167,68 @@ function compareScenarioScore(a: Pick<MatchingScenario, 'id' | 'score'>, b: Pick
   if (worst !== 0) return -worst
   if (a.score.unrankedCount !== b.score.unrankedCount) return b.score.unrankedCount - a.score.unrankedCount
   return b.id.localeCompare(a.id)
+}
+
+// Positive means a is better than b in satisfaction mode.
+export function compareCircleSatisfaction(a: MatchingCircle, b: MatchingCircle): number {
+  const avg = compareNullableRankAsc(a.avgRank, b.avgRank)
+  if (avg !== 0) return -avg
+  const worst = compareNullableRankAsc(a.worstRank, b.worstRank)
+  if (worst !== 0) return -worst
+  if (a.members.length !== b.members.length) return a.members.length - b.members.length
+  return b.id.localeCompare(a.id)
+}
+
+// Positive means a is better than b in satisfaction mode.
+export function compareScenarioSatisfaction(
+  a: Pick<MatchingScenario, 'id' | 'circles' | 'score'>,
+  b: Pick<MatchingScenario, 'id' | 'circles' | 'score'>,
+): number {
+  const aCircles = [...a.circles].sort((x, y) => compareCircleSatisfaction(y, x))
+  const bCircles = [...b.circles].sort((x, y) => compareCircleSatisfaction(y, x))
+  const len = Math.max(aCircles.length, bCircles.length)
+
+  for (let i = 0; i < len; i++) {
+    const ca = aCircles[i]
+    const cb = bCircles[i]
+    if (ca && cb) {
+      const circleScore = compareCircleSatisfaction(ca, cb)
+      if (circleScore !== 0) return circleScore
+    } else if (ca && !cb) {
+      return 1
+    } else if (!ca && cb) {
+      return -1
+    }
+  }
+
+  const avg = compareNullableRankAsc(a.score.avgRank, b.score.avgRank)
+  if (avg !== 0) return -avg
+  if (a.score.strongInterestCount !== b.score.strongInterestCount) {
+    return a.score.strongInterestCount - b.score.strongInterestCount
+  }
+  return b.id.localeCompare(a.id)
+}
+
+function circleComparator(mode: OptimizationMode) {
+  return mode === 'satisfaction' ? compareCircleSatisfaction : compareCircleScore
+}
+
+function scenarioComparator(mode: OptimizationMode) {
+  return mode === 'satisfaction' ? compareScenarioSatisfaction : compareScenarioScore
+}
+
+export function filterSignupsByMode(
+  signups: ScenarioSignup[],
+  ranks: ScenarioRank[],
+  mode: OptimizationMode,
+): ScenarioSignup[] {
+  if (mode !== 'satisfaction') return signups
+  const ranked = new Set(
+    ranks
+      .filter((rank) => rank.rank !== null)
+      .map((rank) => `${rank.userId}:${rank.bookId}`),
+  )
+  return signups.filter((signup) => ranked.has(`${signup.userId}:${signup.bookId}`))
 }
 
 function memberSortKey(member: GroupMember): string {
@@ -274,8 +341,9 @@ function maxOverlapWithSelected(circle: MatchingCircle, selected: MatchingCircle
   return Math.max(...selected.map((candidate) => memberOverlap(circle, candidate)))
 }
 
-function selectDiverseCircles(circles: MatchingCircle[], maxGroupSize: number): MatchingCircle[] {
-  const sorted = [...circles].sort((a, b) => compareCircleScore(b, a))
+function selectDiverseCircles(circles: MatchingCircle[], maxGroupSize: number, mode: OptimizationMode): MatchingCircle[] {
+  const compare = circleComparator(mode)
+  const sorted = [...circles].sort((a, b) => compare(b, a))
   const selected: MatchingCircle[] = []
   const selectedIds = new Set<string>()
 
@@ -300,11 +368,12 @@ function selectDiverseCircles(circles: MatchingCircle[], maxGroupSize: number): 
     if (selected.length >= MAX_CIRCLES_PER_BOOK) break
   }
 
-  return selected.sort((a, b) => compareCircleScore(b, a))
+  return selected.sort((a, b) => compare(b, a))
 }
 
 function buildCandidateCircles(input: GenerateScenariosInput): MatchingCircle[] {
   const { participants, books, signups, ranks, minGroupSize, maxGroupSize } = input
+  const mode = input.mode ?? 'coverage'
   if (minGroupSize < 1 || maxGroupSize < minGroupSize || participants.length < minGroupSize) return []
 
   const pseudonymMap = new Map(participants.map((p) => [p.userId, p.pseudonym]))
@@ -345,11 +414,12 @@ function buildCandidateCircles(input: GenerateScenariosInput): MatchingCircle[] 
         }
       })
 
-    allCircles.push(...selectDiverseCircles(circles, maxGroupSize))
+    allCircles.push(...selectDiverseCircles(circles, maxGroupSize, mode))
   }
 
+  const compare = circleComparator(mode)
   return allCircles
-    .sort((a, b) => compareCircleScore(b, a))
+    .sort((a, b) => compare(b, a))
     .slice(0, MAX_TOTAL_CIRCLES)
 }
 
@@ -403,13 +473,13 @@ function addCircle(state: CircleState, circle: MatchingCircle): CircleState {
   }
 }
 
-function compareStates(a: CircleState, b: CircleState, totalCount: number): number {
-  const aScenario = { id: scenarioId(a.circles), score: scoreScenario(a.circles, totalCount) }
-  const bScenario = { id: scenarioId(b.circles), score: scoreScenario(b.circles, totalCount) }
-  return compareScenarioScore(aScenario, bScenario)
+function compareStates(a: CircleState, b: CircleState, totalCount: number, mode: OptimizationMode): number {
+  const aScenario = { id: scenarioId(a.circles), circles: a.circles, score: scoreScenario(a.circles, totalCount) }
+  const bScenario = { id: scenarioId(b.circles), circles: b.circles, score: scoreScenario(b.circles, totalCount) }
+  return scenarioComparator(mode)(aScenario, bScenario)
 }
 
-function buildScenarioStates(circles: MatchingCircle[], participants: ScenarioParticipant[]): CircleState[] {
+function buildScenarioStates(circles: MatchingCircle[], participants: ScenarioParticipant[], mode: OptimizationMode): CircleState[] {
   const empty: CircleState = { circles: [], usedBookIds: new Set(), usedUserIds: new Set() }
   let states: CircleState[] = [empty]
 
@@ -427,7 +497,7 @@ function buildScenarioStates(circles: MatchingCircle[], participants: ScenarioPa
     const emptyState = byId.get('') ?? empty
     const rankedStates = Array.from(byId.values())
       .filter((state) => state.circles.length > 0)
-      .sort((a, b) => compareStates(b, a, participants.length))
+      .sort((a, b) => compareStates(b, a, participants.length, mode))
       .slice(0, BEAM_WIDTH)
 
     states = [emptyState, ...rankedStates]
@@ -436,8 +506,14 @@ function buildScenarioStates(circles: MatchingCircle[], participants: ScenarioPa
   return states.filter((state) => state.circles.length > 0)
 }
 
-function assignScenarioTiers(scenarios: MatchingScenario[], totalCount: number): MatchingScenario[] {
+function assignScenarioTiers(scenarios: MatchingScenario[], totalCount: number, mode: OptimizationMode): MatchingScenario[] {
   if (scenarios.length === 0) return []
+  if (mode === 'satisfaction') {
+    return scenarios.map((scenario, index) => ({
+      ...scenario,
+      tier: index === 0 ? 'leader' : 'partial',
+    }))
+  }
   const bestPartialCoverage = Math.max(
     0,
     ...scenarios
@@ -459,6 +535,7 @@ export function emptyScenarioSetOverview(
   participants: ScenarioParticipant[],
   minGroupSize: number,
   maxGroupSize = minGroupSize,
+  mode: OptimizationMode = 'coverage',
 ): ScenarioSetOverview {
   return {
     scenarios: [],
@@ -466,32 +543,36 @@ export function emptyScenarioSetOverview(
     totalCount: participants.length,
     minGroupSize,
     maxGroupSize,
+    mode,
   }
 }
 
 export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSetOverview {
   const { participants, minGroupSize, maxGroupSize, maxResults = 10 } = input
+  const mode = input.mode ?? 'coverage'
   if (participants.length < minGroupSize || minGroupSize < 1 || maxGroupSize < minGroupSize) {
-    return emptyScenarioSetOverview(participants, minGroupSize, maxGroupSize)
+    return emptyScenarioSetOverview(participants, minGroupSize, maxGroupSize, mode)
   }
 
   const candidateCircles = buildCandidateCircles(input)
   if (candidateCircles.length === 0) {
-    return emptyScenarioSetOverview(participants, minGroupSize, maxGroupSize)
+    return emptyScenarioSetOverview(participants, minGroupSize, maxGroupSize, mode)
   }
 
-  const scenarios = buildScenarioStates(candidateCircles, participants)
+  const compare = scenarioComparator(mode)
+  const scenarios = buildScenarioStates(candidateCircles, participants, mode)
     .map((state) => toScenario(state.circles, participants, 'partial'))
-    .sort((a, b) => compareScenarioScore(b, a))
+    .sort((a, b) => compare(b, a))
     .slice(0, maxResults)
 
-  const tiered = assignScenarioTiers(scenarios, participants.length)
+  const tiered = assignScenarioTiers(scenarios, participants.length, mode)
   return {
     scenarios: tiered,
     leader: tiered[0] ?? null,
     totalCount: participants.length,
     minGroupSize,
     maxGroupSize,
+    mode,
   }
 }
 
@@ -517,6 +598,7 @@ export function emptyScenarioOverview(
   participants: ScenarioParticipant[],
   minGroupSize: number,
   maxGroupSize = minGroupSize,
+  mode: OptimizationMode = 'coverage',
 ): ScenarioOverview {
   return {
     current: [],
@@ -526,13 +608,15 @@ export function emptyScenarioOverview(
     totalCount: participants.length,
     minGroupSize,
     maxGroupSize,
+    mode,
   }
 }
 
 export function generateScenarioOverview(input: GenerateScenariosInput): ScenarioOverview {
+  const mode = input.mode ?? 'coverage'
   const scenarioSets = generateScenarioSets(input)
   const leader = scenarioSets.leader
-  if (!leader) return emptyScenarioOverview(input.participants, input.minGroupSize, input.maxGroupSize)
+  if (!leader) return emptyScenarioOverview(input.participants, input.minGroupSize, input.maxGroupSize, mode)
 
   const current = leader.circles.map((circle, index) => {
     if (index === 0) return toScenarioCard(circle, 'leader')
@@ -566,6 +650,7 @@ export function generateScenarioOverview(input: GenerateScenariosInput): Scenari
     totalCount: input.participants.length,
     minGroupSize: input.minGroupSize,
     maxGroupSize: input.maxGroupSize,
+    mode,
   }
 }
 

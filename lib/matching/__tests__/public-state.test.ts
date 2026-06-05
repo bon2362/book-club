@@ -90,6 +90,7 @@ describe('public matching state sanitizers', () => {
       totalCount: 3,
       minGroupSize: 2,
       maxGroupSize: 3,
+      mode: 'coverage',
     }
 
     const result = publicizeScenarioOverview(overview, ids)
@@ -112,6 +113,7 @@ describe('public matching state sanitizers', () => {
       totalCount: 3,
       minGroupSize: 2,
       maxGroupSize: 3,
+      mode: 'coverage',
     }
 
     const result = publicizeScenarioSetOverview(overview, ids)

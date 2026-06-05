@@ -10,8 +10,10 @@ import { fetchMyMoves } from '@/lib/matching/my-moves'
 import {
   emptyScenarioOverview,
   emptyScenarioSetOverview,
+  filterSignupsByMode,
   generateScenarioOverview,
   generateScenarioSets,
+  type OptimizationMode,
   type ScenarioOverview,
   type ScenarioSetOverview,
 } from '@/lib/matching/scenarios'
@@ -35,6 +37,7 @@ export async function GET(req: NextRequest) {
     .limit(1)
 
   if (!matchSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  const mode = (matchSession.optimizationMode ?? 'coverage') as OptimizationMode
 
   const participants = await db
     .select({
@@ -66,11 +69,13 @@ export async function GET(req: NextRequest) {
     participants,
     matchSession.minGroupSize,
     matchSession.maxGroupSize,
+    mode,
   )
   let scenarioSetOverview: ScenarioSetOverview = emptyScenarioSetOverview(
     participants,
     matchSession.minGroupSize,
     matchSession.maxGroupSize,
+    mode,
   )
   if (participantUserIds.length >= matchSession.minGroupSize) {
     const [allSignups, allRanks, allBooks] = await Promise.all([
@@ -87,14 +92,21 @@ export async function GET(req: NextRequest) {
     const signedUpBookIds = new Set(allSignups.map(s => s.bookId))
     const sessionBooks = allBooks.filter(b => signedUpBookIds.has(b.id)).map(b => ({ bookId: b.id, readingStatus: b.readingStatus ?? null }))
     const activeSignups = allSignups.filter(s => s.personalStatus === null)
+    const ranks = allRanks.map((rank) => ({ userId: rank.userId, bookId: rank.bookId, rank: rank.rank }))
+    const signups = filterSignupsByMode(
+      activeSignups.map(s => ({ userId: s.userId, bookId: s.bookId })),
+      ranks,
+      mode,
+    )
     const scenarioInput = {
       participants,
       books: sessionBooks,
-      signups: activeSignups.map(s => ({ userId: s.userId, bookId: s.bookId })),
-      ranks: allRanks,
+      signups,
+      ranks,
       minGroupSize: matchSession.minGroupSize,
       maxGroupSize: matchSession.maxGroupSize,
       maxResults: 10,
+      mode,
     }
     scenarioSetOverview = generateScenarioSets(scenarioInput)
     scenarioOverview = generateScenarioOverview(scenarioInput)

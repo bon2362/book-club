@@ -1,4 +1,12 @@
-import { generateScenarioSets, generateScenarios } from '../scenarios'
+import {
+  compareCircleSatisfaction,
+  compareScenarioSatisfaction,
+  filterSignupsByMode,
+  generateScenarioSets,
+  generateScenarios,
+  type MatchingCircle,
+  type MatchingScenario,
+} from '../scenarios'
 
 function makeParticipants(n: number) {
   return Array.from({ length: n }, (_, i) => ({ userId: `u${i + 1}`, pseudonym: `Участник${i + 1}` }))
@@ -20,7 +28,62 @@ function rank(userId: string, bookId: string, value: number) {
   return { userId, bookId, rank: value }
 }
 
+function circle(id: string, ranks: number[]): MatchingCircle {
+  const members = ranks.map((rankValue, i) => ({
+    userId: `${id}-u${i}`,
+    pseudonym: `${id}-p${i}`,
+    rank: rankValue,
+    interest: (rankValue <= 3 ? 'очень хочу' : 'хочу') as 'очень хочу' | 'хочу',
+  }))
+  const ranked = members.filter((m) => m.rank !== null)
+  return {
+    id,
+    bookId: id.split(':')[0],
+    members,
+    minSize: 3,
+    maxSize: 4,
+    wantsCount: ranked.filter((m) => m.rank! <= 3).length,
+    avgRank: ranked.reduce((sum, m) => sum + m.rank!, 0) / ranked.length,
+    worstRank: Math.max(...ranked.map((m) => m.rank!)),
+    unrankedCount: members.length - ranked.length,
+  }
+}
+
+function scenario(id: string, circles: MatchingCircle[]): Pick<MatchingScenario, 'id' | 'circles' | 'score'> {
+  const members = circles.flatMap((c) => c.members)
+  const ranked = members.filter((m) => m.rank !== null)
+  const rankSum = ranked.reduce((sum, m) => sum + m.rank!, 0)
+  return {
+    id,
+    circles,
+    score: {
+      coveredCount: new Set(members.map((m) => m.userId)).size,
+      totalCount: 9,
+      coverageRatio: 0,
+      strongInterestCount: ranked.filter((m) => m.rank! <= 3).length,
+      rankedCount: ranked.length,
+      unrankedCount: members.length - ranked.length,
+      rankSum,
+      avgRank: rankSum / ranked.length,
+      worstRank: Math.max(...ranked.map((m) => m.rank!)),
+    },
+  }
+}
+
 describe('generateScenarioSets', () => {
+  it('defaults overview.mode to coverage when no mode is given', () => {
+    const participants = makeParticipants(3)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('b1')],
+      signups: allSignedUp(['u1', 'u2', 'u3'], 'b1'),
+      ranks: rankAll(['u1', 'u2', 'u3'], 'b1', 1),
+      minGroupSize: 3, maxGroupSize: 3,
+    })
+
+    expect(result.mode).toBe('coverage')
+  })
+
   it('returns an empty overview when no scenario can be formed', () => {
     const participants = makeParticipants(3)
     const result = generateScenarioSets({
@@ -132,6 +195,29 @@ describe('generateScenarioSets', () => {
 
     expect(result.leader?.score.coveredCount).toBe(6)
     expect(result.leader?.circles.map((circle) => circle.bookId).sort()).toEqual(['fallback-a', 'fallback-b'])
+  })
+
+  it('satisfaction mode keeps the perfect trio as leader even if a fuller worse layout exists', () => {
+    const participants = makeParticipants(4)
+    const result = generateScenarioSets({
+      mode: 'satisfaction',
+      participants,
+      books: [makeBook('b1'), makeBook('b2')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3'], 'b1'),
+        ...allSignedUp(['u2', 'u3', 'u4'], 'b2'),
+      ],
+      ranks: [
+        ...rankAll(['u1', 'u2', 'u3'], 'b1', 1),
+        ...rankAll(['u2', 'u3', 'u4'], 'b2', 5),
+      ],
+      minGroupSize: 3, maxGroupSize: 3,
+    })
+
+    expect(result.mode).toBe('satisfaction')
+    expect(result.leader?.circles).toHaveLength(1)
+    expect(result.leader?.circles[0].bookId).toBe('b1')
+    expect(result.leader?.score.avgRank).toBe(1)
   })
 
   it('uses stronger top-3 interest as the first tie-breaker for equal coverage', () => {
@@ -367,5 +453,59 @@ describe('generateScenarios compatibility wrapper', () => {
     })
 
     expect(result).toHaveLength(10)
+  })
+})
+
+describe('compareCircleSatisfaction', () => {
+  it('prefers lower average rank before top-three count', () => {
+    expect(compareCircleSatisfaction(circle('a:1', [1, 1, 6]), circle('b:1', [3, 3, 3]))).toBeGreaterThan(0)
+  })
+
+  it('breaks average ties by worst rank', () => {
+    expect(compareCircleSatisfaction(circle('a:1', [2, 2, 2]), circle('b:1', [1, 1, 4]))).toBeGreaterThan(0)
+  })
+
+  it('prefers larger circle when average and worst rank tie', () => {
+    expect(compareCircleSatisfaction(circle('a:1', [2, 2, 2, 2]), circle('b:1', [2, 2, 2]))).toBeGreaterThan(0)
+  })
+})
+
+describe('compareScenarioSatisfaction', () => {
+  it('lets a smaller perfect scenario beat a larger good scenario', () => {
+    const a = scenario('a', [circle('x:1', [1, 1, 1])])
+    const b = scenario('b', [circle('y:1', [2, 2, 2]), circle('z:1', [2, 2, 2])])
+
+    expect(compareScenarioSatisfaction(a, b)).toBeGreaterThan(0)
+  })
+
+  it('prefers an extra group when quality prefixes tie', () => {
+    const a = scenario('a', [circle('x:1', [1, 1, 1])])
+    const b = scenario('b', [circle('x:1', [1, 1, 1]), circle('y:1', [2, 2, 2])])
+
+    expect(compareScenarioSatisfaction(a, b)).toBeLessThan(0)
+  })
+})
+
+describe('filterSignupsByMode', () => {
+  const signups = [
+    { userId: 'u1', bookId: 'b1' },
+    { userId: 'u1', bookId: 'b2' },
+    { userId: 'u2', bookId: 'b1' },
+  ]
+  const ranks = [
+    { userId: 'u1', bookId: 'b1', rank: 1 },
+    { userId: 'u1', bookId: 'b2', rank: null },
+    { userId: 'u2', bookId: 'b1', rank: 2 },
+  ]
+
+  it('keeps all signups in coverage mode', () => {
+    expect(filterSignupsByMode(signups, ranks, 'coverage')).toHaveLength(3)
+  })
+
+  it('drops signups without a rank in satisfaction mode', () => {
+    expect(filterSignupsByMode(signups, ranks, 'satisfaction')).toEqual([
+      { userId: 'u1', bookId: 'b1' },
+      { userId: 'u2', bookId: 'b1' },
+    ])
   })
 })

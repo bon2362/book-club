@@ -83,6 +83,42 @@ describe('POST /api/matching/sessions', () => {
     expect(json.success).toBe(true)
     expect(json.data.id).toBe('new-id')
   })
+
+  it('persists optimizationMode=satisfaction when provided', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const selectChain = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]),
+    }
+    mockDb.select = jest.fn().mockReturnValue(selectChain)
+    const insertChain = {
+      values: jest.fn().mockReturnThis(),
+      returning: jest.fn().mockResolvedValue([{ id: 'new-id', name: 'Test', status: 'active' }]),
+    }
+    mockDb.insert = jest.fn().mockReturnValue(insertChain)
+
+    const res = await POST(makeRequest({
+      name: 'Satisfaction session',
+      minGroupSize: 3,
+      maxGroupSize: 3,
+      optimizationMode: 'satisfaction',
+    }))
+
+    expect(res.status).toBe(201)
+    expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({
+      optimizationMode: 'satisfaction',
+    }))
+  })
+
+  it('rejects an invalid optimizationMode', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const res = await POST(makeRequest({ name: 'Bad mode', optimizationMode: 'bogus' }))
+
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toMatch(/optimizationMode/)
+  })
 })
 
 describe('GET /api/matching/sessions', () => {

@@ -6,8 +6,8 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users, signupBooks, bookPriorities, books } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
-import { emptyScenarioSetOverview, generateScenarioSets } from '@/lib/matching/scenarios'
-import type { GenerateScenariosInput, MatchingScenario } from '@/lib/matching/scenarios'
+import { emptyScenarioSetOverview, filterSignupsByMode, generateScenarioSets } from '@/lib/matching/scenarios'
+import type { GenerateScenariosInput, MatchingScenario, OptimizationMode } from '@/lib/matching/scenarios'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
@@ -67,6 +67,7 @@ export default async function MatchingPage({
       </main>
     )
   }
+  const mode = (activeSession.optimizationMode ?? 'coverage') as OptimizationMode
 
   const [currentParticipant] = !isImpersonating
     ? await db
@@ -151,11 +152,12 @@ export default async function MatchingPage({
     scenarioParticipants,
     activeSession.minGroupSize,
     activeSession.maxGroupSize,
+    mode,
   )
   const scenarioSetOverview =
     participantUserIds.length >= activeSession.minGroupSize
       ? generateScenarioSets(scenarioInput)
-      : emptyScenarioSetOverview(scenarioParticipants, activeSession.minGroupSize, activeSession.maxGroupSize)
+      : emptyScenarioSetOverview(scenarioParticipants, activeSession.minGroupSize, activeSession.maxGroupSize, mode)
 
   const bookTitleById = new Map(personalBooks.map((book) => [book.bookId, book.title]))
   const feedEvents = await fetchFeedForSession(activeSession.id)
@@ -321,10 +323,11 @@ async function fetchScenarioInput(
   participants: { userId: string; pseudonym: string }[],
   minGroupSize: number,
   maxGroupSize: number,
+  mode: OptimizationMode,
 ): Promise<GenerateScenariosInput> {
   const participantUserIds = participants.map((p) => p.userId)
   if (participantUserIds.length === 0) {
-    return { participants, books: [], signups: [], ranks: [], minGroupSize, maxGroupSize, maxResults: 10 }
+    return { participants, books: [], signups: [], ranks: [], minGroupSize, maxGroupSize, maxResults: 10, mode }
   }
   const [allSignups, allRanks, allBooks] = await Promise.all([
     db
@@ -354,15 +357,22 @@ async function fetchScenarioInput(
   // Exclude signups where the user has set a personal status (reading/read) —
   // they are no longer available as candidates for a new group on that book.
   const activeSignups = allSignups.filter((s) => s.personalStatus === null)
+  const ranks = allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank }))
+  const signups = filterSignupsByMode(
+    activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
+    ranks,
+    mode,
+  )
 
   return {
     participants,
     books: sessionBooks,
-    signups: activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
-    ranks: allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank })),
+    signups,
+    ranks,
     minGroupSize,
     maxGroupSize,
     maxResults: 10,
+    mode,
   }
 }
 
