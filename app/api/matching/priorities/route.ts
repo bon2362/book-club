@@ -6,6 +6,10 @@ import { db } from '@/lib/db'
 import { matchingSessions, bookPriorities } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { broadcast } from '@/lib/matching/realtime/hub'
+import {
+  captureMatchingMutationSnapshot,
+  finalizeMatchingMutationEffects,
+} from '@/lib/matching/mutation-effects'
 
 export async function PATCH(req: NextRequest) {
   const session = await auth()
@@ -31,6 +35,9 @@ export async function PATCH(req: NextRequest) {
   const userId = asUserId ?? session.user.id
   const ordered = bookIds as string[]
 
+  // Snapshot the leader scenario before the change so analytics can show impact.
+  const before = await captureMatchingMutationSnapshot(activeSession.id)
+
   // Upsert each book with its new rank (1-indexed position)
   for (let i = 0; i < ordered.length; i++) {
     await db
@@ -49,6 +56,18 @@ export async function PATCH(req: NextRequest) {
     .where(eq(bookPriorities.userId, userId))
 
   broadcast(activeSession.id, 'state_changed', { kind: 'ranks_updated' })
+
+  // Persist analytics: reordering priorities from the /matching page.
+  await finalizeMatchingMutationEffects({
+    sessionId: activeSession.id,
+    targetUserId: userId,
+    actorUserId: session.user.id,
+    bookId: null,
+    kind: 'priorities_updated',
+    source: 'matching',
+    before,
+    metadata: { rankedBookIds: ordered },
+  })
 
   return NextResponse.json({ ranks: canonical }, { status: 200 })
 }
