@@ -4,19 +4,18 @@ import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { broadcast } from './hub'
 
 export interface MatchingStateChangePayload {
-  userId: string
   kind: string
   [key: string]: unknown
 }
 
 export async function broadcastActiveMatchingStateChangeForParticipant(
   userId: string,
-  payload: Omit<MatchingStateChangePayload, 'userId'>,
+  payload: MatchingStateChangePayload,
 ): Promise<string | null> {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
   if (!activeSessionId) return null
 
-  broadcast(activeSessionId, 'state_changed', { userId, ...payload })
+  broadcast(activeSessionId, 'state_changed', payload)
   return activeSessionId
 }
 

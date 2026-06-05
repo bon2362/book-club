@@ -60,7 +60,6 @@ describe('broadcastActiveMatchingStateChangeForParticipant', () => {
 
     expect(result).toBe('session-1')
     expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      userId: 'user-1',
       kind: 'updated',
       bookId: 'book-1',
     })

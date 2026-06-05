@@ -82,10 +82,10 @@ describe('GET /api/auth/telegram/callback', () => {
     const location = res.headers.get('location')!
     const url = new URL(location)
     expect(url.pathname).toBe('/auth/telegram')
-    expect(url.searchParams.get('uid')).toBe('canonical-uuid')
+    expect(url.searchParams.has('uid')).toBe(false)
     expect(url.searchParams.get('token')).toBeTruthy()
     expect(url.searchParams.get('ts')).toBeTruthy()
-    expect(url.searchParams.get('username')).toBe('ivanp')
+    expect(url.searchParams.has('username')).toBe(false)
     expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '123456789', expect.objectContaining({
       name: 'Иван Петров',
       image: null,
@@ -132,7 +132,7 @@ describe('GET /api/auth/telegram/callback', () => {
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
-  it('не добавляет username в redirect URL если он отсутствует', async () => {
+  it('не добавляет username в redirect URL', async () => {
     const base: Record<string, string> = {
       id: '999',
       first_name: 'Аня',

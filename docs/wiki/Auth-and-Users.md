@@ -69,10 +69,12 @@ sequenceDiagram
     C->>C: Проверяет HMAC
     C->>DB: Находит или создает user + identity
     C->>DB: Создает preauth token
-    C->>P: Redirect с uid, token, ts
+    C->>P: Redirect с token, ts
     P->>N: signIn('telegram-preauth')
-    N->>DB: Поглощает token и создает session
+    N->>DB: Поглощает token, получает userId и создает session
 ```
+
+В redirect URL намеренно нет внутреннего `user.id` и Telegram `username`: одноразовый token связывается с пользователем в таблице `telegram_preauth_tokens`, а `telegram-preauth` provider получает `userId` только после успешного consume. PostHog pageview дополнительно вычищает чувствительные query-параметры (`token`, `uid`, `ts`, `username`, `email`) перед отправкой.
 
 ## Пользовательский профиль
 

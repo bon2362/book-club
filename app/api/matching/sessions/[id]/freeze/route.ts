@@ -94,7 +94,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     })
     .where(eq(matchingSessions.id, params.id))
 
-  broadcast(params.id, 'session_frozen', { frozen_at: frozenAt.toISOString(), frozen_scenario: leader })
+  broadcast(params.id, 'session_frozen', { frozen_at: frozenAt.toISOString() })
 
   return NextResponse.json({ ok: true, frozen_at: frozenAt.toISOString(), leader }, { status: 200 })
 }

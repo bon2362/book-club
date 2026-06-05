@@ -63,7 +63,6 @@ describe('PATCH /api/matching/sessions/[id]', () => {
       kind: 'group_size_range_updated',
       minGroupSize: 3,
       maxGroupSize: 4,
-      userId: 'admin1',
     })
   })
 })

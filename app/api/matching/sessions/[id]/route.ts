@@ -51,7 +51,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     kind: 'group_size_range_updated',
     minGroupSize: groupSizeRange.minGroupSize,
     maxGroupSize: groupSizeRange.maxGroupSize,
-    userId: session.user.id,
   })
 
   return NextResponse.json({ ok: true, ...groupSizeRange }, { status: 200 })

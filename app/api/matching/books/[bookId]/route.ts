@@ -62,7 +62,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     source: asUserId ? 'admin' : 'matching',
     before,
   })
-  broadcast(activeSession.id, 'state_changed', { userId, kind: 'book_removed', bookId })
+  broadcast(activeSession.id, 'state_changed', { kind: 'book_removed', bookId })
 
   return NextResponse.json({ ok: true }, { status: 200 })
 }

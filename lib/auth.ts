@@ -117,14 +117,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       id: 'telegram-preauth',
       credentials: {},
       async authorize(credentials) {
-        const { uid, token, ts } = credentials as { uid: string; token: string; ts: string }
-        if (!uid || !token || !ts) return null
+        const { token, ts } = credentials as { token: string; ts: string }
+        if (!token || !ts) return null
         // ts is still checked to reject very old auth pages before the DB consume.
         const issuedAt = Number.parseInt(ts, 10)
         const now = Math.floor(Date.now() / 1000)
         if (!Number.isFinite(issuedAt) || now - issuedAt > 5 * 60 || issuedAt > now + 60) return null
-        if (!await consumeTelegramPreauthToken(uid, token)) return null
-        const existing = await db.select().from(users).where(eq(users.id, uid)).limit(1)
+        const userId = await consumeTelegramPreauthToken(token)
+        if (!userId) return null
+        const existing = await db.select().from(users).where(eq(users.id, userId)).limit(1)
         if (existing.length === 0) return null
         const user = existing[0]
         return { id: user.id, email: user.contactEmail, contactEmail: user.contactEmail, name: user.name ?? '' }

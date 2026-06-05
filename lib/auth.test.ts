@@ -125,9 +125,9 @@ function mockDbUpdate() {
   return chain
 }
 
-function mockPreauthConsume(allowed: boolean) {
+function mockPreauthConsume(userId: string | null) {
   const chain = mockDbUpdate()
-  chain.returning.mockResolvedValue(allowed ? [{ userId: 'telegram:user' }] : [])
+  chain.returning.mockResolvedValue(userId ? [{ userId }] : [])
   return chain
 }
 
@@ -497,30 +497,29 @@ describe('telegram-preauth authorize', () => {
     authorize = provider!.authorize!
   })
 
-  it('возвращает null если uid/token/ts отсутствуют', async () => {
-    expect(await authorize({ uid: '', token: 'x', ts: '1' })).toBeNull()
-    expect(await authorize({ uid: 'u', token: '', ts: '1' })).toBeNull()
-    expect(await authorize({ uid: 'u', token: 'x', ts: '' })).toBeNull()
+  it('возвращает null если token/ts отсутствуют', async () => {
+    expect(await authorize({ token: '', ts: '1' })).toBeNull()
+    expect(await authorize({ token: 'x', ts: '' })).toBeNull()
   })
 
   it('возвращает null если токен протух (> 5 минут)', async () => {
     const staleTs = String(Math.floor(Date.now() / 1000) - 6 * 60)
     const token = 'token'
-    const result = await authorize({ uid: 'user-id', token, ts: staleTs })
+    const result = await authorize({ token, ts: staleTs })
     expect(result).toBeNull()
   })
 
   it('возвращает null если одноразовый токен не найден или уже использован', async () => {
     const ts = String(Math.floor(Date.now() / 1000))
-    mockPreauthConsume(false)
+    mockPreauthConsume(null)
 
-    const result = await authorize({ uid: 'user-id', token: 'token', ts })
+    const result = await authorize({ token: 'token', ts })
 
     expect(result).toBeNull()
   })
 
   it('возвращает null если ts не число', async () => {
-    const result = await authorize({ uid: 'user-id', token: 'token', ts: 'not-a-number' })
+    const result = await authorize({ token: 'token', ts: 'not-a-number' })
 
     expect(result).toBeNull()
     expect(db.update).not.toHaveBeenCalled()
@@ -531,10 +530,10 @@ describe('telegram-preauth authorize', () => {
     const ts = String(Math.floor(Date.now() / 1000))
     const token = 'token'
 
-    mockPreauthConsume(true)
+    mockPreauthConsume(uid)
     mockDbSelect([])
 
-    const result = await authorize({ uid, token, ts })
+    const result = await authorize({ token, ts })
     expect(result).toBeNull()
   })
 
@@ -543,10 +542,10 @@ describe('telegram-preauth authorize', () => {
     const ts = String(Math.floor(Date.now() / 1000))
     const token = 'token'
 
-    mockPreauthConsume(true)
+    mockPreauthConsume(uid)
     mockDbSelect([{ id: uid, contactEmail: null, name: 'Ivan' }])
 
-    const result = await authorize({ uid, token, ts, username: 'ivan_tg' })
+    const result = await authorize({ token, ts })
 
     expect(result).toMatchObject({
       id: uid,
@@ -560,10 +559,10 @@ describe('telegram-preauth authorize', () => {
     const ts = String(Math.floor(Date.now() / 1000))
     const token = 'token'
 
-    mockPreauthConsume(true)
+    mockPreauthConsume(uid)
     mockDbSelect([{ id: uid, email: 'tg@telegram.user', name: 'Ivan' }])
 
-    const result = (await authorize({ uid, token, ts })) as Record<string, unknown>
+    const result = (await authorize({ token, ts })) as Record<string, unknown>
     expect(result.telegramUsername).toBeUndefined()
   })
 })
