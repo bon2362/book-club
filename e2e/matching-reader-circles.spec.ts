@@ -58,9 +58,16 @@ test('matching shows welcome screen until the reader explicitly joins', async ({
   await page.getByRole('button', { name: 'Войти' }).click()
   await expect(page.getByRole('heading', { name: 'Читательские круги' })).toBeVisible({ timeout: 15_000 })
 
+  // Присвоенный после входа ник должен совпадать с тем, что был показан на welcome
+  // (а не оказаться случайным — защита от рассинхрона брони и join'а)
+  const identity = new RegExp(`Вы\\s*—\\s*${afterNick}`)
+  await expect(page.getByText(identity)).toBeVisible()
+
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Добро пожаловать' })).not.toBeVisible()
   await expect(page.getByRole('heading', { name: 'Читательские круги' })).toBeVisible()
+  // ...и сохраняется после перезагрузки
+  await expect(page.getByText(identity)).toBeVisible()
 })
 
 test('matching catalog does not show the rank nudge banner', async ({
