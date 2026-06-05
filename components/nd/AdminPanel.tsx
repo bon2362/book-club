@@ -709,23 +709,6 @@ export default function AdminPanel({
           </button>
         </div>
 
-        <div style={{ margin: '0.5rem 0 1rem' }}>
-          <Link
-            href="/admin/sitemap"
-            data-testid="admin-sitemap-link"
-            style={{
-              fontFamily: 'var(--nd-sans)',
-              fontSize: '0.62rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--text-muted)',
-              textDecoration: 'none',
-            }}
-          >
-            🗺 Карта сайта
-          </Link>
-        </div>
-
         {view === 'intro' && <IntroEditor />}
 
         {view === 'matching' && <AdminMatchingSession />}
@@ -1173,6 +1156,31 @@ export default function AdminPanel({
             )}
           </div>
         )}
+        <footer
+          style={{
+            maxWidth: '1200px',
+            margin: '3rem auto 0',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Link
+            href="/admin/sitemap"
+            data-testid="admin-sitemap-link"
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.62rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              color: 'var(--text-muted)',
+              textDecoration: 'none',
+            }}
+          >
+            🗺 Карта сайта
+          </Link>
+        </footer>
       </main>
       <AdminUserDrawer
         isOpen={selectedAdminUserId !== null}
