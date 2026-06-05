@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { db } from '@/lib/db'
-import { broadcast } from '../hub'
+import { bumpSessionState } from '../version'
 import { broadcastActiveMatchingStateChangeForParticipant } from '../state-change'
 
 jest.mock('@/lib/db', () => ({
@@ -12,10 +12,10 @@ jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
   matchingSessionParticipants: {},
 }))
-jest.mock('../hub', () => ({ broadcast: jest.fn() }))
+jest.mock('../version', () => ({ bumpSessionState: jest.fn() }))
 
 const mockSelect = db.select as jest.Mock
-const mockBroadcast = broadcast as jest.Mock
+const mockBump = bumpSessionState as jest.Mock
 
 function selectLimitRows(rows: unknown[]) {
   return {
@@ -34,7 +34,7 @@ describe('broadcastActiveMatchingStateChangeForParticipant', () => {
     const result = await broadcastActiveMatchingStateChangeForParticipant('user-1', { kind: 'updated' })
 
     expect(result).toBeNull()
-    expect(mockBroadcast).not.toHaveBeenCalled()
+    expect(mockBump).not.toHaveBeenCalled()
   })
 
   it('does nothing when the user is not a participant', async () => {
@@ -45,10 +45,10 @@ describe('broadcastActiveMatchingStateChangeForParticipant', () => {
     const result = await broadcastActiveMatchingStateChangeForParticipant('user-1', { kind: 'updated' })
 
     expect(result).toBeNull()
-    expect(mockBroadcast).not.toHaveBeenCalled()
+    expect(mockBump).not.toHaveBeenCalled()
   })
 
-  it('broadcasts state_changed for active session participants', async () => {
+  it('bumps state_version for active session participants', async () => {
     mockSelect
       .mockReturnValueOnce(selectLimitRows([{ id: 'session-1' }]))
       .mockReturnValueOnce(selectLimitRows([{ userId: 'user-1' }]))
@@ -59,9 +59,6 @@ describe('broadcastActiveMatchingStateChangeForParticipant', () => {
     })
 
     expect(result).toBe('session-1')
-    expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      kind: 'updated',
-      bookId: 'book-1',
-    })
+    expect(mockBump).toHaveBeenCalledWith('session-1')
   })
 })
