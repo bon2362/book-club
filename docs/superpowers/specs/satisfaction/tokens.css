@@ -1,0 +1,69 @@
+/* Tokens lifted verbatim from book-club/app/globals.css — single source of truth.
+   Only var(--…) used in the mockups; no raw hexes in component markup. */
+:root {
+  --bg:              #F9F5EE;
+  --bg-elevated:     #EDE5D8;
+  --bg-input:        #FFFFFF;
+  --bg-tag:          #EDE5D8;
+  --bg-tag-green:    #EFF5F1;
+
+  --text:            #111111;
+  --text-secondary:  #666666;
+  --text-muted:      #999999;
+  --text-body:       #333333;
+
+  --accent:          #C0603A;
+  --accent-hover:    #A04E2E;
+  --success:         #2D6A4F;
+  --success-hover:   #1E4D39;
+
+  --border:          #E5E5E5;
+  --border-subtle:   #EEEEEE;
+  --border-strong:   #111111;
+
+  --status-ok:        #22C55E;
+  --status-fail:      #EF4444;
+  --status-warn:      #F59E0B;
+  --status-warn-soft: #F3E8D1;
+
+  --shadow-card:     0 1px 2px rgba(50, 38, 24, 0.05), 0 6px 20px rgba(50, 38, 24, 0.05);
+
+  --radius-card:     10px;
+  --radius-control:  8px;
+  --radius-pill:     999px;
+
+  --hair:            #ECE3D4;
+  --hair-soft:       #F1EADD;
+  --accent-soft:     #F4E7DD;
+  --chip-bg:         #F1EADD;
+
+  --nd-serif:        Georgia, "Times New Roman", serif;
+  --nd-sans:         system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --nd-mono:         ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --radius:          0px;
+  --radius-sm:       2px;
+}
+
+* , *::before, *::after { box-sizing: border-box; }
+
+/* ── Catalog row hover (from globals.css) ── */
+.nd-catalog-row { position: relative; border-radius: 8px; transition: background 0.15s ease; }
+.nd-catalog-row:hover { background: #FAF6EE; }
+.nd-drag-handle { opacity: 0.4; }
+
+/* ── Chip bullet separators ── */
+.nd-chip-text + .nd-chip-text { margin-left: 0.5rem; }
+
+/* ── Mode option (admin selector) ── */
+.mode-opt {
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+.mode-opt:hover { background: #FBF8F2; }
+
+/* ── CTA buttons ── */
+.gate-cta {
+  transition: background 0.14s ease, opacity 0.14s ease;
+}
+.gate-cta:not(:disabled):hover { background: var(--accent-hover); }
