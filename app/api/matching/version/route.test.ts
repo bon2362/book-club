@@ -68,4 +68,36 @@ describe('GET /api/matching/version', () => {
     const res = await GET(makeReq('s1'))
     expect(res.status).toBe(403)
   })
+
+  it('returns 404 when the session does not exist', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'admin', isAdmin: true } })
+    const sessionSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]),
+    }
+    mockDb.select = jest.fn().mockReturnValue(sessionSelect)
+    const res = await GET(makeReq('missing'))
+    expect(res.status).toBe(404)
+  })
+
+  it('returns version and status for a participant member', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'u1', isAdmin: false } })
+    const sessionSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 3, status: 'frozen' }]),
+    }
+    const participantSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ userId: 'u1' }]),
+    }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionSelect)
+      .mockReturnValueOnce(participantSelect)
+    const res = await GET(makeReq('s1'))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ version: 3, status: 'frozen' })
+  })
 })

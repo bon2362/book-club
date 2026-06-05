@@ -60,10 +60,7 @@ export async function DELETE(req: NextRequest) {
       before,
     })
   }
-  await broadcastActiveMatchingStateChangeForParticipant(userId, {
-    kind: 'admin_book_removed',
-    bookId,
-  })
+  await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
 }

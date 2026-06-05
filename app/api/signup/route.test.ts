@@ -136,10 +136,7 @@ describe('POST /api/signup', () => {
       source: 'api',
       metadata: expect.objectContaining({ selectedBooksCount: 1, addedBooksCount: 1 }),
     }))
-    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1', {
-      kind: 'catalog_signup_updated',
-      selectedBookIds: ['book-a'],
-    })
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1')
   })
 
   it('при активной сессии пишет событие предпочтений с дельтой добавленных/убранных книг', async () => {

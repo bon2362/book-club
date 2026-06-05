@@ -159,10 +159,7 @@ describe('PUT /api/priorities', () => {
       source: 'api',
       metadata: { booksCount: 2 },
     }))
-    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1', {
-      kind: 'external_ranks_updated',
-      bookIds: ['book-a', 'book-b'],
-    })
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1')
   })
 
   it('при активной сессии пишет событие предпочтений с упорядоченным списком книг', async () => {

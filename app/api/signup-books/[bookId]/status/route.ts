@@ -69,11 +69,7 @@ export async function PATCH(
       metadata: { status: status ?? null },
     })
   }
-  await broadcastActiveMatchingStateChangeForParticipant(userId, {
-    kind: 'personal_status_updated',
-    bookId,
-    status: status ?? null,
-  })
+  await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
 }
