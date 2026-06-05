@@ -1,10 +1,7 @@
 .deck {
   min-height: 100vh;
-  background:
-    linear-gradient(90deg, rgba(17, 17, 17, 0.035) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(17, 17, 17, 0.035) 1px, transparent 1px),
-    var(--bg);
-  background-size: 44px 44px;
+  overflow-x: clip;
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -17,14 +14,14 @@
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
   gap: clamp(2rem, 5vw, 5rem);
   align-items: center;
   border-bottom: 2px solid var(--border-strong);
 }
 
 .heroText {
-  max-width: 760px;
+  max-width: 780px;
 }
 
 .eyebrow {
@@ -41,35 +38,37 @@
   margin: 0;
   max-width: 980px;
   font-family: var(--nd-serif);
-  font-size: clamp(3rem, 7vw, 7.4rem);
+  font-size: clamp(3rem, 7vw, 7.2rem);
   line-height: 0.92;
   letter-spacing: 0;
 }
 
 .heroText > p:last-child,
 .slideInner > p,
-.twoColumn > p,
+.twoColumn p,
 .statementGrid p,
 .assumptionList p,
-.finalGrid p {
+.finalGrid p,
+.solutionGrid p,
+.questionBlock p {
   color: var(--text-secondary);
   font-size: clamp(1.05rem, 1.35vw, 1.34rem);
   line-height: 1.52;
 }
 
 .heroText > p:last-child {
-  max-width: 690px;
+  max-width: 700px;
   margin: 1.5rem 0 0;
 }
 
 .heroBoard {
-  animation: boardIn 680ms ease both;
+  border-top: 2px solid var(--accent);
 }
 
 .slide {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--hair);
+  border-bottom: 1px solid var(--border);
 }
 
 .slideInner {
@@ -91,16 +90,16 @@
 }
 
 .darkSlide .eyebrow {
-  color: var(--accent-soft);
+  color: var(--bg-elevated);
 }
 
 .darkSlide p {
-  color: var(--hair);
+  color: var(--bg-elevated);
 }
 
 .twoColumn {
   display: grid;
-  grid-template-columns: minmax(0, 0.75fr) minmax(420px, 1.25fr);
+  grid-template-columns: minmax(0, 0.78fr) minmax(420px, 1.22fr);
   gap: clamp(2rem, 5vw, 5rem);
   align-items: start;
 }
@@ -119,20 +118,18 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.solutionGrid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
 .statementGrid > div,
 .finalGrid > div,
 .solutionGrid > div {
-  min-height: 260px;
+  min-height: 270px;
   padding: clamp(1.25rem, 2.4vw, 2.25rem);
   background: var(--bg-input);
+  border-top: 2px solid var(--border);
 }
 
 .finalGrid > div {
   background: var(--text);
+  border-top-color: var(--accent);
 }
 
 .statementGrid b,
@@ -151,7 +148,6 @@
 
 .assumptionList {
   display: grid;
-  gap: 1px;
   border-top: 1px solid var(--border-strong);
   border-bottom: 1px solid var(--border-strong);
 }
@@ -159,17 +155,94 @@
 .assumptionList p {
   margin: 0;
   padding: 1.1rem 0;
-  border-top: 1px solid var(--hair);
+  border-top: 1px solid var(--border);
 }
 
 .assumptionList p:first-child {
   border-top: none;
 }
 
+.preferenceTable {
+  display: grid;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input);
+}
+
+.preferenceRow {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-top: 1px solid var(--border);
+}
+
+.preferenceRow:first-child {
+  border-top: none;
+}
+
+.preferenceRow b {
+  font-family: var(--nd-serif);
+  font-size: 1.12rem;
+}
+
+.preferenceRow span {
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.mariaView {
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--border-strong);
+  background: var(--border-strong);
+}
+
+.mariaView > div {
+  padding: 1.35rem;
+  background: var(--bg-input);
+  border-left: 2px solid var(--border);
+}
+
+.mariaView > div:last-child {
+  border-left-color: var(--accent);
+}
+
+.mariaView span,
+.prototypeHeader span,
+.panelHead p,
+.scenarioHeader span,
+.scenarioScore,
+.leftOut,
+.moveCard p,
+.rankingList span {
+  color: var(--text-muted);
+}
+
+.mariaView span,
+.prototypeHeader span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--nd-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.mariaView b {
+  display: block;
+  font-family: var(--nd-serif);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.mariaView p {
+  margin: 0.65rem 0 0;
+}
+
 .prototype {
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow);
 }
 
 .prototypeHeader {
@@ -181,25 +254,25 @@
   border-bottom: 1px solid var(--border-strong);
 }
 
-.prototypeHeader span {
+.prototypeHeader b {
   display: block;
-  margin-bottom: 0.25rem;
-  font-family: var(--nd-mono);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
+  max-width: 74ch;
+  font-size: 1rem;
+  line-height: 1.35;
 }
 
-.prototypeHeader b {
-  font-size: 1rem;
+.modeButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
 }
 
 .prototype button,
 .moveCard button {
   border: 1px solid var(--border-strong);
-  background: var(--text);
-  color: var(--bg-input);
+  background: var(--bg-input);
+  color: var(--text);
   padding: 0.72rem 1rem;
   font-family: var(--nd-mono);
   font-size: 0.72rem;
@@ -207,20 +280,14 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
 }
 
 .prototype button:hover,
+.prototype button[aria-pressed='true'],
 .moveCard button:hover {
-  background: var(--accent);
-  transform: translateY(-1px);
-}
-
-.moveCard button:disabled {
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  cursor: default;
-  transform: none;
+  background: var(--text);
+  color: var(--bg-input);
 }
 
 .prototypeGrid {
@@ -231,7 +298,7 @@
 
 .panel {
   min-width: 0;
-  border-right: 1px solid var(--hair);
+  border-right: 1px solid var(--border);
 }
 
 .panel:last-child {
@@ -240,7 +307,7 @@
 
 .panelHead {
   padding: 1rem 1.2rem;
-  border-bottom: 1px solid var(--hair);
+  border-bottom: 1px solid var(--border);
 }
 
 .panelHead h3 {
@@ -251,7 +318,6 @@
 
 .panelHead p {
   margin: 0.25rem 0 0;
-  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -263,14 +329,17 @@
 
 .scenarioCard,
 .moveCard {
-  background: var(--bg);
-  border: 1px solid var(--hair);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   padding: 1rem;
 }
 
-.scenarioCard:first-child {
-  border-color: var(--border-strong);
-  background: var(--accent-soft);
+.scenarioCard {
+  border-top: 2px solid var(--border);
+}
+
+.activeScenario {
+  border-top-color: var(--accent);
 }
 
 .scenarioHeader {
@@ -290,7 +359,6 @@
 
 .scenarioHeader span,
 .scenarioScore {
-  color: var(--text-muted);
   font-size: 0.8rem;
 }
 
@@ -316,8 +384,8 @@
   gap: 0.8rem;
   align-items: start;
   padding: 0.8rem;
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid var(--hair-soft);
+  background: var(--bg);
+  border: 1px solid var(--border);
 }
 
 .cover {
@@ -344,7 +412,6 @@
 .circleCard p,
 .moveCard p {
   margin: 0.2rem 0 0;
-  color: var(--text-muted);
 }
 
 .chipRow {
@@ -359,8 +426,8 @@
   gap: 0.25rem;
   align-items: baseline;
   padding: 0.28rem 0.48rem;
-  border: 1px solid var(--hair);
-  background: var(--bg-tag);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
   color: var(--text-secondary);
   font-size: 0.78rem;
 }
@@ -374,9 +441,8 @@
 }
 
 .strongChip {
-  border-color: var(--accent);
+  border-bottom-color: var(--accent);
   color: var(--accent);
-  background: var(--bg-input);
 }
 
 .strongChip span {
@@ -394,7 +460,6 @@
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-top: 0.75rem;
-  color: var(--text-muted);
 }
 
 .leftOut b {
@@ -407,17 +472,11 @@
   grid-template-columns: 58px minmax(0, 1fr);
   gap: 0.9rem;
   margin: 1rem;
-  border-left: 3px solid var(--accent);
-  transition: background 180ms ease;
+  border-left: 2px solid var(--accent);
 }
 
-.moveCard:hover {
-  background: var(--accent-soft);
-}
-
-.moveDone {
+.successMove {
   border-left-color: var(--success);
-  background: var(--bg-tag-green);
 }
 
 .moveImpact {
@@ -431,6 +490,10 @@
   line-height: 1.45;
 }
 
+.successMove .moveImpact {
+  border-left-color: var(--success);
+}
+
 .moveImpact b {
   color: var(--text);
 }
@@ -440,15 +503,45 @@
   width: 100%;
 }
 
-@keyframes boardIn {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.rankingList {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border-strong);
+  background: var(--border-strong);
+}
+
+.rankingList li {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  background: var(--bg-input);
+}
+
+.rankingList b {
+  font-family: var(--nd-serif);
+  font-size: 1.12rem;
+}
+
+.questionBlock {
+  max-width: 980px;
+  padding: clamp(1.3rem, 3vw, 2.4rem);
+  border-top: 2px solid var(--accent);
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--bg-input);
+}
+
+.questionBlock b {
+  display: block;
+  font-family: var(--nd-serif);
+  font-size: clamp(1.8rem, 3vw, 3rem);
+}
+
+.questionBlock p {
+  margin-bottom: 0;
 }
 
 @media (max-width: 980px) {
@@ -470,9 +563,13 @@
     flex-direction: column;
   }
 
+  .modeButtons {
+    justify-content: flex-start;
+  }
+
   .panel {
     border-right: none;
-    border-bottom: 1px solid var(--hair);
+    border-bottom: 1px solid var(--border);
   }
 }
 
@@ -491,8 +588,10 @@
   }
 
   .circleCard,
-  .moveCard {
-    grid-template-columns: 44px minmax(0, 1fr);
+  .moveCard,
+  .preferenceRow,
+  .rankingList li {
+    grid-template-columns: 1fr;
   }
 
   .cover {
