@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, signupBooks, bookPriorities } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
@@ -62,7 +62,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     source: asUserId ? 'admin' : 'matching',
     before,
   })
-  broadcast(activeSession.id, 'state_changed', { kind: 'book_removed', bookId })
+  await bumpSessionState(activeSession.id)
 
   return NextResponse.json({ ok: true }, { status: 200 })
 }

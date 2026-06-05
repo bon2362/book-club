@@ -12,7 +12,7 @@ import {
 } from '@/lib/db/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { generateScenarios } from '@/lib/matching/scenarios'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 
 type Params = { params: { id: string } }
 
@@ -94,7 +94,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     })
     .where(eq(matchingSessions.id, params.id))
 
-  broadcast(params.id, 'session_frozen', { frozen_at: frozenAt.toISOString() })
+  await bumpSessionState(params.id)
 
   return NextResponse.json({ ok: true, frozen_at: frozenAt.toISOString(), leader }, { status: 200 })
 }

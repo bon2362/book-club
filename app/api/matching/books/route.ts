@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, signupBooks, bookPriorities } from '@/lib/db/schema'
 import { asc, eq } from 'drizzle-orm'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     source: asUserId ? 'admin' : 'matching',
     before,
   })
-  broadcast(activeSession.id, 'state_changed', { kind: 'book_added', bookId })
+  await bumpSessionState(activeSession.id)
 
   return NextResponse.json({ ok: true }, { status: 200 })
 }

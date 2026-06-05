@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
 
 interface Params { params: { id: string } }
@@ -49,7 +49,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       ),
     )
 
-  broadcast(sessionId, 'state_changed', { kind: 'participant_left' })
+  await bumpSessionState(sessionId)
 
   return NextResponse.json({ success: true })
 }

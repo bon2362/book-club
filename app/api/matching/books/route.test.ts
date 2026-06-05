@@ -13,6 +13,7 @@ jest.mock('@/lib/matching/mutation-effects', () => ({
   captureMatchingMutationSnapshot: jest.fn(),
   finalizeMatchingMutationEffects: jest.fn(),
 }))
+jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
 jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
   signupBooks: {},

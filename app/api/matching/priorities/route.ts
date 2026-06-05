@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, bookPriorities } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest) {
     .from(bookPriorities)
     .where(eq(bookPriorities.userId, userId))
 
-  broadcast(activeSession.id, 'state_changed', { kind: 'ranks_updated' })
+  await bumpSessionState(activeSession.id)
 
   // Persist analytics: reordering priorities from the /matching page.
   await finalizeMatchingMutationEffects({
