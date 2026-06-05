@@ -3,14 +3,13 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { bumpSessionState } from './version'
 
-export interface MatchingStateChangePayload {
-  kind: string
-  [key: string]: unknown
-}
-
+/**
+ * Сигнализирует «состояние изменилось» для активной сессии участника:
+ * находит активную сессию, проверяет членство и инкрементирует её state_version.
+ * Возвращает id сессии (или null, если активной сессии/членства нет).
+ */
 export async function broadcastActiveMatchingStateChangeForParticipant(
   userId: string,
-  _payload: MatchingStateChangePayload, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<string | null> {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
   if (!activeSessionId) return null

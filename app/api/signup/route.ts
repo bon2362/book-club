@@ -121,10 +121,7 @@ export async function POST(req: NextRequest) {
       },
     })
   }
-  await broadcastActiveMatchingStateChangeForParticipant(pgUserId, {
-    kind: 'catalog_signup_updated',
-    selectedBookIds: result.addedBookIds,
-  })
+  await broadcastActiveMatchingStateChangeForParticipant(pgUserId)
 
   return NextResponse.json({ ok: true })
 }

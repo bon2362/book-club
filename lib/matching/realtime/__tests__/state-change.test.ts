@@ -31,7 +31,7 @@ describe('broadcastActiveMatchingStateChangeForParticipant', () => {
   it('does nothing when there is no active matching session', async () => {
     mockSelect.mockReturnValueOnce(selectLimitRows([]))
 
-    const result = await broadcastActiveMatchingStateChangeForParticipant('user-1', { kind: 'updated' })
+    const result = await broadcastActiveMatchingStateChangeForParticipant('user-1')
 
     expect(result).toBeNull()
     expect(mockBump).not.toHaveBeenCalled()
@@ -42,7 +42,7 @@ describe('broadcastActiveMatchingStateChangeForParticipant', () => {
       .mockReturnValueOnce(selectLimitRows([{ id: 'session-1' }]))
       .mockReturnValueOnce(selectLimitRows([]))
 
-    const result = await broadcastActiveMatchingStateChangeForParticipant('user-1', { kind: 'updated' })
+    const result = await broadcastActiveMatchingStateChangeForParticipant('user-1')
 
     expect(result).toBeNull()
     expect(mockBump).not.toHaveBeenCalled()
@@ -53,10 +53,7 @@ describe('broadcastActiveMatchingStateChangeForParticipant', () => {
       .mockReturnValueOnce(selectLimitRows([{ id: 'session-1' }]))
       .mockReturnValueOnce(selectLimitRows([{ userId: 'user-1' }]))
 
-    const result = await broadcastActiveMatchingStateChangeForParticipant('user-1', {
-      kind: 'updated',
-      bookId: 'book-1',
-    })
+    const result = await broadcastActiveMatchingStateChangeForParticipant('user-1')
 
     expect(result).toBe('session-1')
     expect(mockBump).toHaveBeenCalledWith('session-1')

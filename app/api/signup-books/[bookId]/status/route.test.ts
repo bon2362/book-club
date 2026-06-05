@@ -83,11 +83,7 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
 
     expect(res.status).toBe(200)
     expect(mockDb.update).toHaveBeenCalled()
-    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user1', {
-      kind: 'personal_status_updated',
-      bookId: 'book-1',
-      status: 'reading',
-    })
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user1')
   })
 
   it('lets admin update status for an impersonated participant', async () => {
@@ -104,11 +100,7 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
     const res = await PATCH(makeReq({ status: 'read' }, 'participant1'), params)
 
     expect(res.status).toBe(200)
-    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('participant1', {
-      kind: 'personal_status_updated',
-      bookId: 'book-1',
-      status: 'read',
-    })
+    expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('participant1')
   })
 
   it('rejects non-admin impersonated mutations', async () => {

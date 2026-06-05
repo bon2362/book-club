@@ -110,10 +110,7 @@ export async function PUT(req: NextRequest) {
       metadata: { rankedBookIds: validBookIds },
     })
   }
-  await broadcastActiveMatchingStateChangeForParticipant(userId, {
-    kind: 'external_ranks_updated',
-    bookIds: validBookIds,
-  })
+  await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
 }

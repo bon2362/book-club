@@ -97,11 +97,7 @@ export async function PATCH(req: NextRequest) {
       metadata: { status: status ?? null },
     })
   }
-  await broadcastActiveMatchingStateChangeForParticipant(userId, {
-    kind: 'admin_personal_status_updated',
-    bookId,
-    status: status ?? null,
-  })
+  await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
 }
@@ -152,10 +148,7 @@ export async function DELETE(req: NextRequest) {
       before,
     })
   }
-  await broadcastActiveMatchingStateChangeForParticipant(userId, {
-    kind: 'admin_book_removed',
-    bookId,
-  })
+  await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
 }
