@@ -6,17 +6,17 @@ import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
 import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), delete: jest.fn() } }))
 jest.mock('@/lib/matching/preference-events', () => ({ recordParticipantLeftEvent: jest.fn() }))
-jest.mock('@/lib/matching/realtime/hub', () => ({ broadcast: jest.fn() }))
+jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
 const mockRecordLeft = recordParticipantLeftEvent as jest.Mock
-const mockBroadcast = broadcast as jest.Mock
+const mockBump = bumpSessionState as jest.Mock
 
 const params = { params: { id: 'session-1', userId: 'user-1' } }
 
@@ -38,6 +38,7 @@ describe('DELETE /api/admin/matching/sessions/[id]/participants/[userId]', () =>
   beforeEach(() => {
     jest.clearAllMocks()
     mockRecordLeft.mockResolvedValue(undefined)
+    mockBump.mockResolvedValue(undefined)
     mockDb.delete = jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) })
   })
 
@@ -64,9 +65,7 @@ describe('DELETE /api/admin/matching/sessions/[id]/participants/[userId]', () =>
     const recordOrder = mockRecordLeft.mock.invocationCallOrder[0]
     const deleteOrder = (mockDb.delete as jest.Mock).mock.invocationCallOrder[0]
     expect(recordOrder).toBeLessThan(deleteOrder)
-    expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      kind: 'participant_left',
-    })
+    expect(mockBump).toHaveBeenCalledWith('session-1')
   })
 
   it('409 для неактивной сессии', async () => {
