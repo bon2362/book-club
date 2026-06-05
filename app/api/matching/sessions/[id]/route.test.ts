@@ -4,18 +4,18 @@
 import { PATCH } from './route'
 import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), update: jest.fn() } }))
 jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
 }))
-jest.mock('@/lib/matching/realtime/hub', () => ({ broadcast: jest.fn() }))
+jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
-const mockBroadcast = broadcast as jest.Mock
+const mockBump = bumpSessionState as jest.Mock
 
 function makeReq(body: object) {
   return new Request('http://localhost/api/matching/sessions/session-1', {
@@ -59,10 +59,6 @@ describe('PATCH /api/matching/sessions/[id]', () => {
 
     expect(res.status).toBe(200)
     expect(updateChain.set).toHaveBeenCalledWith({ minGroupSize: 3, maxGroupSize: 4 })
-    expect(mockBroadcast).toHaveBeenCalledWith('session-1', 'state_changed', {
-      kind: 'group_size_range_updated',
-      minGroupSize: 3,
-      maxGroupSize: 4,
-    })
+    expect(mockBump).toHaveBeenCalledWith('session-1')
   })
 })

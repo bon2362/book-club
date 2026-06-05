@@ -17,6 +17,7 @@ jest.mock('@/lib/db/schema', () => ({
 jest.mock('@/lib/matching/scenarios', () => ({
   generateScenarios: jest.fn().mockReturnValue([]),
 }))
+jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>

@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 
 type Params = { params: { id: string } }
 const MAX_GROUP_SIZE_LIMIT = 10
@@ -47,11 +47,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     .set({ minGroupSize: groupSizeRange.minGroupSize, maxGroupSize: groupSizeRange.maxGroupSize })
     .where(eq(matchingSessions.id, params.id))
 
-  broadcast(params.id, 'state_changed', {
-    kind: 'group_size_range_updated',
-    minGroupSize: groupSizeRange.minGroupSize,
-    maxGroupSize: groupSizeRange.maxGroupSize,
-  })
+  await bumpSessionState(params.id)
 
   return NextResponse.json({ ok: true, ...groupSizeRange }, { status: 200 })
 }

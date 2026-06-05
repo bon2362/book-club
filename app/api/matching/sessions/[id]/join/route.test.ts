@@ -19,6 +19,7 @@ jest.mock('@/lib/matching/pseudonyms', () => ({
 jest.mock('@/lib/matching/pseudonym-reservations', () => ({
   consumePseudonymReservation: jest.fn(),
 }))
+jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>

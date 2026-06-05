@@ -15,15 +15,5 @@ export default function MatchingRealtimeWrapper({ sessionId }: Props) {
     router.refresh()
   }, [router])
 
-  const handleFrozen = useCallback(() => {
-    router.refresh()
-  }, [router])
-
-  return (
-    <MatchingRealtimeClient
-      sessionId={sessionId}
-      onStateChange={handleStateChange}
-      onFrozen={handleFrozen}
-    />
-  )
+  return <MatchingRealtimeClient sessionId={sessionId} onStateChange={handleStateChange} />
 }

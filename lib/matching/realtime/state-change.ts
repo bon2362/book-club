@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
-import { broadcast } from './hub'
+import { bumpSessionState } from './version'
 
 export interface MatchingStateChangePayload {
   kind: string
@@ -10,12 +10,12 @@ export interface MatchingStateChangePayload {
 
 export async function broadcastActiveMatchingStateChangeForParticipant(
   userId: string,
-  payload: MatchingStateChangePayload,
+  _payload: MatchingStateChangePayload, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<string | null> {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
   if (!activeSessionId) return null
 
-  broadcast(activeSessionId, 'state_changed', payload)
+  await bumpSessionState(activeSessionId)
   return activeSessionId
 }
 

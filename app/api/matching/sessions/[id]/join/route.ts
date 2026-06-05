@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
-import { broadcast } from '@/lib/matching/realtime/hub'
+import { bumpSessionState } from '@/lib/matching/realtime/version'
 import { consumePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
 
 interface Params { params: { id: string } }
@@ -67,7 +67,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     pseudonym,
   })
 
-  broadcast(sessionId, 'state_changed', { kind: 'participant_joined' })
+  await bumpSessionState(sessionId)
 
   return NextResponse.json({ success: true, pseudonym }, { status: 201 })
 }
