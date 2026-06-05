@@ -38,112 +38,115 @@ type Scenario = {
 }
 
 const participants: Participant[] = [
-  { id: 'maria', name: 'Мария' },
-  { id: 'vanya', name: 'Ваня' },
   { id: 'evgeny', name: 'Евгений' },
-  { id: 'artem', name: 'Артем' },
-  { id: 'julia', name: 'Юлия' },
-  { id: 'alex', name: 'Александр' },
+  { id: 'vanya', name: 'Ваня' },
+  { id: 'sasha', name: 'Саша' },
+  { id: 'maria', name: 'Мария' },
+  { id: 'lena', name: 'Лена' },
+  { id: 'ilya', name: 'Илья' },
 ]
 
 const books: Book[] = [
-  { id: 'country', title: 'Моя любимая страна', author: 'Елена Костюченко', mark: 'МОЯ' },
   { id: 'patriot', title: 'Патриот', author: 'Алексей Навальный', mark: 'ПАТ' },
-  { id: 'neolib', title: 'Краткая история неолиберализма', author: 'David Harvey', mark: 'НЕО' },
-  { id: 'consensus', title: 'Консенсус: принятие решений в свободном обществе', author: 'Peter Gelderloos', mark: 'КОН' },
+  { id: 'kost', title: 'Моя любимая страна', author: 'Елена Костюченко', mark: 'КОС' },
+  { id: 'neolib', title: 'Краткая история неолиберализма', author: 'Дэвид Харви', mark: 'НЕО' },
+]
+
+const preferences = [
+  { participantId: 'evgeny', choices: ['Краткая история неолиберализма', 'Патриот'] },
+  { participantId: 'vanya', choices: ['Краткая история неолиберализма', 'Моя любимая страна'] },
+  { participantId: 'sasha', choices: ['Краткая история неолиберализма', 'Патриот'] },
+  { participantId: 'maria', choices: ['Моя любимая страна'] },
+  { participantId: 'lena', choices: ['Моя любимая страна', 'Патриот'] },
+  { participantId: 'ilya', choices: ['Патриот', 'Моя любимая страна'] },
 ]
 
 const bookById = new Map(books.map((book) => [book.id, book]))
 const participantById = new Map(participants.map((participant) => [participant.id, participant]))
 
-const beforeScenarios: Scenario[] = [
-  {
-    id: 'before-best',
-    title: 'Сценарий 1',
-    label: 'лучший сейчас',
-    coverage: '6/6',
-    score: 'полное покрытие, но не максимум интереса',
-    circles: [
-      {
-        bookId: 'country',
-        members: [
-          { participantId: 'maria', rank: 1 },
-          { participantId: 'vanya', rank: 2 },
-          { participantId: 'evgeny', rank: 4 },
-        ],
-      },
-      {
-        bookId: 'patriot',
-        members: [
-          { participantId: 'artem', rank: 3 },
-          { participantId: 'julia', rank: 2 },
-          { participantId: 'alex', rank: 5 },
-        ],
-      },
-    ],
-    leftOut: [],
-    explanation: 'Алгоритм сначала выбирает сценарии, где занято больше людей. Здесь заняты все, поэтому этот сценарий наверху.',
-  },
-  {
-    id: 'before-desired',
-    title: 'Сценарий 2',
-    label: 'сильнее по желаниям',
-    coverage: '3/6',
-    score: 'лучшие ранги, но половина людей вне круга',
-    circles: [
-      {
-        bookId: 'neolib',
-        members: [
-          { participantId: 'artem', rank: 1 },
-          { participantId: 'alex', rank: 1 },
-          { participantId: 'evgeny', rank: 1 },
-        ],
-        note: 'Эти трое сильнее хотят именно эту книгу.',
-      },
-    ],
-    leftOut: ['maria', 'julia', 'vanya'],
-    explanation: 'Этот круг очень желанный, но если выбрать только его, Мария, Юлия и Ваня не попадают ни в один круг.',
-  },
-]
+const coverageScenario: Scenario = {
+  id: 'coverage',
+  title: 'Сценарий А',
+  label: 'максимальное покрытие',
+  coverage: '6/6',
+  score: 'все попали в группы',
+  circles: [
+    {
+      bookId: 'patriot',
+      members: [
+        { participantId: 'evgeny', rank: 2 },
+        { participantId: 'sasha', rank: 2 },
+        { participantId: 'ilya', rank: 1 },
+      ],
+    },
+    {
+      bookId: 'kost',
+      members: [
+        { participantId: 'vanya', rank: 2 },
+        { participantId: 'maria', rank: 1 },
+        { participantId: 'lena', rank: 1 },
+      ],
+    },
+  ],
+  leftOut: [],
+  explanation: 'Этот сценарий выше, потому что покрывает всех шестерых участников.',
+}
 
-const afterScenarios: Scenario[] = [
-  {
-    id: 'after-best',
-    title: 'Сценарий 1',
-    label: 'лучший после хода',
-    coverage: '6/6',
-    score: 'полное покрытие и выше суммарный интерес',
-    circles: [
-      {
-        bookId: 'consensus',
-        members: [
-          { participantId: 'maria', rank: 1 },
-          { participantId: 'julia', rank: 2 },
-          { participantId: 'vanya', rank: 2 },
-        ],
-        note: 'Ход Марии собирает второй круг.',
-      },
-      {
-        bookId: 'neolib',
-        members: [
-          { participantId: 'artem', rank: 1 },
-          { participantId: 'alex', rank: 1 },
-          { participantId: 'evgeny', rank: 1 },
-        ],
-      },
-    ],
-    leftOut: [],
-    explanation: 'Теперь покрытие остается полным, но люди чаще получают книги с высоким личным приоритетом.',
-  },
-]
+const preferenceScenario: Scenario = {
+  id: 'preference',
+  title: 'Сценарий Б',
+  label: 'сильнее по желаниям',
+  coverage: '3/6',
+  score: 'три первых выбора, но ниже покрытие',
+  circles: [
+    {
+      bookId: 'neolib',
+      members: [
+        { participantId: 'evgeny', rank: 1 },
+        { participantId: 'vanya', rank: 1 },
+        { participantId: 'sasha', rank: 1 },
+      ],
+      note: 'Все трое поставили эту книгу на первое место.',
+    },
+  ],
+  leftOut: ['maria', 'lena', 'ilya'],
+  explanation: 'Этот сценарий лучше отражает интерес Евгения, Вани и Саши, но оставляет половину участников без группы.',
+}
 
-const moveParticipants: Member[] = [
-  { participantId: 'julia', rank: 2 },
-  { participantId: 'vanya', rank: 2 },
-]
+const equalCoverageScenario: Scenario = {
+  id: 'equal-coverage',
+  title: 'Сценарий В',
+  label: 'равное покрытие, сильнее интерес',
+  coverage: '6/6',
+  score: 'то же покрытие, больше первых выборов',
+  circles: [
+    {
+      bookId: 'neolib',
+      members: [
+        { participantId: 'evgeny', rank: 1 },
+        { participantId: 'vanya', rank: 1 },
+        { participantId: 'sasha', rank: 1 },
+      ],
+    },
+    {
+      bookId: 'kost',
+      members: [
+        { participantId: 'maria', rank: 1 },
+        { participantId: 'lena', rank: 1 },
+        { participantId: 'ilya', rank: 2 },
+      ],
+    },
+  ],
+  leftOut: [],
+  explanation: 'При равном покрытии такой сценарий поднимается выше, потому что сильнее удовлетворяет ранги участников.',
+}
+
+const scenarios = [coverageScenario, preferenceScenario, equalCoverageScenario]
 
 function interestLabel(rank: number) {
-  return rank <= 1 ? 'очень хочет' : 'хочет'
+  if (rank === 1) return '1-й выбор'
+  if (rank === 2) return '2-й выбор'
+  return `${rank}-й выбор`
 }
 
 function Slide({
@@ -178,12 +181,12 @@ function BookCover({ book }: { book: Book }) {
 
 function Chip({ member }: { member: Member }) {
   const participant = participantById.get(member.participantId)
-  const strong = member.rank <= 1
+  const strong = member.rank === 1
 
   return (
     <span
       className={`${styles.chip} ${strong ? styles.strongChip : ''}`}
-      title={`${participant?.name}: книга на ${member.rank} месте`}
+      title={`${participant?.name}: ${interestLabel(member.rank)}`}
     >
       <b>{participant?.name}</b>
       <span>{interestLabel(member.rank)}</span>
@@ -212,9 +215,9 @@ function CircleCard({ circle }: { circle: Circle }) {
   )
 }
 
-function ScenarioCard({ scenario }: { scenario: Scenario }) {
+function ScenarioCard({ scenario, active = false }: { scenario: Scenario; active?: boolean }) {
   return (
-    <article className={styles.scenarioCard} title={scenario.explanation}>
+    <article className={`${styles.scenarioCard} ${active ? styles.activeScenario : ''}`} title={scenario.explanation}>
       <div className={styles.scenarioHeader}>
         <div>
           <h3>{scenario.title}</h3>
@@ -233,7 +236,7 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
       </div>
       {scenario.leftOut.length > 0 && (
         <div className={styles.leftOut}>
-          <span>За бортом:</span>
+          <span>Вне групп:</span>
           {scenario.leftOut.map((id) => (
             <b key={id}>{participantById.get(id)?.name}</b>
           ))}
@@ -243,38 +246,87 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
   )
 }
 
-function MiniPrototype() {
-  const [afterMove, setAfterMove] = useState(false)
-  const scenarios = afterMove ? afterScenarios : beforeScenarios
-  const heroText = useMemo(
-    () =>
-      afterMove
-        ? 'Мария добавила «Консенсус» на первое место. Лучшим стал другой сценарий.'
-        : 'Сейчас все заняты, но часть людей читает не самую желанную книгу.',
-    [afterMove]
+function PreferenceTable() {
+  return (
+    <div className={styles.preferenceTable}>
+      {preferences.map((row) => (
+        <div key={row.participantId} className={styles.preferenceRow}>
+          <b>{participantById.get(row.participantId)?.name}</b>
+          <span>{row.choices.join(' / ')}</span>
+        </div>
+      ))}
+    </div>
   )
+}
+
+function RankingFormula() {
+  return (
+    <ol className={styles.rankingList}>
+      <li>
+        <b>Покрытие</b>
+        <span>сколько участников попадает в группы</span>
+      </li>
+      <li>
+        <b>Сильный интерес</b>
+        <span>сколько людей получают книгу из верхних позиций</span>
+      </li>
+      <li>
+        <b>Средний ранг</b>
+        <span>чем ниже средний номер книги в списках, тем лучше</span>
+      </li>
+      <li>
+        <b>Худший ранг</b>
+        <span>сценарий хуже, если кому-то досталась слишком низкая позиция</span>
+      </li>
+      <li>
+        <b>Без ранга</b>
+        <span>меньше неранжированных записей лучше</span>
+      </li>
+    </ol>
+  )
+}
+
+function InterfaceDemo() {
+  const [mode, setMode] = useState<'leader' | 'alternative' | 'move'>('leader')
+  const activeScenario = useMemo(() => {
+    if (mode === 'alternative') return preferenceScenario
+    if (mode === 'move') return equalCoverageScenario
+    return coverageScenario
+  }, [mode])
 
   return (
     <div className={styles.prototype} data-testid="matching-presentation-prototype">
       <div className={styles.prototypeHeader}>
         <div>
-          <span>Сессия: пример на 6 участниках</span>
-          <b>{heroText}</b>
+          <span>Демонстрация интерфейса</span>
+          <b>
+            {mode === 'leader' && 'Мария видит лучший сейчас сценарий: все попали в группы.'}
+            {mode === 'alternative' && 'Но рядом есть альтернатива: Евгений, Ваня и Саша хотят другую книгу сильнее.'}
+            {mode === 'move' && 'Если расклад изменится, равное покрытие может сочетаться с более сильными предпочтениями.'}
+          </b>
         </div>
-        <button type="button" onClick={() => setAfterMove((value) => !value)}>
-          {afterMove ? 'Вернуть исходный расклад' : 'Мария добавляет «Консенсус»'}
-        </button>
+        <div className={styles.modeButtons}>
+          <button type="button" onClick={() => setMode('leader')} aria-pressed={mode === 'leader'}>
+            Текущий лидер
+          </button>
+          <button type="button" onClick={() => setMode('alternative')} aria-pressed={mode === 'alternative'}>
+            Скрытая альтернатива
+          </button>
+          <button type="button" onClick={() => setMode('move')} aria-pressed={mode === 'move'}>
+            После хода
+          </button>
+        </div>
       </div>
 
       <div className={styles.prototypeGrid}>
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <h3>Читательские круги</h3>
-            <p>Показываем топ сценариев, а не все возможные комбинации.</p>
+            <p>Сценарии ранжируются, но не прячутся от обсуждения.</p>
           </div>
           <div className={styles.scenarioList}>
             {scenarios.map((scenario) => (
-              <ScenarioCard key={scenario.id} scenario={scenario} />
+              <ScenarioCard key={scenario.id} scenario={scenario} active={scenario.id === activeScenario.id} />
             ))}
           </div>
         </section>
@@ -282,26 +334,38 @@ function MiniPrototype() {
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <h3>Мои ходы</h3>
-            <p>Только действия, которые меняют лучший сценарий.</p>
+            <p>Показываем действия, которые меняют покрытие или силу предпочтений.</p>
           </div>
-          <article className={`${styles.moveCard} ${afterMove ? styles.moveDone : ''}`}>
-            <BookCover book={bookById.get('consensus')!} />
+          <article className={styles.moveCard}>
+            <BookCover book={bookById.get('neolib')!} />
             <div>
-              <h4>Консенсус: принятие решений в свободном обществе</h4>
-              <p>Уже записались:</p>
-              <div className={styles.chipRow}>
-                {moveParticipants.map((member) => (
-                  <Chip key={member.participantId} member={member} />
-                ))}
-              </div>
+              <h4>Краткая история неолиберализма</h4>
+              <p>Евгений, Ваня и Саша поставили эту книгу на первое место.</p>
               <div className={styles.moveImpact}>
-                <b>После добавления</b>
+                <b>Что станет видимым</b>
                 <span>
-                  Лучшим сценарием станет: Консенсус + Краткая история неолиберализма.
+                  Это не просто еще одна книга. Это сценарий, где часть участников получает более
+                  сильное совпадение интересов.
                 </span>
               </div>
-              <button type="button" onClick={() => setAfterMove(true)} disabled={afterMove}>
-                {afterMove ? 'Добавлено на первое место' : 'Хочу читать * на первое место'}
+              <button type="button" onClick={() => setMode('alternative')}>
+                Показать альтернативу
+              </button>
+            </div>
+          </article>
+          <article className={`${styles.moveCard} ${styles.successMove}`}>
+            <BookCover book={bookById.get('kost')!} />
+            <div>
+              <h4>Моя любимая страна</h4>
+              <p>Если сохранится группа Марии, покрытие не обязательно конфликтует с интересом.</p>
+              <div className={styles.moveImpact}>
+                <b>После хода</b>
+                <span>
+                  При равном покрытии сценарий с большим числом первых выборов поднимается выше.
+                </span>
+              </div>
+              <button type="button" onClick={() => setMode('move')}>
+                Показать после хода
               </button>
             </div>
           </article>
@@ -316,105 +380,195 @@ export default function MatchingFeaturePresentation() {
     <main className={styles.deck}>
       <section className={styles.hero}>
         <div className={styles.heroText}>
-          <p className={styles.eyebrow}>Долгое наступление · matching</p>
-          <h1>Как показать влияние одного выбора на общий расклад чтения</h1>
+          <p className={styles.eyebrow}>Долгое наступление · разбор для организаторов</p>
+          <h1>Как выбирать группы, если разные хорошие результаты конфликтуют</h1>
           <p>
-            Презентация фичи через пример Марии: почему один новый интерес может не просто
-            собрать круг, а улучшить распределение для всей сессии.
+            Это презентация не про готовый экран, а про постановку проблемы: кто выбирает критерий,
+            что значит хороший расклад и как сделать последствия выбора видимыми.
           </p>
         </div>
-        <div className={styles.heroBoard} aria-label="Схема читательских кругов">
-          <ScenarioCard scenario={beforeScenarios[0]} />
+        <div className={styles.heroBoard} aria-label="Сравнение сценариев">
+          <ScenarioCard scenario={coverageScenario} active />
         </div>
       </section>
 
-      <Slide eyebrow="Проблема 1" title="Группы могут собраться вокруг не самых желанных книг">
+      <Slide eyebrow="Шаг 1" title="Один набор предпочтений дает несколько разумных сценариев">
         <div className={styles.twoColumn}>
-          <p>
-            Формально все хорошо: шесть человек разбиты на две группы. Но Артем, Александр и
-            Евгений сильнее хотят читать «Краткую историю неолиберализма».
-          </p>
-          <ScenarioCard scenario={beforeScenarios[0]} />
+          <div>
+            <p>
+              Участники выбирают книги, и совпадения появляются сразу в нескольких местах. Уже
+              здесь задача перестает быть технической: разные варианты можно считать хорошими по
+              разным причинам.
+            </p>
+          </div>
+          <PreferenceTable />
         </div>
       </Slide>
 
-      <Slide eyebrow="Проблема 2" title="Без прозрачности участники верят администратору на слово">
+      <Slide eyebrow="Шаг 2" title="Первый очевидный критерий: максимум людей в группах">
+        <div className={styles.twoColumn}>
+          <div>
+            <p>
+              Можно собрать «Патриот» и книгу Костюченко. Все шесть участников окажутся внутри
+              групп, и для организатора это выглядит как аккуратный, защищаемый результат.
+            </p>
+          </div>
+          <ScenarioCard scenario={coverageScenario} active />
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Шаг 3" title="Но покрытие не всегда равно удовлетворенности">
+        <div className={styles.twoColumn}>
+          <div>
+            <p>
+              Евгений, Ваня и Саша сильнее хотят читать «Краткую историю неолиберализма». Такой
+              сценарий хуже по покрытию, но лучше отражает их реальные приоритеты.
+            </p>
+          </div>
+          <ScenarioCard scenario={preferenceScenario} active />
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Шаг 4" title="Это конфликт критериев, а не ошибка алгоритма">
         <div className={styles.statementGrid}>
           <div>
-            <b>Сейчас</b>
-            <p>«Кто-то посчитал, что так лучше».</p>
+            <b>Покрытие</b>
+            <p>Больше людей участвуют прямо сейчас, меньше людей остаются вне групп.</p>
           </div>
           <div>
-            <b>Нужно</b>
-            <p>Псевдонимы, ранги и объяснение, почему сценарий оказался выше других.</p>
+            <b>Предпочтения</b>
+            <p>Люди читают книги, которые хотели сильнее, и компромисс становится честнее.</p>
           </div>
           <div>
-            <b>Важно</b>
-            <p>Анонимность сохраняется: видны не реальные имена, а устойчивые псевдонимы.</p>
+            <b>Размер группы</b>
+            <p>Группа из двух, пяти или десяти человек может быть приемлемой в разных ситуациях.</p>
           </div>
         </div>
       </Slide>
 
-      <Slide eyebrow="Проблема 3" title="Если все уже заняты, непонятно, зачем что-то менять">
-        <div className={styles.twoColumn}>
-          <p>
-            У Марии уже есть рабочий сценарий: она читает «Мою любимую страну», остальные тоже
-            распределены. Но она не видит, что ее ход может открыть более желанный расклад для
-            Артема, Александра и Евгения.
-          </p>
-          <ScenarioCard scenario={beforeScenarios[1]} />
-        </div>
-      </Slide>
-
-      <Slide eyebrow="Предпосылки" title="Лучший сценарий не всегда значит «всем идеально»">
+      <Slide eyebrow="Шаг 5" title="Сейчас этот конфликт фактически разрешает организатор">
         <div className={styles.assumptionList}>
-          <p>Сначала максимизируем покрытие: меньше людей за бортом.</p>
-          <p>Если человек не выбрал книги, которые выбирают остальные, он может остаться вне круга.</p>
-          <p>Но если показать людям последствия их выбора, они могут добровольно сдвинуть расклад.</p>
+          <p>Организатор решает, какой размер группы считать рабочим.</p>
+          <p>Организатор выбирает, важнее ли собрать больше групп или сохранить сильный интерес.</p>
+          <p>Организатор фактически говорит участникам, какие книги стоит добавить ради общего расклада.</p>
+          <p>Проблема не в ошибке организатора, а в том, что критерий остается неявным.</p>
         </div>
       </Slide>
 
-      <Slide eyebrow="Решение" title="Показываем не все варианты, а только полезную картину">
-        <div className={styles.solutionGrid}>
+      <Slide eyebrow="Шаг 6" title="Мария видит свою группу, но не видит потерянную альтернативу">
+        <div className={styles.twoColumn}>
           <div>
-            <b>1</b>
-            <p>Считаем топ сценариев и показываем, кто попадает в круги, а кто остается за бортом.</p>
+            <p>
+              Для Марии все выглядит нормально: книга Костюченко собирается, она внутри группы.
+              Но ей не видно, что рядом существует более желанный сценарий для Евгения, Вани и
+              Саши.
+            </p>
           </div>
-          <div>
-            <b>2</b>
-            <p>Показываем голоса через псевдонимы и ранги, чтобы не раскрывать реальные имена.</p>
-          </div>
-          <div>
-            <b>3</b>
-            <p>Лучший сценарий сортируется по покрытию, затем по силе интереса и качеству рангов.</p>
-          </div>
-          <div>
-            <b>4</b>
-            <p>В «Моих ходах» остаются только действия, которые меняют лучший сценарий.</p>
+          <div className={styles.mariaView}>
+            <div>
+              <span>Мария видит</span>
+              <b>«Моя любимая страна» собирается</b>
+              <p>Я внутри группы. Значит, расклад работает.</p>
+            </div>
+            <div>
+              <span>Мария не видит</span>
+              <b>Евгений + Ваня + Саша хотят «Неолиберализм»</b>
+              <p>Ее выбор влияет на то, какие альтернативы становятся возможны.</p>
+            </div>
           </div>
         </div>
       </Slide>
 
-      <Slide eyebrow="Интерактивный прототип" title="Мария видит, что ее ход меняет лучший сценарий">
-        <MiniPrototype />
-      </Slide>
-
-      <Slide eyebrow="Ключевой сигнал" title="Нужно объяснить не математику, а последствие" tone="dark">
+      <Slide eyebrow="Принцип 1" title="Нужен не алгоритм-судья, а карта вариантов" tone="dark">
         <div className={styles.finalGrid}>
           <div>
-            <b>Главный консерн</b>
-            <p>
-              Поймет ли пользователь, что другие хотят другую книгу, но без его действия этот круг
-              оставит часть людей за бортом?
-            </p>
+            <b>Не так</b>
+            <p>Система молча выбирает один лучший сценарий и превращает критерий в скрытое правило.</p>
           </div>
           <div>
-            <b>Решение в интерфейсе</b>
-            <p>
-              «Мои ходы» показывают только сильные действия: если поставить книгу на первое место,
-              лучший сценарий изменится. В карточке сразу видно, каким он станет.
-            </p>
+            <b>Так</b>
+            <p>Система показывает возможные сценарии, компромиссы, ранжирование и последствия выбора.</p>
           </div>
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Интерфейс" title="Участник видит не только итог, но и пространство сценариев">
+        <InterfaceDemo />
+      </Slide>
+
+      <Slide eyebrow="Механика" title="Как ранжируются сценарии">
+        <div className={styles.twoColumn}>
+          <p>
+            Ранжирование должно быть объяснимым. Сейчас логика такая: сначала больше покрытие, потом
+            больше сильных интересов, затем качество рангов. Это не доказывает, что критерий
+            правильный, но делает его обсуждаемым.
+          </p>
+          <RankingFormula />
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Ограничение" title="Даже прозрачное ранжирование не закрывает дискуссию">
+        <div className={styles.questionBlock}>
+          <b>Что лучше?</b>
+          <p>
+            Шесть человек читают компромиссные книги, или три человека читают книгу, которую они
+            действительно поставили на первое место?
+          </p>
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Принцип 2" title="Показывать не только сценарии, но и рычаги">
+        <div className={styles.solutionGrid}>
+          <div>
+            <b>Если добавить книгу</b>
+            <p>Может появиться новая группа или равное покрытие с более сильными предпочтениями.</p>
+          </div>
+          <div>
+            <b>Если выбрать сценарий</b>
+            <p>Другие участники увидят, что этот расклад становится реальным кандидатом.</p>
+          </div>
+          <div>
+            <b>Если оставить как есть</b>
+            <p>Сохраняется текущий лидер, вместе с его компромиссами и потерянными альтернативами.</p>
+          </div>
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Для организатора" title="Меняется не только интерфейс, но и роль организатора">
+        <div className={styles.statementGrid}>
+          <div>
+            <b>Было</b>
+            <p>Организатор держит расклад в голове и вручную выбирает лучший компромисс.</p>
+          </div>
+          <div>
+            <b>Становится</b>
+            <p>Сценарии, критерии и последствия видны, поэтому обсуждение становится предметным.</p>
+          </div>
+          <div>
+            <b>Остается</b>
+            <p>Организатор задает правила, модерирует конфликт и помогает принять коллективное решение.</p>
+          </div>
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Вопросы" title="Что важно покритиковать">
+        <div className={styles.assumptionList}>
+          <p>Должно ли покрытие быть первым критерием?</p>
+          <p>Как считать силу предпочтений: по первым выборам, среднему рангу или худшему рангу?</p>
+          <p>Нормальна ли группа из двух человек? А из пяти или десяти?</p>
+          <p>Нужно ли показывать все сценарии или только релевантные конкретному участнику?</p>
+          <p>Где граница между показать последствия и начать давить на участника?</p>
+          <p>Достаточно ли анонимизации, если сценарии все равно делают конфликт видимым?</p>
+        </div>
+      </Slide>
+
+      <Slide eyebrow="Итог" title="Цель не автоматизировать волю клуба">
+        <div className={styles.questionBlock}>
+          <b>Цель</b>
+          <p>
+            Сделать видимыми варианты, компромиссы и последствия выбора, чтобы организаторы и
+            участники могли принять решение осознанно.
+          </p>
         </div>
       </Slide>
     </main>
