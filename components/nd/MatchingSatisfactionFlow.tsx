@@ -1,58 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import MatchingPersonalList, { type BookParticipant } from './MatchingPersonalList'
 import MatchingRealtimeWrapper from './MatchingRealtimeWrapper'
 import type { CatalogBook } from '@/lib/matching/personal-list'
 import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
 
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReduced(mq.matches)
-    const onChange = () => setReduced(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-  return reduced
-}
-
-/** Height collapse/expand via JS-measured max-height (reliable for arbitrary
- *  content height). Honors prefers-reduced-motion by jumping instantly. */
+/** Coupled height collapse/grow via the grid-rows 0fr↔1fr trick. The section
+ *  grows from zero height together with its content (pushing the catalog down),
+ *  rather than expanding a fixed 100svh viewport — gentle, coupled motion.
+ *  Timing + reduced-motion live in globals.css (.nd-flow-collapsible). */
 function Collapsible({ open, children }: { open: boolean; children: React.ReactNode }) {
-  const innerRef = useRef<HTMLDivElement>(null)
-  const reduced = usePrefersReducedMotion()
-  const [nat, setNat] = useState<number | null>(null)
-  const [settled, setSettled] = useState(open)
-
-  useLayoutEffect(() => {
-    if (innerRef.current) setNat(innerRef.current.scrollHeight)
-  }, [children])
-
-  useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => setSettled(true), 2600)
-      return () => clearTimeout(t)
-    }
-    setSettled(false)
-  }, [open])
-
-  if (reduced) {
-    return (
-      <div style={{ maxHeight: open ? 'none' : 0, overflow: 'hidden' }}>
-        <div ref={innerRef}>{children}</div>
-      </div>
-    )
-  }
-
-  const maxHeight: React.CSSProperties['maxHeight'] =
-    nat == null ? (open ? 'none' : 0) : !open ? 0 : settled ? 'none' : nat
-
   return (
-    <div style={{ maxHeight, overflow: 'hidden', transition: 'max-height 2.4s cubic-bezier(0.22, 1, 0.36, 1)' }}>
-      <div ref={innerRef}>{children}</div>
+    <div className={'nd-flow-collapsible' + (open ? ' is-open' : '')}>
+      <div className="nd-flow-collapsible-inner">{children}</div>
     </div>
   )
 }
@@ -75,13 +37,13 @@ export interface MatchingSatisfactionFlowProps {
  * Satisfaction-mode gate ↔ board as a single full-width page that morphs.
  * The personal list (catalog + «Мои книги») is rendered once and stays mounted
  * across the transition; on «Войти в сессию» the gate intro/footer collapse and
- * the board chrome (header + scenarios/moves) slides in from the top. page.tsx
- * renders this component at the same tree position in both phases, so
- * router.refresh() preserves client state and the board streams in.
+ * the board chrome (header + scenarios/moves) grows in from the top, coupled
+ * with the catalog sliding down. page.tsx renders this component at the same
+ * tree position in both phases, so router.refresh() preserves client state and
+ * the board streams in.
  *
- * Board phase reproduces the regular board layout exactly (full-width, a 100svh
- * first viewport with header + workspace, the catalog below) — so the morph ends
- * on the same board coverage mode shows.
+ * The board chrome sizes to its content (no fixed 100svh viewport), so the grow
+ * stays gentle and the catalog flows right below the scenarios/moves.
  */
 export default function MatchingSatisfactionFlow({
   phase,
@@ -101,18 +63,19 @@ export default function MatchingSatisfactionFlow({
   const initialCanEnter = useMemo(() => listHasCompleteActiveRanking(books), [books])
   const [canEnter, setCanEnter] = useState(initialCanEnter)
   const [entering, setEntering] = useState(false)
-  const [loaded, setLoaded] = useState(false)
+  // Direct board loads reveal content immediately; only the gate→board morph
+  // staggers it in.
+  const [loaded, setLoaded] = useState(board)
   const isBoard = board || entering
 
   useEffect(() => {
     if (isBoard) window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [isBoard])
 
-  // When morphing in from the gate, reveal the scenarios/moves after the board
-  // chrome has slid in. Direct board loads skip this (no entering → no stagger).
   useEffect(() => {
     if (!entering) return
-    const t = setTimeout(() => setLoaded(true), 1800)
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const t = setTimeout(() => setLoaded(true), reduce ? 0 : 1800)
     return () => clearTimeout(t)
   }, [entering])
 
@@ -124,24 +87,19 @@ export default function MatchingSatisfactionFlow({
 
   return (
     <div
-      className={'nd-flow flex flex-col' + (isBoard ? ' is-board' : '')}
+      className={'nd-flow flex flex-col' + (isBoard ? ' is-board' : '') + (loaded ? ' is-loaded' : '')}
       style={{
         background: 'var(--bg)',
         color: 'var(--text)',
         ...(isBoard ? { minHeight: '100svh' } : { height: '100svh', overflow: 'hidden' }),
       }}
     >
-      {/* Board chrome: header + workspace fill the first viewport (slides in) */}
+      {/* Board chrome: header + scenarios/moves grow in (content height) */}
       <Collapsible open={isBoard}>
-        <div className="nd-flow-slide-from-top flex flex-col" style={{ height: '100svh' }}>
+        <div className="nd-flow-slide-from-top">
           {header}
-          <div className="flex-1 min-h-0 p-4">
-            <div
-              className={entering ? `nd-flow-stagger${loaded ? ' is-loaded' : ''}` : undefined}
-              style={{ height: '100%' }}
-            >
-              {workspace}
-            </div>
+          <div className="p-4">
+            <div className="nd-flow-stagger">{workspace}</div>
           </div>
         </div>
       </Collapsible>
