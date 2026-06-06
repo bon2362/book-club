@@ -56,14 +56,17 @@ test('board phase renders header and workspace slots', () => {
   expect(screen.getByTestId('slot-workspace')).toBeInTheDocument()
 })
 
-test('clicking enter on a ranked gate starts the morph and refreshes', () => {
+test('clicking enter on a ranked gate refreshes and shows the submitting state', () => {
   const ranked = [
     { bookId: 'b1', title: 'A', author: 'A', coverUrl: null, rank: 1, personalStatus: null, isInList: true, tags: [] },
   ] as unknown as import('@/lib/matching/personal-list').CatalogBook[]
-  const { container } = render(<MatchingSatisfactionFlow phase="gate" {...base} books={ranked} />)
+  render(<MatchingSatisfactionFlow phase="gate" {...base} books={ranked} />)
   const enter = screen.getByTestId('ranking-gate-enter')
   expect(enter).not.toBeDisabled()
   fireEvent.click(enter)
-  expect(container.querySelector('.nd-flow.is-board')).not.toBeNull()
+  // The morph itself plays when the server returns phase="board"; the click only
+  // commits + refreshes and locks the button.
   expect(refresh).toHaveBeenCalledTimes(1)
+  expect(enter).toBeDisabled()
+  expect(enter).toHaveTextContent('Входим')
 })
