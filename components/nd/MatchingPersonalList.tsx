@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { CatalogBook } from '@/lib/matching/personal-list'
+import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal from './MatchingBookDetailModal'
 
@@ -40,7 +41,7 @@ interface Props {
   frozen?: boolean
   mutationUserId?: string
   suppressRefresh?: boolean
-  onChange?: (activeRankedCount: number) => void
+  onChange?: (activeRankingComplete: boolean) => void
 }
 
 // ── Shared cover style ────────────────────────────────────────────────────────
@@ -414,17 +415,13 @@ export default function MatchingPersonalList({
     })
   }
 
-  const activeRankedCount = useCallback((list: CatalogBook[]) => (
-    list.filter((book) => book.isInList && book.personalStatus === null && book.rank !== null).length
-  ), [])
-
   const notifyOrRefresh = useCallback((list: CatalogBook[]) => {
     if (suppressRefresh) {
-      onChange?.(activeRankedCount(list))
+      onChange?.(listHasCompleteActiveRanking(list))
       return
     }
     router.refresh()
-  }, [activeRankedCount, onChange, router, suppressRefresh])
+  }, [onChange, router, suppressRefresh])
 
   const applyNewOrder = useCallback(async (newBooks: CatalogBook[]) => {
     const reranked = rerank(newBooks)
