@@ -16,7 +16,7 @@ import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingHeader from '@/components/nd/MatchingHeader'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
-import MatchingRankingGate from '@/components/nd/MatchingRankingGate'
+import MatchingSatisfactionFlow from '@/components/nd/MatchingSatisfactionFlow'
 import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
 import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
 import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
@@ -157,16 +157,6 @@ export default async function MatchingPage({
     activeSession.status === 'active' &&
     !viewerHasCompleteRanking
 
-  if (showRankingGate) {
-    return (
-      <MatchingRankingGate
-        books={personalBooks}
-        bookParticipants={bookParticipants}
-        viewingUserId={viewingUserId}
-      />
-    )
-  }
-
   const scenarioParticipants = participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym }))
   const scenarioInput = await fetchScenarioInput(
     scenarioParticipants,
@@ -248,6 +238,99 @@ export default async function MatchingPage({
           },
         },
       }
+
+  if (showRankingGate) {
+    return (
+      <MatchingSatisfactionFlow
+        phase="gate"
+        sessionId={activeSession.id}
+        books={personalBooks}
+        bookParticipants={clientBookParticipants}
+        viewingUserId={clientViewingUserId}
+      />
+    )
+  }
+
+  const headerSlot = (
+    <MatchingHeader
+      sessionId={activeSession.id}
+      sessionName={activeSession.name}
+      sessionStatus={activeSession.status}
+      minGroupSize={activeSession.minGroupSize}
+      maxGroupSize={activeSession.maxGroupSize}
+      optimizationMode={mode}
+      canSwitchMode={canSwitchOptimizationMode}
+      deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
+      participants={participants.map((p) => ({
+        userId: isAdmin ? p.userId : p.pseudonym,
+        pseudonym: p.pseudonym,
+        name: isAdmin ? p.name ?? null : null,
+      }))}
+      isAdmin={isAdmin}
+      isImpersonating={isImpersonating}
+      viewedPseudonym={viewedParticipant?.pseudonym ?? null}
+      viewedName={viewedParticipant?.name ?? null}
+      asParam={asParam}
+      userPseudonym={userPseudonym}
+      feedEvents={feedEvents}
+      feedBookTitles={feedBookTitles}
+    />
+  )
+
+  const workspaceSlot = (
+    <div className="p-4">
+      <MatchingImpactWorkspace
+        overview={clientScenarioSetOverview}
+        bookById={bookById}
+        bookParticipants={clientBookParticipants}
+        viewingUserId={clientViewingUserId}
+        moves={clientMoves}
+        frozen={isReadOnly}
+        movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
+        mutationUserId={isImpersonating ? viewingUserId : undefined}
+        adrift={clientAdrift}
+      />
+    </div>
+  )
+
+  const catalogIntroSlot = (
+    <div style={{ padding: '1.4rem 0 1rem' }}>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--nd-serif)',
+          fontSize: '1.12rem',
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {isImpersonating ? 'Список участника' : 'Каталог'}
+      </h2>
+      {!isImpersonating && (
+        <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          Слева — книги клуба, справа — ваш список и приоритеты
+        </p>
+      )}
+    </div>
+  )
+
+  if (mode === 'satisfaction') {
+    return (
+      <MatchingSatisfactionFlow
+        phase="board"
+        sessionId={activeSession.id}
+        books={personalBooks}
+        bookParticipants={clientBookParticipants}
+        viewingUserId={clientViewingUserId}
+        frozen={isReadOnly}
+        mutationUserId={isImpersonating ? viewingUserId : undefined}
+        header={headerSlot}
+        workspace={workspaceSlot}
+        catalogIntro={catalogIntroSlot}
+      />
+    )
+  }
 
   return (
     <div
