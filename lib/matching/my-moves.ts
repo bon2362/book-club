@@ -26,6 +26,7 @@ export interface MyMoveBook {
     previewScenario: MatchingScenario
     coverage: { before: number; after: number }
     strongInterest: { before: number; after: number }
+    satisfaction?: { before: number | null; after: number | null }
     beneficiaries: {
       userId: string
       pseudonym: string

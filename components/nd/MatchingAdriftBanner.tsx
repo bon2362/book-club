@@ -1,12 +1,14 @@
 'use client'
 
 import type { AdriftCause } from '@/lib/matching/feed-events'
+import type { OptimizationMode } from '@/lib/matching/scenarios'
 
 interface Props {
   reason: 'change' | 'never'
   cause: (AdriftCause & { bookTitle?: string | null }) | null
   onFix: () => void
   viewingUserId?: string
+  mode?: OptimizationMode
 }
 
 function relativeTime(ts: number): string {
@@ -30,44 +32,51 @@ function actionVerb(kind: AdriftCause['mutationKind'], isViewer: boolean): strin
   return 'изменил:а список'
 }
 
-export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUserId }: Props) {
+export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUserId, mode = 'coverage' }: Props) {
   const isActorViewer = !!viewingUserId && cause?.actor.userId === viewingUserId
   const actorLabel = isActorViewer ? 'вы' : (cause?.actor.pseudonym ?? '')
+  const soft = mode === 'satisfaction'
 
   return (
     <>
       <style>{`
         .nd-adrift-cta { transition: background 0.12s ease; }
-        .nd-adrift-cta:hover { background: color-mix(in srgb, var(--status-warn) 80%, black) !important; }
+        .nd-adrift-cta:hover { background: ${soft ? 'var(--accent-hover)' : 'color-mix(in srgb, var(--status-warn) 80%, black)'} !important; }
       `}</style>
 
       <section
         data-testid="matching-adrift-banner"
         style={{
-          background: 'var(--status-warn-soft)',
-          border: '1px solid color-mix(in srgb, var(--status-warn) 30%, transparent)',
-          borderLeft: '3px solid var(--status-warn)',
+          background: soft ? 'var(--bg-input)' : 'var(--status-warn-soft)',
+          border: soft ? '1px solid var(--hair)' : '1px solid color-mix(in srgb, var(--status-warn) 30%, transparent)',
+          borderLeft: `3px solid ${soft ? 'var(--accent)' : 'var(--status-warn)'}`,
           borderRadius: 'var(--radius-card)',
           padding: '1rem 1.15rem',
-          boxShadow: '0 1px 2px rgba(50,38,24,.05), 0 6px 18px rgba(50,38,24,.05)',
+          boxShadow: 'var(--shadow-card)',
           display: 'flex',
           gap: '0.95rem',
           alignItems: 'flex-start',
           marginBottom: '0.9rem',
         }}
       >
-        {/* Warning icon */}
         <span
           aria-hidden="true"
           style={{
-            fontSize: '1.4rem',
-            color: 'var(--status-warn)',
+            width: soft ? 22 : undefined,
+            height: soft ? 22 : undefined,
+            borderRadius: soft ? 'var(--radius)' : undefined,
+            border: soft ? '1px solid var(--accent)' : undefined,
+            fontFamily: soft ? 'var(--nd-serif)' : undefined,
+            fontSize: soft ? '0.95rem' : '1.4rem',
+            color: soft ? 'var(--accent)' : 'var(--status-warn)',
             flexShrink: 0,
-            lineHeight: 1,
+            lineHeight: soft ? '22px' : 1,
             marginTop: '0.18rem',
+            textAlign: 'center',
+            fontWeight: soft ? 700 : undefined,
           }}
         >
-          ⚠
+          {soft ? 'i' : '⚠'}
         </span>
 
         {/* Content */}
@@ -85,14 +94,21 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
                   letterSpacing: '-0.01em',
                 }}
               >
-                Вы за бортом
+                {soft ? 'Вы пока не в круге' : 'Вы за бортом'}
               </h2>
 
               <p style={{ margin: '0.3rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, maxWidth: '64ch' }}>
-                {reason === 'change'
-                  ? 'В лучшем сейчас сценарии для вас не собирается читательский круг — вы не попадаете ни в одну группу.'
-                  : 'Пока ни одна из ваших книг не собрала круг — вы не входите ни в одну группу ни в одном сценарии. Так бывает в начале сессии, пока совпадений ещё мало.'}
+                {soft
+                  ? 'В этом режиме круги собираются по самому близкому совпадению интересов — и не все попадают сразу. Это нормально: посмотрите, что выбирают другие, поднимите свою книгу выше или дождитесь новых участников.'
+                  : reason === 'change'
+                    ? 'В лучшем сейчас сценарии для вас не собирается читательский круг — вы не попадаете ни в одну группу.'
+                    : 'Пока ни одна из ваших книг не собрала круг — вы не входите ни в одну группу ни в одном сценарии. Так бывает в начале сессии, пока совпадений ещё мало.'}
               </p>
+              {soft && (
+                <p style={{ margin: '0.45rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  Ваши приоритеты учтены — вы в подборе. Просто пока не нашлось круга с вашими книгами.
+                </p>
+              )}
 
               {reason === 'change' && cause && (
                 <p
@@ -149,7 +165,7 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
                   padding: '0.5rem 1rem',
                   border: 'none',
                   borderRadius: 'var(--radius)',
-                  background: 'var(--status-warn)',
+                  background: soft ? 'var(--accent)' : 'var(--status-warn)',
                   color: 'var(--bg-input)',
                   fontFamily: 'var(--nd-sans)',
                   fontWeight: 600,
@@ -158,10 +174,10 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
                   whiteSpace: 'nowrap',
                 }}
               >
-                Как вернуться в круг →
+                {soft ? 'Где совпадают интересы →' : 'Как вернуться в круг →'}
               </button>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                добавьте книгу из «Моих ходов»
+                {soft ? 'подсказки в «Моих ходах»' : 'добавьте книгу из «Моих ходов»'}
               </span>
             </div>
           </div>

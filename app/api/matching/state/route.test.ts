@@ -3,6 +3,7 @@
  */
 import { GET } from './route'
 import * as authModule from '@/lib/auth'
+import * as scenarioModule from '@/lib/matching/scenarios'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
@@ -21,7 +22,7 @@ jest.mock('@/lib/matching/my-moves', () => ({
   fetchMyMoves: jest.fn().mockResolvedValue([]),
 }))
 jest.mock('@/lib/matching/scenarios', () => ({
-  emptyScenarioOverview: jest.fn((participants, minGroupSize, maxGroupSize) => ({
+  emptyScenarioOverview: jest.fn((participants, minGroupSize, maxGroupSize, mode = 'coverage') => ({
     current: [],
     candidates: [],
     leftOut: participants,
@@ -29,14 +30,17 @@ jest.mock('@/lib/matching/scenarios', () => ({
     totalCount: participants.length,
     minGroupSize,
     maxGroupSize,
+    mode,
   })),
-  emptyScenarioSetOverview: jest.fn((participants, minGroupSize, maxGroupSize) => ({
+  emptyScenarioSetOverview: jest.fn((participants, minGroupSize, maxGroupSize, mode = 'coverage') => ({
     scenarios: [],
     leader: null,
     totalCount: participants.length,
     minGroupSize,
     maxGroupSize,
+    mode,
   })),
+  filterSignupsByMode: jest.fn((signups) => signups),
   generateScenarioOverview: jest.fn().mockReturnValue({
     current: [],
     candidates: [],
@@ -45,6 +49,7 @@ jest.mock('@/lib/matching/scenarios', () => ({
     totalCount: 0,
     minGroupSize: 3,
     maxGroupSize: 3,
+    mode: 'coverage',
   }),
   generateScenarioSets: jest.fn().mockReturnValue({
     scenarios: [],
@@ -52,11 +57,14 @@ jest.mock('@/lib/matching/scenarios', () => ({
     totalCount: 0,
     minGroupSize: 3,
     maxGroupSize: 3,
+    mode: 'coverage',
   }),
 }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
+const mockGenerateScenarioOverview = scenarioModule.generateScenarioOverview as jest.Mock
+const mockGenerateScenarioSets = scenarioModule.generateScenarioSets as jest.Mock
 
 function makeReq(sessionId: string, asParam?: string) {
   const urlStr = `http://localhost/api/matching/state?session=${sessionId}${asParam ? `&as=${asParam}` : ''}`
@@ -70,9 +78,14 @@ const userSession = { user: { id: 'u1', isAdmin: false } }
 const adminSession = { user: { id: 'admin1', isAdmin: true } }
 
 const activeSession = { id: 's1', status: 'active', minGroupSize: 3, maxGroupSize: 3 }
+const satisfactionSession = { ...activeSession, optimizationMode: 'satisfaction' }
 const participantRows = [
   { userId: 'u1', pseudonym: 'Пчела' },
   { userId: 'u2', pseudonym: 'Мальма' },
+]
+const threeParticipantRows = [
+  ...participantRows,
+  { userId: 'u3', pseudonym: 'Окунь' },
 ]
 
 describe('GET /api/matching/state', () => {
@@ -165,5 +178,35 @@ describe('GET /api/matching/state', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.scenarioOverview.leftOut).toEqual(participantRows)
+  })
+
+  it('does not generate satisfaction scenarios for a participant without ranked active signups', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([satisfactionSession]) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue(threeParticipantRows) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { userId: 'u1', bookId: 'b1', personalStatus: null },
+        { userId: 'u2', bookId: 'b1', personalStatus: null },
+        { userId: 'u3', bookId: 'b1', personalStatus: null },
+      ]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { userId: 'u2', bookId: 'b1', rank: 1 },
+        { userId: 'u3', bookId: 'b1', rank: 1 },
+      ]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { id: 'b1', readingStatus: null },
+      ]) })
+
+    const res = await GET(makeReq('s1'))
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scenarios).toEqual([])
+    expect(json.scenarioSetOverview.leader).toBeNull()
+    expect(json.scenarioSetOverview.mode).toBe('satisfaction')
+    expect(mockGenerateScenarioOverview).not.toHaveBeenCalled()
+    expect(mockGenerateScenarioSets).not.toHaveBeenCalled()
   })
 })

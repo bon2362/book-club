@@ -70,6 +70,7 @@ export default function MatchingImpactWorkspace({
   mutationUserId,
   adrift = null,
 }: Props) {
+  const mode = overview.mode
   const scenarioCount = overview.scenarios.length
   const [previewMove, setPreviewMove] = useState<MyMoveBook | null>(null)
   const [lastMove, setLastMove] = useState<MyMoveBook | null>(null)
@@ -99,18 +100,23 @@ export default function MatchingImpactWorkspace({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {adrift && <MatchingAdriftBanner reason={adrift.reason} cause={adrift.cause} onFix={handleFixAdrift} viewingUserId={viewingUserId} />}
+      {adrift && <MatchingAdriftBanner reason={adrift.reason} cause={adrift.cause} onFix={handleFixAdrift} viewingUserId={viewingUserId} mode={mode} />}
       <div className="grid flex-1 min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)', gap: '1.1rem' }}>
       <section data-testid="matching-reader-circles-panel" style={panel}>
         <div style={panelHeadStyle}>
           <h2 style={h2Style}>
-            Читательские круги
+            {mode === 'satisfaction' ? 'Сценарии' : 'Читательские круги'}
             {scenarioCount > 0 && (
               <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>
                 {' '}· {scenarioCount} {scenarioCount === 1 ? 'сценарий' : scenarioCount < 5 ? 'сценария' : 'сценариев'}
               </span>
             )}
           </h2>
+          {mode === 'satisfaction' && (
+            <p style={subStyle}>
+              Расклады по близости интересов. Порядок — только для однозначного вывода: при равном качестве показываются все варианты, выбор за вами.
+            </p>
+          )}
         </div>
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem', overflowAnchor: 'none' }}>
           <MatchingScenarios
@@ -121,6 +127,7 @@ export default function MatchingImpactWorkspace({
             previewOpen={previewMove !== null}
             previewMove={visiblePreviewMove}
             highlightedUserIds={previewMove ? previewBeneficiaryIds : []}
+            mode={mode}
           />
         </div>
       </section>
@@ -128,7 +135,11 @@ export default function MatchingImpactWorkspace({
       <section data-testid="matching-my-moves-panel" style={panel}>
         <div style={panelHeadStyle}>
           <h2 style={h2Style}>{movesHeading}</h2>
-          <p style={subStyle}>Эти книги меняют лучший расклад. Добавишь — поможешь другим собраться вокруг того, что им ближе.</p>
+          <p style={subStyle}>
+            {mode === 'satisfaction'
+              ? 'Эти книги могут собрать круг с более близким совпадением интересов.'
+              : 'Эти книги меняют лучший расклад. Добавишь — поможешь другим собраться вокруг того, что им ближе.'}
+          </p>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem' }}>
           <MatchingMyMoves
@@ -137,6 +148,7 @@ export default function MatchingImpactWorkspace({
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
             onMovePreview={handlePreview}
+            mode={mode}
           />
         </div>
       </section>

@@ -3,6 +3,7 @@
  */
 import { POST } from './route'
 import * as authModule from '@/lib/auth'
+import * as scenarioModule from '@/lib/matching/scenarios'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
@@ -15,12 +16,21 @@ jest.mock('@/lib/db/schema', () => ({
   books: {},
 }))
 jest.mock('@/lib/matching/scenarios', () => ({
-  generateScenarios: jest.fn().mockReturnValue([]),
+  filterSignupsByMode: jest.fn((signups) => signups),
+  generateScenarioSets: jest.fn().mockReturnValue({
+    scenarios: [],
+    leader: null,
+    totalCount: 0,
+    minGroupSize: 3,
+    maxGroupSize: 3,
+    mode: 'coverage',
+  }),
 }))
 jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
+const mockGenerateScenarioSets = scenarioModule.generateScenarioSets as jest.Mock
 
 function makeReq(id: string) {
   return new Request(`http://localhost/api/matching/sessions/${id}/freeze`, {
@@ -101,5 +111,75 @@ describe('POST /api/matching/sessions/[id]/freeze', () => {
     const res = await POST(makeReq('s1'), { params: { id: 's1' } })
     expect(res.status).toBe(200)
     expect(mockDb.update).toHaveBeenCalled()
+  })
+
+  it('freezes the full leader scenario and computes metrics from all leader circles', async () => {
+    mockAuth.mockResolvedValue(adminSession)
+    const leader = {
+      id: 'leader',
+      tier: 'leader',
+      circles: [
+        {
+          id: 'b1:u1,u2,u3',
+          bookId: 'b1',
+          title: 'Book 1',
+          members: [{ userId: 'u1' }, { userId: 'u2' }, { userId: 'u3' }],
+          wantsCount: 3,
+        },
+        {
+          id: 'b2:u4,u5,u6',
+          bookId: 'b2',
+          title: 'Book 2',
+          members: [{ userId: 'u4' }, { userId: 'u5' }, { userId: 'u6' }],
+          wantsCount: 2,
+        },
+      ],
+      leftOut: [],
+      score: {
+        coveredCount: 6,
+        totalCount: 6,
+        strongInterestCount: 5,
+        avgRank: 1.2,
+        worstRank: 3,
+        unrankedCount: 0,
+      },
+    }
+    mockGenerateScenarioSets.mockReturnValue({
+      scenarios: [leader],
+      leader,
+      totalCount: 6,
+      minGroupSize: 3,
+      maxGroupSize: 3,
+      mode: 'satisfaction',
+    })
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active', minGroupSize: 3, maxGroupSize: 3, optimizationMode: 'satisfaction', createdAt: new Date() }]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ userId: 'u1' }, { userId: 'u2' }, { userId: 'u3' }, { userId: 'u4' }, { userId: 'u5' }, { userId: 'u6' }]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { userId: 'u1', bookId: 'b1', personalStatus: null },
+        { userId: 'u2', bookId: 'b1', personalStatus: null },
+        { userId: 'u3', bookId: 'b1', personalStatus: null },
+        { userId: 'u4', bookId: 'b2', personalStatus: null },
+        { userId: 'u5', bookId: 'b2', personalStatus: null },
+        { userId: 'u6', bookId: 'b2', personalStatus: null },
+      ]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { id: 'b1', readingStatus: null },
+        { id: 'b2', readingStatus: null },
+      ]) })
+
+    const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    mockDb.update = jest.fn().mockReturnValue(updateChain)
+
+    const res = await POST(makeReq('s1'), { params: { id: 's1' } })
+
+    expect(res.status).toBe(200)
+    expect(updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
+      frozenScenarioJson: leader,
+      metricGroupsCount: 2,
+      metricCoverage: 6,
+      metricTop3HitRate: 5 / 6,
+    }))
   })
 })

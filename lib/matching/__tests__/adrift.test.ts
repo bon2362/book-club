@@ -124,6 +124,7 @@ describe('isViewerAdrift', () => {
     totalCount: 1,
     minGroupSize: 2,
     maxGroupSize: 3,
+    mode: 'coverage',
   })
 
   it('returns true when viewer is in leader leftOut', () => {
@@ -135,7 +136,7 @@ describe('isViewerAdrift', () => {
   })
 
   it('returns false when there is no leader', () => {
-    const noLeader: ScenarioSetOverview = { scenarios: [], leader: null, totalCount: 0, minGroupSize: 2, maxGroupSize: 3 }
+    const noLeader: ScenarioSetOverview = { scenarios: [], leader: null, totalCount: 0, minGroupSize: 2, maxGroupSize: 3, mode: 'coverage' }
     expect(isViewerAdrift(noLeader, 'u1')).toBe(false)
   })
 })

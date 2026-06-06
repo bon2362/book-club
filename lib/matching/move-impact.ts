@@ -1,4 +1,4 @@
-import type { GroupMember, MatchingScenario } from './scenarios'
+import type { GroupMember, MatchingScenario, OptimizationMode } from './scenarios'
 import type { MyMoveBook } from './my-moves'
 
 const INTEREST_TIER: Record<GroupMember['interest'], number> = {
@@ -13,6 +13,7 @@ export interface MoveImpactInput {
   currentLeader: MatchingScenario | null
   viewingUserId: string
   bookTitleById: Map<string, string>
+  mode?: OptimizationMode
 }
 
 export function buildMoveImpact({
@@ -21,6 +22,7 @@ export function buildMoveImpact({
   currentLeader,
   viewingUserId,
   bookTitleById,
+  mode = 'coverage',
 }: MoveImpactInput): NonNullable<MyMoveBook['impact']> | null {
   const moveCircle = scenario.circles.find((circle) => (
     circle.bookId === move.bookId &&
@@ -69,7 +71,19 @@ export function buildMoveImpact({
   const meaningfulBeneficiaries = beneficiaries.filter((beneficiary) => (
     beneficiary.before.place === 'leftOut' ? coverageGain > 0 : true
   ))
-  if (meaningfulBeneficiaries.length === 0) return null
+  const viewerAfter = moveCircle.members.find((member) => member.userId === viewingUserId)?.rank ?? null
+  const viewerBeforeRank = currentLeader?.circles
+    .flatMap((circle) => circle.members)
+    .find((member) => member.userId === viewingUserId)?.rank ?? null
+  const viewerBeforePlace = placeBefore.get(viewingUserId)
+
+  if (mode === 'satisfaction') {
+    const wasLeftOut = viewerBeforeRank === null && !viewerBeforePlace
+    const improvedRank = viewerAfter !== null && viewerBeforeRank !== null && viewerAfter < viewerBeforeRank
+    if (!wasLeftOut && !improvedRank) return null
+  } else if (meaningfulBeneficiaries.length === 0) {
+    return null
+  }
 
   return {
     scenarioId: scenario.id,
@@ -87,11 +101,27 @@ export function buildMoveImpact({
       before: currentLeader?.score.strongInterestCount ?? 0,
       after: scenario.score.strongInterestCount,
     },
+    satisfaction: {
+      before: viewerBeforeRank,
+      after: viewerAfter,
+    },
     beneficiaries: meaningfulBeneficiaries,
   }
 }
 
-export function sortMovesByImpact<T extends Pick<MyMoveBook, 'title' | 'impact'>>(moves: T[]): T[] {
+export function sortMovesByImpact<T extends Pick<MyMoveBook, 'title' | 'impact'>>(moves: T[], mode: OptimizationMode = 'coverage'): T[] {
+  if (mode === 'satisfaction') {
+    const gain = (move: T) => {
+      const satisfaction = move.impact?.satisfaction
+      if (!satisfaction) return -Infinity
+      if (satisfaction.before === null && satisfaction.after !== null) return Number.MAX_SAFE_INTEGER
+      if (satisfaction.before === null || satisfaction.after === null) return -Infinity
+      return satisfaction.before - satisfaction.after
+    }
+
+    return [...moves].sort((a, b) => gain(b) - gain(a) || a.title.localeCompare(b.title, 'ru'))
+  }
+
   return [...moves].sort((a, b) => {
     const coverageGainA = impactCoverageGain(a)
     const coverageGainB = impactCoverageGain(b)

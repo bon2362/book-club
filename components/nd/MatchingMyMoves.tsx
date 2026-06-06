@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
+import type { OptimizationMode } from '@/lib/matching/scenarios'
 import { impactCoverageGain, impactStrongInterestGain } from '@/lib/matching/move-impact'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
@@ -14,6 +15,7 @@ interface Props {
   viewingUserId: string
   mutationUserId?: string
   onMovePreview?: (move: MyMoveBook | null) => void
+  mode?: OptimizationMode
 }
 
 interface ModalState {
@@ -27,6 +29,7 @@ export default function MatchingMyMoves({
   viewingUserId,
   mutationUserId,
   onMovePreview,
+  mode = 'coverage',
 }: Props) {
   const router = useRouter()
   const [moves, setMoves] = useState(initialMoves)
@@ -88,7 +91,11 @@ export default function MatchingMyMoves({
           style={{ color: 'var(--text-muted)' }}
         >
           <div className="text-3xl mb-2">✅</div>
-          <p className="text-sm">Пока нет книг, где твоя заявка изменит лучший сценарий</p>
+          <p className="text-sm">
+            {mode === 'satisfaction'
+              ? 'Пока нет ходов, которые заметно улучшат совпадение интересов'
+              : 'Пока нет книг, где твоя заявка изменит лучший сценарий'}
+          </p>
         </div>
       ) : (
         <ul
@@ -107,12 +114,12 @@ export default function MatchingMyMoves({
               onBlur={() => previewMove(null)}
             >
               <div className="nd-move-impact-head">
-                {move.impact && <ImpactMetricPills move={move} />}
+                {move.impact && <ImpactMetricPills move={move} mode={mode} />}
               </div>
 
               {move.impact && (
                 <p className="nd-move-why">
-                  <MoveWhyText move={move} />
+                  <MoveWhyText move={move} mode={mode} />
                 </p>
               )}
 
@@ -171,9 +178,24 @@ export default function MatchingMyMoves({
   )
 }
 
-function ImpactMetricPills({ move }: { move: MyMoveBook }) {
+function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: OptimizationMode }) {
   const coverageGain = impactCoverageGain(move)
   const strongInterestGain = impactStrongInterestGain(move)
+  const satisfaction = move.impact?.satisfaction
+
+  if (mode === 'satisfaction' && satisfaction) {
+    return (
+      <div className="nd-move-metrics">
+        {satisfaction.before === null ? (
+          <span className="nd-move-metric nd-move-metric-gain">соберётся круг</span>
+        ) : satisfaction.after !== null && satisfaction.after < satisfaction.before ? (
+          <span className="nd-move-metric nd-move-metric-gain">↑ ранг {satisfaction.before}→{satisfaction.after}</span>
+        ) : (
+          <span className="nd-move-metric nd-move-metric-keep">интересы ближе</span>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="nd-move-metrics">
@@ -189,12 +211,19 @@ function ImpactMetricPills({ move }: { move: MyMoveBook }) {
   )
 }
 
-function MoveWhyText({ move }: { move: MyMoveBook }) {
+function MoveWhyText({ move, mode }: { move: MyMoveBook; mode: OptimizationMode }) {
   const beneficiaries = move.impact?.beneficiaries ?? []
   const leftOut = beneficiaries.filter((b) => b.before.place === 'leftOut')
   const upgraded = beneficiaries.filter((b) => b.before.place === 'circle')
   const strong = beneficiaries.filter((b) => b.after === 'очень хочу')
   const strongInterestVerb = strong.length === 1 ? 'хочет' : 'хотят'
+
+  if (mode === 'satisfaction') {
+    if (move.impact?.satisfaction?.before === null) {
+      return <>Добавишь — и вы соберётесь в круг, где интересы совпадают лучше.</>
+    }
+    return <>Этот ход соберёт круг, где интересы совпадают лучше. Остальные участники показаны как контекст.</>
+  }
 
   if (leftOut.length > 0) {
     return (

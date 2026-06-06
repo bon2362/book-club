@@ -45,6 +45,7 @@ function renderScenarios(scenarios: MatchingScenario[]) {
     totalCount: 4,
     minGroupSize: 3,
     maxGroupSize: 3,
+    mode: 'coverage',
   }
 
   render(
