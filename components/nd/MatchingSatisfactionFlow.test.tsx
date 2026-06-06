@@ -1,7 +1,24 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import MatchingSatisfactionFlow from './MatchingSatisfactionFlow'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))
+
+beforeAll(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      onchange: null,
+      dispatchEvent: () => false,
+    }),
+  })
+  window.scrollTo = () => {}
+})
 
 const base = { books: [], bookParticipants: [], viewingUserId: 'u1', sessionId: 's1' }
 
@@ -26,4 +43,18 @@ test('board phase renders header and workspace slots', () => {
   )
   expect(screen.getByTestId('slot-header')).toBeInTheDocument()
   expect(screen.getByTestId('slot-workspace')).toBeInTheDocument()
+})
+
+test('clicking enter on a ranked gate adds is-board to the root', () => {
+  const ranked = [
+    { bookId: 'b1', title: 'A', author: 'A', coverUrl: null, rank: 1, personalStatus: null, isInList: true, tags: [] },
+  ] as unknown as import('@/lib/matching/personal-list').CatalogBook[]
+  const { container } = render(
+    <MatchingSatisfactionFlow phase="gate" {...base} books={ranked} />,
+  )
+  const enter = screen.getByTestId('ranking-gate-enter')
+  // CTA enabled because the single active book is ranked
+  expect(enter).not.toBeDisabled()
+  fireEvent.click(enter)
+  expect(container.querySelector('.nd-flow.is-board')).not.toBeNull()
 })
