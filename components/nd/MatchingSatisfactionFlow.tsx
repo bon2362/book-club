@@ -33,7 +33,7 @@ function Collapsible({ open, children }: { open: boolean; children: React.ReactN
 
   useEffect(() => {
     if (open) {
-      const t = setTimeout(() => setSettled(true), 1300)
+      const t = setTimeout(() => setSettled(true), 2600)
       return () => clearTimeout(t)
     }
     setSettled(false)
@@ -51,7 +51,7 @@ function Collapsible({ open, children }: { open: boolean; children: React.ReactN
     nat == null ? (open ? 'none' : 0) : !open ? 0 : settled ? 'none' : nat
 
   return (
-    <div style={{ maxHeight, overflow: 'hidden', transition: 'max-height 1.2s cubic-bezier(0.22, 1, 0.36, 1)' }}>
+    <div style={{ maxHeight, overflow: 'hidden', transition: 'max-height 2.4s cubic-bezier(0.22, 1, 0.36, 1)' }}>
       <div ref={innerRef}>{children}</div>
     </div>
   )
@@ -101,11 +101,20 @@ export default function MatchingSatisfactionFlow({
   const initialCanEnter = useMemo(() => listHasCompleteActiveRanking(books), [books])
   const [canEnter, setCanEnter] = useState(initialCanEnter)
   const [entering, setEntering] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const isBoard = board || entering
 
   useEffect(() => {
     if (isBoard) window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [isBoard])
+
+  // When morphing in from the gate, reveal the scenarios/moves after the board
+  // chrome has slid in. Direct board loads skip this (no entering → no stagger).
+  useEffect(() => {
+    if (!entering) return
+    const t = setTimeout(() => setLoaded(true), 1800)
+    return () => clearTimeout(t)
+  }, [entering])
 
   const enter = useCallback(() => {
     if (!canEnter || board || entering) return
@@ -126,7 +135,14 @@ export default function MatchingSatisfactionFlow({
       <Collapsible open={isBoard}>
         <div className="nd-flow-slide-from-top flex flex-col" style={{ height: '100svh' }}>
           {header}
-          <div className="flex-1 min-h-0 p-4">{workspace}</div>
+          <div className="flex-1 min-h-0 p-4">
+            <div
+              className={entering ? `nd-flow-stagger${loaded ? ' is-loaded' : ''}` : undefined}
+              style={{ height: '100%' }}
+            >
+              {workspace}
+            </div>
+          </div>
         </div>
       </Collapsible>
 

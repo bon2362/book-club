@@ -579,7 +579,7 @@ export default function MatchingPersonalList({
       {/* ── Остальной каталог ── */}
       <section
         data-testid="matching-catalog-available"
-        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden', ...(fill ? { minHeight: 0 } : {}) }}
+        style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }) }}
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
@@ -614,7 +614,7 @@ export default function MatchingPersonalList({
       {/* ── Мои книги ── */}
       <section
         data-testid="matching-catalog-mine"
-        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden', ...(fill ? { minHeight: 0 } : {}) }}
+        style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }) }}
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
