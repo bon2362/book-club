@@ -38,7 +38,7 @@ export async function fetchScenarioInputForSession(
 
   const participantUserIds = participants.map((p) => p.userId)
   if (participantUserIds.length === 0) {
-    return { participants, books: [], signups: [], ranks: [], minGroupSize, maxGroupSize, maxResults: 10, mode }
+    return { participants, books: [], signups: [], ranks: [], minGroupSize, maxGroupSize, mode, ...(mode === 'coverage' ? { maxResults: 10 } : {}) }
   }
 
   const [allSignups, allRanks, allBooks] = await Promise.all([
@@ -72,8 +72,8 @@ export async function fetchScenarioInputForSession(
     ranks,
     minGroupSize,
     maxGroupSize,
-    maxResults: 10,
     mode,
+    ...(mode === 'coverage' ? { maxResults: 10 } : {}),
   }
 }
 

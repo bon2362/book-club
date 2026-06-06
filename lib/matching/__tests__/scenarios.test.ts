@@ -378,6 +378,30 @@ describe('generateScenarioSets', () => {
     expect(result.scenarios.length).toBeLessThanOrEqual(3)
   })
 
+  it('keeps the default ten-scenario cap for coverage mode', () => {
+    const participants = makeParticipants(3)
+    const books = Array.from({ length: 12 }, (_, i) => makeBook(`b${i + 1}`))
+    const signups = books.flatMap((book) => allSignedUp(participants.map((p) => p.userId), book.bookId))
+    const ranks = books.flatMap((book) => rankAll(participants.map((p) => p.userId), book.bookId, 1))
+
+    const result = generateScenarioSets({ participants, books, signups, ranks, minGroupSize: 3, maxGroupSize: 3 })
+
+    expect(result.scenarios).toHaveLength(10)
+    expect(result.mode).toBe('coverage')
+  })
+
+  it('does not apply the default ten-scenario cap to satisfaction mode', () => {
+    const participants = makeParticipants(3)
+    const books = Array.from({ length: 12 }, (_, i) => makeBook(`b${i + 1}`))
+    const signups = books.flatMap((book) => allSignedUp(participants.map((p) => p.userId), book.bookId))
+    const ranks = books.flatMap((book) => rankAll(participants.map((p) => p.userId), book.bookId, 1))
+
+    const result = generateScenarioSets({ participants, books, signups, ranks, minGroupSize: 3, maxGroupSize: 3, mode: 'satisfaction' })
+
+    expect(result.scenarios).toHaveLength(12)
+    expect(result.mode).toBe('satisfaction')
+  })
+
   it('perf: N=30 participants, M=50 books stays bounded under coverage', () => {
     const participants = makeParticipants(30)
     const books = Array.from({ length: 50 }, (_, i) => makeBook(`book${i}`))

@@ -109,8 +109,8 @@ export async function GET(req: NextRequest) {
         ranks,
         minGroupSize: matchSession.minGroupSize,
         maxGroupSize: matchSession.maxGroupSize,
-        maxResults: 10,
         mode,
+        ...(mode === 'coverage' ? { maxResults: 10 } : {}),
       }
       scenarioSetOverview = generateScenarioSets(scenarioInput)
       scenarioOverview = generateScenarioOverview(scenarioInput)
