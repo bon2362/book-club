@@ -72,8 +72,8 @@ export async function POST(_req: NextRequest, { params }: Params) {
     ranks,
     minGroupSize: matchSession.minGroupSize,
     maxGroupSize: matchSession.maxGroupSize,
-    maxResults: 10,
     mode,
+    ...(mode === 'coverage' ? { maxResults: 10 } : {}),
   })
 
   const leader = scenarioSetOverview.leader

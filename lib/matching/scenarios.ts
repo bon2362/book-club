@@ -548,8 +548,9 @@ export function emptyScenarioSetOverview(
 }
 
 export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSetOverview {
-  const { participants, minGroupSize, maxGroupSize, maxResults = 10 } = input
   const mode = input.mode ?? 'coverage'
+  const { participants, minGroupSize, maxGroupSize } = input
+  const maxResults = input.maxResults ?? (mode === 'coverage' ? 10 : null)
   if (participants.length < minGroupSize || minGroupSize < 1 || maxGroupSize < minGroupSize) {
     return emptyScenarioSetOverview(participants, minGroupSize, maxGroupSize, mode)
   }
@@ -563,9 +564,10 @@ export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSet
   const scenarios = buildScenarioStates(candidateCircles, participants, mode)
     .map((state) => toScenario(state.circles, participants, 'partial'))
     .sort((a, b) => compare(b, a))
-    .slice(0, maxResults)
 
-  const tiered = assignScenarioTiers(scenarios, participants.length, mode)
+  const resultScenarios = maxResults === null ? scenarios : scenarios.slice(0, maxResults)
+
+  const tiered = assignScenarioTiers(resultScenarios, participants.length, mode)
   return {
     scenarios: tiered,
     leader: tiered[0] ?? null,
