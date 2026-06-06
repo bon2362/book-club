@@ -402,6 +402,29 @@ describe('generateScenarioSets', () => {
     expect(result.mode).toBe('satisfaction')
   })
 
+  it('hides satisfaction scenarios that are only a subset of another scenario', () => {
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('perfect'), makeBook('extra')],
+      signups: [
+        ...allSignedUp(['u1', 'u2', 'u3'], 'perfect'),
+        ...allSignedUp(['u4', 'u5', 'u6'], 'extra'),
+      ],
+      ranks: [
+        ...rankAll(['u1', 'u2', 'u3'], 'perfect', 1),
+        ...rankAll(['u4', 'u5', 'u6'], 'extra', 2),
+      ],
+      minGroupSize: 3,
+      maxGroupSize: 3,
+      mode: 'satisfaction',
+    })
+
+    expect(result.scenarios.map((scenario) => scenario.circles.map((circle) => circle.bookId).sort())).toEqual([
+      ['extra', 'perfect'],
+    ])
+  })
+
   it('perf: N=30 participants, M=50 books stays bounded under coverage', () => {
     const participants = makeParticipants(30)
     const books = Array.from({ length: 50 }, (_, i) => makeBook(`book${i}`))
