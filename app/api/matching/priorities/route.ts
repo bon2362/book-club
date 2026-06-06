@@ -11,6 +11,13 @@ import {
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
 
+const prioritySources = ['matching', 'matching_priority_gate'] as const
+type PrioritySource = typeof prioritySources[number]
+
+function parsePrioritySource(source: unknown): PrioritySource {
+  return prioritySources.includes(source as PrioritySource) ? source as PrioritySource : 'matching'
+}
+
 export async function PATCH(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,6 +35,7 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const bookIds: unknown = body.bookIds
+  const source = parsePrioritySource(body.source)
   if (!Array.isArray(bookIds) || bookIds.length === 0 || bookIds.some(id => typeof id !== 'string')) {
     return NextResponse.json({ error: 'bookIds must be a non-empty string array' }, { status: 400 })
   }
@@ -69,7 +77,7 @@ export async function PATCH(req: NextRequest) {
     actorUserId: session.user.id,
     bookId: null,
     kind: 'priorities_updated',
-    source: 'matching',
+    source,
     before,
     metadata: { rankedBookIds: ordered },
   })

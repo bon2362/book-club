@@ -13,7 +13,7 @@ export interface FinalizeMatchingMutationInput {
   actorUserId: string
   bookId: string | null
   kind: MatchingMutationKind
-  source: 'matching' | 'catalog' | 'profile' | 'admin'
+  source: 'matching' | 'matching_priority_gate' | 'catalog' | 'profile' | 'admin'
   before: MatchingMutationSnapshot | null
   metadata?: Record<string, unknown>
 }

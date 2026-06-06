@@ -55,6 +55,7 @@ export function eventTypeLabel(eventType: string): string {
 
 export function sourceLabel(source: string): string {
   if (source === 'matching') return 'Матчинг'
+  if (source === 'matching_priority_gate') return 'Предварительный экран приоритетов'
   if (source === 'catalog') return 'Каталог'
   if (source === 'profile') return 'Профиль'
   if (source === 'admin') return 'Админка'

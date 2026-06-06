@@ -60,6 +60,10 @@ describe('sourceLabel', () => {
     expect(sourceLabel('catalog')).toBe('Каталог')
     expect(sourceLabel('matching')).toBe('Матчинг')
   })
+
+  it('переводит предварительный экран приоритетов', () => {
+    expect(sourceLabel('matching_priority_gate')).toBe('Предварительный экран приоритетов')
+  })
 })
 
 describe('eventDetail', () => {

@@ -202,6 +202,7 @@ export default function MatchingSatisfactionFlow({
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
+            priorityMutationSource={!isBoard ? 'matching_priority_gate' : undefined}
             frozen={frozen}
             size={isBoard ? 'compact' : 'large'}
             fill={!isBoard}
