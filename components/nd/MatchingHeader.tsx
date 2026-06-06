@@ -16,6 +16,8 @@ interface Props {
   sessionStatus: string
   minGroupSize: number
   maxGroupSize: number
+  optimizationMode: 'coverage' | 'satisfaction'
+  canSwitchMode: boolean
   deadlineAt: string | null
   participants: Participant[]
   isAdmin: boolean
@@ -78,6 +80,8 @@ export default function MatchingHeader({
   sessionStatus,
   minGroupSize,
   maxGroupSize,
+  optimizationMode,
+  canSwitchMode,
   deadlineAt,
   participants,
   isAdmin,
@@ -95,6 +99,8 @@ export default function MatchingHeader({
   const [minSizeValue, setMinSizeValue] = useState(String(minGroupSize))
   const [maxSizeValue, setMaxSizeValue] = useState(String(maxGroupSize))
   const [savingSize, setSavingSize] = useState(false)
+  const [switchingMode, setSwitchingMode] = useState(false)
+  const [modeError, setModeError] = useState<string | null>(null)
   const [feedOpen, setFeedOpen] = useState(false)
 
   useEffect(() => {
@@ -147,6 +153,29 @@ export default function MatchingHeader({
   const groupSizeLabel = minGroupSize === maxGroupSize
     ? `Группы по ${minGroupSize}`
     : `Группы ${minGroupSize}-${maxGroupSize}`
+  const nextOptimizationMode = optimizationMode === 'coverage' ? 'satisfaction' : 'coverage'
+  const modeLabel = optimizationMode === 'coverage' ? 'покрытие' : 'удовлетворённость'
+  const nextModeLabel = nextOptimizationMode === 'coverage' ? 'покрытие' : 'удовлетворённость'
+
+  async function handleSwitchMode() {
+    if (switchingMode || !canSwitchMode) return
+    setSwitchingMode(true)
+    setModeError(null)
+    try {
+      const res = await fetch(`/api/matching/sessions/${sessionId}/mode`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ optimizationMode: nextOptimizationMode }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error ?? 'Не удалось переключить режим')
+      window.location.reload()
+    } catch (error) {
+      setModeError(error instanceof Error ? error.message : 'Не удалось переключить режим')
+    } finally {
+      setSwitchingMode(false)
+    }
+  }
 
   return (
     <>
@@ -299,6 +328,33 @@ export default function MatchingHeader({
             )}
 
             {dot}
+            <span>Режим: {modeLabel}</span>
+            {isAdmin && sessionStatus === 'active' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSwitchMode}
+                  disabled={switchingMode || !canSwitchMode}
+                  title={canSwitchMode ? undefined : 'Доступно, когда у всех участников активные книги расставлены по приоритету'}
+                  data-testid="matching-mode-toggle"
+                  style={{
+                    font: 'inherit',
+                    color: canSwitchMode ? 'var(--accent)' : 'var(--text-muted)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: switchingMode || !canSwitchMode ? 'default' : 'pointer',
+                    textDecoration: canSwitchMode ? 'underline dotted' : 'none',
+                    textUnderlineOffset: '0.15em',
+                    opacity: switchingMode ? 0.7 : 1,
+                  }}
+                >
+                  {switchingMode ? 'Переключаю…' : `Переключить на ${nextModeLabel}`}
+                </button>
+              </>
+            )}
+
+            {dot}
             {sessionStatus === 'frozen' ? (
               <span style={{ color: 'var(--text-muted)' }}>зафиксирована</span>
             ) : (
@@ -432,6 +488,19 @@ export default function MatchingHeader({
           )}
         </div>
         </div>
+        {modeError && (
+          <p
+            role="status"
+            data-testid="matching-mode-toggle-error"
+            style={{
+              margin: '0.45rem 0 0',
+              fontSize: '0.74rem',
+              color: 'var(--accent)',
+            }}
+          >
+            {modeError}
+          </p>
+        )}
         {feedEvents.length > 0 && (
           <MatchingFeedTicker
             events={feedEvents}

@@ -151,6 +151,7 @@ export default async function MatchingPage({
   const viewerHasRankedSignup = personalBooks.some(
     (book) => book.isInList && book.personalStatus === null && book.rank !== null,
   )
+  const canSwitchOptimizationMode = canSwitchMatchingMode(participantUserIds, bookParticipants)
   const showRankingGate =
     mode === 'satisfaction' &&
     !isImpersonating &&
@@ -261,6 +262,8 @@ export default async function MatchingPage({
           sessionStatus={activeSession.status}
           minGroupSize={activeSession.minGroupSize}
           maxGroupSize={activeSession.maxGroupSize}
+          optimizationMode={mode}
+          canSwitchMode={canSwitchOptimizationMode}
           deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
           participants={participants.map((p) => ({
             userId: isAdmin ? p.userId : p.pseudonym,
@@ -338,6 +341,26 @@ export default async function MatchingPage({
       <MatchingRealtimeWrapper sessionId={activeSession.id} />
     </div>
   )
+}
+
+function canSwitchMatchingMode(
+  participantUserIds: string[],
+  bookParticipants: BookParticipant[],
+) {
+  if (participantUserIds.length === 0) return false
+
+  const activeByUser = new Map<string, BookParticipant[]>()
+  for (const participant of bookParticipants) {
+    if (participant.personalStatus !== null) continue
+    const current = activeByUser.get(participant.userId) ?? []
+    current.push(participant)
+    activeByUser.set(participant.userId, current)
+  }
+
+  return participantUserIds.every((userId) => {
+    const activeBooks = activeByUser.get(userId) ?? []
+    return activeBooks.length > 0 && activeBooks.every((book) => book.rank !== null)
+  })
 }
 
 async function fetchScenarioInput(
