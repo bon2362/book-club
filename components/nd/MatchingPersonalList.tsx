@@ -193,7 +193,6 @@ function sortActiveBooks(books: CatalogBook[]): CatalogBook[] {
 // ── SortableRow ───────────────────────────────────────────────────────────────
 interface SortableRowProps {
   book: CatalogBook
-  index: number
   frozen: boolean
   isFirst: boolean
   others: BookParticipant[]
@@ -202,7 +201,7 @@ interface SortableRowProps {
   styles: ListStyles
 }
 
-function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove, styles: s }: SortableRowProps) {
+function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles: s }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: book.bookId,
     disabled: frozen,
@@ -226,7 +225,7 @@ function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove, 
       <div className="flex flex-col items-center gap-0.5">
         {book.rank != null && (
           <span style={s.rank}>
-            #{index + 1}
+            #{book.rank}
           </span>
         )}
         {!frozen && (
@@ -672,7 +671,6 @@ export default function MatchingPersonalList({
                     <SortableRow
                       key={book.bookId}
                       book={book}
-                      index={idx}
                       frozen={frozen}
                       isFirst={idx === 0}
                       others={othersFor(book.bookId)}
