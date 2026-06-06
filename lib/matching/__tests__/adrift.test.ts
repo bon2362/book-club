@@ -139,4 +139,83 @@ describe('isViewerAdrift', () => {
     const noLeader: ScenarioSetOverview = { scenarios: [], leader: null, totalCount: 0, minGroupSize: 2, maxGroupSize: 3, mode: 'coverage' }
     expect(isViewerAdrift(noLeader, 'u1')).toBe(false)
   })
+
+  it('returns false in satisfaction mode when viewer appears in any scenario circle', () => {
+    const satisfactionOverview: ScenarioSetOverview = {
+      scenarios: [
+        {
+          id: 'scenario-1',
+          tier: 'leader',
+          circles: [],
+          leftOut: [{ userId: 'u1', pseudonym: 'Барсук' }],
+          score: { coveredCount: 0, totalCount: 2, coverageRatio: 0, strongInterestCount: 0, rankedCount: 0, unrankedCount: 0, rankSum: 0, avgRank: null, worstRank: null },
+        },
+        {
+          id: 'scenario-2',
+          tier: 'partial',
+          circles: [{
+            id: 'book-1',
+            bookId: 'book-1',
+            minSize: 2,
+            maxSize: 3,
+            members: [{ userId: 'u1', pseudonym: 'Барсук', rank: 3, interest: 'хочу' }],
+            wantsCount: 0,
+            avgRank: 3,
+            worstRank: 3,
+            unrankedCount: 0,
+          }],
+          leftOut: [],
+          score: { coveredCount: 1, totalCount: 2, coverageRatio: 0.5, strongInterestCount: 0, rankedCount: 1, unrankedCount: 0, rankSum: 3, avgRank: 3, worstRank: 3 },
+        },
+      ],
+      leader: {
+        id: 'scenario-1',
+        tier: 'leader',
+        circles: [],
+        leftOut: [{ userId: 'u1', pseudonym: 'Барсук' }],
+        score: { coveredCount: 0, totalCount: 2, coverageRatio: 0, strongInterestCount: 0, rankedCount: 0, unrankedCount: 0, rankSum: 0, avgRank: null, worstRank: null },
+      },
+      totalCount: 2,
+      minGroupSize: 2,
+      maxGroupSize: 3,
+      mode: 'satisfaction',
+    }
+
+    expect(isViewerAdrift(satisfactionOverview, 'u1')).toBe(false)
+  })
+
+  it('returns true in satisfaction mode when viewer appears in no scenario circles', () => {
+    const satisfactionOverview: ScenarioSetOverview = {
+      scenarios: [{
+        id: 'scenario-1',
+        tier: 'leader',
+        circles: [{
+          id: 'book-1',
+          bookId: 'book-1',
+          minSize: 2,
+          maxSize: 3,
+          members: [{ userId: 'u2', pseudonym: 'Гусеница', rank: 1, interest: 'очень хочу' }],
+          wantsCount: 1,
+          avgRank: 1,
+          worstRank: 1,
+          unrankedCount: 0,
+        }],
+        leftOut: [{ userId: 'u1', pseudonym: 'Барсук' }],
+        score: { coveredCount: 1, totalCount: 2, coverageRatio: 0.5, strongInterestCount: 1, rankedCount: 1, unrankedCount: 0, rankSum: 1, avgRank: 1, worstRank: 1 },
+      }],
+      leader: {
+        id: 'scenario-1',
+        tier: 'leader',
+        circles: [],
+        leftOut: [{ userId: 'u1', pseudonym: 'Барсук' }],
+        score: { coveredCount: 0, totalCount: 2, coverageRatio: 0, strongInterestCount: 0, rankedCount: 0, unrankedCount: 0, rankSum: 0, avgRank: null, worstRank: null },
+      },
+      totalCount: 2,
+      minGroupSize: 2,
+      maxGroupSize: 3,
+      mode: 'satisfaction',
+    }
+
+    expect(isViewerAdrift(satisfactionOverview, 'u1')).toBe(true)
+  })
 })

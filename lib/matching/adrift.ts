@@ -77,8 +77,17 @@ export async function fetchAdriftCauseForUser(
   return null
 }
 
-/** Returns true if viewingUserId is in the leader scenario's leftOut list. */
+/** Returns true when the viewer has no suitable circle in the current mode. */
 export function isViewerAdrift(overview: ScenarioSetOverview, viewingUserId: string): boolean {
+  if (overview.mode === 'satisfaction') {
+    if (overview.scenarios.length === 0) return false
+    return !overview.scenarios.some((scenario) => (
+      scenario.circles.some((circle) => (
+        circle.members.some((member) => member.userId === viewingUserId)
+      ))
+    ))
+  }
+
   const leader = overview.leader
   return !!leader && leader.leftOut.some((participant) => participant.userId === viewingUserId)
 }
