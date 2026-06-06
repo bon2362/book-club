@@ -500,19 +500,8 @@ body {
 .nd-flow-fade-collapse { transition: opacity 1.8s ease; }
 .nd-flow.is-board .nd-flow-fade-collapse { opacity: 0; pointer-events: none; }
 
-/* Soft reveal of the «Сценарии» / «Мои ходы» content once the board chrome has
-   started to grow in. Only hidden inside an entering flow (scoped to .is-board),
-   so coverage/non-morph cards are unaffected. */
-.nd-flow.is-board .nd-flow-stagger {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 2.6s ease, transform 2.8s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.nd-flow.is-board.is-loaded .nd-flow-stagger { opacity: 1; transform: none; }
-
 @media (prefers-reduced-motion: reduce) {
   .nd-flow-collapsible { transition: none !important; }
   .nd-flow-slide-from-top,
-  .nd-flow-fade-collapse,
-  .nd-flow.is-board .nd-flow-stagger { transition: none !important; }
+  .nd-flow-fade-collapse { transition: none !important; }
 }

@@ -35,15 +35,16 @@ export interface MatchingSatisfactionFlowProps {
 
 /**
  * Satisfaction-mode gate ↔ board as a single full-width page that morphs.
- * The personal list (catalog + «Мои книги») is rendered once and stays mounted
- * across the transition; on «Войти в сессию» the gate intro/footer collapse and
- * the board chrome (header + scenarios/moves) grows in from the top, coupled
- * with the catalog sliding down. page.tsx renders this component at the same
- * tree position in both phases, so router.refresh() preserves client state and
- * the board streams in.
  *
- * The board chrome sizes to its content (no fixed 100svh viewport), so the grow
- * stays gentle and the catalog flows right below the scenarios/moves.
+ * The personal list (catalog + «Мои книги») is rendered once and stays mounted
+ * across the transition. On «Войти в сессию» the ranks are already committed
+ * silently, so we just `router.refresh()`. page.tsx renders this component at
+ * the same tree position in both phases, so the instance is preserved: when the
+ * server returns `phase="board"` the `board` prop flips false→true and the
+ * grid-rows collapsibles transition **with the board content already present** —
+ * the «Сценарии»/«Мои ходы» section grows from zero height coupled with the
+ * catalog sliding down. (Triggering the grow on click instead would animate an
+ * empty section, then pop the content in — which is the bug this avoids.)
  */
 export default function MatchingSatisfactionFlow({
   phase,
@@ -62,50 +63,39 @@ export default function MatchingSatisfactionFlow({
 
   const initialCanEnter = useMemo(() => listHasCompleteActiveRanking(books), [books])
   const [canEnter, setCanEnter] = useState(initialCanEnter)
-  const [entering, setEntering] = useState(false)
-  // Direct board loads reveal content immediately; only the gate→board morph
-  // staggers it in.
-  const [loaded, setLoaded] = useState(board)
-  const isBoard = board || entering
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (isBoard) window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [isBoard])
-
-  useEffect(() => {
-    if (!entering) return
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const t = setTimeout(() => setLoaded(true), reduce ? 0 : 1800)
-    return () => clearTimeout(t)
-  }, [entering])
+    if (board) window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [board])
 
   const enter = useCallback(() => {
-    if (!canEnter || board || entering) return
-    setEntering(true) // start the morph immediately; server confirms board next
+    if (!canEnter || board || submitting) return
+    // Ranks are committed silently by the list; refresh so the server returns the
+    // board phase. The morph plays when `board` flips true (content present).
+    setSubmitting(true)
     router.refresh()
-  }, [canEnter, board, entering, router])
+  }, [canEnter, board, submitting, router])
 
   return (
     <div
-      className={'nd-flow flex flex-col' + (isBoard ? ' is-board' : '') + (loaded ? ' is-loaded' : '')}
+      className={'nd-flow flex flex-col' + (board ? ' is-board' : '')}
       style={{
         background: 'var(--bg)',
         color: 'var(--text)',
-        ...(isBoard ? { minHeight: '100svh' } : { height: '100svh', overflow: 'hidden' }),
+        ...(board ? { minHeight: '100svh' } : { height: '100svh', overflow: 'hidden' }),
       }}
     >
       {/* Board chrome: header + scenarios/moves grow in (content height) */}
-      <Collapsible open={isBoard}>
+      <Collapsible open={board}>
         <div className="nd-flow-slide-from-top">
           {header}
-          <div className="p-4">
-            <div className="nd-flow-stagger">{workspace}</div>
-          </div>
+          <div className="p-4">{workspace}</div>
         </div>
       </Collapsible>
 
       {/* Gate intro (collapses on enter) */}
-      <Collapsible open={!isBoard}>
+      <Collapsible open={!board}>
         <div className="nd-flow-fade-collapse" data-testid="ranking-gate" style={{ padding: '1.6rem 1rem 0.4rem' }}>
           <section style={{ maxWidth: 640 }}>
             <h1
@@ -142,15 +132,15 @@ export default function MatchingSatisfactionFlow({
       <div
         className="p-4 pt-0"
         data-testid="matching-catalog-panel"
-        style={isBoard ? { minHeight: 560 } : { flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
+        style={board ? { minHeight: 560 } : { flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
-        {isBoard && catalogIntro}
+        {board && catalogIntro}
         <div
           className="grid"
           style={{
             gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)',
             gap: '1.1rem',
-            ...(isBoard
+            ...(board
               ? { paddingBottom: '1.6rem' }
               : { flex: '1 1 0%', minHeight: 0, gridTemplateRows: 'minmax(0, 1fr)' }),
           }}
@@ -160,18 +150,18 @@ export default function MatchingSatisfactionFlow({
             bookParticipants={bookParticipants}
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
-            priorityMutationSource={!isBoard ? 'matching_priority_gate' : undefined}
+            priorityMutationSource={!board ? 'matching_priority_gate' : undefined}
             frozen={frozen}
-            size={isBoard ? 'compact' : 'large'}
-            fill={!isBoard}
-            suppressRefresh={!isBoard}
-            onChange={!isBoard ? setCanEnter : undefined}
+            size={board ? 'compact' : 'large'}
+            fill={!board}
+            suppressRefresh={!board}
+            onChange={!board ? setCanEnter : undefined}
           />
         </div>
       </div>
 
       {/* Gate footer (collapses on enter) */}
-      <Collapsible open={!isBoard}>
+      <Collapsible open={!board}>
         <div
           className="nd-flow-fade-collapse p-4"
           style={{
@@ -189,7 +179,7 @@ export default function MatchingSatisfactionFlow({
           <button
             type="button"
             data-testid="ranking-gate-enter"
-            disabled={!canEnter}
+            disabled={!canEnter || submitting}
             onClick={enter}
             style={{
               padding: '0.9rem 1.6rem',
@@ -197,16 +187,17 @@ export default function MatchingSatisfactionFlow({
               borderRadius: 'var(--radius)',
               background: canEnter ? 'var(--accent)' : 'var(--border)',
               color: canEnter ? 'var(--bg-input)' : 'var(--text-muted)',
-              cursor: canEnter ? 'pointer' : 'default',
+              cursor: canEnter && !submitting ? 'pointer' : 'default',
               fontFamily: 'var(--nd-sans)',
               fontSize: '0.72rem',
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
               fontWeight: 700,
               whiteSpace: 'nowrap',
+              opacity: submitting ? 0.7 : 1,
             }}
           >
-            Войти в сессию →
+            {submitting ? 'Входим…' : 'Войти в сессию →'}
           </button>
         </div>
       </Collapsible>
