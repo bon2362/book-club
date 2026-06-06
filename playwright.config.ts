@@ -75,6 +75,10 @@ export default defineConfig({
   // retries: 1 — страховка от редких flaky-моментов (overload
   // dev-сервера, медленный Neon-compute, networkidle промахи).
   retries: 1,
+  // Matching-сценарии в полном CI-suite могут занимать чуть больше
+  // стандартных 30s: teardown тогда удаляет test books, а незавершённые
+  // API-запросы падают FK-ошибками. Быстрые expect-таймауты остаются 5s.
+  timeout: 60_000,
   // workers:1 — matching E2E опираются на единственную active session
   // (`matching_sessions_single_active_idx`) и `/matching` всегда читает её.
   // Параллельные спеки могут удалить/заменить active session друг у друга,
