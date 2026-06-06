@@ -38,6 +38,23 @@ const catalogBook = {
   isInList: false,
 } as unknown as CatalogBook
 
+const unrankedMyBook = {
+  bookId: 'b3',
+  title: 'Книга без приоритета',
+  author: 'Автор C',
+  coverUrl: null,
+  description: '',
+  pages: null,
+  publishedDate: '',
+  textUrl: '',
+  whyRead: null,
+  recommendationLink: null,
+  tags: [],
+  rank: null,
+  personalStatus: null,
+  isInList: true,
+} as unknown as CatalogBook
+
 function renderList(extra: Record<string, unknown>) {
   return render(
     <MatchingPersonalList
@@ -68,4 +85,20 @@ test('fill makes the book list scrollable', () => {
   const ul = container.querySelector('[data-testid="pl-books-ul"]') as HTMLElement
   expect(ul).toBeTruthy()
   expect(ul.style.overflowY).toBe('auto')
+})
+
+test('unranked active books are shown first with a calculation warning', () => {
+  const { container, getByText } = render(
+    <MatchingPersonalList
+      books={[myBook, unrankedMyBook, catalogBook]}
+      bookParticipants={[]}
+      viewingUserId="u1"
+    />,
+  )
+
+  const rows = Array.from(container.querySelectorAll('[data-testid="pl-books-ul"] > li'))
+  expect(rows).toHaveLength(2)
+  expect(rows[0]).toHaveTextContent('Книга без приоритета')
+  expect(rows[1]).toHaveTextContent('Книга A')
+  expect(getByText('Книги без приоритета не участвуют в расчете')).toBeInTheDocument()
 })

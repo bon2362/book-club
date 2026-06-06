@@ -181,6 +181,15 @@ function CoSignups({ others }: { others: BookParticipant[] }) {
   )
 }
 
+function sortActiveBooks(books: CatalogBook[]): CatalogBook[] {
+  return [...books].sort((a, b) => {
+    if (a.rank === null && b.rank !== null) return -1
+    if (a.rank !== null && b.rank === null) return 1
+    if (a.rank !== null && b.rank !== null && a.rank !== b.rank) return a.rank - b.rank
+    return a.title.localeCompare(b.title)
+  })
+}
+
 // ── SortableRow ───────────────────────────────────────────────────────────────
 interface SortableRowProps {
   book: CatalogBook
@@ -248,6 +257,21 @@ function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove, 
           {book.author}
         </div>
         <CoSignups others={others} />
+        {book.rank === null && (
+          <div
+            style={{
+              marginTop: '0.28rem',
+              paddingTop: '0.28rem',
+              borderTop: '1px solid var(--accent)',
+              color: 'var(--accent)',
+              fontSize: '0.68rem',
+              lineHeight: 1.25,
+              fontWeight: 700,
+            }}
+          >
+            Книги без приоритета не участвуют в расчете
+          </div>
+        )}
       </div>
 
       {/* «Убрать из списка» — absolute over row, appears on hover via CSS */}
@@ -442,7 +466,7 @@ export default function MatchingPersonalList({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const activeBooks = books.filter((b) => b.isInList && b.personalStatus === null)
+  const activeBooks = sortActiveBooks(books.filter((b) => b.isInList && b.personalStatus === null))
   const statusBooks = books.filter((b) => b.isInList && b.personalStatus !== null)
   const catalogOnlyBooks = books.filter((b) => !b.isInList)
 
@@ -488,7 +512,7 @@ export default function MatchingPersonalList({
     async (event: DragEndEvent) => {
       const { active, over } = event
       if (!over || active.id === over.id) return
-      const currentActive = books.filter((b) => b.isInList && b.personalStatus === null)
+      const currentActive = sortActiveBooks(books.filter((b) => b.isInList && b.personalStatus === null))
       const oldIndex = currentActive.findIndex((b) => b.bookId === active.id)
       const newIndex = currentActive.findIndex((b) => b.bookId === over.id)
       const reorderedActive = arrayMove(currentActive, oldIndex, newIndex)
