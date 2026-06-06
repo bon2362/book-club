@@ -59,6 +59,7 @@ test('satisfaction session gates unranked readers before showing quality-first s
   await loginAsUser({ name: 'E2E Satisfaction Viewer' })
   await joinSession(page, session.id)
 
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/matching')
   await page.waitForLoadState('networkidle')
 
@@ -91,10 +92,15 @@ test('satisfaction session gates unranked readers before showing quality-first s
   await expect(secondScenario.getByRole('button', { name: fallbackBook.title, exact: true })).toBeVisible()
   await expect.poll(async () => readScenarioAvgRank(firstScenario)).toBeLessThan(await readScenarioAvgRank(secondScenario))
 
+  // persistence: reload keeps us on the board (ranking complete persisted)
   await page.reload()
   await page.waitForLoadState('networkidle')
   await expect(page.getByTestId('ranking-gate')).not.toBeVisible()
   await expect(page.getByRole('heading', { name: 'Сценарии' })).toBeVisible()
+  // board content present (a scenarios surface rendered)
+  await expect(
+    page.getByText(/Сценарий\s*1|Пока без круга|Сценарии/i).first()
+  ).toBeVisible()
 })
 
 test('satisfaction session keeps reader gated when a new active signup has no rank', async ({

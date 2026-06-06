@@ -352,6 +352,48 @@ test.describe('Admin Catalog: section + editor layout', () => {
   })
 })
 
+test.describe('Satisfaction ranking gate layout', () => {
+  test('satisfaction ranking gate fits one viewport (CTA visible without scroll)', async ({
+    page,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+
+    const session = await createMatchingSession({
+      minGroupSize: 3,
+      maxGroupSize: 3,
+      optimizationMode: 'satisfaction',
+    })
+    const bookA = await createTestBook({ title: `UI Gate Book A ${Date.now()}`, author: 'Gate Author' })
+    const bookB = await createTestBook({ title: `UI Gate Book B ${Date.now()}`, author: 'Gate Author' })
+
+    // Two participants with complete rankings so the gate is reachable
+    await loginAsUser({ name: 'UI Gate Peer One' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [bookA.id, bookB.id])
+    await loginAsUser({ name: 'UI Gate Peer Two' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [bookA.id, bookB.id])
+
+    // Third participant joins but has NOT submitted a ranking — should see the gate
+    await loginAsUser({ name: 'UI Gate Viewer' })
+    const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`)
+    expect(joinRes.ok()).toBe(true)
+
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
+
+    const gate = page.getByTestId('ranking-gate')
+    await expect(gate).toBeVisible()
+    const enter = page.getByTestId('ranking-gate-enter')
+    const box = await enter.boundingBox()
+    const viewport = page.viewportSize()!
+    expect(box).not.toBeNull()
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1)
+  })
+})
+
 test.describe('ProfileDrawer: status accordion menu', () => {
   const EMAIL = 'e2e-mybooks-ui@test.invalid'
   const NAME = 'E2E MyBooks UI'
