@@ -13,11 +13,7 @@ function reservationExpiry(now = new Date()): Date {
   return new Date(now.getTime() + RESERVATION_TTL_MS)
 }
 
-export async function getOrCreatePseudonymReservation(
-  sessionId: string,
-  userId: string,
-): Promise<string> {
-  const now = new Date()
+async function findActiveReservation(sessionId: string, userId: string, now: Date): Promise<string | null> {
   const [existing] = await db
     .select({ pseudonym: matchingPseudonymReservations.pseudonym })
     .from(matchingPseudonymReservations)
@@ -30,7 +26,16 @@ export async function getOrCreatePseudonymReservation(
     )
     .limit(1)
 
-  if (existing) return existing.pseudonym
+  return existing?.pseudonym ?? null
+}
+
+export async function getOrCreatePseudonymReservation(
+  sessionId: string,
+  userId: string,
+): Promise<string> {
+  const now = new Date()
+  const existing = await findActiveReservation(sessionId, userId, now)
+  if (existing) return existing
 
   await db
     .delete(matchingPseudonymReservations)
@@ -59,6 +64,9 @@ export async function getOrCreatePseudonymReservation(
         pseudonym: matchingPseudonymReservations.pseudonym,
       })
     if (inserted) return inserted.pseudonym
+
+    const concurrentReservation = await findActiveReservation(sessionId, userId, now)
+    if (concurrentReservation) return concurrentReservation
   }
 
   throw new Error('PSEUDONYM_RESERVATION_FAILED')

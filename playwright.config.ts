@@ -75,13 +75,11 @@ export default defineConfig({
   // retries: 1 — страховка от редких flaky-моментов (overload
   // dev-сервера, медленный Neon-compute, networkidle промахи).
   retries: 1,
-  // workers: локально 4 — спеки изолированы через createTestBook/
-  // createIntroSection, не дерутся за общие данные. На CI снижаем до 2:
-  // GitHub Actions runner делит 4 vCPU с системой, плюс Neon free tier
-  // (0.25 vCPU). Производственный `next start` (см. webServer ниже) держит
-  // конкурентность куда лучше dev-сервера, но Neon-bottleneck остаётся —
-  // поэтому workers:2 пока сохраняем, тюнинг отдельным шагом после замера.
-  workers: process.env.CI ? 2 : 4,
+  // workers:1 — matching E2E опираются на единственную active session
+  // (`matching_sessions_single_active_idx`) и `/matching` всегда читает её.
+  // Параллельные спеки могут удалить/заменить active session друг у друга,
+  // поэтому весь E2E suite должен идти последовательно.
+  workers: 1,
   reporter: process.env.CI
     ? [['list'], ['allure-playwright', { outputFolder: 'allure-results', suiteTitle: false }]]
     : 'list',

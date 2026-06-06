@@ -15,6 +15,7 @@ type CleanupCounts = {
   identities: number
   feedback: number
   notifications: number
+  matchingSessions: number
 }
 
 function firstRow(result: unknown): CleanupCounts | null {
@@ -53,6 +54,17 @@ export async function DELETE() {
       FROM target_users
       WHERE "contact_email" IS NOT NULL
     ),
+    target_matching_sessions AS (
+      SELECT "id"
+      FROM "matching_sessions"
+      WHERE "name" ILIKE 'E2E Matching %'
+        OR "name" ILIKE 'E2E Admin Satisfaction %'
+    ),
+    deleted_matching_sessions AS (
+      DELETE FROM "matching_sessions"
+      WHERE "id" IN (SELECT "id" FROM target_matching_sessions)
+      RETURNING "id"
+    ),
     deleted_feedback AS (
       DELETE FROM "feedback"
       WHERE "user_id" IN (SELECT "id" FROM target_users)
@@ -80,7 +92,8 @@ export async function DELETE() {
       (SELECT count(*)::int FROM deleted_users) AS "users",
       (SELECT count(*)::int FROM deleted_identities) AS "identities",
       (SELECT count(*)::int FROM deleted_feedback) AS "feedback",
-      (SELECT count(*)::int FROM deleted_notifications) AS "notifications"
+      (SELECT count(*)::int FROM deleted_notifications) AS "notifications",
+      (SELECT count(*)::int FROM deleted_matching_sessions) AS "matchingSessions"
   `)
 
   return NextResponse.json({ ok: true, deleted: firstRow(result) })

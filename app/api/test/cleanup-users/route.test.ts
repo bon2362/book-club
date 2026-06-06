@@ -47,16 +47,17 @@ describe('DELETE /api/test/cleanup-users', () => {
     setNodeEnv('test')
     process.env.NEXTAUTH_TEST_MODE = 'true'
     ;(db.execute as jest.Mock).mockResolvedValue({
-      rows: [{ users: 2, identities: 2, feedback: 1, notifications: 0 }],
+      rows: [{ users: 2, identities: 2, feedback: 1, notifications: 0, matchingSessions: 3 }],
     })
 
     const res = await DELETE()
 
     expect(res.status).toBe(200)
     expect(db.execute).toHaveBeenCalled()
+    expect(JSON.stringify((db.execute as jest.Mock).mock.calls[0][0])).toContain('matching_sessions')
     await expect(res.json()).resolves.toEqual({
       ok: true,
-      deleted: { users: 2, identities: 2, feedback: 1, notifications: 0 },
+      deleted: { users: 2, identities: 2, feedback: 1, notifications: 0, matchingSessions: 3 },
     })
   })
 })

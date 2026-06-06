@@ -99,8 +99,6 @@ interface E2EHelpers {
   createMatchingSession: (overrides?: MatchingSessionOverrides) => Promise<MatchingSession>
 }
 
-type CleanupFn = () => Promise<void>
-
 async function patchIntroSection(
   request: APIRequestContext,
   id: string,
@@ -124,7 +122,6 @@ export const test = base.extend<E2EHelpers>({
   },
 
   loginAsUser: async ({ page }, use, testInfo) => {
-    const cleanups: CleanupFn[] = []
     let count = 0
 
     const login: E2EHelpers['loginAsUser'] = async (overrides) => {
@@ -138,22 +135,13 @@ export const test = base.extend<E2EHelpers>({
         throw new Error(`/api/test/session failed: ${res.status()} ${await res.text()}`)
       }
       const body = (await res.json()) as { userId: string }
-      cleanups.push(async () => {
-        await page.request.delete('/api/test/session', { data: { email } })
-      })
       return { email, name, userId: body.userId }
     }
 
     await use(login)
-
-    for (const fn of cleanups.reverse()) {
-      try { await fn() } catch { /* best-effort */ }
-    }
   },
 
   loginAsAdmin: async ({ page }, use, testInfo) => {
-    const cleanups: CleanupFn[] = []
-
     const login: E2EHelpers['loginAsAdmin'] = async (overrides) => {
       const email = overrides?.email ?? `e2e-${testInfo.testId}-admin@test.invalid`
       const name = overrides?.name ?? `E2E Admin ${testInfo.testId}`
@@ -164,18 +152,10 @@ export const test = base.extend<E2EHelpers>({
         throw new Error(`/api/test/session failed: ${res.status()} ${await res.text()}`)
       }
       const body = (await res.json()) as { userId: string }
-      cleanups.push(async () => {
-        await page.request.delete('/api/test/session', { data: { email } })
-      })
       return { email, name, userId: body.userId }
     }
 
     await use(login)
-
-    // LIFO cleanup
-    for (const fn of cleanups.reverse()) {
-      try { await fn() } catch { /* best-effort */ }
-    }
   },
 
   createIntroSection: async ({ page }, use) => {
@@ -205,7 +185,7 @@ export const test = base.extend<E2EHelpers>({
     }
   },
 
-  createTestBook: async ({ page }, use, testInfo) => {
+  createTestBook: async ({ request }, use, testInfo) => {
     const created: string[] = []
     // Suffix должен быть уникален per-test И per-run. testInfo.testId сам
     // по себе детерминирован (один и тот же для теста между запусками),
@@ -218,7 +198,7 @@ export const test = base.extend<E2EHelpers>({
       const index = created.length
       const id = overrides?.id ?? `__e2e_book_${seed}_${index}__`
       const title = overrides?.title ?? `E2E Book ${seed} #${index}`
-      const res = await page.request.post('/api/test/books', {
+      const res = await request.post('/api/test/books', {
         data: { ...overrides, id, title },
       })
       if (!res.ok()) {
@@ -233,16 +213,16 @@ export const test = base.extend<E2EHelpers>({
 
     for (const id of created.reverse()) {
       try {
-        await page.request.delete('/api/test/books', { data: { id } })
+        await request.delete('/api/test/books', { data: { id } })
       } catch { /* best-effort — cleanup hooks would still mop up next run */ }
     }
   },
 
-  createMatchingSession: async ({ page }, use, testInfo) => {
+  createMatchingSession: async ({ request }, use, testInfo) => {
     const created: string[] = []
 
     const create: E2EHelpers['createMatchingSession'] = async (overrides) => {
-      const res = await page.request.post('/api/test/matching-session', {
+      const res = await request.post('/api/test/matching-session', {
         data: {
           name: overrides?.name ?? `E2E Matching ${testInfo.testId}`,
           minGroupSize: overrides?.minGroupSize ?? 3,
@@ -262,7 +242,7 @@ export const test = base.extend<E2EHelpers>({
 
     for (const id of created.reverse()) {
       try {
-        await page.request.delete('/api/test/matching-session', { data: { id } })
+        await request.delete('/api/test/matching-session', { data: { id } })
       } catch { /* best-effort — DB cleanup is the safety net */ }
     }
   },
