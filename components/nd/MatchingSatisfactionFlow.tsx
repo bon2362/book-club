@@ -181,7 +181,7 @@ export default function MatchingSatisfactionFlow(props: MatchingSatisfactionFlow
         </Collapsible>
       </div>
 
-      <MatchingRealtimeWrapper sessionId={sessionId} />
+      {board && <MatchingRealtimeWrapper sessionId={sessionId} />}
     </div>
   )
 }

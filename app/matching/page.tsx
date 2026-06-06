@@ -157,6 +157,36 @@ export default async function MatchingPage({
     activeSession.status === 'active' &&
     !viewerHasCompleteRanking
 
+  // Get current user's pseudonym (not impersonating) or null if impersonating
+  const userPseudonym = !isImpersonating
+    ? participants.find((p) => p.userId === session.user.id)?.pseudonym ?? null
+    : null
+  const publicUserIdByInternalId = new Map(participants.map((participant) => [
+    participant.userId,
+    isAdmin ? participant.userId : participant.pseudonym,
+  ]))
+  const clientViewingUserId = isAdmin
+    ? viewingUserId
+    : publicUserIdByInternalId.get(viewingUserId) ?? userPseudonym ?? viewingUserId
+  const clientBookParticipants = isAdmin
+    ? bookParticipants
+    : bookParticipants.map((participant) => ({
+        ...participant,
+        userId: publicUserIdByInternalId.get(participant.userId) ?? participant.pseudonym,
+      }))
+
+  if (showRankingGate) {
+    return (
+      <MatchingSatisfactionFlow
+        phase="gate"
+        sessionId={activeSession.id}
+        books={personalBooks}
+        bookParticipants={clientBookParticipants}
+        viewingUserId={clientViewingUserId}
+      />
+    )
+  }
+
   const scenarioParticipants = participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym }))
   const scenarioInput = await fetchScenarioInput(
     scenarioParticipants,
@@ -203,26 +233,9 @@ export default async function MatchingPage({
       }
     : null
 
-  // Get current user's pseudonym (not impersonating) or null if impersonating
-  const userPseudonym = !isImpersonating
-    ? participants.find((p) => p.userId === session.user.id)?.pseudonym ?? null
-    : null
-  const publicUserIdByInternalId = new Map(participants.map((participant) => [
-    participant.userId,
-    isAdmin ? participant.userId : participant.pseudonym,
-  ]))
-  const clientViewingUserId = isAdmin
-    ? viewingUserId
-    : publicUserIdByInternalId.get(viewingUserId) ?? userPseudonym ?? viewingUserId
   const clientScenarioSetOverview = isAdmin
     ? scenarioSetOverview
     : publicizeScenarioSetOverview(scenarioSetOverview, publicUserIdByInternalId)
-  const clientBookParticipants = isAdmin
-    ? bookParticipants
-    : bookParticipants.map((participant) => ({
-        ...participant,
-        userId: publicUserIdByInternalId.get(participant.userId) ?? participant.pseudonym,
-      }))
   const clientMoves = isAdmin
     ? myMovesWithImpact
     : publicizeMyMoves(myMovesWithImpact, publicUserIdByInternalId)
@@ -238,18 +251,6 @@ export default async function MatchingPage({
           },
         },
       }
-
-  if (showRankingGate) {
-    return (
-      <MatchingSatisfactionFlow
-        phase="gate"
-        sessionId={activeSession.id}
-        books={personalBooks}
-        bookParticipants={clientBookParticipants}
-        viewingUserId={clientViewingUserId}
-      />
-    )
-  }
 
   const headerSlot = (
     <MatchingHeader
