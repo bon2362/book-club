@@ -7,10 +7,11 @@ import { db } from '@/lib/db'
 import { finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn() } }))
+jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn(), update: jest.fn() } }))
 jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
   bookPriorities: {},
+  users: { id: 'users.id' },
 }))
 jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
 jest.mock('@/lib/matching/mutation-effects', () => ({
@@ -35,7 +36,13 @@ const userSession = { user: { id: 'user1', isAdmin: false } }
 const adminSession = { user: { id: 'admin1', isAdmin: true } }
 
 describe('PATCH /api/matching/priorities', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockDb.update = jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockResolvedValue([]),
+    })
+  })
 
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
@@ -84,12 +91,15 @@ describe('PATCH /api/matching/priorities', () => {
       .mockReturnValueOnce(canonicalChain)
     const upsertChain = { values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) }
     mockDb.insert = jest.fn().mockReturnValue(upsertChain)
+    const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    mockDb.update = jest.fn().mockReturnValue(updateChain)
 
     const res = await PATCH(makeReq({ bookIds: ['b2', 'b1'] }))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.ranks).toHaveLength(2)
     expect(mockDb.insert).toHaveBeenCalledTimes(2)
+    expect(updateChain.set).toHaveBeenCalledWith({ prioritiesSet: true })
   })
 
   it('пишет событие priorities_updated с упорядоченным списком (source=matching)', async () => {

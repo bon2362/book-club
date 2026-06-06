@@ -8,7 +8,7 @@ import * as mutationEffects from '@/lib/matching/mutation-effects'
 import { bookPriorities, signupBooks } from '@/lib/db/schema'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn() } }))
+jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn(), update: jest.fn() } }))
 jest.mock('@/lib/matching/mutation-effects', () => ({
   captureMatchingMutationSnapshot: jest.fn(),
   finalizeMatchingMutationEffects: jest.fn(),
@@ -18,6 +18,7 @@ jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
   signupBooks: {},
   bookPriorities: { userId: 'bookPriorities.userId', bookId: 'bookPriorities.bookId', rank: 'bookPriorities.rank' },
+  users: { id: 'users.id' },
 }))
 
 const mockAuth = authModule.auth as jest.Mock
@@ -42,6 +43,10 @@ describe('POST /api/matching/books', () => {
     jest.clearAllMocks()
     mockCaptureSnapshot.mockResolvedValue({ context: { overview: { leader: null } } })
     mockFinalizeEffects.mockResolvedValue(undefined)
+    mockDb.update = jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockResolvedValue([]),
+    })
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -93,6 +98,8 @@ describe('POST /api/matching/books', () => {
     mockDb.insert = jest.fn((table) => (
       table === signupBooks ? insertChain : priorityInsertChain
     )) as unknown as typeof mockDb.insert
+    const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    mockDb.update = jest.fn().mockReturnValue(updateChain)
 
     const res = await POST(makeReq({ bookId: 'b1' }))
 
@@ -102,6 +109,7 @@ describe('POST /api/matching/books', () => {
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(1, { userId: 'user1', bookId: 'b1', rank: 1 })
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(2, { userId: 'user1', bookId: 'b2', rank: 2 })
     expect(priorityInsertChain.values).toHaveBeenNthCalledWith(3, { userId: 'user1', bookId: 'b3', rank: 3 })
+    expect(updateChain.set).toHaveBeenCalledWith({ prioritiesSet: true })
     expect(mockFinalizeEffects).toHaveBeenCalledWith(expect.objectContaining({
       sessionId: 's1',
       targetUserId: 'user1',

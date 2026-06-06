@@ -243,8 +243,10 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
     []
   )[0]
 
+  const prioritiesSet = (userRow.prioritiesSet ?? false) || priorityRows.length > 0
+
   return {
-    user: { ...summary, prioritiesSet: userRow.prioritiesSet ?? false },
+    user: { ...summary, prioritiesSet },
     signupBooks: signupRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, signedAt: row.signedAt.toISOString(), personalStatus: (row.personalStatus ?? null) as PersonalBookStatus })),
     priorities: priorityRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, rank: row.rank })),
     submissions: submissionRows.map(row => ({

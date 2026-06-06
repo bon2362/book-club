@@ -115,6 +115,73 @@ describe('admin-users aggregations', () => {
     await expect(getAdminUserDetails('missing-user')).resolves.toBeNull()
   })
 
+  it('считает приоритеты расставленными, если строки book_priorities уже есть', async () => {
+    const userCreatedAt = new Date('2026-06-01T10:00:00Z')
+    const signedAt = new Date('2026-06-02T10:00:00Z')
+    const userQuery = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{
+        id: 'u1',
+        name: 'Евгений',
+        email: null,
+        contactEmail: null,
+        emailVerified: null,
+        createdAt: userCreatedAt,
+        contacts: '@evgeniy',
+        lastActivityAt: null,
+        languages: null,
+        prioritiesSet: false,
+        isAdmin: false,
+      }]),
+    }
+    const signupQuery = {
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockResolvedValue([
+        { bookId: 'b1', bookName: 'Книга', signedAt, personalStatus: null },
+      ]),
+    }
+    const prioritiesQuery = {
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockResolvedValue([
+        { bookId: 'b1', bookName: 'Книга', rank: 1, updatedAt: signedAt },
+      ]),
+    }
+    const emptyOrderedQuery = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockResolvedValue([]),
+    }
+    const feedbackQuery = {
+      from: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockResolvedValue([]),
+    }
+    const identityQuery = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]),
+    }
+    mockSelect
+      .mockReturnValueOnce(userQuery)
+      .mockReturnValueOnce(signupQuery)
+      .mockReturnValueOnce(prioritiesQuery)
+      .mockReturnValueOnce(emptyOrderedQuery)
+      .mockReturnValueOnce(feedbackQuery)
+      .mockReturnValueOnce(identityQuery)
+
+    await expect(getAdminUserDetails('u1')).resolves.toEqual(expect.objectContaining({
+      user: expect.objectContaining({ prioritiesSet: true }),
+      priorities: [{ bookId: 'b1', bookName: 'Книга', rank: 1 }],
+    }))
+  })
+
   it('форматирует фидбеки для админской вкладки', async () => {
     const createdAt = new Date('2026-05-18T10:00:00Z')
     const query = {

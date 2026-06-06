@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingSessions, bookPriorities } from '@/lib/db/schema'
+import { matchingSessions, bookPriorities, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import {
@@ -48,6 +48,11 @@ export async function PATCH(req: NextRequest) {
         set: { rank: i + 1, updatedAt: new Date() },
       })
   }
+
+  await db
+    .update(users)
+    .set({ prioritiesSet: true })
+    .where(eq(users.id, userId))
 
   // Return canonical order so client can reconcile
   const canonical = await db
