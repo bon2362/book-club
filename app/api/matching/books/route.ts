@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingSessions, signupBooks, bookPriorities } from '@/lib/db/schema'
+import { matchingSessions, signupBooks, bookPriorities, users } from '@/lib/db/schema'
 import { asc, eq } from 'drizzle-orm'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import {
@@ -60,6 +60,11 @@ export async function POST(req: NextRequest) {
         set: { rank: i + 1, updatedAt: new Date() },
       })
   }
+
+  await db
+    .update(users)
+    .set({ prioritiesSet: true })
+    .where(eq(users.id, userId))
 
   await finalizeMatchingMutationEffects({
     sessionId: activeSession.id,

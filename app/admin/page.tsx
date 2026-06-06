@@ -43,6 +43,7 @@ export default async function AdminPage() {
   for (const row of allPriorityRows) {
     if (!bookPrioritiesMap[row.userId]) bookPrioritiesMap[row.userId] = []
     bookPrioritiesMap[row.userId].push({ bookId: row.bookId, bookName: row.bookName, rank: row.rank })
+    prioritiesSetMap[row.userId] = true
   }
   for (const pgId of Object.keys(bookPrioritiesMap)) {
     bookPrioritiesMap[pgId].sort((a, b) => a.rank - b.rank)
