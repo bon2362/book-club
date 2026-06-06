@@ -25,6 +25,7 @@ import {
   publicizeMyMoves,
   publicizeScenarioSetOverview,
 } from '@/lib/matching/public-state'
+import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
 
 export default async function MatchingPage({
   searchParams,
@@ -148,15 +149,13 @@ export default async function MatchingPage({
           )
       : []
 
-  const viewerHasRankedSignup = personalBooks.some(
-    (book) => book.isInList && book.personalStatus === null && book.rank !== null,
-  )
+  const viewerHasCompleteRanking = listHasCompleteActiveRanking(personalBooks)
   const canSwitchOptimizationMode = canSwitchMatchingMode(participantUserIds, bookParticipants)
   const showRankingGate =
     mode === 'satisfaction' &&
     !isImpersonating &&
     activeSession.status === 'active' &&
-    !viewerHasRankedSignup
+    !viewerHasCompleteRanking
 
   if (showRankingGate) {
     return (

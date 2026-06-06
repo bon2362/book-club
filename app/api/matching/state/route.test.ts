@@ -209,4 +209,37 @@ describe('GET /api/matching/state', () => {
     expect(mockGenerateScenarioOverview).not.toHaveBeenCalled()
     expect(mockGenerateScenarioSets).not.toHaveBeenCalled()
   })
+
+  it('does not generate satisfaction scenarios when the participant has any unranked active signup', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([satisfactionSession]) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue(threeParticipantRows) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { userId: 'u1', bookId: 'b1', personalStatus: null },
+        { userId: 'u1', bookId: 'b2', personalStatus: null },
+        { userId: 'u2', bookId: 'b1', personalStatus: null },
+        { userId: 'u3', bookId: 'b1', personalStatus: null },
+      ]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { userId: 'u1', bookId: 'b1', rank: 1 },
+        { userId: 'u2', bookId: 'b1', rank: 1 },
+        { userId: 'u3', bookId: 'b1', rank: 1 },
+      ]) })
+      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([
+        { id: 'b1', readingStatus: null },
+        { id: 'b2', readingStatus: null },
+      ]) })
+
+    const res = await GET(makeReq('s1'))
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.scenarios).toEqual([])
+    expect(json.scenarioSetOverview.leader).toBeNull()
+    expect(json.scenarioSetOverview.mode).toBe('satisfaction')
+    expect(mockGenerateScenarioOverview).not.toHaveBeenCalled()
+    expect(mockGenerateScenarioSets).not.toHaveBeenCalled()
+  })
 })

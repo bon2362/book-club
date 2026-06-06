@@ -4,16 +4,13 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import MatchingPersonalList, { type BookParticipant } from './MatchingPersonalList'
 import type { CatalogBook } from '@/lib/matching/personal-list'
+import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
 
 interface Props {
   books: CatalogBook[]
   bookParticipants: BookParticipant[]
   viewingUserId: string
   mutationUserId?: string
-}
-
-function countRankedActive(books: CatalogBook[]) {
-  return books.filter((book) => book.isInList && book.personalStatus === null && book.rank !== null).length
 }
 
 export default function MatchingRankingGate({
@@ -23,9 +20,8 @@ export default function MatchingRankingGate({
   mutationUserId,
 }: Props) {
   const router = useRouter()
-  const initialRankedCount = useMemo(() => countRankedActive(books), [books])
-  const [rankedCount, setRankedCount] = useState(initialRankedCount)
-  const canEnter = rankedCount >= 1
+  const initialCanEnter = useMemo(() => listHasCompleteActiveRanking(books), [books])
+  const [canEnter, setCanEnter] = useState(initialCanEnter)
 
   return (
     <main
@@ -109,7 +105,7 @@ export default function MatchingRankingGate({
             viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
             suppressRefresh
-            onChange={setRankedCount}
+            onChange={setCanEnter}
           />
         </div>
 

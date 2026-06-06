@@ -22,6 +22,7 @@ import {
   publicizeScenarioOverview,
   publicizeScenarioSetOverview,
 } from '@/lib/matching/public-state'
+import { userHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -98,11 +99,8 @@ export async function GET(req: NextRequest) {
       ranks,
       mode,
     )
-    const viewerHasRankedSignup = activeSignups.some((signup) => (
-      signup.userId === effectiveUserId
-      && ranks.some((rank) => rank.userId === effectiveUserId && rank.bookId === signup.bookId && rank.rank !== null)
-    ))
-    const shouldGenerateScenarios = mode !== 'satisfaction' || (isAdmin && asParam) || viewerHasRankedSignup
+    const viewerHasCompleteRanking = userHasCompleteActiveRanking(effectiveUserId, activeSignups, ranks)
+    const shouldGenerateScenarios = mode !== 'satisfaction' || (isAdmin && asParam) || viewerHasCompleteRanking
     if (shouldGenerateScenarios) {
       const scenarioInput = {
         participants,

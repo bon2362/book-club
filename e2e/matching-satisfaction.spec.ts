@@ -97,6 +97,54 @@ test('satisfaction session gates unranked readers before showing quality-first s
   await expect(page.getByRole('heading', { name: 'Сценарии' })).toBeVisible()
 })
 
+test('satisfaction session keeps reader gated when a new active signup has no rank', async ({
+  page,
+  createMatchingSession,
+  createTestBook,
+  loginAsUser,
+}) => {
+  const session = await createMatchingSession({
+    minGroupSize: 3,
+    maxGroupSize: 3,
+    optimizationMode: 'satisfaction',
+  })
+  const rankedBook = await createTestBook({
+    title: `E2E Satisfaction Ranked ${test.info().testId}`,
+    author: 'Satisfaction Author',
+  })
+  const unrankedBook = await createTestBook({
+    title: `E2E Satisfaction Unranked ${test.info().testId}`,
+    author: 'Satisfaction Author',
+  })
+
+  await loginAsUser({ name: 'E2E Satisfaction Peer Two' })
+  await joinSessionAndRankBooks(page, session.id, [rankedBook.id])
+
+  await loginAsUser({ name: 'E2E Satisfaction Peer Three' })
+  await joinSessionAndRankBooks(page, session.id, [rankedBook.id])
+
+  const viewer = await loginAsUser({ name: 'E2E Satisfaction Viewer With New Book' })
+  await joinSessionAndRankBooks(page, session.id, [rankedBook.id])
+
+  const signupRes = await page.request.post('/api/test/signup', {
+    data: {
+      userId: viewer.userId,
+      name: viewer.name,
+      email: viewer.email,
+      contacts: '@viewer',
+      selectedBookIds: [rankedBook.id, unrankedBook.id],
+    },
+  })
+  expect(signupRes.ok()).toBe(true)
+
+  await page.goto('/matching')
+  await page.waitForLoadState('networkidle')
+
+  await expect(page.getByTestId('ranking-gate')).toBeVisible()
+  await expect(page.getByTestId('matching-reader-circles-panel')).not.toBeVisible()
+  await expect(page.getByTestId('ranking-gate-enter')).toBeDisabled()
+})
+
 test('admin form creates a satisfaction matching session', async ({ page, loginAsAdmin }) => {
   const sessionName = `E2E Admin Satisfaction ${test.info().testId}`
   let createdSessionId: string | null = null
