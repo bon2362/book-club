@@ -28,7 +28,7 @@ test('matching shows welcome screen until the reader explicitly joins', async ({
   createMatchingSession,
   loginAsUser,
 }) => {
-  await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
+  const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
   await loginAsUser({ name: 'E2E Welcome Reader' })
 
   await page.goto('/matching')
@@ -46,9 +46,21 @@ test('matching shows welcome screen until the reader explicitly joins', async ({
   // смена ника на другой случайный: меняется на месте и сохраняется после перезагрузки
   const nickValue = page.getByTestId('welcome-pseudonym')
   const beforeNick = (await nickValue.textContent())?.trim() ?? ''
-  await page.getByTestId('welcome-reroll').click()
+  let afterNick = beforeNick
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const rerollResponsePromise = page.waitForResponse((response) => (
+      response.url().includes(`/api/matching/sessions/${session.id}/pseudonym`)
+      && response.request().method() === 'POST'
+    ))
+    await page.getByTestId('welcome-reroll').click()
+    const rerollResponse = await rerollResponsePromise
+    expect(rerollResponse.ok()).toBe(true)
+    const body = await rerollResponse.json() as { pseudonym: string }
+    afterNick = body.pseudonym
+    await expect(nickValue).toHaveText(afterNick)
+    if (afterNick !== beforeNick) break
+  }
   await expect(nickValue).not.toHaveText(beforeNick)
-  const afterNick = (await nickValue.textContent())?.trim() ?? ''
   await page.reload()
   await page.waitForLoadState('networkidle')
   await expect(page.getByTestId('welcome-pseudonym')).toHaveText(afterNick)

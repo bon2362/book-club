@@ -96,6 +96,8 @@ npm run test:e2e
 
 `reuseExistingServer: true` — Playwright переиспользует уже запущенный сервер.
 
+Playwright запускается с `workers: 1`: matching-тесты используют единственную active session (`matching_sessions_single_active_idx`), а `/matching` всегда читает её. Параллельные спеки могут удалить или заменить active session друг у друга.
+
 ### Тестовый режим (`NEXTAUTH_TEST_MODE=true`)
 
 Позволяет создавать сессии и управлять данными без реального OAuth. Доступные эндпоинты:
@@ -103,7 +105,7 @@ npm run test:e2e
 | Эндпоинт | Назначение |
 |----------|-----------|
 | `POST /api/test/session` | Создать сессию (поддерживает `isAdmin`, `telegramUsername`) |
-| `DELETE /api/test/session` | Удалить пользователя и сессию |
+| `DELETE /api/test/session` | Удалить пользователя и сессию (ручная точечная уборка; обычные fixtures оставляют users до global cleanup) |
 | `POST /api/test/books` | Создать тестовую опубликованную книгу |
 | `DELETE /api/test/books` | Удалить тестовую книгу |
 | `POST /api/test/matching-session` | Создать активную тестовую matching-сессию |
@@ -112,6 +114,8 @@ npm run test:e2e
 | `DELETE /api/test/signup` | Удалить тестовые записи пользователя из `signup_books` |
 
 Каждый E2E-тест создаёт нужные ему книги через `createTestBook` фикстуру (см. `e2e/fixtures.ts`). Id'шники имеют префикс `__e2e_book_<testId>_<index>__`, фикстура удаляет книгу в teardown (FK signup_books/book_priorities → cascade). Глобального seed-каталога больше нет — каждая спека работает только со своими данными.
+
+Global setup/teardown удаляет E2E users и E2E matching sessions через `/api/test/cleanup-users`; per-test login fixtures не удаляют пользователей, чтобы не ломать session cookies и FK во время suite.
 
 ### Покрытие E2E
 
