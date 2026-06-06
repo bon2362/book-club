@@ -42,17 +42,104 @@ interface Props {
   mutationUserId?: string
   suppressRefresh?: boolean
   onChange?: (activeRankingComplete: boolean) => void
+  size?: 'compact' | 'large'
+  fill?: boolean
 }
 
-// ── Shared cover style ────────────────────────────────────────────────────────
-const coverStyle: React.CSSProperties = {
-  width: 40,
-  height: 57,
-  borderRadius: 'var(--radius)',
-  flexShrink: 0,
-  boxShadow: 'var(--shadow-card)',
-  position: 'relative',
-  overflow: 'hidden',
+// ── Size-variant styles factory ───────────────────────────────────────────────
+interface ListStyles {
+  cover: React.CSSProperties
+  row: React.CSSProperties
+  title: React.CSSProperties
+  author: React.CSSProperties
+  rank: React.CSSProperties
+  handle: React.CSSProperties
+}
+
+function getListStyles(size: 'compact' | 'large'): ListStyles {
+  if (size === 'large') {
+    return {
+      cover: {
+        width: 52,
+        height: 74,
+        borderRadius: 'var(--radius)',
+        flexShrink: 0,
+        boxShadow: 'var(--shadow-card)',
+        position: 'relative',
+        overflow: 'hidden',
+      },
+      row: {
+        display: 'grid',
+        gridTemplateColumns: '34px 52px 1fr',
+        gap: '0.95rem',
+        padding: '0.85rem 0.95rem',
+        alignItems: 'center',
+        cursor: 'pointer',
+      },
+      title: {
+        fontFamily: 'var(--nd-serif)',
+        fontWeight: 700,
+        fontSize: '1.04rem',
+        letterSpacing: '-0.01em',
+        color: 'var(--text)',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap' as const,
+        lineHeight: 1.25,
+        marginBottom: '0.05rem',
+      },
+      author: {
+        fontSize: '0.82rem',
+        color: 'var(--text-muted)',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap' as const,
+      },
+      rank: { fontFamily: 'var(--nd-serif)', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-secondary)', lineHeight: 1 },
+      handle: { color: 'var(--text-muted)', fontSize: '1.1rem', background: 'none', border: 'none', padding: 0, lineHeight: 1 },
+    }
+  }
+  // compact (default)
+  return {
+    cover: {
+      width: 40,
+      height: 57,
+      borderRadius: 'var(--radius)',
+      flexShrink: 0,
+      boxShadow: 'var(--shadow-card)',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    row: {
+      display: 'grid',
+      gridTemplateColumns: '30px 40px 1fr',
+      gap: '0.75rem',
+      padding: '0.6rem 0.75rem',
+      alignItems: 'center',
+      cursor: 'pointer',
+    },
+    title: {
+      fontFamily: 'var(--nd-serif)',
+      fontWeight: 700,
+      fontSize: '0.92rem',
+      letterSpacing: '-0.01em',
+      color: 'var(--text)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+      lineHeight: 1.25,
+      marginBottom: '0.05rem',
+    },
+    author: {
+      fontSize: '0.76rem',
+      color: 'var(--text-muted)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+    },
+    rank: { fontFamily: 'var(--nd-serif)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1 },
+    handle: { color: 'var(--text-muted)', fontSize: '1rem', background: 'none', border: 'none', padding: 0, lineHeight: 1 },
+  }
 }
 
 // ── Panel wrapper ─────────────────────────────────────────────────────────────
@@ -69,16 +156,6 @@ const panelStyle: React.CSSProperties = {
 const panelHeadStyle: React.CSSProperties = {
   padding: '0.85rem 1.25rem 0.6rem',
   flexShrink: 0,
-}
-
-// ── Row base style ─────────────────────────────────────────────────────────────
-const rowBase: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '30px 40px 1fr',
-  gap: '0.75rem',
-  padding: '0.6rem 0.75rem',
-  alignItems: 'center',
-  cursor: 'pointer',
 }
 
 // ── Co-signups line ────────────────────────────────────────────────────────────
@@ -112,9 +189,10 @@ interface SortableRowProps {
   others: BookParticipant[]
   onClick: (book: CatalogBook) => void
   onRemove: (bookId: string) => void
+  styles: ListStyles
 }
 
-function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove }: SortableRowProps) {
+function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove, styles: s }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: book.bookId,
     disabled: frozen,
@@ -125,7 +203,7 @@ function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove }
       ref={setNodeRef}
       className="nd-catalog-row"
       style={{
-        ...rowBase,
+        ...s.row,
         transform: CSS.Transform.toString(transform),
         transition,
         boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)',
@@ -137,9 +215,7 @@ function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove }
       {/* Rank + drag handle */}
       <div className="flex flex-col items-center gap-0.5">
         {book.rank != null && (
-          <span
-            style={{ fontFamily: 'var(--nd-serif)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1 }}
-          >
+          <span style={s.rank}>
             #{index + 1}
           </span>
         )}
@@ -150,7 +226,7 @@ function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove }
             aria-label={`Перетащить книгу ${book.title}`}
             onClick={(e) => e.stopPropagation()}
             className="nd-drag-handle cursor-grab select-none touch-none"
-            style={{ color: 'var(--text-muted)', fontSize: '1rem', background: 'none', border: 'none', padding: 0, lineHeight: 1 }}
+            style={s.handle}
           >
             ⠿
           </button>
@@ -158,29 +234,16 @@ function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove }
       </div>
 
       {/* Cover */}
-      <div style={coverStyle}>
+      <div data-testid="pl-cover" style={s.cover}>
         <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
       </div>
 
       {/* Title + author */}
       <div className="min-w-0">
-        <div
-          style={{
-            fontFamily: 'var(--nd-serif)',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            letterSpacing: '-0.01em',
-            color: 'var(--text)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.25,
-            marginBottom: '0.05rem',
-          }}
-        >
+        <div style={s.title}>
           {book.title}
         </div>
-        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={s.author}>
           {book.author}
         </div>
         <CoSignups others={others} />
@@ -218,40 +281,28 @@ interface StatusRowProps {
   isFirst: boolean
   others: BookParticipant[]
   onClick: (book: CatalogBook) => void
+  styles: ListStyles
 }
 
-function StatusRow({ book, isFirst, others, onClick }: StatusRowProps) {
+function StatusRow({ book, isFirst, others, onClick, styles: s }: StatusRowProps) {
   const statusIcon = book.personalStatus === 'reading' ? '📖' : '✓'
   return (
     <li
       className="nd-catalog-row"
-      style={{ ...rowBase, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)', opacity: 0.7 }}
+      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)', opacity: 0.7 }}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center">
         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{statusIcon}</span>
       </div>
-      <div style={coverStyle}>
+      <div data-testid="pl-cover" style={s.cover}>
         <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
       </div>
       <div className="min-w-0">
-        <div
-          style={{
-            fontFamily: 'var(--nd-serif)',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            letterSpacing: '-0.01em',
-            color: 'var(--text)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.25,
-            marginBottom: '0.05rem',
-          }}
-        >
+        <div style={s.title}>
           {book.title}
         </div>
-        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={s.author}>
           {book.author}
         </div>
         <CoSignups others={others} />
@@ -267,39 +318,27 @@ interface CatalogRowProps {
   onClick: (book: CatalogBook) => void
   onAdd: (bookId: string) => void
   frozen: boolean
+  styles: ListStyles
 }
 
-function CatalogRow({ book, isFirst, onClick, onAdd, frozen }: CatalogRowProps) {
+function CatalogRow({ book, isFirst, onClick, onAdd, frozen, styles: s }: CatalogRowProps) {
   return (
     <li
       className="nd-catalog-row"
-      style={{ ...rowBase, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)' }}
+      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)' }}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center">
         <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)', opacity: 0.45 }}>+</span>
       </div>
-      <div style={coverStyle}>
+      <div data-testid="pl-cover" style={s.cover}>
         <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
       </div>
       <div className="min-w-0">
-        <div
-          style={{
-            fontFamily: 'var(--nd-serif)',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            letterSpacing: '-0.01em',
-            color: 'var(--text)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.25,
-            marginBottom: '0.05rem',
-          }}
-        >
+        <div style={s.title}>
           {book.title}
         </div>
-        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={s.author}>
           {book.author}
         </div>
       </div>
@@ -375,7 +414,10 @@ export default function MatchingPersonalList({
   mutationUserId,
   suppressRefresh = false,
   onChange,
+  size = 'compact',
+  fill = false,
 }: Props) {
+  const s = getListStyles(size)
   const router = useRouter()
   const [books, setBooks] = useState(initialBooks)
   const [announcement, setAnnouncement] = useState('')
@@ -537,7 +579,7 @@ export default function MatchingPersonalList({
       {/* ── Остальной каталог ── */}
       <section
         data-testid="matching-catalog-available"
-        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden' }}
+        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden', ...(fill ? { minHeight: 0 } : {}) }}
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
@@ -559,6 +601,7 @@ export default function MatchingPersonalList({
                   onClick={setModalBook}
                   onAdd={handleAddToList}
                   frozen={frozen}
+                  styles={s}
                 />
               ))}
             </ul>
@@ -571,7 +614,7 @@ export default function MatchingPersonalList({
       {/* ── Мои книги ── */}
       <section
         data-testid="matching-catalog-mine"
-        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden' }}
+        style={{ ...panelStyle, maxHeight: '60vh', overflow: 'hidden', ...(fill ? { minHeight: 0 } : {}) }}
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
@@ -589,7 +632,11 @@ export default function MatchingPersonalList({
                 items={activeBooks.map((b) => b.bookId)}
                 strategy={verticalListSortingStrategy}
               >
-                <ul className="list-none p-0 m-0" data-testid="matching-personal-list">
+                <ul
+                  className="list-none p-0 m-0"
+                  data-testid="pl-books-ul"
+                  style={fill ? { overflowY: 'auto', flex: 1, minHeight: 0 } : undefined}
+                >
                   {activeBooks.map((book, idx) => (
                     <SortableRow
                       key={book.bookId}
@@ -600,6 +647,7 @@ export default function MatchingPersonalList({
                       others={othersFor(book.bookId)}
                       onClick={setModalBook}
                       onRemove={handleRemoveFromList}
+                      styles={s}
                     />
                   ))}
                 </ul>
@@ -620,7 +668,7 @@ export default function MatchingPersonalList({
               </div>
               <ul className="list-none p-0 m-0">
                 {statusBooks.map((book, idx) => (
-                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} others={othersFor(book.bookId)} onClick={setModalBook} />
+                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} others={othersFor(book.bookId)} onClick={setModalBook} styles={s} />
                 ))}
               </ul>
             </>
