@@ -16,6 +16,7 @@ import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingHeader from '@/components/nd/MatchingHeader'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
+import MatchingRankingGate from '@/components/nd/MatchingRankingGate'
 import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
 import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
 import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
@@ -147,6 +148,25 @@ export default async function MatchingPage({
           )
       : []
 
+  const viewerHasRankedSignup = personalBooks.some(
+    (book) => book.isInList && book.personalStatus === null && book.rank !== null,
+  )
+  const showRankingGate =
+    mode === 'satisfaction' &&
+    !isImpersonating &&
+    activeSession.status === 'active' &&
+    !viewerHasRankedSignup
+
+  if (showRankingGate) {
+    return (
+      <MatchingRankingGate
+        books={personalBooks}
+        bookParticipants={bookParticipants}
+        viewingUserId={viewingUserId}
+      />
+    )
+  }
+
   const scenarioParticipants = participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym }))
   const scenarioInput = await fetchScenarioInput(
     scenarioParticipants,
@@ -168,6 +188,7 @@ export default async function MatchingPage({
     viewingUserId,
     bookTitleById,
     scenarioSetOverview.leader,
+    mode,
   )
   const bookById = new Map(personalBooks.map((b) => [b.bookId, {
     ...b,
@@ -382,6 +403,7 @@ function addMoveImpacts(
   viewingUserId: string,
   bookTitleById: Map<string, string>,
   currentLeader: MatchingScenario | null,
+  mode: OptimizationMode,
 ): MyMoveBook[] {
   return sortMovesByImpact(moves.flatMap((move) => {
     const hasSignup = scenarioInput.signups.some((signup) => (
@@ -407,6 +429,7 @@ function addMoveImpacts(
       currentLeader,
       viewingUserId,
       bookTitleById,
+      mode,
     })
     if (!impact) return []
 
@@ -414,7 +437,7 @@ function addMoveImpacts(
       ...move,
       impact,
     }
-  }))
+  }), mode)
 }
 
 function scenarioIncludesMove(

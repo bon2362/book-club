@@ -66,18 +66,18 @@ test.describe('Matching feature presentation', () => {
   test('interactive prototype shows how Maria changes the best scenario', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 950 })
     await page.goto('/matching/presentation')
-    await expect(page.getByRole('heading', { name: /как показать влияние/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /как выбирать группы/i })).toBeVisible()
 
     const prototype = page.getByTestId('matching-presentation-prototype')
     await prototype.scrollIntoViewIfNeeded()
-    await expect(prototype.getByText(/сейчас все заняты/i)).toBeVisible()
-    await expect(prototype.getByText(/за бортом/i)).toBeVisible()
+    await expect(prototype.getByText(/все попали в группы/i).first()).toBeVisible()
+    await expect(prototype.getByText(/вне групп/i)).toBeVisible()
 
-    await prototype.getByRole('button', { name: /мария добавляет/i }).click()
+    await prototype.getByRole('button', { name: /показать после хода/i }).click()
 
-    await expect(prototype.getByText(/мария добавила/i)).toBeVisible()
-    await expect(prototype.getByText(/лучшим стал другой сценарий/i)).toBeVisible()
-    await expect(prototype.getByText(/консенсус \+ краткая история неолиберализма/i)).toBeVisible()
+    await expect(prototype.getByText(/равное покрытие может сочетаться/i)).toBeVisible()
+    await expect(prototype.getByText(/равное покрытие, сильнее интерес/i)).toBeVisible()
+    await expect(prototype.getByText(/краткая история неолиберализма/i).first()).toBeVisible()
   })
 })
 

@@ -39,15 +39,17 @@ interface Props {
   viewingUserId: string
   frozen?: boolean
   mutationUserId?: string
+  suppressRefresh?: boolean
+  onChange?: (activeRankedCount: number) => void
 }
 
 // ── Shared cover style ────────────────────────────────────────────────────────
 const coverStyle: React.CSSProperties = {
   width: 40,
   height: 57,
-  borderRadius: 3,
+  borderRadius: 'var(--radius)',
   flexShrink: 0,
-  boxShadow: '0 1px 3px rgba(40,30,20,0.14)',
+  boxShadow: 'var(--shadow-card)',
   position: 'relative',
   overflow: 'hidden',
 }
@@ -127,7 +129,7 @@ function SortableRow({ book, index, frozen, isFirst, others, onClick, onRemove }
         transition,
         boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)',
         opacity: isDragging ? 0.5 : 1,
-        background: isDragging ? '#FAF6EE' : undefined,
+        background: isDragging ? 'var(--bg)' : undefined,
       }}
       onClick={() => onClick(book)}
     >
@@ -370,6 +372,8 @@ export default function MatchingPersonalList({
   viewingUserId,
   frozen = false,
   mutationUserId,
+  suppressRefresh = false,
+  onChange,
 }: Props) {
   const router = useRouter()
   const [books, setBooks] = useState(initialBooks)
@@ -410,6 +414,18 @@ export default function MatchingPersonalList({
     })
   }
 
+  const activeRankedCount = useCallback((list: CatalogBook[]) => (
+    list.filter((book) => book.isInList && book.personalStatus === null && book.rank !== null).length
+  ), [])
+
+  const notifyOrRefresh = useCallback((list: CatalogBook[]) => {
+    if (suppressRefresh) {
+      onChange?.(activeRankedCount(list))
+      return
+    }
+    router.refresh()
+  }, [activeRankedCount, onChange, router, suppressRefresh])
+
   const applyNewOrder = useCallback(async (newBooks: CatalogBook[]) => {
     const reranked = rerank(newBooks)
     setBooks(reranked)
@@ -417,10 +433,10 @@ export default function MatchingPersonalList({
       reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId),
       mutationUserId,
     )
-    router.refresh()
+    notifyOrRefresh(reranked)
     return reranked
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, mutationUserId])
+  }, [mutationUserId, notifyOrRefresh])
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -459,43 +475,40 @@ export default function MatchingPersonalList({
         patchStatus(bookId, newStatus, mutationUserId),
         patchPriorities(rankedActive.map((b) => b.bookId), mutationUserId),
       ])
-      router.refresh()
+      notifyOrRefresh(merged)
     },
-    [books, router, mutationUserId],
+    [books, mutationUserId, notifyOrRefresh],
   )
 
   const handleAddToList = useCallback(
     async (bookId: string) => {
-      setBooks((prev) => {
-        const target = prev.find((book) => book.bookId === bookId)
-        if (!target) return prev
-        const promoted = { ...target, isInList: true, personalStatus: null, rank: 1 }
-        const rest = prev.filter((book) => book.bookId !== bookId)
-        return rerank([promoted, ...rest])
-      })
+      const target = books.find((book) => book.bookId === bookId)
+      if (!target) return
+      const promoted = { ...target, isInList: true, personalStatus: null, rank: 1 }
+      const rest = books.filter((book) => book.bookId !== bookId)
+      const nextBooks = rerank([promoted, ...rest])
+      setBooks(nextBooks)
       setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, isInList: true, rank: 1 } : prev))
       await addToList(bookId, mutationUserId)
-      router.refresh()
+      notifyOrRefresh(nextBooks)
     },
-    [router, mutationUserId],
+    [books, mutationUserId, notifyOrRefresh],
   )
 
   const handleRemoveFromList = useCallback(
     async (bookId: string) => {
-      setBooks((prev) => {
-        const updated = prev.map((b) =>
-          b.bookId === bookId ? { ...b, isInList: false, rank: null, personalStatus: null } : b,
-        )
-        return rerank(updated)
-      })
+      const nextBooks = rerank(books.map((b) =>
+        b.bookId === bookId ? { ...b, isInList: false, rank: null, personalStatus: null } : b,
+      ))
+      setBooks(nextBooks)
       setModalBook((prev) =>
         prev?.bookId === bookId ? { ...prev, isInList: false, rank: null, personalStatus: null } : prev,
       )
       await removeFromList(bookId, mutationUserId)
-      router.refresh()
+      notifyOrRefresh(nextBooks)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [router, mutationUserId],
+    [books, mutationUserId, notifyOrRefresh],
   )
 
   return (

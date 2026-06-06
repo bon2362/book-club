@@ -22,6 +22,7 @@ interface MatchingSession {
   metricGroupsCount?: number | null
   metricCoverage?: number | null
   metricTop3HitRate?: number | null
+  optimizationMode?: 'coverage' | 'satisfaction'
 }
 
 interface PreferenceEvent {
@@ -51,6 +52,37 @@ interface AllUser {
   id: string
   name: string | null
 }
+
+type OptimizationMode = 'coverage' | 'satisfaction'
+
+const matchingModes: {
+  id: OptimizationMode
+  name: string
+  tag: string
+  description: string
+  accent: string
+}[] = [
+  {
+    id: 'coverage',
+    name: 'Покрытие',
+    tag: 'по умолчанию',
+    description: 'Собрать в группы как можно больше участников. Сценарии ранжируются по охвату — текущее поведение.',
+    accent: 'var(--success)',
+  },
+  {
+    id: 'satisfaction',
+    name: 'Удовлетворённость',
+    tag: 'новый',
+    description: 'Сначала качество совпадений: лучшие круги по интересам, даже если кто-то останется без группы.',
+    accent: 'var(--accent)',
+  },
+]
+
+const satisfactionModeNotes = [
+  'Перед доской участник проходит экран ранжирования.',
+  'Без ранга участник не попадает в подбор.',
+  'Зафиксируется при создании, без переключения потом.',
+]
 
 const fieldInput: React.CSSProperties = {
   fontFamily: 'var(--nd-mono), monospace',
@@ -107,6 +139,8 @@ export default function AdminMatchingSession() {
   const [minGroupSize, setMinGroupSize] = useState(3)
   const [maxGroupSize, setMaxGroupSize] = useState(3)
   const [deadlineAt, setDeadlineAt] = useState('')
+  const [optimizationMode, setOptimizationMode] = useState<OptimizationMode>('coverage')
+  const [focusedOptimizationMode, setFocusedOptimizationMode] = useState<OptimizationMode | null>(null)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
@@ -242,6 +276,7 @@ export default function AdminMatchingSession() {
           minGroupSize,
           maxGroupSize,
           deadlineAt: deadlineAt || null,
+          optimizationMode,
         }),
       })
       const json = await res.json()
@@ -250,6 +285,7 @@ export default function AdminMatchingSession() {
       setDeadlineAt('')
       setMinGroupSize(3)
       setMaxGroupSize(3)
+      setOptimizationMode('coverage')
       await load()
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Неизвестная ошибка')
@@ -588,6 +624,125 @@ export default function AdminMatchingSession() {
               style={fieldInput}
               data-testid="matching-session-deadline"
             />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
+              Режим подбора
+            </label>
+            <div
+              role="radiogroup"
+              aria-label="Режим подбора"
+              data-testid="matching-session-mode"
+              style={{
+                border: '1px solid var(--border)',
+                borderBottom: '2px solid var(--border-strong)',
+                borderRadius: 'var(--radius)',
+                overflow: 'hidden',
+                background: 'var(--bg-input)',
+              }}
+            >
+              {matchingModes.map((modeOption, index) => {
+                const selected = optimizationMode === modeOption.id
+                const focused = focusedOptimizationMode === modeOption.id
+                const disabled = creating || !!activeSession
+                return (
+                  <label
+                    key={modeOption.id}
+                    data-testid={`mode-option-${modeOption.id}`}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      gap: '0.6rem',
+                      padding: '0.6rem 0.75rem',
+                      textAlign: 'left',
+                      border: 'none',
+                      borderTop: index === 0 ? 'none' : '1px solid var(--border)',
+                      borderLeft: selected || focused ? `2px solid ${modeOption.accent}` : '2px solid transparent',
+                      outline: focused ? `1px solid ${modeOption.accent}` : 'none',
+                      outlineOffset: -3,
+                      background: selected ? 'var(--bg)' : 'var(--bg-input)',
+                      color: 'var(--text)',
+                      cursor: disabled ? 'default' : 'pointer',
+                      opacity: disabled ? 0.55 : 1,
+                      borderRadius: 'var(--radius)',
+                      fontFamily: 'var(--nd-mono), monospace',
+                      position: 'relative',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="matching-session-optimization-mode"
+                      value={modeOption.id}
+                      checked={selected}
+                      disabled={disabled}
+                      onChange={() => setOptimizationMode(modeOption.id)}
+                      onFocus={() => setFocusedOptimizationMode(modeOption.id)}
+                      onBlur={() => setFocusedOptimizationMode(null)}
+                      style={{
+                        position: 'absolute',
+                        opacity: 0,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 13,
+                        height: 13,
+                        marginTop: 2,
+                        border: `1.5px solid ${selected ? modeOption.accent : 'var(--text-muted)'}`,
+                        borderRadius: 'var(--radius)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flex: '0 0 auto',
+                      }}
+                    >
+                      {selected && (
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            background: modeOption.accent,
+                            borderRadius: 'var(--radius)',
+                          }}
+                        />
+                      )}
+                    </span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                          {modeOption.name}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.56rem',
+                            letterSpacing: '0.13em',
+                            textTransform: 'uppercase',
+                            color: selected ? modeOption.accent : 'var(--text-muted)',
+                          }}
+                        >
+                          {modeOption.tag}
+                        </span>
+                      </span>
+                      <span style={{ display: 'block', marginTop: '0.18rem', fontSize: '0.72rem', lineHeight: 1.45, color: 'var(--text-secondary)' }}>
+                        {modeOption.description}
+                      </span>
+                      {selected && modeOption.id === 'satisfaction' && (
+                        <span style={{ display: 'grid', gap: '0.2rem', marginTop: '0.45rem' }}>
+                          {satisfactionModeNotes.map((note) => (
+                            <span key={note} style={{ display: 'flex', gap: '0.35rem', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                              <span style={{ color: modeOption.accent }}>→</span>
+                              <span>{note}</span>
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
           </div>
           {createError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{createError}</p>}
           <button

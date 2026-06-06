@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import type { MatchingCircle, MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
+import type { MatchingCircle, MatchingScenario, OptimizationMode, ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
@@ -22,6 +22,7 @@ interface Props {
   highlightedUserIds?: string[]
   previewMove?: MyMoveBook | null
   previewOpen?: boolean
+  mode?: OptimizationMode
 }
 
 const tierLabel: Record<MatchingScenario['tier'], string | null> = {
@@ -42,6 +43,7 @@ export default function MatchingScenarios({
   highlightedUserIds = [],
   previewMove = null,
   previewOpen = false,
+  mode = overview.mode,
 }: Props) {
   const [modalBook, setModalBook] = useState<BookInfo | null>(null)
   const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
@@ -94,6 +96,7 @@ export default function MatchingScenarios({
                   highlighted
                   variant="preview"
                   previewMoveTitle={previewMove?.title ?? null}
+                  mode={mode}
                 />
               </>
             )}
@@ -113,6 +116,7 @@ export default function MatchingScenarios({
               scenario.circles.some((circle) => circle.bookId === highlightedBookId)
             }
             muted={previewOpen}
+            mode={mode}
           />
         ))}
       </ul>
@@ -131,6 +135,7 @@ function ScenarioSetCard({
   muted,
   variant = 'current',
   previewMoveTitle = null,
+  mode = 'coverage',
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
@@ -142,9 +147,11 @@ function ScenarioSetCard({
   muted?: boolean
   variant?: 'current' | 'preview'
   previewMoveTitle?: string | null
+  mode?: OptimizationMode
 }) {
   const isLeader = scenario.tier === 'leader'
   const isPreview = variant === 'preview'
+  const isSatisfaction = mode === 'satisfaction' && !isPreview
   const isLinking = (isLeader || isPreview) && highlightedUserIds.length > 0
   const highlightedUserIdSet = new Set(highlightedUserIds)
   const hasViewerLeftOut = scenario.leftOut.some((participant) => participant.userId === viewingUserId)
@@ -155,7 +162,9 @@ function ScenarioSetCard({
     `Средний ранг: ${scenario.score.avgRank === null ? 'нет' : scenario.score.avgRank.toFixed(1)}`,
     `Худший ранг: ${scenario.score.worstRank ?? 'нет'}`,
     `Без ранга: ${scenario.score.unrankedCount}`,
-    'Сортировка: больше покрытие → больше «очень хочу» → ниже средний ранг → ниже худший ранг → меньше записей без ранга.',
+    mode === 'satisfaction'
+      ? 'Сортировка: ниже средний ранг → ниже худший ранг → больше размер круга → стабильный id.'
+      : 'Сортировка: больше покрытие → больше «очень хочу» → ниже средний ранг → ниже худший ранг → меньше записей без ранга.',
   ].join('\n')
 
   return (
@@ -166,15 +175,16 @@ function ScenarioSetCard({
       ].filter(Boolean).join(' ')}
       style={{
         background: isPreview
-          ? '#FFF8F1'
-          : isLeader ? 'var(--accent-soft)' : highlighted ? 'rgba(192, 96, 58, 0.04)' : 'var(--bg-input)',
+          ? 'var(--bg-input)'
+          : isSatisfaction ? 'var(--bg-input)' : isLeader ? 'var(--accent-soft)' : highlighted ? 'var(--accent-soft)' : 'var(--bg-input)',
         borderRadius: 'var(--radius-card)',
-        boxShadow: isPreview ? '0 10px 26px rgba(85, 55, 28, 0.10)' : isLeader ? 'none' : '0 1px 2px rgba(50,38,24,.04)',
-        borderLeft: shouldWarnViewerLeftOut ? '3px solid var(--status-warn)' : undefined,
+        boxShadow: isPreview || isLeader ? 'none' : 'var(--shadow-card)',
+        borderLeft: shouldWarnViewerLeftOut && !isSatisfaction ? '3px solid var(--status-warn)' : undefined,
         padding: '0.85rem 1rem',
       }}
       data-highlighted={highlighted ? 'true' : 'false'}
       data-viewer-left-out={shouldWarnViewerLeftOut ? 'true' : 'false'}
+      data-testid={isPreview ? 'matching-scenario-preview-card' : 'matching-scenario-card'}
     >
       {/* Header row */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -186,7 +196,7 @@ function ScenarioSetCard({
             fontWeight: 700,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.1em',
-            color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
+            color: isLeader && !isSatisfaction ? 'var(--accent)' : 'var(--text-muted)',
           }}
         >
           {isPreview ? 'Если добавишь' : `Сценарий ${scenarioNumber}`}
@@ -207,6 +217,20 @@ function ScenarioSetCard({
             «{previewMoveTitle}»
           </span>
         )}
+        {isSatisfaction && (
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              background: 'var(--chip-bg)',
+              color: 'var(--text-secondary)',
+              padding: '0.12rem 0.5rem',
+              borderRadius: 'var(--radius)',
+            }}
+          >
+            средний ранг {scenario.score.avgRank === null ? 'нет' : scenario.score.avgRank.toFixed(1)}
+          </span>
+        )}
         {isPreview ? (
           <span
             style={{
@@ -222,7 +246,7 @@ function ScenarioSetCard({
           >
             станет лучшим
           </span>
-        ) : isLeader && (
+        ) : isLeader && !isSatisfaction && (
           <span
             style={{
               fontSize: '0.66rem',
@@ -238,15 +262,17 @@ function ScenarioSetCard({
             лучший сейчас
           </span>
         )}
-        {!isLeader && tierLabel[scenario.tier] && (
+        {!isSatisfaction && !isLeader && tierLabel[scenario.tier] && (
           <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
             {tierLabel[scenario.tier]}
           </span>
         )}
         <span className="ml-auto" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-          {scenario.score.coveredCount === scenario.score.totalCount
-            ? `Покрытие: все ${scenario.score.totalCount}`
-            : `Покрытие: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`}
+          {isSatisfaction
+            ? `охват: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`
+            : scenario.score.coveredCount === scenario.score.totalCount
+              ? `Покрытие: все ${scenario.score.totalCount}`
+              : `Покрытие: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`}
         </span>
       </div>
 
@@ -260,6 +286,7 @@ function ScenarioSetCard({
             onOpen={onOpen}
             isFirst={idx === 0}
             isLeader={isLeader}
+            isSatisfaction={isSatisfaction}
             isLinking={isLinking}
             highlightedUserIds={highlightedUserIdSet}
           />
@@ -271,7 +298,7 @@ function ScenarioSetCard({
           className="flex flex-wrap items-center gap-1"
           style={{ marginTop: '0.7rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}
         >
-          <span>За бортом:</span>
+          <span>{isSatisfaction ? 'Пока без круга:' : 'За бортом:'}</span>
           {scenario.leftOut.map((participant, idx) => (
             <LeftOutName
               key={participant.userId}
@@ -280,6 +307,7 @@ function ScenarioSetCard({
               isLinked={isLinking && highlightedUserIdSet.has(participant.userId)}
               isDimmed={isLinking && !highlightedUserIdSet.has(participant.userId)}
               prefix={idx > 0}
+              soft={isSatisfaction}
             />
           ))}
         </div>
@@ -294,17 +322,19 @@ function LeftOutName({
   isLinked,
   isDimmed,
   prefix,
+  soft,
 }: {
   participant: { userId: string; pseudonym: string }
   isMe: boolean
   isLinked: boolean
   isDimmed: boolean
   prefix: boolean
+  soft: boolean
 }) {
   return (
     <span
       style={{
-        color: isMe ? 'var(--status-warn)' : isLinked ? 'var(--accent)' : 'var(--text-secondary)',
+        color: soft ? 'var(--text-secondary)' : isMe ? 'var(--status-warn)' : isLinked ? 'var(--accent)' : 'var(--text-secondary)',
         fontWeight: isMe || isLinked ? 700 : 400,
         background: isLinked ? 'var(--accent-soft)' : 'transparent',
         borderRadius: 'var(--radius)',
@@ -325,6 +355,7 @@ function CircleItem({
   onOpen,
   isFirst,
   isLeader,
+  isSatisfaction,
   isLinking,
   highlightedUserIds,
 }: {
@@ -333,6 +364,7 @@ function CircleItem({
   onOpen: (book: BookInfo) => void
   isFirst: boolean
   isLeader: boolean
+  isSatisfaction: boolean
   isLinking: boolean
   highlightedUserIds: Set<string>
 }) {
@@ -343,13 +375,13 @@ function CircleItem({
         gap: '0.8rem',
         alignItems: 'flex-start',
         padding: '0.55rem 0',
-        borderTop: isFirst ? 'none' : `1px solid ${isLeader ? 'rgba(181, 83, 43, 0.14)' : 'var(--hair-soft)'}`,
+        borderTop: isFirst ? 'none' : `1px solid ${isLeader && !isSatisfaction ? 'var(--accent-soft)' : 'var(--hair-soft)'}`,
       }}
     >
       {book && (
         <div
           className="relative overflow-hidden shrink-0"
-          style={{ width: 42, height: 60, borderRadius: 4, boxShadow: '0 1px 3px rgba(40,30,20,0.14)' }}
+          style={{ width: 42, height: 60, borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-card)' }}
         >
           <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
         </div>

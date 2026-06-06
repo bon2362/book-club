@@ -98,18 +98,25 @@ export async function GET(req: NextRequest) {
       ranks,
       mode,
     )
-    const scenarioInput = {
-      participants,
-      books: sessionBooks,
-      signups,
-      ranks,
-      minGroupSize: matchSession.minGroupSize,
-      maxGroupSize: matchSession.maxGroupSize,
-      maxResults: 10,
-      mode,
+    const viewerHasRankedSignup = activeSignups.some((signup) => (
+      signup.userId === effectiveUserId
+      && ranks.some((rank) => rank.userId === effectiveUserId && rank.bookId === signup.bookId && rank.rank !== null)
+    ))
+    const shouldGenerateScenarios = mode !== 'satisfaction' || (isAdmin && asParam) || viewerHasRankedSignup
+    if (shouldGenerateScenarios) {
+      const scenarioInput = {
+        participants,
+        books: sessionBooks,
+        signups,
+        ranks,
+        minGroupSize: matchSession.minGroupSize,
+        maxGroupSize: matchSession.maxGroupSize,
+        maxResults: 10,
+        mode,
+      }
+      scenarioSetOverview = generateScenarioSets(scenarioInput)
+      scenarioOverview = generateScenarioOverview(scenarioInput)
     }
-    scenarioSetOverview = generateScenarioSets(scenarioInput)
-    scenarioOverview = generateScenarioOverview(scenarioInput)
   }
 
   const publicUserIdByInternalId = new Map(participants.map((participant) => [

@@ -345,4 +345,117 @@ describe('move impact helpers', () => {
 
     expect(sortMovesByImpact(moves).map((m) => m.title)).toEqual(['Гамма', 'Альфа', 'Бета'])
   })
+
+  it('satisfaction mode counts a flat-coverage rank improvement as meaningful', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [],
+      circles: [{
+        id: 'old',
+        bookId: 'old',
+        minSize: 3,
+        maxSize: 3,
+        wantsCount: 1,
+        avgRank: 4,
+        worstRank: 5,
+        unrankedCount: 0,
+        members: [
+          { userId: 'viewer', pseudonym: 'Медведка', rank: 4, interest: 'хочу' },
+          { userId: 'u2', pseudonym: 'Казарка', rank: 4, interest: 'хочу' },
+          { userId: 'u3', pseudonym: 'Лягушка', rank: 5, interest: 'хочу' },
+        ],
+      }],
+    }
+    const better: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [],
+      circles: [{
+        id: 'new',
+        bookId: 'new',
+        minSize: 3,
+        maxSize: 3,
+        wantsCount: 1,
+        avgRank: 3,
+        worstRank: 4,
+        unrankedCount: 0,
+        members: [
+          { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+          { userId: 'u2', pseudonym: 'Казарка', rank: 4, interest: 'хочу' },
+          { userId: 'u3', pseudonym: 'Лягушка', rank: 4, interest: 'хочу' },
+        ],
+      }],
+    }
+
+    const impact = buildMoveImpact({
+      move: { ...move('New'), bookId: 'new' },
+      scenario: better,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([['new', 'Новая книга']]),
+      mode: 'satisfaction',
+    })
+
+    expect(impact).not.toBeNull()
+    expect(impact?.satisfaction).toEqual({ before: 4, after: 1 })
+  })
+
+  it('coverage mode keeps the same flat-coverage move non-meaningful', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [],
+      circles: [{
+        id: 'old',
+        bookId: 'old',
+        minSize: 3,
+        maxSize: 3,
+        wantsCount: 1,
+        avgRank: 4,
+        worstRank: 5,
+        unrankedCount: 0,
+        members: [
+          { userId: 'viewer', pseudonym: 'Медведка', rank: 4, interest: 'хочу' },
+          { userId: 'u2', pseudonym: 'Казарка', rank: 4, interest: 'хочу' },
+          { userId: 'u3', pseudonym: 'Лягушка', rank: 5, interest: 'хочу' },
+        ],
+      }],
+    }
+    const better: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [],
+      circles: [{
+        id: 'new',
+        bookId: 'new',
+        minSize: 3,
+        maxSize: 3,
+        wantsCount: 1,
+        avgRank: 3,
+        worstRank: 4,
+        unrankedCount: 0,
+        members: [
+          { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+          { userId: 'u2', pseudonym: 'Казарка', rank: 4, interest: 'хочу' },
+          { userId: 'u3', pseudonym: 'Лягушка', rank: 4, interest: 'хочу' },
+        ],
+      }],
+    }
+
+    const impact = buildMoveImpact({
+      move: { ...move('New'), bookId: 'new' },
+      scenario: better,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([['new', 'Новая книга']]),
+      mode: 'coverage',
+    })
+
+    expect(impact).toBeNull()
+  })
 })
