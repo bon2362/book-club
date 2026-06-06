@@ -100,5 +100,6 @@ test('unranked active books are shown first with a calculation warning', () => {
   expect(rows).toHaveLength(2)
   expect(rows[0]).toHaveTextContent('Книга без приоритета')
   expect(rows[1]).toHaveTextContent('Книга A')
+  expect(rows[1]).toHaveTextContent('#1')
   expect(getByText('Книги без приоритета не участвуют в расчете')).toBeInTheDocument()
 })
