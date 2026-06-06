@@ -86,11 +86,14 @@ export default function MatchingSatisfactionFlow({
         ...(board ? { minHeight: '100svh' } : { height: '100svh', overflow: 'hidden' }),
       }}
     >
-      {/* Board chrome: header + scenarios/moves grow in (content height) */}
+      {/* Board chrome: header + scenarios/moves. Capped at one screen with the
+          workspace scrolling internally, so the grid-rows grow stops at ~100svh
+          (the catalog slides one screen down, coupled) instead of ballooning to
+          the full height of many scenarios. */}
       <Collapsible open={board}>
-        <div className="nd-flow-slide-from-top">
+        <div className="nd-flow-slide-from-top flex flex-col" style={{ height: '100svh' }}>
           {header}
-          <div className="p-4">{workspace}</div>
+          <div className="flex-1 min-h-0 p-4">{workspace}</div>
         </div>
       </Collapsible>
 
