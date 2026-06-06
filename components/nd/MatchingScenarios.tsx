@@ -84,7 +84,7 @@ export default function MatchingScenarios({
             {previewScenario && (
               <>
                 <div className="nd-scenario-preview-banner">
-                  <span>↑ Нашёлся расклад лучше</span>
+                  <span>{mode === 'satisfaction' ? '↑ Добавится новый расклад' : '↑ Нашёлся расклад лучше'}</span>
                 </div>
                 <ScenarioSetCard
                   scenario={{ ...previewScenario, tier: 'leader' }}
@@ -152,10 +152,12 @@ function ScenarioSetCard({
   const isLeader = scenario.tier === 'leader'
   const isPreview = variant === 'preview'
   const isSatisfaction = mode === 'satisfaction' && !isPreview
+  const usesSatisfactionCopy = mode === 'satisfaction'
   const isLinking = (isLeader || isPreview) && highlightedUserIds.length > 0
   const highlightedUserIdSet = new Set(highlightedUserIds)
   const hasViewerLeftOut = scenario.leftOut.some((participant) => participant.userId === viewingUserId)
   const shouldWarnViewerLeftOut = isLeader && hasViewerLeftOut
+  const CardElement = isPreview ? 'div' : 'li'
   const scoreTitle = [
     `Покрытие: ${scenario.score.coveredCount}/${scenario.score.totalCount}`,
     `Очень хотят: ${scenario.score.strongInterestCount}`,
@@ -168,7 +170,7 @@ function ScenarioSetCard({
   ].join('\n')
 
   return (
-    <li
+    <CardElement
       className={[
         isPreview ? 'nd-scenario-preview-card' : 'nd-scenario-current',
         !isPreview && muted ? 'nd-scenario-muted' : '',
@@ -217,20 +219,6 @@ function ScenarioSetCard({
             «{previewMoveTitle}»
           </span>
         )}
-        {isSatisfaction && (
-          <span
-            style={{
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              background: 'var(--chip-bg)',
-              color: 'var(--text-secondary)',
-              padding: '0.12rem 0.5rem',
-              borderRadius: 'var(--radius)',
-            }}
-          >
-            средний ранг {scenario.score.avgRank === null ? 'нет' : scenario.score.avgRank.toFixed(1)}
-          </span>
-        )}
         {isPreview ? (
           <span
             style={{
@@ -244,7 +232,7 @@ function ScenarioSetCard({
               borderRadius: 'var(--radius-pill)',
             }}
           >
-            станет лучшим
+            {usesSatisfactionCopy ? '+1 сценарий' : 'станет лучшим'}
           </span>
         ) : isLeader && !isSatisfaction && (
           <span
@@ -298,7 +286,7 @@ function ScenarioSetCard({
           className="flex flex-wrap items-center gap-1"
           style={{ marginTop: '0.7rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}
         >
-          <span>{isSatisfaction ? 'Пока без круга:' : 'За бортом:'}</span>
+          <span>{usesSatisfactionCopy ? 'За бортом остаются:' : 'За бортом:'}</span>
           {scenario.leftOut.map((participant, idx) => (
             <LeftOutName
               key={participant.userId}
@@ -312,7 +300,7 @@ function ScenarioSetCard({
           ))}
         </div>
       )}
-    </li>
+    </CardElement>
   )
 }
 

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import MatchingScenarios from './MatchingScenarios'
 import type { MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
+import type { MyMoveBook } from '@/lib/matching/my-moves'
 
 jest.mock('./CoverImage', () => function MockCoverImage() {
   return <div data-testid="cover-image" />
@@ -38,14 +39,17 @@ function scenario(id: string, tier: MatchingScenario['tier'], leftOutUserIds: st
   }
 }
 
-function renderScenarios(scenarios: MatchingScenario[]) {
+function renderScenarios(
+  scenarios: MatchingScenario[],
+  options: { mode?: ScenarioSetOverview['mode']; previewMove?: MyMoveBook; previewOpen?: boolean } = {},
+) {
   const overview: ScenarioSetOverview = {
     scenarios,
     leader: scenarios[0] ?? null,
     totalCount: 4,
     minGroupSize: 3,
     maxGroupSize: 3,
-    mode: 'coverage',
+    mode: options.mode ?? 'coverage',
   }
 
   render(
@@ -70,6 +74,9 @@ function renderScenarios(scenarios: MatchingScenario[]) {
       ]])}
       bookParticipants={[]}
       viewingUserId="viewer"
+      previewMove={options.previewMove}
+      previewOpen={options.previewOpen}
+      mode={options.mode}
     />,
   )
 }
@@ -95,5 +102,46 @@ describe('MatchingScenarios', () => {
     const leader = screen.getByText('Сценарий 1').closest('li')
 
     expect(leader).toHaveAttribute('data-viewer-left-out', 'true')
+  })
+
+  it('uses satisfaction copy for scenario cards and preview cards', () => {
+    const previewScenario = scenario('preview', 'leader', [])
+    const previewMove = {
+      bookId: 'book-1',
+      title: 'Книга',
+      author: 'Автор',
+      description: 'Описание',
+      coverUrl: null,
+      pages: null,
+      publishedDate: '',
+      tags: [],
+      textUrl: '',
+      whyRead: null,
+      recommendationLink: null,
+      existingParticipants: [],
+      impact: {
+        scenarioId: previewScenario.id,
+        scenarioTitle: 'preview',
+        coverageLabel: '',
+        summary: '',
+        circleTitles: [],
+        circleBooks: [],
+        previewScenario,
+        coverage: { before: 3, after: 4 },
+        strongInterest: { before: 1, after: 2 },
+        beneficiaries: [],
+      },
+    } satisfies MyMoveBook
+
+    renderScenarios([scenario('leader', 'leader', ['viewer'])], {
+      mode: 'satisfaction',
+      previewMove,
+      previewOpen: true,
+    })
+
+    expect(screen.getByText('↑ Добавится новый расклад')).toBeInTheDocument()
+    expect(screen.getByText('+1 сценарий')).toBeInTheDocument()
+    expect(screen.getByText('За бортом остаются:')).toBeInTheDocument()
+    expect(screen.queryByText(/средний ранг/i)).not.toBeInTheDocument()
   })
 })
