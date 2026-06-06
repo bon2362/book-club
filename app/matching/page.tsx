@@ -17,7 +17,6 @@ import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingHeader from '@/components/nd/MatchingHeader'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import MatchingSatisfactionFlow from '@/components/nd/MatchingSatisfactionFlow'
-import MatchingBoardEntrance from '@/components/nd/MatchingBoardEntrance'
 import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
 import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
 import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
@@ -179,6 +178,7 @@ export default async function MatchingPage({
   if (showRankingGate) {
     return (
       <MatchingSatisfactionFlow
+        phase="gate"
         sessionId={activeSession.id}
         books={personalBooks}
         bookParticipants={clientBookParticipants}
@@ -252,74 +252,102 @@ export default async function MatchingPage({
         },
       }
 
-  const boardTree = (
+  const headerSlot = (
+    <MatchingHeader
+      sessionId={activeSession.id}
+      sessionName={activeSession.name}
+      sessionStatus={activeSession.status}
+      minGroupSize={activeSession.minGroupSize}
+      maxGroupSize={activeSession.maxGroupSize}
+      optimizationMode={mode}
+      canSwitchMode={canSwitchOptimizationMode}
+      deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
+      participants={participants.map((p) => ({
+        userId: isAdmin ? p.userId : p.pseudonym,
+        pseudonym: p.pseudonym,
+        name: isAdmin ? p.name ?? null : null,
+      }))}
+      isAdmin={isAdmin}
+      isImpersonating={isImpersonating}
+      viewedPseudonym={viewedParticipant?.pseudonym ?? null}
+      viewedName={viewedParticipant?.name ?? null}
+      asParam={asParam}
+      userPseudonym={userPseudonym}
+      feedEvents={feedEvents}
+      feedBookTitles={feedBookTitles}
+    />
+  )
+
+  const workspaceSlot = (
+    <MatchingImpactWorkspace
+      overview={clientScenarioSetOverview}
+      bookById={bookById}
+      bookParticipants={clientBookParticipants}
+      viewingUserId={clientViewingUserId}
+      moves={clientMoves}
+      frozen={isReadOnly}
+      movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
+      mutationUserId={isImpersonating ? viewingUserId : undefined}
+      adrift={clientAdrift}
+    />
+  )
+
+  const catalogIntroSlot = (
+    <div style={{ padding: '1.4rem 0 1rem' }}>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--nd-serif)',
+          fontSize: '1.12rem',
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          color: 'var(--text)',
+        }}
+      >
+        {isImpersonating ? 'Список участника' : 'Каталог'}
+      </h2>
+      {!isImpersonating && (
+        <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          Слева — книги клуба, справа — ваш список и приоритеты
+        </p>
+      )}
+    </div>
+  )
+
+  // Satisfaction renders the gate ↔ board as one morphing full-width page.
+  if (mode === 'satisfaction') {
+    return (
+      <MatchingSatisfactionFlow
+        phase="board"
+        sessionId={activeSession.id}
+        books={personalBooks}
+        bookParticipants={clientBookParticipants}
+        viewingUserId={clientViewingUserId}
+        frozen={isReadOnly}
+        mutationUserId={isImpersonating ? viewingUserId : undefined}
+        header={headerSlot}
+        workspace={workspaceSlot}
+        catalogIntro={catalogIntroSlot}
+      />
+    )
+  }
+
+  // Coverage board — unchanged full-width layout.
+  return (
     <div
       className="flex flex-col"
       style={{ minHeight: '100svh', background: 'var(--bg)', color: 'var(--text)' }}
     >
       <div className="flex flex-col" style={{ height: '100svh' }}>
-        <MatchingHeader
-          sessionId={activeSession.id}
-          sessionName={activeSession.name}
-          sessionStatus={activeSession.status}
-          minGroupSize={activeSession.minGroupSize}
-          maxGroupSize={activeSession.maxGroupSize}
-          optimizationMode={mode}
-          canSwitchMode={canSwitchOptimizationMode}
-          deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
-          participants={participants.map((p) => ({
-            userId: isAdmin ? p.userId : p.pseudonym,
-            pseudonym: p.pseudonym,
-            name: isAdmin ? p.name ?? null : null,
-          }))}
-          isAdmin={isAdmin}
-          isImpersonating={isImpersonating}
-          viewedPseudonym={viewedParticipant?.pseudonym ?? null}
-          viewedName={viewedParticipant?.name ?? null}
-          asParam={asParam}
-          userPseudonym={userPseudonym}
-          feedEvents={feedEvents}
-          feedBookTitles={feedBookTitles}
-        />
+        {headerSlot}
 
         {/* First viewport: scenarios + moves */}
-        <div className="flex-1 min-h-0 p-4">
-          <MatchingImpactWorkspace
-            overview={clientScenarioSetOverview}
-            bookById={bookById}
-            bookParticipants={clientBookParticipants}
-            viewingUserId={clientViewingUserId}
-            moves={clientMoves}
-            frozen={isReadOnly}
-            movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
-            mutationUserId={isImpersonating ? viewingUserId : undefined}
-            adrift={clientAdrift}
-          />
-        </div>
+        <div className="flex-1 min-h-0 p-4">{workspaceSlot}</div>
       </div>
 
       {/* Second viewport: catalog and user's books */}
       <div className="p-4 pt-0" style={{ minHeight: 560 }} data-testid="matching-catalog-panel">
-        {/* Catalog intro — same serif style as panel headings above */}
-        <div style={{ padding: '1.4rem 0 1rem' }}>
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: 'var(--nd-serif)',
-              fontSize: '1.12rem',
-              fontWeight: 700,
-              letterSpacing: '-0.01em',
-              color: 'var(--text)',
-            }}
-          >
-            {isImpersonating ? 'Список участника' : 'Каталог'}
-          </h2>
-          {!isImpersonating && (
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Слева — книги клуба, справа — ваш список и приоритеты
-            </p>
-          )}
-        </div>
+        {catalogIntroSlot}
 
         {/* Two-column grid aligned with top row — MatchingPersonalList renders a fragment with two sections */}
         <div
@@ -343,13 +371,6 @@ export default async function MatchingPage({
       <MatchingRealtimeWrapper sessionId={activeSession.id} />
     </div>
   )
-
-  // Satisfaction board fades in once when arriving from the ranking gate.
-  if (mode === 'satisfaction') {
-    return <MatchingBoardEntrance sessionId={activeSession.id}>{boardTree}</MatchingBoardEntrance>
-  }
-
-  return boardTree
 }
 
 function canSwitchMatchingMode(

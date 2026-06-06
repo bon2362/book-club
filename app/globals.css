@@ -476,3 +476,19 @@ body {
 .tooltip-wrap:hover .tooltip-text {
   opacity: 1 !important;
 }
+
+/* ── Matching satisfaction flow: gate → board entrance morph ── */
+.nd-flow-slide-from-top {
+  opacity: 0;
+  transform: translateY(-22px);
+  transition: opacity 1.4s ease, transform 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nd-flow.is-board .nd-flow-slide-from-top { opacity: 1; transform: none; }
+
+.nd-flow-fade-collapse { transition: opacity 0.9s ease; }
+.nd-flow.is-board .nd-flow-fade-collapse { opacity: 0; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nd-flow-slide-from-top,
+  .nd-flow-fade-collapse { transition: none !important; }
+}
