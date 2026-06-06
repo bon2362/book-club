@@ -476,27 +476,3 @@ body {
 .tooltip-wrap:hover .tooltip-text {
   opacity: 1 !important;
 }
-
-/* ── Matching satisfaction flow: gate → board entrance animation ── */
-.nd-flow-slide-from-top {
-  opacity: 0;
-  transform: translateY(-22px);
-  transition: opacity 2.5s ease, transform 2.9s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.nd-flow.is-board .nd-flow-slide-from-top { opacity: 1; transform: none; }
-
-.nd-flow-fade-collapse { transition: opacity 1.6s ease; }
-.nd-flow.is-board .nd-flow-fade-collapse { opacity: 0; pointer-events: none; }
-
-.nd-flow-stagger {
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 2.3s ease, transform 2.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.nd-flow-stagger.is-loaded { opacity: 1; transform: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  .nd-flow-slide-from-top,
-  .nd-flow-fade-collapse,
-  .nd-flow-stagger { transition: none !important; }
-}
