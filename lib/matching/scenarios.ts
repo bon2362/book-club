@@ -506,6 +506,18 @@ function buildScenarioStates(circles: MatchingCircle[], participants: ScenarioPa
   return states.filter((state) => state.circles.length > 0)
 }
 
+function isStrictCircleSubset(a: MatchingScenario, b: MatchingScenario): boolean {
+  if (a.circles.length >= b.circles.length) return false
+  const bCircleIds = new Set(b.circles.map((circle) => circle.id))
+  return a.circles.every((circle) => bCircleIds.has(circle.id))
+}
+
+function filterDominatedSatisfactionScenarios(scenarios: MatchingScenario[]): MatchingScenario[] {
+  return scenarios.filter((scenario, index) => (
+    !scenarios.some((other, otherIndex) => otherIndex !== index && isStrictCircleSubset(scenario, other))
+  ))
+}
+
 function assignScenarioTiers(scenarios: MatchingScenario[], totalCount: number, mode: OptimizationMode): MatchingScenario[] {
   if (scenarios.length === 0) return []
   if (mode === 'satisfaction') {
@@ -565,7 +577,8 @@ export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSet
     .map((state) => toScenario(state.circles, participants, 'partial'))
     .sort((a, b) => compare(b, a))
 
-  const resultScenarios = maxResults === null ? scenarios : scenarios.slice(0, maxResults)
+  const visibleScenarios = mode === 'satisfaction' ? filterDominatedSatisfactionScenarios(scenarios) : scenarios
+  const resultScenarios = maxResults === null ? visibleScenarios : visibleScenarios.slice(0, maxResults)
 
   const tiered = assignScenarioTiers(resultScenarios, participants.length, mode)
   return {
