@@ -40,6 +40,7 @@ interface Props {
   viewingUserId: string
   frozen?: boolean
   mutationUserId?: string
+  priorityMutationSource?: 'matching_priority_gate'
   suppressRefresh?: boolean
   onChange?: (activeRankingComplete: boolean) => void
   size?: 'compact' | 'large'
@@ -376,11 +377,15 @@ function mutationUrl(path: string, mutationUserId?: string) {
   return `${path}?as=${encodeURIComponent(mutationUserId)}`
 }
 
-async function patchPriorities(bookIds: string[], mutationUserId?: string) {
+async function patchPriorities(
+  bookIds: string[],
+  mutationUserId?: string,
+  source?: Props['priorityMutationSource'],
+) {
   await fetch(mutationUrl('/api/matching/priorities', mutationUserId), {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ bookIds }),
+    body: JSON.stringify(source ? { bookIds, source } : { bookIds }),
   })
 }
 
@@ -412,6 +417,7 @@ export default function MatchingPersonalList({
   viewingUserId,
   frozen = false,
   mutationUserId,
+  priorityMutationSource,
   suppressRefresh = false,
   onChange,
   size = 'compact',
@@ -471,11 +477,12 @@ export default function MatchingPersonalList({
     await patchPriorities(
       reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId),
       mutationUserId,
+      priorityMutationSource,
     )
     notifyOrRefresh(reranked)
     return reranked
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutationUserId, notifyOrRefresh])
+  }, [mutationUserId, priorityMutationSource, notifyOrRefresh])
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -512,11 +519,11 @@ export default function MatchingPersonalList({
       setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, personalStatus: newStatus } : prev))
       await Promise.all([
         patchStatus(bookId, newStatus, mutationUserId),
-        patchPriorities(rankedActive.map((b) => b.bookId), mutationUserId),
+        patchPriorities(rankedActive.map((b) => b.bookId), mutationUserId, priorityMutationSource),
       ])
       notifyOrRefresh(merged)
     },
-    [books, mutationUserId, notifyOrRefresh],
+    [books, mutationUserId, priorityMutationSource, notifyOrRefresh],
   )
 
   const handleAddToList = useCallback(

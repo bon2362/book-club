@@ -125,6 +125,29 @@ describe('PATCH /api/matching/priorities', () => {
     )
   })
 
+  it('пишет source=matching_priority_gate для предварительного экрана приоритетов', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }, { bookId: 'b1', rank: 2 }]) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(canonicalChain)
+    mockDb.insert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) })
+
+    await PATCH(makeReq({ bookIds: ['b2', 'b1'], source: 'matching_priority_gate' }))
+
+    expect(mockFinalizeEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 's1',
+        targetUserId: 'user1',
+        actorUserId: 'user1',
+        kind: 'priorities_updated',
+        source: 'matching_priority_gate',
+        metadata: { rankedBookIds: ['b2', 'b1'] },
+      }),
+    )
+  })
+
   it('для impersonation: target — участник, actor — админ', async () => {
     mockAuth.mockResolvedValue(adminSession)
     const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
