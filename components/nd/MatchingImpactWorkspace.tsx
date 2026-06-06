@@ -105,7 +105,7 @@ export default function MatchingImpactWorkspace({
       <section data-testid="matching-reader-circles-panel" style={panel}>
         <div style={panelHeadStyle}>
           <h2 style={h2Style}>
-            {mode === 'satisfaction' ? 'Сценарии' : 'Читательские круги'}
+            {mode === 'satisfaction' ? 'Сценарии кругов' : 'Читательские круги'}
             {scenarioCount > 0 && (
               <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>
                 {' '}· {scenarioCount} {scenarioCount === 1 ? 'сценарий' : scenarioCount < 5 ? 'сценария' : 'сценариев'}
@@ -114,7 +114,7 @@ export default function MatchingImpactWorkspace({
           </h2>
           {mode === 'satisfaction' && (
             <p style={subStyle}>
-              Расклады по близости интересов. Порядок — только для однозначного вывода: при равном качестве показываются все варианты, выбор за вами.
+              Добавляйте, убирайте книги и меняйте приоритеты, чтобы влиять на финальный расклад
             </p>
           )}
         </div>
