@@ -152,22 +152,11 @@ Husky pre-commit запускает `lint-staged` перед каждым ком
 
 Детали (3 слоя защиты, тест-режим) и гочи написания тестов — `docs/features/testing.md`. Самые частые грабли, расписанные там: live-locators и кнопки-тогглы (`.first()`, не `.nth(1)`), `role="status"`×`@dnd-kit`, ContactsForm-оверлей перехватывает клики, OOM при нескольких dev-серверах, `session.user.id` в session callback, `createTestBook`-фикстура. **Пишешь или правишь Playwright-тест — сперва прочитай этот файл.**
 
-### UI Layout Tests (Playwright)
-Для задач, затрагивающих CSS-поведение (скрытие, позиционирование, анимации):
-- Добавить тест в `e2e/ui-states.spec.ts` с проверкой `boundingBox()` элемента в нужном стейте.
-- Субагент не может коммитить UI-задачу без этого теста.
-- **Математическое доказательство CSS-формул**: для transform/position расчётов писать комментарий с выводом формулы (`final_pos = start_pos + transform`) → проверить знак, что результат за границей экрана.
-- **Субагенты перед коммитом UI-задач обязаны запускать:**
-  `npm run lint && npm run typecheck && npm test && npm run test:e2e e2e/ui-states.spec.ts`
+### UI Layout Tests
+CSS-поведение (скрытие/позиционирование/анимации) — обязателен тест в `e2e/ui-states.spec.ts` (`boundingBox()`); **UI-задачу нельзя коммитить без него.** Субагент перед коммитом UI-задачи обязан прогнать `npm run lint && npm run typecheck && npm test && npm run test:e2e e2e/ui-states.spec.ts`. Как писать (boundingBox-стейты, мат-доказательство transform-формул) — `docs/features/testing.md`.
 
 ## Telegram-авторизация
-Полная архитектура, провайдеры, env vars и грабли — `docs/features/auth.md`. Самое критичное (ломали не раз):
-- Только `data-auth-url`, **не** `data-onauth` (Telegram дёргает callback через `eval()`, браузеры блокируют).
-- После входа — `window.location.reload()`, **не** `router.refresh()` (иначе header остаётся «ВОЙТИ»).
-- Credentials-провайдер не создаёт юзера сам — вставлять вручную в `authorize` через `db.insert(users).onConflictDoUpdate(...)`.
-- `useSearchParams()` оборачивать в `<Suspense>` (иначе падает сборка статических страниц).
-- BotFather: точное совпадение домена (`www` ≠ без `www`) + у бота обязано быть фото профиля.
-- При изменении auth/telegram цепочки — гонять `e2e/telegram-auth.spec.ts`.
+Цепочка хрупкая и обросла граблями (`eval()` в виджете, `reload` vs `refresh`, Credentials без адаптера, `<Suspense>`, BotFather-домен). Архитектура, провайдеры, env vars и полный список грабель — `docs/features/auth.md`. **Трогаешь auth/telegram — сперва прочитай его, потом прогони `e2e/telegram-auth.spec.ts`.**
 
 ## Архитектура каталога и обложек
 - Каталог книг хранится в таблице `books` (Postgres). Чтение через `lib/books.ts`.
