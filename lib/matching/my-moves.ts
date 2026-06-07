@@ -32,8 +32,9 @@ export interface MyMoveBook {
       pseudonym: string
       before:
         | { place: 'leftOut' }
-        | { place: 'circle'; bookTitle: string; interest: GroupMember['interest'] }
+        | { place: 'circle'; bookTitle: string; interest: GroupMember['interest']; rankBefore: number | null }
       after: GroupMember['interest']
+      afterRank: number | null
     }[]
   }
 }

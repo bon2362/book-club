@@ -110,14 +110,16 @@ describe('move impact helpers', () => {
       {
         userId: 'u2',
         pseudonym: 'Казарка',
-        before: { place: 'circle', bookTitle: 'Старая книга', interest: 'хочу' },
+        before: { place: 'circle', bookTitle: 'Старая книга', interest: 'хочу', rankBefore: 4 },
         after: 'очень хочу',
+        afterRank: 1,
       },
       {
         userId: 'u3',
         pseudonym: 'Лягушка',
         before: { place: 'leftOut' },
         after: 'очень хочу',
+        afterRank: 2,
       },
     ])
   })
@@ -231,12 +233,14 @@ describe('move impact helpers', () => {
         pseudonym: 'Казарка',
         before: { place: 'leftOut' },
         after: 'очень хочу',
+        afterRank: 2,
       },
       {
         userId: 'u3',
         pseudonym: 'Лягушка',
         before: { place: 'leftOut' },
         after: 'без ранга',
+        afterRank: null,
       },
     ])
   })
@@ -457,5 +461,67 @@ describe('move impact helpers', () => {
     })
 
     expect(impact).toBeNull()
+  })
+})
+
+describe('satisfaction mode — rank-based beneficiary data', () => {
+  const makeLeader = (circles: MatchingScenario['circles']): MatchingScenario => ({
+    id: 'before',
+    tier: 'leader',
+    score: {
+      coveredCount: 3, totalCount: 5, coverageRatio: 0.6,
+      strongInterestCount: 1, rankedCount: 3, unrankedCount: 0,
+      rankSum: 9, avgRank: 3, worstRank: 20,
+    },
+    leftOut: [],
+    circles,
+  })
+
+  it('puts rankBefore and afterRank in circle beneficiary', () => {
+    const currentLeader = makeLeader([{
+      id: 'old',
+      bookId: 'old',
+      minSize: 3, maxSize: 3,
+      wantsCount: 1, avgRank: 10, worstRank: 20, unrankedCount: 0,
+      members: [
+        { userId: 'viewer', pseudonym: 'Нарвал', rank: 5, interest: 'хочу' },
+        { userId: 'u2', pseudonym: 'Барсук', rank: 20, interest: 'хочу' },
+      ],
+    }])
+    const nextLeader: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: {
+        coveredCount: 3, totalCount: 5, coverageRatio: 0.6,
+        strongInterestCount: 2, rankedCount: 3, unrankedCount: 0,
+        rankSum: 3, avgRank: 1.5, worstRank: 2,
+      },
+      leftOut: [],
+      circles: [{
+        id: 'new',
+        bookId: 'new',
+        minSize: 3, maxSize: 3,
+        wantsCount: 2, avgRank: 1.5, worstRank: 2, unrankedCount: 0,
+        members: [
+          { userId: 'viewer', pseudonym: 'Нарвал', rank: 2, interest: 'очень хочу' },
+          { userId: 'u2', pseudonym: 'Барсук', rank: 1, interest: 'очень хочу' },
+        ],
+      }],
+    }
+
+    const impact = buildMoveImpact({
+      move: { ...move('New'), bookId: 'new' },
+      scenario: nextLeader,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([['old', 'Старая'], ['new', 'Новая']]),
+      mode: 'satisfaction',
+    })
+
+    expect(impact).not.toBeNull()
+    const barsuk = impact!.beneficiaries.find(b => b.pseudonym === 'Барсук')
+    expect(barsuk).toBeDefined()
+    expect(barsuk!.before).toMatchObject({ place: 'circle', rankBefore: 20 })
+    expect(barsuk!.afterRank).toBe(1)
   })
 })

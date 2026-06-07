@@ -34,11 +34,11 @@ export function buildMoveImpact({
     bookId: circle.bookId,
     title: bookTitleById.get(circle.bookId) ?? circle.bookId,
   }))
-  const placeBefore = new Map<string, { bookId: string; interest: GroupMember['interest'] }>()
+  const placeBefore = new Map<string, { bookId: string; interest: GroupMember['interest']; rank: number | null }>()
 
   for (const circle of currentLeader?.circles ?? []) {
     for (const member of circle.members) {
-      placeBefore.set(member.userId, { bookId: circle.bookId, interest: member.interest })
+      placeBefore.set(member.userId, { bookId: circle.bookId, interest: member.interest, rank: member.rank })
     }
   }
 
@@ -51,6 +51,7 @@ export function buildMoveImpact({
             place: 'circle' as const,
             bookTitle: bookTitleById.get(prev.bookId) ?? prev.bookId,
             interest: prev.interest,
+            rankBefore: prev.rank,
           }
         : { place: 'leftOut' as const }
       return {
@@ -58,12 +59,13 @@ export function buildMoveImpact({
         pseudonym: member.pseudonym,
         before,
         after: member.interest,
+        afterRank: member.rank,
       }
     })
-    .filter((beneficiary) => (
-      beneficiary.before.place === 'leftOut' ||
-      INTEREST_TIER[beneficiary.after] > INTEREST_TIER[beneficiary.before.interest]
-    ))
+    .filter((beneficiary) => {
+      if (beneficiary.before.place === 'leftOut') return true
+      return INTEREST_TIER[beneficiary.after] > INTEREST_TIER[beneficiary.before.interest]
+    })
 
   const coverageGain = scenario.score.coveredCount - (currentLeader?.score.coveredCount ?? 0)
   // A left-out participant is only a real beneficiary when total coverage grows.
