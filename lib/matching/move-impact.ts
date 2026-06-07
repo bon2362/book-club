@@ -62,16 +62,10 @@ export function buildMoveImpact({
         afterRank: member.rank,
       }
     })
-    .filter((beneficiary) => {
-      if (beneficiary.before.place === 'leftOut') return true
-      if (mode === 'satisfaction') {
-        // Числовой ранг: меньше = лучше; null = без ранга (не считается улучшением)
-        const rankBefore = beneficiary.before.rankBefore
-        const rankAfter = beneficiary.afterRank
-        return rankBefore !== null && rankAfter !== null && rankAfter < rankBefore
-      }
-      return INTEREST_TIER[beneficiary.after] > INTEREST_TIER[beneficiary.before.interest]
-    })
+    .filter((beneficiary) => (
+      beneficiary.before.place === 'leftOut' ||
+      INTEREST_TIER[beneficiary.after] > INTEREST_TIER[beneficiary.before.interest]
+    ))
 
   const coverageGain = scenario.score.coveredCount - (currentLeader?.score.coveredCount ?? 0)
   // A left-out participant is only a real beneficiary when total coverage grows.
@@ -88,8 +82,7 @@ export function buildMoveImpact({
   if (mode === 'satisfaction') {
     const wasLeftOut = viewerBeforeRank === null && !viewerBeforePlace
     const improvedRank = viewerAfter !== null && viewerBeforeRank !== null && viewerAfter < viewerBeforeRank
-    const hasSatisfactionBeneficiary = beneficiaries.length > 0
-    if (!wasLeftOut && !improvedRank && !hasSatisfactionBeneficiary) return null
+    if (!wasLeftOut && !improvedRank) return null
   } else if (meaningfulBeneficiaries.length === 0) {
     return null
   }
@@ -120,15 +113,28 @@ export function buildMoveImpact({
 
 export function sortMovesByImpact<T extends Pick<MyMoveBook, 'title' | 'impact'>>(moves: T[], mode: OptimizationMode = 'coverage'): T[] {
   if (mode === 'satisfaction') {
-    const gain = (move: T) => {
+    const bestGain = (move: T): number => {
       const satisfaction = move.impact?.satisfaction
-      if (!satisfaction) return -Infinity
-      if (satisfaction.before === null && satisfaction.after !== null) return Number.MAX_SAFE_INTEGER
-      if (satisfaction.before === null || satisfaction.after === null) return -Infinity
-      return satisfaction.before - satisfaction.after
+      const viewerGain = (() => {
+        if (!satisfaction) return -Infinity
+        if (satisfaction.before === null && satisfaction.after !== null) return Number.MAX_SAFE_INTEGER
+        if (satisfaction.before === null || satisfaction.after === null) return -Infinity
+        return satisfaction.before - satisfaction.after
+      })()
+
+      const beneficiaryGain = (move.impact?.beneficiaries ?? [])
+        .reduce((max, b) => {
+          if (b.before.place === 'leftOut') return Math.max(max, Number.MAX_SAFE_INTEGER / 2)
+          const rankBefore = b.before.rankBefore ?? null
+          const rankAfter = b.afterRank ?? null
+          if (rankBefore === null || rankAfter === null) return max
+          return Math.max(max, rankBefore - rankAfter)
+        }, -Infinity)
+
+      return Math.max(viewerGain, beneficiaryGain)
     }
 
-    return [...moves].sort((a, b) => gain(b) - gain(a) || a.title.localeCompare(b.title, 'ru'))
+    return [...moves].sort((a, b) => bestGain(b) - bestGain(a) || a.title.localeCompare(b.title, 'ru'))
   }
 
   return [...moves].sort((a, b) => {
