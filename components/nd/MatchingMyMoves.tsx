@@ -212,7 +212,7 @@ function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: Optimizatio
         ? names[0]
         : names.join(' и ')
       const label = improved.length > 2
-        ? `${names[0]} и ещё ${improved.length - 1} — интереснее`
+        ? `${names.join(' и ')} и ещё ${improved.length - 2} — интереснее`
         : `${nameStr} — интереснее`
       return (
         <div className="nd-move-metrics">
@@ -239,7 +239,7 @@ function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: Optimizatio
   return (
     <div className="nd-move-metrics">
       {coverageGain > 0 ? (
-        <span className="nd-move-metric nd-move-metric-gain">↑ Покрытие {move.impact!.coverage.before}→{move.impact!.coverage.after}</span>
+        <span className="nd-move-metric nd-move-metric-gain">↑ Покрытие {(move.impact?.coverage.before ?? 0)}→{(move.impact?.coverage.after ?? 0)}</span>
       ) : (
         <span className="nd-move-metric nd-move-metric-keep">Покрытие сохранится</span>
       )}
@@ -276,8 +276,8 @@ function MoveWhyText({ move, mode }: { move: MyMoveBook; mode: OptimizationMode 
         <>
           {rankImproved.map((b, i) => {
             if (b.before.place !== 'circle') return null
-            const rBefore = b.before.rankBefore!
-            const rAfter = b.afterRank!
+            const rBefore = b.before.rankBefore as number
+            const rAfter = b.afterRank as number
             return (
               <span key={b.userId}>
                 {i > 0 && ' '}
