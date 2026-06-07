@@ -39,32 +39,9 @@ gh pr merge --auto --squash --delete-branch
 - **`strict: true`** в branch protection: PR обязан быть up-to-date с main перед мержем. Если другой PR смержился раньше — GitHub потребует `gh pr update-branch`, CI перезапустится на актуальной комбинации. Это закрывает дыру «два PR от одного base, оба зелёные по отдельности, но сломанные вместе». Особенно важно при параллельной работе нескольких агентов.
 
 ### Emergency push
-`enforce_admins: true` — gate работает **и для админа**. `git push origin main` отказывается даже у владельца репо. Это намеренно: «можно обойти» = «когда-нибудь обойдётся случайно».
+`enforce_admins: true` — gate работает **и для админа**: `git push origin main` отказывается даже у владельца репо. Это намеренно.
 
-Если прод реально лежит и фикс должен уйти срочно:
-```bash
-# 1. Снять защиту (~5 секунд)
-gh api repos/bon2362/book-club/branches/main/protection -X DELETE
-
-# 2. Сделать прямой push с фиксом
-git push origin main
-
-# 3. ВЕРНУТЬ защиту обратно — иначе следующий случайный коммит уйдёт без CI
-gh api repos/bon2362/book-club/branches/main/protection -X PUT --input - <<'JSON'
-{
-  "required_status_checks": {"strict": false, "checks": [{"context": "ci"}]},
-  "enforce_admins": true,
-  "required_pull_request_reviews": {"required_approving_review_count": 0, "dismiss_stale_reviews": false, "require_code_owner_reviews": false},
-  "restrictions": null,
-  "allow_force_pushes": false,
-  "allow_deletions": false,
-  "required_conversation_resolution": false,
-  "required_linear_history": false
-}
-JSON
-```
-
-Шаг 3 ВАЖЕН. Поставь напоминание сразу после шага 1.
+Аварийная процедура (снять защиту → push → вернуть защиту) применяется **только** когда прод реально лежит и пользователь подтвердил. Полные шаги с командами — `docs/emergency-push.md`.
 
 ### Правила для агентов (Claude, Codex)
 
@@ -270,8 +247,8 @@ Husky pre-commit запускает `lint-staged` перед каждым ком
 4. **Линия вместо заливки.** Акцент/статус — цветной линией (низ/верх/слева), а не цветным фоном. Заливка цветом — только у активной кнопки (`var(--text)`) и статусных CTA (success/accent).
 5. **Шрифты.** Заголовки — `var(--nd-serif)` (Georgia). Текст/метки — `var(--nd-sans)` (system-ui). Микрометки — UPPERCASE, `letter-spacing: 0.12–0.15em`, `0.6rem`, `var(--text-muted)`.
 
-### Токены (источник правды — `app/globals.css`)
-`--bg #F9F5EE` · `--bg-elevated #EDE5D8` · `--bg-input #FFF` · `--text #111` · `--text-body #333` · `--text-secondary #666` · `--text-muted #999` · `--accent #C0603A` · `--success #2D6A4F` · `--border #E5E5E5` · `--border-strong #111` · `--shadow-card transparent` · `--nd-serif` · `--nd-sans` · `--radius 0`.
+### Токены
+**Полный список токенов и их значения — в `app/globals.css` (`:root`). Не дублировать здесь** — это единственный источник правды, бери актуальные значения оттуда. Семантика: `--bg*` (фоны), `--text*` (текст по контрасту), `--accent` / `--success` (статусы), `--border*` (линии), `--nd-serif` / `--nd-sans` (шрифты), `--radius 0`, `--shadow-card transparent`.
 
 ### Стиль кода (этот репо)
 Inline `style={{…}}` + `var(--…)` — канон проекта; весь `components/nd/*` написан так. Tailwind с токен-классами также легитимен (см. правило 1).
