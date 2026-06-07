@@ -247,7 +247,7 @@ function ScenarioSetCard({
               borderRadius: 'var(--radius-pill)',
             }}
           >
-            {isSatisfaction ? 'нынешний круг' : 'лучший сейчас'}
+            {isSatisfaction ? 'оптимальный' : 'лучший сейчас'}
           </span>
         )}
         {!isSatisfaction && !isLeader && tierLabel[scenario.tier] && (
