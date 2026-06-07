@@ -162,6 +162,25 @@ await page.request.post('/api/test/session', {
 
 **Модальные компоненты** обязаны иметь `role="dialog"` — иначе тесты не смогут их найти.
 
+### Изоляция от прод-БД (КРИТИЧНО)
+
+E2E **никогда не пишут в прод-БД**. Три слоя защиты:
+
+1. **Отдельная Neon-ветка `e2e`.** Параметры подключения — в `.env.test.local` (см. `.env.test.local.example`). `playwright.config.ts` грузит этот файл и пробрасывает `DATABASE_URL` в `webServer.env`, чтобы Next.js не взял прод-БД из `.env.local`.
+2. **Guard в `lib/test-mode.ts`:** `/api/test/*` возвращает 403, если `DATABASE_URL` содержит `PROD_DB_HOST_MARKER` или НЕ содержит `E2E_REQUIRE_DB_MARKER` (оба маркера — в `.env.test.local`).
+3. **Фикстуры в `e2e/fixtures.ts`:** любая мутация — через фикстуру (`createIntroSection`, `loginAsAdmin`), регистрирующую cleanup в teardown. Cleanup гарантирован даже при падении ассерта.
+
+**Правило:** новый тест не редактирует существующие прод-данные — создаёт свои через фикстуру, проверяет, фикстура удаляет. Нужна новая сущность — добавь фикстуру в `e2e/fixtures.ts`, не пиши inline-cleanup в теле теста.
+
+### Гочи запуска и взаимодействия
+
+- `playwright.config.ts` сам прокидывает `NEXTAUTH_TEST_MODE=true` в `webServer.env`. Ручной `NEXTAUTH_TEST_MODE=true npx next dev` нужен **только** если уже запущен dev-сервер без флага (тогда `reuseExistingServer: true` его переиспользует). Лучше остановить старый dev-сервер и дать Playwright поднять свой.
+- **OOM на машинах с малой памятью:** держать запущенным только один dev server. Несколько параллельных процессов (Next.js + Chrome) при нехватке памяти вызывают OOM kill сервера.
+- **`session.user.id`** надо явно ставить в `session` callback (`session.user.id = token.sub`) — иначе API-эндпоинты с `auth()` вернут 401.
+- **Live locators и кнопки-тогглы:** после клика кнопка «Хочу читать» меняется на «Записан» — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика снова используй `.first()` (не `.nth(1)`), предварительно дождавшись появления «Записан».
+- **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для своих тостов/статусов использовать `data-testid`.
+- **Telegram auth:** при изменении auth/telegram цепочки — гонять `e2e/telegram-auth.spec.ts`. Тест использует `/api/test/session` с `telegramUsername` и `provider: 'telegram-preauth'` — отдельный mock endpoint не нужен.
+
 ---
 
 ## Отчётность и видимость

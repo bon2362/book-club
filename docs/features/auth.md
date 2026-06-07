@@ -16,6 +16,14 @@
 ## Race condition: ContactsForm после входа через One Tap
 После входа через One Tap `useSession()` (client) обновляется раньше, чем приходят server props (`currentUser`) после `router.refresh()`. Это приводит к кратковременному открытию ContactsForm с пустыми полями. Решение: `GoogleOneTap` устанавливает `sessionStorage.setItem('reloading_after_onetap', '1')` перед `window.location.reload()`, а `BooksPage` проверяет и очищает этот флаг перед показом формы.
 
+## Грабли (выучено на ошибках)
+- **`data-onauth` (JS callback) не использовать** — Telegram дёргает callback через `eval()`, браузеры его блокируют. Только `data-auth-url`.
+- **`window.onTelegramAuth` в отдельном `useEffect`** — при условном рендере (`authModalOpen && <AuthModal>`) возможна гонка. При callback-подходе ставить callback в тот же эффект, что грузит скрипт виджета.
+- **`router.refresh()` после входа не обновляет серверные компоненты** (header остаётся «ВОЙТИ»). Нужен `window.location.reload()`.
+- **Server-side `signIn('credentials', ...)` в GET route handler** в NextAuth v5 beta работает ненадёжно — использовать client-side `signIn` через промежуточную страницу `/auth/telegram`.
+- **`useSearchParams()` требует `<Suspense>`** (Next.js 14) — иначе сборка падает на генерации статических страниц. Оборачивать компонент с `useSearchParams()` в `<Suspense>`.
+- **Telegram Login Widget:** домен в BotFather должен совпадать точно (с `www` и без — разные домены); у бота обязано быть фото профиля (иначе «Bot domain invalid»); виджет не работает без third-party cookies (incognito, Safari strict mode).
+
 ## Env vars
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — обязателен для One Tap (встраивается в client bundle во время сборки)
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — для стандартного Google OAuth и серверной верификации One Tap
