@@ -152,6 +152,7 @@ describe('public matching state sanitizers', () => {
           pseudonym: 'Мальма',
           before: { place: 'leftOut' },
           after: 'очень хочу',
+          afterRank: null,
         }],
       },
     }]

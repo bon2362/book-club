@@ -110,14 +110,16 @@ describe('move impact helpers', () => {
       {
         userId: 'u2',
         pseudonym: 'Казарка',
-        before: { place: 'circle', bookTitle: 'Старая книга', interest: 'хочу' },
+        before: { place: 'circle', bookTitle: 'Старая книга', interest: 'хочу', rankBefore: 4 },
         after: 'очень хочу',
+        afterRank: 1,
       },
       {
         userId: 'u3',
         pseudonym: 'Лягушка',
         before: { place: 'leftOut' },
         after: 'очень хочу',
+        afterRank: 2,
       },
     ])
   })
@@ -231,12 +233,14 @@ describe('move impact helpers', () => {
         pseudonym: 'Казарка',
         before: { place: 'leftOut' },
         after: 'очень хочу',
+        afterRank: 2,
       },
       {
         userId: 'u3',
         pseudonym: 'Лягушка',
         before: { place: 'leftOut' },
         after: 'без ранга',
+        afterRank: null,
       },
     ])
   })
@@ -457,5 +461,43 @@ describe('move impact helpers', () => {
     })
 
     expect(impact).toBeNull()
+  })
+})
+
+describe('sortMovesByImpact — satisfaction', () => {
+  function satMove(title: string, viewerRankGain: number | null, bestBeneficiaryGain: number): MyMoveBook {
+    const before = viewerRankGain !== null ? 10 : null
+    const after = viewerRankGain !== null ? 10 - viewerRankGain : null
+    return move(title, {
+      scenarioId: 's',
+      scenarioTitle: 'Сценарий 1',
+      coverageLabel: '',
+      summary: '',
+      circleTitles: [],
+      circleBooks: [],
+      previewScenario,
+      coverage: { before: 3, after: 3 },
+      strongInterest: { before: 1, after: 1 },
+      satisfaction: { before, after },
+      beneficiaries: bestBeneficiaryGain > 0
+        ? [{
+            userId: 'u1',
+            pseudonym: 'Тест',
+            before: { place: 'circle', bookTitle: 'Старая', interest: 'хочу', rankBefore: 10 },
+            after: 'хочу',
+            afterRank: 10 - bestBeneficiaryGain,
+          }]
+        : [],
+    })
+  }
+
+  it('sorts by best rank gain (beneficiary or viewer), descending', () => {
+    const moves = [
+      satMove('Гамма', 2, 0),       // viewer +2, no beneficiary
+      satMove('Альфа', null, 15),    // altruistic: beneficiary +15
+      satMove('Бета', 5, 3),         // viewer +5, beneficiary +3
+    ]
+    const sorted = sortMovesByImpact(moves, 'satisfaction')
+    expect(sorted.map(m => m.title)).toEqual(['Альфа', 'Бета', 'Гамма'])
   })
 })

@@ -34,11 +34,11 @@ export function buildMoveImpact({
     bookId: circle.bookId,
     title: bookTitleById.get(circle.bookId) ?? circle.bookId,
   }))
-  const placeBefore = new Map<string, { bookId: string; interest: GroupMember['interest'] }>()
+  const placeBefore = new Map<string, { bookId: string; interest: GroupMember['interest']; rank: number | null }>()
 
   for (const circle of currentLeader?.circles ?? []) {
     for (const member of circle.members) {
-      placeBefore.set(member.userId, { bookId: circle.bookId, interest: member.interest })
+      placeBefore.set(member.userId, { bookId: circle.bookId, interest: member.interest, rank: member.rank })
     }
   }
 
@@ -51,6 +51,7 @@ export function buildMoveImpact({
             place: 'circle' as const,
             bookTitle: bookTitleById.get(prev.bookId) ?? prev.bookId,
             interest: prev.interest,
+            rankBefore: prev.rank,
           }
         : { place: 'leftOut' as const }
       return {
@@ -58,6 +59,7 @@ export function buildMoveImpact({
         pseudonym: member.pseudonym,
         before,
         after: member.interest,
+        afterRank: member.rank,
       }
     })
     .filter((beneficiary) => (
@@ -111,15 +113,28 @@ export function buildMoveImpact({
 
 export function sortMovesByImpact<T extends Pick<MyMoveBook, 'title' | 'impact'>>(moves: T[], mode: OptimizationMode = 'coverage'): T[] {
   if (mode === 'satisfaction') {
-    const gain = (move: T) => {
+    const bestGain = (move: T): number => {
       const satisfaction = move.impact?.satisfaction
-      if (!satisfaction) return -Infinity
-      if (satisfaction.before === null && satisfaction.after !== null) return Number.MAX_SAFE_INTEGER
-      if (satisfaction.before === null || satisfaction.after === null) return -Infinity
-      return satisfaction.before - satisfaction.after
+      const viewerGain = (() => {
+        if (!satisfaction) return -Infinity
+        if (satisfaction.before === null && satisfaction.after !== null) return Number.MAX_SAFE_INTEGER
+        if (satisfaction.before === null || satisfaction.after === null) return -Infinity
+        return satisfaction.before - satisfaction.after
+      })()
+
+      const beneficiaryGain = (move.impact?.beneficiaries ?? [])
+        .reduce((max, b) => {
+          if (b.before.place === 'leftOut') return Math.max(max, Number.MAX_SAFE_INTEGER / 2)
+          const rankBefore = b.before.rankBefore ?? null
+          const rankAfter = b.afterRank ?? null
+          if (rankBefore === null || rankAfter === null) return max
+          return Math.max(max, rankBefore - rankAfter)
+        }, -Infinity)
+
+      return Math.max(viewerGain, beneficiaryGain)
     }
 
-    return [...moves].sort((a, b) => gain(b) - gain(a) || a.title.localeCompare(b.title, 'ru'))
+    return [...moves].sort((a, b) => bestGain(b) - bestGain(a) || a.title.localeCompare(b.title, 'ru'))
   }
 
   return [...moves].sort((a, b) => {
