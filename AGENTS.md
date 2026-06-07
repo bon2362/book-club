@@ -148,24 +148,9 @@ Husky pre-commit запускает `lint-staged` перед каждым ком
 
 **Запуск:** `npm run test:e2e` (= `playwright test`). Отдельный файл — `npm run test:e2e e2e/ui-states.spec.ts`.
 
-**Изоляция от прод-БД (КРИТИЧНО).** E2E **никогда не должны писать в прод-БД**. Архитектура защиты — три слоя:
-1. **Отдельная Neon-ветка `e2e`**. Параметры подключения лежат в `.env.test.local` (см. `.env.test.local.example`). `playwright.config.ts` грузит этот файл и пробрасывает `DATABASE_URL` в `webServer.env`, чтобы Next.js не использовал прод-БД из `.env.local`.
-2. **Guard в `lib/test-mode.ts`**: `/api/test/*` возвращает 403 если `DATABASE_URL` содержит `PROD_DB_HOST_MARKER` или НЕ содержит `E2E_REQUIRE_DB_MARKER`. Оба маркера задаются в `.env.test.local`.
-3. **Фикстуры в `e2e/fixtures.ts`**: любая мутация — через фикстуру (`createIntroSection`, `loginAsAdmin`), которая регистрирует cleanup в teardown. Cleanup гарантирован даже при падении ассерта.
+**Изоляция от прод-БД (КРИТИЧНО).** E2E пишут только в изолированную Neon-ветку `e2e`; любая мутация — через фикстуру из `e2e/fixtures.ts` с cleanup в teardown, существующие прод-данные не редактируются.
 
-**Правило**: новый E2E-тест не редактирует существующие записи прод-данных. Создаёт свои через фикстуру, проверяет, фикстура удаляет. Если для теста нужна новая сущность — добавь фикстуру в `e2e/fixtures.ts`, не пиши inline-cleanup в теле теста.
-
-**Гочи запуска и взаимодействия:**
-- `playwright.config.ts` сам прокидывает `NEXTAUTH_TEST_MODE=true` в `webServer.env`. Ручной `NEXTAUTH_TEST_MODE=true npx next dev` нужен **только** если уже запущен dev-сервер без флага (тогда `reuseExistingServer: true` переиспользует его). Лучше остановить ранее запущенный dev-сервер и дать Playwright поднять свой.
-- **OOM на машинах с малой памятью**: держать запущенным только один dev server. Несколько параллельных процессов (Next.js + Chrome) при нехватке памяти вызывают OOM kill сервера.
-- **`waitForLoadState('networkidle')`** — надёжный способ дождаться React-гидрации в Next.js перед взаимодействием с client-side компонентами.
-- **ContactsForm** автоматически открывается для залогиненных пользователей без профиля (`isLoggedIn && !currentUser && !savedUser`) — её оверлей перехватывает все клики, поэтому в тестах сначала заполняй форму, потом взаимодействуй с остальным UI.
-- Все модальные компоненты должны иметь `role="dialog"` и обработчик Escape — иначе тесты не смогут их найти и закрыть.
-- `session.user.id` нужно явно устанавливать в `session` callback (`session.user.id = token.sub`) — без этого API-эндпоинты с `auth()` вернут 401.
-- **Live locators и кнопки-тогглы**: после клика кнопка "Хочу читать" меняется на "Записан" — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика используй `.first()` снова (не `.nth(1)`), предварительно дождавшись появления "Записан".
-- **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для уникальной идентификации собственных тостов/статусов использовать `data-testid`.
-- **Тестовые фикстуры книг**: каждый тест создаёт свои книги через `createTestBook` фикстуру (см. `e2e/fixtures.ts`). id'шники имеют префикс `__e2e_book_<testId>_<index>__`, фикстура удаляет книгу в teardown (FK signup_books/book_priorities → cascade). Глобального seed больше нет.
-- **Telegram auth**: при изменении auth/telegram цепочки — запускать `e2e/telegram-auth.spec.ts`. Тест использует `/api/test/session` с параметрами `telegramUsername` и `provider: 'telegram-preauth'` — отдельный mock endpoint не нужен.
+Детали (3 слоя защиты, тест-режим) и гочи написания тестов — `docs/features/testing.md`. Самые частые грабли, расписанные там: live-locators и кнопки-тогглы (`.first()`, не `.nth(1)`), `role="status"`×`@dnd-kit`, ContactsForm-оверлей перехватывает клики, OOM при нескольких dev-серверах, `session.user.id` в session callback, `createTestBook`-фикстура. **Пишешь или правишь Playwright-тест — сперва прочитай этот файл.**
 
 ### UI Layout Tests (Playwright)
 Для задач, затрагивающих CSS-поведение (скрытие, позиционирование, анимации):
@@ -175,33 +160,14 @@ Husky pre-commit запускает `lint-staged` перед каждым ком
 - **Субагенты перед коммитом UI-задач обязаны запускать:**
   `npm run lint && npm run typecheck && npm test && npm run test:e2e e2e/ui-states.spec.ts`
 
-## Telegram-авторизация: архитектура и уроки
-
-### Итоговая архитектура (правильная)
-1. Виджет с `data-auth-url="/api/auth/telegram/callback"` — Telegram редиректит с данными
-2. Route handler верифицирует HMAC, создаёт пользователя в БД, создаёт подписанный pre-auth токен
-3. Редирект на `/auth/telegram?uid=...&token=...&ts=...`
-4. Client страница вызывает `signIn('telegram-preauth', ...)` — провайдер валидирует токен, возвращает юзера
-
-### Чего НЕ делать (и почему)
-- **`data-onauth` (JS callback)** — Telegram вызывает callback через `eval()`, который браузеры блокируют. Всегда использовать `data-auth-url`.
-- **Отдельный `useEffect` для `window.onTelegramAuth`** — при условном рендере (`authModalOpen && <AuthModal>`) была потенциальная гонка. Если используется callback-подход — ставить callback в тот же эффект, что загружает скрипт.
-- **`router.refresh()` после auth** — не обновляет серверные компоненты (header остаётся "ВОЙТИ"). Нужен `window.location.reload()`.
-- **Server-side `signIn('credentials', ...)` в GET route handler** — в NextAuth v5 beta не работает надёжно. Использовать client-side `signIn` через промежуточную страницу.
-
-### Credentials провайдер + DrizzleAdapter
-`Credentials` провайдер **не создаёт пользователей в БД автоматически** — это делает только адаптер для OAuth (Google). JWT callback `if (existing.length === 0) return null` убивает сессию. Решение: `db.insert(users).onConflictDoUpdate(...)` внутри `authorize`.
-
-### ENV vars
-`NEXTAUTH_SECRET` (старое название) и `AUTH_SECRET` (NextAuth v5) — в этом проекте задан `NEXTAUTH_SECRET`. При ручном использовании секрета за пределами NextAuth: `process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET`.
-
-### Next.js 14: `useSearchParams()` требует `<Suspense>`
-Всегда оборачивать компонент с `useSearchParams()` в `<Suspense>` — иначе сборка падает при генерации статических страниц.
-
-### Требования Telegram Login Widget
-- Домен в BotFather должен совпадать **точно** с доменом сайта (с `www` или без — разные домены)
-- Бот **обязан иметь фото профиля** — без него виджет падает с "Bot domain invalid"
-- Виджет не работает без third-party cookies (incognito, Safari strict mode)
+## Telegram-авторизация
+Полная архитектура, провайдеры, env vars и грабли — `docs/features/auth.md`. Самое критичное (ломали не раз):
+- Только `data-auth-url`, **не** `data-onauth` (Telegram дёргает callback через `eval()`, браузеры блокируют).
+- После входа — `window.location.reload()`, **не** `router.refresh()` (иначе header остаётся «ВОЙТИ»).
+- Credentials-провайдер не создаёт юзера сам — вставлять вручную в `authorize` через `db.insert(users).onConflictDoUpdate(...)`.
+- `useSearchParams()` оборачивать в `<Suspense>` (иначе падает сборка статических страниц).
+- BotFather: точное совпадение домена (`www` ≠ без `www`) + у бота обязано быть фото профиля.
+- При изменении auth/telegram цепочки — гонять `e2e/telegram-auth.spec.ts`.
 
 ## Архитектура каталога и обложек
 - Каталог книг хранится в таблице `books` (Postgres). Чтение через `lib/books.ts`.
