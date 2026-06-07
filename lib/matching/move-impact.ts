@@ -64,6 +64,12 @@ export function buildMoveImpact({
     })
     .filter((beneficiary) => {
       if (beneficiary.before.place === 'leftOut') return true
+      if (mode === 'satisfaction') {
+        // Числовой ранг: меньше = лучше; null = без ранга (не считается улучшением)
+        const rankBefore = beneficiary.before.rankBefore
+        const rankAfter = beneficiary.afterRank
+        return rankBefore !== null && rankAfter !== null && rankAfter < rankBefore
+      }
       return INTEREST_TIER[beneficiary.after] > INTEREST_TIER[beneficiary.before.interest]
     })
 
@@ -82,7 +88,8 @@ export function buildMoveImpact({
   if (mode === 'satisfaction') {
     const wasLeftOut = viewerBeforeRank === null && !viewerBeforePlace
     const improvedRank = viewerAfter !== null && viewerBeforeRank !== null && viewerAfter < viewerBeforeRank
-    if (!wasLeftOut && !improvedRank) return null
+    const hasSatisfactionBeneficiary = beneficiaries.length > 0
+    if (!wasLeftOut && !improvedRank && !hasSatisfactionBeneficiary) return null
   } else if (meaningfulBeneficiaries.length === 0) {
     return null
   }
