@@ -35,14 +35,14 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
   const isRead = book.status === 'read'
   const year = extractYear(book.date)
 
-  const accentColor = isReading ? 'var(--accent)' : isRead ? '#D0D0D0' : 'transparent'
+  const accentColor = isReading ? 'var(--accent)' : isRead ? 'var(--text-muted)' : 'transparent'
 
   return (
     <tr
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? '#F9F9F9' : isRead ? 'var(--bg-elevated)' : '#fff',
+        background: hovered ? 'var(--bg-elevated)' : isRead ? 'var(--bg-elevated)' : 'var(--bg-input)',
         opacity: isRead ? 0.7 : 1,
         transition: 'background 0.1s',
         borderBottom: '1px solid var(--border)',
@@ -115,8 +115,8 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontFamily: sans, fontSize: '0.65rem', color: 'var(--text-muted)', cursor: 'default', userSelect: 'none' }}
             >
               <svg viewBox="0 0 9 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ height: '0.6rem', width: 'auto', flexShrink: 0 }}>
-                <circle cx="4.5" cy="3" r="2.5" fill="#BBBBBB" />
-                <path d="M0.5 10.5C0.5 7.5 2.2 6.5 4.5 6.5C6.8 6.5 8.5 7.5 8.5 10.5" stroke="#BBBBBB" strokeWidth="1" strokeLinecap="round" fill="none" />
+                <circle cx="4.5" cy="3" r="2.5" style={{ fill: 'var(--text-muted)' }} />
+                <path d="M0.5 10.5C0.5 7.5 2.2 6.5 4.5 6.5C6.8 6.5 8.5 7.5 8.5 10.5" style={{ stroke: 'var(--text-muted)' }} strokeWidth="1" strokeLinecap="round" fill="none" />
               </svg>
               {book.signupCount}
             </span>
@@ -140,7 +140,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               fontSize: '0.65rem',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
-              border: '1px solid #D0D0D0',
+              border: '1px solid var(--border)',
               color: 'var(--text-muted)',
               whiteSpace: 'nowrap',
             }}
@@ -159,8 +159,8 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               letterSpacing: '0.08em',
               cursor: 'pointer',
               border: '1px solid var(--border-strong)',
-              background: isSelected ? '#111' : 'transparent',
-              color: isSelected ? '#fff' : '#111',
+              background: isSelected ? 'var(--text)' : 'transparent',
+              color: isSelected ? 'var(--bg)' : 'var(--text)',
               whiteSpace: 'nowrap',
               transition: 'background 0.15s, color 0.15s',
             }}
