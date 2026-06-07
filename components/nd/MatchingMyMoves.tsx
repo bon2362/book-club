@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import type { OptimizationMode } from '@/lib/matching/scenarios'
 import { impactCoverageGain, impactStrongInterestGain } from '@/lib/matching/move-impact'
+import { declinePseudonym } from '@/lib/matching/pseudonym-declension'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
@@ -183,16 +184,54 @@ function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: Optimizatio
   const strongInterestGain = impactStrongInterestGain(move)
   const satisfaction = move.impact?.satisfaction
 
-  if (mode === 'satisfaction' && satisfaction) {
+  if (mode === 'satisfaction') {
+    const beneficiaries = move.impact?.beneficiaries ?? []
+    const viewerImproved = satisfaction && satisfaction.before !== null
+      && satisfaction.after !== null && satisfaction.after < satisfaction.before
+    const viewerJoins = satisfaction?.before === null && satisfaction?.after !== null
+
+    // Кто-то выходит из-за борта → «соберётся круг»
+    const joinsCircle = beneficiaries.some(b => b.before.place === 'leftOut') || viewerJoins
+    if (joinsCircle) {
+      return (
+        <div className="nd-move-metrics">
+          <span className="nd-move-metric nd-move-metric-gain">соберётся круг</span>
+        </div>
+      )
+    }
+
+    // Beneficiary с улучшением ранга (не зритель)
+    const improved = beneficiaries.filter(b =>
+      b.before.place === 'circle' &&
+      b.before.rankBefore !== null && b.afterRank !== null && b.afterRank < b.before.rankBefore
+    )
+
+    if (improved.length > 0) {
+      const names = improved.slice(0, 2).map(b => declinePseudonym(b.pseudonym, 'dat'))
+      const nameStr = improved.length === 1
+        ? names[0]
+        : names.join(' и ')
+      const label = improved.length > 2
+        ? `${names.join(' и ')} и ещё ${improved.length - 2} — интереснее`
+        : `${nameStr} — интереснее`
+      return (
+        <div className="nd-move-metrics">
+          <span className="nd-move-metric nd-move-metric-gain">{label}</span>
+        </div>
+      )
+    }
+
+    if (viewerImproved) {
+      return (
+        <div className="nd-move-metrics">
+          <span className="nd-move-metric nd-move-metric-gain">тебе — интереснее</span>
+        </div>
+      )
+    }
+
     return (
       <div className="nd-move-metrics">
-        {satisfaction.before === null ? (
-          <span className="nd-move-metric nd-move-metric-gain">соберётся круг</span>
-        ) : satisfaction.after !== null && satisfaction.after < satisfaction.before ? (
-          <span className="nd-move-metric nd-move-metric-gain">↑ ранг {satisfaction.before}→{satisfaction.after}</span>
-        ) : (
-          <span className="nd-move-metric nd-move-metric-keep">интересы ближе</span>
-        )}
+        <span className="nd-move-metric nd-move-metric-keep">интересы ближе</span>
       </div>
     )
   }
@@ -200,7 +239,7 @@ function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: Optimizatio
   return (
     <div className="nd-move-metrics">
       {coverageGain > 0 ? (
-        <span className="nd-move-metric nd-move-metric-gain">↑ Покрытие {move.impact!.coverage.before}→{move.impact!.coverage.after}</span>
+        <span className="nd-move-metric nd-move-metric-gain">↑ Покрытие {(move.impact?.coverage.before ?? 0)}→{(move.impact?.coverage.after ?? 0)}</span>
       ) : (
         <span className="nd-move-metric nd-move-metric-keep">Покрытие сохранится</span>
       )}
@@ -219,10 +258,49 @@ function MoveWhyText({ move, mode }: { move: MyMoveBook; mode: OptimizationMode 
   const strongInterestVerb = strong.length === 1 ? 'хочет' : 'хотят'
 
   if (mode === 'satisfaction') {
-    if (move.impact?.satisfaction?.before === null) {
+    const satisfaction = move.impact?.satisfaction
+    const viewerJoins = satisfaction?.before === null && satisfaction?.after !== null
+
+    if (viewerJoins && leftOut.length === 0 && upgraded.length === 0) {
       return <>Добавишь — и вы соберётесь в круг, где интересы совпадают лучше.</>
     }
-    return <>Этот ход соберёт круг, где интересы совпадают лучше. Остальные участники показаны как контекст.</>
+
+    // Участники с числовым улучшением ранга
+    const rankImproved = upgraded.filter(b =>
+      b.before.place === 'circle' &&
+      b.before.rankBefore !== null && b.afterRank !== null && b.afterRank < b.before.rankBefore
+    )
+
+    if (rankImproved.length > 0) {
+      return (
+        <>
+          {rankImproved.map((b, i) => {
+            if (b.before.place !== 'circle') return null
+            const rBefore = b.before.rankBefore as number
+            const rAfter = b.afterRank as number
+            return (
+              <span key={b.userId}>
+                {i > 0 && ' '}
+                <b>{b.pseudonym}</b>
+                {` ставит твою книгу на ${rAfter}-е место, а книгу нынешнего круга — на ${rBefore}-е.`}
+              </span>
+            )
+          })}
+          {' '}Соберётесь вокруг неё — расклад станет интереснее.
+        </>
+      )
+    }
+
+    if (leftOut.length > 0) {
+      return (
+        <>
+          {renderNames(leftOut.map((b) => b.pseudonym))}
+          {' сейчас без круга — добавишь, и соберётесь вместе.'}
+        </>
+      )
+    }
+
+    return <>Этот ход улучшит расклад — интересы совпадут лучше.</>
   }
 
   if (leftOut.length > 0) {
