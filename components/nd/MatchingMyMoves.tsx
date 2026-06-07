@@ -207,14 +207,16 @@ function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: Optimizatio
     )
 
     if (improved.length > 0) {
-      const pills = improved.slice(0, 2).map(b => `${declinePseudonym(b.pseudonym, 'dat')} — интереснее`)
+      const names = improved.slice(0, 2).map(b => declinePseudonym(b.pseudonym, 'dat'))
+      const nameStr = improved.length === 1
+        ? names[0]
+        : names.join(' и ')
       const label = improved.length > 2
-        ? `${pills.join(', ')} и ещё ${improved.length - 2}`
-        : pills.join(', ')
+        ? `${names[0]} и ещё ${improved.length - 1} — интереснее`
+        : `${nameStr} — интереснее`
       return (
         <div className="nd-move-metrics">
           <span className="nd-move-metric nd-move-metric-gain">{label}</span>
-          {viewerImproved && <span className="nd-move-metric nd-move-metric-gain">тебе — тоже</span>}
         </div>
       )
     }
