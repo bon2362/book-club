@@ -178,7 +178,7 @@ function ScenarioSetCard({
       style={{
         background: isPreview
           ? 'var(--bg-input)'
-          : isSatisfaction ? 'var(--bg-input)' : isLeader ? 'var(--accent-soft)' : highlighted ? 'var(--accent-soft)' : 'var(--bg-input)',
+          : isLeader ? 'var(--accent-soft)' : highlighted ? 'var(--accent-soft)' : 'var(--bg-input)',
         borderRadius: 'var(--radius-card)',
         boxShadow: isPreview || isLeader ? 'none' : 'var(--shadow-card)',
         borderLeft: shouldWarnViewerLeftOut && !isSatisfaction ? '3px solid var(--status-warn)' : undefined,
@@ -198,7 +198,7 @@ function ScenarioSetCard({
             fontWeight: 700,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.1em',
-            color: isLeader && !isSatisfaction ? 'var(--accent)' : 'var(--text-muted)',
+            color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
           }}
         >
           {isPreview ? 'Если добавишь' : `Сценарий ${scenarioNumber}`}
@@ -234,7 +234,7 @@ function ScenarioSetCard({
           >
             {usesSatisfactionCopy ? '+1 сценарий' : 'станет лучшим'}
           </span>
-        ) : isLeader && !isSatisfaction && (
+        ) : isLeader && (
           <span
             style={{
               fontSize: '0.66rem',
@@ -247,7 +247,7 @@ function ScenarioSetCard({
               borderRadius: 'var(--radius-pill)',
             }}
           >
-            лучший сейчас
+            {isSatisfaction ? 'нынешний круг' : 'лучший сейчас'}
           </span>
         )}
         {!isSatisfaction && !isLeader && tierLabel[scenario.tier] && (
