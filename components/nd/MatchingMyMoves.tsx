@@ -302,7 +302,7 @@ function MoveWhyText({
               <span key={b.userId}>
                 {i > 0 && ' '}
                 <b>{b.pseudonym}</b>
-                {' ставит '}{thisBook}{` на ${rAfter}-е место, а книгу оптимального — на ${rBefore}-е.`}
+                {' ставит '}{thisBook}{` на ${rAfter}-е место, а книгу нынешнего круга — на ${rBefore}-е.`}
               </span>
             )
           })}
