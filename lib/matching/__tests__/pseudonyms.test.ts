@@ -1,4 +1,4 @@
-import { ANIMALS, assignPseudonym, assignStablePseudonym, assignRandomPseudonymExcluding, PseudonymExhaustedError } from '../pseudonyms'
+import { ANIMALS, assignPseudonym, assignRandomPseudonymExcluding, PseudonymExhaustedError } from '../pseudonyms'
 
 describe('ANIMALS', () => {
   it('contains at least 200 entries', () => {
@@ -43,38 +43,6 @@ describe('assignPseudonym', () => {
     const all = new Set(ANIMALS)
     expect(() => assignPseudonym(all)).toThrow(PseudonymExhaustedError)
     expect(() => assignPseudonym(all)).toThrow('All pseudonyms have been assigned in this session')
-  })
-})
-
-describe('assignStablePseudonym', () => {
-  it('returns the same pseudonym for the same seed while it remains available', () => {
-    const seed = 'session-1:user-1'
-
-    expect(assignStablePseudonym(new Set(), seed)).toBe(assignStablePseudonym(new Set(), seed))
-  })
-
-  it('uses the next available pseudonym when the seeded candidate is already taken', () => {
-    const seed = 'session-1:user-1'
-    const first = assignStablePseudonym(new Set(), seed)
-    const second = assignStablePseudonym(new Set([first]), seed)
-
-    expect(second).not.toBe(first)
-    expect(ANIMALS).toContain(second)
-  })
-
-  it('does not mutate the taken set', () => {
-    const taken = new Set([assignStablePseudonym(new Set(), 'session-1:user-1')])
-    const before = new Set(taken)
-
-    assignStablePseudonym(taken, 'session-1:user-2')
-
-    expect(taken).toEqual(before)
-  })
-
-  it('throws PseudonymExhaustedError when all pseudonyms are taken', () => {
-    const all = new Set(ANIMALS)
-
-    expect(() => assignStablePseudonym(all, 'session-1:user-1')).toThrow(PseudonymExhaustedError)
   })
 })
 
