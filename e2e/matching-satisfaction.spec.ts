@@ -151,6 +151,94 @@ test('satisfaction session keeps reader gated when a new active signup has no ra
   await expect(page.getByTestId('ranking-gate-enter')).toBeDisabled()
 })
 
+test('satisfaction session shows human-readable pills and why-text in my moves', async ({
+  page,
+  createMatchingSession,
+  createTestBook,
+  loginAsUser,
+}) => {
+  const session = await createMatchingSession({
+    minGroupSize: 3,
+    maxGroupSize: 3,
+    optimizationMode: 'satisfaction',
+  })
+
+  // Setup:
+  //   candidateBook: A and B have it at rank 1 ("очень хочу")
+  //   fillA, fillB: A and B have them at ranks 2 and 3 (just to push circleBook to rank 4)
+  //   circleBook: A, B, Viewer all have it — at rank 4 for A/B ("хочу"), rank 2 for Viewer
+  //   viewerOnlyBook: only Viewer has it at rank 1 (pushes circleBook to rank 2 for Viewer)
+  //
+  // Current leader = circleBook (A:rank4 "хочу", B:rank4 "хочу", Viewer:rank2 "очень хочу")
+  //
+  // When Viewer adds candidateBook (promoted to rank 1 via promoteBookToFirstRank):
+  //   New leader = candidateBook (A:rank1 "очень хочу", B:rank1 "очень хочу", Viewer:rank1)
+  //   Viewer improves: rank2 → rank1 (improvedRank=true) → move shows up
+  //   A and B: interest improves "хочу" → "очень хочу" → they appear in beneficiaries
+  //   beneficiaries: rankBefore=4, afterRank=1 → rankImproved ✓
+  //   Pill: "X(dat) и Y(dat) — интереснее"
+  //   Why-text: "X ставит твою книгу на 1-е место, а книгу нынешнего круга — на 4-е. ..."
+  const circleBook = await createTestBook({
+    title: `E2E Satisfaction Circle ${test.info().testId}`,
+    author: 'Satisfaction Author',
+  })
+  const candidateBook = await createTestBook({
+    title: `E2E Satisfaction Candidate ${test.info().testId}`,
+    author: 'Satisfaction Author',
+  })
+  const viewerOnlyBook = await createTestBook({
+    title: `E2E Satisfaction ViewerOnly ${test.info().testId}`,
+    author: 'Satisfaction Author',
+  })
+  const fillA = await createTestBook({
+    title: `E2E Satisfaction FillA ${test.info().testId}`,
+    author: 'Satisfaction Author',
+  })
+  const fillB = await createTestBook({
+    title: `E2E Satisfaction FillB ${test.info().testId}`,
+    author: 'Satisfaction Author',
+  })
+
+  // UserA: candidateBook(rank1) fillA(rank2) fillB(rank3) circleBook(rank4)
+  // circleBook rank 4 > 3 → interest = "хочу" (not "очень хочу")
+  await loginAsUser({ name: 'E2E Satisfaction A' })
+  await joinSessionAndRankBooks(page, session.id, [candidateBook.id, fillA.id, fillB.id, circleBook.id])
+
+  await loginAsUser({ name: 'E2E Satisfaction B' })
+  await joinSessionAndRankBooks(page, session.id, [candidateBook.id, fillA.id, fillB.id, circleBook.id])
+
+  // Viewer: viewerOnlyBook(rank1) circleBook(rank2)
+  // circleBook rank 2 ≤ 3 → interest = "очень хочу"
+  // Adding candidateBook (→ rank1 via promoteBookToFirstRank) improves viewer rank 2→1
+  await loginAsUser({ name: 'E2E Satisfaction Viewer MyMoves' })
+  await joinSessionAndRankBooks(page, session.id, [viewerOnlyBook.id, circleBook.id])
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/matching')
+  await page.waitForLoadState('networkidle')
+
+  // Viewer has complete ranking (viewerOnlyBook + circleBook ranked) → board rendered at phase="board".
+  // ranking-gate element stays in the DOM (inside a closed Collapsible), so we don't check its
+  // visibility — instead we confirm the my-moves panel and scenarios are directly visible.
+  await expect(page.getByTestId('matching-my-moves-panel')).toBeVisible()
+  await expect(page.getByTestId('matching-reader-circles-panel')).toBeVisible()
+
+  const movesPanel = page.getByTestId('matching-my-moves-panel')
+
+  // candidateBook should appear as a move — A and B both have it (≥ minGroupSize-1=2 others)
+  await expect(movesPanel.getByText(candidateBook.title)).toBeVisible()
+
+  // Pill: satisfaction mode shows "— интереснее" (A and B both improve rank by switching circles)
+  // NOT the old coverage-mode format "↑ ранг X→Y"
+  const pillText = await movesPanel.locator('.nd-move-metric').first().textContent()
+  expect(pillText).toMatch(/— интереснее|соберётся круг/)
+  expect(pillText).not.toMatch(/↑ ранг/)
+
+  // Why-text: contains position numbers like "1-е место" or "2-е место"
+  const whyText = await movesPanel.locator('.nd-move-why').first().textContent()
+  expect(whyText).toMatch(/-е место/)
+})
+
 test('admin form creates a satisfaction matching session', async ({ page, loginAsAdmin }) => {
   const sessionName = `E2E Admin Satisfaction ${test.info().testId}`
   let createdSessionId: string | null = null
