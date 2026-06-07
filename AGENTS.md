@@ -109,7 +109,7 @@ gh pr merge --auto --squash --delete-branch
 - **typecheck-on-edit** — tsc после каждого Edit/Write `.ts/.tsx`
 - **post-git-push-ci** — ждёт результат GitHub Actions после `git push` (до 5 мин), выводит ошибки при падении
 - **block-env-local** — блокирует правку `.env.local`
-- **cleanup-merged-worktrees** (SessionStart) — авто-чистка осиротевших sibling-воркт­ри `../book-club-*`, чьи PR смержены (ветка пушилась под своим именем и теперь удалена на origin) и в которых нет незакоммиченных изменений. Текущий воркти, `main`, харнесс-воркти в `.claude/worktrees/` и codex/superpowers-воркти не трогает. Скрипт: `.claude/hooks/cleanup-merged-worktrees.sh`, можно гонять вручную: `bash .claude/hooks/cleanup-merged-worktrees.sh`. Чтобы включить авто-запуск, добавь в `SessionStart` хук `.claude/settings.local.json` (он локальный, в гит не коммитится).
+- **cleanup-merged-worktrees** (SessionStart) — авто-чистка осиротевших sibling-воркт­ри `../book-club-*`, чьи PR смержены (ветка пушилась под своим именем и теперь удалена на origin) и в которых нет незакоммиченных изменений. Текущий воркти, `main`, харнесс-воркти в `.claude/worktrees/` и codex/superpowers-воркти не трогает. Скрипт: `.claude/hooks/cleanup-merged-worktrees.sh`, можно гонять вручную: `bash .claude/hooks/cleanup-merged-worktrees.sh`. Авто-запуск **уже подключён** через `SessionStart` в `.claude/settings.local.json` (файл локальный, в гит не коммитится).
 
 Husky pre-commit запускает `lint-staged` перед каждым коммитом:
 - **eslint + tsc** на изменённых `.ts/.tsx`
