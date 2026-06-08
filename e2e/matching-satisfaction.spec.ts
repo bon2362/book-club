@@ -24,9 +24,11 @@ async function joinSessionAndRankBooks(page: Page, sessionId: string, bookIds: s
 }
 
 async function readScenarioAvgRank(card: ReturnType<Page['getByTestId']>) {
-  const text = await card.getByText(/средний ранг \d+\.\d+/).textContent()
-  const match = text?.match(/(\d+\.\d+)/)
-  if (!match) throw new Error(`Scenario avg rank not found in: ${text ?? '<empty>'}`)
+  // Since the satisfaction card redesign the average rank is exposed only via the scenario
+  // header's title tooltip ("Средний ранг: X.X"); the visible score line shows «охват».
+  const title = await card.locator('[title*="Средний ранг"]').first().getAttribute('title')
+  const match = title?.match(/Средний ранг:\s*(\d+\.\d+)/)
+  if (!match) throw new Error(`Scenario avg rank not found in title: ${title ?? '<empty>'}`)
   return Number(match[1])
 }
 
