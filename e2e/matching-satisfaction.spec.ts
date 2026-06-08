@@ -67,15 +67,17 @@ test('satisfaction session gates unranked readers before showing quality-first s
   await expect(page.getByRole('heading', { name: 'Сначала расставьте приоритеты' })).toBeVisible()
   await expect(page.getByTestId('matching-reader-circles-panel')).not.toBeVisible()
 
-  const gate = page.getByTestId('ranking-gate')
-  const perfectBookRow = gate.locator('li').filter({ hasText: perfectBook.title }).first()
+  // The catalog/personal-list lives in a sibling `matching-catalog-panel`, not inside
+  // `ranking-gate` (the gate div holds only the intro copy since the full-width morph, #294).
+  const catalog = page.getByTestId('matching-catalog-panel')
+  const perfectBookRow = catalog.locator('li').filter({ hasText: perfectBook.title }).first()
   await perfectBookRow.hover()
   await perfectBookRow.getByRole('button', { name: 'Хочу читать' }).click()
-  await expect(gate.getByTestId('matching-catalog-mine').getByText(perfectBook.title)).toBeVisible()
-  const fallbackBookRow = gate.locator('li').filter({ hasText: fallbackBook.title }).first()
+  await expect(catalog.getByTestId('matching-catalog-mine').getByText(perfectBook.title)).toBeVisible()
+  const fallbackBookRow = catalog.locator('li').filter({ hasText: fallbackBook.title }).first()
   await fallbackBookRow.hover()
   await fallbackBookRow.getByRole('button', { name: 'Хочу читать' }).click()
-  await expect(gate.getByTestId('matching-catalog-mine').getByText(fallbackBook.title)).toBeVisible()
+  await expect(catalog.getByTestId('matching-catalog-mine').getByText(fallbackBook.title)).toBeVisible()
 
   const enter = page.getByTestId('ranking-gate-enter')
   await expect(enter).toBeEnabled()
