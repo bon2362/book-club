@@ -27,6 +27,24 @@ export function declinePseudonym(name: string, c: DeclCase): string {
   return entry ? entry[c] : name
 }
 
+export function pseudonymGender(name: string): 'м' | 'ж' | 'с' {
+  return PSEUDONYM_DECLENSIONS[name]?.gender ?? 'м'
+}
+
+/**
+ * Глагол прошедшего времени, согласованный по роду псевдонима-животного.
+ * Для Ленты: «Барсук добавил», «Белка добавила», без гендергепов «добавил:а».
+ */
+export function pseudonymPastVerb(
+  name: string,
+  forms: { m: string; f: string; n: string },
+): string {
+  const gender = pseudonymGender(name)
+  if (gender === 'ж') return forms.f
+  if (gender === 'с') return forms.n
+  return forms.m
+}
+
 export function pseudonymPronoun(name: string, form: PronounForm): string {
   const entry = PSEUDONYM_DECLENSIONS[name]
   const gender = entry?.gender ?? 'м'

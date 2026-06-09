@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import type { FeedEvent } from '@/lib/matching/realtime/feed'
+import { pseudonymPastVerb } from '@/lib/matching/pseudonym-declension'
 
 interface Participant {
   userId: string
@@ -327,8 +328,12 @@ export default function MatchingHeader({
               </>
             )}
 
-            {dot}
-            <span>Режим: {modeLabel}</span>
+            {isAdmin && (
+              <>
+                {dot}
+                <span>Режим: {modeLabel}</span>
+              </>
+            )}
             {isAdmin && sessionStatus === 'active' && (
               <>
                 <button
@@ -535,7 +540,7 @@ function FeedKeyChip({
     const isAffectedViewer = !!userPseudonym && event.affected.pseudonym === userPseudonym
     label = isAffectedViewer
       ? 'Вы остались за бортом'
-      : `${event.affected.pseudonym} остал:ась за бортом`
+      : `${event.affected.pseudonym} ${pseudonymPastVerb(event.affected.pseudonym, { m: 'остался', f: 'осталась', n: 'осталось' })} за бортом`
   }
 
   return (
@@ -546,11 +551,12 @@ function FeedKeyChip({
         gap: '0.3rem',
         padding: size === 'compact' ? '0.1rem 0.4rem' : '0.16rem 0.55rem',
         borderRadius: 'var(--radius-pill)',
+        border: `1px solid ${isWarn ? 'var(--feed-warn-border)' : 'var(--feed-best-border)'}`,
         fontWeight: 700,
         fontSize: size === 'compact' ? '0.72rem' : '0.8rem',
         whiteSpace: 'nowrap',
-        color: isWarn ? 'var(--status-warn)' : 'var(--accent)',
-        background: isWarn ? 'var(--status-warn-soft)' : 'var(--accent-soft)',
+        color: isWarn ? 'var(--feed-warn-text)' : 'var(--feed-best-text)',
+        background: isWarn ? 'var(--feed-warn-bg)' : 'var(--feed-best-bg)',
       }}
     >
       <span aria-hidden="true" style={{ fontSize: size === 'compact' ? '0.65rem' : '0.75rem' }}>{icon}</span>
@@ -622,6 +628,7 @@ function MatchingFeedTicker({
         <button
           type="button"
           onClick={onToggle}
+          data-testid="matching-feed-toggle"
           style={{
             width: '100%',
             display: 'flex',
@@ -681,6 +688,8 @@ function MatchingFeedTicker({
               gap: '0.55rem',
               background: 'var(--bg-input)',
               borderTop: '1px solid var(--hair)',
+              maxHeight: '18rem',
+              overflowY: 'auto',
             }}
           >
             {[...events].reverse().map((event) => (
@@ -724,9 +733,11 @@ function feedDetail(event: FeedEvent, bookTitles: Record<string, string>, userPs
       : event.mutationKind === 'book_added' ? 'добавили'
       : 'изменили'
   } else {
-    verb = event.mutationKind === 'book_removed' ? 'убрал:а'
-      : event.mutationKind === 'book_added' ? 'добавил:а'
-      : 'изменил:а'
+    verb = event.mutationKind === 'book_removed'
+      ? pseudonymPastVerb(event.actor.pseudonym, { m: 'убрал', f: 'убрала', n: 'убрало' })
+      : event.mutationKind === 'book_added'
+        ? pseudonymPastVerb(event.actor.pseudonym, { m: 'добавил', f: 'добавила', n: 'добавило' })
+        : pseudonymPastVerb(event.actor.pseudonym, { m: 'изменил', f: 'изменила', n: 'изменило' })
   }
 
   if (event.type === 'best' && event.before && event.after && event.after.coveredCount > event.before.coveredCount) {
