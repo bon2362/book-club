@@ -184,6 +184,51 @@ test.describe('Matching layout', () => {
   })
 })
 
+test.describe('Matching feed height', () => {
+  // #337: лента ограничена по высоте и скроллится внутри, а не растягивает шапку.
+  const MAX_FEED_HEIGHT_PX = 288 // 18rem при базовом 16px
+
+  test('развёрнутая лента ограничена по высоте и имеет внутренний скролл', async ({
+    page,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const book = await createTestBook({ title: `UI Feed ${Date.now()}`, author: 'Feed Author' })
+
+    // Двое участников с общей книгой → формируется круг → в ленту пишется событие.
+    await loginAsUser({ name: 'UI Feed One' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [book.id])
+    await loginAsUser({ name: 'UI Feed Two' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [book.id])
+
+    await page.goto('/matching')
+
+    // Тикер появляется только когда есть события ленты.
+    const toggle = page.getByTestId('matching-feed-toggle')
+    await expect(toggle).toBeVisible({ timeout: 15_000 })
+    await toggle.click()
+
+    const feed = page.getByTestId('matching-feed')
+    await expect(feed).toBeVisible()
+
+    // CSS-контракт: max-height задан и включён вертикальный скролл.
+    const { maxHeight, overflowY } = await feed.evaluate((el) => {
+      const cs = window.getComputedStyle(el)
+      return { maxHeight: cs.maxHeight, overflowY: cs.overflowY }
+    })
+    expect(Number.parseFloat(maxHeight)).toBeCloseTo(MAX_FEED_HEIGHT_PX, 0)
+    expect(overflowY).toBe('auto')
+
+    // Фактическая высота списка не превышает кап (с допуском на рамку).
+    const box = await feed.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.height).toBeLessThanOrEqual(MAX_FEED_HEIGHT_PX + 2)
+  })
+})
+
 test.describe('Admin user drawer layout', () => {
   const ADMIN_EMAIL = 'e2e-ui-admin@test.invalid'
   const USER_EMAIL = 'e2e-ui-drawer-user@test.invalid'
