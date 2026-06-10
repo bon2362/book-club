@@ -158,10 +158,16 @@ function ScenarioSetCard({
   const hasViewerLeftOut = scenario.leftOut.some((participant) => participant.userId === viewingUserId)
   const shouldWarnViewerLeftOut = isLeader && hasViewerLeftOut
   const CardElement = isPreview ? 'div' : 'li'
+  const circleRankLines = scenario.circles.map((circle, idx) => {
+    const bookTitle = bookById.get(circle.bookId)?.title ?? circle.bookId
+    const avg = circle.avgRank === null ? 'нет' : circle.avgRank.toFixed(1)
+    return `Круг ${idx + 1} — ${bookTitle}: средний ранг ${avg}`
+  })
   const scoreTitle = [
     `Покрытие: ${scenario.score.coveredCount}/${scenario.score.totalCount}`,
     `Очень хотят: ${scenario.score.strongInterestCount}`,
-    `Средний ранг: ${scenario.score.avgRank === null ? 'нет' : scenario.score.avgRank.toFixed(1)}`,
+    ...circleRankLines,
+    `Средний ранг по сценарию: ${scenario.score.avgRank === null ? 'нет' : scenario.score.avgRank.toFixed(1)}`,
     `Худший ранг: ${scenario.score.worstRank ?? 'нет'}`,
     `Без ранга: ${scenario.score.unrankedCount}`,
     mode === 'satisfaction'

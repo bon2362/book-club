@@ -99,7 +99,7 @@ export default function MatchingSatisfactionFlow({
 
       {/* Gate intro (collapses on enter) */}
       <Collapsible open={!board}>
-        <div className="nd-flow-fade-collapse" data-testid="ranking-gate" style={{ padding: '1.6rem 1rem 0.4rem' }}>
+        <div className="nd-flow-fade-collapse nd-flow-gate-intro" data-testid="ranking-gate" style={{ padding: '1.6rem 1rem 0.4rem' }}>
           <section style={{ maxWidth: 640 }}>
             <h1
               style={{
@@ -111,7 +111,7 @@ export default function MatchingSatisfactionFlow({
                 color: 'var(--text)',
               }}
             >
-              Сначала расставьте приоритеты
+              Расставь приоритеты
             </h1>
             <p
               style={{
@@ -122,9 +122,7 @@ export default function MatchingSatisfactionFlow({
                 color: 'var(--text-body)',
               }}
             >
-              В этой сессии круги собираются по тому, что вы хотите читать{' '}
-              <em style={{ color: 'var(--accent)', fontStyle: 'italic' }}>сильнее всего</em>. Добавьте
-              книги в список справа и перетащите их по важности.
+              На пересечении интересов мы собираем читательские круги. Расставь свои книги по степени интереса.
             </p>
           </section>
         </div>
@@ -177,7 +175,7 @@ export default function MatchingSatisfactionFlow({
           }}
         >
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: '46ch' }}>
-            Расставьте приоритеты и сможете войти в сессию.
+            Расставь приоритеты и сможешь войти в сессию.
           </p>
           <button
             type="button"

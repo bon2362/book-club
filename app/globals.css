@@ -509,8 +509,16 @@ body {
 .nd-flow-fade-collapse { transition: opacity 1.8s ease; }
 .nd-flow.is-board .nd-flow-fade-collapse { opacity: 0; pointer-events: none; }
 
+/* Gate-intro: лёгкий fade+slide при первом появлении (монтировании) */
+@keyframes nd-gate-intro-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nd-flow-gate-intro { animation: nd-gate-intro-in 0.35s ease both; }
+
 @media (prefers-reduced-motion: reduce) {
   .nd-flow-collapsible { transition: none !important; }
   .nd-flow-slide-from-top,
   .nd-flow-fade-collapse { transition: none !important; }
+  .nd-flow-gate-intro { animation: none !important; }
 }

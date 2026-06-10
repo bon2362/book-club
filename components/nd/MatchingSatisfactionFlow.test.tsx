@@ -28,14 +28,14 @@ const base = { sessionId: 's1', books: [], bookParticipants: [], viewingUserId: 
 test('gate phase shows the ranking intro and CTA, no eyebrow', () => {
   render(<MatchingSatisfactionFlow phase="gate" {...base} />)
   expect(screen.getByTestId('ranking-gate')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'Сначала расставьте приоритеты' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Расставь приоритеты' })).toBeInTheDocument()
   expect(screen.getByTestId('ranking-gate-enter')).toHaveTextContent('Войти в сессию')
   expect(screen.queryByText(/Режим: удовлетвор/i)).toBeNull()
 })
 
 test('gate footer uses the single hint for all states', () => {
   render(<MatchingSatisfactionFlow phase="gate" {...base} />)
-  expect(screen.getByText('Расставьте приоритеты и сможете войти в сессию.')).toBeInTheDocument()
+  expect(screen.getByText('Расставь приоритеты и сможешь войти в сессию.')).toBeInTheDocument()
 })
 
 test('gate CTA is disabled until an active book is ranked', () => {
