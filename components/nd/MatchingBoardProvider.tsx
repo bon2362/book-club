@@ -5,13 +5,16 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 interface MatchingBoardContextValue {
   /** true с момента действия пользователя до прихода новых серверных данных. */
   pending: boolean
-  /** Вызывается мутирующим компонентом сразу после своего действия. */
+  /** Зовётся синхронно В МОМЕНТ жеста (до await) — мгновенный отклик. */
   beginPending: () => void
+  /** Зовётся если мутация не удалась и нового stateVersion не будет — снять loader сразу. */
+  endPending: () => void
 }
 
 const defaultValue: MatchingBoardContextValue = {
   pending: false,
   beginPending: () => {},
+  endPending: () => {},
 }
 
 export const MatchingBoardContext = createContext<MatchingBoardContextValue>(defaultValue)
@@ -60,6 +63,11 @@ export default function MatchingBoardProvider({
     }, SAFETY_TIMEOUT_MS)
   }, [clearTimer])
 
+  const endPending = useCallback(() => {
+    setPending(false)
+    clearTimer()
+  }, [clearTimer])
+
   // Новый stateVersion от сервера = router.refresh() завершился → снимаем loader.
   useEffect(() => {
     if (stateVersion === lastVersionRef.current) return
@@ -71,7 +79,7 @@ export default function MatchingBoardProvider({
   useEffect(() => clearTimer, [clearTimer])
 
   return (
-    <MatchingBoardContext.Provider value={{ pending, beginPending }}>
+    <MatchingBoardContext.Provider value={{ pending, beginPending, endPending }}>
       {children}
     </MatchingBoardContext.Provider>
   )

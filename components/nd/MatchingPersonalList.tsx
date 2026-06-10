@@ -448,7 +448,7 @@ export default function MatchingPersonalList({
 }: Props) {
   const s = getListStyles(size)
   const router = useRouter()
-  const { beginPending } = useMatchingBoard()
+  const { beginPending, pending } = useMatchingBoard()
   const [books, setBooks] = useState(initialBooks)
   const [announcement, setAnnouncement] = useState('')
   const [modalBook, setModalBook] = useState<CatalogBook | null>(null)
@@ -487,18 +487,24 @@ export default function MatchingPersonalList({
     })
   }
 
+  // Мгновенный отклик: зовём в МОМЕНТ жеста (до сетевого запроса), только на доске.
+  // В gate-фазе (suppressRefresh) лоадера доски нет.
+  const signalBusy = useCallback(() => {
+    if (!suppressRefresh) beginPending()
+  }, [suppressRefresh, beginPending])
+
   const notifyOrRefresh = useCallback((list: CatalogBook[]) => {
     if (suppressRefresh) {
       onChange?.(listHasCompleteActiveRanking(list))
       return
     }
-    beginPending()
     router.refresh()
-  }, [onChange, router, suppressRefresh, beginPending])
+  }, [onChange, router, suppressRefresh])
 
   const applyNewOrder = useCallback(async (newBooks: CatalogBook[]) => {
     const reranked = rerank(newBooks)
     setBooks(reranked)
+    signalBusy()
     await patchPriorities(
       reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId),
       mutationUserId,
@@ -511,6 +517,7 @@ export default function MatchingPersonalList({
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      if (pending) return // идёт пересчёт — реордер не принимаем
       const { active, over } = event
       if (!over || active.id === over.id) return
       const currentActive = sortActiveBooks(books.filter((b) => b.isInList && b.personalStatus === null))
@@ -523,11 +530,12 @@ export default function MatchingPersonalList({
         `Книга ${currentActive[oldIndex].title} перемещена на позицию ${newIndex + 1} из ${reorderedActive.length}`,
       )
     },
-    [books, applyNewOrder],
+    [books, applyNewOrder, pending],
   )
 
   const handleStatusChange = useCallback(
     async (bookId: string, newStatus: string | null) => {
+      if (pending) return // идёт пересчёт — смену статуса не принимаем
       const updatedBooks = books.map((b) =>
         b.bookId === bookId ? { ...b, personalStatus: newStatus } : b,
       )
@@ -542,17 +550,19 @@ export default function MatchingPersonalList({
       const merged = [...rankedActive, ...unrankedActive, ...statusBooksUpdated, ...catalog]
       setBooks(merged)
       setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, personalStatus: newStatus } : prev))
+      signalBusy()
       await Promise.all([
         patchStatus(bookId, newStatus, mutationUserId),
         patchPriorities(rankedActive.map((b) => b.bookId), mutationUserId, priorityMutationSource),
       ])
       notifyOrRefresh(merged)
     },
-    [books, mutationUserId, priorityMutationSource, notifyOrRefresh],
+    [books, mutationUserId, priorityMutationSource, notifyOrRefresh, signalBusy, pending],
   )
 
   const handleAddToList = useCallback(
     async (bookId: string) => {
+      if (pending) return // идёт пересчёт — добавление не принимаем
       const target = books.find((book) => book.bookId === bookId)
       if (!target) return
       const promoted = { ...target, isInList: true, personalStatus: null, rank: 1 }
@@ -560,14 +570,16 @@ export default function MatchingPersonalList({
       const nextBooks = rerank([promoted, ...rest])
       setBooks(nextBooks)
       setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, isInList: true, rank: 1 } : prev))
+      signalBusy()
       await addToList(bookId, mutationUserId)
       notifyOrRefresh(nextBooks)
     },
-    [books, mutationUserId, notifyOrRefresh],
+    [books, mutationUserId, notifyOrRefresh, signalBusy, pending],
   )
 
   const handleRemoveFromList = useCallback(
     async (bookId: string) => {
+      if (pending) return // идёт пересчёт — удаление не принимаем
       const nextBooks = rerank(books.map((b) =>
         b.bookId === bookId ? { ...b, isInList: false, rank: null, personalStatus: null } : b,
       ))
@@ -575,11 +587,12 @@ export default function MatchingPersonalList({
       setModalBook((prev) =>
         prev?.bookId === bookId ? { ...prev, isInList: false, rank: null, personalStatus: null } : prev,
       )
+      signalBusy()
       await removeFromList(bookId, mutationUserId)
       notifyOrRefresh(nextBooks)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [books, mutationUserId, notifyOrRefresh],
+    [books, mutationUserId, notifyOrRefresh, signalBusy, pending],
   )
 
   return (
@@ -611,7 +624,7 @@ export default function MatchingPersonalList({
       {/* ── Остальной каталог ── */}
       <section
         data-testid="matching-catalog-available"
-        style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }) }}
+        style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }), opacity: pending ? 0.6 : 1, transition: 'opacity 0.2s ease' }}
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
@@ -646,7 +659,7 @@ export default function MatchingPersonalList({
       {/* ── Мои книги ── */}
       <section
         data-testid="matching-catalog-mine"
-        style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }) }}
+        style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }), opacity: pending ? 0.6 : 1, transition: 'opacity 0.2s ease' }}
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
