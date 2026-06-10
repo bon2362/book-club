@@ -3,5 +3,39 @@
     "next/core-web-vitals",
     "next/typescript"
   ],
-  "root": true
+  "root": true,
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression[callee.object.name='db'][callee.property.name='transaction']",
+        "message": "Голый db.transaction запрещён — используй withAuditContext (lib/audit), чтобы аудит знал actor. См. docs/features/audit-log.md"
+      },
+      {
+        "selector": "CallExpression[callee.object.name='db'][callee.property.name=/^(insert|update|delete)$/]",
+        "message": "Прямые мутации через db.insert/update/delete запрещены — оборачивай в withAuditContext (lib/audit). См. docs/features/audit-log.md"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "lib/audit/**",
+        "lib/db/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "scripts/**",
+        "app/api/test/**",
+        "lib/auth.ts",
+        "lib/telegram-auth.ts",
+        "lib/user-identities.ts",
+        "lib/auth-adapter.ts",
+        "lib/user-activity.ts",
+        "lib/matching/**",
+        "app/api/matching/**",
+        "app/api/admin/matching/**"
+      ],
+      "rules": { "no-restricted-syntax": "off" }
+    }
+  ]
 }

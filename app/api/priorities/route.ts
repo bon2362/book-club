@@ -15,6 +15,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function GET() {
   const session = await auth()
@@ -67,7 +68,9 @@ export async function PUT(req: NextRequest) {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
   const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
-  await db.transaction(async (tx) => {
+  await withAuditContext(
+    { actorUserId: userId, actorLabel: session!.user.name ?? session!.user.contactEmail ?? null, source: 'priorities' },
+    async (tx) => {
     await tx
       .delete(bookPriorities)
       .where(eq(bookPriorities.userId, userId))
@@ -87,7 +90,8 @@ export async function PUT(req: NextRequest) {
       .update(users)
       .set({ prioritiesSet: true })
       .where(eq(users.id, userId))
-  })
+    },
+  )
 
   await bestEffortRecordUserActivity(userId, 'priorities_updated', {
     occurredAt: now,

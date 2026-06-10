@@ -8,6 +8,7 @@ import { eq, and } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import { consumePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 interface Params { params: { id: string } }
 
@@ -61,11 +62,19 @@ export async function POST(_req: NextRequest, { params }: Params) {
     ? reserved
     : assignPseudonym(takenSet)
 
-  await db.insert(matchingSessionParticipants).values({
-    sessionId,
-    userId,
-    pseudonym,
-  })
+  await withAuditContext(
+    {
+      actorUserId: userId,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'matching',
+    },
+    async (tx) =>
+      tx.insert(matchingSessionParticipants).values({
+        sessionId,
+        userId,
+        pseudonym,
+      }),
+  )
 
   await bumpSessionState(sessionId)
 

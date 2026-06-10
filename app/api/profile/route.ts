@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey, type UserActivityMetadata } from '@/lib/user-activity'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function GET() {
   const session = await auth()
@@ -68,15 +69,22 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'No profile fields to update' }, { status: 400 })
   }
 
-  const updated = await db
-    .update(users)
-    .set(updates)
-    .where(eq(users.id, session.user.id))
-    .returning({
-      name: users.name,
-      contacts: users.contacts,
-      languages: users.languages,
-    })
+  const userId = session.user.id
+  const updated = await withAuditContext(
+    { actorUserId: userId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'profile' },
+    async (tx) => {
+      const rows = await tx
+        .update(users)
+        .set(updates)
+        .where(eq(users.id, userId))
+        .returning({
+          name: users.name,
+          contacts: users.contacts,
+          languages: users.languages,
+        })
+      return rows
+    },
+  )
 
   if (updated.length === 0) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })

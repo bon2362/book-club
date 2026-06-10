@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { upsertSignupByBookIds } from '@/lib/signup-books'
-import { db } from '@/lib/db'
 import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
@@ -14,6 +13,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -32,35 +32,43 @@ export async function POST(req: NextRequest) {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(pgUserId)
   const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
-  let result
-  try {
-    result = await upsertSignupByBookIds(pgUserId, selectedBookIds as string[])
-  } catch {
-    return NextResponse.json({ error: 'Some books were not found' }, { status: 400 })
+  const auditCtx = {
+    actorUserId: pgUserId,
+    actorLabel: session!.user.name ?? session!.user.contactEmail ?? null,
+    source: 'signup',
   }
 
-  await db.update(users).set({
-    name: name.trim(),
-    contacts: contacts.trim(),
-    ...(result.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
-  }).where(eq(users.id, pgUserId))
+  let result
+  try {
+    result = await withAuditContext(auditCtx, async (tx) => {
+      const upsert = await upsertSignupByBookIds(pgUserId, selectedBookIds as string[], tx)
 
-  // Clean up book_priorities for books no longer in selectedBookIds.
-  if (result.addedBookIds.length > 0) {
-    await db
-      .delete(bookPriorities)
-      .where(
-        and(
-          eq(bookPriorities.userId, pgUserId),
-          notInArray(bookPriorities.bookId, result.addedBookIds)
-        )
-      )
-      .catch(() => {}) // non-critical
-  } else {
-    await db
-      .delete(bookPriorities)
-      .where(eq(bookPriorities.userId, pgUserId))
-      .catch(() => {})
+      await tx.update(users).set({
+        name: name.trim(),
+        contacts: contacts.trim(),
+        ...(upsert.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
+      }).where(eq(users.id, pgUserId))
+
+      // Clean up book_priorities for books no longer in selectedBookIds.
+      if (upsert.addedBookIds.length > 0) {
+        await tx
+          .delete(bookPriorities)
+          .where(
+            and(
+              eq(bookPriorities.userId, pgUserId),
+              notInArray(bookPriorities.bookId, upsert.addedBookIds)
+            )
+          )
+      } else {
+        await tx
+          .delete(bookPriorities)
+          .where(eq(bookPriorities.userId, pgUserId))
+      }
+
+      return upsert
+    })
+  } catch {
+    return NextResponse.json({ error: 'Some books were not found' }, { status: 400 })
   }
 
   const profileDedupeKey = buildUserActivityDedupeKey([
@@ -95,13 +103,15 @@ export async function POST(req: NextRequest) {
 
   // Enqueue notification for digest (skip in test mode — tests use the real DB)
   if (result.addedBooks.length > 0 && process.env.NEXTAUTH_TEST_MODE !== 'true') {
-    db.insert(notificationQueue).values({
-      userName: name.trim(),
-      userEmail: getUserContactEmail(session.user) ?? '',
-      contacts: contacts.trim(),
-      addedBooks: JSON.stringify(result.addedBooks),
-      isNew: result.isNew,
-    }).catch(() => {
+    withAuditContext(auditCtx, async (tx) =>
+      tx.insert(notificationQueue).values({
+        userName: name.trim(),
+        userEmail: getUserContactEmail(session.user) ?? '',
+        contacts: contacts.trim(),
+        addedBooks: JSON.stringify(result.addedBooks),
+        isNew: result.isNew,
+      }),
+    ).catch(() => {
       console.error('Failed to enqueue signup notification')
     })
   }

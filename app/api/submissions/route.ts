@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { bookSubmissions } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function GET() {
   const session = await auth()
@@ -28,6 +29,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Захватываем в const до замыкания: внутри async (tx) => {} TS теряет
+  // сужение property-доступа session.user.id и снова считает его string|undefined.
+  const userId = session.user.id
+
   const body = await req.json()
   const { title, author, whyRead, topic, pages, publishedDate, textUrl, description, coverUrl } = body
 
@@ -41,18 +46,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'whyRead is required' }, { status: 400 })
   }
 
-  const result = await db.insert(bookSubmissions).values({
-    userId: session.user.id,
-    title,
-    author,
-    whyRead,
-    topic: topic ?? null,
-    pages: pages ?? null,
-    publishedDate: publishedDate ?? null,
-    textUrl: textUrl ?? null,
-    description: description ?? null,
-    coverUrl: coverUrl ?? null,
-  }).returning()
+  const result = await withAuditContext(
+    {
+      actorUserId: userId,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'submission',
+    },
+    async (tx) => {
+      const rows = await tx.insert(bookSubmissions).values({
+        userId,
+        title,
+        author,
+        whyRead,
+        topic: topic ?? null,
+        pages: pages ?? null,
+        publishedDate: publishedDate ?? null,
+        textUrl: textUrl ?? null,
+        description: description ?? null,
+        coverUrl: coverUrl ?? null,
+      }).returning()
+      return rows
+    },
+  )
 
   await bestEffortRecordUserActivity(session.user.id, 'submission_created', {
     occurredAt: result[0].createdAt,

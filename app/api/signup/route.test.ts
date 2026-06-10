@@ -14,6 +14,9 @@ import {
 import { finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 jest.mock('@/lib/signup-books', () => ({ upsertSignupByBookIds: jest.fn() }))
 jest.mock('@/lib/db', () => ({
   db: {
@@ -127,7 +130,7 @@ describe('POST /api/signup', () => {
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
-    expect(signups.upsertSignupByBookIds).toHaveBeenCalledWith('user-1', ['book-a'])
+    expect(signups.upsertSignupByBookIds).toHaveBeenCalledWith('user-1', ['book-a'], expect.anything())
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_submitted', expect.objectContaining({
       source: 'api',
       metadata: expect.objectContaining({ selectedBooksCount: 1, addedBooksCount: 1 }),
@@ -175,7 +178,7 @@ describe('POST /api/signup', () => {
 
     await POST(makeRequest({ name: '  Test User  ', contacts: '  @test  ', selectedBookIds: [] }))
 
-    expect(signups.upsertSignupByBookIds).toHaveBeenCalledWith('user-1', [])
+    expect(signups.upsertSignupByBookIds).toHaveBeenCalledWith('user-1', [], expect.anything())
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'profile_submitted', expect.any(Object))
   })
 

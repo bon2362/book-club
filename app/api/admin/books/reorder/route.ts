@@ -2,9 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
 import { books } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 /**
  * PUT /api/admin/books/reorder
@@ -41,12 +41,17 @@ export async function PUT(req: NextRequest) {
 
   try {
     const now = new Date()
-    for (let i = 0; i < ids.length; i++) {
-      await db
-        .update(books)
-        .set({ sortOrder: i + 1, updatedAt: now })
-        .where(eq(books.id, ids[i] as string))
-    }
+    await withAuditContext(
+      { actorUserId: session.user.id, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'admin' },
+      async (tx) => {
+        for (let i = 0; i < ids.length; i++) {
+          await tx
+            .update(books)
+            .set({ sortOrder: i + 1, updatedAt: now })
+            .where(eq(books.id, ids[i] as string))
+        }
+      },
+    )
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('[reorder] failed:', err)

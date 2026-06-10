@@ -10,6 +10,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 type Params = { params: { bookId: string } }
 
@@ -32,26 +33,35 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const { bookId } = params
   const before = await captureMatchingMutationSnapshot(activeSession.id)
 
-  await db.delete(signupBooks).where(
-    and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId))
-  )
-  await db.delete(bookPriorities).where(
-    and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId))
-  )
+  await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'matching',
+    },
+    async (tx) => {
+      await tx.delete(signupBooks).where(
+        and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId))
+      )
+      await tx.delete(bookPriorities).where(
+        and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId))
+      )
 
-  // Normalize ranks for remaining books
-  const remaining = await db
-    .select({ bookId: bookPriorities.bookId })
-    .from(bookPriorities)
-    .where(eq(bookPriorities.userId, userId))
-    .orderBy(asc(bookPriorities.rank))
+      // Normalize ranks for remaining books
+      const remaining = await tx
+        .select({ bookId: bookPriorities.bookId })
+        .from(bookPriorities)
+        .where(eq(bookPriorities.userId, userId))
+        .orderBy(asc(bookPriorities.rank))
 
-  for (let i = 0; i < remaining.length; i++) {
-    await db
-      .update(bookPriorities)
-      .set({ rank: i + 1 })
-      .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, remaining[i].bookId)))
-  }
+      for (let i = 0; i < remaining.length; i++) {
+        await tx
+          .update(bookPriorities)
+          .set({ rank: i + 1 })
+          .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, remaining[i].bookId)))
+      }
+    },
+  )
 
   await finalizeMatchingMutationEffects({
     sessionId: activeSession.id,

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
 import { feedback } from '@/lib/db/schema'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -31,12 +31,20 @@ export async function POST(req: NextRequest) {
       subject,
       text,
     })
-    const saved = await db.insert(feedback).values({
-      userId: session?.user?.id ?? null,
-      name: name?.trim() || null,
-      email: email?.trim() || null,
-      message: message.trim(),
-    }).returning({ id: feedback.id, createdAt: feedback.createdAt })
+    const saved = await withAuditContext(
+      {
+        actorUserId: session?.user?.id ?? null,
+        actorLabel: session?.user?.name ?? session?.user?.contactEmail ?? null,
+        source: 'feedback',
+      },
+      async (tx) =>
+        tx.insert(feedback).values({
+          userId: session?.user?.id ?? null,
+          name: name?.trim() || null,
+          email: email?.trim() || null,
+          message: message.trim(),
+        }).returning({ id: feedback.id, createdAt: feedback.createdAt }),
+    )
     if (session?.user?.id && saved[0]) {
       await bestEffortRecordUserActivity(session.user.id, 'feedback_created', {
         occurredAt: saved[0].createdAt,

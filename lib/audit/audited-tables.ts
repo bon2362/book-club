@@ -22,3 +22,8 @@ export const AUDITED_TABLES = [
 ] as const
 
 export type AuditedTable = (typeof AUDITED_TABLES)[number]
+
+// Таблицы, для которых source='trigger' — НЕ сигнал «забыли обернуть»:
+// их пишет NextAuth DrizzleAdapter / auth-цепочка мимо нашего кода (lib/auth.ts,
+// lib/telegram-auth.ts, lib/user-identities.ts). Reconciliation-проверка их игнорирует.
+export const AUTH_OOB_TABLES = ['verificationToken', 'user', 'user_identities'] as const
