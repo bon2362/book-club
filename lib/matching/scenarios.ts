@@ -515,7 +515,7 @@ function scenarioAssignments(scenario: MatchingScenario): Set<string> {
 // A scenario is Pareto-dominated when another scenario keeps every user→book
 // assignment it has and adds at least one more (same circle with extra members,
 // or extra independent circles).
-function filterDominatedSatisfactionScenarios(scenarios: MatchingScenario[]): MatchingScenario[] {
+function filterDominatedScenarios(scenarios: MatchingScenario[]): MatchingScenario[] {
   const assignments = scenarios.map(scenarioAssignments)
   return scenarios.filter((_, index) => (
     !assignments.some((other, otherIndex) => (
@@ -585,7 +585,7 @@ export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSet
     .map((state) => toScenario(state.circles, participants, 'partial'))
     .sort((a, b) => compare(b, a))
 
-  const visibleScenarios = mode === 'satisfaction' ? filterDominatedSatisfactionScenarios(scenarios) : scenarios
+  const visibleScenarios = filterDominatedScenarios(scenarios)
   const resultScenarios = maxResults === null ? visibleScenarios : visibleScenarios.slice(0, maxResults)
 
   const tiered = assignScenarioTiers(resultScenarios, participants.length, mode)

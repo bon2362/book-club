@@ -455,6 +455,38 @@ describe('generateScenarioSets', () => {
     expect(memberIds).toEqual(new Set(['u1', 'u2', 'u3', 'u4']))
   })
 
+  it('filters coverage scenarios where same book has subset of members', () => {
+    // Single book with 4 participants recorded (some with rank, some without), minGroupSize 3, maxGroupSize 5
+    // In coverage mode, unranked participants are allowed
+    // Should generate circles of size 3 and 4
+    // The scenario with {u1, u2, u3} on book1 should be filtered out as dominated by {u1, u2, u3, u4}
+    // Even though one of them (u4) has no rank, coverage mode allows it
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('book1')],
+      signups: allSignedUp(['u1', 'u2', 'u3', 'u4'], 'book1'),
+      ranks: [
+        rank('u1', 'book1', 1),
+        rank('u2', 'book1', 2),
+        rank('u3', 'book1', 4),
+        // u4 has no rank (null) — allowed in coverage mode
+      ],
+      minGroupSize: 3,
+      maxGroupSize: 5,
+      mode: 'coverage',
+    })
+
+    // The only scenario should be the one with maximum members for this book (all 4 recorded)
+    expect(result.scenarios).toHaveLength(1)
+    expect(result.scenarios[0].circles).toHaveLength(1)
+    expect(result.scenarios[0].circles[0].bookId).toBe('book1')
+    // The leader should have all 4 recorded members (u1–u4)
+    expect(result.scenarios[0].circles[0].members).toHaveLength(4)
+    const memberIds = new Set(result.scenarios[0].circles[0].members.map((m) => m.userId))
+    expect(memberIds).toEqual(new Set(['u1', 'u2', 'u3', 'u4']))
+  })
+
   it('preserves satisfaction scenarios with non-overlapping alternatives (same book, disjoint member subsets)', () => {
     // When we have 6 participants for same book, minGroupSize 3, maxGroupSize 3
     // We can form groups {u1, u2, u3} and {u4, u5, u6}
