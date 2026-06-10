@@ -402,7 +402,7 @@ describe('generateScenarioSets', () => {
     expect(result.mode).toBe('satisfaction')
   })
 
-  it('hides satisfaction scenarios that are only a subset of another scenario', () => {
+  it('hides satisfaction scenarios that are only a subset of another scenario (by circles)', () => {
     const participants = makeParticipants(6)
     const result = generateScenarioSets({
       participants,
@@ -423,6 +423,65 @@ describe('generateScenarioSets', () => {
     expect(result.scenarios.map((scenario) => scenario.circles.map((circle) => circle.bookId).sort())).toEqual([
       ['extra', 'perfect'],
     ])
+  })
+
+  it('filters satisfaction scenarios where same book has subset of members', () => {
+    // Single book with 4 participants ranked, minGroupSize 3, maxGroupSize 5
+    // Should generate circles of size 3 and 4 (all combinations of 3-4 from 4 members)
+    // The scenario with {u1, u2, u3} on book1 should be filtered out as dominated by {u1, u2, u3, u4}
+    const participants = makeParticipants(4)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('book1')],
+      signups: allSignedUp(['u1', 'u2', 'u3', 'u4'], 'book1'),
+      ranks: [
+        rank('u1', 'book1', 1),
+        rank('u2', 'book1', 2),
+        rank('u3', 'book1', 4),
+        rank('u4', 'book1', 5),
+      ],
+      minGroupSize: 3,
+      maxGroupSize: 5,
+      mode: 'satisfaction',
+    })
+
+    // The only scenario should be the one with maximum members for this book (all 4 ranked)
+    expect(result.scenarios).toHaveLength(1)
+    expect(result.scenarios[0].circles).toHaveLength(1)
+    expect(result.scenarios[0].circles[0].bookId).toBe('book1')
+    // The leader should have all 4 ranked members (u1–u4)
+    expect(result.scenarios[0].circles[0].members).toHaveLength(4)
+    const memberIds = new Set(result.scenarios[0].circles[0].members.map((m) => m.userId))
+    expect(memberIds).toEqual(new Set(['u1', 'u2', 'u3', 'u4']))
+  })
+
+  it('preserves satisfaction scenarios with non-overlapping alternatives (same book, disjoint member subsets)', () => {
+    // When we have 6 participants for same book, minGroupSize 3, maxGroupSize 3
+    // We can form groups {u1, u2, u3} and {u4, u5, u6}
+    // These two groups have no shared members, so neither dominates the other
+    // Both should be preserved as alternative scenarios
+    const participants = makeParticipants(6)
+    const result = generateScenarioSets({
+      participants,
+      books: [makeBook('book1')],
+      signups: allSignedUp(['u1', 'u2', 'u3', 'u4', 'u5', 'u6'], 'book1'),
+      ranks: [
+        ...rankAll(['u1', 'u2', 'u3'], 'book1', 1),
+        ...rankAll(['u4', 'u5', 'u6'], 'book1', 1),
+      ],
+      minGroupSize: 3,
+      maxGroupSize: 3,
+      mode: 'satisfaction',
+    })
+
+    // Both disjoint groups should survive the dominance filter
+    expect(result.scenarios.length).toBeGreaterThanOrEqual(2)
+    // Each scenario should have one circle
+    for (const scenario of result.scenarios) {
+      expect(scenario.circles).toHaveLength(1)
+      expect(scenario.circles[0].bookId).toBe('book1')
+      expect(scenario.circles[0].members).toHaveLength(3)
+    }
   })
 
   it('perf: N=30 participants, M=50 books stays bounded under coverage', () => {
