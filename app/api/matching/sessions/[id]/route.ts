@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 type Params = { params: { id: string } }
 const MAX_GROUP_SIZE_LIMIT = 10
@@ -27,7 +28,8 @@ function parseGroupSizeRange(body: unknown): { minGroupSize: number; maxGroupSiz
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth()
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!session?.user?.isAdmin || !session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const actorId = session.user.id
 
   const body = await req.json().catch(() => ({}))
   const groupSizeRange = parseGroupSizeRange(body)
@@ -42,10 +44,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!matchSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
   if (matchSession.status === 'frozen') return NextResponse.json({ error: 'Session is frozen' }, { status: 409 })
 
-  await db
-    .update(matchingSessions)
-    .set({ minGroupSize: groupSizeRange.minGroupSize, maxGroupSize: groupSizeRange.maxGroupSize })
-    .where(eq(matchingSessions.id, params.id))
+  await withAuditContext(
+    { actorUserId: actorId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'admin' },
+    async (tx) => {
+      await tx
+        .update(matchingSessions)
+        .set({ minGroupSize: groupSizeRange.minGroupSize, maxGroupSize: groupSizeRange.maxGroupSize })
+        .where(eq(matchingSessions.id, params.id))
+    },
+  )
 
   await bumpSessionState(params.id)
 

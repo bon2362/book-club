@@ -12,6 +12,9 @@ jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
 }))
 jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
