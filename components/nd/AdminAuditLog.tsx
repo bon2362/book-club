@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useState } from 'react'
+import { SYSTEM_TRIGGER_TABLES } from '@/lib/audit/audited-tables'
 
 interface AuditEvent {
   id: string
@@ -47,7 +48,9 @@ export default function AdminAuditLog() {
               <td style={{ padding: '0.5rem' }}>{new Date(e.occurredAt).toLocaleString('ru-RU')}</td>
               <td style={{ padding: '0.5rem' }}>
                 {e.source === 'trigger'
-                  ? <span style={{ color: 'var(--accent)' }}>внесистемное</span>
+                  ? (SYSTEM_TRIGGER_TABLES as readonly string[]).includes(e.entityType)
+                    ? <span style={{ color: 'var(--text-muted)' }}>система</span>
+                    : <span style={{ color: 'var(--accent)' }}>внесистемное</span>
                   : (e.actorLabel ?? e.actorUserId ?? '—')}
               </td>
               <td style={{ padding: '0.5rem' }}>{e.source}</td>

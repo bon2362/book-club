@@ -114,6 +114,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 Во всех остальных случаях `source='trigger'` — сигнал «забыли обернуть роут». Следует найти роут и добавить `withAuditContext`.
 
+## Телеметрия (шум, который не логируем)
+
+`user_activity_events` — сам по себе лог посещений; аудировать его значило бы дублировать данные, поэтому триггер с этой таблицы снят (миграция `0041`), и таблица убрана из `AUDITED_TABLES`.
+
+Кроме того, чисто телеметрические UPDATE-ы в обычных таблицах тоже пропускаются прямо в теле `audit_capture`:
+
+- `user.last_activity_at` — обновляется на каждый визит; реальные изменения учётки (email, имя, is_admin) по-прежнему логируются.
+- `user_identities.last_seen_at` — аналогично.
+
+Пропуск реализован через `RETURN NEW` в начале функции, если единственное изменённое поле — исключённое: `v_changed <@ '["last_activity_at"]'::jsonb`.
+
+## «Система» vs «внесистемное» в просмотрщике
+
+Просмотрщик различает два случая `source='trigger'`:
+
+- **«система»** (цвет `var(--text-muted)`) — таблица входит в `SYSTEM_TRIGGER_TABLES` (`verificationToken`, `user`, `user_identities`, `notification_queue`, `matching_pseudonym_reservations`). Это ожидаемые строки от системной автоматики / NextAuth.
+- **«внесистемное»** (цвет `var(--accent)`) — таблица не входит в список. Это реальный сигнал «забыли обернуть роут».
+
 ## ESLint-правило
 
 Прямые вызовы `db.transaction(...)`, `db.insert(...)`, `db.update(...)`, `db.delete(...)` вне разрешённых модулей запрещены — нужно использовать `withAuditContext`. Разрешённые исключения: сам `lib/audit/with-audit-context.ts`, `drizzle`-миграции, seed-скрипты.
