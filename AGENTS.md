@@ -102,6 +102,7 @@ gh pr merge --auto --squash --delete-branch
 - Любая новая мутабельная таблица → добавить её имя в `AUDITED_TABLES` (`lib/audit/audited-tables.ts`) **и** триггер в новой миграции (шаблон — `drizzle/0040_audit_triggers.sql`). Тест `drizzle/0040_audit_triggers.test.ts` проверяет синхронность реестра и триггеров.
 - Мутации (`insert/update/delete`) идут только через `withAuditContext` (`lib/audit/with-audit-context.ts`), иначе ESLint падает. Это даёт аудиту actor. Системные пути — `source: 'cron'/'system'`, `actorUserId: null`.
 - Записи с `source='trigger'` в просмотрщике = мутация прошла мимо `withAuditContext` (кроме auth-таблиц из allowlist). Это сигнал «забыли обернуть» — найти и обернуть.
+- **Добавляешь/переименовываешь чувствительную колонку (токен, хэш, секрет, PII) в аудируемой таблице → добавь её в маскирование в функции `audit_capture()` (новой миграцией).** Триггер пишет всю строку в `before/after`, маскирование захардкожено (сейчас `token`, `token_hash`) — иначе секрет утечёт в журнал, видимый админам.
 - Подробности: `docs/features/audit-log.md`.
 
 ## Типичные lint-ошибки (учить на ошибках CI)
