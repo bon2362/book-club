@@ -98,6 +98,12 @@ gh pr merge --auto --squash --delete-branch
 - **Перед каждым `git commit`:** убедиться что `npm run lint` и `npm run typecheck` проходят без ошибок. Husky запускает lint-staged автоматически, но лучше проверить заранее.
 - **Субагенты** перед коммитом обязаны запускать: `npm run lint && npm run typecheck && npm test`
 
+## Аудит изменений (audit log)
+- Любая новая мутабельная таблица → добавить её имя в `AUDITED_TABLES` (`lib/audit/audited-tables.ts`) **и** триггер в новой миграции (шаблон — `drizzle/0040_audit_triggers.sql`). Тест `drizzle/0040_audit_triggers.test.ts` проверяет синхронность реестра и триггеров.
+- Мутации (`insert/update/delete`) идут только через `withAuditContext` (`lib/audit/with-audit-context.ts`), иначе ESLint падает. Это даёт аудиту actor. Системные пути — `source: 'cron'/'system'`, `actorUserId: null`.
+- Записи с `source='trigger'` в просмотрщике = мутация прошла мимо `withAuditContext` (кроме auth-таблиц из allowlist). Это сигнал «забыли обернуть» — найти и обернуть.
+- Подробности: `docs/features/audit-log.md`.
+
 ## Типичные lint-ошибки (учить на ошибках CI)
 - Неиспользуемые хелперы в тестах (`makeGet`, `makeRequest` и т.п.) ломают `no-unused-vars` — удалять вместе с вызовами
 - GET-хэндлеры без параметров: если роут не использует `req`, сигнатура `GET()` без аргументов, тест вызывает `GET()` без аргументов. Не добавлять `_req: NextRequest` если он не нужен — это сломает либо typecheck, либо lint
