@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import MatchingImpactWorkspace from './MatchingImpactWorkspace'
+import { MatchingBoardContext } from './MatchingBoardProvider'
 import type { ScenarioSetOverview } from '@/lib/matching/scenarios'
 
 jest.mock('./MatchingScenarios', () => function MockMatchingScenarios() {
@@ -39,6 +40,23 @@ describe('MatchingImpactWorkspace', () => {
 
     expect(screen.getByRole('heading', { name: 'Сценарии кругов' })).toBeInTheDocument()
     expect(screen.getByText('Добавляйте, убирайте книги и меняйте приоритеты, чтобы влиять на финальный расклад')).toBeInTheDocument()
+  })
+})
+
+describe('MatchingImpactWorkspace — лоадер пересчёта (#315)', () => {
+  it('не показывает лоадер, когда pending=false (дефолтный контекст)', () => {
+    render(<MatchingImpactWorkspace {...baseProps} overview={overview} />)
+    expect(screen.queryAllByTestId('matching-board-loader')).toHaveLength(0)
+  })
+
+  it('показывает оверлей-лоадер в обеих панелях, когда pending=true', () => {
+    render(
+      <MatchingBoardContext.Provider value={{ pending: true, beginPending: () => {} }}>
+        <MatchingImpactWorkspace {...baseProps} overview={overview} />
+      </MatchingBoardContext.Provider>,
+    )
+    // по одному оверлею на «Сценарии кругов» и «Мои ходы»
+    expect(screen.getAllByTestId('matching-board-loader')).toHaveLength(2)
   })
 })
 

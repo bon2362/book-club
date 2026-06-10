@@ -6,6 +6,7 @@ import type { MyMoveBook } from '@/lib/matching/my-moves'
 import MatchingScenarios from './MatchingScenarios'
 import MatchingMyMoves from './MatchingMyMoves'
 import MatchingAdriftBanner from './MatchingAdriftBanner'
+import { useMatchingBoard } from './MatchingBoardProvider'
 import type { BookParticipant } from './MatchingPersonalList'
 import type { MatchingBookDetail } from './MatchingBookDetailModal'
 import type { AdriftCause } from '@/lib/matching/feed-events'
@@ -38,6 +39,29 @@ const panel: React.CSSProperties = {
   flexDirection: 'column',
   overflow: 'hidden',
   minHeight: 0,
+  position: 'relative',
+}
+
+/** Оверлей-спиннер во время пересчёта сценариев (#315). */
+function BoardPanelLoader() {
+  return (
+    <div
+      data-testid="matching-board-loader"
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'color-mix(in srgb, var(--bg-input) 55%, transparent)',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }}
+    >
+      <span className="nd-board-spinner" />
+    </div>
+  )
 }
 
 const panelHeadStyle: React.CSSProperties = {
@@ -73,6 +97,7 @@ export default function MatchingImpactWorkspace({
   adrift = null,
 }: Props) {
   const mode = overview.mode
+  const { pending } = useMatchingBoard()
   const scenarioCount = overview.scenarios.length
   const [previewMove, setPreviewMove] = useState<MyMoveBook | null>(null)
   const [lastMove, setLastMove] = useState<MyMoveBook | null>(null)
@@ -158,7 +183,12 @@ export default function MatchingImpactWorkspace({
             </p>
           )}
         </div>
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem', overflowAnchor: 'none' }}>
+        {pending && <BoardPanelLoader />}
+        <div
+          ref={scrollRef}
+          className="flex-1 min-h-0 overflow-y-auto"
+          style={{ padding: '0 0 1.2rem', overflowAnchor: 'none', opacity: pending ? 0.45 : 1, transition: 'opacity 0.25s ease' }}
+        >
           <MatchingScenarios
             overview={overview}
             bookById={bookById}
@@ -181,7 +211,11 @@ export default function MatchingImpactWorkspace({
               : 'Эти книги меняют лучший расклад. Добавишь — поможешь другим собраться вокруг того, что им ближе.'}
           </p>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 0 1.2rem' }}>
+        {pending && <BoardPanelLoader />}
+        <div
+          className="flex-1 min-h-0 overflow-y-auto"
+          style={{ padding: '0 0 1.2rem', opacity: pending ? 0.45 : 1, transition: 'opacity 0.25s ease' }}
+        >
           <MatchingMyMoves
             moves={moves}
             frozen={frozen}

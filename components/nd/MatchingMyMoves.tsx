@@ -9,6 +9,7 @@ import { declinePseudonym } from '@/lib/matching/pseudonym-declension'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
+import { useMatchingBoard } from './MatchingBoardProvider'
 
 interface Props {
   moves: MyMoveBook[]
@@ -33,6 +34,7 @@ export default function MatchingMyMoves({
   mode = 'coverage',
 }: Props) {
   const router = useRouter()
+  const { beginPending } = useMatchingBoard()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
   const [firstPlaceHint, setFirstPlaceHint] = useState<string | null>(null)
@@ -65,6 +67,7 @@ export default function MatchingMyMoves({
       })
       if (res.ok) {
         setMoves((prev) => prev.filter((m) => m.bookId !== bookId))
+        beginPending()
         router.refresh()
       }
     } finally {

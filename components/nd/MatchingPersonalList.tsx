@@ -24,6 +24,7 @@ import type { CatalogBook } from '@/lib/matching/personal-list'
 import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal from './MatchingBookDetailModal'
+import { useMatchingBoard } from './MatchingBoardProvider'
 
 // BookParticipant stays — used for chips in the popup
 export interface BookParticipant {
@@ -447,6 +448,7 @@ export default function MatchingPersonalList({
 }: Props) {
   const s = getListStyles(size)
   const router = useRouter()
+  const { beginPending } = useMatchingBoard()
   const [books, setBooks] = useState(initialBooks)
   const [announcement, setAnnouncement] = useState('')
   const [modalBook, setModalBook] = useState<CatalogBook | null>(null)
@@ -490,8 +492,9 @@ export default function MatchingPersonalList({
       onChange?.(listHasCompleteActiveRanking(list))
       return
     }
+    beginPending()
     router.refresh()
-  }, [onChange, router, suppressRefresh])
+  }, [onChange, router, suppressRefresh, beginPending])
 
   const applyNewOrder = useCallback(async (newBooks: CatalogBook[]) => {
     const reranked = rerank(newBooks)
