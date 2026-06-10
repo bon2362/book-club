@@ -250,3 +250,27 @@ export const matchingPreferenceEvents = pgTable('matching_preference_events', {
   typeOccurredAtIdx:    index('matching_preference_events_type_occurred_at_idx').on(t.eventType, t.occurredAt),
   bookIdIdx:            index('matching_preference_events_book_id_idx').on(t.bookId),
 }))
+
+// Site-wide audit log — см. docs/superpowers/specs/2026-06-10-site-audit-log-design.md
+// Захват делают триггеры БД (drizzle/00YY_audit_triggers.sql), не drizzle-код.
+export const auditLog = pgTable('audit_log', {
+  id:            text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  occurredAt:    timestamp('occurred_at', { mode: 'date' }).notNull().defaultNow(),
+  // БЕЗ FK на users: append-only журнал не должен мутироваться каскадом ON DELETE.
+  // «Кто» сохраняется денормализованно в actorLabel; actorUserId — просто текстовый id.
+  actorUserId:   text('actor_user_id'),
+  actorLabel:    text('actor_label'),
+  source:        text('source').notNull(),
+  action:        text('action').notNull(),
+  entityType:    text('entity_type').notNull(),
+  entityId:      text('entity_id'),
+  before:        jsonb('before'),
+  after:         jsonb('after'),
+  changedFields: jsonb('changed_fields').$type<string[]>(),
+  reason:        text('reason'),
+  metadata:      jsonb('metadata'),
+}, (t) => ({
+  entityIdx: index('audit_log_entity_idx').on(t.entityType, t.entityId, t.occurredAt),
+  actorIdx:  index('audit_log_actor_idx').on(t.actorUserId, t.occurredAt),
+  timeIdx:   index('audit_log_occurred_at_idx').on(t.occurredAt),
+}))
