@@ -516,9 +516,21 @@ body {
 }
 .nd-flow-gate-intro { animation: nd-gate-intro-in 0.35s ease both; }
 
+/* Спиннер пересчёта сценариев (#315) */
+@keyframes nd-board-spin { to { transform: rotate(360deg); } }
+.nd-board-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--hair);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: nd-board-spin 0.7s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nd-flow-collapsible { transition: none !important; }
   .nd-flow-slide-from-top,
   .nd-flow-fade-collapse { transition: none !important; }
   .nd-flow-gate-intro { animation: none !important; }
+  .nd-board-spinner { animation-duration: 1.6s; }
 }

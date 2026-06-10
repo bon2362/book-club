@@ -14,6 +14,7 @@ import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
 import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
+import MatchingBoardProvider from '@/components/nd/MatchingBoardProvider'
 import MatchingHeader from '@/components/nd/MatchingHeader'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import MatchingSatisfactionFlow from '@/components/nd/MatchingSatisfactionFlow'
@@ -318,23 +319,26 @@ export default async function MatchingPage({
   // Satisfaction renders the gate ↔ board as one morphing full-width page.
   if (mode === 'satisfaction') {
     return (
-      <MatchingSatisfactionFlow
-        phase="board"
-        sessionId={activeSession.id}
-        books={personalBooks}
-        bookParticipants={clientBookParticipants}
-        viewingUserId={clientViewingUserId}
-        frozen={isReadOnly}
-        mutationUserId={isImpersonating ? viewingUserId : undefined}
-        header={headerSlot}
-        workspace={workspaceSlot}
-        catalogIntro={catalogIntroSlot}
-      />
+      <MatchingBoardProvider stateVersion={activeSession.stateVersion}>
+        <MatchingSatisfactionFlow
+          phase="board"
+          sessionId={activeSession.id}
+          books={personalBooks}
+          bookParticipants={clientBookParticipants}
+          viewingUserId={clientViewingUserId}
+          frozen={isReadOnly}
+          mutationUserId={isImpersonating ? viewingUserId : undefined}
+          header={headerSlot}
+          workspace={workspaceSlot}
+          catalogIntro={catalogIntroSlot}
+        />
+      </MatchingBoardProvider>
     )
   }
 
   // Coverage board — unchanged full-width layout.
   return (
+    <MatchingBoardProvider stateVersion={activeSession.stateVersion}>
     <div
       className="flex flex-col"
       style={{ minHeight: '100svh', background: 'var(--bg)', color: 'var(--text)' }}
@@ -371,6 +375,7 @@ export default async function MatchingPage({
 
       <MatchingRealtimeWrapper sessionId={activeSession.id} />
     </div>
+    </MatchingBoardProvider>
   )
 }
 
