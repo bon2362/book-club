@@ -2,11 +2,13 @@
 
 import type { AdriftCause } from '@/lib/matching/feed-events'
 import type { OptimizationMode } from '@/lib/matching/scenarios'
+import { pseudonymPastVerb } from '@/lib/matching/pseudonym-declension'
 
 interface Props {
   reason: 'change' | 'never'
   cause: (AdriftCause & { bookTitle?: string | null }) | null
   onFix: () => void
+  onDismiss?: () => void
   viewingUserId?: string
   mode?: OptimizationMode
 }
@@ -19,20 +21,21 @@ function relativeTime(ts: number): string {
   return `${hours} ч назад`
 }
 
-function actionVerb(kind: AdriftCause['mutationKind'], isViewer: boolean): string {
+function actionVerb(kind: AdriftCause['mutationKind'], isViewer: boolean, pseudonym: string): string {
   if (isViewer) {
     if (kind === 'book_removed') return 'убрали'
     if (kind === 'book_added') return 'добавили'
     if (kind === 'status_changed') return 'изменили статус'
     return 'изменили список'
   }
-  if (kind === 'book_removed') return 'убрал:а'
-  if (kind === 'book_added') return 'добавил:а'
-  if (kind === 'status_changed') return 'изменил:а статус'
-  return 'изменил:а список'
+  // Род согласуется с псевдонимом-животным, без гендергепов «убрал:а».
+  if (kind === 'book_removed') return pseudonymPastVerb(pseudonym, { m: 'убрал', f: 'убрала', n: 'убрало' })
+  if (kind === 'book_added') return pseudonymPastVerb(pseudonym, { m: 'добавил', f: 'добавила', n: 'добавило' })
+  if (kind === 'status_changed') return pseudonymPastVerb(pseudonym, { m: 'изменил статус', f: 'изменила статус', n: 'изменило статус' })
+  return pseudonymPastVerb(pseudonym, { m: 'изменил список', f: 'изменила список', n: 'изменило список' })
 }
 
-export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUserId, mode = 'coverage' }: Props) {
+export default function MatchingAdriftBanner({ reason, cause, onFix, onDismiss, viewingUserId, mode = 'coverage' }: Props) {
   const isActorViewer = !!viewingUserId && cause?.actor.userId === viewingUserId
   const actorLabel = isActorViewer ? 'вы' : (cause?.actor.pseudonym ?? '')
   const soft = mode === 'satisfaction'
@@ -99,7 +102,7 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
 
               <p style={{ margin: '0.3rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, maxWidth: '64ch' }}>
                 {soft
-                  ? 'В этом режиме круги собираются по самому близкому совпадению интересов — и не все попадают сразу. Это нормально: посмотрите, что выбирают другие, поднимите свою книгу выше или дождитесь новых участников.'
+                  ? 'Читательские круги собираются по самому близкому совпадению интересов — и не все попадают сразу. Это нормально: посмотрите, что выбирают другие, можете добавить книги или дождаться других участников.'
                   : reason === 'change'
                     ? 'В лучшем сейчас сценарии для вас не собирается читательский круг — вы не попадаете ни в одну группу.'
                     : 'Пока ни одна из ваших книг не собрала круг — вы не входите ни в одну группу ни в одном сценарии. Так бывает в начале сессии, пока совпадений ещё мало.'}
@@ -123,29 +126,10 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
                     flexWrap: 'wrap',
                   }}
                 >
-                  {/* Actor avatar */}
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: '50%',
-                      background: 'var(--chip-bg)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      color: 'var(--text-secondary)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {actorLabel[0]?.toUpperCase() ?? '?'}
-                  </span>
                   <span>
                     Вы выпали из круга после того, как{' '}
                     <strong style={{ color: 'var(--text)' }}>{actorLabel}</strong>{' '}
-                    {actionVerb(cause.mutationKind, isActorViewer)}
+                    {actionVerb(cause.mutationKind, isActorViewer, cause.actor.pseudonym)}
                     {cause.bookTitle ? (
                       <> «<span style={{ fontFamily: 'var(--nd-serif)', fontWeight: 700 }}>{cause.bookTitle}</span>»</>
                     ) : null}
@@ -159,7 +143,8 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
             <div className="flex flex-col items-start md:items-end md:self-center shrink-0" style={{ gap: '0.4rem' }}>
               <button
                 type="button"
-                onClick={onFix}
+                onClick={soft ? (onDismiss ?? onFix) : onFix}
+                data-testid={soft ? 'matching-adrift-dismiss' : undefined}
                 className="nd-adrift-cta"
                 style={{
                   padding: '0.5rem 1rem',
@@ -174,7 +159,7 @@ export default function MatchingAdriftBanner({ reason, cause, onFix, viewingUser
                   whiteSpace: 'nowrap',
                 }}
               >
-                {soft ? 'Где совпадают интересы →' : 'Как вернуться в круг →'}
+                {soft ? 'Понятно' : 'Как вернуться в круг →'}
               </button>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                 {soft ? 'подсказки в «Моих ходах»' : 'добавьте книгу из «Моих ходов»'}
