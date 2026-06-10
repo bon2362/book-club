@@ -15,6 +15,7 @@ interface BookInfo extends MatchingBookDetail {
 }
 
 interface Props {
+  sessionId: string
   overview: ScenarioSetOverview
   bookById: Map<string, BookInfo>
   bookParticipants: BookParticipant[]
@@ -60,6 +61,7 @@ const subStyle: React.CSSProperties = {
 }
 
 export default function MatchingImpactWorkspace({
+  sessionId,
   overview,
   bookById,
   bookParticipants,
@@ -98,9 +100,47 @@ export default function MatchingImpactWorkspace({
     setLastMove(null)
   }, [moves])
 
+  // Закрытие баннера «Вы пока не в круге» (#339): запоминаем в localStorage и
+  // держим закрытым, пока не изменится расклад (сигнатура = id лидер-сценария).
+  // Как только пользователь снова в круге (adrift == null) — забываем закрытие,
+  // чтобы при новом выпадении баннер вернулся.
+  const isAdrift = !!adrift
+  const adriftSignature = overview.leader?.id ?? 'none'
+  const dismissKey = `matching:adrift-dismissed:${sessionId}`
+  const [dismissedSignature, setDismissedSignature] = useState<string | null>(null)
+  const [adriftHydrated, setAdriftHydrated] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setDismissedSignature(window.localStorage.getItem(dismissKey))
+    setAdriftHydrated(true)
+  }, [dismissKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || isAdrift) return
+    window.localStorage.removeItem(dismissKey)
+    setDismissedSignature(null)
+  }, [isAdrift, dismissKey])
+
+  const handleDismissAdrift = useCallback(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem(dismissKey, adriftSignature)
+    setDismissedSignature(adriftSignature)
+  }, [dismissKey, adriftSignature])
+
+  const showAdrift = isAdrift && adriftHydrated && dismissedSignature !== adriftSignature
+
   return (
     <div className="flex flex-col h-full min-h-0">
-      {adrift && <MatchingAdriftBanner reason={adrift.reason} cause={adrift.cause} onFix={handleFixAdrift} viewingUserId={viewingUserId} mode={mode} />}
+      {showAdrift && adrift && (
+        <MatchingAdriftBanner
+          reason={adrift.reason}
+          cause={adrift.cause}
+          onFix={handleFixAdrift}
+          onDismiss={handleDismissAdrift}
+          viewingUserId={viewingUserId}
+          mode={mode}
+        />
+      )}
       <div className="grid flex-1 min-h-0" style={{ gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)', gap: '1.1rem' }}>
       <section data-testid="matching-reader-circles-panel" style={panel}>
         <div style={panelHeadStyle}>

@@ -280,6 +280,7 @@ export default async function MatchingPage({
 
   const workspaceSlot = (
     <MatchingImpactWorkspace
+      sessionId={activeSession.id}
       overview={clientScenarioSetOverview}
       bookById={bookById}
       bookParticipants={clientBookParticipants}
