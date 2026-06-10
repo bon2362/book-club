@@ -27,6 +27,11 @@ jest.mock('@/lib/db', () => ({
   })(),
 }))
 jest.mock('@/lib/db/schema', () => ({ notificationQueue: {} }))
+// Роут оборачивает мутации в withAuditContext; в тесте подменяем его прямым
+// вызовом fn(mockDb), чтобы tx === замоканный db (его update-цепочка ниже).
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 
 const mockDbUpdate = db.update as jest.Mock
 const mockDbTransaction = db.transaction as jest.Mock
