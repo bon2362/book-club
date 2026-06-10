@@ -1,6 +1,7 @@
 import {
   buildFeedEventsForMutation,
   hasLeaderChanged,
+  isMatchingMutationKind,
   newlyLeftOut,
   summarizeLeader,
 } from '../feed-events'
@@ -51,6 +52,23 @@ function scenario(
 }
 
 const actor = { userId: 'actor', pseudonym: 'Actor' }
+
+describe('isMatchingMutationKind', () => {
+  it('принимает participant_left как валидный тип мутации', () => {
+    expect(isMatchingMutationKind('participant_left')).toBe(true)
+  })
+
+  it('принимает все стандартные типы мутаций', () => {
+    for (const kind of ['book_added', 'book_removed', 'rank_changed', 'status_changed', 'catalog_signup_updated', 'priorities_updated']) {
+      expect(isMatchingMutationKind(kind)).toBe(true)
+    }
+  })
+
+  it('отклоняет неизвестные значения', () => {
+    expect(isMatchingMutationKind('unknown_kind')).toBe(false)
+    expect(isMatchingMutationKind('')).toBe(false)
+  })
+})
 
 describe('feed event detection', () => {
   it('emits a best event when the leader scenario changes', () => {
@@ -144,6 +162,32 @@ describe('feed event detection', () => {
       leaderBefore: before,
       leaderAfter: after,
     })).toEqual([])
+  })
+
+  it('buildFeedEventsForMutation строит best-драфт для participant_left при улучшении расклада', () => {
+    // Участник выходит, и расклад улучшается (например, убирается ограничение минимального размера)
+    const before = scenario('before', [circle('book-a', ['u1', 'u2'])], [
+      { userId: 'u3', pseudonym: 'Белка' },
+    ])
+    const after = scenario('after', [circle('book-a', ['u1', 'u2']), circle('book-b', ['u4', 'u5', 'u6'])])
+
+    const events = buildFeedEventsForMutation({
+      actor: { userId: 'u3', pseudonym: 'Белка' },
+      bookId: '',
+      kind: 'participant_left',
+      leaderBefore: before,
+      leaderAfter: after,
+      now: 100,
+    })
+
+    expect(events.some((e) => e.type === 'best')).toBe(true)
+    const bestEvent = events.find((e) => e.type === 'best')
+    expect(bestEvent).toMatchObject({
+      type: 'best',
+      mutationKind: 'participant_left',
+      addedCircleBookIds: expect.arrayContaining(['book-b']),
+      removedCircleBookIds: [],
+    })
   })
 
   it('exposes pure summary and leftout comparison helpers for the orchestrator', () => {

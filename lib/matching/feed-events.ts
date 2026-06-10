@@ -7,6 +7,7 @@ export type MatchingMutationKind =
   | 'status_changed'
   | 'catalog_signup_updated'
   | 'priorities_updated'
+  | 'participant_left'
 
 export interface MatchingMutationActor {
   userId: string
@@ -187,6 +188,7 @@ export function isMatchingMutationKind(value: string): value is MatchingMutation
     'status_changed',
     'catalog_signup_updated',
     'priorities_updated',
+    'participant_left',
   ].includes(value)
 }
 

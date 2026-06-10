@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
-import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
+import { captureMatchingMutationSnapshot, finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 interface Params { params: { id: string } }
@@ -32,15 +32,24 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Session is not active' }, { status: 409 })
   }
 
-  // Record the analytics event BEFORE deleting the participant row (pseudonym
-  // is captured there and the membership guard needs the row to still exist).
-  await recordParticipantLeftEvent({
-    sessionId,
-    userId,
-    actorUserId: userId,
-    source: 'matching',
-  }).catch(() => {}) // analytics must never block the leave action
+  // Снимаем снапшот и псевдоним ДО удаления участника
+  const [before, participantRow] = await Promise.all([
+    captureMatchingMutationSnapshot(sessionId),
+    db
+      .select({ pseudonym: matchingSessionParticipants.pseudonym })
+      .from(matchingSessionParticipants)
+      .where(
+        and(
+          eq(matchingSessionParticipants.sessionId, sessionId),
+          eq(matchingSessionParticipants.userId, userId),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+  ])
+  const pseudonym = participantRow?.pseudonym ?? 'Участник'
 
+  // Удаляем участника
   await withAuditContext(
     { actorUserId: userId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'matching' },
     async (tx) => {
@@ -54,6 +63,21 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
         )
     },
   )
+
+  // Записываем ОДНО событие participant_left с before/after снапшотами.
+  // skipMembershipGuard=true — строка участника уже удалена.
+  // after-снапшот берётся внутри finalizeMatchingMutationEffects ПОСЛЕ удаления.
+  await finalizeMatchingMutationEffects({
+    sessionId,
+    targetUserId: userId,
+    actorUserId: userId,
+    bookId: null,
+    kind: 'participant_left',
+    source: 'matching',
+    before,
+    skipMembershipGuard: true,
+    metadata: { pseudonym },
+  }).catch(() => {}) // аналитика не должна блокировать выход
 
   await bumpSessionState(sessionId)
 

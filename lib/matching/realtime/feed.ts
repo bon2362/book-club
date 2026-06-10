@@ -32,6 +32,8 @@ export interface PublicBestFeedEvent extends PublicFeedEventBase {
   type: 'best'
   before: PublicFeedScenarioSummary | null
   after: PublicFeedScenarioSummary | null
+  addedCircleBookIds: string[]
+  removedCircleBookIds: string[]
 }
 
 export interface PublicLeftoutFeedEvent extends PublicFeedEventBase {
@@ -57,6 +59,7 @@ export async function fetchFeedForSession(
       before: matchingPreferenceEvents.before,
       after: matchingPreferenceEvents.after,
       occurredAt: matchingPreferenceEvents.occurredAt,
+      metadata: matchingPreferenceEvents.metadata,
     })
     .from(matchingPreferenceEvents)
     .where(eq(matchingPreferenceEvents.sessionId, sessionId))
@@ -84,14 +87,29 @@ export async function fetchFeedForSession(
 
   let id = 0
   const persistentEvents = [...rows].reverse().flatMap((row) => {
-    if (!row.bookId || !isMatchingMutationKind(row.eventType)) return []
+    if (!isMatchingMutationKind(row.eventType)) return []
+    // participant_left может не иметь bookId — подставляем пустую строку.
+    // Для остальных типов мутаций bookId обязателен.
+    if (row.eventType !== 'participant_left' && !row.bookId) return []
+    const bookId = row.bookId ?? ''
+
+    // Для participant_left псевдоним актора берём из metadata.pseudonym,
+    // т.к. после выхода строки участника нет в таблице.
+    const actorPseudonym =
+      row.eventType === 'participant_left' &&
+      row.metadata &&
+      typeof row.metadata === 'object' &&
+      'pseudonym' in (row.metadata as object) &&
+      typeof (row.metadata as Record<string, unknown>).pseudonym === 'string'
+        ? (row.metadata as Record<string, unknown>).pseudonym as string
+        : pseudonymByUserId.get(row.actorUserId) ?? 'Участник'
 
     const drafts = buildFeedEventsForMutation({
       actor: {
         userId: row.actorUserId,
-        pseudonym: pseudonymByUserId.get(row.actorUserId) ?? 'Участник',
+        pseudonym: actorPseudonym,
       },
-      bookId: row.bookId,
+      bookId,
       kind: row.eventType,
       leaderBefore: asMatchingScenario(row.before),
       leaderAfter: asMatchingScenario(row.after),
@@ -113,6 +131,8 @@ export async function fetchFeedForSession(
           type: 'best',
           before: toPublicSummary(draft.before),
           after: toPublicSummary(draft.after),
+          addedCircleBookIds: draft.addedCircleBookIds,
+          removedCircleBookIds: draft.removedCircleBookIds,
         }
       }
 

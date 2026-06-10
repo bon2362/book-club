@@ -531,12 +531,27 @@ function FeedKeyChip({
   userPseudonym?: string | null
 }) {
   const isWarn = event.type === 'leftout'
-  const icon = isWarn ? '⚠' : '★'
 
+  let icon: string
   let label: string
   if (event.type === 'best') {
-    label = 'Лучший расклад'
+    const added = event.addedCircleBookIds.length > 0
+    const removed = event.removedCircleBookIds.length > 0
+    if (added && removed) {
+      icon = '↺'
+      label = 'Расклад изменился'
+    } else if (added) {
+      icon = '＋'
+      label = 'Появился круг'
+    } else if (removed) {
+      icon = '－'
+      label = 'Круг распался'
+    } else {
+      icon = '↑'
+      label = 'Расклад укрепился'
+    }
   } else {
+    icon = '⚠'
     const isAffectedViewer = !!userPseudonym && event.affected.pseudonym === userPseudonym
     label = isAffectedViewer
       ? 'Вы остались за бортом'
@@ -723,33 +738,70 @@ function MatchingFeedTicker({
  * Сравнение по псевдониму безопасно: они уникальны внутри сессии.
  */
 function feedDetail(event: FeedEvent, bookTitles: Record<string, string>, userPseudonym: string | null): string {
-  const title = bookTitles[event.bookId] ?? 'книгу'
   const isActorViewer = !!userPseudonym && event.actor.pseudonym === userPseudonym
   const actorName = isActorViewer ? 'вы' : event.actor.pseudonym
 
-  let verb: string
-  if (isActorViewer) {
-    verb = event.mutationKind === 'book_removed' ? 'убрали'
-      : event.mutationKind === 'book_added' ? 'добавили'
-      : 'изменили'
+  // Глагол и действие-актора по mutationKind
+  let action: string
+  if (event.mutationKind === 'participant_left') {
+    const verb = isActorViewer
+      ? 'вышли из сессии'
+      : pseudonymPastVerb(event.actor.pseudonym, { m: 'вышел из сессии', f: 'вышла из сессии', n: 'вышло из сессии' })
+    action = `${actorName} ${verb}`
+  } else if (event.mutationKind === 'book_added') {
+    const title = bookTitles[event.bookId] ?? 'книгу'
+    const verb = isActorViewer
+      ? 'добавили'
+      : pseudonymPastVerb(event.actor.pseudonym, { m: 'добавил', f: 'добавила', n: 'добавило' })
+    action = `${actorName} ${verb} «${title}»`
+  } else if (event.mutationKind === 'book_removed') {
+    const title = bookTitles[event.bookId] ?? 'книгу'
+    const verb = isActorViewer
+      ? 'убрали'
+      : pseudonymPastVerb(event.actor.pseudonym, { m: 'убрал', f: 'убрала', n: 'убрало' })
+    action = `${actorName} ${verb} «${title}»`
   } else {
-    verb = event.mutationKind === 'book_removed'
-      ? pseudonymPastVerb(event.actor.pseudonym, { m: 'убрал', f: 'убрала', n: 'убрало' })
-      : event.mutationKind === 'book_added'
-        ? pseudonymPastVerb(event.actor.pseudonym, { m: 'добавил', f: 'добавила', n: 'добавило' })
-        : pseudonymPastVerb(event.actor.pseudonym, { m: 'изменил', f: 'изменила', n: 'изменило' })
+    // rank_changed | priorities_updated | status_changed | catalog_signup_updated
+    const verb = isActorViewer
+      ? 'изменили приоритеты'
+      : pseudonymPastVerb(event.actor.pseudonym, { m: 'изменил приоритеты', f: 'изменила приоритеты', n: 'изменило приоритеты' })
+    action = `${actorName} ${verb}`
   }
 
-  if (event.type === 'best' && event.before && event.after && event.after.coveredCount > event.before.coveredCount) {
-    return `покрытие ${event.before.coveredCount} → ${event.after.coveredCount} участников после того как ${actorName} ${verb} «${title}»`
+  // Суффикс по подтипу (только для best)
+  if (event.type === 'best') {
+    if (event.mutationKind === 'participant_left') {
+      return `${action} → расклад пересчитался`
+    }
+    const added = event.addedCircleBookIds.length > 0
+    const removed = event.removedCircleBookIds.length > 0
+    if (added && !removed) {
+      // circle_added
+      const after = event.after
+      if (after) {
+        return `${action} → теперь в раскладе ${after.coveredCount} из ${after.totalCount}`
+      }
+      return action
+    }
+    if (!added && !removed) {
+      // coverage_up
+      const before = event.before
+      const after = event.after
+      if (before && after) {
+        return `${action} → покрытие ${before.coveredCount} → ${after.coveredCount} участников`
+      }
+      return action
+    }
+    if (removed && !added) {
+      // circle_removed
+      return `${action} → круг распался`
+    }
+    // scenario_changed (added && removed) — без суффикса
+    return action
   }
 
-  if (event.type === 'leftout') {
-    // affected уже показан в FeedKeyChip — здесь только действие актора
-    return `${actorName} ${verb} «${title}»`
-  }
-
-  return `после того как ${actorName} ${verb} «${title}»`
+  // leftout — только действие актора (affected уже показан в FeedKeyChip)
+  return action
 }
 
 function relativeFeedTime(ts: number): string {
