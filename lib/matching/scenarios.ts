@@ -506,15 +506,23 @@ function buildScenarioStates(circles: MatchingCircle[], participants: ScenarioPa
   return states.filter((state) => state.circles.length > 0)
 }
 
-function isStrictCircleSubset(a: MatchingScenario, b: MatchingScenario): boolean {
-  if (a.circles.length >= b.circles.length) return false
-  const bCircleIds = new Set(b.circles.map((circle) => circle.id))
-  return a.circles.every((circle) => bCircleIds.has(circle.id))
+function scenarioAssignments(scenario: MatchingScenario): Set<string> {
+  return new Set(
+    scenario.circles.flatMap((circle) => circle.members.map((member) => `${member.userId}:${circle.bookId}`)),
+  )
 }
 
+// A scenario is Pareto-dominated when another scenario keeps every user→book
+// assignment it has and adds at least one more (same circle with extra members,
+// or extra independent circles).
 function filterDominatedSatisfactionScenarios(scenarios: MatchingScenario[]): MatchingScenario[] {
-  return scenarios.filter((scenario, index) => (
-    !scenarios.some((other, otherIndex) => otherIndex !== index && isStrictCircleSubset(scenario, other))
+  const assignments = scenarios.map(scenarioAssignments)
+  return scenarios.filter((_, index) => (
+    !assignments.some((other, otherIndex) => (
+      otherIndex !== index &&
+      assignments[index].size < other.size &&
+      Array.from(assignments[index]).every((pair) => other.has(pair))
+    ))
   ))
 }
 
