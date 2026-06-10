@@ -1,4 +1,9 @@
-import { declinePseudonym, pseudonymPronoun } from '../pseudonym-declension'
+import {
+  declinePseudonym,
+  pseudonymGender,
+  pseudonymPastVerb,
+  pseudonymPronoun,
+} from '../pseudonym-declension'
 
 describe('declinePseudonym', () => {
   it('returns dative for Барсук', () => {
@@ -49,5 +54,41 @@ describe('pseudonymPronoun', () => {
 
   it('returns он as fallback for unknown name', () => {
     expect(pseudonymPronoun('Единорог', 'он')).toBe('он')
+  })
+})
+
+describe('pseudonymGender', () => {
+  it('returns м for masculine animal', () => {
+    expect(pseudonymGender('Барсук')).toBe('м')
+  })
+
+  it('returns ж for feminine animal', () => {
+    expect(pseudonymGender('Белка')).toBe('ж')
+  })
+
+  it('falls back to м for unknown name', () => {
+    expect(pseudonymGender('Единорог')).toBe('м')
+  })
+})
+
+describe('pseudonymPastVerb (Лента, без гендергепов)', () => {
+  const forms = { m: 'добавил', f: 'добавила', n: 'добавило' }
+
+  it('picks masculine form for masculine animal', () => {
+    expect(pseudonymPastVerb('Барсук', forms)).toBe('добавил')
+  })
+
+  it('picks feminine form for feminine animal', () => {
+    expect(pseudonymPastVerb('Белка', forms)).toBe('добавила')
+  })
+
+  it('falls back to masculine form for unknown name', () => {
+    expect(pseudonymPastVerb('Единорог', forms)).toBe('добавил')
+  })
+
+  it('renders "остался / осталась за бортом" по роду', () => {
+    const leftout = { m: 'остался', f: 'осталась', n: 'осталось' }
+    expect(`Барсук ${pseudonymPastVerb('Барсук', leftout)}`).toBe('Барсук остался')
+    expect(`Белка ${pseudonymPastVerb('Белка', leftout)}`).toBe('Белка осталась')
   })
 })
