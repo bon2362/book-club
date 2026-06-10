@@ -10,6 +10,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 const prioritySources = ['matching', 'matching_priority_gate'] as const
 type PrioritySource = typeof prioritySources[number]
@@ -42,25 +43,33 @@ export async function PATCH(req: NextRequest) {
 
   const userId = asUserId ?? session.user.id
   const ordered = bookIds as string[]
+  const actorId = session.user.id
+  const actorLabel = session.user.name ?? session.user.contactEmail ?? null
+  const auditSource = asUserId ? 'admin' : source
 
   // Snapshot the leader scenario before the change so analytics can show impact.
   const before = await captureMatchingMutationSnapshot(activeSession.id)
 
   // Upsert each book with its new rank (1-indexed position)
-  for (let i = 0; i < ordered.length; i++) {
-    await db
-      .insert(bookPriorities)
-      .values({ userId, bookId: ordered[i], rank: i + 1 })
-      .onConflictDoUpdate({
-        target: [bookPriorities.userId, bookPriorities.bookId],
-        set: { rank: i + 1, updatedAt: new Date() },
-      })
-  }
+  await withAuditContext(
+    { actorUserId: actorId, actorLabel, source: auditSource },
+    async (tx) => {
+      for (let i = 0; i < ordered.length; i++) {
+        await tx
+          .insert(bookPriorities)
+          .values({ userId, bookId: ordered[i], rank: i + 1 })
+          .onConflictDoUpdate({
+            target: [bookPriorities.userId, bookPriorities.bookId],
+            set: { rank: i + 1, updatedAt: new Date() },
+          })
+      }
 
-  await db
-    .update(users)
-    .set({ prioritiesSet: true })
-    .where(eq(users.id, userId))
+      await tx
+        .update(users)
+        .set({ prioritiesSet: true })
+        .where(eq(users.id, userId))
+    },
+  )
 
   // Return canonical order so client can reconcile
   const canonical = await db
@@ -74,10 +83,10 @@ export async function PATCH(req: NextRequest) {
   await finalizeMatchingMutationEffects({
     sessionId: activeSession.id,
     targetUserId: userId,
-    actorUserId: session.user.id,
+    actorUserId: actorId,
     bookId: null,
     kind: 'priorities_updated',
-    source,
+    source: auditSource,
     before,
     metadata: { rankedBookIds: ordered },
   })

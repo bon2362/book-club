@@ -13,12 +13,14 @@ import {
 import { eq, inArray, and } from 'drizzle-orm'
 import { filterSignupsByMode, generateScenarioSets, type OptimizationMode } from '@/lib/matching/scenarios'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 type Params = { params: { id: string } }
 
 export async function POST(_req: NextRequest, { params }: Params) {
   const session = await auth()
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!session?.user?.isAdmin || !session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const actorId = session.user.id
 
   const [matchSession] = await db
     .select()
@@ -89,19 +91,24 @@ export async function POST(_req: NextRequest, { params }: Params) {
     ? leader.circles.reduce((sum, circle) => sum + circle.wantsCount, 0) / Math.max(leader.score.coveredCount, 1)
     : 0
 
-  await db
-    .update(matchingSessions)
-    .set({
-      status: 'frozen',
-      frozenAt,
-      frozenScenarioJson: leader ?? null,
-      metricGroupsCount,
-      metricCoverage,
-      metricTimeToFreezeSeconds,
-      metricTimeSinceLastMutationSeconds: null,
-      metricTop3HitRate,
-    })
-    .where(eq(matchingSessions.id, params.id))
+  await withAuditContext(
+    { actorUserId: actorId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'admin' },
+    async (tx) => {
+      await tx
+        .update(matchingSessions)
+        .set({
+          status: 'frozen',
+          frozenAt,
+          frozenScenarioJson: leader ?? null,
+          metricGroupsCount,
+          metricCoverage,
+          metricTimeToFreezeSeconds,
+          metricTimeSinceLastMutationSeconds: null,
+          metricTop3HitRate,
+        })
+        .where(eq(matchingSessions.id, params.id))
+    },
+  )
 
   await bumpSessionState(params.id)
 

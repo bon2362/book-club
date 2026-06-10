@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { bookPriorities, matchingSessionParticipants, matchingSessions, signupBooks } from '@/lib/db/schema'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 type Params = { params: { id: string } }
 type OptimizationMode = 'coverage' | 'satisfaction'
@@ -47,7 +48,8 @@ function participantsHaveRankedActiveBooks(
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth()
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!session?.user?.isAdmin || !session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const actorId = session.user.id
 
   const body = await req.json().catch(() => ({}))
   const optimizationMode = parseOptimizationMode(body)
@@ -99,10 +101,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: incompletePrioritiesError }, { status: 409 })
   }
 
-  await db
-    .update(matchingSessions)
-    .set({ optimizationMode })
-    .where(eq(matchingSessions.id, params.id))
+  await withAuditContext(
+    { actorUserId: actorId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'admin' },
+    async (tx) => {
+      await tx
+        .update(matchingSessions)
+        .set({ optimizationMode })
+        .where(eq(matchingSessions.id, params.id))
+    },
+  )
 
   await bumpSessionState(params.id)
 

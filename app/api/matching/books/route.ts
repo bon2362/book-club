@@ -10,6 +10,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -33,46 +34,56 @@ export async function POST(req: NextRequest) {
 
   const before = await captureMatchingMutationSnapshot(activeSession.id)
 
-  await db
-    .insert(signupBooks)
-    .values({ userId, bookId })
-    .onConflictDoNothing()
+  const actorId = session.user.id
+  const actorLabel = session.user.name ?? session.user.contactEmail ?? null
+  const auditSource = asUserId ? 'admin' : 'matching'
 
-  const currentOrder = await db
-    .select({ bookId: bookPriorities.bookId })
-    .from(bookPriorities)
-    .where(eq(bookPriorities.userId, userId))
-    .orderBy(asc(bookPriorities.rank))
+  await withAuditContext(
+    { actorUserId: actorId, actorLabel, source: auditSource },
+    async (tx) => {
+      await tx
+        .insert(signupBooks)
+        .values({ userId, bookId })
+        .onConflictDoNothing()
 
-  const nextOrder = [
-    bookId,
-    ...currentOrder
-      .map((row) => row.bookId)
-      .filter((existingBookId) => existingBookId !== bookId),
-  ]
+      const rows = await tx
+        .select({ bookId: bookPriorities.bookId })
+        .from(bookPriorities)
+        .where(eq(bookPriorities.userId, userId))
+        .orderBy(asc(bookPriorities.rank))
 
-  for (let i = 0; i < nextOrder.length; i++) {
-    await db
-      .insert(bookPriorities)
-      .values({ userId, bookId: nextOrder[i], rank: i + 1 })
-      .onConflictDoUpdate({
-        target: [bookPriorities.userId, bookPriorities.bookId],
-        set: { rank: i + 1, updatedAt: new Date() },
-      })
-  }
+      const nextOrder = [
+        bookId,
+        ...rows
+          .map((row) => row.bookId)
+          .filter((existingBookId) => existingBookId !== bookId),
+      ]
 
-  await db
-    .update(users)
-    .set({ prioritiesSet: true })
-    .where(eq(users.id, userId))
+      for (let i = 0; i < nextOrder.length; i++) {
+        await tx
+          .insert(bookPriorities)
+          .values({ userId, bookId: nextOrder[i], rank: i + 1 })
+          .onConflictDoUpdate({
+            target: [bookPriorities.userId, bookPriorities.bookId],
+            set: { rank: i + 1, updatedAt: new Date() },
+          })
+      }
+
+      await tx
+        .update(users)
+        .set({ prioritiesSet: true })
+        .where(eq(users.id, userId))
+
+    },
+  )
 
   await finalizeMatchingMutationEffects({
     sessionId: activeSession.id,
     targetUserId: userId,
-    actorUserId: session.user.id,
+    actorUserId: actorId,
     bookId,
     kind: 'book_added',
-    source: asUserId ? 'admin' : 'matching',
+    source: auditSource,
     before,
   })
   await bumpSessionState(activeSession.id)

@@ -7,6 +7,7 @@ import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 interface Params { params: { id: string } }
 
@@ -40,14 +41,19 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     source: 'matching',
   }).catch(() => {}) // analytics must never block the leave action
 
-  await db
-    .delete(matchingSessionParticipants)
-    .where(
-      and(
-        eq(matchingSessionParticipants.sessionId, sessionId),
-        eq(matchingSessionParticipants.userId, userId),
-      ),
-    )
+  await withAuditContext(
+    { actorUserId: userId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'matching' },
+    async (tx) => {
+      await tx
+        .delete(matchingSessionParticipants)
+        .where(
+          and(
+            eq(matchingSessionParticipants.sessionId, sessionId),
+            eq(matchingSessionParticipants.userId, userId),
+          ),
+        )
+    },
+  )
 
   await bumpSessionState(sessionId)
 

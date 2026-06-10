@@ -31,9 +31,7 @@
         "lib/user-identities.ts",
         "lib/auth-adapter.ts",
         "lib/user-activity.ts",
-        "lib/matching/**",
-        "app/api/matching/**",
-        "app/api/admin/matching/**"
+        "lib/matching/pseudonym-reservations.ts"
       ],
       "rules": { "no-restricted-syntax": "off" }
     }

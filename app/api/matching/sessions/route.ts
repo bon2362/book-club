@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 interface CreateSessionBody {
   name: string
@@ -32,9 +33,10 @@ function parseGroupSizeRange(body: CreateSessionBody): { minGroupSize: number; m
 
 export async function POST(req: NextRequest) {
   const session = await auth()
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.isAdmin || !session.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const actorId = session.user.id
 
   let body: CreateSessionBody
   try {
@@ -81,25 +83,31 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const [created] = await db
-    .insert(matchingSessions)
-    .values({
-      name,
-      createdBy: session.user.id,
-      status: 'active',
-      minGroupSize: groupSizeRange.minGroupSize,
-      maxGroupSize: groupSizeRange.maxGroupSize,
-      optimizationMode,
-      deadlineAt,
-    })
-    .returning({
-      id: matchingSessions.id,
-      name: matchingSessions.name,
-      status: matchingSessions.status,
-      minGroupSize: matchingSessions.minGroupSize,
-      maxGroupSize: matchingSessions.maxGroupSize,
-      optimizationMode: matchingSessions.optimizationMode,
-    })
+  const [created] = await withAuditContext(
+    { actorUserId: actorId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'admin' },
+    async (tx) => {
+      const rows = await tx
+        .insert(matchingSessions)
+        .values({
+          name,
+          createdBy: actorId,
+          status: 'active',
+          minGroupSize: groupSizeRange.minGroupSize,
+          maxGroupSize: groupSizeRange.maxGroupSize,
+          optimizationMode,
+          deadlineAt,
+        })
+        .returning({
+          id: matchingSessions.id,
+          name: matchingSessions.name,
+          status: matchingSessions.status,
+          minGroupSize: matchingSessions.minGroupSize,
+          maxGroupSize: matchingSessions.maxGroupSize,
+          optimizationMode: matchingSessions.optimizationMode,
+        })
+      return rows
+    },
+  )
 
   return NextResponse.json({ success: true, data: created }, { status: 201 })
 }
