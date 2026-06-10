@@ -16,6 +16,8 @@ export interface FinalizeMatchingMutationInput {
   source: 'matching' | 'matching_priority_gate' | 'catalog' | 'profile' | 'admin'
   before: MatchingMutationSnapshot | null
   metadata?: Record<string, unknown>
+  /** Если true — пропускает проверку членства при записи события (нужно для participant_left). */
+  skipMembershipGuard?: boolean
 }
 
 export async function captureMatchingMutationSnapshot(
@@ -34,6 +36,7 @@ export async function finalizeMatchingMutationEffects({
   source,
   before,
   metadata = {},
+  skipMembershipGuard,
 }: FinalizeMatchingMutationInput): Promise<void> {
   const after = await captureMatchingMutationSnapshot(sessionId)
   if (!after) return
@@ -66,5 +69,6 @@ export async function finalizeMatchingMutationEffects({
     before: before?.context.overview.leader ?? null,
     after: after.context.overview.leader,
     metadata: enrichedMetadata,
+    skipMembershipGuard,
   })
 }

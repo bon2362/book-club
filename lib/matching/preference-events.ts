@@ -18,6 +18,8 @@ export interface RecordMatchingPreferenceEventInput {
   after?: unknown
   metadata?: unknown
   occurredAt?: Date
+  /** Если true — пропускает проверку членства в сессии (нужно для participant_left: строка уже удалена). */
+  skipMembershipGuard?: boolean
 }
 
 export type RecordMatchingPreferenceEventResult =
@@ -30,20 +32,22 @@ export async function recordMatchingPreferenceEvent(
 ): Promise<RecordMatchingPreferenceEventResult> {
   const occurredAt = input.occurredAt ?? new Date()
 
-  const [participant] = await dbClient
-    .select({ joinedAt: matchingSessionParticipants.joinedAt })
-    .from(matchingSessionParticipants)
-    .where(
-      and(
-        eq(matchingSessionParticipants.sessionId, input.sessionId),
-        eq(matchingSessionParticipants.userId, input.userId),
-        lte(matchingSessionParticipants.joinedAt, occurredAt),
-      ),
-    )
-    .limit(1)
+  if (!input.skipMembershipGuard) {
+    const [participant] = await dbClient
+      .select({ joinedAt: matchingSessionParticipants.joinedAt })
+      .from(matchingSessionParticipants)
+      .where(
+        and(
+          eq(matchingSessionParticipants.sessionId, input.sessionId),
+          eq(matchingSessionParticipants.userId, input.userId),
+          lte(matchingSessionParticipants.joinedAt, occurredAt),
+        ),
+      )
+      .limit(1)
 
-  if (!participant) {
-    return { recorded: false, reason: 'not_participant_after_joined_at' }
+    if (!participant) {
+      return { recorded: false, reason: 'not_participant_after_joined_at' }
+    }
   }
 
   const [created] = await dbClient

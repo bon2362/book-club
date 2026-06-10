@@ -75,6 +75,31 @@ describe('recordMatchingPreferenceEvent', () => {
     expect(db.insert).not.toHaveBeenCalled()
   })
 
+  it('записывает событие со skipMembershipGuard=true даже когда participant-строки нет', async () => {
+    // db.select вернёт пустой массив — но гард пропускается
+    const occurredAt = new Date('2026-06-01T12:00:00Z')
+    const { db, insertChain, participantChain } = makeDb([])
+
+    const result = await recordMatchingPreferenceEvent({
+      sessionId: 'session-1',
+      userId: 'user-1',
+      actorUserId: 'user-1',
+      eventType: 'participant_left',
+      source: 'matching',
+      occurredAt,
+      skipMembershipGuard: true,
+      metadata: { pseudonym: 'Белка' },
+    }, db as never)
+
+    expect(result).toEqual({ recorded: true, eventId: 'event-1' })
+    // гард не вызывается — select не должен быть вызван
+    expect(participantChain.from).not.toHaveBeenCalled()
+    expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'participant_left',
+      metadata: { pseudonym: 'Белка' },
+    }))
+  })
+
   it('stores nullable optional fields as null', async () => {
     const occurredAt = new Date('2026-06-01T12:00:00Z')
     const { db, insertChain } = makeDb([{ joinedAt: new Date('2026-06-01T11:00:00Z') }])
