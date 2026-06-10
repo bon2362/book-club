@@ -13,6 +13,7 @@ import IntroEditor from './IntroEditor'
 import AdminUserDrawer from './AdminUserDrawer'
 import AdminBooksCatalog, { type CatalogParticipant } from './AdminBooksCatalog'
 import AdminMatchingSession from './AdminMatchingSession'
+import AdminAuditLog from './AdminAuditLog'
 
 interface Submission {
   id: string
@@ -49,12 +50,12 @@ interface Props {
   catalogCount: number
 }
 
-type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'feedback' | 'intro' | 'matching'
+type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'feedback' | 'intro' | 'matching' | 'audit'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastActivityAt' | 'createdAt'
 
-const ADMIN_VIEWS: View[] = ['users', 'catalog', 'tags', 'submissions', 'feedback', 'intro', 'matching']
+const ADMIN_VIEWS: View[] = ['users', 'catalog', 'tags', 'submissions', 'feedback', 'intro', 'matching', 'audit']
 const READ_SUBMISSIONS_STORAGE_KEY = 'admin_read_submission_ids'
 const READ_FEEDBACK_STORAGE_KEY = 'admin_read_feedback_ids'
 
@@ -707,11 +708,16 @@ export default function AdminPanel({
           <button style={tabStyle(view === 'matching')} onClick={() => selectView('matching')} data-testid="admin-tab-matching">
             Матчинг
           </button>
+          <button style={tabStyle(view === 'audit')} onClick={() => selectView('audit')} data-testid="admin-tab-audit">
+            История изменений
+          </button>
         </div>
 
         {view === 'intro' && <IntroEditor />}
 
         {view === 'matching' && <AdminMatchingSession />}
+
+        {view === 'audit' && <AdminAuditLog />}
 
         {view === 'catalog' && <AdminBooksCatalog participantsByBookId={participantsByBookId} />}
 

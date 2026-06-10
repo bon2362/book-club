@@ -1,4 +1,32 @@
 import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test'
+import { Pool, neonConfig } from '@neondatabase/serverless'
+import ws from 'ws'
+import { readFileSync, existsSync } from 'fs'
+import { resolve } from 'path'
+
+/**
+ * Load DATABASE_URL from .env.test.local for use in the Playwright Node.js
+ * context (the webServer gets it injected separately via playwright.config.ts).
+ */
+function loadTestDatabaseUrl(): string | undefined {
+  // First check process.env (CI injects it directly)
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL
+  const path = resolve(__dirname, '..', '.env.test.local')
+  if (!existsSync(path)) return undefined
+  for (const rawLine of readFileSync(path, 'utf8').split('\n')) {
+    const line = rawLine.trim()
+    if (!line || line.startsWith('#')) continue
+    const eq = line.indexOf('=')
+    if (eq === -1) continue
+    const key = line.slice(0, eq).trim()
+    let value = line.slice(eq + 1).trim()
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1)
+    }
+    if (key === 'DATABASE_URL') return value
+  }
+  return undefined
+}
 
 const POSTHOG_PATTERNS = [
   '**/eu.i.posthog.com/**',
@@ -59,7 +87,27 @@ interface AdminSession {
   userId: string
 }
 
+interface DbExecHelper {
+  /**
+   * Execute a raw SQL statement against the e2e database (Node.js context,
+   * not the browser). Useful for out-of-band mutations that bypass
+   * `withAuditContext` to test trigger-level capture.
+   *
+   * Cleanup callbacks registered via `registerCleanup` run in LIFO order
+   * in teardown — even when the test body fails.
+   */
+  (sql: string, params?: unknown[]): Promise<void>
+  registerCleanup: (cleanupSql: string, params?: unknown[]) => void
+}
+
 interface E2EHelpers {
+  /**
+   * Raw-SQL helper against the e2e Neon branch (process.env.DATABASE_URL).
+   * Runs in Node.js context (not browser). Registers cleanup callbacks via
+   * `dbExec.registerCleanup(sql, params)`.
+   */
+  dbExec: DbExecHelper
+
   /**
    * Log in as a regular user with a unique email derived from the test id.
    * Session is deleted automatically in teardown.
@@ -119,6 +167,35 @@ export const test = base.extend<E2EHelpers>({
       await context.route(pattern, (route) => route.abort())
     }
     await use(context)
+  },
+
+  dbExec: async ({}, use) => {
+    if (typeof WebSocket === 'undefined') {
+      neonConfig.webSocketConstructor = ws
+    }
+    const connectionString = loadTestDatabaseUrl()
+    if (!connectionString) {
+      throw new Error('dbExec fixture: DATABASE_URL not found in process.env or .env.test.local')
+    }
+    const pool = new Pool({ connectionString })
+    const cleanups: Array<{ sql: string; params?: unknown[] }> = []
+
+    const exec = async (sql: string, params?: unknown[]) => {
+      await pool.query(sql, params as unknown[] | undefined)
+    }
+    exec.registerCleanup = (sql: string, params?: unknown[]) => {
+      cleanups.push({ sql, params })
+    }
+
+    await use(exec as DbExecHelper)
+
+    // Teardown: run cleanups LIFO
+    for (const { sql, params } of cleanups.reverse()) {
+      try {
+        await pool.query(sql, params as unknown[] | undefined)
+      } catch { /* best-effort */ }
+    }
+    await pool.end()
   },
 
   loginAsUser: async ({ page }, use, testInfo) => {

@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { books } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { updateBook, BookValidationError } from '@/lib/books'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth()
@@ -15,7 +16,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const body = await req.json()
-    await updateBook(params.id, body)
+    await withAuditContext(
+      {
+        actorUserId: session.user.id,
+        actorLabel: session.user.contactEmail ?? null,
+        source: 'admin',
+      },
+      async (tx) => updateBook(params.id, body, tx),
+    )
     const [row] = await db.select().from(books).where(eq(books.id, params.id)).limit(1)
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ success: true, data: row })
