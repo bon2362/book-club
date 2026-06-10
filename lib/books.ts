@@ -235,8 +235,8 @@ export interface UpdateBookInput {
   sortOrder?: number
 }
 
-export async function updateBook(id: string, input: UpdateBookInput): Promise<BookWithCover | null> {
-  const [current] = await db.select().from(books).where(eq(books.id, id)).limit(1)
+export async function updateBook(id: string, input: UpdateBookInput, dbClient: typeof db = db): Promise<BookWithCover | null> {
+  const [current] = await dbClient.select().from(books).where(eq(books.id, id)).limit(1)
   if (!current) return null
 
   const patch: Partial<typeof books.$inferInsert> = { updatedAt: new Date() }
@@ -289,6 +289,6 @@ export async function updateBook(id: string, input: UpdateBookInput): Promise<Bo
   if (input.isNew !== undefined) patch.isNew = input.isNew
   if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder
 
-  await db.update(books).set(patch).where(eq(books.id, id))
+  await dbClient.update(books).set(patch).where(eq(books.id, id))
   return fetchBookById(id)
 }

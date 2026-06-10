@@ -7,6 +7,10 @@ import { BookValidationError } from '@/lib/books'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: jest.fn((_ctx: unknown, fn: (tx: unknown) => Promise<unknown>) => fn({})),
+}))
+
 const selectChainState = { rows: [] as unknown[] }
 function pushSelectResult(rows: unknown[]) { selectChainState.rows = rows }
 
@@ -88,7 +92,7 @@ describe('PATCH /api/admin/books/[id]', () => {
     pushSelectResult([{ id: 'b1', title: 'T', visibility: 'published' }])
     const res = await PATCH(makePatch('b1', { visibility: 'published' }), { params: { id: 'b1' } })
     expect(res.status).toBe(200)
-    expect(updateBookMock).toHaveBeenCalledWith('b1', { visibility: 'published' })
+    expect(updateBookMock).toHaveBeenCalledWith('b1', { visibility: 'published' }, {})
     const json = await res.json()
     expect(json.data.id).toBe('b1')
   })
@@ -99,6 +103,6 @@ describe('PATCH /api/admin/books/[id]', () => {
     pushSelectResult([{ id: 'b1', visibility: 'hidden' }])
     const res = await PATCH(makePatch('b1', { visibility: 'hidden' }), { params: { id: 'b1' } })
     expect(res.status).toBe(200)
-    expect(updateBookMock).toHaveBeenCalledWith('b1', { visibility: 'hidden' })
+    expect(updateBookMock).toHaveBeenCalledWith('b1', { visibility: 'hidden' }, {})
   })
 })
