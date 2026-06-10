@@ -18,6 +18,9 @@ jest.mock('@/lib/matching/mutation-effects', () => ({
   captureMatchingMutationSnapshot: jest.fn().mockResolvedValue(null),
   finalizeMatchingMutationEffects: jest.fn(),
 }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
@@ -164,7 +167,7 @@ describe('PATCH /api/matching/priorities', () => {
         targetUserId: 'participant1',
         actorUserId: 'admin1',
         kind: 'priorities_updated',
-        source: 'matching',
+        source: 'admin',
       }),
     )
   })

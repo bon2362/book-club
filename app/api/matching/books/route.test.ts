@@ -14,6 +14,9 @@ jest.mock('@/lib/matching/mutation-effects', () => ({
   finalizeMatchingMutationEffects: jest.fn(),
 }))
 jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 jest.mock('@/lib/db/schema', () => ({
   matchingSessions: {},
   signupBooks: {},
