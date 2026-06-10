@@ -530,7 +530,9 @@ function FeedKeyChip({
   size?: 'normal' | 'compact'
   userPseudonym?: string | null
 }) {
-  const isWarn = event.type === 'leftout'
+  // Регрессию (изменение без улучшения) подсвечиваем как предупреждение —
+  // наравне с выпадением участника из круга.
+  const isWarn = event.type === 'leftout' || (event.type === 'best' && !event.improved)
 
   let icon: string
   let label: string
@@ -546,9 +548,12 @@ function FeedKeyChip({
     } else if (removed) {
       icon = '－'
       label = 'Круг распался'
-    } else {
+    } else if (event.improved) {
       icon = '↑'
       label = 'Расклад укрепился'
+    } else {
+      icon = '↓'
+      label = 'Расклад ослаб'
     }
   } else {
     icon = '⚠'
@@ -784,13 +789,13 @@ function feedDetail(event: FeedEvent, bookTitles: Record<string, string>, userPs
       return action
     }
     if (!added && !removed) {
-      // coverage_up
+      // Состав кругов не менялся — меняется охват/качество.
       const before = event.before
       const after = event.after
-      if (before && after) {
+      if (before && after && before.coveredCount !== after.coveredCount) {
         return `${action} → покрытие ${before.coveredCount} → ${after.coveredCount} участников`
       }
-      return action
+      return event.improved ? `${action} → расклад укрепился` : `${action} → расклад ослаб`
     }
     if (removed && !added) {
       // circle_removed

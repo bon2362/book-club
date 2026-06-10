@@ -30,6 +30,8 @@ interface PublicFeedEventBase {
 
 export interface PublicBestFeedEvent extends PublicFeedEventBase {
   type: 'best'
+  /** true — расклад улучшился; false — изменился без улучшения (регрессия/перестановка). */
+  improved: boolean
   before: PublicFeedScenarioSummary | null
   after: PublicFeedScenarioSummary | null
   addedCircleBookIds: string[]
@@ -129,6 +131,7 @@ export async function fetchFeedForSession(
         return {
           ...base,
           type: 'best',
+          improved: draft.improved,
           before: toPublicSummary(draft.before),
           after: toPublicSummary(draft.after),
           addedCircleBookIds: draft.addedCircleBookIds,
