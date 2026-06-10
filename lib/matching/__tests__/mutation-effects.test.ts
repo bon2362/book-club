@@ -168,6 +168,31 @@ describe('finalizeMatchingMutationEffects', () => {
     }))
   })
 
+  it('резолвит bookTitle из before-снапшота при book_removed, когда книги уже нет в after-контексте', async () => {
+    // After the solo removal the book is gone from the live (after) map — it
+    // only survives in the before-snapshot captured prior to the mutation.
+    mockFetchContext.mockResolvedValue({
+      ...afterContext,
+      bookTitleById: new Map<string, string>(),
+    })
+
+    await finalizeMatchingMutationEffects({
+      sessionId: 'session-1',
+      targetUserId: 'target',
+      actorUserId: 'target',
+      bookId: 'book-1',
+      kind: 'book_removed',
+      source: 'matching',
+      before: { context: contextWithLeader(beforeLeader) },
+    })
+
+    expect(mockRecordEvent).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'book_removed',
+      bookId: 'book-1',
+      metadata: expect.objectContaining({ bookTitle: 'Книга' }),
+    }))
+  })
+
   it('does nothing when the scenario context is unavailable', async () => {
     mockFetchContext.mockResolvedValue(null)
 
