@@ -156,7 +156,10 @@ FK на `actor_user_id` снят намеренно: `ON DELETE set null` пот
 
 - Компонент: `components/nd/AdminAuditLog.tsx` (data-testid: `admin-tab-audit`)
 - API: `GET /api/admin/audit-log`; доступ только `isAdmin`
-- Фильтры через query params: `actorUserId`, `entityType`, `entityId`, `source`, `from`, `to`, `limit` (дефолт 100, макс 500)
+- Фильтры через query params: `actorUserId`, `entityType`, `entityId`, `source`, `from`, `to`
+- Пагинация: `page` (1-based, дефолт 1) и `pageSize` (дефолт 50, макс 200); ответ содержит `total`, `page`, `pageSize`
+- Сортировка: `sortBy` ∈ `{ occurredAt, source, action, entityType, entityId, actorLabel }` (дефолт `occurredAt`), `sortDir` ∈ `{ asc, desc }` (дефолт `desc`)
+- UI-компонент поддерживает серверную пагинацию (50/стр), панель фильтров (источник/объект/актор/ID/даты) и сортировку кликом по заголовкам столбцов с индикатором ▲/▼
 - Строки с `source='trigger'` подсвечиваются меткой «внесистемное»
 - Клик по строке раскрывает `before`/`after`/`changedFields`/`reason`
 
