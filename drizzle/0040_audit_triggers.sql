@@ -32,7 +32,9 @@ BEGIN
       COALESCE(v_after ->> 'session_id', v_before ->> 'session_id'),
       COALESCE(v_after ->> 'user_id',    v_before ->> 'user_id'),
       COALESCE(v_after ->> 'book_id',    v_before ->> 'book_id')
-    ), '')
+    ), ''),
+    v_after ->> 'tag',        v_before ->> 'tag',         -- tag_descriptions
+    v_after ->> 'identifier', v_before ->> 'identifier'   -- verificationToken (token уже замаскирован)
   );
 
   INSERT INTO audit_log
