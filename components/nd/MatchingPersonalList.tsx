@@ -221,24 +221,23 @@ function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles:
       }}
       onClick={() => onClick(book)}
     >
-      {/* Rank + drag handle */}
-      <div className="flex flex-col items-center gap-0.5">
+      {/* Rank + drag handle — расширенная зона захвата (весь первый столбец) */}
+      <div
+        {...(frozen ? {} : { ...attributes, ...listeners })}
+        aria-label={frozen ? undefined : `Перетащить книгу ${book.title}`}
+        onClick={(e) => e.stopPropagation()}
+        className={'flex flex-col items-center gap-0.5 select-none touch-none' + (frozen ? '' : ' nd-drag-handle cursor-grab')}
+        style={{ alignSelf: 'stretch', justifyContent: 'center' }}
+      >
         {book.rank != null && (
           <span style={s.rank}>
             #{book.rank}
           </span>
         )}
         {!frozen && (
-          <button
-            {...attributes}
-            {...listeners}
-            aria-label={`Перетащить книгу ${book.title}`}
-            onClick={(e) => e.stopPropagation()}
-            className="nd-drag-handle cursor-grab select-none touch-none"
-            style={s.handle}
-          >
+          <span style={s.handle} aria-hidden="true">
             ⠿
-          </button>
+          </span>
         )}
       </div>
 

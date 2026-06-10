@@ -49,7 +49,6 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym: ini
   const router = useRouter()
   const [pseudonym, setPseudonym] = useState(initialPseudonym)
   const [joining, setJoining] = useState(false)
-  const [joined, setJoined] = useState(false)
   const [rerolling, setRerolling] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const kind = getPseudonymIllustrationKind(pseudonym)
@@ -81,7 +80,6 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym: ini
       const res = await fetch(`/api/matching/sessions/${sessionId}/join`, { method: 'POST' })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json.error ?? 'Не удалось войти в сессию')
-      setJoined(true)
       router.refresh()
     } catch (event) {
       setError(event instanceof Error ? event.message : 'Не удалось войти в сессию')
@@ -104,179 +102,139 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym: ini
         }}
       />
       <section style={{ ...cardStyle, position: 'relative' }} aria-labelledby="matching-welcome-title">
-        {joined ? (
-          <>
-            <div style={{ ...microStyle, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  background: 'var(--success)',
-                  color: 'var(--bg-input)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.68rem',
-                }}
-              >
-                ✓
-              </span>
-              Вы в сессии
-            </div>
-            <h1
-              id="matching-welcome-title"
-              style={{
-                margin: '0.9rem 0 0',
-                fontFamily: 'var(--nd-serif)',
-                fontSize: '1.55rem',
-                lineHeight: 1.15,
-              }}
-            >
-              Добро пожаловать, <em style={{ color: 'var(--accent)' }}>{pseudonym}</em>
-            </h1>
-            <p style={{ margin: '0.8rem 0 0', fontFamily: 'var(--nd-serif)', fontSize: '1rem', lineHeight: 1.55, color: 'var(--text-body)' }}>
-              Теперь твои предпочтения учитываются. Отмечай книги, которые хочешь читать, и наблюдай, как складываются круги.
-            </p>
-          </>
-        ) : (
-          <>
-            <div style={{ ...microStyle, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
-              Долгое наступление · читательский клуб
-            </div>
-            <h1
-              id="matching-welcome-title"
-              style={{
-                margin: '0.9rem 0 0',
-                fontFamily: 'var(--nd-serif)',
-                fontSize: 'clamp(1.55rem, 6vw, 1.9rem)',
-                lineHeight: 1.12,
-                fontWeight: 700,
-                color: 'var(--text)',
-              }}
-            >
-              Добро пожаловать
-            </h1>
-            <p style={{ margin: '0.85rem 0 0', fontFamily: 'var(--nd-serif)', fontSize: '1.02rem', lineHeight: 1.55, color: 'var(--text-body)' }}>
-              Здесь ты сможешь узнать, что хотят читать остальные и какие читательские круги складываются. Добавляй и убирай книги из своего списка, чтобы продвинуть лучший для всех сценарий.
-            </p>
-            <div
-              style={{
-                marginTop: '1.5rem',
-                border: '1px solid var(--hair)',
-                background: 'var(--bg-input)',
-              }}
-            >
-              <div
-                data-testid="welcome-illustration"
-                aria-label={`Иллюстрация ника ${pseudonym}`}
-                style={{
-                  position: 'relative',
-                  width: '100%',
-                  aspectRatio: '3 / 2',
-                  borderBottom: '1px solid var(--hair)',
-                  background: 'var(--bg-elevated)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent)',
-                  overflow: 'hidden',
-                }}
-              >
-                {showPhoto ? (
-                  <Image
-                    data-testid="welcome-species-photo"
-                    src={photo!.file}
-                    alt={`Фотография: ${pseudonym}`}
-                    fill
-                    sizes="(max-width: 432px) 100vw, 432px"
-                    style={{ objectFit: 'contain', borderRadius: 'var(--radius)' }}
-                    onError={() => setPhotoError(true)}
-                  />
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                    <span data-testid="welcome-species-glyph" aria-hidden="true" style={{ fontFamily: 'var(--nd-serif)', fontSize: '3rem', fontWeight: 700 }}>
-                      {glyph}
-                    </span>
-                    <span style={{ ...microStyle, color: 'var(--text-muted)', textAlign: 'center' }}>{pseudonym}</span>
-                  </div>
-                )}
+        <div style={{ ...microStyle, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
+          Долгое наступление · читательский клуб
+        </div>
+        <h1
+          id="matching-welcome-title"
+          style={{
+            margin: '0.7rem 0 0',
+            fontFamily: 'var(--nd-serif)',
+            fontSize: 'clamp(1.35rem, 6vw, 1.7rem)',
+            lineHeight: 1.12,
+            fontWeight: 700,
+            color: 'var(--text)',
+          }}
+        >
+          Добро пожаловать
+        </h1>
+        <p style={{ margin: '0.55rem 0 0', fontFamily: 'var(--nd-serif)', fontSize: '0.95rem', lineHeight: 1.5, color: 'var(--text-body)' }}>
+          Ты узнаешь, что хотят читать остальные. Меняй выбор книг, чтобы продвинуть лучший для всех сценарий.
+        </p>
+        <div
+          style={{
+            marginTop: '1rem',
+            border: '1px solid var(--hair)',
+            background: 'var(--bg-input)',
+          }}
+        >
+          <div
+            data-testid="welcome-illustration"
+            aria-label={`Иллюстрация ника ${pseudonym}`}
+            style={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '16 / 7',
+              borderBottom: '1px solid var(--hair)',
+              background: 'var(--bg-elevated)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--accent)',
+              overflow: 'hidden',
+            }}
+          >
+            {showPhoto ? (
+              <Image
+                data-testid="welcome-species-photo"
+                src={photo!.file}
+                alt={`Фотография: ${pseudonym}`}
+                fill
+                sizes="(max-width: 432px) 100vw, 432px"
+                style={{ objectFit: 'contain', borderRadius: 'var(--radius)' }}
+                onError={() => setPhotoError(true)}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                <span data-testid="welcome-species-glyph" aria-hidden="true" style={{ fontFamily: 'var(--nd-serif)', fontSize: '2.4rem', fontWeight: 700 }}>
+                  {glyph}
+                </span>
+                <span style={{ ...microStyle, color: 'var(--text-muted)', textAlign: 'center' }}>{pseudonym}</span>
               </div>
-              <div style={{ padding: '0.95rem 1rem' }}>
-                <div style={microStyle}>Ваш ник</div>
-                <div data-testid="welcome-pseudonym" style={{ marginTop: '0.25rem', fontFamily: 'var(--nd-serif)', fontSize: '1.7rem', lineHeight: 1.05, fontWeight: 700 }}>
-                  {pseudonym}
-                </div>
-                <div style={{ marginTop: '0.45rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Сессия: {sessionName}
-                </div>
-                <button
-                  type="button"
-                  data-testid="welcome-reroll"
-                  onClick={handleReroll}
-                  disabled={rerolling || joining}
-                  style={{
-                    marginTop: '0.7rem',
-                    padding: '0.4rem 0.7rem',
-                    background: 'none',
-                    border: '1px solid var(--border-strong)',
-                    borderRadius: 'var(--radius)',
-                    color: 'var(--text)',
-                    fontFamily: 'var(--nd-sans)',
-                    fontSize: '0.68rem',
-                    fontWeight: 600,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    cursor: rerolling || joining ? 'default' : 'pointer',
-                    opacity: rerolling ? 0.6 : 1,
-                  }}
-                >
-                  {rerolling ? 'Меняем…' : '↻ Другой ник'}
-                </button>
-              </div>
+            )}
+          </div>
+          <div style={{ padding: '0.6rem 1rem' }}>
+            <div style={microStyle}>Ваш ник</div>
+            <div data-testid="welcome-pseudonym" style={{ marginTop: '0.2rem', fontFamily: 'var(--nd-serif)', fontSize: '1.5rem', lineHeight: 1.05, fontWeight: 700 }}>
+              {pseudonym}
             </div>
-            {showPhoto && photo && (
-              <p style={{ margin: '0.4rem 0 0', ...microStyle, color: 'var(--text-muted)' }}>
-                фото: {photo.author} · {photo.license}
-              </p>
-            )}
-            <p style={{ margin: '0.85rem 0 0', fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
-              Мы <strong style={{ color: 'var(--text)' }}>не показываем настоящие имена</strong>. Тебе присвоен ник «<strong style={{ color: 'var(--text)' }}>{pseudonym}</strong>».
-            </p>
-            {error && (
-              <p role="alert" style={{ margin: '0.85rem 0 0', fontSize: '0.78rem', color: 'var(--accent)' }}>
-                {error}
-              </p>
-            )}
+            <div style={{ marginTop: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Сессия: {sessionName}
+            </div>
             <button
               type="button"
-              onClick={handleJoin}
-              disabled={joining}
+              data-testid="welcome-reroll"
+              onClick={handleReroll}
+              disabled={rerolling || joining}
               style={{
-                width: '100%',
-                marginTop: '1.5rem',
-                padding: '0.92rem 1rem',
-                border: 'none',
+                marginTop: '0.5rem',
+                padding: '0.35rem 0.65rem',
+                background: 'none',
+                border: '1px solid var(--border-strong)',
                 borderRadius: 'var(--radius)',
-                background: 'var(--accent)',
-                color: 'var(--bg-input)',
+                color: 'var(--text)',
                 fontFamily: 'var(--nd-sans)',
-                fontSize: '0.95rem',
-                fontWeight: 700,
+                fontSize: '0.68rem',
+                fontWeight: 600,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                cursor: joining ? 'default' : 'pointer',
+                cursor: rerolling || joining ? 'default' : 'pointer',
+                opacity: rerolling ? 0.6 : 1,
               }}
             >
-              {joining ? 'Входим…' : 'Войти'}
+              {rerolling ? 'Меняем…' : '↻ Другой ник'}
             </button>
-            <p style={{ margin: '0.8rem 0 0', textAlign: 'center', fontSize: '0.72rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
-              После входа ты становишься участником сессии — твои книги начинают влиять на сценарии и ходы.
-            </p>
-          </>
+          </div>
+        </div>
+        {showPhoto && photo && (
+          <p style={{ margin: '0.3rem 0 0', ...microStyle, color: 'var(--text-muted)' }}>
+            фото: {photo.author} · {photo.license}
+          </p>
         )}
+        <p style={{ margin: '0.55rem 0 0', fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+          Мы <strong style={{ color: 'var(--text)' }}>не показываем настоящие имена</strong>. Тебе присвоен ник «<strong style={{ color: 'var(--text)' }}>{pseudonym}</strong>».
+        </p>
+        {error && (
+          <p role="alert" style={{ margin: '0.6rem 0 0', fontSize: '0.78rem', color: 'var(--accent)' }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={handleJoin}
+          disabled={joining}
+          style={{
+            width: '100%',
+            marginTop: '1rem',
+            padding: '0.85rem 1rem',
+            border: 'none',
+            borderRadius: 'var(--radius)',
+            background: 'var(--accent)',
+            color: 'var(--bg-input)',
+            fontFamily: 'var(--nd-sans)',
+            fontSize: '0.95rem',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            cursor: joining ? 'default' : 'pointer',
+          }}
+        >
+          {joining ? 'Входим…' : 'Войти'}
+        </button>
+        <p style={{ margin: '0.55rem 0 0', textAlign: 'center', fontSize: '0.72rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
+          После входа ты становишься участником сессии — твои книги начинают влиять на сценарии и ходы.
+        </p>
       </section>
     </main>
   )
