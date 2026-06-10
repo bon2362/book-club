@@ -14,7 +14,6 @@ export const AUDITED_TABLES = [
   'matching_session_participants',
   'matching_pseudonym_reservations',
   'matching_preference_events',
-  'user_activity_events',
   'user_identities',
   'verificationToken',
   'telegram_preauth_tokens',
@@ -27,3 +26,10 @@ export type AuditedTable = (typeof AUDITED_TABLES)[number]
 // их пишет NextAuth DrizzleAdapter / auth-цепочка мимо нашего кода (lib/auth.ts,
 // lib/telegram-auth.ts, lib/user-identities.ts). Reconciliation-проверка их игнорирует.
 export const AUTH_OOB_TABLES = ['verificationToken', 'user', 'user_identities'] as const
+
+// Таблицы, где source='trigger' ОЖИДАЕМ (системная автоматика / пишется не нашим кодом).
+// Просмотрщик показывает для них «система», а не тревожное «внесистемное».
+export const SYSTEM_TRIGGER_TABLES = [
+  'verificationToken', 'user', 'user_identities',
+  'notification_queue', 'matching_pseudonym_reservations',
+] as const
