@@ -146,6 +146,74 @@ describe('feed event detection', () => {
     ])
   })
 
+  it('помечает улучшающее событие флагом improved: true', () => {
+    const before = scenario('before', [circle('book-a', ['u1', 'u2', 'u3'])], [
+      { userId: 'u4', pseudonym: 'User 4' },
+    ])
+    const after = scenario('after', [circle('book-b', ['u1', 'u2', 'u3']), circle('book-c', ['u4', 'u5', 'u6'])])
+
+    const [event] = buildFeedEventsForMutation({
+      actor,
+      bookId: 'book-b',
+      kind: 'book_added',
+      leaderBefore: before,
+      leaderAfter: after,
+    })
+
+    expect(event).toMatchObject({ type: 'best', improved: true })
+  })
+
+  it('эмитит событие для регрессии расклада, когда никто не выпадает из круга', () => {
+    // Пользователь убирает книгу: тот же охват, но оптимальный сценарий ослаб
+    // (меньше «очень хочу»), и никто новый не остаётся за бортом.
+    const before = scenario('before', [circle('book-a', ['u1', 'u2', 'u3'])], [
+      { userId: 'u4', pseudonym: 'User 4' },
+    ])
+    const after = scenario('after', [circle('book-a', ['u1', 'u2', 'u3'])], [
+      { userId: 'u4', pseudonym: 'User 4' },
+    ])
+    after.score.strongInterestCount = 1
+
+    const events = buildFeedEventsForMutation({
+      actor,
+      bookId: 'book-a',
+      kind: 'book_removed',
+      leaderBefore: before,
+      leaderAfter: after,
+    })
+
+    expect(hasLeaderChanged(before, after)).toBe(true)
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      type: 'best',
+      mutationKind: 'book_removed',
+      improved: false,
+      addedCircleBookIds: [],
+      removedCircleBookIds: [],
+    })
+  })
+
+  it('не дублирует best-событие, когда регрессия уже описана выпадением из круга', () => {
+    const before = scenario('before', [circle('book-a', ['u1', 'u2', 'u3']), circle('book-b', ['u4', 'u5', 'u6'])])
+    const after = scenario('after', [circle('book-a', ['u1', 'u2', 'u3'])], [
+      { userId: 'u4', pseudonym: 'User 4' },
+      { userId: 'u5', pseudonym: 'User 5' },
+      { userId: 'u6', pseudonym: 'User 6' },
+    ])
+
+    const events = buildFeedEventsForMutation({
+      actor,
+      bookId: 'book-b',
+      kind: 'book_removed',
+      leaderBefore: before,
+      leaderAfter: after,
+    })
+
+    expect(events.some((event) => event.type === 'best')).toBe(false)
+    expect(events.every((event) => event.type === 'leftout')).toBe(true)
+    expect(events).not.toHaveLength(0)
+  })
+
   it('does not emit events when leader composition and leftout set are unchanged', () => {
     const before = scenario('same', [circle('book-a', ['u1', 'u2', 'u3'])], [
       { userId: 'u4', pseudonym: 'User 4' },

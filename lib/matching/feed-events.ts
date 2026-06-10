@@ -37,6 +37,8 @@ export interface FeedEventBaseDraft {
 
 export interface BestFeedEventDraft extends FeedEventBaseDraft {
   type: 'best'
+  /** true — лидер-сценарий улучшился; false — изменился без улучшения (регрессия/перестановка). */
+  improved: boolean
   before: FeedScenarioSummary | null
   after: FeedScenarioSummary | null
   addedCircleBookIds: string[]
@@ -69,12 +71,17 @@ export interface BuildFeedEventsInput extends ActorBookMutation {
 export function buildFeedEventsForMutation(input: BuildFeedEventsInput): FeedEventDraft[] {
   const events: FeedEventDraft[] = []
   const mutation = pickMutation(input)
+  const leftOut = newlyLeftOut(input.leaderBefore, input.leaderAfter)
+  const improved = hasLeaderImproved(input.leaderBefore, input.leaderAfter)
 
-  if (hasLeaderChanged(input.leaderBefore, input.leaderAfter) && hasLeaderImproved(input.leaderBefore, input.leaderAfter)) {
-    events.push(buildBestEvent(mutation, input.leaderBefore, input.leaderAfter))
+  // Показываем «расклад изменился» при любом значимом изменении лидера —
+  // и улучшении, и регрессии. Исключение: чистую регрессию, которую уже
+  // описывает более конкретное событие «выпал из круга», не дублируем.
+  if (hasLeaderChanged(input.leaderBefore, input.leaderAfter) && (improved || leftOut.length === 0)) {
+    events.push(buildBestEvent(mutation, input.leaderBefore, input.leaderAfter, improved))
   }
 
-  for (const affected of newlyLeftOut(input.leaderBefore, input.leaderAfter)) {
+  for (const affected of leftOut) {
     events.push({
       ...mutation,
       type: 'leftout',
@@ -152,6 +159,7 @@ function buildBestEvent(
   mutation: FeedEventBaseDraft,
   leaderBefore: MatchingScenario | null,
   leaderAfter: MatchingScenario | null,
+  improved: boolean,
 ): BestFeedEventDraft {
   const beforeBookIds = new Set(leaderBefore?.circles.map((circle) => circle.bookId) ?? [])
   const afterBookIds = new Set(leaderAfter?.circles.map((circle) => circle.bookId) ?? [])
@@ -159,6 +167,7 @@ function buildBestEvent(
   return {
     ...mutation,
     type: 'best',
+    improved,
     before: summarizeLeader(leaderBefore),
     after: summarizeLeader(leaderAfter),
     addedCircleBookIds: Array.from(afterBookIds).filter((bookId) => !beforeBookIds.has(bookId)),
