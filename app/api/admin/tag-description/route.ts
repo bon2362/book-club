@@ -2,9 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
 import { tagDescriptions } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -17,14 +17,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing tag' }, { status: 400 })
   }
 
-  if (!description.trim()) {
-    await db.delete(tagDescriptions).where(eq(tagDescriptions.tag, tag))
-  } else {
-    await db.insert(tagDescriptions).values({ tag, description: description.trim() }).onConflictDoUpdate({
-      target: tagDescriptions.tag,
-      set: { description: description.trim() },
-    })
-  }
+  await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'admin',
+    },
+    async (tx) => {
+      if (!description.trim()) {
+        await tx.delete(tagDescriptions).where(eq(tagDescriptions.tag, tag))
+      } else {
+        await tx.insert(tagDescriptions).values({ tag, description: description.trim() }).onConflictDoUpdate({
+          target: tagDescriptions.tag,
+          set: { description: description.trim() },
+        })
+      }
+    },
+  )
 
   return NextResponse.json({ ok: true })
 }

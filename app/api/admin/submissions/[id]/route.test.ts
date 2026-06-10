@@ -61,6 +61,10 @@ jest.mock('@/lib/db', () => ({
     })),
   },
 }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) =>
+    fn((jest.requireMock('@/lib/db') as { db: unknown }).db),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 
@@ -139,7 +143,8 @@ describe('PATCH /api/admin/submissions/[id] — happy path', () => {
     mockPublishSubmissionAsBook.mockClear()
     await PATCH(makeRequest('sub-1', { status: 'approved' }), { params: { id: 'sub-1' } })
     expect(mockPublishSubmissionAsBook).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'sub-1', userId: 'user-1', title: 'Сапиенс' })
+      expect.objectContaining({ id: 'sub-1', userId: 'user-1', title: 'Сапиенс' }),
+      expect.anything(),
     )
   })
 

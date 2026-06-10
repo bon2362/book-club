@@ -123,8 +123,8 @@ export async function fetchBooksForAdmin(): Promise<BookWithCover[]> {
   return loadBooks({ includeHidden: true })
 }
 
-export async function fetchBookById(id: string): Promise<BookWithCover | null> {
-  const [row] = await db.select().from(books).where(eq(books.id, id)).limit(1)
+export async function fetchBookById(id: string, dbClient: typeof db = db): Promise<BookWithCover | null> {
+  const [row] = await dbClient.select().from(books).where(eq(books.id, id)).limit(1)
   return row ? rowToBook(row) : null
 }
 
@@ -169,7 +169,7 @@ export interface CreateBookInput {
   sortOrder?: number
 }
 
-export async function createBook(input: CreateBookInput): Promise<BookWithCover> {
+export async function createBook(input: CreateBookInput, dbClient: typeof db = db): Promise<BookWithCover> {
   const title = (input.title ?? '').trim()
   if (!title) throw new BookValidationError('title is required')
 
@@ -188,7 +188,7 @@ export async function createBook(input: CreateBookInput): Promise<BookWithCover>
 
   const id = crypto.randomUUID()
   const now = new Date()
-  await db.insert(books).values({
+  await dbClient.insert(books).values({
     id,
     title,
     author,
@@ -212,7 +212,7 @@ export async function createBook(input: CreateBookInput): Promise<BookWithCover>
     hiddenAt: visibility === 'hidden' ? now : null,
   })
 
-  const created = await fetchBookById(id)
+  const created = await fetchBookById(id, dbClient)
   if (!created) throw new Error('Failed to load created book')
   return created
 }

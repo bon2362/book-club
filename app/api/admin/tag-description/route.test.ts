@@ -18,6 +18,10 @@ jest.mock('@/lib/db', () => ({
     }),
   },
 }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) =>
+    fn((jest.requireMock('@/lib/db') as { db: unknown }).db),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 

@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { books, signupBooks, bookSubmissions, users } from '@/lib/db/schema'
 import { asc, desc, eq, isNotNull, sql } from 'drizzle-orm'
 import { createBook, BookValidationError } from '@/lib/books'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function GET() {
   const session = await auth()
@@ -79,7 +80,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const created = await createBook(body)
+    const created = await withAuditContext(
+      {
+        actorUserId: session.user.id,
+        actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+        source: 'admin',
+      },
+      async (tx) => createBook(body, tx),
+    )
     // After creation, also fetch raw row so we return DB-shape (admin UI consumes admin shape).
     const [row] = await db.select().from(books).where(eq(books.id, created.id)).limit(1)
     return NextResponse.json({ success: true, data: row })
