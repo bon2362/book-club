@@ -41,7 +41,15 @@ export async function finalizeMatchingMutationEffects({
   const after = await captureMatchingMutationSnapshot(sessionId)
   if (!after) return
 
-  const titleFor = (id: string) => after.context.bookTitleById.get(id) ?? id
+  // Resolve a book title preferring the after-snapshot, then falling back to the
+  // before-snapshot. Crucial for `book_removed`: if no other participant still
+  // holds the removed book, it's already gone from the after-context map, so
+  // without the before-fallback the title would resolve to null/id and the admin
+  // preference-events viewer would show no title for solo removals.
+  const resolveTitle = (id: string): string | undefined =>
+    after.context.bookTitleById.get(id) ?? before?.context.bookTitleById.get(id)
+
+  const titleFor = (id: string) => resolveTitle(id) ?? id
 
   // Enrich any book-id arrays in metadata with human-readable titles so the
   // admin UI can show *which* books were touched without its own id→title map.
@@ -57,7 +65,7 @@ export async function finalizeMatchingMutationEffects({
       enrichedMetadata[titleKey] = (ids as string[]).map(titleFor)
     }
   }
-  enrichedMetadata.bookTitle = bookId ? after.context.bookTitleById.get(bookId) ?? null : null
+  enrichedMetadata.bookTitle = bookId ? resolveTitle(bookId) ?? null : null
 
   await recordMatchingPreferenceEvent({
     sessionId,
