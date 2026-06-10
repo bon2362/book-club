@@ -2,11 +2,12 @@ import { render, screen, act } from '@testing-library/react'
 import MatchingBoardProvider, { useMatchingBoard } from './MatchingBoardProvider'
 
 function Probe() {
-  const { pending, beginPending } = useMatchingBoard()
+  const { pending, beginPending, endPending } = useMatchingBoard()
   return (
     <>
       <span data-testid="pending">{pending ? 'yes' : 'no'}</span>
       <button onClick={beginPending}>begin</button>
+      <button onClick={endPending}>end</button>
     </>
   )
 }
@@ -81,6 +82,22 @@ describe('MatchingBoardProvider (#315 loader)', () => {
     } finally {
       jest.useRealTimers()
     }
+  })
+
+  it('endPending гасит pending сразу (путь ошибки мутации)', () => {
+    render(
+      <MatchingBoardProvider stateVersion={1}>
+        <Probe />
+      </MatchingBoardProvider>,
+    )
+    act(() => {
+      screen.getByText('begin').click()
+    })
+    expect(screen.getByTestId('pending').textContent).toBe('yes')
+    act(() => {
+      screen.getByText('end').click()
+    })
+    expect(screen.getByTestId('pending').textContent).toBe('no')
   })
 
   it('без провайдера хук отдаёт безопасный no-op (pending=false)', () => {

@@ -34,7 +34,7 @@ export default function MatchingMyMoves({
   mode = 'coverage',
 }: Props) {
   const router = useRouter()
-  const { beginPending } = useMatchingBoard()
+  const { beginPending, endPending, pending } = useMatchingBoard()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
   const [firstPlaceHint, setFirstPlaceHint] = useState<string | null>(null)
@@ -54,8 +54,9 @@ export default function MatchingMyMoves({
   }
 
   async function handleAdd(bookId: string) {
-    if (frozen) return
+    if (frozen || pending) return // идёт пересчёт — новые действия не принимаем
     setAdding(bookId)
+    beginPending() // мгновенно по клику, до сетевого запроса
     try {
       const url = mutationUserId
         ? `/api/matching/books?as=${encodeURIComponent(mutationUserId)}`
@@ -67,9 +68,13 @@ export default function MatchingMyMoves({
       })
       if (res.ok) {
         setMoves((prev) => prev.filter((m) => m.bookId !== bookId))
-        beginPending()
         router.refresh()
+      } else {
+        endPending() // refresh не будет — снять loader сразу
       }
+    } catch (e) {
+      endPending()
+      throw e
     } finally {
       setAdding(null)
     }

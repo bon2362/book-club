@@ -51,7 +51,7 @@ describe('MatchingImpactWorkspace — лоадер пересчёта (#315)', (
 
   it('показывает оверлей-лоадер в обеих панелях, когда pending=true', () => {
     render(
-      <MatchingBoardContext.Provider value={{ pending: true, beginPending: () => {} }}>
+      <MatchingBoardContext.Provider value={{ pending: true, beginPending: () => {}, endPending: () => {} }}>
         <MatchingImpactWorkspace {...baseProps} overview={overview} />
       </MatchingBoardContext.Provider>,
     )
