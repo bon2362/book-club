@@ -13,6 +13,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -52,10 +53,16 @@ export async function PATCH(
     return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
   }
 
-  await db
-    .update(signupBooks)
-    .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
-    .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+  const actorId = session.user.id
+  await withAuditContext(
+    { actorUserId: actorId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: asUserId ? 'admin' : 'catalog' },
+    async (tx) => {
+      await tx
+        .update(signupBooks)
+        .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
+        .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+    },
+  )
 
   if (activeSessionId) {
     await finalizeMatchingMutationEffects({

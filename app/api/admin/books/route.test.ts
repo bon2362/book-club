@@ -43,6 +43,10 @@ jest.mock('@/lib/books', () => {
   }
 })
 
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: jest.fn((_ctx: unknown, fn: (tx: unknown) => Promise<unknown>) => fn({})),
+}))
+
 import { GET, POST } from './route'
 
 const mockAuth = authModule.auth as jest.Mock
@@ -126,7 +130,7 @@ describe('POST /api/admin/books', () => {
     pushSelectResult([{ id: 'new1', title: 'New', visibility: 'hidden' }])
     const res = await POST(makePost({ title: 'New', author: 'A' }))
     expect(res.status).toBe(200)
-    expect(createBookMock).toHaveBeenCalledWith({ title: 'New', author: 'A' })
+    expect(createBookMock).toHaveBeenCalledWith({ title: 'New', author: 'A' }, {})
     const json = await res.json()
     expect(json.data.id).toBe('new1')
   })

@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
 import { bookPriorities, signupBooks } from '@/lib/db/schema'
 import { removeBookFromSignup } from '@/lib/signup-books'
 import { and, eq, gt, sql } from 'drizzle-orm'
@@ -14,6 +13,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -41,7 +41,13 @@ export async function PATCH(req: NextRequest) {
   const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   let signupExists = false
-  await db.transaction(async (tx) => {
+  await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'admin',
+    },
+    async (tx) => {
     // 1. Verify the user is signed up for this book (inside transaction to avoid race condition)
     const [signup] = await tx
       .select({ bookId: signupBooks.bookId })
@@ -79,7 +85,8 @@ export async function PATCH(req: NextRequest) {
       }
     }
     // If status === null: leave book_priorities untouched
-  })
+    },
+  )
 
   if (!signupExists) {
     return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
@@ -116,7 +123,13 @@ export async function DELETE(req: NextRequest) {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
   const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
-  await db.transaction(async (tx) => {
+  await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'admin',
+    },
+    async (tx) => {
     const [existing] = await tx
       .select({ rank: bookPriorities.rank })
       .from(bookPriorities)
@@ -135,7 +148,8 @@ export async function DELETE(req: NextRequest) {
         .set({ rank: sql`${bookPriorities.rank} - 1` })
         .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, existing.rank)))
     }
-  })
+    },
+  )
 
   if (activeSessionId) {
     await finalizeMatchingMutationEffects({

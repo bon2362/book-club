@@ -7,6 +7,9 @@ import { db } from '@/lib/db'
 import * as mutationEffects from '@/lib/matching/mutation-effects'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), delete: jest.fn(), update: jest.fn() } }))
 jest.mock('@/lib/matching/mutation-effects', () => ({
   captureMatchingMutationSnapshot: jest.fn(),

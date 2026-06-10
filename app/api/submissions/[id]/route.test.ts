@@ -6,6 +6,9 @@ import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 
 const mockDelete = jest.fn()
 

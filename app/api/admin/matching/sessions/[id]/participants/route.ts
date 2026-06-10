@@ -7,6 +7,7 @@ import { matchingSessions, matchingSessionParticipants, users } from '@/lib/db/s
 import { eq, and } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 interface Params { params: { id: string } }
 
@@ -79,7 +80,14 @@ export async function POST(req: NextRequest, { params }: Params) {
   const takenSet = new Set(taken.map(r => r.pseudonym))
   const pseudonym = assignPseudonym(takenSet)
 
-  await db.insert(matchingSessionParticipants).values({ sessionId, userId, pseudonym })
+  await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'admin',
+    },
+    async (tx) => tx.insert(matchingSessionParticipants).values({ sessionId, userId, pseudonym }),
+  )
 
   await bumpSessionState(sessionId)
 

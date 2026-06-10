@@ -87,11 +87,11 @@ export interface SectionPatch {
   isPublished?: boolean
 }
 
-export async function updateSections(patches: SectionPatch[]) {
+export async function updateSections(patches: SectionPatch[], dbClient: typeof db = db) {
   await ensureIntroTable()
   if (patches.length === 0) return
   const ids = patches.map(p => p.id)
-  const rows = await db
+  const rows = await dbClient
     .select({ id: introSections.id, kind: introSections.kind })
     .from(introSections)
   const kindById = new Map(rows.filter(r => ids.includes(r.id)).map(r => [r.id, r.kind]))
@@ -107,18 +107,18 @@ export async function updateSections(patches: SectionPatch[]) {
       if (p.sortOrder !== undefined) set.sortOrder = p.sortOrder
       if (p.isPublished !== undefined) set.isPublished = p.isPublished
     }
-    await db.update(introSections).set(set).where(eq(introSections.id, p.id))
+    await dbClient.update(introSections).set(set).where(eq(introSections.id, p.id))
   }
 }
 
-export async function createSection(): Promise<IntroSection> {
+export async function createSection(dbClient: typeof db = db): Promise<IntroSection> {
   await ensureIntroTable()
-  const existing = await db
+  const existing = await dbClient
     .select({ sortOrder: introSections.sortOrder })
     .from(introSections)
     .where(eq(introSections.kind, 'section'))
   const maxOrder = existing.reduce((m, r) => Math.max(m, r.sortOrder), -1)
-  const [row] = await db
+  const [row] = await dbClient
     .insert(introSections)
     .values({
       kind: 'section',
@@ -137,15 +137,15 @@ export async function createSection(): Promise<IntroSection> {
   }
 }
 
-export async function deleteSection(id: string): Promise<{ ok: boolean; reason?: string }> {
+export async function deleteSection(id: string, dbClient: typeof db = db): Promise<{ ok: boolean; reason?: string }> {
   await ensureIntroTable()
-  const [row] = await db
+  const [row] = await dbClient
     .select({ kind: introSections.kind })
     .from(introSections)
     .where(eq(introSections.id, id))
     .limit(1)
   if (!row) return { ok: false, reason: 'not_found' }
   if (row.kind !== 'section') return { ok: false, reason: 'header_protected' }
-  await db.delete(introSections).where(eq(introSections.id, id))
+  await dbClient.delete(introSections).where(eq(introSections.id, id))
   return { ok: true }
 }

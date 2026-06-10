@@ -9,6 +9,7 @@ import { Resend } from 'resend'
 import { approvedEmail, rejectedEmail } from '@/lib/email-templates/submission-status'
 import { getUserContactEmail } from '@/lib/user-email'
 import { publishSubmissionAsBook } from '@/lib/book-publish'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function DELETE(
   _req: NextRequest,
@@ -20,10 +21,15 @@ export async function DELETE(
   }
 
   const { id } = params
-  const deleted = await db
-    .delete(bookSubmissions)
-    .where(eq(bookSubmissions.id, id))
-    .returning()
+  const deleted = await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'admin',
+    },
+    async (tx) =>
+      tx.delete(bookSubmissions).where(eq(bookSubmissions.id, id)).returning(),
+  )
 
   if (deleted.length === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -70,37 +76,51 @@ export async function PATCH(
   if (coverUrl !== undefined) updates.coverUrl = coverUrl
   if (rejectionReason !== undefined) updates.rejectionReason = rejectionReason
 
-  const updated = await db
-    .update(bookSubmissions)
-    .set(updates)
-    .where(eq(bookSubmissions.id, id))
-    .returning()
+  const updated = await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'admin',
+    },
+    async (tx) => {
+      const rows = await tx
+        .update(bookSubmissions)
+        .set(updates)
+        .where(eq(bookSubmissions.id, id))
+        .returning()
+
+      if (rows.length === 0) return rows
+
+      const submission = rows[0]
+      if (submission.status === 'approved') {
+        // Promote (or sync) the approved submission to a row in `books` and
+        // record the submitter's signup via book_id.
+        await publishSubmissionAsBook(
+          {
+            id: submission.id,
+            userId: submission.userId,
+            title: submission.title,
+            author: submission.author,
+            topic: submission.topic,
+            pages: submission.pages,
+            publishedDate: submission.publishedDate,
+            textUrl: submission.textUrl,
+            description: submission.description,
+            coverUrl: submission.coverUrl,
+            whyRead: submission.whyRead,
+          },
+          tx,
+        )
+      }
+      return rows
+    },
+  )
 
   if (updated.length === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
   const submission = updated[0]
-
-  const isApproved = submission.status === 'approved'
-
-  if (isApproved) {
-    // Promote (or sync) the approved submission to a row in `books` and
-    // record the submitter's signup via book_id.
-    await publishSubmissionAsBook({
-      id: submission.id,
-      userId: submission.userId,
-      title: submission.title,
-      author: submission.author,
-      topic: submission.topic,
-      pages: submission.pages,
-      publishedDate: submission.publishedDate,
-      textUrl: submission.textUrl,
-      description: submission.description,
-      coverUrl: submission.coverUrl,
-      whyRead: submission.whyRead,
-    })
-  }
 
   // After Stage 3 finalize: signup_books and book_priorities are joined to
   // `books` by book_id, so a rename of an approved submission's published

@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { notificationQueue } from '@/lib/db/schema'
 import { and, isNull, isNotNull, lt, inArray } from 'drizzle-orm'
 import { Resend } from 'resend'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
+
+// Cron-мутации очереди уведомлений: actor отсутствует, source='cron'.
+const CRON_AUDIT = { actorUserId: null, source: 'cron' } as const
 
 export async function GET(req: Request) {
   // 1. Authorization
@@ -23,7 +26,7 @@ export async function GET(req: Request) {
 
   // 3. Release stale locks and atomically claim pending rows.
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-  const captured = await db.transaction(async (tx) => {
+  const captured = await withAuditContext(CRON_AUDIT, async (tx) => {
     await tx
       .update(notificationQueue)
       .set({ processingAt: null })
@@ -57,10 +60,12 @@ export async function GET(req: Request) {
   const isForcedFlush = oldestCreatedAt < now - 2 * 60 * 60 * 1000
 
   if (isCooling && !isForcedFlush) {
-    await db
-      .update(notificationQueue)
-      .set({ processingAt: null })
-      .where(inArray(notificationQueue.id, capturedIds))
+    await withAuditContext(CRON_AUDIT, async (tx) => {
+      await tx
+        .update(notificationQueue)
+        .set({ processingAt: null })
+        .where(inArray(notificationQueue.id, capturedIds))
+    })
     return NextResponse.json({ skipped: 'cooling' })
   }
 
@@ -91,15 +96,17 @@ export async function GET(req: Request) {
   } catch (err) {
     // 9. On failure: release lock so next cron cycle retries
     console.error('Digest email failed:', err)
-    await db
-      .update(notificationQueue)
-      .set({ processingAt: null })
-      .where(inArray(notificationQueue.id, capturedIds))
+    await withAuditContext(CRON_AUDIT, async (tx) => {
+      await tx
+        .update(notificationQueue)
+        .set({ processingAt: null })
+        .where(inArray(notificationQueue.id, capturedIds))
+    })
     return NextResponse.json({ error: 'Email send failed' }, { status: 500 })
   }
 
   // 10. Mark as sent
-  await db.transaction(async (tx) => {
+  await withAuditContext(CRON_AUDIT, async (tx) => {
     await tx
       .update(notificationQueue)
       .set({ sentAt: new Date(), processingAt: null })

@@ -3,6 +3,8 @@ import { books, bookSubmissions } from '@/lib/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
+type DbClient = typeof db
+
 interface SubmissionForPublish {
   id: string
   userId: string
@@ -24,9 +26,12 @@ interface SubmissionForPublish {
  *
  * Also writes the submission author into signup_books via book_id.
  */
-export async function publishSubmissionAsBook(submission: SubmissionForPublish): Promise<string> {
+export async function publishSubmissionAsBook(
+  submission: SubmissionForPublish,
+  dbClient: DbClient = db,
+): Promise<string> {
   // Already linked?
-  const [existing] = await db
+  const [existing] = await dbClient
     .select({ bookId: bookSubmissions.bookId })
     .from(bookSubmissions)
     .where(eq(bookSubmissions.id, submission.id))
@@ -36,7 +41,7 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
   if (existing?.bookId) {
     bookId = existing.bookId
     // Sync title/author/etc. so the catalog reflects post-approval edits.
-    await db
+    await dbClient
       .update(books)
       .set({
         title: submission.title,
@@ -54,7 +59,7 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
   } else {
     bookId = crypto.randomUUID()
     const now = new Date()
-    await db.insert(books).values({
+    await dbClient.insert(books).values({
       id: bookId,
       title: submission.title,
       author: submission.author,
@@ -78,14 +83,14 @@ export async function publishSubmissionAsBook(submission: SubmissionForPublish):
     })
   }
 
-  await db
+  await dbClient
     .update(bookSubmissions)
     .set({ bookId })
     .where(eq(bookSubmissions.id, submission.id))
 
   // Sign up the submitter when the author account still exists.
   // Admin approval should not fail if a test or deleted account removed it first.
-  await db.execute(sql`
+  await dbClient.execute(sql`
     INSERT INTO signup_books (user_id, book_id)
     SELECT ${submission.userId}, ${bookId}
     WHERE EXISTS (SELECT 1 FROM "user" WHERE id = ${submission.userId})

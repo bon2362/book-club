@@ -114,7 +114,11 @@ async function resolveBooksByIds(bookIds: string[]): Promise<SignupBookInput[]> 
   return resolved
 }
 
-async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInput[]): Promise<UpsertResult> {
+async function upsertResolvedSignup(
+  userId: string,
+  selectedBooks: SignupBookInput[],
+  dbClient: typeof db = db,
+): Promise<UpsertResult> {
   const unique = new Map<string, SignupBookInput>()
   for (const book of selectedBooks) unique.set(book.id, book)
   const normalized = Array.from(unique.values())
@@ -123,7 +127,7 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
   let newlyAddedBookIds: string[] = []
   let removedBookIds: string[] = []
 
-  await db.transaction(async (tx) => {
+  const runInTx = async (tx: typeof db) => {
     // Fetch current signups to determine what changed
     const existing = await tx
       .select({ bookId: signupBooks.bookId })
@@ -150,7 +154,19 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
         .values(toAdd.map(bookId => ({ userId, bookId })))
         .onConflictDoNothing()
     }
-  })
+  }
+
+  // When a transactional dbClient is supplied (e.g. from withAuditContext on
+  // the caller), run inside it so the audit context is attached. Otherwise open
+  // our own transaction to keep the delete/insert atomic.
+  if (dbClient === db) {
+    // Атомарность delete+insert, когда вызывают без транзакционного клиента
+    // (сейчас — только exempt тест-эндпоинт; рабочие роуты передают tx из withAuditContext).
+    // eslint-disable-next-line no-restricted-syntax -- см. комментарий выше
+    await db.transaction(async (tx) => runInTx(tx as unknown as typeof db))
+  } else {
+    await runInTx(dbClient)
+  }
 
   return {
     isNew: false,
@@ -161,8 +177,12 @@ async function upsertResolvedSignup(userId: string, selectedBooks: SignupBookInp
   }
 }
 
-export async function upsertSignupByBookIds(userId: string, bookIds: string[]): Promise<UpsertResult> {
-  return upsertResolvedSignup(userId, await resolveBooksByIds(bookIds))
+export async function upsertSignupByBookIds(
+  userId: string,
+  bookIds: string[],
+  dbClient: typeof db = db,
+): Promise<UpsertResult> {
+  return upsertResolvedSignup(userId, await resolveBooksByIds(bookIds), dbClient)
 }
 
 export async function removeBookFromSignup(

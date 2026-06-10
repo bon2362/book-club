@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { removeBookFromSignup } from '@/lib/signup-books'
-import { db } from '@/lib/db'
 import { bookPriorities } from '@/lib/db/schema'
 import { eq, and, gt, sql } from 'drizzle-orm'
 import {
@@ -14,6 +13,7 @@ import {
   captureMatchingMutationSnapshot,
   finalizeMatchingMutationEffects,
 } from '@/lib/matching/mutation-effects'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function DELETE(req: NextRequest) {
   const session = await auth()
@@ -29,7 +29,13 @@ export async function DELETE(req: NextRequest) {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
   const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
-  await db.transaction(async (tx) => {
+  await withAuditContext(
+    {
+      actorUserId: session.user.id,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'admin',
+    },
+    async (tx) => {
     await removeBookFromSignup(userId, bookId, tx)
 
     const [priorityRow] = await tx
@@ -47,7 +53,8 @@ export async function DELETE(req: NextRequest) {
       .update(bookPriorities)
       .set({ rank: sql`${bookPriorities.rank} - 1` })
       .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, priorityRow.rank)))
-  })
+    },
+  )
 
   if (activeSessionId) {
     await finalizeMatchingMutationEffects({

@@ -96,7 +96,7 @@ interface DbExecHelper {
    * Cleanup callbacks registered via `registerCleanup` run in LIFO order
    * in teardown — even when the test body fails.
    */
-  (sql: string, params?: unknown[]): Promise<void>
+  (sql: string, params?: unknown[]): Promise<Record<string, unknown>[]>
   registerCleanup: (cleanupSql: string, params?: unknown[]) => void
 }
 
@@ -181,7 +181,8 @@ export const test = base.extend<E2EHelpers>({
     const cleanups: Array<{ sql: string; params?: unknown[] }> = []
 
     const exec = async (sql: string, params?: unknown[]) => {
-      await pool.query(sql, params as unknown[] | undefined)
+      const res = await pool.query(sql, params as unknown[] | undefined)
+      return res.rows as Record<string, unknown>[]
     }
     exec.registerCleanup = (sql: string, params?: unknown[]) => {
       cleanups.push({ sql, params })

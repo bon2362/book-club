@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { notificationQueue, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { deletePostHogPerson } from '@/lib/posthog-server'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 export async function DELETE() {
   const session = await auth()
@@ -20,13 +21,21 @@ export async function DELETE() {
     .where(eq(users.id, userId))
     .limit(1)
 
-  if (targetUser?.contactEmail) {
-    await db
-      .delete(notificationQueue)
-      .where(eq(notificationQueue.userEmail, targetUser.contactEmail))
-  }
-
-  await db.delete(users).where(eq(users.id, userId))
+  await withAuditContext(
+    {
+      actorUserId: userId,
+      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
+      source: 'profile',
+    },
+    async (tx) => {
+      if (targetUser?.contactEmail) {
+        await tx
+          .delete(notificationQueue)
+          .where(eq(notificationQueue.userEmail, targetUser.contactEmail))
+      }
+      await tx.delete(users).where(eq(users.id, userId))
+    },
+  )
   await deletePostHogPerson(userId)
 
   return NextResponse.json({ ok: true })

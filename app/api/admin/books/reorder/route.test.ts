@@ -5,6 +5,9 @@ import { NextRequest } from 'next/server'
 import * as authModule from '@/lib/auth'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
+}))
 
 interface UpdateCall { id: string; sortOrder: number }
 const updateCalls: UpdateCall[] = []

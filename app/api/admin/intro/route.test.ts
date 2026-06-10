@@ -12,6 +12,9 @@ jest.mock('@/lib/intro', () => ({
   updateSections: jest.fn().mockResolvedValue(undefined),
   createSection: jest.fn().mockResolvedValue({ id: 'new', title: '', body: '', sortOrder: 0, isPublished: false }),
 }))
+jest.mock('@/lib/audit/with-audit-context', () => ({
+  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn({}),
+}))
 
 const mockAuth = authModule.auth as jest.Mock
 
