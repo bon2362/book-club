@@ -214,6 +214,9 @@ export const matchingSessionParticipants = pgTable('matching_session_participant
   userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   pseudonym: text('pseudonym').notNull(),
   joinedAt:  timestamp('joined_at', { mode: 'date' }).notNull().defaultNow(),
+  // Heartbeat присутствия (#338): обновляется при опросе /api/matching/version.
+  // Телеметрия — audit_capture пропускает чисто last_seen_at-апдейты (миграция 0042).
+  lastSeenAt: timestamp('last_seen_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   pk:                primaryKey({ columns: [t.sessionId, t.userId] }),
   sessionPseudoUniq: uniqueIndex('matching_session_participants_session_pseudo_idx').on(t.sessionId, t.pseudonym),
