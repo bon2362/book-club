@@ -104,6 +104,32 @@ export default function MatchingHeader({
   const [modeError, setModeError] = useState<string | null>(null)
   const [feedOpen, setFeedOpen] = useState(false)
 
+  // Онлайн-статус участников (#338): пока попап «Участники» открыт, опрашиваем
+  // /api/matching/version (он же heartbeat) и подсвечиваем онлайн зелёной точкой.
+  const [participantsOpen, setParticipantsOpen] = useState(false)
+  const [onlinePseudonyms, setOnlinePseudonyms] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!participantsOpen) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/matching/version?session=${sessionId}`)
+        if (!res.ok) return
+        const data = (await res.json()) as { online?: string[] }
+        if (!cancelled) setOnlinePseudonyms(new Set(data.online ?? []))
+      } catch {
+        /* сеть моргнула — оставим прошлый снимок */
+      }
+    }
+    poll()
+    const timer = setInterval(poll, 4_000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [participantsOpen, sessionId])
+
   useEffect(() => {
     setMinSizeValue(String(minGroupSize))
     setMaxSizeValue(String(maxGroupSize))
@@ -380,7 +406,7 @@ export default function MatchingHeader({
             </span>
           )}
 
-          <Popover.Root>
+          <Popover.Root onOpenChange={setParticipantsOpen}>
             <Popover.Trigger asChild>
               <button
                 className="flex items-center gap-2 shrink-0"
@@ -441,13 +467,25 @@ export default function MatchingHeader({
                       Пока никто не присоединился.
                     </div>
                   ) : (
-                    participants.map((p) => (
+                    participants.map((p) => {
+                      const online = onlinePseudonyms.has(p.pseudonym)
+                      return (
                       <div key={p.userId} className="flex items-center gap-2.5 py-1">
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                          style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
-                        >
-                          {p.pseudonym[0].toUpperCase()}
+                        <div className="relative shrink-0">
+                          <div
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
+                            style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
+                          >
+                            {p.pseudonym[0].toUpperCase()}
+                          </div>
+                          {online && (
+                            <span
+                              data-testid="participant-online-dot"
+                              aria-label="онлайн"
+                              className="absolute bottom-0 right-0 w-2 h-2 rounded-full"
+                              style={{ background: 'var(--success)', border: '1.5px solid var(--bg-input)' }}
+                            />
+                          )}
                         </div>
                         <span className="text-sm font-medium flex-1" style={{ color: 'var(--text)' }}>
                           {p.pseudonym}
@@ -463,7 +501,8 @@ export default function MatchingHeader({
                           </a>
                         )}
                       </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
                 <Popover.Arrow style={{ fill: 'var(--hair)' }} />

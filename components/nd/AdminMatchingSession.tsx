@@ -128,6 +128,7 @@ export default function AdminMatchingSession() {
   const [preferenceEventsLoading, setPreferenceEventsLoading] = useState(false)
 
   const [participants, setParticipants] = useState<Participant[]>([])
+  const [onlinePseudonyms, setOnlinePseudonyms] = useState<Set<string>>(new Set())
   const [allUsers, setAllUsers] = useState<AllUser[]>([])
   const [participantsLoading, setParticipantsLoading] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -177,7 +178,10 @@ export default function AdminMatchingSession() {
     try {
       const res = await fetch(`/api/admin/matching/sessions/${sessionId}/participants`)
       const json = await res.json()
-      if (res.ok) setParticipants(json.data ?? [])
+      if (res.ok) {
+        setParticipants(json.data ?? [])
+        setOnlinePseudonyms(new Set<string>(json.online ?? []))
+      }
     } finally {
       setParticipantsLoading(false)
     }
@@ -493,7 +497,16 @@ export default function AdminMatchingSession() {
               <tbody>
                 {participants.map(p => (
                   <tr key={p.userId} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '3px 8px 3px 0', fontWeight: 500 }}>{p.pseudonym}</td>
+                    <td style={{ padding: '3px 8px 3px 0', fontWeight: 500 }}>
+                      {onlinePseudonyms.has(p.pseudonym) && (
+                        <span
+                          data-testid="admin-participant-online-dot"
+                          title="онлайн"
+                          style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', marginRight: '0.4rem', verticalAlign: 'middle' }}
+                        />
+                      )}
+                      {p.pseudonym}
+                    </td>
                     <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>
                       <a
                         href={`/matching?as=${p.userId}`}

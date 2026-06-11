@@ -8,6 +8,7 @@ import { eq, and } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { fetchOnlinePseudonyms } from '@/lib/matching/presence'
 
 interface Params { params: { id: string } }
 
@@ -30,7 +31,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
     .orderBy(matchingSessionParticipants.joinedAt)
 
-  return NextResponse.json({ success: true, data: participants })
+  // Онлайн-статус (#338) — best-effort: если колонка last_seen_at ещё не накатана, не падаем.
+  let online: string[] = []
+  try {
+    online = await fetchOnlinePseudonyms(sessionId)
+  } catch {
+    online = []
+  }
+
+  return NextResponse.json({ success: true, data: participants, online })
 }
 
 export async function POST(req: NextRequest, { params }: Params) {

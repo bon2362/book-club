@@ -47,7 +47,8 @@ describe('GET /api/matching/version', () => {
     mockDb.select = jest.fn().mockReturnValue(sessionSelect)
     const res = await GET(makeReq('s1'))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ version: 7, status: 'active' })
+    // presence degrades к [] под mock-db без .update — version/status неизменны
+    expect(await res.json()).toEqual({ version: 7, status: 'active', online: [] })
   })
 
   it('returns 403 for a non-participant non-admin', async () => {
@@ -98,6 +99,36 @@ describe('GET /api/matching/version', () => {
       .mockReturnValueOnce(participantSelect)
     const res = await GET(makeReq('s1'))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ version: 3, status: 'frozen' })
+    expect(await res.json()).toEqual({ version: 3, status: 'frozen', online: [] })
+  })
+
+  it('возвращает online-псевдонимы и делает heartbeat (#338)', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'u1', isAdmin: false } })
+    const sessionSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 5, status: 'active' }]),
+    }
+    const participantSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ userId: 'u1' }]),
+    }
+    const presenceSelect = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockResolvedValue([{ pseudonym: 'Барсук' }, { pseudonym: 'Белка' }]),
+    }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(sessionSelect)
+      .mockReturnValueOnce(participantSelect)
+      .mockReturnValueOnce(presenceSelect)
+    const setWhere = jest.fn().mockResolvedValue(undefined)
+    ;(mockDb as unknown as { update: jest.Mock }).update = jest.fn()
+      .mockReturnValue({ set: jest.fn().mockReturnValue({ where: setWhere }) })
+
+    const res = await GET(makeReq('s1'))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ version: 5, status: 'active', online: ['Барсук', 'Белка'] })
+    expect(setWhere).toHaveBeenCalled() // heartbeat выполнен
   })
 })
