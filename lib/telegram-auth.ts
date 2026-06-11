@@ -14,19 +14,36 @@ function safeEqualHex(left: string, right: string) {
   }
 }
 
-export function verifyTelegramHash(data: Record<string, string>, now = Math.floor(Date.now() / 1000)): boolean {
-  if (!process.env.TELEGRAM_BOT_TOKEN) return false
+export type TelegramVerifyFailReason =
+  | 'no_bot_token' | 'no_hash' | 'bad_auth_date' | 'stale' | 'future' | 'hmac_mismatch'
+
+export interface TelegramVerifyResult {
+  ok: boolean
+  reason?: TelegramVerifyFailReason
+  skewSeconds?: number   // now - authDate, когда auth_date распарсился
+}
+
+export function verifyTelegramHashWithReason(
+  data: Record<string, string>,
+  now = Math.floor(Date.now() / 1000),
+): TelegramVerifyResult {
+  if (!process.env.TELEGRAM_BOT_TOKEN) return { ok: false, reason: 'no_bot_token' }
   const { hash, ...rest } = data
-  if (!hash) return false
-
+  if (!hash) return { ok: false, reason: 'no_hash' }
   const authDate = Number.parseInt(rest.auth_date ?? '', 10)
-  if (!Number.isFinite(authDate)) return false
-  if (now - authDate > TELEGRAM_AUTH_MAX_AGE_SECONDS || authDate > now + 60) return false
-
+  if (!Number.isFinite(authDate)) return { ok: false, reason: 'bad_auth_date' }
+  const skewSeconds = now - authDate
+  if (skewSeconds > TELEGRAM_AUTH_MAX_AGE_SECONDS) return { ok: false, reason: 'stale', skewSeconds }
+  if (authDate > now + 60) return { ok: false, reason: 'future', skewSeconds }
   const dataCheckString = Object.keys(rest).sort().map(k => `${k}=${rest[k]}`).join('\n')
   const secret = createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN).digest()
   const expected = createHmac('sha256', secret).update(dataCheckString).digest('hex')
-  return safeEqualHex(hash, expected)
+  if (!safeEqualHex(hash, expected)) return { ok: false, reason: 'hmac_mismatch', skewSeconds }
+  return { ok: true, skewSeconds }
+}
+
+export function verifyTelegramHash(data: Record<string, string>, now = Math.floor(Date.now() / 1000)): boolean {
+  return verifyTelegramHashWithReason(data, now).ok
 }
 
 export function hashTelegramPreauthToken(token: string) {

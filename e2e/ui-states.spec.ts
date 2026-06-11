@@ -439,6 +439,22 @@ test.describe('Satisfaction ranking gate layout', () => {
   })
 })
 
+test.describe('AuthErrorBanner: conditional render', () => {
+  test('баннер виден на /?auth=failed и скрыт на /', async ({ page }) => {
+    // Переход на /?auth=failed — баннер должен отображаться
+    await page.goto('/?auth=failed')
+    await page.waitForLoadState('networkidle')
+    const banner = page.getByRole('alert')
+    await expect(banner).toBeVisible()
+    await expect(banner).toContainText('Не получилось войти через Telegram')
+
+    // Переход на / без параметра — баннера нет
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+})
+
 test.describe('ProfileDrawer: status accordion menu', () => {
   const EMAIL = 'e2e-mybooks-ui@test.invalid'
   const NAME = 'E2E MyBooks UI'
