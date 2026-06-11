@@ -11,6 +11,8 @@
 | Email magic link | Модал входа | Ссылка приходит через Resend на email. |
 | Telegram Login Widget | Модал входа | Использует redirect через `/api/auth/telegram/callback`, не JS callback. |
 
+Для удобства входа сайт помнит только последний способ входа в `localStorage` браузера. Это не серверное состояние и не пользовательский профиль, а лишь подсказка для модалки: если последний способ был Google или email, вторичные способы раскрываются сразу, а в Telegram/Google/email блоках показывается бейдж «последний способ входа». В памяти хранится только нормализованный provider (`google`, `telegram` или `email`), без имени, email, Telegram username или user id.
+
 ## Общий поток входа
 
 ```mermaid

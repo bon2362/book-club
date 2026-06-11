@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { track } from '@/lib/analytics'
+import { readRememberedAuthProvider, type RememberedAuthProvider } from './auth-provider-memory'
 
 declare global {
   interface Window {
@@ -24,6 +25,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   const [email, setEmail] = useState('')
   const [magicState, setMagicState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [showOther, setShowOther] = useState(false)
+  const [rememberedProvider, setRememberedProvider] = useState<RememberedAuthProvider | null>(null)
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -73,7 +75,37 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     }
   }, [isOpen])
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    const provider = readRememberedAuthProvider()
+    setRememberedProvider(provider)
+    setShowOther(provider === 'google' || provider === 'email')
+  }, [isOpen])
+
   if (!isOpen) return null
+
+  function renderRememberedBadge() {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '0.25rem 0.45rem',
+          border: '1px solid var(--border)',
+          color: 'var(--text-muted)',
+          fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+          fontSize: '0.58rem',
+          lineHeight: 1,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        последний способ входа
+      </span>
+    )
+  }
 
   function handleOverlay(e: React.MouseEvent<HTMLDivElement>) {
     if (e.target === e.currentTarget) onClose()
@@ -169,7 +201,15 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         <div style={{ borderTop: '1px solid var(--border-strong)', marginBottom: '1.5rem' }} />
 
         {/* Telegram — primary */}
-        <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center' }} />
+        </div>
+
+        {rememberedProvider === 'telegram' && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+            {renderRememberedBadge()}
+          </div>
+        )}
 
         {/* Other methods toggle */}
         <div style={{ textAlign: 'center' }}>
@@ -224,7 +264,10 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                 <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="currentColor" opacity="0.6" />
                 <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="currentColor" opacity="0.55" />
               </svg>
-              Войти через Google
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <span>Войти через Google</span>
+                {rememberedProvider === 'google' && renderRememberedBadge()}
+              </span>
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0' }}>
@@ -239,6 +282,11 @@ export default function AuthModal({ isOpen, onClose }: Props) {
               </p>
             ) : (
               <form onSubmit={handleMagicLink} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {rememberedProvider === 'email' && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    {renderRememberedBadge()}
+                  </div>
+                )}
                 <input
                   type="email"
                   value={email}

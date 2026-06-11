@@ -22,6 +22,7 @@ import FeedbackForm from './FeedbackForm'
 import { useScrollHide } from '@/lib/scroll-hide-context'
 import { getUserContactEmail } from '@/lib/user-email'
 import { useAutoDismiss } from './useAutoDismiss'
+import { normalizeRememberedAuthProvider, writeRememberedAuthProvider } from './auth-provider-memory'
 
 interface Props {
   books: BookWithCover[]
@@ -179,6 +180,15 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       setShowContactsForm(true)
     }
   }, [isLoggedIn, currentUser, savedUser, isAdmin])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    const rememberedProvider = normalizeRememberedAuthProvider(session?.user?.provider)
+    if (rememberedProvider) {
+      writeRememberedAuthProvider(rememberedProvider)
+    }
+  }, [isLoggedIn, session?.user?.provider])
 
   const allTags = useMemo(() => {
     const s = new Set<string>()
