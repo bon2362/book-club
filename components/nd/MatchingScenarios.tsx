@@ -7,6 +7,7 @@ import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
 import ParticipantInterestChip from './ParticipantInterestChip'
+import { withAdminName } from './matching-shared'
 
 interface BookInfo extends MatchingBookDetail {
   id: string
@@ -23,6 +24,7 @@ interface Props {
   previewMove?: MyMoveBook | null
   previewOpen?: boolean
   mode?: OptimizationMode
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
 const tierLabel: Record<MatchingScenario['tier'], string | null> = {
@@ -44,6 +46,7 @@ export default function MatchingScenarios({
   previewMove = null,
   previewOpen = false,
   mode = overview.mode,
+  adminNamesByPseudonym = null,
 }: Props) {
   const [modalBook, setModalBook] = useState<BookInfo | null>(null)
   const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
@@ -97,6 +100,7 @@ export default function MatchingScenarios({
                   variant="preview"
                   previewMoveTitle={previewMove?.title ?? null}
                   mode={mode}
+                  adminNamesByPseudonym={adminNamesByPseudonym}
                 />
               </>
             )}
@@ -117,6 +121,7 @@ export default function MatchingScenarios({
             }
             muted={previewOpen}
             mode={mode}
+            adminNamesByPseudonym={adminNamesByPseudonym}
           />
         ))}
       </ul>
@@ -136,6 +141,7 @@ function ScenarioSetCard({
   variant = 'current',
   previewMoveTitle = null,
   mode = 'coverage',
+  adminNamesByPseudonym = null,
 }: {
   scenario: MatchingScenario
   scenarioNumber: number
@@ -148,6 +154,7 @@ function ScenarioSetCard({
   variant?: 'current' | 'preview'
   previewMoveTitle?: string | null
   mode?: OptimizationMode
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }) {
   const isLeader = scenario.tier === 'leader'
   const isPreview = variant === 'preview'
@@ -283,6 +290,7 @@ function ScenarioSetCard({
             isSatisfaction={isSatisfaction}
             isLinking={isLinking}
             highlightedUserIds={highlightedUserIdSet}
+            adminNamesByPseudonym={adminNamesByPseudonym}
           />
         ))}
       </div>
@@ -302,6 +310,7 @@ function ScenarioSetCard({
               isDimmed={isLinking && !highlightedUserIdSet.has(participant.userId)}
               prefix={idx > 0}
               soft={isSatisfaction}
+              adminNamesByPseudonym={adminNamesByPseudonym}
             />
           ))}
         </div>
@@ -317,6 +326,7 @@ function LeftOutName({
   isDimmed,
   prefix,
   soft,
+  adminNamesByPseudonym = null,
 }: {
   participant: { userId: string; pseudonym: string }
   isMe: boolean
@@ -324,7 +334,9 @@ function LeftOutName({
   isDimmed: boolean
   prefix: boolean
   soft: boolean
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }) {
+  const displayName = withAdminName(participant.pseudonym, adminNamesByPseudonym)
   return (
     <span
       style={{
@@ -338,7 +350,7 @@ function LeftOutName({
       }}
     >
       {prefix && <span style={{ color: 'var(--hair)', margin: '0 0.2rem' }}>·</span>}
-      {participant.pseudonym}{isMe ? ' · вы' : ''}
+      {displayName}{isMe ? ' · вы' : ''}
     </span>
   )
 }
@@ -352,6 +364,7 @@ function CircleItem({
   isSatisfaction,
   isLinking,
   highlightedUserIds,
+  adminNamesByPseudonym = null,
 }: {
   circle: MatchingCircle
   book: BookInfo | undefined
@@ -361,6 +374,7 @@ function CircleItem({
   isSatisfaction: boolean
   isLinking: boolean
   highlightedUserIds: Set<string>
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }) {
   return (
     <div
@@ -406,7 +420,7 @@ function CircleItem({
             <ParticipantInterestChip
               key={member.userId}
               userId={member.userId}
-              pseudonym={member.pseudonym}
+              pseudonym={withAdminName(member.pseudonym, adminNamesByPseudonym)}
               rank={member.rank}
               highlighted={isLinking && highlightedUserIds.has(member.userId)}
               dimmed={isLinking && !highlightedUserIds.has(member.userId)}

@@ -10,6 +10,7 @@ import CoverImage from './CoverImage'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
 import { useMatchingBoard } from './MatchingBoardProvider'
+import { withAdminName } from './matching-shared'
 
 interface Props {
   moves: MyMoveBook[]
@@ -18,6 +19,7 @@ interface Props {
   mutationUserId?: string
   onMovePreview?: (move: MyMoveBook | null) => void
   mode?: OptimizationMode
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
 interface ModalState {
@@ -32,6 +34,7 @@ export default function MatchingMyMoves({
   mutationUserId,
   onMovePreview,
   mode = 'coverage',
+  adminNamesByPseudonym = null,
 }: Props) {
   const router = useRouter()
   const { beginPending, endPending, pending } = useMatchingBoard()
@@ -124,6 +127,7 @@ export default function MatchingMyMoves({
               onAdd={handleAdd}
               onFirstPlaceHintChange={setFirstPlaceHint}
               onPreview={previewMove}
+              adminNamesByPseudonym={adminNamesByPseudonym}
             />
           ))}
         </ul>
@@ -143,6 +147,7 @@ interface MoveCardProps {
   onAdd: (bookId: string) => void
   onFirstPlaceHintChange: (action: string | null | ((prev: string | null) => string | null)) => void
   onPreview: (move: MyMoveBook | null) => void
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
 function MoveCard({
@@ -156,6 +161,7 @@ function MoveCard({
   onAdd,
   onFirstPlaceHintChange,
   onPreview,
+  adminNamesByPseudonym = null,
 }: MoveCardProps) {
   const [bookTitleHovered, setBookTitleHovered] = useState(false)
 
@@ -180,7 +186,7 @@ function MoveCard({
       onBlur={() => onPreview(null)}
     >
       <div className="nd-move-impact-head">
-        {move.impact && <ImpactMetricPills move={move} mode={mode} />}
+        {move.impact && <ImpactMetricPills move={move} mode={mode} adminNamesByPseudonym={adminNamesByPseudonym} />}
       </div>
 
       {move.impact && (
@@ -191,6 +197,7 @@ function MoveCard({
             onThisBookClick={handleOpenBook}
             bookTitleHovered={bookTitleHovered}
             onThisBookHoverChange={setBookTitleHovered}
+            adminNamesByPseudonym={adminNamesByPseudonym}
           />
         </p>
       )}
@@ -247,6 +254,7 @@ interface MoveWhyTextProps {
   onThisBookClick?: () => void
   bookTitleHovered?: boolean
   onThisBookHoverChange?: (v: boolean) => void
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
 function MoveWhyText({
@@ -255,6 +263,7 @@ function MoveWhyText({
   onThisBookClick,
   bookTitleHovered = false,
   onThisBookHoverChange,
+  adminNamesByPseudonym = null,
 }: MoveWhyTextProps) {
   const beneficiaries = move.impact?.beneficiaries ?? []
   const leftOut = beneficiaries.filter((b) => b.before.place === 'leftOut')
@@ -309,7 +318,7 @@ function MoveWhyText({
             return (
               <span key={b.userId}>
                 {i > 0 && ' '}
-                <b>{b.pseudonym}</b>
+                <b>{withAdminName(b.pseudonym, adminNamesByPseudonym)}</b>
                 {' ставит '}{thisBook}{` на ${rAfter}-е место, а книгу нынешнего круга — на ${rBefore}-е.`}
               </span>
             )
@@ -322,7 +331,7 @@ function MoveWhyText({
     if (leftOut.length > 0) {
       return (
         <>
-          {renderNames(leftOut.map((b) => b.pseudonym))}
+          {renderNames(leftOut.map((b) => withAdminName(b.pseudonym, adminNamesByPseudonym)))}
           {' сейчас без круга — добавишь, и соберётесь вместе.'}
         </>
       )
@@ -334,12 +343,12 @@ function MoveWhyText({
   if (leftOut.length > 0) {
     return (
       <>
-        {renderNames(leftOut.map((b) => b.pseudonym))}
+        {renderNames(leftOut.map((b) => withAdminName(b.pseudonym, adminNamesByPseudonym)))}
         {' сейчас за бортом. Добавишь '}{thisBook}{' — и вы соберетесь в круг'}
         {strong.length > 0 && (
           <>
             {', где '}
-            <em>{joinNamesText(strong.map((b) => b.pseudonym))} очень {strongInterestVerb} читать</em>
+            <em>{joinNamesText(strong.map((b) => withAdminName(b.pseudonym, adminNamesByPseudonym)))} очень {strongInterestVerb} читать</em>
           </>
         )}
         {'.'}
@@ -352,7 +361,7 @@ function MoveWhyText({
 
     return (
       <>
-        {renderNames(upgraded.map((b) => b.pseudonym))}
+        {renderNames(upgraded.map((b) => withAdminName(b.pseudonym, adminNamesByPseudonym)))}
         {` уже в сценарии, но `}{thisBook}{` ${interestVerb} `}
         <em>сильнее</em>
         {'. Добавишь — соберутся вокруг неё, не потеряв покрытие.'}
@@ -388,7 +397,7 @@ function joinNamesText(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} и ${names[names.length - 1]}`
 }
 
-function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: OptimizationMode }) {
+function ImpactMetricPills({ move, mode, adminNamesByPseudonym = null }: { move: MyMoveBook; mode: OptimizationMode; adminNamesByPseudonym?: Map<string, string | null> | null }) {
   const coverageGain = impactCoverageGain(move)
   const strongInterestGain = impactStrongInterestGain(move)
   const satisfaction = move.impact?.satisfaction
@@ -399,8 +408,8 @@ function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: Optimizatio
       && satisfaction.after !== null && satisfaction.after < satisfaction.before
     const viewerJoins = satisfaction?.before === null && satisfaction?.after !== null
 
-    // Кто-то выходит из-за борта → «соберётся круг»
-    const joinsCircle = beneficiaries.some(b => b.before.place === 'leftOut') || viewerJoins
+    // Кто-то выходит из-за борта → «соберётся круг» (только если круг новый)
+    const joinsCircle = (beneficiaries.some(b => b.before.place === 'leftOut') || viewerJoins) && (move.impact?.formsNewCircle ?? true)
     if (joinsCircle) {
       return (
         <div className="nd-move-metrics">
@@ -416,7 +425,7 @@ function ImpactMetricPills({ move, mode }: { move: MyMoveBook; mode: Optimizatio
     )
 
     if (improved.length > 0) {
-      const names = improved.slice(0, 2).map(b => declinePseudonym(b.pseudonym, 'dat'))
+      const names = improved.slice(0, 2).map(b => declinePseudonym(withAdminName(b.pseudonym, adminNamesByPseudonym), 'dat'))
       const nameStr = improved.length === 1
         ? names[0]
         : names.join(' и ')

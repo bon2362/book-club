@@ -87,6 +87,8 @@ export function buildMoveImpact({
     return null
   }
 
+  const formsNewCircle = !((currentLeader?.circles ?? []).some((c) => c.bookId === move.bookId))
+
   return {
     scenarioId: scenario.id,
     scenarioTitle: 'Сценарий 1',
@@ -95,6 +97,7 @@ export function buildMoveImpact({
     circleTitles: circleBooks.map((book) => book.title),
     circleBooks,
     previewScenario: scenario,
+    formsNewCircle,
     coverage: {
       before: currentLeader?.score.coveredCount ?? 0,
       after: scenario.score.coveredCount,

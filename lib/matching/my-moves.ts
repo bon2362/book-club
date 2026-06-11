@@ -24,6 +24,7 @@ export interface MyMoveBook {
     circleTitles: string[]
     circleBooks: { bookId: string; title: string }[]
     previewScenario: MatchingScenario
+    formsNewCircle: boolean
     coverage: { before: number; after: number }
     strongInterest: { before: number; after: number }
     satisfaction?: { before: number | null; after: number | null }

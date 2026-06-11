@@ -29,6 +29,7 @@ interface Props {
     reason: 'change' | 'never'
     cause: (AdriftCause & { bookTitle?: string | null }) | null
   } | null
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
 const panel: React.CSSProperties = {
@@ -95,6 +96,7 @@ export default function MatchingImpactWorkspace({
   movesHeading,
   mutationUserId,
   adrift = null,
+  adminNamesByPseudonym = null,
 }: Props) {
   const mode = overview.mode
   const { pending } = useMatchingBoard()
@@ -198,6 +200,7 @@ export default function MatchingImpactWorkspace({
             previewMove={visiblePreviewMove}
             highlightedUserIds={previewMove ? previewBeneficiaryIds : []}
             mode={mode}
+            adminNamesByPseudonym={adminNamesByPseudonym}
           />
         </div>
       </section>
@@ -223,6 +226,7 @@ export default function MatchingImpactWorkspace({
             mutationUserId={mutationUserId}
             onMovePreview={handlePreview}
             mode={mode}
+            adminNamesByPseudonym={adminNamesByPseudonym}
           />
         </div>
       </section>
