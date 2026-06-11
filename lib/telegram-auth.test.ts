@@ -5,6 +5,12 @@
  * Проверяет каждую причину отказа и успешный путь.
  */
 import { createHash, createHmac } from 'crypto'
+
+// telegram-auth.ts тянет lib/db → @/env (ESM @t3-oss/env-nextjs, который Jest не
+// трансформирует). verifyTelegramHashWithReason сам БД не использует — мокаем db,
+// чтобы цепочка импортов не грузила env (как в callback/route.test.ts).
+jest.mock('@/lib/db', () => ({ db: {} }))
+
 import { verifyTelegramHashWithReason, TELEGRAM_AUTH_MAX_AGE_SECONDS } from './telegram-auth'
 
 const BOT_TOKEN = 'test-bot-token-for-reason-tests'
