@@ -50,6 +50,40 @@ test.describe('Header: hide on scroll', () => {
   })
 })
 
+test.describe('Auth modal remembered provider hint', () => {
+  test('google provider badge stays inside the button and opens secondary methods automatically', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('slowreading.lastAuthProvider', 'google')
+    })
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    await page.getByRole('button', { name: /^войти$/i }).click()
+
+    const dialog = page.getByRole('dialog', { name: /войти в круг/i })
+    await expect(dialog).toBeVisible()
+    const googleButton = dialog.getByRole('button', { name: /войти через google/i })
+    const emailInput = dialog.getByPlaceholder(/ваш@email.com/i)
+    const rememberedBadge = dialog.getByText('последний способ входа', { exact: true })
+
+    await expect(googleButton).toBeVisible()
+    await expect(emailInput).toBeVisible()
+    await expect(rememberedBadge).toBeVisible()
+
+    const buttonBox = await googleButton.boundingBox()
+    const textBox = await googleButton.getByText('Войти через Google', { exact: true }).boundingBox()
+    const badgeBox = await rememberedBadge.boundingBox()
+
+    expect(buttonBox).not.toBeNull()
+    expect(textBox).not.toBeNull()
+    expect(badgeBox).not.toBeNull()
+    expect(badgeBox!.x).toBeGreaterThanOrEqual(textBox!.x + textBox!.width - 1)
+    expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(buttonBox!.x + buttonBox!.width + 1)
+    expect(badgeBox!.y).toBeGreaterThanOrEqual(buttonBox!.y - 1)
+    expect(badgeBox!.y + badgeBox!.height).toBeLessThanOrEqual(buttonBox!.y + buttonBox!.height + 1)
+  })
+})
+
 test.describe('Home submit book CTA layout', () => {
   test('submit book button is compact on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
