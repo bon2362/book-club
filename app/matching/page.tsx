@@ -179,6 +179,13 @@ export default async function MatchingPage({
         userId: publicUserIdByInternalId.get(participant.userId) ?? participant.pseudonym,
       }))
 
+  // Имена участников для админа (#341): pseudonym → name. Только для админа (иначе null —
+  // настоящие имена не уходят в клиентские пропсы не-админа). Чипы участников книг рендерят
+  // реальный псевдоним даже для админа, поэтому карта по псевдониму применима и к ним.
+  const adminNamesByPseudonym: Map<string, string | null> | null = isAdmin
+    ? new Map(participants.map((p) => [p.pseudonym, p.name ?? null]))
+    : null
+
   if (showRankingGate) {
     return (
       <MatchingSatisfactionFlow
@@ -187,6 +194,7 @@ export default async function MatchingPage({
         books={personalBooks}
         bookParticipants={clientBookParticipants}
         viewingUserId={clientViewingUserId}
+        adminNamesByPseudonym={adminNamesByPseudonym}
       />
     )
   }
@@ -282,10 +290,6 @@ export default async function MatchingPage({
     />
   )
 
-  const adminNamesByPseudonym: Map<string, string | null> | null = isAdmin
-    ? new Map(participants.map((p) => [p.pseudonym, p.name ?? null]))
-    : null
-
   const workspaceSlot = (
     <MatchingImpactWorkspace
       sessionId={activeSession.id}
@@ -339,6 +343,7 @@ export default async function MatchingPage({
           header={headerSlot}
           workspace={workspaceSlot}
           catalogIntro={catalogIntroSlot}
+          adminNamesByPseudonym={adminNamesByPseudonym}
         />
       </MatchingBoardProvider>
     )
@@ -377,6 +382,7 @@ export default async function MatchingPage({
             viewingUserId={clientViewingUserId}
             frozen={isReadOnly}
             mutationUserId={isImpersonating ? viewingUserId : undefined}
+            adminNamesByPseudonym={adminNamesByPseudonym}
           />
         </div>
       </div>

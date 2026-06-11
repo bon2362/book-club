@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import CoverImage from './CoverImage'
-import { parseRecommendationLink } from './matching-shared'
+import { parseRecommendationLink, withAdminName } from './matching-shared'
 import type { BookParticipant } from './MatchingPersonalList'
 import ParticipantInterestChip from './ParticipantInterestChip'
 
@@ -31,6 +31,8 @@ interface Props {
   onStatusChange?: (bookId: string, status: string | null) => Promise<void>
   onAddToList?: (bookId: string) => Promise<void>
   onRemoveFromList?: (bookId: string) => Promise<void>
+  /** Карта pseudonym → name; задаётся только для админа (#341). */
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
 export default function MatchingBookDetailModal({
@@ -42,6 +44,7 @@ export default function MatchingBookDetailModal({
   onStatusChange,
   onAddToList,
   onRemoveFromList,
+  adminNamesByPseudonym = null,
 }: Props) {
   const [busy, setBusy] = useState(false)
 
@@ -164,7 +167,7 @@ export default function MatchingBookDetailModal({
                     <ParticipantInterestChip
                       key={p.userId}
                       userId={p.userId}
-                      pseudonym={p.pseudonym}
+                      pseudonym={withAdminName(p.pseudonym, adminNamesByPseudonym)}
                       rank={p.rank}
                       personalStatus={p.personalStatus}
                       viewingUserId={viewingUserId}
