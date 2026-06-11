@@ -317,6 +317,7 @@ describe('move impact helpers', () => {
         circleTitles: [],
         circleBooks: [],
         previewScenario,
+        formsNewCircle: true,
         coverage: { before: 6, after: 6 },
         strongInterest: { before: 2, after: 5 },
         beneficiaries: [],
@@ -329,6 +330,7 @@ describe('move impact helpers', () => {
         circleTitles: [],
         circleBooks: [],
         previewScenario,
+        formsNewCircle: true,
         coverage: { before: 6, after: 8 },
         strongInterest: { before: 2, after: 2 },
         beneficiaries: [],
@@ -341,6 +343,7 @@ describe('move impact helpers', () => {
         circleTitles: [],
         circleBooks: [],
         previewScenario,
+        formsNewCircle: true,
         coverage: { before: 6, after: 8 },
         strongInterest: { before: 2, after: 4 },
         beneficiaries: [],
@@ -405,6 +408,122 @@ describe('move impact helpers', () => {
 
     expect(impact).not.toBeNull()
     expect(impact?.satisfaction).toEqual({ before: 4, after: 1 })
+  })
+
+  it('formsNewCircle=false when book already has a circle in currentLeader', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(3, 1),
+      leftOut: [{ userId: 'u3', pseudonym: 'Лягушка' }],
+      circles: [
+        {
+          id: 'existing:viewer+u2',
+          bookId: 'existing',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 1,
+          avgRank: 2,
+          worstRank: 3,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 2, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 3, interest: 'очень хочу' },
+          ],
+        },
+      ],
+    }
+    const nextLeader: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(4, 2),
+      leftOut: [],
+      circles: [
+        {
+          id: 'existing:viewer+u2+u3',
+          bookId: 'existing',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 2,
+          avgRank: 2,
+          worstRank: 3,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 2, interest: 'очень хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: 3, interest: 'очень хочу' },
+          ],
+        },
+      ],
+    }
+
+    const impact = buildMoveImpact({
+      move: { bookId: 'existing', title: 'Existing', author: 'A', description: '', coverUrl: null, pages: null, publishedDate: '', textUrl: '', whyRead: null, recommendationLink: null, tags: [], existingParticipants: [] },
+      scenario: nextLeader,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([['existing', 'Существующая книга']]),
+    })
+
+    expect(impact?.formsNewCircle).toBe(false)
+  })
+
+  it('formsNewCircle=true when book has no circle in currentLeader', () => {
+    const currentLeader: MatchingScenario = {
+      id: 'before',
+      tier: 'leader',
+      score: score(2, 0),
+      leftOut: [{ userId: 'u2', pseudonym: 'Казарка' }],
+      circles: [
+        {
+          id: 'other:viewer',
+          bookId: 'other',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 1,
+          avgRank: 3,
+          worstRank: 4,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 3, interest: 'очень хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: 4, interest: 'хочу' },
+          ],
+        },
+      ],
+    }
+    const nextLeader: MatchingScenario = {
+      id: 'after',
+      tier: 'leader',
+      score: score(3, 2),
+      leftOut: [],
+      circles: [
+        {
+          id: 'new:viewer+u2',
+          bookId: 'new',
+          minSize: 3,
+          maxSize: 3,
+          wantsCount: 2,
+          avgRank: 1.5,
+          worstRank: 2,
+          unrankedCount: 0,
+          members: [
+            { userId: 'viewer', pseudonym: 'Медведка', rank: 1, interest: 'очень хочу' },
+            { userId: 'u2', pseudonym: 'Казарка', rank: 2, interest: 'очень хочу' },
+            { userId: 'u3', pseudonym: 'Лягушка', rank: 3, interest: 'очень хочу' },
+          ],
+        },
+      ],
+    }
+
+    const impact = buildMoveImpact({
+      move: { bookId: 'new', title: 'New', author: 'A', description: '', coverUrl: null, pages: null, publishedDate: '', textUrl: '', whyRead: null, recommendationLink: null, tags: [], existingParticipants: [] },
+      scenario: nextLeader,
+      currentLeader,
+      viewingUserId: 'viewer',
+      bookTitleById: new Map([['new', 'Новая книга']]),
+    })
+
+    expect(impact?.formsNewCircle).toBe(true)
   })
 
   it('coverage mode keeps the same flat-coverage move non-meaningful', () => {
@@ -476,6 +595,7 @@ describe('sortMovesByImpact — satisfaction', () => {
       circleTitles: [],
       circleBooks: [],
       previewScenario,
+      formsNewCircle: true,
       coverage: { before: 3, after: 3 },
       strongInterest: { before: 1, after: 1 },
       satisfaction: { before, after },

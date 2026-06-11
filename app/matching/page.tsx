@@ -50,6 +50,9 @@ export default async function MatchingPage({
     .limit(1)
 
   if (!activeSession) {
+    if (!isAdmin) {
+      redirect('/')
+    }
     return (
       <main
         className="p-8 max-w-2xl mx-auto"
@@ -279,6 +282,10 @@ export default async function MatchingPage({
     />
   )
 
+  const adminNamesByPseudonym: Map<string, string | null> | null = isAdmin
+    ? new Map(participants.map((p) => [p.pseudonym, p.name ?? null]))
+    : null
+
   const workspaceSlot = (
     <MatchingImpactWorkspace
       sessionId={activeSession.id}
@@ -291,6 +298,7 @@ export default async function MatchingPage({
       movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
       mutationUserId={isImpersonating ? viewingUserId : undefined}
       adrift={clientAdrift}
+      adminNamesByPseudonym={adminNamesByPseudonym}
     />
   )
 

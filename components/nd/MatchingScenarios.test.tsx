@@ -127,6 +127,7 @@ describe('MatchingScenarios', () => {
         circleTitles: [],
         circleBooks: [],
         previewScenario,
+        formsNewCircle: true,
         coverage: { before: 3, after: 4 },
         strongInterest: { before: 1, after: 2 },
         beneficiaries: [],

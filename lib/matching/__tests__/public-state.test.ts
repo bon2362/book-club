@@ -145,6 +145,7 @@ describe('public matching state sanitizers', () => {
         circleTitles: ['Book'],
         circleBooks: [{ bookId: 'book-a', title: 'Book' }],
         previewScenario: scenario,
+        formsNewCircle: true,
         coverage: { before: 1, after: 2 },
         strongInterest: { before: 0, after: 1 },
         beneficiaries: [{
