@@ -31,6 +31,8 @@ export interface MatchingSatisfactionFlowProps {
   header?: React.ReactNode
   workspace?: React.ReactNode
   catalogIntro?: React.ReactNode
+  /** Карта pseudonym → name; задаётся только для админа (#341). */
+  adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
 /**
@@ -57,6 +59,7 @@ export default function MatchingSatisfactionFlow({
   header,
   workspace,
   catalogIntro,
+  adminNamesByPseudonym = null,
 }: MatchingSatisfactionFlowProps) {
   const router = useRouter()
   const board = phase === 'board'
@@ -157,6 +160,7 @@ export default function MatchingSatisfactionFlow({
             fill={!board}
             suppressRefresh={!board}
             onChange={!board ? setCanEnter : undefined}
+            adminNamesByPseudonym={adminNamesByPseudonym}
           />
         </div>
       </div>
