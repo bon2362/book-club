@@ -75,6 +75,7 @@ export default function MatchingScenarios({
           chips={bookParticipants.filter((p) => p.bookId === modalBook.bookId)}
           viewingUserId={viewingUserId}
           onClose={closeModal}
+          adminNamesByPseudonym={adminNamesByPseudonym}
         />
       )}
       {/* Тёплый фон контейнера — белые карточки сценариев читаются на нём */}

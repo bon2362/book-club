@@ -95,6 +95,7 @@ export default function MatchingMyMoves({
           chips={modalState.chips}
           viewingUserId={viewingUserId}
           onClose={() => setModalState(null)}
+          adminNamesByPseudonym={adminNamesByPseudonym}
         />
       )}
       {moves.length === 0 ? (
