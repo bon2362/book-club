@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTelegramPreauthToken, verifyTelegramHash } from '@/lib/telegram-auth'
+import { createTelegramPreauthToken, verifyTelegramHashWithReason } from '@/lib/telegram-auth'
 import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const params = Object.fromEntries(searchParams)
 
-  if (!verifyTelegramHash(params)) {
+  const verdict = verifyTelegramHashWithReason(params)
+  if (!verdict.ok) {
+    console.error('[telegram-callback] verification failed', {
+      reason: verdict.reason,
+      skewSeconds: verdict.skewSeconds,
+      hasHash: Boolean(params.hash),
+      tgId: params.id ?? null,
+      authDate: params.auth_date ?? null,
+    })
     return NextResponse.redirect(new URL('/?auth=failed', origin))
   }
 
@@ -22,6 +30,7 @@ export async function GET(req: NextRequest) {
 
   const ts = String(Math.floor(Date.now() / 1000))
   const { token } = await createTelegramPreauthToken(user.id)
+  console.log('[telegram-callback] ok', { userId: user.id, tgId: id })
 
   const url = new URL('/auth/telegram', origin)
   url.searchParams.set('token', token)
