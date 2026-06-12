@@ -7,30 +7,24 @@ import type { OptimizationMode } from '@/lib/matching/scenarios'
 import { impactCoverageGain, impactStrongInterestGain } from '@/lib/matching/move-impact'
 import { declinePseudonym } from '@/lib/matching/pseudonym-declension'
 import CoverImage from './CoverImage'
-import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
+import type { MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
 import { useMatchingBoard } from './MatchingBoardProvider'
+import { useBookDetail } from './BookDetailProvider'
 import { withAdminName } from './matching-shared'
 
 interface Props {
   moves: MyMoveBook[]
   frozen?: boolean
-  viewingUserId: string
   mutationUserId?: string
   onMovePreview?: (move: MyMoveBook | null) => void
   mode?: OptimizationMode
   adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
-interface ModalState {
-  book: MatchingBookDetail
-  chips: BookParticipant[]
-}
-
 export default function MatchingMyMoves({
   moves: initialMoves,
   frozen = false,
-  viewingUserId,
   mutationUserId,
   onMovePreview,
   mode = 'coverage',
@@ -38,17 +32,16 @@ export default function MatchingMyMoves({
 }: Props) {
   const router = useRouter()
   const { beginPending, endPending, pending } = useMatchingBoard()
+  const { openBook } = useBookDetail()
   const [moves, setMoves] = useState(initialMoves)
   const [adding, setAdding] = useState<string | null>(null)
   const [firstPlaceHint, setFirstPlaceHint] = useState<string | null>(null)
   const [previewedMoveId, setPreviewedMoveId] = useState<string | null>(null)
-  const [modalState, setModalState] = useState<ModalState | null>(null)
 
   useEffect(() => {
     setMoves(initialMoves)
     setFirstPlaceHint(null)
     setPreviewedMoveId(null)
-    setModalState(null)
   }, [initialMoves])
 
   function previewMove(move: MyMoveBook | null) {
@@ -83,21 +76,8 @@ export default function MatchingMyMoves({
     }
   }
 
-  function openBook(book: MatchingBookDetail, chips: BookParticipant[]) {
-    setModalState({ book, chips })
-  }
-
   return (
     <>
-      {modalState && (
-        <MatchingBookDetailModal
-          book={modalState.book}
-          chips={modalState.chips}
-          viewingUserId={viewingUserId}
-          onClose={() => setModalState(null)}
-          adminNamesByPseudonym={adminNamesByPseudonym}
-        />
-      )}
       {moves.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center h-full p-6 text-center"
