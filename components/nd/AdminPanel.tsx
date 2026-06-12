@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Fragment, useLayoutEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, Fragment, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { UserSignup } from '@/lib/signup-books'
@@ -142,7 +142,7 @@ const fieldInput: React.CSSProperties = {
   fontSize: '0.8rem',
   color: 'var(--text)',
   borderTop: '1px solid var(--border)',
-  borderRight: '1px solid #E5E5E5',
+  borderRight: '1px solid var(--border)',
   borderLeft: '1px solid var(--border)',
   borderBottom: '2px solid var(--border-strong)',
   padding: '0.35rem 0.5rem',
@@ -284,6 +284,7 @@ export default function AdminPanel({
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
   const [userDrawerLoading, setUserDrawerLoading] = useState(false)
+  const [userMergeLoading, setUserMergeLoading] = useState(false)
   const [view, setView] = useState<View>(() => parseAdminView(tabParam))
   // Generic transient status message used by various admin actions (e.g. delete-user errors).
   const [syncMsg, setSyncMsg] = useState('')
@@ -332,13 +333,18 @@ export default function AdminPanel({
       .finally(() => setSubmissionsLoaded(true))
   }, [])
 
-  useEffect(() => {
+  const loadAdminUsers = useCallback(async () => {
+    setAdminUsersLoaded(false)
     fetch('/api/admin/users')
       .then(r => r.json())
       .then(d => { if (d.success && Array.isArray(d.data)) setAdminUsers(d.data) })
       .catch(() => {})
       .finally(() => setAdminUsersLoaded(true))
   }, [])
+
+  useEffect(() => {
+    void loadAdminUsers()
+  }, [loadAdminUsers])
 
   useEffect(() => {
     fetch('/api/admin/feedback')
@@ -410,6 +416,35 @@ export default function AdminPanel({
       if (selectedAdminUserId === userId) closeUserDrawer()
     } catch {
       setSyncMsg('Не удалось удалить пользователя: ошибка сети')
+    }
+  }
+
+  async function handleMergeUser(sourceUserId: string, targetUserId: string, reason: string) {
+    const source = selectedAdminUser?.user
+    const target = adminUsers.find(user => user.id === targetUserId)
+    const sourceLabel = source?.name || source?.contactEmail || source?.telegramDisplay || sourceUserId
+    const targetLabel = target?.name || target?.contactEmail || target?.telegramDisplay || targetUserId
+    if (!window.confirm(`Слить пользователя ${sourceLabel} в ${targetLabel}? Source-аккаунт будет удалён после переноса данных.`)) return
+
+    setUserMergeLoading(true)
+    try {
+      const res = await fetch('/api/admin/users/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceUserId, targetUserId, reason }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null
+        setSyncMsg(`Не удалось слить пользователей: ${data?.error || res.statusText}`)
+        return
+      }
+      await loadAdminUsers()
+      closeUserDrawer()
+      setSyncMsg('Пользователи слиты')
+    } catch {
+      setSyncMsg('Не удалось слить пользователей: ошибка сети')
+    } finally {
+      setUserMergeLoading(false)
     }
   }
 
@@ -549,8 +584,8 @@ export default function AdminPanel({
     padding: '0.4rem 0',
     background: 'none',
     border: 'none',
-    borderBottom: active ? '2px solid #111' : '2px solid transparent',
-    color: active ? '#111' : 'var(--text-muted)',
+    borderBottom: active ? '2px solid var(--text)' : '2px solid transparent',
+    color: active ? 'var(--text)' : 'var(--text-muted)',
     cursor: 'pointer',
     marginRight: '1.5rem',
   })
@@ -573,9 +608,9 @@ export default function AdminPanel({
     textTransform: 'uppercase',
     letterSpacing: '0.06em',
     padding: '0.2rem 0.5rem',
-    border: '1px solid #999',
-    background: active ? '#111' : 'transparent',
-    color: active ? '#fff' : 'var(--text-secondary)',
+    border: '1px solid var(--border-strong)',
+    background: active ? 'var(--text)' : 'transparent',
+    color: active ? 'var(--bg)' : 'var(--text-secondary)',
     cursor: 'pointer',
   })
 
@@ -663,7 +698,7 @@ export default function AdminPanel({
   }
 
   const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
-  const submissionStatusColor: Record<string, string> = { pending: 'var(--accent)', approved: '#2E7D32', rejected: 'var(--text-muted)' }
+  const submissionStatusColor: Record<string, string> = { pending: 'var(--accent)', approved: 'var(--success)', rejected: 'var(--text-muted)' }
 
   return (
     <>
@@ -856,7 +891,7 @@ export default function AdminPanel({
                         padding: '0.3rem 0.75rem',
                         border: '1px solid var(--border-strong)',
                         background: isSaving ? 'var(--border)' : 'transparent',
-                        color: isSaving ? 'var(--text-muted)' : '#111',
+                        color: isSaving ? 'var(--text-muted)' : 'var(--text)',
                         cursor: isSaving ? 'default' : 'pointer',
                       }}
                     >
@@ -914,7 +949,7 @@ export default function AdminPanel({
                     const edits = submissionEdits[sub.id] ?? {}
                     const isActing = submissionActionLoading === sub.id
                     const hasEdits = Object.keys(edits).length > 0
-                    const statusColor = submissionStatusColor[sub.status] ?? '#111'
+                    const statusColor = submissionStatusColor[sub.status] ?? 'var(--text)'
                     const statusLabel = submissionStatusLabel[sub.status] ?? sub.status
                     const topicValue = ('topic' in edits ? edits.topic : sub.topic) ?? ''
                     const topicOptions = topicValue && !allTags.includes(topicValue)
@@ -1047,7 +1082,7 @@ export default function AdminPanel({
                                     <button
                                       onClick={() => handleSaveSubmissionEdits(sub.id)}
                                       disabled={isActing}
-                                      style={actionBtnStyle('#111', isActing)}
+                                      style={actionBtnStyle('var(--text)', isActing)}
                                     >
                                       {isActing ? 'Сохранение…' : 'Сохранить'}
                                     </button>
@@ -1055,7 +1090,7 @@ export default function AdminPanel({
                                   <button
                                     onClick={() => handleSubmissionAction(sub.id, 'approved')}
                                     disabled={isActing || sub.status === 'approved'}
-                                    style={actionBtnStyle('#2E7D32', isActing || sub.status === 'approved')}
+                                    style={actionBtnStyle('var(--success)', isActing || sub.status === 'approved')}
                                   >
                                     Одобрить
                                   </button>
@@ -1201,6 +1236,12 @@ export default function AdminPanel({
           if (!selectedAdminUser) return
           handleDeleteUser(selectedAdminUser.user.id, selectedAdminUser.user.name || selectedAdminUser.user.contactEmail || selectedAdminUser.user.telegramDisplay)
         }}
+        onMergeUser={async (targetUserId, reason) => {
+          if (!selectedAdminUser) return
+          await handleMergeUser(selectedAdminUser.user.id, targetUserId, reason)
+        }}
+        mergeTargets={adminUsers}
+        mergeLoading={userMergeLoading}
         onOpenSubmission={(submissionId) => {
           closeUserDrawer()
           setView('submissions')

@@ -61,7 +61,7 @@ export const AUDITED_TABLES = [
   'matching_sessions', 'matching_session_participants',
   'matching_pseudonym_reservations', 'matching_preference_events',
   'user_activity_events', 'user_identities',
-  'verificationToken', 'telegram_preauth_tokens', 'notification_queue',
+  'user_merge_events', 'verificationToken', 'telegram_preauth_tokens', 'notification_queue',
 ] as const
 ```
 
@@ -147,6 +147,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
    ```
 3. Убедиться, что reconciliation-тест `drizzle/0040_audit_triggers.test.ts` проходит — он сравнивает реестр с набором триггеров в БД.
 4. Если таблица содержит секреты (токены, хеши) — добавить маску в функцию `audit_capture()` по аналогии с `verificationToken`.
+
+`user_merge_events` — специальная summary-таблица для admin merge дублей. Она аудируется как обычная мутабельная таблица, но сама запись уже содержит человекочитаемую причину, source/target snapshots и movedCounts. `audit_log.actor_user_id` намеренно не переписывается при merge: append-only история остаётся привязанной к тому внутреннему user id, который совершал действие на тот момент.
 
 ## Append-only и неизменяемость
 

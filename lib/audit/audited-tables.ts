@@ -14,6 +14,7 @@ export const AUDITED_TABLES = [
   'matching_session_participants',
   'matching_pseudonym_reservations',
   'matching_preference_events',
+  'user_merge_events',
   'user_identities',
   'verificationToken',
   'telegram_preauth_tokens',

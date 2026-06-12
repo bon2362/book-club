@@ -147,6 +147,18 @@ const mockAdminUsers = [
   },
 ]
 
+const mockAdminUserDetails = {
+  user: {
+    ...mockAdminUsers[0],
+    contactEmail: 'old@test.com',
+    prioritiesSet: false,
+  },
+  signupBooks: [],
+  priorities: [],
+  submissions: [],
+  feedback: [],
+}
+
 const mockFeedback = [
   {
     id: 'fb-1',
@@ -466,6 +478,54 @@ describe('AdminPanel — Заявки таб', () => {
         ok: true,
       })
     })
+  })
+})
+
+describe('AdminPanel — merge users', () => {
+  it('отправляет source, target и причину из карточки пользователя', async () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true)
+    ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === '/api/admin/submissions') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/feedback') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/users') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUsers }) })
+      }
+      if (url === '/api/admin/users/user-old') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUserDetails }) })
+      }
+      if (url === '/api/admin/users/merge') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, result: { movedCounts: { users: 1 } } }) })
+      }
+      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? 'GET'}`)
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+
+    fireEvent.click(await screen.findByText('Старый участник'))
+    expect(await screen.findByText('Слить дубль')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Целевой пользователь'), { target: { value: 'user-new' } })
+    fireEvent.change(screen.getByPlaceholderText(/один участник вошёл/i), {
+      target: { value: 'дубликат после входа через другой провайдер' },
+    })
+    fireEvent.click(screen.getByText('Слить в выбранный аккаунт'))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/admin/users/merge', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          sourceUserId: 'user-old',
+          targetUserId: 'user-new',
+          reason: 'дубликат после входа через другой провайдер',
+        }),
+      }))
+    })
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Слить пользователя Старый участник в Новый участник?'))
   })
 })
 

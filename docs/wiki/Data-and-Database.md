@@ -102,6 +102,15 @@ erDiagram
       text book_id
       timestamp occurred_at
     }
+
+    user_merge_events {
+      text source_user_id
+      text target_user_id
+      text reason
+      jsonb source_snapshot
+      jsonb target_snapshot
+      jsonb moved_counts
+    }
 ```
 
 ## Основные таблицы
@@ -123,12 +132,15 @@ erDiagram
 | `matching_session_participants` | Участники каждой сессии с псевдонимами. | Псевдоним стабилен в рамках сессии, новый в каждой следующей. |
 | `matching_pseudonym_reservations` | Временные резервы псевдонимов для welcome screen. | Позволяет показать будущий псевдоним до явного входа, не влияя на сценарии. |
 | `matching_preference_events` | Аналитика изменений предпочтений в matching-сессиях (включая `participant_left`). | Помогает администратору видеть, какие действия меняли лучший сценарий и состав участников; доступна по любой сессии, активной или зафиксированной. |
+| `user_merge_events` | Summary-события admin merge дублей пользователей. | Даёт читаемую историю слияния поверх подробного row-level audit. |
 
 ## Как связаны пользователь и способ входа
 
 `user.id` — внутренний стабильный идентификатор. Внешние id Google, Telegram или email хранятся отдельно в `user_identities`.
 
 Это важно: Telegram id или Google sub не должны становиться главным id пользователя. Такой подход снижает риск дублей и упрощает будущие изменения авторизации.
+
+Если дубль уже создан, администратор может слить source user в target user. Merge переносит `user_identities`, записи на книги, приоритеты, заявки, feedback, activity events, Telegram preauth tokens и matching-связи. `audit_log` не переписывается; summary попадает в `user_merge_events`.
 
 ## Что каскадно удаляется
 
@@ -158,6 +170,7 @@ erDiagram
 - `0028_matching_tables.sql` — таблицы `matching_sessions`, `matching_session_participants`, `admin_views`.
 - `0029_matching_signup_books.sql` — FK-связь `signup_books` с matching.
 - `0030_matching_freeze_metrics.sql` — колонки метрик заморозки в `matching_sessions`.
+- `0043_user_merge_events.sql` — summary-таблица для admin merge дублей и audit-триггер.
 - `0034_matching_pseudonym_reservations.sql` — временные резервы псевдонимов для welcome screen.
 - `0035_matching_preference_events.sql` — персистентная аналитика изменений предпочтений в matching.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).

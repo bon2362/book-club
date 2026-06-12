@@ -7,6 +7,10 @@ import { AUDITED_TABLES } from '../lib/audit/audited-tables'
 
 describe('0040 audit triggers migration', () => {
   const sql = readFileSync(join(process.cwd(), 'drizzle/0040_audit_triggers.sql'), 'utf8')
+  const allSql = [
+    '0040_audit_triggers.sql',
+    '0043_user_merge_events.sql',
+  ].map(file => readFileSync(join(process.cwd(), 'drizzle', file), 'utf8')).join('\n')
 
   it('defines the audit_capture function reading app.audit_* settings', () => {
     expect(sql).toContain('CREATE OR REPLACE FUNCTION audit_capture()')
@@ -17,7 +21,7 @@ describe('0040 audit triggers migration', () => {
 
   it('attaches a trigger to every audited table (registry stays in sync)', () => {
     for (const table of AUDITED_TABLES) {
-      expect(sql).toContain(`ON "${table}" FOR EACH ROW EXECUTE FUNCTION audit_capture()`)
+      expect(allSql).toContain(`ON "${table}" FOR EACH ROW EXECUTE FUNCTION audit_capture()`)
     }
   })
 
