@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { AdminUserDetails } from '@/lib/admin-users'
+import type { AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
 import type { PersonalBookStatus } from '@/lib/signup-books'
 
 interface Props {
@@ -11,8 +11,11 @@ interface Props {
   onClose: () => void
   onRemoveSignup: (bookId: string, bookName: string) => void
   onDeleteUser: () => void
+  onMergeUser: (targetUserId: string, reason: string) => Promise<void>
   onOpenSubmission: (submissionId: string) => void
   onChangeStatus: (bookId: string, status: PersonalBookStatus) => void
+  mergeTargets: AdminUserSummary[]
+  mergeLoading: boolean
 }
 
 const sans = 'var(--nd-sans), system-ui, sans-serif'
@@ -130,8 +133,22 @@ function BookStatusChip({
   )
 }
 
-export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemoveSignup, onDeleteUser, onOpenSubmission, onChangeStatus }: Props) {
+export default function AdminUserDrawer({
+  isOpen,
+  data,
+  loading,
+  onClose,
+  onRemoveSignup,
+  onDeleteUser,
+  onMergeUser,
+  onOpenSubmission,
+  onChangeStatus,
+  mergeTargets,
+  mergeLoading,
+}: Props) {
   const [openMenuBookId, setOpenMenuBookId] = useState<string | null>(null)
+  const [mergeTargetUserId, setMergeTargetUserId] = useState('')
+  const [mergeReason, setMergeReason] = useState('')
 
   useEffect(() => {
     if (!isOpen) return
@@ -146,6 +163,12 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
       window.removeEventListener('keydown', onKey)
     }
   }, [isOpen, onClose])
+
+  useEffect(() => {
+    if (isOpen) return
+    setMergeTargetUserId('')
+    setMergeReason('')
+  }, [isOpen])
 
   const user = data?.user
 
@@ -188,7 +211,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
           maxWidth: '100vw',
           height: '100dvh',
           background: 'var(--bg-input)',
-          borderLeft: '2px solid #111',
+          borderLeft: '2px solid var(--text)',
           zIndex: 300,
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           visibility: isOpen ? 'visible' : 'hidden',
@@ -237,10 +260,48 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                 </button>
               </section>
 
+              <section style={{ marginBottom: '1.6rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                <h3 style={{ ...sectionTitle, marginBottom: '0.5rem' }}>Слить дубль</h3>
+                <div style={{ display: 'grid', gap: '0.6rem' }}>
+                  <label style={{ display: 'grid', gap: '0.25rem' }}>
+                    <span style={{ fontFamily: sans, fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Целевой пользователь</span>
+                    <select
+                      value={mergeTargetUserId}
+                      onChange={event => setMergeTargetUserId(event.target.value)}
+                      style={{ fontFamily: sans, fontSize: '0.8rem', color: 'var(--text)', border: '1px solid var(--border)', borderBottom: '2px solid var(--border-strong)', padding: '0.4rem 0.5rem', background: 'var(--bg-input)' }}
+                    >
+                      <option value="">Выбрать основной аккаунт</option>
+                      {mergeTargets.filter(target => target.id !== user.id).map(target => (
+                        <option key={target.id} value={target.id}>
+                          {(target.name || target.contactEmail || target.telegramDisplay || target.id)} · {target.id}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: '0.25rem' }}>
+                    <span style={{ fontFamily: sans, fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Причина</span>
+                    <textarea
+                      value={mergeReason}
+                      onChange={event => setMergeReason(event.target.value)}
+                      rows={2}
+                      placeholder="Например: один участник вошёл через Google и Telegram"
+                      style={{ fontFamily: sans, fontSize: '0.8rem', lineHeight: 1.45, color: 'var(--text)', border: '1px solid var(--border)', borderBottom: '2px solid var(--border-strong)', padding: '0.45rem 0.5rem', background: 'var(--bg-input)', resize: 'vertical' }}
+                    />
+                  </label>
+                  <button
+                    onClick={() => { void onMergeUser(mergeTargetUserId, mergeReason) }}
+                    disabled={!mergeTargetUserId || !mergeReason.trim() || mergeLoading}
+                    style={{ justifySelf: 'start', background: 'transparent', border: '1px solid var(--border)', color: (!mergeTargetUserId || !mergeReason.trim() || mergeLoading) ? 'var(--text-muted)' : 'var(--text)', padding: '0.35rem 0.75rem', cursor: (!mergeTargetUserId || !mergeReason.trim() || mergeLoading) ? 'default' : 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                  >
+                    {mergeLoading ? 'Слияние…' : 'Слить в выбранный аккаунт'}
+                  </button>
+                </div>
+              </section>
+
               <section style={{ marginBottom: '1.6rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.45rem' }}>
                   <h3 style={sectionTitle}>Записи на книги</h3>
-                  <span style={user.prioritiesSet ? pill('#E2F0EA', 'var(--success)') : pill('var(--border-subtle)', 'var(--text-secondary)')}>
+                  <span style={user.prioritiesSet ? pill('var(--bg-elevated)', 'var(--success)') : pill('var(--border-subtle)', 'var(--text-secondary)')}>
                     {user.prioritiesSet ? 'приоритеты расставлены' : 'без приоритетов'}
                   </span>
                 </div>
@@ -332,7 +393,7 @@ export default function AdminUserDrawer({ isOpen, data, loading, onClose, onRemo
                       <li key={sub.id} style={{ padding: '0.55rem 0', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
                         <div><div>{sub.title}</div><div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{sub.author} · {formatDate(sub.createdAt)}</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={pill(sub.status === 'approved' ? '#E2F0EA' : sub.status === 'rejected' ? '#FAE0E0' : '#FFF3DC', 'var(--text-secondary)')}>{sub.status}</span>
+                          <span style={pill('var(--bg-elevated)', sub.status === 'approved' ? 'var(--success)' : sub.status === 'rejected' ? 'var(--accent)' : 'var(--text-secondary)')}>{sub.status}</span>
                           <button onClick={() => onOpenSubmission(sub.id)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: sans, fontSize: '0.72rem', padding: 0 }}>
                             открыть заявку →
                           </button>

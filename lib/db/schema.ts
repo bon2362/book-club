@@ -254,6 +254,22 @@ export const matchingPreferenceEvents = pgTable('matching_preference_events', {
   bookIdIdx:            index('matching_preference_events_book_id_idx').on(t.bookId),
 }))
 
+export const userMergeEvents = pgTable('user_merge_events', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  occurredAt: timestamp('occurred_at', { mode: 'date' }).notNull().defaultNow(),
+  actorUserId: text('actor_user_id'),
+  sourceUserId: text('source_user_id').notNull(),
+  targetUserId: text('target_user_id').notNull(),
+  reason: text('reason').notNull(),
+  sourceSnapshot: jsonb('source_snapshot').notNull(),
+  targetSnapshot: jsonb('target_snapshot').notNull(),
+  movedCounts: jsonb('moved_counts').$type<Record<string, number>>().notNull(),
+}, (t) => ({
+  occurredAtIdx: index('user_merge_events_occurred_at_idx').on(t.occurredAt),
+  targetUserIdx: index('user_merge_events_target_user_id_idx').on(t.targetUserId, t.occurredAt),
+  sourceUserIdx: index('user_merge_events_source_user_id_idx').on(t.sourceUserId, t.occurredAt),
+}))
+
 // Site-wide audit log — см. docs/superpowers/specs/2026-06-10-site-audit-log-design.md
 // Захват делают триггеры БД (drizzle/00YY_audit_triggers.sql), не drizzle-код.
 export const auditLog = pgTable('audit_log', {
