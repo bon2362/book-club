@@ -31,7 +31,7 @@ describe('GET /api/me', () => {
     jest.clearAllMocks()
   })
 
-  it('возвращает auth fields из последней user_identity, а не из users columns', async () => {
+  it('возвращает identities list и auth fields из последней user_identity', async () => {
     ;(auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } })
     queueSelects(
       [{
@@ -42,8 +42,15 @@ describe('GET /api/me', () => {
         contacts: '@user',
       }],
       [{
-        authProvider: 'google',
-        lastSignInAt: new Date('2026-01-02T10:00:00Z'),
+        provider: 'google',
+        email: 'user@test.com',
+        telegramUsername: null,
+        lastSeenAt: new Date('2026-01-02T10:00:00Z'),
+      }, {
+        provider: 'telegram',
+        email: null,
+        telegramUsername: 'reader',
+        lastSeenAt: new Date('2026-01-01T10:00:00Z'),
       }]
     )
 
@@ -55,6 +62,20 @@ describe('GET /api/me', () => {
       id: 'user-1',
       authProvider: 'google',
       lastSignInAt: '2026-01-02T10:00:00.000Z',
+      identities: [
+        {
+          provider: 'google',
+          email: 'user@test.com',
+          telegramUsername: null,
+          lastSeenAt: '2026-01-02T10:00:00.000Z',
+        },
+        {
+          provider: 'telegram',
+          email: null,
+          telegramUsername: 'reader',
+          lastSeenAt: '2026-01-01T10:00:00.000Z',
+        },
+      ],
     }))
   })
 })

@@ -22,6 +22,26 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { getUserContactEmail } from '@/lib/user-email'
 
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id: {
+          initialize: (options: {
+            client_id: string
+            callback: (response: { credential?: string }) => void | Promise<void>
+          }) => void
+          prompt: (momentListener?: (notification: {
+            isNotDisplayed: () => boolean
+            isSkippedMoment: () => boolean
+          }) => void) => void
+          cancel: () => void
+        }
+      }
+    }
+  }
+}
+
 interface Submission {
   id: string
   title: string
@@ -46,6 +66,15 @@ interface Props {
 }
 
 type Tab = 'signup' | 'submitted' | 'profile'
+type AuthIdentityProvider = 'google' | 'email' | 'telegram'
+type AuthIdentity = {
+  provider: AuthIdentityProvider
+  email: string | null
+  telegramUsername: string | null
+  lastSeenAt: string | null
+}
+
+const TELEGRAM_BOT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'На рассмотрении',
@@ -347,6 +376,15 @@ export default function ProfileDrawer({
   const langDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // ── Auth identities ──
+  const [authIdentities, setAuthIdentities] = useState<AuthIdentity[]>([])
+  const [authIdentitiesLoaded, setAuthIdentitiesLoaded] = useState(false)
+  const [linkingGoogle, setLinkingGoogle] = useState(false)
+  const [linkingError, setLinkingError] = useState('')
+  const [telegramLinkAuthUrl, setTelegramLinkAuthUrl] = useState<string | null>(null)
+  const hasGoogleIdentity = authIdentities.some(identity => identity.provider === 'google')
+  const hasTelegramIdentity = authIdentities.some(identity => identity.provider === 'telegram')
+
   // ── Toast ──
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
@@ -496,6 +534,58 @@ export default function ProfileDrawer({
         .catch(console.error)
     }
   }, [isOpen, activeTab, languagesLoaded])
+
+  // ── Load linked auth methods on Profile tab activation ──
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'profile' || authIdentitiesLoaded) return
+    fetch('/api/me')
+      .then(r => r.json())
+      .then(data => {
+        const identities = Array.isArray(data.user?.identities) ? data.user.identities : []
+        setAuthIdentities(identities)
+        setAuthIdentitiesLoaded(true)
+      })
+      .catch(() => {
+        setAuthIdentitiesLoaded(true)
+      })
+  }, [isOpen, activeTab, authIdentitiesLoaded])
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'profile' || !authIdentitiesLoaded || hasTelegramIdentity || !TELEGRAM_BOT_NAME) return
+
+    let cancelled = false
+    fetch('/api/account/identities/telegram/state')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!cancelled && typeof data?.authUrl === 'string') setTelegramLinkAuthUrl(data.authUrl)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, activeTab, authIdentitiesLoaded, hasTelegramIdentity])
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'profile' || !telegramLinkAuthUrl || hasTelegramIdentity || !TELEGRAM_BOT_NAME) return
+
+    const container = document.getElementById('telegram-link-container')
+    if (!container) return
+
+    container.innerHTML = ''
+    const script = document.createElement('script')
+    script.src = 'https://telegram.org/js/telegram-widget.js?22'
+    script.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME)
+    script.setAttribute('data-size', 'medium')
+    script.setAttribute('data-lang', 'ru')
+    script.setAttribute('data-auth-url', telegramLinkAuthUrl)
+    script.async = true
+    container.appendChild(script)
+
+    return () => {
+      container.innerHTML = ''
+    }
+  }, [isOpen, activeTab, telegramLinkAuthUrl, hasTelegramIdentity])
 
   // ── Keyboard + scroll lock ──
   useEffect(() => {
@@ -715,6 +805,89 @@ export default function ProfileDrawer({
       await onDeleteAccount()
     } catch {
       setToast({ message: 'Не удалось удалить аккаунт', type: 'error' })
+    }
+  }
+
+  async function loadGoogleIdentityScript() {
+    if (window.google?.accounts?.id) return
+    await new Promise<void>((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[data-google-identity-linking="true"]')
+      if (existing) {
+        existing.addEventListener('load', () => resolve(), { once: true })
+        existing.addEventListener('error', () => reject(new Error('Google Identity script failed')), { once: true })
+        return
+      }
+      const script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      script.dataset.googleIdentityLinking = 'true'
+      script.onload = () => resolve()
+      script.onerror = () => reject(new Error('Google Identity script failed'))
+      document.body.appendChild(script)
+    })
+  }
+
+  async function handleLinkGoogle() {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    if (!clientId || linkingGoogle) return
+    setLinkingGoogle(true)
+    setLinkingError('')
+
+    try {
+      await loadGoogleIdentityScript()
+      await new Promise<void>((resolve, reject) => {
+        let settled = false
+        window.google?.accounts?.id.initialize({
+          client_id: clientId,
+          callback: async ({ credential }) => {
+            if (settled) return
+            settled = true
+            if (!credential) {
+              reject(new Error('missing_credential'))
+              return
+            }
+            try {
+              const res = await fetch('/api/account/identities/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential }),
+              })
+              const body = await res.json().catch(() => ({}))
+              if (!res.ok) {
+                reject(new Error(body.error === 'identity_conflict' ? 'identity_conflict' : 'link_failed'))
+                return
+              }
+              const identity = body.identity as AuthIdentity | undefined
+              if (identity) {
+                setAuthIdentities(prev => {
+                  const others = prev.filter(item => item.provider !== identity.provider)
+                  return [identity, ...others]
+                })
+              }
+              setToast({ message: 'Google привязан к вашему профилю', type: 'success' })
+              resolve()
+            } catch (error) {
+              reject(error)
+            }
+          },
+        })
+        window.google?.accounts?.id.prompt(notification => {
+          if (settled) return
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            settled = true
+            reject(new Error('prompt_skipped'))
+          }
+        })
+      })
+    } catch (error) {
+      const message = error instanceof Error && error.message === 'identity_conflict'
+        ? 'Этот Google уже привязан к другому профилю. Напишите организатору, чтобы объединить аккаунты.'
+        : 'Не удалось привязать Google. Попробуйте ещё раз.'
+      setLinkingError(message)
+      setToast({ message, type: 'error' })
+    } finally {
+      setLinkingGoogle(false)
     }
   }
 
@@ -1226,6 +1399,146 @@ export default function ProfileDrawer({
                     {showExtraLanguages ? 'скрыть' : '+ ещё'}
                   </button>
                 </div>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }} data-testid="auth-methods-section">
+                <div style={sectionLabel}>Способы входа</div>
+                <div style={{
+                  borderTop: '1px solid var(--border)',
+                  borderBottom: '1px solid var(--border)',
+                }}>
+                  {!authIdentitiesLoaded ? (
+                    <div style={{
+                      padding: '0.75rem 0',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                    }}>
+                      Загружаем…
+                    </div>
+                  ) : authIdentities.length === 0 ? (
+                    <div style={{
+                      padding: '0.75rem 0',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                    }}>
+                      Пока виден только текущий вход.
+                    </div>
+                  ) : (
+                    authIdentities.map(identity => {
+                      const label: Record<AuthIdentityProvider, string> = {
+                        google: 'Google',
+                        email: 'Email',
+                        telegram: 'Telegram',
+                      }
+                      const detail = identity.provider === 'telegram'
+                        ? (identity.telegramUsername ? `@${identity.telegramUsername}` : 'привязан')
+                        : (identity.email ?? 'привязан')
+                      return (
+                        <div
+                          key={`${identity.provider}:${detail}`}
+                          data-testid={`auth-method-${identity.provider}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '0.75rem',
+                            padding: '0.7rem 0',
+                            borderTop: '1px solid var(--border-subtle)',
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.78rem',
+                              color: 'var(--text)',
+                            }}>
+                              {label[identity.provider]}
+                            </div>
+                            <div style={{
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.68rem',
+                              color: 'var(--text-muted)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {detail}
+                            </div>
+                          </div>
+                          <span style={{
+                            flexShrink: 0,
+                            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                            fontSize: '0.55rem',
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.12em',
+                          }}>
+                            привязан
+                          </span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+
+                {!hasGoogleIdentity && (
+                  <button
+                    type="button"
+                    onClick={handleLinkGoogle}
+                    disabled={linkingGoogle}
+                    data-testid="link-google-button"
+                    style={{
+                      width: '100%',
+                      marginTop: '0.75rem',
+                      padding: '0.65rem 1rem',
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.65rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      background: linkingGoogle ? 'var(--border)' : 'var(--text)',
+                      color: linkingGoogle ? 'var(--text-muted)' : 'var(--bg)',
+                      border: '1px solid var(--border-strong)',
+                      cursor: linkingGoogle ? 'default' : 'pointer',
+                    }}
+                  >
+                    {linkingGoogle ? 'Привязываем…' : 'Привязать Google'}
+                  </button>
+                )}
+                {!hasTelegramIdentity && TELEGRAM_BOT_NAME && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    marginTop: '0.75rem',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid var(--border)',
+                  }}>
+                    <div id="telegram-link-container" style={{ minHeight: 28 }} />
+                    <div style={{
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '0.68rem',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.4,
+                      textAlign: 'center',
+                    }}>
+                      Привязка Telegram сохранит этот профиль и не создаст новый.
+                    </div>
+                  </div>
+                )}
+                {linkingError && (
+                  <p style={{
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.72rem',
+                    color: 'var(--accent)',
+                    lineHeight: 1.45,
+                    margin: '0.55rem 0 0',
+                  }}>
+                    {linkingError}
+                  </p>
+                )}
               </div>
 
               <div style={{
