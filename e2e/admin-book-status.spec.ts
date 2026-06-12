@@ -68,7 +68,12 @@ test.describe('AdminPanel — изменение статуса книги', () 
     await page.getByTestId(`admin-book-expand-${book.id}`).click()
     const editor = page.getByTestId(`admin-book-editor-${book.id}`)
     await expect(editor).toBeVisible()
+    const statusPatch = page.waitForResponse(
+      r => r.url().includes(`/api/admin/books/${book.id}`) && r.request().method() === 'PATCH',
+    )
     await editor.getByRole('button', { name: 'Reading' }).click()
+    const statusPatchResponse = await statusPatch
+    expect(statusPatchResponse.ok()).toBe(true)
 
     await expect(bookRow).toContainText('Reading')
 

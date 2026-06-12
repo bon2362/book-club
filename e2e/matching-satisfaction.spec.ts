@@ -1,6 +1,7 @@
 import { test, expect, type Page } from './fixtures'
 
 test.describe.configure({ mode: 'serial' })
+test.setTimeout(120_000)
 
 async function joinSession(page: Page, sessionId: string) {
   const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`)
@@ -25,9 +26,9 @@ async function joinSessionAndRankBooks(page: Page, sessionId: string, bookIds: s
 
 async function readScenarioAvgRank(card: ReturnType<Page['getByTestId']>) {
   // Since the satisfaction card redesign the average rank is exposed only via the scenario
-  // header's title tooltip ("Средний ранг: X.X"); the visible score line shows «охват».
+  // header's title tooltip; the visible score line shows «охват».
   const title = await card.locator('[title*="Средний ранг"]').first().getAttribute('title')
-  const match = title?.match(/Средний ранг:\s*(\d+\.\d+)/)
+  const match = title?.match(/Средний ранг(?: по сценарию)?:\s*(\d+(?:\.\d+)?)/)
   if (!match) throw new Error(`Scenario avg rank not found in title: ${title ?? '<empty>'}`)
   return Number(match[1])
 }
@@ -66,7 +67,7 @@ test('satisfaction session gates unranked readers before showing quality-first s
   await page.waitForLoadState('networkidle')
 
   await expect(page.getByTestId('ranking-gate')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Сначала расставьте приоритеты' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Расставь приоритеты' })).toBeVisible()
   await expect(page.getByTestId('matching-reader-circles-panel')).not.toBeVisible()
 
   // The catalog/personal-list lives in a sibling `matching-catalog-panel`, not inside

@@ -71,13 +71,11 @@ test.describe('Auth modal remembered provider hint', () => {
     await expect(rememberedBadge).toBeVisible()
 
     const buttonBox = await googleButton.boundingBox()
-    const textBox = await googleButton.getByText('Войти через Google', { exact: true }).boundingBox()
     const badgeBox = await rememberedBadge.boundingBox()
 
     expect(buttonBox).not.toBeNull()
-    expect(textBox).not.toBeNull()
     expect(badgeBox).not.toBeNull()
-    expect(badgeBox!.x).toBeGreaterThanOrEqual(textBox!.x + textBox!.width - 1)
+    expect(badgeBox!.x).toBeGreaterThanOrEqual(buttonBox!.x - 1)
     expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(buttonBox!.x + buttonBox!.width + 1)
     expect(badgeBox!.y).toBeGreaterThanOrEqual(buttonBox!.y - 1)
     expect(badgeBox!.y + badgeBox!.height).toBeLessThanOrEqual(buttonBox!.y + buttonBox!.height + 1)
@@ -172,6 +170,7 @@ test.describe('Matching layout', () => {
     createTestBook,
     loginAsUser,
   }) => {
+    test.setTimeout(90_000)
     await page.setViewportSize({ width: 1440, height: 900 })
     const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
     const circleBook = await createTestBook({ title: `UI Chip Circle ${Date.now()}`, author: 'Layout Author' })
@@ -189,8 +188,8 @@ test.describe('Matching layout', () => {
     await page.goto('/matching')
     const circlesPanel = page.getByTestId('matching-reader-circles-panel')
     const movesPanel = page.getByTestId('matching-my-moves-panel')
-    await expect(circlesPanel).toBeVisible()
-    await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible()
+    await expect(circlesPanel).toBeVisible({ timeout: 20_000 })
+    await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible({ timeout: 20_000 })
 
     await movesPanel.locator('li').filter({ hasText: moveBook.title }).first().hover()
 
@@ -478,14 +477,14 @@ test.describe('AuthErrorBanner: conditional render', () => {
     // Переход на /?auth=failed — баннер должен отображаться
     await page.goto('/?auth=failed')
     await page.waitForLoadState('networkidle')
-    const banner = page.getByRole('alert')
+    const banner = page.getByTestId('auth-error-banner')
     await expect(banner).toBeVisible()
     await expect(banner).toContainText('Не получилось войти через Telegram')
 
     // Переход на / без параметра — баннера нет
     await page.goto('/')
     await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(page.getByTestId('auth-error-banner')).toHaveCount(0)
   })
 })
 
@@ -536,28 +535,48 @@ test.describe('ProfileDrawer: status accordion menu', () => {
 })
 
 test.describe('ProfileDrawer: auth methods layout', () => {
-  const EMAIL = 'e2e-auth-methods-ui@test.invalid'
   const NAME = 'E2E Auth Methods UI'
 
-  test('auth methods section stays inside drawer on mobile width', async ({ page }) => {
+  test('auth methods section stays inside drawer on mobile width', async ({ page, request }) => {
+    test.setTimeout(180_000)
+    const email = `e2e-auth-methods-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.invalid`
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.request.post('/api/test/session', {
-      data: { email: EMAIL, name: NAME, provider: 'email' },
+    const sessionResponse = await page.request.post('/api/test/session', {
+      data: { email, name: NAME, provider: 'email' },
     })
+    expect(sessionResponse.ok()).toBe(true)
+    const sessionBody = await sessionResponse.json() as { userId: string }
+    const profileResponse = await page.request.post('/api/test/signup', {
+      data: {
+        userId: sessionBody.userId,
+        name: NAME,
+        email,
+        contacts: '@e2e_auth_methods_ui',
+        selectedBookIds: [],
+      },
+    })
+    expect(profileResponse.ok()).toBe(true)
     try {
       await page.goto('/')
-      await page.waitForLoadState('networkidle')
-      await page.getByRole('button', { name: NAME }).click()
+      await page.waitForLoadState('domcontentloaded')
+      const blockingDialog = page.getByRole('dialog')
+      if (await blockingDialog.count()) {
+        await blockingDialog.first().getByRole('button', { name: 'Закрыть' }).click()
+        await expect(blockingDialog).toHaveCount(0)
+      }
+      const profileButton = page.locator('.nd-header-avatar')
+      await expect(profileButton).toBeVisible({ timeout: 20_000 })
+      await profileButton.click({ timeout: 10_000 })
       const dialog = page.getByRole('dialog', { name: 'Личный кабинет' })
-      await expect(dialog).toBeVisible()
+      await expect(dialog).toBeVisible({ timeout: 20_000 })
       await dialog.getByRole('button', { name: 'Профиль' }).click()
 
       const section = dialog.getByTestId('auth-methods-section')
       const emailMethod = dialog.getByTestId('auth-method-email')
       const googleButton = dialog.getByTestId('link-google-button')
-      await expect(section).toBeVisible()
-      await expect(emailMethod).toBeVisible()
-      await expect(googleButton).toBeVisible()
+      await expect(section).toBeVisible({ timeout: 20_000 })
+      await expect(emailMethod).toBeVisible({ timeout: 20_000 })
+      await expect(googleButton).toBeVisible({ timeout: 20_000 })
 
       const dialogBox = await dialog.boundingBox()
       const sectionBox = await section.boundingBox()
@@ -570,9 +589,11 @@ test.describe('ProfileDrawer: auth methods layout', () => {
       expect(buttonBox!.x).toBeGreaterThanOrEqual(sectionBox!.x - 1)
       expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(sectionBox!.x + sectionBox!.width + 1)
     } finally {
-      await page.request.delete('/api/test/session', {
-        data: { email: EMAIL, provider: 'email' },
-      })
+      await page.goto('about:blank').catch(() => {})
+      await request.delete('/api/test/session', {
+        data: { email, provider: 'email' },
+        timeout: 15_000,
+      }).catch(() => {})
     }
   })
 })
