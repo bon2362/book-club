@@ -45,8 +45,14 @@ export class IdentityConflictError extends Error {
 
 type IdentityDb = Pick<typeof db, 'select' | 'insert' | 'update'>
 
-async function withIdentityTransaction<T>(callback: (tx: IdentityDb) => Promise<T>): Promise<T> {
-  return db.transaction(callback)
+async function withIdentityTransaction<T>(
+  callback: (tx: IdentityDb) => Promise<T>,
+  client: IdentityDb = db
+): Promise<T> {
+  if (client === db) {
+    return db.transaction((tx) => callback(tx as IdentityDb))
+  }
+  return callback(client)
 }
 
 export function normalizeIdentityProvider(provider: RawIdentityProvider | string): IdentityProvider {
@@ -224,11 +230,70 @@ async function upsertIdentity(
   return rows[0]?.userId ?? userId
 }
 
+async function insertIdentityIfMissing(
+  tx: IdentityDb,
+  userId: string,
+  provider: IdentityProvider,
+  providerAccountId: string,
+  profile: IdentityProfile,
+  now: Date
+): Promise<string | null> {
+  const rows = await tx
+    .insert(userIdentities)
+    .values({
+      userId,
+      provider,
+      providerAccountId,
+      email: normalizeEmail(profile.email),
+      telegramUsername: normalizeTelegramContact(profile.telegramUsername),
+      lastSeenAt: now,
+      metadata: metadataToText(profile.metadata),
+    })
+    .onConflictDoNothing({
+      target: [userIdentities.provider, userIdentities.providerAccountId],
+    })
+    .returning({ userId: userIdentities.userId })
+  return rows[0]?.userId ?? null
+}
+
+async function updateOwnedIdentity(
+  tx: IdentityDb,
+  userId: string,
+  provider: IdentityProvider,
+  providerAccountId: string,
+  profile: IdentityProfile,
+  now: Date
+): Promise<void> {
+  await tx
+    .update(userIdentities)
+    .set({
+      email: normalizeEmail(profile.email),
+      telegramUsername: normalizeTelegramContact(profile.telegramUsername),
+      lastSeenAt: now,
+      metadata: metadataToText(profile.metadata),
+    })
+    .where(and(
+      eq(userIdentities.userId, userId),
+      eq(userIdentities.provider, provider),
+      eq(userIdentities.providerAccountId, providerAccountId)
+    ))
+}
+
 export async function linkIdentityToUser(
   userId: string,
   provider: RawIdentityProvider | string,
   providerAccountId: string,
   profile: IdentityProfile = {}
+): Promise<ResolvedIdentityUser> {
+  return linkVerifiedIdentityToUser(userId, provider, providerAccountId, profile)
+}
+
+export async function linkVerifiedIdentityToUser(
+  userId: string,
+  provider: RawIdentityProvider | string,
+  providerAccountId: string,
+  profile: IdentityProfile = {},
+  client: IdentityDb = db
 ): Promise<ResolvedIdentityUser> {
   return withIdentityTransaction(async (tx) => {
     const normalizedProvider = normalizeIdentityProvider(provider)
@@ -238,10 +303,27 @@ export async function linkIdentityToUser(
     if (existingIdentityUserId && existingIdentityUserId !== userId) {
       throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
     }
-    const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
-    await updateUserCache(tx, identityUserId, normalizedProvider, profile, now)
-    return selectResolvedUser(tx, identityUserId, false)
-  })
+
+    if (existingIdentityUserId === userId) {
+      await updateOwnedIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
+      await updateUserCache(tx, userId, normalizedProvider, profile, now)
+      return selectResolvedUser(tx, userId, false)
+    }
+
+    const insertedUserId = await insertIdentityIfMissing(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
+    if (insertedUserId) {
+      await updateUserCache(tx, insertedUserId, normalizedProvider, profile, now)
+      return selectResolvedUser(tx, insertedUserId, false)
+    }
+
+    const racedIdentityUserId = await findIdentityUserId(tx, normalizedProvider, normalizedProviderAccountId)
+    if (racedIdentityUserId !== userId) {
+      throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
+    }
+    await updateOwnedIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
+    await updateUserCache(tx, userId, normalizedProvider, profile, now)
+    return selectResolvedUser(tx, userId, false)
+  }, client)
 }
 
 export async function resolveOrCreateUserFromIdentity(

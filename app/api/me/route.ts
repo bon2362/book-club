@@ -30,19 +30,22 @@ export async function GET() {
 
   const identities = await db
     .select({
-      authProvider: userIdentities.provider,
-      lastSignInAt: userIdentities.lastSeenAt,
+      provider: userIdentities.provider,
+      email: userIdentities.email,
+      telegramUsername: userIdentities.telegramUsername,
+      lastSeenAt: userIdentities.lastSeenAt,
     })
     .from(userIdentities)
     .where(eq(userIdentities.userId, session.user.id))
     .orderBy(desc(userIdentities.lastSeenAt))
-    .limit(1)
+    .limit(50)
 
   return NextResponse.json({
     user: {
       ...rows[0],
-      authProvider: identities[0]?.authProvider ?? null,
-      lastSignInAt: identities[0]?.lastSignInAt ?? null,
+      authProvider: identities[0]?.provider ?? null,
+      lastSignInAt: identities[0]?.lastSeenAt ?? null,
+      identities,
     },
   })
 }

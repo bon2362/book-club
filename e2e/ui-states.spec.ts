@@ -534,3 +534,45 @@ test.describe('ProfileDrawer: status accordion menu', () => {
     }
   })
 })
+
+test.describe('ProfileDrawer: auth methods layout', () => {
+  const EMAIL = 'e2e-auth-methods-ui@test.invalid'
+  const NAME = 'E2E Auth Methods UI'
+
+  test('auth methods section stays inside drawer on mobile width', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.request.post('/api/test/session', {
+      data: { email: EMAIL, name: NAME, provider: 'email' },
+    })
+    try {
+      await page.goto('/')
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: NAME }).click()
+      const dialog = page.getByRole('dialog', { name: 'Личный кабинет' })
+      await expect(dialog).toBeVisible()
+      await dialog.getByRole('button', { name: 'Профиль' }).click()
+
+      const section = dialog.getByTestId('auth-methods-section')
+      const emailMethod = dialog.getByTestId('auth-method-email')
+      const googleButton = dialog.getByTestId('link-google-button')
+      await expect(section).toBeVisible()
+      await expect(emailMethod).toBeVisible()
+      await expect(googleButton).toBeVisible()
+
+      const dialogBox = await dialog.boundingBox()
+      const sectionBox = await section.boundingBox()
+      const buttonBox = await googleButton.boundingBox()
+      expect(dialogBox).not.toBeNull()
+      expect(sectionBox).not.toBeNull()
+      expect(buttonBox).not.toBeNull()
+      expect(sectionBox!.x).toBeGreaterThanOrEqual(dialogBox!.x - 1)
+      expect(sectionBox!.x + sectionBox!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1)
+      expect(buttonBox!.x).toBeGreaterThanOrEqual(sectionBox!.x - 1)
+      expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(sectionBox!.x + sectionBox!.width + 1)
+    } finally {
+      await page.request.delete('/api/test/session', {
+        data: { email: EMAIL, provider: 'email' },
+      })
+    }
+  })
+})

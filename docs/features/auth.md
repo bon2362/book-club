@@ -13,6 +13,7 @@
 - **Стратегия сессии** — JWT (`strategy: 'jwt'`); `session.user.id = token.sub` устанавливается в `session` callback
 - **Отслеживание способа входа** — источник истины по auth-identity живёт в `user_identities`: `provider`, `provider_account_id`, `email`, `telegram_username`, `last_seen_at`. `users.contacts` остаётся пользовательским контактным полем: при первом Telegram-входе оно автоматически заполняется `@username`, если Telegram вернул username и поле ещё пустое, но дальше пользователь может изменить его сам. Технический Telegram username из `user_identities` не показывается на сайте.
 - **Подсказка последнего способа входа** — `BooksPage` сохраняет в `localStorage` только нормализованный `session.user.provider` (`google | telegram | email`) в ключ `slowreading.lastAuthProvider`. `AuthModal` читает его при открытии, показывает бейдж `последний способ входа` и автоматически раскрывает вторичные способы для Google/email. В памяти не хранятся имя, email, Telegram username или user id; это только UI-hint на стороне браузера.
+- **Явная привязка аккаунтов** — вкладка «Профиль» показывает все `user_identities` текущего пользователя и позволяет добавить Google или Telegram к уже открытой сессии. Google linking идёт через `POST /api/account/identities/google`: клиент получает Google Identity Services credential, сервер проверяет JWT через `verifyGoogleCredential`, затем под `withAuditContext(source='account-linking')` вызывает `linkVerifiedIdentityToUser`. Telegram linking сначала запрашивает `/api/account/identities/telegram/state`, получает HMAC-signed `state` с `userId`, `purpose`, `expiresAt` и nonce, а затем передаёт этот `state` в `data-auth-url` Telegram Widget. Callback `/api/account/identities/telegram/callback` требует активную session cookie, сверяет signed state с текущим `session.user.id`, проверяет Telegram HMAC и только после этого привязывает `telegram:id` к текущему user. Если provider identity уже принадлежит другому пользователю, возвращается conflict (`409 identity_conflict` для Google или redirect `?account_link=telegram_conflict` для Telegram); автоматического merge по имени/username нет.
 
 ## Race condition: ContactsForm после входа через One Tap
 После входа через One Tap `useSession()` (client) обновляется раньше, чем приходят server props (`currentUser`) после `router.refresh()`. Это приводит к кратковременному открытию ContactsForm с пустыми полями. Решение: `GoogleOneTap` устанавливает `sessionStorage.setItem('reloading_after_onetap', '1')` перед `window.location.reload()`, а `BooksPage` проверяет и очищает этот флаг перед показом формы.
@@ -35,6 +36,11 @@
 ## Ключевые файлы
 - `lib/auth.ts` — конфигурация NextAuth, providers, JWT/session callbacks, magic link email
 - `lib/auth.google-one-tap.ts` — верификация Google One Tap credential и upsert пользователя
+- `lib/google-credential.ts` — общая серверная проверка Google Identity Services credential для One Tap и привязки Google
+- `lib/account-linking-state.ts` — короткоживущий signed state для Telegram account linking
+- `app/api/account/identities/google/route.ts` — explicit linking Google identity к текущему пользователю
+- `app/api/account/identities/telegram/state/route.ts` — выдаёт signed state и callback URL для Telegram Widget в режиме привязки
+- `app/api/account/identities/telegram/callback/route.ts` — explicit linking Telegram identity к текущему пользователю через Telegram Widget redirect
 - `components/nd/GoogleOneTap.tsx` — client component, рендерится на главной для неавторизованных пользователей
 - `lib/db/schema.ts` — таблицы `users` (профиль и пользовательские контакты), `user_identities` (способы входа и provider-specific ids), `verificationTokens`
 - `app/api/auth/[...nextauth]/route.ts` — handler NextAuth
