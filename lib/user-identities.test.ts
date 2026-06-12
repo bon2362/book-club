@@ -16,6 +16,7 @@ import { userActivityEvents, userIdentities, users } from '@/lib/db/schema'
 import {
   IdentityConflictError,
   linkIdentityToUser,
+  linkVerifiedIdentityToUser,
   normalizeIdentityProvider,
   normalizeTelegramContact,
   resolveOrCreateUserFromIdentity,
@@ -39,7 +40,7 @@ function queueSelects(...rows: unknown[][]) {
   }))
 }
 
-function mockInserts() {
+function mockInserts(returningRows?: (chain: InsertChain) => unknown[]) {
   const chains: InsertChain[] = []
   ;(db.insert as jest.Mock).mockImplementation((table: unknown) => {
     const chain: InsertChain = {
@@ -49,8 +50,8 @@ function mockInserts() {
         return chain
       }),
       onConflictDoUpdate: jest.fn(() => chain),
-      onConflictDoNothing: jest.fn(() => Promise.resolve(undefined)),
-      returning: jest.fn(() => Promise.resolve([{ userId: chain.lastValues?.userId }])),
+      onConflictDoNothing: jest.fn(() => chain),
+      returning: jest.fn(() => Promise.resolve(returningRows ? returningRows(chain) : [{ userId: chain.lastValues?.userId }])),
     }
     chains.push(chain)
     return chain
@@ -238,6 +239,44 @@ describe('user identity helpers', () => {
     expect(insertChains).toHaveLength(1)
   })
 
+  it('linkVerifiedIdentityToUser обновляет owned identity, если она уже принадлежит этому user', async () => {
+    queueSelects(
+      [{ userId: 'canonical-uuid' }],
+      [{ id: 'canonical-uuid', email: 'oauth@test.com', name: 'OAuth', image: null }]
+    )
+    const insertChains = mockInserts()
+    const updateChain = mockUpdate()
+
+    const result = await linkVerifiedIdentityToUser('canonical-uuid', 'google', 'oauth-sub', {
+      email: 'oauth@test.com',
+      emailVerified: true,
+    })
+
+    expect(result.id).toBe('canonical-uuid')
+    expect(updateChain.set).toHaveBeenCalled()
+    expect(insertChains).toHaveLength(0)
+  })
+
+  it('linkVerifiedIdentityToUser не перетирает identity, если она появилась у другого user между select и insert', async () => {
+    queueSelects(
+      [],
+      [{ userId: 'other-user' }]
+    )
+    const insertChains = mockInserts(() => [])
+    mockUpdate()
+
+    await expect(linkVerifiedIdentityToUser('canonical-uuid', 'google', 'oauth-sub', {
+      email: 'oauth@test.com',
+      emailVerified: true,
+    })).rejects.toThrow(IdentityConflictError)
+
+    expect(insertChains).toHaveLength(1)
+    expect(insertChains[0].onConflictDoNothing).toHaveBeenCalledWith({
+      target: [userIdentities.provider, userIdentities.providerAccountId],
+    })
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
   it('linkIdentityToUser падает при попытке привязать identity другого пользователя', async () => {
     queueSelects(
       [{ userId: 'other-user' }]
@@ -245,6 +284,19 @@ describe('user identity helpers', () => {
     const insertChains = mockInserts()
 
     await expect(linkIdentityToUser('canonical-uuid', 'google', 'oauth-sub', {
+      email: 'oauth@test.com',
+      emailVerified: true,
+    })).rejects.toThrow(IdentityConflictError)
+
+    expect(insertChains).toHaveLength(0)
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
+  it('linkVerifiedIdentityToUser падает при попытке привязать identity другого пользователя', async () => {
+    queueSelects([{ userId: 'other-user' }])
+    const insertChains = mockInserts()
+
+    await expect(linkVerifiedIdentityToUser('canonical-uuid', 'google', 'oauth-sub', {
       email: 'oauth@test.com',
       emailVerified: true,
     })).rejects.toThrow(IdentityConflictError)
