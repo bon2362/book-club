@@ -25,7 +25,9 @@ import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal from './MatchingBookDetailModal'
 import { useMatchingBoard } from './MatchingBoardProvider'
+import { useBookDetail } from './BookDetailProvider'
 import { withAdminName } from './matching-shared'
+import { addToList, patchPriorities, patchStatus, removeFromList } from '@/lib/matching/personal-list-mutations'
 
 // BookParticipant stays — used for chips in the popup
 export interface BookParticipant {
@@ -398,44 +400,6 @@ function CatalogRow({ book, isFirst, onClick, onAdd, frozen, styles: s }: Catalo
   )
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function mutationUrl(path: string, mutationUserId?: string) {
-  if (!mutationUserId) return path
-  return `${path}?as=${encodeURIComponent(mutationUserId)}`
-}
-
-async function patchPriorities(
-  bookIds: string[],
-  mutationUserId?: string,
-  source?: Props['priorityMutationSource'],
-) {
-  await fetch(mutationUrl('/api/matching/priorities', mutationUserId), {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(source ? { bookIds, source } : { bookIds }),
-  })
-}
-
-async function patchStatus(bookId: string, status: string | null, mutationUserId?: string) {
-  await fetch(mutationUrl(`/api/signup-books/${bookId}/status`, mutationUserId), {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ status }),
-  })
-}
-
-async function addToList(bookId: string, mutationUserId?: string) {
-  await fetch(mutationUrl('/api/matching/books', mutationUserId), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ bookId }),
-  })
-}
-
-async function removeFromList(bookId: string, mutationUserId?: string) {
-  await fetch(mutationUrl(`/api/matching/books/${bookId}`, mutationUserId), { method: 'DELETE' })
-}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -455,6 +419,7 @@ export default function MatchingPersonalList({
   const s = getListStyles(size)
   const router = useRouter()
   const { beginPending, pending } = useMatchingBoard()
+  const { openBook } = useBookDetail()
   const [books, setBooks] = useState(initialBooks)
   const [announcement, setAnnouncement] = useState('')
   const [modalBook, setModalBook] = useState<CatalogBook | null>(null)
@@ -480,6 +445,16 @@ export default function MatchingPersonalList({
     (bookId: string) =>
       bookParticipants.filter((p) => p.bookId === bookId && p.userId !== viewingUserId),
     [bookParticipants, viewingUserId],
+  )
+
+  // Клик по книге: на доске открываем общий попап (BookDetailProvider), в gate-фазе
+  // («Расставь приоритеты», suppressRefresh) — собственную модалку со своим потоком.
+  const handleBookClick = useCallback(
+    (book: CatalogBook) => {
+      if (suppressRefresh) setModalBook(book)
+      else openBook(book, othersFor(book.bookId))
+    },
+    [suppressRefresh, openBook, othersFor],
   )
 
   function rerank(updatedBooks: CatalogBook[]): CatalogBook[] {
@@ -650,7 +625,7 @@ export default function MatchingPersonalList({
                   key={book.bookId}
                   book={book}
                   isFirst={idx === 0}
-                  onClick={setModalBook}
+                  onClick={handleBookClick}
                   onAdd={handleAddToList}
                   frozen={frozen}
                   styles={s}
@@ -696,7 +671,7 @@ export default function MatchingPersonalList({
                       frozen={frozen}
                       isFirst={idx === 0}
                       others={othersFor(book.bookId)}
-                      onClick={setModalBook}
+                      onClick={handleBookClick}
                       onRemove={handleRemoveFromList}
                       styles={s}
                       adminNamesByPseudonym={adminNamesByPseudonym}
@@ -720,7 +695,7 @@ export default function MatchingPersonalList({
               </div>
               <ul className="list-none p-0 m-0">
                 {statusBooks.map((book, idx) => (
-                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} others={othersFor(book.bookId)} onClick={setModalBook} styles={s} adminNamesByPseudonym={adminNamesByPseudonym} />
+                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} others={othersFor(book.bookId)} onClick={handleBookClick} styles={s} adminNamesByPseudonym={adminNamesByPseudonym} />
                 ))}
               </ul>
             </>

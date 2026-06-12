@@ -1,13 +1,14 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import type { MatchingCircle, MatchingScenario, OptimizationMode, ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
 import CoverImage from './CoverImage'
-import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
+import type { MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
 import ParticipantInterestChip from './ParticipantInterestChip'
 import { withAdminName } from './matching-shared'
+import { useBookDetail } from './BookDetailProvider'
 
 interface BookInfo extends MatchingBookDetail {
   id: string
@@ -48,9 +49,11 @@ export default function MatchingScenarios({
   mode = overview.mode,
   adminNamesByPseudonym = null,
 }: Props) {
-  const [modalBook, setModalBook] = useState<BookInfo | null>(null)
-  const openModal = useCallback((book: BookInfo) => setModalBook(book), [])
-  const closeModal = useCallback(() => setModalBook(null), [])
+  const { openBook } = useBookDetail()
+  const openModal = useCallback(
+    (book: BookInfo) => openBook(book, bookParticipants.filter((p) => p.bookId === book.bookId)),
+    [openBook, bookParticipants],
+  )
   const previewScenario = previewMove?.impact?.previewScenario ?? null
 
   if (overview.scenarios.length === 0) {
@@ -69,15 +72,6 @@ export default function MatchingScenarios({
 
   return (
     <>
-      {modalBook && (
-        <MatchingBookDetailModal
-          book={modalBook}
-          chips={bookParticipants.filter((p) => p.bookId === modalBook.bookId)}
-          viewingUserId={viewingUserId}
-          onClose={closeModal}
-          adminNamesByPseudonym={adminNamesByPseudonym}
-        />
-      )}
       {/* Тёплый фон контейнера — белые карточки сценариев читаются на нём */}
       <ul
         className="list-none p-0 m-0 flex flex-col"

@@ -15,6 +15,7 @@ import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
 import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
 import MatchingBoardProvider from '@/components/nd/MatchingBoardProvider'
+import BookDetailProvider from '@/components/nd/BookDetailProvider'
 import MatchingHeader from '@/components/nd/MatchingHeader'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import MatchingSatisfactionFlow from '@/components/nd/MatchingSatisfactionFlow'
@@ -332,19 +333,27 @@ export default async function MatchingPage({
   if (mode === 'satisfaction') {
     return (
       <MatchingBoardProvider stateVersion={activeSession.stateVersion}>
-        <MatchingSatisfactionFlow
-          phase="board"
-          sessionId={activeSession.id}
-          books={personalBooks}
-          bookParticipants={clientBookParticipants}
+        <BookDetailProvider
+          personalBooks={personalBooks}
           viewingUserId={clientViewingUserId}
-          frozen={isReadOnly}
           mutationUserId={isImpersonating ? viewingUserId : undefined}
-          header={headerSlot}
-          workspace={workspaceSlot}
-          catalogIntro={catalogIntroSlot}
+          frozen={isReadOnly}
           adminNamesByPseudonym={adminNamesByPseudonym}
-        />
+        >
+          <MatchingSatisfactionFlow
+            phase="board"
+            sessionId={activeSession.id}
+            books={personalBooks}
+            bookParticipants={clientBookParticipants}
+            viewingUserId={clientViewingUserId}
+            frozen={isReadOnly}
+            mutationUserId={isImpersonating ? viewingUserId : undefined}
+            header={headerSlot}
+            workspace={workspaceSlot}
+            catalogIntro={catalogIntroSlot}
+            adminNamesByPseudonym={adminNamesByPseudonym}
+          />
+        </BookDetailProvider>
       </MatchingBoardProvider>
     )
   }
@@ -352,6 +361,13 @@ export default async function MatchingPage({
   // Coverage board — unchanged full-width layout.
   return (
     <MatchingBoardProvider stateVersion={activeSession.stateVersion}>
+    <BookDetailProvider
+      personalBooks={personalBooks}
+      viewingUserId={clientViewingUserId}
+      mutationUserId={isImpersonating ? viewingUserId : undefined}
+      frozen={isReadOnly}
+      adminNamesByPseudonym={adminNamesByPseudonym}
+    >
     <div
       className="flex flex-col"
       style={{ minHeight: '100svh', background: 'var(--bg)', color: 'var(--text)' }}
@@ -389,6 +405,7 @@ export default async function MatchingPage({
 
       <MatchingRealtimeWrapper sessionId={activeSession.id} />
     </div>
+    </BookDetailProvider>
     </MatchingBoardProvider>
   )
 }

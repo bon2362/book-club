@@ -222,7 +222,6 @@ export default function MatchingImpactWorkspace({
           <MatchingMyMoves
             moves={moves}
             frozen={frozen}
-            viewingUserId={viewingUserId}
             mutationUserId={mutationUserId}
             onMovePreview={handlePreview}
             mode={mode}
