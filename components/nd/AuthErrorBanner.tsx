@@ -20,7 +20,7 @@ export default function AuthErrorBanner() {
   function dismiss() { setDismissed(true); router.replace('/') }
   const tone = accountLinkMessage?.tone ?? 'error'
   return (
-    <div role="alert" style={{
+    <div role="alert" data-testid="auth-error-banner" style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
       background: 'var(--bg-input)', borderLeft: `3px solid ${tone === 'success' ? 'var(--success)' : 'var(--accent)'}`,
       borderBottom: '1px solid var(--border-strong)', padding: '0.75rem 1.25rem',
