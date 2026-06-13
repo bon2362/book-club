@@ -509,7 +509,7 @@ describe('AdminPanel — merge users', () => {
     expect(screen.getByText('Никого не найдено')).toBeInTheDocument()
   })
 
-  it('копирует ID пользователя и отправляет merge на вручную указанный target ID без причины', async () => {
+  it('находит target-пользователя по вставленному ID и отправляет merge без причины', async () => {
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true)
     const writeText = jest.fn().mockResolvedValue(undefined)
     Object.assign(navigator, {
@@ -529,6 +529,9 @@ describe('AdminPanel — merge users', () => {
       if (url === '/api/admin/users/user-old') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUserDetails }) })
       }
+      if (url === '/api/admin/users/user-new') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: { ...mockAdminUserDetails, user: mockAdminUsers[1] } }) })
+      }
       if (url === '/api/admin/users/merge') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, result: { movedCounts: { users: 1 } } }) })
       }
@@ -544,6 +547,9 @@ describe('AdminPanel — merge users', () => {
     expect(writeText).toHaveBeenCalledWith('user-old')
 
     fireEvent.change(screen.getByLabelText('ID аккаунта, который оставить'), { target: { value: ' user-new ' } })
+    expect(await screen.findByText(/Новый участник/)).toBeInTheDocument()
+    expect(screen.getByText('user-new')).toBeInTheDocument()
+
     fireEvent.click(screen.getByText('Merge to user'))
 
     await waitFor(() => {
@@ -557,6 +563,48 @@ describe('AdminPanel — merge users', () => {
       }))
     })
     expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Слить пользователя Старый участник в user-new?'))
+  })
+
+  it('показывает ошибку merge в карточке пользователя', async () => {
+    jest.spyOn(window, 'confirm').mockReturnValue(true)
+    Object.assign(navigator, {
+      clipboard: { writeText: jest.fn().mockResolvedValue(undefined) },
+    })
+    ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === '/api/admin/submissions') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/feedback') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/users') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUsers }) })
+      }
+      if (url === '/api/admin/users/user-old') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUserDetails }) })
+      }
+      if (url === '/api/admin/users/user-new') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: { ...mockAdminUserDetails, user: mockAdminUsers[1] } }) })
+      }
+      if (url === '/api/admin/users/merge') {
+        return Promise.resolve({ ok: false, statusText: 'Conflict', json: () => Promise.resolve({ error: 'target user not found' }) })
+      }
+      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? 'GET'}`)
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+
+    fireEvent.click(await screen.findByText('Старый участник'))
+    const drawer = screen.getByRole('dialog')
+    expect(await within(drawer).findByText('Слить дубль')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('ID аккаунта, который оставить'), { target: { value: 'user-new' } })
+    expect(await within(drawer).findByText(/Новый участник/)).toBeInTheDocument()
+
+    fireEvent.click(within(drawer).getByText('Merge to user'))
+
+    expect(await within(drawer).findByText('Не удалось слить пользователей: target user not found')).toBeInTheDocument()
+    expect(within(drawer).getByText('Слить дубль')).toBeInTheDocument()
   })
 })
 

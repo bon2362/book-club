@@ -435,14 +435,20 @@ export default function AdminPanel({
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null) as { error?: string } | null
-        setSyncMsg(`Не удалось слить пользователей: ${data?.error || res.statusText}`)
-        return
+        const message = `Не удалось слить пользователей: ${data?.error || res.statusText}`
+        setSyncMsg(message)
+        throw new Error(message)
       }
       await loadAdminUsers()
       closeUserDrawer()
       setSyncMsg('Пользователи слиты')
-    } catch {
-      setSyncMsg('Не удалось слить пользователей: ошибка сети')
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('Не удалось слить пользователей:')) {
+        throw error
+      }
+      const message = 'Не удалось слить пользователей: ошибка сети'
+      setSyncMsg(message)
+      throw new Error(message)
     } finally {
       setUserMergeLoading(false)
     }

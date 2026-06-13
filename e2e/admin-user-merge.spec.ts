@@ -55,6 +55,8 @@ test.describe('Admin: слияние дублей пользователей', (
     await expect(drawer).toBeVisible()
 
     await drawer.getByLabel('ID аккаунта, который оставить').fill(targetId)
+    await expect(drawer.getByText(targetName)).toBeVisible()
+    await expect(drawer.getByText(targetId)).toBeVisible()
     page.once('dialog', dialog => dialog.accept())
     const mergeDone = page.waitForResponse(response =>
       response.url().includes('/api/admin/users/merge') && response.request().method() === 'POST',

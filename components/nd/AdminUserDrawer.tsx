@@ -78,6 +78,13 @@ const adminBadge: React.CSSProperties = {
   letterSpacing: '0.06em',
 }
 
+type MergeTargetLookup =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'found'; user: AdminUserDetails['user'] }
+  | { status: 'missing'; message: string }
+  | { status: 'error'; message: string }
+
 function BookStatusChip({
   bookName,
   rankLabel,
@@ -148,6 +155,8 @@ export default function AdminUserDrawer({
   const [mergeTargetUserId, setMergeTargetUserId] = useState('')
   const [mergeReason, setMergeReason] = useState('')
   const [copiedUserId, setCopiedUserId] = useState(false)
+  const [mergeError, setMergeError] = useState('')
+  const [mergeTargetLookup, setMergeTargetLookup] = useState<MergeTargetLookup>({ status: 'idle' })
 
   useEffect(() => {
     if (!isOpen) return
@@ -168,6 +177,8 @@ export default function AdminUserDrawer({
     setMergeTargetUserId('')
     setMergeReason('')
     setCopiedUserId(false)
+    setMergeError('')
+    setMergeTargetLookup({ status: 'idle' })
   }, [isOpen])
 
   const user = data?.user
@@ -185,10 +196,63 @@ export default function AdminUserDrawer({
   const unrankedNull = nullBooks.filter(b => !priorityMap.has(b.bookId))
   const sortedNullBooks = user?.prioritiesSet ? [...rankedNull, ...unrankedNull] : nullBooks
   const trimmedMergeTargetUserId = mergeTargetUserId.trim()
+  const canSubmitMerge = Boolean(trimmedMergeTargetUserId) && mergeTargetLookup.status === 'found' && !mergeLoading
+
+  useEffect(() => {
+    setMergeError('')
+    if (!isOpen || !user) {
+      setMergeTargetLookup({ status: 'idle' })
+      return
+    }
+    if (!trimmedMergeTargetUserId) {
+      setMergeTargetLookup({ status: 'idle' })
+      return
+    }
+    if (trimmedMergeTargetUserId === user.id) {
+      setMergeTargetLookup({ status: 'error', message: 'Нельзя слить пользователя в самого себя.' })
+      return
+    }
+
+    const controller = new AbortController()
+    setMergeTargetLookup({ status: 'loading' })
+    fetch(`/api/admin/users/${encodeURIComponent(trimmedMergeTargetUserId)}`, { signal: controller.signal })
+      .then(async res => {
+        if (res.status === 404) {
+          setMergeTargetLookup({ status: 'missing', message: 'Пользователь с таким ID не найден.' })
+          return
+        }
+        if (!res.ok) {
+          const payload = await res.json().catch(() => null) as { error?: string } | null
+          setMergeTargetLookup({ status: 'error', message: payload?.error || 'Не удалось проверить ID пользователя.' })
+          return
+        }
+        const payload = await res.json() as { success?: boolean; data?: AdminUserDetails }
+        if (!payload.success || !payload.data?.user) {
+          setMergeTargetLookup({ status: 'error', message: 'Не удалось проверить ID пользователя.' })
+          return
+        }
+        setMergeTargetLookup({ status: 'found', user: payload.data.user })
+      })
+      .catch(error => {
+        if ((error as Error).name === 'AbortError') return
+        setMergeTargetLookup({ status: 'error', message: 'Не удалось проверить ID пользователя: ошибка сети.' })
+      })
+
+    return () => controller.abort()
+  }, [isOpen, trimmedMergeTargetUserId, user])
 
   async function copyUserId(userId: string) {
     await navigator.clipboard.writeText(userId)
     setCopiedUserId(true)
+  }
+
+  async function submitMerge() {
+    setMergeError('')
+    try {
+      await onMergeUser(trimmedMergeTargetUserId, mergeReason.trim())
+    } catch (error) {
+      setMergeError(error instanceof Error ? error.message : 'Не удалось слить пользователей')
+    }
   }
 
   return (
@@ -289,6 +353,20 @@ export default function AdminUserDrawer({
                       placeholder="Вставьте ID основного аккаунта"
                       style={{ fontFamily: sans, fontSize: '0.8rem', color: 'var(--text)', border: '1px solid var(--border)', borderBottom: '2px solid var(--border-strong)', padding: '0.4rem 0.5rem', background: 'var(--bg-input)' }}
                     />
+                    {mergeTargetLookup.status === 'loading' && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Ищу пользователя…</span>
+                    )}
+                    {mergeTargetLookup.status === 'found' && (
+                      <div style={{ border: '1px solid var(--border)', borderLeft: '2px solid var(--success)', padding: '0.45rem 0.55rem', display: 'grid', gap: '0.15rem', background: 'var(--bg)' }}>
+                        <span style={{ color: 'var(--text)', fontSize: '0.78rem', fontWeight: 700 }}>
+                          {mergeTargetLookup.user.name || mergeTargetLookup.user.contactEmail || mergeTargetLookup.user.telegramDisplay || 'Пользователь'}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', wordBreak: 'break-all' }}>{mergeTargetLookup.user.id}</span>
+                      </div>
+                    )}
+                    {(mergeTargetLookup.status === 'missing' || mergeTargetLookup.status === 'error') && (
+                      <span style={{ color: 'var(--accent)', fontSize: '0.72rem' }}>{mergeTargetLookup.message}</span>
+                    )}
                   </label>
                   <label style={{ display: 'grid', gap: '0.25rem' }}>
                     <span style={{ fontFamily: sans, fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Причина</span>
@@ -301,12 +379,17 @@ export default function AdminUserDrawer({
                     />
                   </label>
                   <button
-                    onClick={() => { void onMergeUser(trimmedMergeTargetUserId, mergeReason.trim()) }}
-                    disabled={!trimmedMergeTargetUserId || mergeLoading}
-                    style={{ justifySelf: 'start', background: 'transparent', border: '1px solid var(--border)', color: (!trimmedMergeTargetUserId || mergeLoading) ? 'var(--text-muted)' : 'var(--text)', padding: '0.35rem 0.75rem', cursor: (!trimmedMergeTargetUserId || mergeLoading) ? 'default' : 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                    onClick={() => { void submitMerge() }}
+                    disabled={!canSubmitMerge}
+                    style={{ justifySelf: 'start', background: 'transparent', border: '1px solid var(--border)', color: canSubmitMerge ? 'var(--text)' : 'var(--text-muted)', padding: '0.35rem 0.75rem', cursor: canSubmitMerge ? 'pointer' : 'default', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}
                   >
                     {mergeLoading ? 'Слияние…' : 'Merge to user'}
                   </button>
+                  {mergeError && (
+                    <div role="alert" style={{ border: '1px solid var(--border)', borderLeft: '2px solid var(--accent)', color: 'var(--text)', padding: '0.45rem 0.55rem', fontSize: '0.76rem', lineHeight: 1.45 }}>
+                      {mergeError}
+                    </div>
+                  )}
                 </div>
               </section>
 
