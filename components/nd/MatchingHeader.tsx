@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import { useVisibleInterval } from './use-visible-interval'
 import type { FeedEvent } from '@/lib/matching/realtime/feed'
 import { pseudonymPastVerb } from '@/lib/matching/pseudonym-declension'
 
@@ -109,26 +110,19 @@ export default function MatchingHeader({
   const [participantsOpen, setParticipantsOpen] = useState(false)
   const [onlinePseudonyms, setOnlinePseudonyms] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    if (!participantsOpen) return
-    let cancelled = false
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/matching/version?session=${sessionId}`)
-        if (!res.ok) return
-        const data = (await res.json()) as { online?: string[] }
-        if (!cancelled) setOnlinePseudonyms(new Set(data.online ?? []))
-      } catch {
-        /* сеть моргнула — оставим прошлый снимок */
-      }
+  const pollOnline = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/matching/version?session=${sessionId}`)
+      if (!res.ok) return
+      const data = (await res.json()) as { online?: string[] }
+      setOnlinePseudonyms(new Set(data.online ?? []))
+    } catch {
+      /* сеть моргнула — оставим прошлый снимок */
     }
-    poll()
-    const timer = setInterval(poll, 4_000)
-    return () => {
-      cancelled = true
-      clearInterval(timer)
-    }
-  }, [participantsOpen, sessionId])
+  }, [sessionId])
+
+  // Только когда панель открыта и вкладка активна.
+  useVisibleInterval(pollOnline, 4_000, { enabled: participantsOpen })
 
   useEffect(() => {
     setMinSizeValue(String(minGroupSize))

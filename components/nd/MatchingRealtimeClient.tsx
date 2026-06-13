@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback } from 'react'
+import { useVisibleInterval } from './use-visible-interval'
 
 interface Props {
   sessionId: string
@@ -38,11 +39,8 @@ export default function MatchingRealtimeClient({ sessionId, onStateChange, pollI
     }
   }, [sessionId, onStateChange])
 
-  useEffect(() => {
-    poll()
-    const timer = setInterval(poll, intervalMs)
-    return () => clearInterval(timer)
-  }, [poll, intervalMs])
+  // Опрос только при активной вкладке: фоновые вкладки не будят serverless-функцию.
+  useVisibleInterval(poll, intervalMs)
 
   return (
     <div

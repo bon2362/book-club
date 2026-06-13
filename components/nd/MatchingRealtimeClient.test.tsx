@@ -11,7 +11,20 @@ describe('MatchingRealtimeClient (polling)', () => {
 
   afterEach(() => {
     jest.restoreAllMocks()
+    setTabVisibility('visible')
   })
+
+  function setTabVisibility(state: 'visible' | 'hidden') {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => state,
+    })
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => state === 'hidden',
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+  }
 
   function respondVersion(version: number) {
     fetchMock.mockResolvedValueOnce({
@@ -47,5 +60,27 @@ describe('MatchingRealtimeClient (polling)', () => {
     // Wait for second poll (version changed → callback fires)
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+  })
+
+  it('does not poll while the tab is hidden', async () => {
+    setTabVisibility('hidden')
+    respondVersion(1)
+    render(<MatchingRealtimeClient sessionId="s1" onStateChange={jest.fn()} pollIntervalMs={20} />)
+
+    // Дать таймеру шанс сработать, если бы он шёл.
+    await new Promise((r) => setTimeout(r, 60))
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('does an immediate catch-up poll when the tab becomes visible', async () => {
+    setTabVisibility('hidden')
+    respondVersion(1)
+    render(<MatchingRealtimeClient sessionId="s1" onStateChange={jest.fn()} pollIntervalMs={5_000} />)
+    await new Promise((r) => setTimeout(r, 30))
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    // Возврат на вкладку → немедленный poll, не дожидаясь интервала.
+    setTabVisibility('visible')
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
   })
 })
