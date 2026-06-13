@@ -582,19 +582,33 @@ test.describe('ProfileDrawer: auth methods layout', () => {
       await expect(telegramMethod).toContainText('Telegram ID привязан')
       await expect(telegramMethod).toContainText('последний вход')
       await expect(googleMethod).toContainText('не привязан')
+      const emailMethod = dialog.getByTestId('auth-method-email')
+      await page.route('**/api/account/identities/email', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true }),
+      }))
+      await emailMethod.getByRole('button', { name: /привязать/i }).click()
+      await emailMethod.getByLabel(/email для привязки/i).fill('e2e-link-email@test.invalid')
+      await emailMethod.getByRole('button', { name: /получить ссылку/i }).click()
+      await expect(emailMethod).toContainText('Проверьте почту')
       await expect(section.getByText('—')).toHaveCount(0)
       await expect(section.getByRole('button', { name: /отвязать/i })).toHaveCount(0)
 
       const dialogBox = await dialog.boundingBox()
       const sectionBox = await section.boundingBox()
       const telegramBox = await telegramMethod.boundingBox()
+      const emailBox = await emailMethod.boundingBox()
       expect(dialogBox).not.toBeNull()
       expect(sectionBox).not.toBeNull()
       expect(telegramBox).not.toBeNull()
+      expect(emailBox).not.toBeNull()
       expect(sectionBox!.x).toBeGreaterThanOrEqual(dialogBox!.x - 1)
       expect(sectionBox!.x + sectionBox!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1)
       expect(telegramBox!.x).toBeGreaterThanOrEqual(sectionBox!.x - 1)
       expect(telegramBox!.x + telegramBox!.width).toBeLessThanOrEqual(sectionBox!.x + sectionBox!.width + 1)
+      expect(emailBox!.x).toBeGreaterThanOrEqual(sectionBox!.x - 1)
+      expect(emailBox!.x + emailBox!.width).toBeLessThanOrEqual(sectionBox!.x + sectionBox!.width + 1)
     } finally {
       await page.goto('about:blank').catch(() => {})
       await request.delete('/api/test/session', {

@@ -402,6 +402,10 @@ export default function ProfileDrawer({
   const [authIdentities, setAuthIdentities] = useState<AuthIdentity[]>([])
   const [authIdentitiesLoaded, setAuthIdentitiesLoaded] = useState(false)
   const [linkingGoogle, setLinkingGoogle] = useState(false)
+  const [linkingEmailExpanded, setLinkingEmailExpanded] = useState(false)
+  const [linkingEmail, setLinkingEmail] = useState(false)
+  const [linkEmail, setLinkEmail] = useState('')
+  const [linkEmailSent, setLinkEmailSent] = useState(false)
   const [linkingError, setLinkingError] = useState('')
   const [telegramLinkAuthUrl, setTelegramLinkAuthUrl] = useState<string | null>(null)
   const hasTelegramIdentity = authIdentities.some(identity => identity.provider === 'telegram')
@@ -913,6 +917,38 @@ export default function ProfileDrawer({
       setToast({ message, type: 'error' })
     } finally {
       setLinkingGoogle(false)
+    }
+  }
+
+  async function handleLinkEmail(e: React.FormEvent) {
+    e.preventDefault()
+    const email = linkEmail.trim()
+    if (!email || linkingEmail) return
+
+    setLinkingEmail(true)
+    setLinkingError('')
+    setLinkEmailSent(false)
+
+    try {
+      const res = await fetch('/api/account/identities/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(body.error === 'Invalid email' ? 'invalid_email' : 'link_failed')
+      }
+      setLinkEmailSent(true)
+      setToast({ message: 'Письмо для привязки отправлено', type: 'success' })
+    } catch (error) {
+      const message = error instanceof Error && error.message === 'invalid_email'
+        ? 'Введите корректный email.'
+        : 'Не удалось отправить письмо. Попробуйте ещё раз.'
+      setLinkingError(message)
+      setToast({ message, type: 'error' })
+    } finally {
+      setLinkingEmail(false)
     }
   }
 
@@ -1470,6 +1506,7 @@ export default function ProfileDrawer({
                           style={{
                             display: 'flex',
                             alignItems: 'center',
+                            flexWrap: 'wrap',
                             gap: '0.75rem',
                             padding: '0.7rem 0',
                             borderTop: '1px solid var(--border-subtle)',
@@ -1564,6 +1601,29 @@ export default function ProfileDrawer({
                             >
                               {linkingGoogle ? 'Привязываем…' : 'Привязать'}
                             </button>
+                          ) : method.provider === 'email' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLinkingEmailExpanded(v => !v)
+                                setLinkingError('')
+                              }}
+                              data-testid="link-email-button"
+                              style={{
+                                flexShrink: 0,
+                                padding: '0.38rem 0.62rem',
+                                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                fontSize: '0.58rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.09em',
+                                background: linkingEmailExpanded ? 'transparent' : 'var(--text)',
+                                color: linkingEmailExpanded ? 'var(--text-secondary)' : 'var(--bg)',
+                                border: '1px solid var(--border-strong)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {linkingEmailExpanded ? 'Скрыть' : 'Привязать'}
+                            </button>
                           ) : (
                             <span style={{
                               flexShrink: 0,
@@ -1575,6 +1635,89 @@ export default function ProfileDrawer({
                             }}>
                               не привязан
                             </span>
+                          )}
+                          {!connected && method.provider === 'email' && linkingEmailExpanded && (
+                            <form
+                              onSubmit={handleLinkEmail}
+                              style={{
+                                marginTop: '0.55rem',
+                                marginLeft: '2.75rem',
+                                flexBasis: 'calc(100% - 2.75rem)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.45rem',
+                              }}
+                            >
+                              {linkEmailSent ? (
+                                <p style={{
+                                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                  fontSize: '0.68rem',
+                                  color: 'var(--success)',
+                                  lineHeight: 1.45,
+                                  margin: 0,
+                                }}>
+                                  Проверьте почту и подтвердите привязку по ссылке.
+                                </p>
+                              ) : (
+                                <>
+                                  <label
+                                    htmlFor="profile-link-email"
+                                    style={{
+                                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                      fontSize: '0.55rem',
+                                      color: 'var(--text-muted)',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.12em',
+                                    }}
+                                  >
+                                    Email для привязки
+                                  </label>
+                                  <div style={{ display: 'flex', gap: '0.45rem' }}>
+                                    <input
+                                      id="profile-link-email"
+                                      type="email"
+                                      value={linkEmail}
+                                      onChange={e => {
+                                        setLinkEmail(e.target.value)
+                                        setLinkingError('')
+                                      }}
+                                      placeholder="ваш@email.com"
+                                      required
+                                      style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                        fontSize: '0.78rem',
+                                        color: 'var(--text)',
+                                        background: 'var(--bg-input)',
+                                        border: '1px solid var(--border)',
+                                        borderBottom: '2px solid var(--border-strong)',
+                                        padding: '0.45rem 0.55rem',
+                                        outline: 'none',
+                                      }}
+                                    />
+                                    <button
+                                      type="submit"
+                                      disabled={linkingEmail || !linkEmail.trim()}
+                                      style={{
+                                        flexShrink: 0,
+                                        padding: '0.45rem 0.6rem',
+                                        fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                        fontSize: '0.55rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.09em',
+                                        background: linkingEmail || !linkEmail.trim() ? 'var(--border)' : 'var(--text)',
+                                        color: linkingEmail || !linkEmail.trim() ? 'var(--text-muted)' : 'var(--bg)',
+                                        border: '1px solid var(--border-strong)',
+                                        cursor: linkingEmail || !linkEmail.trim() ? 'default' : 'pointer',
+                                      }}
+                                    >
+                                      {linkingEmail ? 'Отправляем…' : 'Получить ссылку'}
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </form>
                           )}
                         </div>
                       )
