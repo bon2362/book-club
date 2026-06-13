@@ -482,7 +482,7 @@ describe('AdminPanel — Заявки таб', () => {
 })
 
 describe('AdminPanel — merge users', () => {
-  it('ищет пользователей по ID и показывает ID в строке результата', async () => {
+  it('не показывает ID пользователей в списке и не ищет по ID', async () => {
     ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url === '/api/admin/submissions') {
@@ -500,11 +500,13 @@ describe('AdminPanel — merge users', () => {
     render(<AdminPanel {...defaultProps} />)
 
     await screen.findByText('Старый участник')
+    expect(screen.getByPlaceholderText('Поиск по имени или Telegram')).toBeInTheDocument()
+    expect(screen.queryByText('user-new')).not.toBeInTheDocument()
+
     fireEvent.change(screen.getByLabelText('Поиск пользователей'), { target: { value: 'user-new' } })
 
-    expect(screen.queryByText('Старый участник')).not.toBeInTheDocument()
-    expect(screen.getByText('Новый участник')).toBeInTheDocument()
-    expect(screen.getByText('user-new')).toBeInTheDocument()
+    expect(screen.queryByText('Новый участник')).not.toBeInTheDocument()
+    expect(screen.getByText('Никого не найдено')).toBeInTheDocument()
   })
 
   it('копирует ID пользователя и отправляет merge на вручную указанный target ID без причины', async () => {
