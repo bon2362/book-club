@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, bookPriorities, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import {
   captureMatchingMutationSnapshot,
@@ -50,6 +50,15 @@ export async function PATCH(req: NextRequest) {
   // Snapshot the leader scenario before the change so analytics can show impact.
   const before = await captureMatchingMutationSnapshot(activeSession.id)
 
+  // Capture the participant's ranking before the change so the admin viewer can
+  // show only the diff instead of the full priority list.
+  const previousRanks = await db
+    .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+    .from(bookPriorities)
+    .where(eq(bookPriorities.userId, userId))
+    .orderBy(asc(bookPriorities.rank))
+  const previousRankedBookIds = previousRanks.map(row => row.bookId)
+
   // Upsert each book with its new rank (1-indexed position)
   await withAuditContext(
     { actorUserId: actorId, actorLabel, source: auditSource },
@@ -88,7 +97,7 @@ export async function PATCH(req: NextRequest) {
     kind: 'priorities_updated',
     source: auditSource,
     before,
-    metadata: { rankedBookIds: ordered },
+    metadata: { rankedBookIds: ordered, previousRankedBookIds },
   })
 
   return NextResponse.json({ ranks: canonical }, { status: 200 })

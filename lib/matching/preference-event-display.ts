@@ -10,6 +10,9 @@ export interface PreferenceEventMetadata {
   removedBookTitles?: string[]
   // Priorities — ordered by rank (resolved titles).
   rankedBookTitles?: string[]
+  // Priorities snapshot before the change (resolved titles) — lets the viewer
+  // show only the diff instead of the full ranking.
+  previousRankedBookTitles?: string[]
   status?: string | null
   // participant_left — pseudonym snapshot (the participant row is deleted on leave).
   pseudonym?: string | null
@@ -62,6 +65,33 @@ export function sourceLabel(source: string): string {
   return source
 }
 
+// Compares two ranking orders (by title) and returns a compact human-readable
+// diff: added books (+, with their new rank), removed books (−) and books whose
+// rank moved (old→new). Returns «без изменений» when the order is identical.
+export function priorityDiff(previous: string[], next: string[]): string {
+  const previousRankByTitle = new Map(previous.map((title, index) => [title, index + 1]))
+  const nextRankByTitle = new Map(next.map((title, index) => [title, index + 1]))
+
+  const added: string[] = []
+  const moved: string[] = []
+  next.forEach((title, index) => {
+    const newRank = index + 1
+    const oldRank = previousRankByTitle.get(title)
+    if (oldRank == null) {
+      added.push(`+${title} (#${newRank})`)
+    } else if (oldRank !== newRank) {
+      moved.push(`${title}: ${oldRank}→${newRank}`)
+    }
+  })
+
+  const removed: string[] = previous
+    .filter(title => !nextRankByTitle.has(title))
+    .map(title => `−${title}`)
+
+  const parts = [...added, ...removed, ...moved]
+  return parts.length > 0 ? parts.join(', ') : 'без изменений'
+}
+
 export function eventDetail(event: PreferenceEventLike): string {
   // Lifecycle event without a book: clarify admin removals.
   if (event.eventType === 'participant_left') {
@@ -83,9 +113,15 @@ export function eventDetail(event: PreferenceEventLike): string {
       ].join(', ')
     }
 
-    // Priorities: show the ranking order.
+    // Priorities: show only what changed relative to the previous ranking.
     if (m.rankedBookTitles && m.rankedBookTitles.length > 0) {
-      return m.rankedBookTitles.map((title, index) => `${index + 1}. ${title}`).join(' → ')
+      const previous = m.previousRankedBookTitles ?? []
+      // No prior snapshot (first time the participant ranks) — show the full
+      // numbered order, there is nothing to diff against.
+      if (previous.length === 0) {
+        return m.rankedBookTitles.map((title, index) => `${index + 1}. ${title}`).join(' → ')
+      }
+      return priorityDiff(previous, m.rankedBookTitles)
     }
 
     // Historical events that stored only id arrays — fall back to a count.
