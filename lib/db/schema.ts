@@ -182,6 +182,19 @@ export const telegramPreauthTokens = pgTable('telegram_preauth_tokens', {
   expiresAtIdx: index('telegram_preauth_tokens_expires_at_idx').on(t.expiresAt),
 }))
 
+export const telegramLoginFailures = pgTable('telegram_login_failures', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  reason: text('reason').notNull(),
+  skewSeconds: integer('skew_seconds'),
+  tgId: text('tg_id'),
+  tgUsername: text('tg_username'),
+  hasHash: boolean('has_hash').notNull(),
+  ip: text('ip'),
+}, (t) => ({
+  createdAtIdx: index('telegram_login_failures_created_at_idx').on(t.createdAt),
+}))
+
 // Group Matching Mode tables — see docs/planning-artifacts/group-matching-mode-plan.md
 
 export const matchingSessions = pgTable('matching_sessions', {

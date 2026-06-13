@@ -168,11 +168,19 @@ describe('PUT /api/priorities', () => {
   it('при активной сессии пишет событие предпочтений с упорядоченным списком книг', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
     mockGetActiveSessionId.mockResolvedValue('session-1')
-    ;(db.select as jest.Mock).mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([{ id: 'book-a' }, { id: 'book-b' }]),
-      }),
-    })
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([{ id: 'book-a' }, { id: 'book-b' }]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            orderBy: jest.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
     ;(db.insert as jest.Mock).mockReturnValue({ values: jest.fn().mockResolvedValue(undefined) })
     ;(db.delete as jest.Mock).mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) })
     ;(db.update as jest.Mock).mockReturnValue({
@@ -188,7 +196,7 @@ describe('PUT /api/priorities', () => {
         sessionId: 'session-1',
         kind: 'priorities_updated',
         source: 'profile',
-        metadata: { rankedBookIds: ['book-b', 'book-a'] },
+        metadata: { rankedBookIds: ['book-b', 'book-a'], previousRankedBookIds: [] },
       }),
     )
   })

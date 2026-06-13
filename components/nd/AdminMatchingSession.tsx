@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   type PreferenceEventMetadata,
   eventDetail,
@@ -119,6 +119,40 @@ function statusRu(status: string): string {
   return status
 }
 
+// How many preference events to reveal per "show more" click.
+const PREFERENCE_EVENTS_PAGE_SIZE = 10
+
+const EMPTY_FILTERS = { day: '', eventType: '', source: '', participant: '', actor: '' }
+type PreferenceEventFilters = typeof EMPTY_FILTERS
+
+function eventDay(event: PreferenceEvent): string {
+  return new Date(event.occurredAt).toLocaleDateString('ru-RU')
+}
+
+function participantLabel(event: PreferenceEvent): string {
+  return formatParticipant({
+    name: event.userName,
+    pseudonym: event.userPseudonym ?? event.metadata?.pseudonym,
+    userId: event.userId,
+  })
+}
+
+function actorLabel(event: PreferenceEvent): string {
+  return formatParticipant({ name: event.actorName, pseudonym: event.actorPseudonym, userId: event.actorUserId })
+}
+
+const filterSelectStyle: React.CSSProperties = {
+  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+  fontSize: '0.72rem',
+  border: '1px solid var(--border)',
+  borderBottom: '2px solid var(--border-strong)',
+  borderRadius: 'var(--radius)',
+  background: 'var(--bg-input)',
+  color: 'var(--text-body)',
+  padding: '3px 6px',
+  maxWidth: 180,
+}
+
 export default function AdminMatchingSession() {
   const [sessions, setSessions] = useState<MatchingSession[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,6 +160,8 @@ export default function AdminMatchingSession() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [preferenceEvents, setPreferenceEvents] = useState<PreferenceEvent[]>([])
   const [preferenceEventsLoading, setPreferenceEventsLoading] = useState(false)
+  const [eventFilters, setEventFilters] = useState<PreferenceEventFilters>(EMPTY_FILTERS)
+  const [visibleEventsCount, setVisibleEventsCount] = useState(PREFERENCE_EVENTS_PAGE_SIZE)
 
   const [participants, setParticipants] = useState<Participant[]>([])
   const [onlinePseudonyms, setOnlinePseudonyms] = useState<Set<string>>(new Set())
@@ -208,7 +244,45 @@ export default function AdminMatchingSession() {
     loadPreferenceEvents(selectedSessionId)
     loadParticipants(selectedSessionId)
     loadAllUsers()
+    setEventFilters(EMPTY_FILTERS)
+    setVisibleEventsCount(PREFERENCE_EVENTS_PAGE_SIZE)
   }, [selectedSessionId, loadPreferenceEvents, loadParticipants, loadAllUsers])
+
+  // Distinct values for each filterable column, derived from the loaded events.
+  const eventFilterOptions = useMemo(() => {
+    const days = new Set<string>()
+    const eventTypes = new Set<string>()
+    const sources = new Set<string>()
+    const participants = new Set<string>()
+    const actors = new Set<string>()
+    for (const event of preferenceEvents) {
+      days.add(eventDay(event))
+      eventTypes.add(event.eventType)
+      sources.add(event.source)
+      participants.add(participantLabel(event))
+      actors.add(actorLabel(event))
+    }
+    return {
+      days: Array.from(days),
+      eventTypes: Array.from(eventTypes),
+      sources: Array.from(sources),
+      participants: Array.from(participants).sort((a, b) => a.localeCompare(b, 'ru')),
+      actors: Array.from(actors).sort((a, b) => a.localeCompare(b, 'ru')),
+    }
+  }, [preferenceEvents])
+
+  const filteredEvents = useMemo(() => preferenceEvents.filter(event => (
+    (!eventFilters.day || eventDay(event) === eventFilters.day) &&
+    (!eventFilters.eventType || event.eventType === eventFilters.eventType) &&
+    (!eventFilters.source || event.source === eventFilters.source) &&
+    (!eventFilters.participant || participantLabel(event) === eventFilters.participant) &&
+    (!eventFilters.actor || actorLabel(event) === eventFilters.actor)
+  )), [preferenceEvents, eventFilters])
+
+  const updateEventFilter = useCallback((key: keyof PreferenceEventFilters, value: string) => {
+    setEventFilters(prev => ({ ...prev, [key]: value }))
+    setVisibleEventsCount(PREFERENCE_EVENTS_PAGE_SIZE)
+  }, [])
 
   const activeSession = sessions.find(s => s.status === 'active')
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null
@@ -803,35 +877,127 @@ export default function AdminMatchingSession() {
                   </span>
                 ))}
               </div>
-              <table
-                data-testid="admin-matching-preference-events"
-                style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}
+
+              {/* Per-column filters — Когда | Событие | Источник | Участник | Актор */}
+              <div
+                data-testid="admin-matching-preference-filters"
+                style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.7rem', alignItems: 'center' }}
               >
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
-                    <th style={{ padding: '3px 8px 3px 0' }}>Когда</th>
-                    <th style={{ padding: '3px 8px' }}>Событие</th>
-                    <th style={{ padding: '3px 8px' }}>Источник</th>
-                    <th style={{ padding: '3px 8px' }}>Участник</th>
-                    <th style={{ padding: '3px 8px' }}>Актор</th>
-                    <th style={{ padding: '3px 8px' }}>Деталь</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preferenceEvents.slice(0, 25).map(event => (
-                    <tr key={event.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                      <td style={{ padding: '3px 8px 3px 0', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                        {new Date(event.occurredAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td style={{ padding: '3px 8px', color: 'var(--text-body)' }}>{eventTypeLabel(event.eventType)}</td>
-                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{sourceLabel(event.source)}</td>
-                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{formatParticipant({ name: event.userName, pseudonym: event.userPseudonym ?? event.metadata?.pseudonym, userId: event.userId })}</td>
-                      <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{formatParticipant({ name: event.actorName, pseudonym: event.actorPseudonym, userId: event.actorUserId })}</td>
-                      <td style={{ padding: '3px 8px', color: 'var(--text-muted)' }}>{eventDetail(event)}</td>
-                    </tr>
+                <select
+                  aria-label="Фильтр по дате"
+                  value={eventFilters.day}
+                  onChange={e => updateEventFilter('day', e.target.value)}
+                  style={filterSelectStyle}
+                >
+                  <option value="">Когда: все</option>
+                  {eventFilterOptions.days.map(day => (
+                    <option key={day} value={day}>{day}</option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+                <select
+                  aria-label="Фильтр по событию"
+                  value={eventFilters.eventType}
+                  onChange={e => updateEventFilter('eventType', e.target.value)}
+                  style={filterSelectStyle}
+                >
+                  <option value="">Событие: все</option>
+                  {eventFilterOptions.eventTypes.map(type => (
+                    <option key={type} value={type}>{eventTypeLabel(type)}</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Фильтр по источнику"
+                  value={eventFilters.source}
+                  onChange={e => updateEventFilter('source', e.target.value)}
+                  style={filterSelectStyle}
+                >
+                  <option value="">Источник: все</option>
+                  {eventFilterOptions.sources.map(src => (
+                    <option key={src} value={src}>{sourceLabel(src)}</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Фильтр по участнику"
+                  value={eventFilters.participant}
+                  onChange={e => updateEventFilter('participant', e.target.value)}
+                  style={filterSelectStyle}
+                >
+                  <option value="">Участник: все</option>
+                  {eventFilterOptions.participants.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Фильтр по актору"
+                  value={eventFilters.actor}
+                  onChange={e => updateEventFilter('actor', e.target.value)}
+                  style={filterSelectStyle}
+                >
+                  <option value="">Актор: все</option>
+                  {eventFilterOptions.actors.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+                {(eventFilters.day || eventFilters.eventType || eventFilters.source || eventFilters.participant || eventFilters.actor) && (
+                  <button
+                    onClick={() => { setEventFilters(EMPTY_FILTERS); setVisibleEventsCount(PREFERENCE_EVENTS_PAGE_SIZE) }}
+                    style={{ ...btn, fontSize: '0.7rem', padding: '3px 8px' }}
+                  >
+                    Сбросить
+                  </button>
+                )}
+              </div>
+
+              {filteredEvents.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Под фильтры ничего не подходит.</p>
+              ) : (
+                <>
+                  <table
+                    data-testid="admin-matching-preference-events"
+                    style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}
+                  >
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                        <th style={{ padding: '3px 8px 3px 0' }}>Когда</th>
+                        <th style={{ padding: '3px 8px' }}>Событие</th>
+                        <th style={{ padding: '3px 8px' }}>Источник</th>
+                        <th style={{ padding: '3px 8px' }}>Участник</th>
+                        <th style={{ padding: '3px 8px' }}>Актор</th>
+                        <th style={{ padding: '3px 8px' }}>Деталь</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEvents.slice(0, visibleEventsCount).map(event => (
+                        <tr key={event.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: '3px 8px 3px 0', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {new Date(event.occurredAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td style={{ padding: '3px 8px', color: 'var(--text-body)' }}>{eventTypeLabel(event.eventType)}</td>
+                          <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{sourceLabel(event.source)}</td>
+                          <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{participantLabel(event)}</td>
+                          <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>{actorLabel(event)}</td>
+                          <td style={{ padding: '3px 8px', color: 'var(--text-muted)' }}>{eventDetail(event)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.6rem' }}>
+                    <span style={{ ...microLabel }}>
+                      Показано {Math.min(visibleEventsCount, filteredEvents.length)} из {filteredEvents.length}
+                    </span>
+                    {visibleEventsCount < filteredEvents.length && (
+                      <button
+                        onClick={() => setVisibleEventsCount(c => c + PREFERENCE_EVENTS_PAGE_SIZE)}
+                        data-testid="admin-matching-preference-show-more"
+                        style={{ ...btn, fontSize: '0.72rem' }}
+                      >
+                        Показать ещё {Math.min(PREFERENCE_EVENTS_PAGE_SIZE, filteredEvents.length - visibleEventsCount)}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

@@ -57,6 +57,7 @@ export async function finalizeMatchingMutationEffects({
     ['addedBookIds', 'addedBookTitles'],
     ['removedBookIds', 'removedBookTitles'],
     ['rankedBookIds', 'rankedBookTitles'],
+    ['previousRankedBookIds', 'previousRankedBookTitles'],
   ]
   const enrichedMetadata: Record<string, unknown> = { ...metadata }
   for (const [idKey, titleKey] of idArrayKeys) {

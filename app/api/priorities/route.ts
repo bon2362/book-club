@@ -68,6 +68,17 @@ export async function PUT(req: NextRequest) {
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
   const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
+  // Capture the ranking before the change so the admin viewer can show the diff.
+  const previousRankedBookIds = activeSessionId
+    ? (
+        await db
+          .select({ bookId: bookPriorities.bookId })
+          .from(bookPriorities)
+          .where(eq(bookPriorities.userId, userId))
+          .orderBy(asc(bookPriorities.rank))
+      ).map(row => row.bookId)
+    : []
+
   await withAuditContext(
     { actorUserId: userId, actorLabel: session!.user.name ?? session!.user.contactEmail ?? null, source: 'priorities' },
     async (tx) => {
@@ -111,7 +122,7 @@ export async function PUT(req: NextRequest) {
       kind: 'priorities_updated',
       source: 'profile',
       before,
-      metadata: { rankedBookIds: validBookIds },
+      metadata: { rankedBookIds: validBookIds, previousRankedBookIds },
     })
   }
   await broadcastActiveMatchingStateChangeForParticipant(userId)
