@@ -14,6 +14,11 @@ export default function AuthErrorBanner() {
     telegram_failed: { text: 'Не удалось привязать Telegram. Попробуйте ещё раз.', tone: 'error' },
     telegram_state_failed: { text: 'Сессия привязки Telegram устарела. Откройте профиль и попробуйте ещё раз.', tone: 'error' },
     telegram_unauthorized: { text: 'Войдите в профиль перед привязкой Telegram.', tone: 'error' },
+    email_ok: { text: 'Почта привязана к вашему профилю.', tone: 'success' },
+    email_conflict: { text: 'Эта почта уже привязана к другому профилю. Напишите организатору, чтобы объединить аккаунты.', tone: 'error' },
+    email_failed: { text: 'Ссылка для привязки почты устарела. Откройте профиль и попробуйте ещё раз.', tone: 'error' },
+    email_state_failed: { text: 'Ссылка для привязки почты открыта не в том профиле. Откройте нужный профиль и попробуйте ещё раз.', tone: 'error' },
+    email_unauthorized: { text: 'Войдите в профиль перед привязкой почты.', tone: 'error' },
   }
   const accountLinkMessage = accountLinkStatus ? accountLinkMessages[accountLinkStatus] : null
   if (dismissed || (!authFailed && !accountLinkMessage)) return null

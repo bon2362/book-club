@@ -38,4 +38,12 @@ describe('AuthErrorBanner', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Этот Telegram уже привязан к другому профилю')
   })
+
+  it('shows successful email linking result', () => {
+    mockSearchParams = new URLSearchParams('account_link=email_ok')
+
+    render(<AuthErrorBanner />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Почта привязана к вашему профилю.')
+  })
 })

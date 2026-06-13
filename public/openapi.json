@@ -1027,6 +1027,108 @@
         }
       }
     },
+    "/api/account/identities/email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Запросить письмо для привязки почты к текущему профилю",
+        "description": "Требует активную session cookie. Создаёт одноразовый token для пары current userId + email и отправляет письмо подтверждения через Resend.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Письмо отправлено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/identities/email/callback": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Подтвердить привязку почты",
+        "description": "Требует активную session cookie того же пользователя, для которого был создан token. После consume привязывает email identity к текущему профилю и редиректит на главную с account_link статусом.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect to /?account_link=email_ok, email_conflict, email_failed, email_state_failed or email_unauthorized."
+          }
+        }
+      }
+    },
     "/api/me": {
       "get": {
         "tags": [
