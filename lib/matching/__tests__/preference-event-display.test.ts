@@ -2,6 +2,7 @@ import {
   eventDetail,
   eventTypeLabel,
   formatParticipant,
+  priorityDiff,
   sourceLabel,
   type PreferenceEventLike,
 } from '../preference-event-display'
@@ -86,10 +87,28 @@ describe('eventDetail', () => {
     ).toBe('+Дюна, +Мы')
   })
 
-  it('приоритеты показывают нумерованный порядок', () => {
+  it('приоритеты без предыдущего снимка показывают полный нумерованный порядок', () => {
     expect(
       eventDetail(event('priorities_updated', { rankedBookTitles: ['Дюна', '1984', 'Мы'] })),
     ).toBe('1. Дюна → 2. 1984 → 3. Мы')
+  })
+
+  it('приоритеты с предыдущим снимком показывают только дифф', () => {
+    expect(
+      eventDetail(event('priorities_updated', {
+        previousRankedBookTitles: ['Дюна', '1984', 'Мы'],
+        rankedBookTitles: ['1984', 'Дюна', 'Мы'],
+      })),
+    ).toBe('1984: 2→1, Дюна: 1→2')
+  })
+
+  it('приоритеты: пустой предыдущий снимок трактуется как первичная установка', () => {
+    expect(
+      eventDetail(event('priorities_updated', {
+        previousRankedBookTitles: [],
+        rankedBookTitles: ['Дюна', '1984'],
+      })),
+    ).toBe('1. Дюна → 2. 1984')
   })
 
   it('исторические события без названий падают в счётчик', () => {
@@ -114,5 +133,27 @@ describe('eventDetail', () => {
   it('без метаданных показывает bookId или тире', () => {
     expect(eventDetail(event('x', null, 'b1'))).toBe('b1')
     expect(eventDetail(event('x', null, null))).toBe('—')
+  })
+})
+
+describe('priorityDiff', () => {
+  it('перестановка ранга показывает старый→новый', () => {
+    expect(priorityDiff(['A', 'B', 'C'], ['B', 'A', 'C'])).toBe('B: 2→1, A: 1→2')
+  })
+
+  it('добавленная книга помечается + с новым рангом', () => {
+    expect(priorityDiff(['A', 'B'], ['A', 'B', 'C'])).toBe('+C (#3)')
+  })
+
+  it('убранная книга помечается −', () => {
+    expect(priorityDiff(['A', 'B', 'C'], ['A', 'B'])).toBe('−C')
+  })
+
+  it('идентичный порядок → без изменений', () => {
+    expect(priorityDiff(['A', 'B'], ['A', 'B'])).toBe('без изменений')
+  })
+
+  it('комбинация: добавление, удаление и сдвиг', () => {
+    expect(priorityDiff(['A', 'B', 'C'], ['C', 'A', 'D'])).toBe('+D (#3), −B, C: 3→1, A: 1→2')
   })
 })

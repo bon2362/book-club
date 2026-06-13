@@ -88,9 +88,11 @@ describe('PATCH /api/matching/priorities', () => {
   it('returns 200 with canonical ranks', async () => {
     mockAuth.mockResolvedValue(userSession)
     const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
     const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }, { bookId: 'b1', rank: 2 }]) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(previousRanksChain)
       .mockReturnValueOnce(canonicalChain)
     const upsertChain = { values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) }
     mockDb.insert = jest.fn().mockReturnValue(upsertChain)
@@ -108,9 +110,11 @@ describe('PATCH /api/matching/priorities', () => {
   it('пишет событие priorities_updated с упорядоченным списком (source=matching)', async () => {
     mockAuth.mockResolvedValue(userSession)
     const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
     const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }, { bookId: 'b1', rank: 2 }]) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(previousRanksChain)
       .mockReturnValueOnce(canonicalChain)
     mockDb.insert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) })
 
@@ -123,7 +127,7 @@ describe('PATCH /api/matching/priorities', () => {
         actorUserId: 'user1',
         kind: 'priorities_updated',
         source: 'matching',
-        metadata: { rankedBookIds: ['b2', 'b1'] },
+        metadata: { rankedBookIds: ['b2', 'b1'], previousRankedBookIds: [] },
       }),
     )
   })
@@ -131,9 +135,11 @@ describe('PATCH /api/matching/priorities', () => {
   it('пишет source=matching_priority_gate для предварительного экрана приоритетов', async () => {
     mockAuth.mockResolvedValue(userSession)
     const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
     const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }, { bookId: 'b1', rank: 2 }]) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(previousRanksChain)
       .mockReturnValueOnce(canonicalChain)
     mockDb.insert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) })
 
@@ -146,7 +152,7 @@ describe('PATCH /api/matching/priorities', () => {
         actorUserId: 'user1',
         kind: 'priorities_updated',
         source: 'matching_priority_gate',
-        metadata: { rankedBookIds: ['b2', 'b1'] },
+        metadata: { rankedBookIds: ['b2', 'b1'], previousRankedBookIds: [] },
       }),
     )
   })
@@ -154,9 +160,11 @@ describe('PATCH /api/matching/priorities', () => {
   it('для impersonation: target — участник, actor — админ', async () => {
     mockAuth.mockResolvedValue(adminSession)
     const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
     const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }]) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(previousRanksChain)
       .mockReturnValueOnce(canonicalChain)
     mockDb.insert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) })
 
@@ -175,9 +183,11 @@ describe('PATCH /api/matching/priorities', () => {
   it('lets admin reorder books for an impersonated participant', async () => {
     mockAuth.mockResolvedValue(adminSession)
     const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
+    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
     const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }]) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionChain)
+      .mockReturnValueOnce(previousRanksChain)
       .mockReturnValueOnce(canonicalChain)
     const upsertChain = { values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) }
     mockDb.insert = jest.fn().mockReturnValue(upsertChain)
