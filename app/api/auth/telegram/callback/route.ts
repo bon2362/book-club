@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTelegramPreauthToken, verifyTelegramHashWithReason } from '@/lib/telegram-auth'
+import { createTelegramPreauthToken, recordTelegramLoginFailure, verifyTelegramHashWithReason } from '@/lib/telegram-auth'
 import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
 export async function GET(req: NextRequest) {
@@ -14,6 +14,14 @@ export async function GET(req: NextRequest) {
       hasHash: Boolean(params.hash),
       tgId: params.id ?? null,
       authDate: params.auth_date ?? null,
+    })
+    await recordTelegramLoginFailure({
+      reason: verdict.reason ?? 'unknown',
+      skewSeconds: verdict.skewSeconds,
+      tgId: params.id ?? null,
+      tgUsername: params.username ?? null,
+      hasHash: Boolean(params.hash),
+      ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
     })
     return NextResponse.redirect(new URL('/?auth=failed', origin))
   }
