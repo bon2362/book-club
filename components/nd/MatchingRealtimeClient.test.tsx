@@ -33,6 +33,10 @@ describe('MatchingRealtimeClient (polling)', () => {
     })
   }
 
+  function respond(payload: { version: number; status?: string; online?: string[] }) {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => payload })
+  }
+
   it('does not fire onStateChange on the first poll (baseline)', async () => {
     respondVersion(1)
     const onChange = jest.fn()
@@ -82,5 +86,21 @@ describe('MatchingRealtimeClient (polling)', () => {
     // Возврат на вкладку → немедленный poll, не дожидаясь интервала.
     setTabVisibility('visible')
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+  })
+
+  it('stops polling once the session is frozen (layer C)', async () => {
+    respond({ version: 1, status: 'active' }) // baseline
+    respond({ version: 2, status: 'frozen' }) // фриз: refresh + стоп
+    const onChange = jest.fn()
+
+    render(<MatchingRealtimeClient sessionId="s1" onStateChange={onChange} pollIntervalMs={20} />)
+
+    // Второй опрос видит frozen → один финальный onStateChange.
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+
+    // Дальше опрос остановлен — счётчик не растёт.
+    await new Promise((r) => setTimeout(r, 80))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
