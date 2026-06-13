@@ -104,7 +104,8 @@ describe('GET /api/auth/telegram/callback', () => {
     expect(res.status).toBe(307)
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
-    expect(db.insert).not.toHaveBeenCalled()
+    // провал логируется в telegram_login_failures (db.insert), но пользователь НЕ создаётся
+    expect(db.insert).toHaveBeenCalled()
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
@@ -116,7 +117,8 @@ describe('GET /api/auth/telegram/callback', () => {
     expect(res.status).toBe(307)
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
-    expect(db.insert).not.toHaveBeenCalled()
+    // провал логируется в telegram_login_failures (db.insert), но пользователь НЕ создаётся
+    expect(db.insert).toHaveBeenCalled()
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
@@ -128,7 +130,8 @@ describe('GET /api/auth/telegram/callback', () => {
     expect(res.status).toBe(307)
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
-    expect(db.insert).not.toHaveBeenCalled()
+    // провал логируется в telegram_login_failures (db.insert), но пользователь НЕ создаётся
+    expect(db.insert).toHaveBeenCalled()
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 

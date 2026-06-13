@@ -7,11 +7,30 @@
 import { createHash, createHmac } from 'crypto'
 
 // telegram-auth.ts тянет lib/db → @/env (ESM @t3-oss/env-nextjs, который Jest не
-// трансформирует). verifyTelegramHashWithReason сам БД не использует — мокаем db,
-// чтобы цепочка импортов не грузила env (как в callback/route.test.ts).
-jest.mock('@/lib/db', () => ({ db: {} }))
+// трансформирует). Мокаем db со шпионами insert/delete, чтобы:
+// 1) цепочка импортов не грузила env
+// 2) можно было проверить вызовы recordTelegramLoginFailure / cleanupTelegramLoginFailures
+jest.mock('@/lib/db', () => ({
+  db: {
+    insert: jest.fn(() => ({ values: jest.fn().mockResolvedValue(undefined) })),
+    delete: jest.fn(() => ({ where: jest.fn().mockResolvedValue(undefined) })),
+    update: jest.fn(() => ({
+      set: jest.fn(() => ({
+        where: jest.fn(() => ({
+          returning: jest.fn().mockResolvedValue([]),
+        })),
+      })),
+    })),
+  },
+}))
 
-import { verifyTelegramHashWithReason, TELEGRAM_AUTH_MAX_AGE_SECONDS } from './telegram-auth'
+import { db } from '@/lib/db'
+import {
+  verifyTelegramHashWithReason,
+  recordTelegramLoginFailure,
+  cleanupTelegramLoginFailures,
+  TELEGRAM_AUTH_MAX_AGE_SECONDS,
+} from './telegram-auth'
 
 const BOT_TOKEN = 'test-bot-token-for-reason-tests'
 
@@ -95,5 +114,62 @@ describe('verifyTelegramHashWithReason', () => {
     expect(result.ok).toBe(false)
     expect(result.reason).toBe('hmac_mismatch')
     expect(result.skewSeconds).toBeDefined()
+  })
+})
+
+describe('recordTelegramLoginFailure', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('вызывает db.insert с замапленными полями', async () => {
+    const valuesMock = jest.fn().mockResolvedValue(undefined)
+    ;(db.insert as jest.Mock).mockReturnValue({ values: valuesMock })
+
+    await recordTelegramLoginFailure({
+      reason: 'stale',
+      skewSeconds: 400,
+      tgId: '123',
+      tgUsername: 'testuser',
+      hasHash: true,
+      ip: '1.2.3.4',
+    })
+
+    expect(db.insert).toHaveBeenCalledTimes(1)
+    expect(valuesMock).toHaveBeenCalledWith(expect.objectContaining({
+      reason: 'stale',
+      skewSeconds: 400,
+      tgId: '123',
+      tgUsername: 'testuser',
+      hasHash: true,
+      ip: '1.2.3.4',
+    }))
+  })
+
+  it('best-effort: при выбросе из insert НЕ реджектит промис', async () => {
+    const valuesMock = jest.fn().mockRejectedValue(new Error('DB down'))
+    ;(db.insert as jest.Mock).mockReturnValue({ values: valuesMock })
+
+    await expect(recordTelegramLoginFailure({
+      reason: 'hmac_mismatch',
+      hasHash: false,
+    })).resolves.toBeUndefined()
+  })
+})
+
+describe('cleanupTelegramLoginFailures', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('вызывает db.delete для записей старше 30 дней', async () => {
+    const whereMock = jest.fn().mockResolvedValue(undefined)
+    ;(db.delete as jest.Mock).mockReturnValue({ where: whereMock })
+
+    const now = new Date('2026-06-14T00:00:00Z')
+    await cleanupTelegramLoginFailures(now)
+
+    expect(db.delete).toHaveBeenCalledTimes(1)
+    expect(whereMock).toHaveBeenCalledTimes(1)
   })
 })

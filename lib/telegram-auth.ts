@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto'
 import { and, eq, gt, isNull, lt } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { telegramPreauthTokens } from '@/lib/db/schema'
+import { telegramLoginFailures, telegramPreauthTokens } from '@/lib/db/schema'
 
 export const TELEGRAM_AUTH_MAX_AGE_SECONDS = 5 * 60
 export const TELEGRAM_PREAUTH_TTL_SECONDS = 5 * 60
@@ -78,4 +78,34 @@ export async function cleanupTelegramPreauthTokens(now = new Date()) {
   await db
     .delete(telegramPreauthTokens)
     .where(lt(telegramPreauthTokens.expiresAt, now))
+}
+
+export const TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS = 30
+
+export async function recordTelegramLoginFailure(input: {
+  reason: string
+  skewSeconds?: number
+  tgId?: string | null
+  tgUsername?: string | null
+  hasHash: boolean
+  ip?: string | null
+}): Promise<void> {
+  try {
+    await db.insert(telegramLoginFailures).values({
+      reason: input.reason,
+      skewSeconds: input.skewSeconds ?? null,
+      tgId: input.tgId ?? null,
+      tgUsername: input.tgUsername ?? null,
+      hasHash: input.hasHash,
+      ip: input.ip ?? null,
+    })
+  } catch (error) {
+    // best-effort: журнал не должен ломать auth-флоу
+    console.error('[telegram-callback] failed to record login failure', { errorName: (error as Error)?.name })
+  }
+}
+
+export async function cleanupTelegramLoginFailures(now = new Date()) {
+  const cutoff = new Date(now.getTime() - TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS * 24 * 60 * 60 * 1000)
+  await db.delete(telegramLoginFailures).where(lt(telegramLoginFailures.createdAt, cutoff))
 }
