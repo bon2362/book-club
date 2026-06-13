@@ -12,6 +12,11 @@ declare global {
 }
 
 const BOT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
+const REMEMBERED_PROVIDER_LABEL: Record<RememberedAuthProvider, string> = {
+  telegram: 'Telegram',
+  google: 'Google',
+  email: 'почту',
+}
 
 interface Props {
   isOpen: boolean
@@ -85,24 +90,39 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
   if (!isOpen) return null
 
-  function renderRememberedBadge() {
+  function renderRememberedBadge(style?: React.CSSProperties) {
     return (
       <span
         style={{
+          position: 'absolute',
           display: 'inline-flex',
           alignItems: 'center',
-          padding: '0.25rem 0.45rem',
-          border: '1px solid var(--border)',
-          color: 'var(--text-muted)',
+          gap: '0.3rem',
+          zIndex: 2,
+          background: 'var(--accent)',
+          color: 'var(--bg)',
           fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-          fontSize: '0.58rem',
+          fontSize: '0.5rem',
+          fontWeight: 700,
           lineHeight: 1,
-          letterSpacing: '0.12em',
+          letterSpacing: '0.09em',
+          padding: '0.22rem 0.45rem',
           textTransform: 'uppercase',
           whiteSpace: 'nowrap',
+          ...style,
         }}
       >
-        последний способ входа
+        <span
+          aria-hidden="true"
+          style={{
+            width: 5,
+            height: 5,
+            flexShrink: 0,
+            background: 'var(--bg)',
+            borderRadius: '50%',
+          }}
+        />
+        Последний вход
       </span>
     )
   }
@@ -191,25 +211,38 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             fontFamily: 'var(--nd-sans), system-ui, sans-serif',
             fontSize: '0.8rem',
             color: 'var(--text-secondary)',
-            margin: '0 0 1.75rem',
+            margin: rememberedProvider ? '0 0 0.85rem' : '0 0 1.75rem',
             lineHeight: 1.5,
           }}
         >
           войдите, чтобы записаться на книги
         </p>
 
+        {rememberedProvider && (
+          <p
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.74rem',
+              color: 'var(--text-secondary)',
+              margin: '0 0 1.5rem',
+              lineHeight: 1.5,
+            }}
+          >
+            В прошлый раз вы входили через{' '}
+            <b style={{ color: 'var(--accent)' }}>{REMEMBERED_PROVIDER_LABEL[rememberedProvider]}</b>
+            {' '}— войдите так же, чтобы попасть в свой аккаунт.
+          </p>
+        )}
+
         <div style={{ borderTop: '1px solid var(--border-strong)', marginBottom: '1.5rem' }} />
 
         {/* Telegram — primary */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-          <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center' }} />
-        </div>
-
-        {rememberedProvider === 'telegram' && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
-            {renderRememberedBadge()}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
+            {rememberedProvider === 'telegram' && renderRememberedBadge({ top: '-0.7rem', right: '-0.5rem' })}
+            <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center' }} />
           </div>
-        )}
+        </div>
 
         {/* Other methods toggle */}
         <div style={{ textAlign: 'center' }}>
@@ -235,40 +268,40 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         {/* Google + magic link — secondary */}
         {showOther && (
           <div style={{ marginTop: '1.25rem' }}>
-            <button
-              onClick={() => {
-                track('auth_attempt', { provider: 'google' })
-                signIn('google')
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.625rem',
-                width: '100%',
-                padding: '0.75rem 1rem',
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.8rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                cursor: 'pointer',
-                border: '1px solid var(--border-strong)',
-                background: 'var(--text)',
-                color: 'var(--bg)',
-                transition: 'background 0.15s',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" style={{ flexShrink: 0 }}>
-                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="currentColor" opacity="0.85" />
-                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="currentColor" opacity="0.7" />
-                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="currentColor" opacity="0.6" />
-                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="currentColor" opacity="0.55" />
-              </svg>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ position: 'relative' }}>
+              {rememberedProvider === 'google' && renderRememberedBadge({ top: '-0.65rem', right: '0.75rem' })}
+              <button
+                onClick={() => {
+                  track('auth_attempt', { provider: 'google' })
+                  signIn('google')
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.625rem',
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  cursor: 'pointer',
+                  border: '1px solid var(--border-strong)',
+                  background: 'var(--text)',
+                  color: 'var(--bg)',
+                  transition: 'background 0.15s',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" style={{ flexShrink: 0 }}>
+                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="currentColor" opacity="0.85" />
+                  <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="currentColor" opacity="0.7" />
+                  <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="currentColor" opacity="0.6" />
+                  <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="currentColor" opacity="0.55" />
+                </svg>
                 <span>Войти через Google</span>
-                {rememberedProvider === 'google' && renderRememberedBadge()}
-              </span>
-            </button>
+              </button>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0' }}>
               <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
@@ -282,30 +315,28 @@ export default function AuthModal({ isOpen, onClose }: Props) {
               </p>
             ) : (
               <form onSubmit={handleMagicLink} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {rememberedProvider === 'email' && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    {renderRememberedBadge()}
-                  </div>
-                )}
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="ваш@email.com"
-                  required
-                  style={{
-                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '1rem',
-                    color: 'var(--text)',
-                    background: 'var(--bg-input)',
-                    border: '1px solid var(--border)',
-                    borderBottom: '2px solid var(--border-strong)',
-                    padding: '0.6rem 0.75rem',
-                    outline: 'none',
-                    width: '100%',
-                    boxSizing: 'border-box',
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  {rememberedProvider === 'email' && renderRememberedBadge({ top: '-0.65rem', right: '0.5rem' })}
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="ваш@email.com"
+                    required
+                    style={{
+                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                      fontSize: '1rem',
+                      color: 'var(--text)',
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border)',
+                      borderBottom: '2px solid var(--border-strong)',
+                      padding: '0.6rem 0.75rem',
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
                 {magicState === 'error' && (
                   <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.75rem', color: 'var(--accent)', margin: 0 }}>
                     Не удалось отправить письмо. Попробуйте ещё раз.
