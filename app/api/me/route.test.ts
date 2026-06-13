@@ -31,7 +31,7 @@ describe('GET /api/me', () => {
     jest.clearAllMocks()
   })
 
-  it('возвращает identities list и auth fields из последней user_identity', async () => {
+  it('возвращает authMethods list и auth fields из последней user_identity', async () => {
     ;(auth as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } })
     queueSelects(
       [{
@@ -43,13 +43,15 @@ describe('GET /api/me', () => {
       }],
       [{
         provider: 'google',
+        providerAccountId: 'google-sub',
         email: 'user@test.com',
         telegramUsername: null,
         lastSeenAt: new Date('2026-01-02T10:00:00Z'),
       }, {
         provider: 'telegram',
+        providerAccountId: '123456',
         email: null,
-        telegramUsername: 'reader',
+        telegramUsername: null,
         lastSeenAt: new Date('2026-01-01T10:00:00Z'),
       }]
     )
@@ -62,17 +64,19 @@ describe('GET /api/me', () => {
       id: 'user-1',
       authProvider: 'google',
       lastSignInAt: '2026-01-02T10:00:00.000Z',
-      identities: [
+      authMethods: [
         {
           provider: 'google',
+          providerAccountId: 'google-sub',
           email: 'user@test.com',
           telegramUsername: null,
           lastSeenAt: '2026-01-02T10:00:00.000Z',
         },
         {
           provider: 'telegram',
+          providerAccountId: '123456',
           email: null,
-          telegramUsername: 'reader',
+          telegramUsername: null,
           lastSeenAt: '2026-01-01T10:00:00.000Z',
         },
       ],

@@ -31,6 +31,7 @@ export async function GET() {
   const identities = await db
     .select({
       provider: userIdentities.provider,
+      providerAccountId: userIdentities.providerAccountId,
       email: userIdentities.email,
       telegramUsername: userIdentities.telegramUsername,
       lastSeenAt: userIdentities.lastSeenAt,
@@ -40,11 +41,20 @@ export async function GET() {
     .orderBy(desc(userIdentities.lastSeenAt))
     .limit(50)
 
+  const authMethods = identities.map(identity => ({
+    provider: identity.provider,
+    providerAccountId: identity.providerAccountId,
+    email: identity.email,
+    telegramUsername: identity.telegramUsername,
+    lastSeenAt: identity.lastSeenAt,
+  }))
+
   return NextResponse.json({
     user: {
       ...rows[0],
       authProvider: identities[0]?.provider ?? null,
       lastSignInAt: identities[0]?.lastSeenAt ?? null,
+      authMethods,
       identities,
     },
   })

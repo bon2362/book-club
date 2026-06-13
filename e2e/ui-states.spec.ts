@@ -541,12 +541,12 @@ test.describe('ProfileDrawer: status accordion menu', () => {
 test.describe('ProfileDrawer: auth methods layout', () => {
   const NAME = 'E2E Auth Methods UI'
 
-  test('auth methods section stays inside drawer on mobile width', async ({ page, request }) => {
+  test('telegram-only auth methods show a useful linked state without unlink controls', async ({ page, request }) => {
     test.setTimeout(180_000)
-    const email = `e2e-auth-methods-ui-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.invalid`
+    const providerAccountId = `tg-auth-methods-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await page.setViewportSize({ width: 390, height: 844 })
     const sessionResponse = await page.request.post('/api/test/session', {
-      data: { email, name: NAME, provider: 'email' },
+      data: { name: NAME, provider: 'telegram-preauth', providerAccountId },
     })
     expect(sessionResponse.ok()).toBe(true)
     const sessionBody = await sessionResponse.json() as { userId: string }
@@ -554,8 +554,7 @@ test.describe('ProfileDrawer: auth methods layout', () => {
       data: {
         userId: sessionBody.userId,
         name: NAME,
-        email,
-        contacts: '@e2e_auth_methods_ui',
+        contacts: '',
         selectedBookIds: [],
       },
     })
@@ -576,26 +575,30 @@ test.describe('ProfileDrawer: auth methods layout', () => {
       await dialog.getByRole('button', { name: 'Профиль' }).click()
 
       const section = dialog.getByTestId('auth-methods-section')
-      const emailMethod = dialog.getByTestId('auth-method-email')
-      const googleButton = dialog.getByTestId('link-google-button')
+      const telegramMethod = dialog.getByTestId('auth-method-telegram')
+      const googleMethod = dialog.getByTestId('auth-method-google')
       await expect(section).toBeVisible({ timeout: 20_000 })
-      await expect(emailMethod).toBeVisible({ timeout: 20_000 })
-      await expect(googleButton).toBeVisible({ timeout: 20_000 })
+      await expect(telegramMethod).toBeVisible({ timeout: 20_000 })
+      await expect(telegramMethod).toContainText('Telegram ID привязан')
+      await expect(telegramMethod).toContainText('последний вход')
+      await expect(googleMethod).toContainText('не привязан')
+      await expect(section.getByText('—')).toHaveCount(0)
+      await expect(section.getByRole('button', { name: /отвязать/i })).toHaveCount(0)
 
       const dialogBox = await dialog.boundingBox()
       const sectionBox = await section.boundingBox()
-      const buttonBox = await googleButton.boundingBox()
+      const telegramBox = await telegramMethod.boundingBox()
       expect(dialogBox).not.toBeNull()
       expect(sectionBox).not.toBeNull()
-      expect(buttonBox).not.toBeNull()
+      expect(telegramBox).not.toBeNull()
       expect(sectionBox!.x).toBeGreaterThanOrEqual(dialogBox!.x - 1)
       expect(sectionBox!.x + sectionBox!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1)
-      expect(buttonBox!.x).toBeGreaterThanOrEqual(sectionBox!.x - 1)
-      expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(sectionBox!.x + sectionBox!.width + 1)
+      expect(telegramBox!.x).toBeGreaterThanOrEqual(sectionBox!.x - 1)
+      expect(telegramBox!.x + telegramBox!.width).toBeLessThanOrEqual(sectionBox!.x + sectionBox!.width + 1)
     } finally {
       await page.goto('about:blank').catch(() => {})
       await request.delete('/api/test/session', {
-        data: { email, provider: 'email' },
+        data: { provider: 'telegram-preauth', providerAccountId },
         timeout: 15_000,
       }).catch(() => {})
     }
