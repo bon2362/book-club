@@ -622,7 +622,7 @@ export default function AdminPanel({
     .filter(u => {
       const q = userSearch.trim().toLowerCase()
       if (!q) return true
-      return `${u.id} ${u.name} ${u.telegramDisplay} ${u.contactEmail ?? ''} ${u.contacts ?? ''}`.toLowerCase().includes(q)
+      return `${u.name} ${u.telegramDisplay} ${u.contacts ?? ''}`.toLowerCase().includes(q)
     })
     .sort((a, b) => {
       const dir = userSort.dir === 'asc' ? 1 : -1
@@ -763,7 +763,7 @@ export default function AdminPanel({
               <input
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}
-                placeholder="Поиск по имени, Telegram или ID"
+                placeholder="Поиск по имени или Telegram"
                 aria-label="Поиск пользователей"
                 style={{ ...fieldInput, maxWidth: 420, borderBottomColor: 'var(--border-strong)' }}
               />
@@ -813,14 +813,11 @@ export default function AdminPanel({
                     >
                       <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? 'var(--text)' : 'var(--text-muted)' }}>{u.booksCount}</td>
                       <td style={{ ...cell, fontWeight: 700 }}>
-                        <div style={{ display: 'grid', gap: '0.15rem' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            {u.name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                            {u.isAdmin && <span style={adminBadge}>Admin</span>}
-                            {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
-                          </span>
-                          <span style={{ color: 'var(--text-muted)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.68rem', fontWeight: 400, wordBreak: 'break-all' }}>{u.id}</span>
-                        </div>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {u.name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                          {u.isAdmin && <span style={adminBadge}>Admin</span>}
+                          {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
+                        </span>
                       </td>
                       <td style={cell}>{telegram}</td>
                       <td style={{ ...cell, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>

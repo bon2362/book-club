@@ -5,7 +5,7 @@
 
 ## Как работает
 - **Контроль доступа** — `session.user.isAdmin` проверяется на сервере; не-администраторы получают 403 от всех роутов `/api/admin/*`
-- **Вкладка «Участники»** — показывает пользователей, их внутренние ID и записи из Postgres (`user` + `signup_books`); поиск работает по имени, Telegram, email/contact и ID. Администратор может удалить пользователя через `DELETE /api/admin/delete-user` или слить дубль в основной аккаунт через `POST /api/admin/users/merge`
+- **Вкладка «Участники»** — показывает пользователей и их записи из Postgres (`user` + `signup_books`); поиск работает по имени и Telegram. Администратор может удалить пользователя через `DELETE /api/admin/delete-user` или слить дубль в основной аккаунт через `POST /api/admin/users/merge`
 - **Вкладка «Каталог»** — CRUD-управление таблицей `books`. Список с поиском и фильтрами по видимости (`published`/`hidden`), статусу прочтения и источнику (`admin`/`submission`). Форма создания: новая книга по умолчанию `visibility='hidden'`, `source='admin'`, `is_new=false`. Inline-редактор позволяет менять все поля и переключать публикацию (`Опубликовать`/`Скрыть`).
 - **Статусы книг** — поле `books.reading_status` (`reading`/`read`/null); обновляется через `PATCH /api/admin/books/:id`
 - **Флаги new** — поле `books.is_new`; обновляется через `PATCH /api/admin/books/:id`
