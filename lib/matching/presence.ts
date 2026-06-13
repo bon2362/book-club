@@ -1,9 +1,11 @@
 import { and, eq, gte } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matchingSessionParticipants } from '@/lib/db/schema'
+import { PRESENCE_WINDOW_MS } from './presence-window'
 
-/** Участник онлайн, если опрашивал версию за последние 12 секунд (опрос — каждые 3с). */
-export const PRESENCE_WINDOW_MS = 12_000
+// Значение живёт в leaf-модуле без db-зависимостей (нужно и клиентскому poll-interval.ts).
+// Реэкспорт — ради обратной совместимости существующих импортов из './presence'.
+export { PRESENCE_WINDOW_MS }
 
 /** Чистый предикат «онлайн» по last_seen_at — удобно для UI/тестов. */
 export function isOnline(

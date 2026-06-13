@@ -2,20 +2,23 @@
 
 import { useRef, useState, useCallback } from 'react'
 import { useVisibleInterval } from './use-visible-interval'
+import { ACTIVE_POLL_INTERVAL_MS, adaptivePollInterval } from '@/lib/matching/poll-interval'
 
 interface Props {
   sessionId: string
   onStateChange: () => void
-  /** Override poll interval (ms). Useful in tests. Defaults to 3000. */
+  /** Фиксированный интервал (ms) — отключает адаптацию. Используется в тестах. */
   pollIntervalMs?: number
 }
-
-const DEFAULT_POLL_INTERVAL_MS = 3_000
 
 export default function MatchingRealtimeClient({ sessionId, onStateChange, pollIntervalMs }: Props) {
   const [healthy, setHealthy] = useState(true)
   const lastVersionRef = useRef<number | null>(null)
-  const intervalMs = pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
+
+  // Фиксированный интервал из пропа отключает адаптацию (слой B).
+  const adaptive = pollIntervalMs === undefined
+  const [intervalMs, setIntervalMs] = useState(pollIntervalMs ?? ACTIVE_POLL_INTERVAL_MS)
+  const [stopped, setStopped] = useState(false)
 
   const poll = useCallback(async () => {
     try {
@@ -24,23 +27,34 @@ export default function MatchingRealtimeClient({ sessionId, onStateChange, pollI
         setHealthy(false)
         return
       }
-      const data = (await res.json()) as { version: number }
+      const data = (await res.json()) as { version: number; status?: string; online?: string[] }
       setHealthy(true)
-      if (lastVersionRef.current === null) {
+
+      const versionChanged =
+        lastVersionRef.current !== null && data.version !== lastVersionRef.current
+      if (lastVersionRef.current === null || versionChanged) {
         lastVersionRef.current = data.version
+        if (versionChanged) onStateChange()
+      }
+
+      // Слой C: заморозка терминальна (un-freeze в коде нет) и переводит доску в
+      // read-only. Версия фриза уже обработана выше (refresh) — дальше опрашивать нечего.
+      if (data.status === 'frozen') {
+        setStopped(true)
         return
       }
-      if (data.version !== lastVersionRef.current) {
-        lastVersionRef.current = data.version
-        onStateChange()
+
+      // Слой B: один в сессии → опрашиваем реже (но в пределах PRESENCE_WINDOW_MS).
+      if (adaptive) {
+        setIntervalMs(adaptivePollInterval(data.online?.length ?? 0))
       }
     } catch {
       setHealthy(false)
     }
-  }, [sessionId, onStateChange])
+  }, [sessionId, onStateChange, adaptive])
 
-  // Опрос только при активной вкладке: фоновые вкладки не будят serverless-функцию.
-  useVisibleInterval(poll, intervalMs)
+  // Опрос только при активной вкладке (слой A); останавливается на frozen (слой C).
+  useVisibleInterval(poll, intervalMs, { enabled: !stopped })
 
   return (
     <div
