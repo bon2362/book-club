@@ -58,7 +58,7 @@ flowchart TD
 
 ## Привязанные способы входа
 
-Профиль показывает пользователю список его способов входа из `user_identities`: provider, email для Google/email и Telegram username для Telegram. Это технические auth-данные, нужные для предотвращения дублей и восстановления доступа. В списке не показывается внешний provider account id (`google sub` или Telegram numeric id).
+Профиль показывает пользователю список его способов входа из `user_identities`: provider, email для Google/email и Telegram username для Telegram, если username есть. Если Telegram username отсутствует, интерфейс пишет «Telegram ID привязан», но не раскрывает внешний provider account id. Эти технические auth-данные нужны для предотвращения дублей и восстановления доступа. В списке не показывается `google sub` или Telegram numeric id.
 
 Добавление нового способа входа всегда требует подтверждения у внешнего provider:
 

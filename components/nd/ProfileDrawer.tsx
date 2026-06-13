@@ -69,9 +69,31 @@ type Tab = 'signup' | 'submitted' | 'profile'
 type AuthIdentityProvider = 'google' | 'email' | 'telegram'
 type AuthIdentity = {
   provider: AuthIdentityProvider
+  providerAccountId?: string | null
   email: string | null
   telegramUsername: string | null
   lastSeenAt: string | null
+}
+
+const AUTH_METHOD_PROVIDERS: Array<{
+  provider: AuthIdentityProvider
+  label: string
+  shortLabel: string
+}> = [
+  { provider: 'telegram', label: 'Telegram', shortLabel: 'T' },
+  { provider: 'google', label: 'Google', shortLabel: 'G' },
+  { provider: 'email', label: 'Почта', shortLabel: '@' },
+]
+
+function authMethodDetail(provider: AuthIdentityProvider, identity?: AuthIdentity) {
+  if (!identity) return 'не привязан'
+  if (provider === 'telegram') {
+    return identity.telegramUsername ? `@${identity.telegramUsername}` : 'Telegram ID привязан'
+  }
+  if (provider === 'google') {
+    return identity.email ?? 'Google аккаунт привязан'
+  }
+  return identity.email ?? 'Почтовый вход привязан'
 }
 
 const TELEGRAM_BOT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME
@@ -382,7 +404,6 @@ export default function ProfileDrawer({
   const [linkingGoogle, setLinkingGoogle] = useState(false)
   const [linkingError, setLinkingError] = useState('')
   const [telegramLinkAuthUrl, setTelegramLinkAuthUrl] = useState<string | null>(null)
-  const hasGoogleIdentity = authIdentities.some(identity => identity.provider === 'google')
   const hasTelegramIdentity = authIdentities.some(identity => identity.provider === 'telegram')
 
   // ── Toast ──
@@ -541,7 +562,11 @@ export default function ProfileDrawer({
     fetch('/api/me')
       .then(r => r.json())
       .then(data => {
-        const identities = Array.isArray(data.user?.identities) ? data.user.identities : []
+        const identities = Array.isArray(data.user?.authMethods)
+          ? data.user.authMethods
+          : Array.isArray(data.user?.identities)
+            ? data.user.identities
+            : []
         setAuthIdentities(identities)
         setAuthIdentitiesLoaded(true)
       })
@@ -899,6 +924,14 @@ export default function ProfileDrawer({
   const contactEmail = getUserContactEmail(session?.user)
   const displayName = effectiveUser?.name?.trim() || session?.user?.name || contactEmail || ''
   const profileUnchanged = name.trim() === (effectiveUser?.name ?? '') && contacts.trim() === (effectiveUser?.contacts ?? '')
+  const authIdentityByProvider = useMemo(() => {
+    const map = new Map<AuthIdentityProvider, AuthIdentity>()
+    authIdentities.forEach(identity => {
+      if (!map.has(identity.provider)) map.set(identity.provider, identity)
+    })
+    return map
+  }, [authIdentities])
+  const latestAuthProvider = authIdentities[0]?.provider ?? session?.user?.provider ?? null
 
   // ── Derived: section book lists ──
   const { readingBooks, readBooks } = useMemo(() => {
@@ -1403,6 +1436,15 @@ export default function ProfileDrawer({
 
               <div style={{ marginBottom: '1.5rem' }} data-testid="auth-methods-section">
                 <div style={sectionLabel}>Способы входа</div>
+                <p style={{
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.72rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.5,
+                  margin: '-0.35rem 0 0.85rem',
+                }}>
+                  Привязанные способы ведут в этот же профиль и помогают не создать дубль.
+                </p>
                 <div style={{
                   borderTop: '1px solid var(--border)',
                   borderBottom: '1px solid var(--border)',
@@ -1416,96 +1458,130 @@ export default function ProfileDrawer({
                     }}>
                       Загружаем…
                     </div>
-                  ) : authIdentities.length === 0 ? (
-                    <div style={{
-                      padding: '0.75rem 0',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.75rem',
-                      color: 'var(--text-muted)',
-                    }}>
-                      Пока виден только текущий вход.
-                    </div>
                   ) : (
-                    authIdentities.map(identity => {
-                      const label: Record<AuthIdentityProvider, string> = {
-                        google: 'Google',
-                        email: 'Email',
-                        telegram: 'Telegram',
-                      }
-                      const detail = identity.provider === 'telegram'
-                        ? (identity.telegramUsername ? `@${identity.telegramUsername}` : 'привязан')
-                        : (identity.email ?? 'привязан')
+                    AUTH_METHOD_PROVIDERS.map(method => {
+                      const identity = authIdentityByProvider.get(method.provider)
+                      const connected = Boolean(identity)
+                      const isLatest = connected && latestAuthProvider === method.provider
                       return (
                         <div
-                          key={`${identity.provider}:${detail}`}
-                          data-testid={`auth-method-${identity.provider}`}
+                          key={method.provider}
+                          data-testid={`auth-method-${method.provider}`}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
                             gap: '0.75rem',
                             padding: '0.7rem 0',
                             borderTop: '1px solid var(--border-subtle)',
                           }}
                         >
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 24,
+                              height: 24,
+                              flexShrink: 0,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                              fontSize: '0.78rem',
-                              color: 'var(--text)',
-                            }}>
-                              {label[identity.provider]}
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              color: connected ? 'var(--text)' : 'var(--text-muted)',
+                              border: '1px solid var(--border)',
+                              opacity: connected ? 1 : 0.55,
+                            }}
+                          >
+                            {method.shortLabel}
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0 }}>
+                              <span style={{
+                                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                color: connected ? 'var(--text)' : 'var(--text-secondary)',
+                              }}>
+                                {method.label}
+                              </span>
+                              {isLatest && (
+                                <span style={{
+                                  flexShrink: 0,
+                                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                  fontSize: '0.5rem',
+                                  color: 'var(--accent)',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.1em',
+                                  border: '1px solid var(--accent)',
+                                  padding: '0.08rem 0.32rem',
+                                }}>
+                                  последний вход
+                                </span>
+                              )}
                             </div>
                             <div style={{
                               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                               fontSize: '0.68rem',
                               color: 'var(--text-muted)',
+                              fontStyle: connected ? 'normal' : 'italic',
+                              marginTop: 2,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
                             }}>
-                              {detail}
+                              {authMethodDetail(method.provider, identity)}
                             </div>
                           </div>
-                          <span style={{
-                            flexShrink: 0,
-                            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                            fontSize: '0.55rem',
-                            color: 'var(--text-muted)',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.12em',
-                          }}>
-                            привязан
-                          </span>
+                          {connected ? (
+                            <span style={{
+                              flexShrink: 0,
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.55rem',
+                              color: 'var(--text-muted)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.12em',
+                            }}>
+                              привязан
+                            </span>
+                          ) : method.provider === 'google' ? (
+                            <button
+                              type="button"
+                              onClick={handleLinkGoogle}
+                              disabled={linkingGoogle}
+                              data-testid="link-google-button"
+                              style={{
+                                flexShrink: 0,
+                                padding: '0.38rem 0.62rem',
+                                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                fontSize: '0.58rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.09em',
+                                background: linkingGoogle ? 'var(--border)' : 'var(--text)',
+                                color: linkingGoogle ? 'var(--text-muted)' : 'var(--bg)',
+                                border: '1px solid var(--border-strong)',
+                                cursor: linkingGoogle ? 'default' : 'pointer',
+                              }}
+                            >
+                              {linkingGoogle ? 'Привязываем…' : 'Привязать'}
+                            </button>
+                          ) : (
+                            <span style={{
+                              flexShrink: 0,
+                              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                              fontSize: '0.55rem',
+                              color: 'var(--text-muted)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.12em',
+                            }}>
+                              не привязан
+                            </span>
+                          )}
                         </div>
                       )
                     })
                   )}
                 </div>
 
-                {!hasGoogleIdentity && (
-                  <button
-                    type="button"
-                    onClick={handleLinkGoogle}
-                    disabled={linkingGoogle}
-                    data-testid="link-google-button"
-                    style={{
-                      width: '100%',
-                      marginTop: '0.75rem',
-                      padding: '0.65rem 1rem',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.65rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                      background: linkingGoogle ? 'var(--border)' : 'var(--text)',
-                      color: linkingGoogle ? 'var(--text-muted)' : 'var(--bg)',
-                      border: '1px solid var(--border-strong)',
-                      cursor: linkingGoogle ? 'default' : 'pointer',
-                    }}
-                  >
-                    {linkingGoogle ? 'Привязываем…' : 'Привязать Google'}
-                  </button>
-                )}
                 {!hasTelegramIdentity && TELEGRAM_BOT_NAME && (
                   <div style={{
                     display: 'flex',
@@ -1542,35 +1618,10 @@ export default function ProfileDrawer({
               </div>
 
               <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
                 padding: '0.65rem 0', marginBottom: '0.75rem', gap: '0.75rem',
+                borderTop: '1px solid var(--border)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                  {session?.user?.provider === 'google' ? (
-                    <svg viewBox="0 0 24 24" fill="none" width="13" height="13" style={{ flexShrink: 0 }}>
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                  ) : session?.user?.provider === 'telegram' ? (
-                    <svg viewBox="0 0 24 24" fill="none" width="13" height="13" style={{ flexShrink: 0 }}>
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.67 7.86c-.12.56-.47.7-.95.43l-2.62-1.93-1.27 1.22c-.14.14-.26.26-.53.26l.19-2.67 4.84-4.37c.21-.19-.05-.29-.32-.1L7.6 14.34l-2.56-.8c-.56-.17-.57-.56.12-.83l9.97-3.84c.46-.17.87.11.51.93z" fill="#2CA5E0"/>
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" width="13" height="13" style={{ flexShrink: 0 }}>
-                      <rect x="2" y="4" width="20" height="16" rx="2" stroke="#999" strokeWidth="1.5"/>
-                      <path d="M2 8l10 7 10-7" stroke="#999" strokeWidth="1.5" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                  <span style={{
-                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.78rem', color: 'var(--text-secondary)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {contactEmail ?? '—'}
-                  </span>
-                </div>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   style={{
