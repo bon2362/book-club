@@ -23,10 +23,22 @@ describe('admin user merge rules', () => {
     })
   })
 
-  it('rejects empty ids, self-merge, missing reason, and admin-as-source', () => {
+  it('allows an empty optional reason', () => {
+    expect(validateMergeRequest({
+      sourceUserId: 'source',
+      targetUserId: 'target',
+      reason: ' ',
+      currentAdminUserId: 'admin',
+    })).toEqual({
+      sourceUserId: 'source',
+      targetUserId: 'target',
+      reason: '',
+    })
+  })
+
+  it('rejects empty ids, self-merge, and admin-as-source', () => {
     expect(() => validateMergeRequest({ sourceUserId: '', targetUserId: 'target', reason: 'x' })).toThrow(MergeValidationError)
     expect(() => validateMergeRequest({ sourceUserId: 'same', targetUserId: 'same', reason: 'x' })).toThrow(MergeValidationError)
-    expect(() => validateMergeRequest({ sourceUserId: 'source', targetUserId: 'target', reason: ' ' })).toThrow(MergeValidationError)
     expect(() => validateMergeRequest({
       sourceUserId: 'admin',
       targetUserId: 'target',

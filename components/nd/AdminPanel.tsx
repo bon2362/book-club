@@ -421,17 +421,17 @@ export default function AdminPanel({
 
   async function handleMergeUser(sourceUserId: string, targetUserId: string, reason: string) {
     const source = selectedAdminUser?.user
-    const target = adminUsers.find(user => user.id === targetUserId)
     const sourceLabel = source?.name || source?.contactEmail || source?.telegramDisplay || sourceUserId
-    const targetLabel = target?.name || target?.contactEmail || target?.telegramDisplay || targetUserId
-    if (!window.confirm(`Слить пользователя ${sourceLabel} в ${targetLabel}? Source-аккаунт будет удалён после переноса данных.`)) return
+    const trimmedTargetUserId = targetUserId.trim()
+    const trimmedReason = reason.trim()
+    if (!window.confirm(`Слить пользователя ${sourceLabel} в ${trimmedTargetUserId}? Source-аккаунт будет удалён после переноса данных.`)) return
 
     setUserMergeLoading(true)
     try {
       const res = await fetch('/api/admin/users/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceUserId, targetUserId, reason }),
+        body: JSON.stringify({ sourceUserId, targetUserId: trimmedTargetUserId, reason: trimmedReason }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null) as { error?: string } | null
@@ -622,7 +622,7 @@ export default function AdminPanel({
     .filter(u => {
       const q = userSearch.trim().toLowerCase()
       if (!q) return true
-      return `${u.name} ${u.telegramDisplay} ${u.contacts ?? ''}`.toLowerCase().includes(q)
+      return `${u.id} ${u.name} ${u.telegramDisplay} ${u.contactEmail ?? ''} ${u.contacts ?? ''}`.toLowerCase().includes(q)
     })
     .sort((a, b) => {
       const dir = userSort.dir === 'asc' ? 1 : -1
@@ -763,7 +763,7 @@ export default function AdminPanel({
               <input
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}
-                placeholder="Поиск по имени или Telegram"
+                placeholder="Поиск по имени, Telegram или ID"
                 aria-label="Поиск пользователей"
                 style={{ ...fieldInput, maxWidth: 420, borderBottomColor: 'var(--border-strong)' }}
               />
@@ -813,11 +813,14 @@ export default function AdminPanel({
                     >
                       <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? 'var(--text)' : 'var(--text-muted)' }}>{u.booksCount}</td>
                       <td style={{ ...cell, fontWeight: 700 }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                          {u.name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                          {u.isAdmin && <span style={adminBadge}>Admin</span>}
-                          {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
-                        </span>
+                        <div style={{ display: 'grid', gap: '0.15rem' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            {u.name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                            {u.isAdmin && <span style={adminBadge}>Admin</span>}
+                            {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.68rem', fontWeight: 400, wordBreak: 'break-all' }}>{u.id}</span>
+                        </div>
                       </td>
                       <td style={cell}>{telegram}</td>
                       <td style={{ ...cell, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
@@ -1240,7 +1243,6 @@ export default function AdminPanel({
           if (!selectedAdminUser) return
           await handleMergeUser(selectedAdminUser.user.id, targetUserId, reason)
         }}
-        mergeTargets={adminUsers}
         mergeLoading={userMergeLoading}
         onOpenSubmission={(submissionId) => {
           closeUserDrawer()

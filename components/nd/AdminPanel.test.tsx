@@ -482,8 +482,37 @@ describe('AdminPanel — Заявки таб', () => {
 })
 
 describe('AdminPanel — merge users', () => {
-  it('отправляет source, target и причину из карточки пользователя', async () => {
+  it('ищет пользователей по ID и показывает ID в строке результата', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === '/api/admin/submissions') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/feedback') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/users') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUsers }) })
+      }
+      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? 'GET'}`)
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+
+    await screen.findByText('Старый участник')
+    fireEvent.change(screen.getByLabelText('Поиск пользователей'), { target: { value: 'user-new' } })
+
+    expect(screen.queryByText('Старый участник')).not.toBeInTheDocument()
+    expect(screen.getByText('Новый участник')).toBeInTheDocument()
+    expect(screen.getByText('user-new')).toBeInTheDocument()
+  })
+
+  it('копирует ID пользователя и отправляет merge на вручную указанный target ID без причины', async () => {
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true)
+    const writeText = jest.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, {
+      clipboard: { writeText },
+    })
     ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url === '/api/admin/submissions') {
@@ -509,11 +538,11 @@ describe('AdminPanel — merge users', () => {
     fireEvent.click(await screen.findByText('Старый участник'))
     expect(await screen.findByText('Слить дубль')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Целевой пользователь'), { target: { value: 'user-new' } })
-    fireEvent.change(screen.getByPlaceholderText(/один участник вошёл/i), {
-      target: { value: 'дубликат после входа через другой провайдер' },
-    })
-    fireEvent.click(screen.getByText('Слить в выбранный аккаунт'))
+    fireEvent.click(screen.getByRole('button', { name: /скопировать id пользователя user-old/i }))
+    expect(writeText).toHaveBeenCalledWith('user-old')
+
+    fireEvent.change(screen.getByLabelText('ID аккаунта, который оставить'), { target: { value: ' user-new ' } })
+    fireEvent.click(screen.getByText('Merge to user'))
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith('/api/admin/users/merge', expect.objectContaining({
@@ -521,11 +550,11 @@ describe('AdminPanel — merge users', () => {
         body: JSON.stringify({
           sourceUserId: 'user-old',
           targetUserId: 'user-new',
-          reason: 'дубликат после входа через другой провайдер',
+          reason: '',
         }),
       }))
     })
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Слить пользователя Старый участник в Новый участник?'))
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Слить пользователя Старый участник в user-new?'))
   })
 })
 

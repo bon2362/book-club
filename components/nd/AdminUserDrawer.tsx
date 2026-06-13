@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
+import type { AdminUserDetails } from '@/lib/admin-users'
 import type { PersonalBookStatus } from '@/lib/signup-books'
 
 interface Props {
@@ -14,7 +14,6 @@ interface Props {
   onMergeUser: (targetUserId: string, reason: string) => Promise<void>
   onOpenSubmission: (submissionId: string) => void
   onChangeStatus: (bookId: string, status: PersonalBookStatus) => void
-  mergeTargets: AdminUserSummary[]
   mergeLoading: boolean
 }
 
@@ -143,12 +142,12 @@ export default function AdminUserDrawer({
   onMergeUser,
   onOpenSubmission,
   onChangeStatus,
-  mergeTargets,
   mergeLoading,
 }: Props) {
   const [openMenuBookId, setOpenMenuBookId] = useState<string | null>(null)
   const [mergeTargetUserId, setMergeTargetUserId] = useState('')
   const [mergeReason, setMergeReason] = useState('')
+  const [copiedUserId, setCopiedUserId] = useState(false)
 
   useEffect(() => {
     if (!isOpen) return
@@ -168,6 +167,7 @@ export default function AdminUserDrawer({
     if (isOpen) return
     setMergeTargetUserId('')
     setMergeReason('')
+    setCopiedUserId(false)
   }, [isOpen])
 
   const user = data?.user
@@ -184,6 +184,12 @@ export default function AdminUserDrawer({
     .sort((a, b2) => priorityMap.get(a.bookId)! - priorityMap.get(b2.bookId)!)
   const unrankedNull = nullBooks.filter(b => !priorityMap.has(b.bookId))
   const sortedNullBooks = user?.prioritiesSet ? [...rankedNull, ...unrankedNull] : nullBooks
+  const trimmedMergeTargetUserId = mergeTargetUserId.trim()
+
+  async function copyUserId(userId: string) {
+    await navigator.clipboard.writeText(userId)
+    setCopiedUserId(true)
+  }
 
   return (
     <>
@@ -254,6 +260,18 @@ export default function AdminUserDrawer({
                   <dt style={{ color: 'var(--text-muted)' }}>Языки</dt><dd style={{ margin: 0 }}>{user.languages.length ? user.languages.join(', ') : '—'}</dd>
                   <dt style={{ color: 'var(--text-muted)' }}>Последняя активность</dt><dd style={{ margin: 0 }}>{formatDate(user.lastActivityAt)}</dd>
                   <dt style={{ color: 'var(--text-muted)' }}>Дата создания</dt><dd style={{ margin: 0 }}>{formatDate(user.createdAt)}</dd>
+                  <dt style={{ color: 'var(--text-muted)' }}>ID</dt>
+                  <dd style={{ margin: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => { void copyUserId(user.id) }}
+                      aria-label={`Скопировать ID пользователя ${user.id}`}
+                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', fontFamily: sans, fontSize: '0.76rem', padding: '0.18rem 0.45rem', textAlign: 'left', wordBreak: 'break-all' }}
+                    >
+                      {user.id}
+                    </button>
+                    {copiedUserId && <span style={{ marginLeft: '0.45rem', color: 'var(--text-muted)', fontSize: '0.72rem' }}>скопировано</span>}
+                  </dd>
                 </dl>
                 <button onClick={onDeleteUser} style={{ marginTop: '0.9rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '0.35rem 0.75rem', cursor: 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   Удалить пользователя
@@ -264,19 +282,13 @@ export default function AdminUserDrawer({
                 <h3 style={{ ...sectionTitle, marginBottom: '0.5rem' }}>Слить дубль</h3>
                 <div style={{ display: 'grid', gap: '0.6rem' }}>
                   <label style={{ display: 'grid', gap: '0.25rem' }}>
-                    <span style={{ fontFamily: sans, fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Целевой пользователь</span>
-                    <select
+                    <span style={{ fontFamily: sans, fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>ID аккаунта, который оставить</span>
+                    <input
                       value={mergeTargetUserId}
                       onChange={event => setMergeTargetUserId(event.target.value)}
+                      placeholder="Вставьте ID основного аккаунта"
                       style={{ fontFamily: sans, fontSize: '0.8rem', color: 'var(--text)', border: '1px solid var(--border)', borderBottom: '2px solid var(--border-strong)', padding: '0.4rem 0.5rem', background: 'var(--bg-input)' }}
-                    >
-                      <option value="">Выбрать основной аккаунт</option>
-                      {mergeTargets.filter(target => target.id !== user.id).map(target => (
-                        <option key={target.id} value={target.id}>
-                          {(target.name || target.contactEmail || target.telegramDisplay || target.id)} · {target.id}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
                   <label style={{ display: 'grid', gap: '0.25rem' }}>
                     <span style={{ fontFamily: sans, fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Причина</span>
@@ -284,16 +296,16 @@ export default function AdminUserDrawer({
                       value={mergeReason}
                       onChange={event => setMergeReason(event.target.value)}
                       rows={2}
-                      placeholder="Например: один участник вошёл через Google и Telegram"
+                      placeholder="Опционально: один участник вошёл через Google и Telegram"
                       style={{ fontFamily: sans, fontSize: '0.8rem', lineHeight: 1.45, color: 'var(--text)', border: '1px solid var(--border)', borderBottom: '2px solid var(--border-strong)', padding: '0.45rem 0.5rem', background: 'var(--bg-input)', resize: 'vertical' }}
                     />
                   </label>
                   <button
-                    onClick={() => { void onMergeUser(mergeTargetUserId, mergeReason) }}
-                    disabled={!mergeTargetUserId || !mergeReason.trim() || mergeLoading}
-                    style={{ justifySelf: 'start', background: 'transparent', border: '1px solid var(--border)', color: (!mergeTargetUserId || !mergeReason.trim() || mergeLoading) ? 'var(--text-muted)' : 'var(--text)', padding: '0.35rem 0.75rem', cursor: (!mergeTargetUserId || !mergeReason.trim() || mergeLoading) ? 'default' : 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                    onClick={() => { void onMergeUser(trimmedMergeTargetUserId, mergeReason.trim()) }}
+                    disabled={!trimmedMergeTargetUserId || mergeLoading}
+                    style={{ justifySelf: 'start', background: 'transparent', border: '1px solid var(--border)', color: (!trimmedMergeTargetUserId || mergeLoading) ? 'var(--text-muted)' : 'var(--text)', padding: '0.35rem 0.75rem', cursor: (!trimmedMergeTargetUserId || mergeLoading) ? 'default' : 'pointer', fontFamily: sans, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}
                   >
-                    {mergeLoading ? 'Слияние…' : 'Слить в выбранный аккаунт'}
+                    {mergeLoading ? 'Слияние…' : 'Merge to user'}
                   </button>
                 </div>
               </section>

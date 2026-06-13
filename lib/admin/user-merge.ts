@@ -84,7 +84,6 @@ export function validateMergeRequest(input: MergeRequestInput): ValidatedMergeRe
   if (!sourceUserId) throw new MergeValidationError('sourceUserId is required')
   if (!targetUserId) throw new MergeValidationError('targetUserId is required')
   if (sourceUserId === targetUserId) throw new MergeValidationError('source and target users must differ')
-  if (!reason) throw new MergeValidationError('reason is required')
   if (input.currentAdminUserId && sourceUserId === input.currentAdminUserId) {
     throw new MergeValidationError('admin cannot merge their own account as source')
   }
