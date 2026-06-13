@@ -17,6 +17,13 @@ function renderModal() {
   return render(<AuthModal isOpen={true} onClose={jest.fn()} />)
 }
 
+function expectReminder(providerLabel: string) {
+  expect(screen.getByText((_, element) =>
+    element?.tagName.toLowerCase() === 'p' &&
+    (element.textContent?.includes(`В прошлый раз вы входили через ${providerLabel}`) ?? false),
+  )).toBeInTheDocument()
+}
+
 describe('AuthModal — remembered provider hint', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -28,7 +35,8 @@ describe('AuthModal — remembered provider hint', () => {
 
     renderModal()
 
-    expect(screen.getByText('последний способ входа')).toBeInTheDocument()
+    expectReminder('Telegram')
+    expect(screen.getByText('Последний вход')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /войти через google/i })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /войти другим способом/i })).toBeInTheDocument()
   })
@@ -40,7 +48,8 @@ describe('AuthModal — remembered provider hint', () => {
 
     expect(screen.getByRole('button', { name: /скрыть/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /войти через google/i })).toBeInTheDocument()
-    expect(screen.getByText('последний способ входа')).toBeInTheDocument()
+    expectReminder('Google')
+    expect(screen.getByText('Последний вход')).toBeInTheDocument()
   })
 
   it('opens secondary methods automatically for remembered email and shows the badge on the email form', () => {
@@ -50,6 +59,7 @@ describe('AuthModal — remembered provider hint', () => {
 
     expect(screen.getByRole('button', { name: /скрыть/i })).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/ваш@email.com/i)).toBeInTheDocument()
-    expect(screen.getByText('последний способ входа')).toBeInTheDocument()
+    expectReminder('почту')
+    expect(screen.getByText('Последний вход')).toBeInTheDocument()
   })
 })

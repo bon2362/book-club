@@ -51,7 +51,7 @@ test.describe('Header: hide on scroll', () => {
 })
 
 test.describe('Auth modal remembered provider hint', () => {
-  test('google provider badge stays inside the button and opens secondary methods automatically', async ({ page }) => {
+  test('google provider badge stays anchored to the button and opens secondary methods automatically', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('slowreading.lastAuthProvider', 'google')
     })
@@ -64,21 +64,25 @@ test.describe('Auth modal remembered provider hint', () => {
     await expect(dialog).toBeVisible()
     const googleButton = dialog.getByRole('button', { name: /войти через google/i })
     const emailInput = dialog.getByPlaceholder(/ваш@email.com/i)
-    const rememberedBadge = dialog.getByText('последний способ входа', { exact: true })
+    const rememberedBadge = dialog.getByText('Последний вход', { exact: true })
 
     await expect(googleButton).toBeVisible()
     await expect(emailInput).toBeVisible()
+    await expect(dialog.getByText(/В прошлый раз вы входили через Google/)).toBeVisible()
     await expect(rememberedBadge).toBeVisible()
 
+    const dialogBox = await dialog.boundingBox()
     const buttonBox = await googleButton.boundingBox()
     const badgeBox = await rememberedBadge.boundingBox()
 
+    expect(dialogBox).not.toBeNull()
     expect(buttonBox).not.toBeNull()
     expect(badgeBox).not.toBeNull()
-    expect(badgeBox!.x).toBeGreaterThanOrEqual(buttonBox!.x - 1)
-    expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(buttonBox!.x + buttonBox!.width + 1)
-    expect(badgeBox!.y).toBeGreaterThanOrEqual(buttonBox!.y - 1)
-    expect(badgeBox!.y + badgeBox!.height).toBeLessThanOrEqual(buttonBox!.y + buttonBox!.height + 1)
+    expect(badgeBox!.x).toBeGreaterThanOrEqual(dialogBox!.x - 1)
+    expect(badgeBox!.x + badgeBox!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1)
+    expect(badgeBox!.y).toBeLessThan(buttonBox!.y + 2)
+    expect(badgeBox!.y + badgeBox!.height).toBeGreaterThan(buttonBox!.y - 16)
+    expect(badgeBox!.x + badgeBox!.width).toBeGreaterThan(buttonBox!.x + buttonBox!.width / 2)
   })
 })
 
