@@ -41,7 +41,7 @@ describe('POST /api/admin/users/merge', () => {
     validateMergeRequest.mockImplementation(input => ({
       sourceUserId: String(input.sourceUserId),
       targetUserId: String(input.targetUserId),
-      reason: String(input.reason),
+      reason: typeof input.reason === 'string' ? input.reason : '',
       currentAdminUserId: input.currentAdminUserId,
     }))
     mergeUsers.mockResolvedValue({ sourceUserId: 'source', targetUserId: 'target', movedCounts: { users: 1 } })
@@ -68,7 +68,7 @@ describe('POST /api/admin/users/merge', () => {
   it('прокидывает admin id в validation и merge', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin', name: 'Admin', contactEmail: 'admin@test.com', isAdmin: true } })
 
-    const res = await POST(makeRequest({ sourceUserId: 'source', targetUserId: 'target', reason: 'дубль' }))
+    const res = await POST(makeRequest({ sourceUserId: 'source', targetUserId: 'target' }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -76,12 +76,12 @@ describe('POST /api/admin/users/merge', () => {
     expect(validateMergeRequest).toHaveBeenCalledWith(expect.objectContaining({
       sourceUserId: 'source',
       targetUserId: 'target',
-      reason: 'дубль',
       currentAdminUserId: 'admin',
     }))
     expect(mergeUsers).toHaveBeenCalledWith({ tx: true }, expect.objectContaining({
       sourceUserId: 'source',
       targetUserId: 'target',
+      reason: '',
       actorUserId: 'admin',
     }))
   })

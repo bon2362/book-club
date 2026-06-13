@@ -42,18 +42,24 @@ test.describe('Admin: слияние дублей пользователей', (
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
+    await page.getByLabel('Поиск пользователей').fill(targetName)
+    await page.locator('tr').filter({ hasText: targetName }).click()
+    const targetDrawer = page.getByRole('dialog')
+    await expect(targetDrawer).toBeVisible()
+    await expect(targetDrawer.getByRole('button', { name: new RegExp(`скопировать id пользователя ${targetId}`, 'i') })).toBeVisible()
+    await page.getByRole('button', { name: 'Закрыть' }).click()
+
     await page.getByLabel('Поиск пользователей').fill(sourceName)
     await page.locator('tr').filter({ hasText: sourceName }).click()
     const drawer = page.getByRole('dialog')
     await expect(drawer).toBeVisible()
 
-    await drawer.getByLabel('Целевой пользователь').selectOption(targetId)
-    await drawer.getByPlaceholder(/один участник вошёл/i).fill('E2E проверка слияния дубля')
+    await drawer.getByLabel('ID аккаунта, который оставить').fill(targetId)
     page.once('dialog', dialog => dialog.accept())
     const mergeDone = page.waitForResponse(response =>
       response.url().includes('/api/admin/users/merge') && response.request().method() === 'POST',
     )
-    await drawer.getByRole('button', { name: 'Слить в выбранный аккаунт' }).click()
+    await drawer.getByRole('button', { name: 'Merge to user' }).click()
     await mergeDone
 
     await expect(page.getByText('Пользователи слиты')).toBeVisible()
