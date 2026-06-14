@@ -169,6 +169,11 @@ test('matching shows reader circles, move hints, and full book details modal', a
   const catalogMine = page.getByTestId('matching-catalog-mine')
   await expect(circlesPanel).toBeVisible({ timeout: 20_000 })
   await expect(circlesPanel.getByRole('button', { name: circleBook.title, exact: true })).toBeVisible({ timeout: 20_000 })
+
+  // A: circle counter in scenario header
+  await expect(circlesPanel.getByText('1 круг').first()).toBeVisible()
+  // D: "круг" label above members in each book row
+  await expect(circlesPanel.getByText('круг').first()).toBeVisible()
   await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible({ timeout: 20_000 })
   await expect(movesPanel.getByText('Лучший ход')).not.toBeVisible()
   await expect(movesPanel.getByText('Кому это поможет')).not.toBeVisible()

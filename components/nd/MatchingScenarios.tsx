@@ -28,6 +28,14 @@ interface Props {
   adminNamesByPseudonym?: Map<string, string | null> | null
 }
 
+function pluralizeCircles(n: number): string {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return 'круг'
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'круга'
+  return 'кругов'
+}
+
 const tierLabel: Record<MatchingScenario['tier'], string | null> = {
   leader: 'лучший',
   'full-coverage': 'полное покрытие',
@@ -263,12 +271,25 @@ function ScenarioSetCard({
             {tierLabel[scenario.tier]}
           </span>
         )}
-        <span className="ml-auto" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-          {isSatisfaction
-            ? `охват: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`
-            : scenario.score.coveredCount === scenario.score.totalCount
-              ? `Покрытие: все ${scenario.score.totalCount}`
-              : `Покрытие: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`}
+        <span
+          className="ml-auto flex items-center"
+          style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          {scenario.circles.length > 0 && (
+            <>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {scenario.circles.length} {pluralizeCircles(scenario.circles.length)}
+              </span>
+              <span style={{ color: 'var(--hair)', margin: '0 0.45rem' }}>·</span>
+            </>
+          )}
+          <span>
+            {isSatisfaction
+              ? `охват: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`
+              : scenario.score.coveredCount === scenario.score.totalCount
+                ? `Покрытие: все ${scenario.score.totalCount}`
+                : `Покрытие: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`}
+          </span>
         </span>
       </div>
 
@@ -410,17 +431,37 @@ function CircleItem({
         >
           {book?.title ?? circle.bookId}
         </button>
-        <div className="flex flex-wrap mt-1.5" style={{ gap: '0.3rem 0.55rem' }}>
-          {circle.members.map((member) => (
-            <ParticipantInterestChip
-              key={member.userId}
-              userId={member.userId}
-              pseudonym={withAdminName(member.pseudonym, adminNamesByPseudonym)}
-              rank={member.rank}
-              highlighted={isLinking && highlightedUserIds.has(member.userId)}
-              dimmed={isLinking && !highlightedUserIds.has(member.userId)}
-            />
-          ))}
+        <div
+          className="mt-1.5"
+          style={{
+            paddingLeft: '0.6rem',
+            borderLeft: `2px solid ${isLeader && !isSatisfaction ? 'var(--accent-line)' : 'var(--hair)'}`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: '0.62rem',
+              fontWeight: 700,
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.11em',
+              color: 'var(--text-muted)',
+              marginBottom: '0.25rem',
+            }}
+          >
+            круг
+          </div>
+          <div className="flex flex-wrap" style={{ gap: '0.3rem 0.55rem' }}>
+            {circle.members.map((member) => (
+              <ParticipantInterestChip
+                key={member.userId}
+                userId={member.userId}
+                pseudonym={withAdminName(member.pseudonym, adminNamesByPseudonym)}
+                rank={member.rank}
+                highlighted={isLinking && highlightedUserIds.has(member.userId)}
+                dimmed={isLinking && !highlightedUserIds.has(member.userId)}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

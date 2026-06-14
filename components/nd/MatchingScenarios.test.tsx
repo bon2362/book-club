@@ -2,6 +2,9 @@ import { render, screen } from '@testing-library/react'
 import MatchingScenarios from './MatchingScenarios'
 import type { MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
 import type { MyMoveBook } from '@/lib/matching/my-moves'
+import type { MatchingBookDetail } from './MatchingBookDetailModal'
+
+type BookInfo = MatchingBookDetail & { id: string }
 
 jest.mock('./CoverImage', () => function MockCoverImage() {
   return <div data-testid="cover-image" />
@@ -19,21 +22,28 @@ const score = {
   worstRank: 1,
 }
 
-function scenario(id: string, tier: MatchingScenario['tier'], leftOutUserIds: string[]): MatchingScenario {
+function makeCircle(bookId: string, circleId: string) {
+  return {
+    id: circleId,
+    bookId,
+    members: [{ userId: 'user-1', pseudonym: 'Лиса', rank: 1, interest: 'очень хочу' as const }],
+    minSize: 3,
+    maxSize: 3,
+    wantsCount: 1,
+    avgRank: 1,
+    worstRank: 1,
+    unrankedCount: 0,
+  }
+}
+
+function scenario(id: string, tier: MatchingScenario['tier'], leftOutUserIds: string[], extraBookIds: string[] = []): MatchingScenario {
   return {
     id,
     tier,
-    circles: [{
-      id: `${id}-circle`,
-      bookId: 'book-1',
-      members: [{ userId: 'user-1', pseudonym: 'Лиса', rank: 1, interest: 'очень хочу' }],
-      minSize: 3,
-      maxSize: 3,
-      wantsCount: 1,
-      avgRank: 1,
-      worstRank: 1,
-      unrankedCount: 0,
-    }],
+    circles: [
+      makeCircle('book-1', `${id}-circle`),
+      ...extraBookIds.map((bookId, i) => makeCircle(bookId, `${id}-circle-${i + 2}`)),
+    ],
     leftOut: leftOutUserIds.map((userId) => ({ userId, pseudonym: userId === 'viewer' ? 'Пчела' : 'Кит' })),
     score,
   }
@@ -52,26 +62,25 @@ function renderScenarios(
     mode: options.mode ?? 'coverage',
   }
 
+  const bookEntry = (bookId: string, title: string): [string, BookInfo] => [bookId, {
+    id: bookId,
+    bookId,
+    title,
+    author: 'Автор',
+    description: 'Описание',
+    coverUrl: null,
+    pages: null,
+    publishedDate: '',
+    tags: [],
+    textUrl: '',
+    whyRead: null,
+    recommendationLink: null,
+  }]
+
   render(
     <MatchingScenarios
       overview={overview}
-      bookById={new Map([[
-        'book-1',
-        {
-          id: 'book-1',
-          bookId: 'book-1',
-          title: 'Книга',
-          author: 'Автор',
-          description: 'Описание',
-          coverUrl: null,
-          pages: null,
-          publishedDate: '',
-          tags: [],
-          textUrl: '',
-          whyRead: null,
-          recommendationLink: null,
-        },
-      ]])}
+      bookById={new Map([bookEntry('book-1', 'Книга'), bookEntry('book-2', 'Вторая книга')])}
       bookParticipants={[]}
       viewingUserId="viewer"
       previewMove={options.previewMove}
@@ -102,6 +111,25 @@ describe('MatchingScenarios', () => {
     const leader = screen.getByText('Сценарий 1').closest('li')
 
     expect(leader).toHaveAttribute('data-viewer-left-out', 'true')
+  })
+
+  it('shows circle counter with correct pluralization in scenario header', () => {
+    renderScenarios([
+      scenario('leader', 'leader', [], ['book-2']),
+      scenario('alt', 'full-coverage', []),
+    ])
+
+    expect(screen.getByText('2 круга')).toBeInTheDocument()
+    expect(screen.getByText('1 круг')).toBeInTheDocument()
+  })
+
+  it('shows "круг" label above members in every book row', () => {
+    renderScenarios([
+      scenario('leader', 'leader', [], ['book-2']),
+    ])
+
+    const labels = screen.getAllByText('круг')
+    expect(labels.length).toBeGreaterThanOrEqual(2)
   })
 
   it('uses satisfaction copy for scenario cards and preview cards', () => {
