@@ -112,6 +112,9 @@ describe('BooksPage auth memory', () => {
         tagDescriptions={{}}
         introHeader={{ title: 'Intro', body: 'Body' }}
         introSections={[]}
+        initialAboutVisible={true}
+        initialViewMode="grid"
+        initialShowRead={false}
       />
     )
 
