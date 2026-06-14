@@ -185,6 +185,42 @@ body {
   -moz-appearance: textfield;
 }
 
+/* ── Back-to-catalog link in /matching header ────────────────────────────── */
+
+.nd-back-to-catalog {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 0.1rem 0;
+  transition: color 0.15s ease;
+}
+.nd-back-to-catalog:hover { color: var(--accent); }
+.nd-back-to-catalog:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+.nd-back-arrow {
+  font-size: 1.05rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.nd-back-to-catalog:hover .nd-back-arrow { transform: translateX(-3px); }
+
+.nd-back-divider {
+  width: 1px;
+  align-self: stretch;
+  flex-shrink: 0;
+  margin: 2px 0;
+  background: var(--border);
+}
+
 /* ── Move item cards ─────────────────────────────────────────────────────── */
 
 .nd-move-item {

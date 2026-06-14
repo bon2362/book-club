@@ -219,6 +219,29 @@ test.describe('Matching layout', () => {
       expect(offset).toBeGreaterThanOrEqual(8)
     }
   })
+
+  test('back-to-catalog link is visible and left of session title', async ({
+    page,
+    createMatchingSession,
+    loginAsUser,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
+    await loginAsUser({ name: 'UI Back Link User' })
+
+    await page.goto('/matching')
+    await expect(page.getByRole('link', { name: 'На каталог' })).toBeVisible()
+
+    const backBox = await page.getByRole('link', { name: 'На каталог' }).boundingBox()
+    const titleBox = await page.getByRole('heading', { level: 1 }).boundingBox()
+
+    expect(backBox).not.toBeNull()
+    expect(titleBox).not.toBeNull()
+    // back link starts to the left of the session title
+    expect(backBox!.x).toBeLessThan(titleBox!.x)
+    // back link is within the top area (header)
+    expect(backBox!.y).toBeLessThan(100)
+  })
 })
 
 test.describe('Matching feed height', () => {

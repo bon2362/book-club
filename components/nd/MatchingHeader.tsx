@@ -233,8 +233,14 @@ export default function MatchingHeader({
         }}
       >
         <div className="flex items-center justify-between gap-4">
-        {/* Left: session name + meta */}
-        <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+        {/* Left: back-to-catalog + session name + meta */}
+        <div className="flex items-center gap-3 min-w-0">
+          <a href="/" className="nd-back-to-catalog" aria-label="На каталог">
+            <span className="nd-back-arrow" aria-hidden="true">←</span>
+            <span>Каталог</span>
+          </a>
+          <span className="nd-back-divider" aria-hidden="true" />
+          <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
           <h1
             className="leading-none m-0 truncate"
             style={{ fontFamily: 'var(--nd-serif)', fontWeight: 700, fontSize: '1.5rem', letterSpacing: '-0.01em', color: 'var(--text)' }}
@@ -388,6 +394,7 @@ export default function MatchingHeader({
                 активна
               </span>
             )}
+          </div>
           </div>
         </div>
 
