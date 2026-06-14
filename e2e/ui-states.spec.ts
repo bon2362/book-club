@@ -577,19 +577,14 @@ test.describe('ProfileDrawer: auth methods layout', () => {
       data: {
         userId: sessionBody.userId,
         name: NAME,
-        contacts: '',
+        contacts: '@e2e_auth_ui',
         selectedBookIds: [],
       },
     })
     expect(profileResponse.ok()).toBe(true)
     try {
       await page.goto('/')
-      await page.waitForLoadState('domcontentloaded')
-      const blockingDialog = page.getByRole('dialog')
-      if (await blockingDialog.count()) {
-        await blockingDialog.first().getByRole('button', { name: 'Закрыть' }).click()
-        await expect(blockingDialog).toHaveCount(0)
-      }
+      await page.waitForLoadState('networkidle')
       const profileButton = page.locator('.nd-header-avatar')
       await expect(profileButton).toBeVisible({ timeout: 20_000 })
       await profileButton.click({ timeout: 10_000 })
