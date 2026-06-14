@@ -226,8 +226,9 @@ test.describe('Matching layout', () => {
     loginAsUser,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
-    await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
+    const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
     await loginAsUser({ name: 'UI Back Link User' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [])
 
     await page.goto('/matching')
     await expect(page.getByRole('link', { name: 'На каталог' })).toBeVisible()
@@ -434,8 +435,11 @@ test.describe('Admin Catalog: section + editor layout', () => {
     createdId = (await (await createRes).json()).data.id as string
 
     await page.reload()
-    await page.waitForLoadState('networkidle')
-    await page.getByTestId('admin-tab-catalog').click()
+    // AdminRefresh calls router.refresh() on mount which keeps network active;
+    // wait for the tab to be visible instead of networkidle
+    const catalogTabAfterReload = page.getByTestId('admin-tab-catalog')
+    await expect(catalogTabAfterReload).toBeVisible({ timeout: 15_000 })
+    await catalogTabAfterReload.click()
 
     const row = page.getByTestId(`admin-book-row-${createdId}`)
     await expect(row).toBeVisible({ timeout: 15_000 })
