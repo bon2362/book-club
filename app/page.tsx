@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { cookies } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { fetchBooksWithCovers } from '@/lib/books'
 import { getAllSignups } from '@/lib/signup-books'
@@ -55,12 +56,19 @@ export default async function Home() {
 
   const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
 
+  // Читаем UI-настройки из cookie на сервере, чтобы первый кадр уже был
+  // в нужном состоянии и не дёргался после гидратации (CLS).
+  const cookieStore = await cookies()
+  const initialAboutVisible = cookieStore.get('about_dismissed')?.value !== 'true'
+  const initialViewMode = cookieStore.get('book_view_mode')?.value === 'list' ? 'list' : 'grid'
+  const initialShowRead = cookieStore.get('show_read')?.value === 'true'
+
   return (
     <>
       {!session && <GoogleOneTap />}
       {session?.user?.id && <SiteVisitTracker />}
       <Suspense fallback={null}><AuthErrorBanner /></Suspense>
-      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} />
+      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} initialAboutVisible={initialAboutVisible} initialViewMode={initialViewMode} initialShowRead={initialShowRead} />
     </>
   )
 }

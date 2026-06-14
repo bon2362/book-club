@@ -30,6 +30,15 @@ interface Props {
   tagDescriptions: Record<string, string>
   introHeader: AboutBlockHeader
   introSections: AboutBlockSection[]
+  initialAboutVisible: boolean
+  initialViewMode: 'grid' | 'list'
+  initialShowRead: boolean
+}
+
+// Пишем UI-настройку в cookie (не localStorage), чтобы сервер видел её до
+// отрисовки и первый кадр сразу был правильным — иначе вёрстка дёргается (CLS).
+function setPrefCookie(name: string, value: string) {
+  document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`
 }
 
 async function saveSelection(name: string, contacts: string, bookIds: string[]) {
@@ -50,25 +59,18 @@ async function saveProfile(name: string, contacts: string) {
   if (!res.ok) throw new Error(`Profile save failed: ${res.status}`)
 }
 
-export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections }: Props) {
+export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections, initialAboutVisible, initialViewMode, initialShowRead }: Props) {
   const { data: session } = useSession()
   const { isHidden } = useScrollHide()
   const isLoggedIn = !!session?.user?.id
   const isAdmin = !!session?.user?.isAdmin
   const contactEmail = getUserContactEmail(session?.user)
 
-  const [aboutVisible, setAboutVisible] = useState(true)
+  const [aboutVisible, setAboutVisible] = useState(initialAboutVisible)
   const aboutRef = useRef<AboutBlockHandle>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(initialViewMode)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const lastScrollY = useRef(0)
-
-  useEffect(() => {
-    if (localStorage.getItem('aboutDismissed') === 'true') setAboutVisible(false)
-    const saved = localStorage.getItem('book_view_mode')
-    if (saved === 'grid' || saved === 'list') setViewMode(saved)
-    if (localStorage.getItem('show_read') === 'true') setShowRead(true)
-  }, [])
 
   useEffect(() => {
     function handleScroll() {
@@ -83,7 +85,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   }, [])
 
   function handleCloseAbout() {
-    localStorage.setItem('aboutDismissed', 'true')
+    setPrefCookie('about_dismissed', 'true')
     setAboutVisible(false)
   }
 
@@ -93,7 +95,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       aboutRef.current?.scrollIntoView()
       return
     }
-    localStorage.removeItem('aboutDismissed')
+    setPrefCookie('about_dismissed', 'false')
     // flushSync ensures React commits the render before we call imperative methods
     flushSync(() => { setAboutVisible(true) })
     aboutRef.current?.openAccordion()
@@ -102,13 +104,13 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
 
   function handleSetViewMode(mode: 'grid' | 'list') {
     setViewMode(mode)
-    localStorage.setItem('book_view_mode', mode)
+    setPrefCookie('book_view_mode', mode)
   }
 
   const [query, setQuery] = useState('')
   const [filterTag, setFilterTag] = useState('')
   const [filterAuthor, setFilterAuthor] = useState('')
-  const [showRead, setShowRead] = useState(false)
+  const [showRead, setShowRead] = useState(initialShowRead)
   const [showMyBooks, setShowMyBooks] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [selectedBooks, setSelectedBooks] = useState<string[]>(
@@ -448,7 +450,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                 )}
                 {hasReadBooks && (
                   <button
-                    onClick={() => setShowRead(v => { const next = !v; localStorage.setItem('show_read', String(next)); return next })}
+                    onClick={() => setShowRead(v => { const next = !v; setPrefCookie('show_read', String(next)); return next })}
                     style={chipStyle(showRead)}
                   >
                     {showRead ? '✓ Прочитанные' : 'Прочитанные'}
