@@ -605,7 +605,7 @@ export default function ProfileDrawer({
     const script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
     script.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME)
-    script.setAttribute('data-size', 'medium')
+    script.setAttribute('data-size', 'small')
     script.setAttribute('data-lang', 'ru')
     script.setAttribute('data-auth-url', telegramLinkAuthUrl)
     script.async = true
@@ -1624,6 +1624,17 @@ export default function ProfileDrawer({
                             >
                               {linkingEmailExpanded ? 'Скрыть' : 'Привязать'}
                             </button>
+                          ) : method.provider === 'telegram' && TELEGRAM_BOT_NAME ? (
+                            <div
+                              id="telegram-link-container"
+                              style={{
+                                flexShrink: 0,
+                                minHeight: 28,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'flex-end',
+                              }}
+                            />
                           ) : (
                             <span style={{
                               flexShrink: 0,
@@ -1725,28 +1736,6 @@ export default function ProfileDrawer({
                   )}
                 </div>
 
-                {!hasTelegramIdentity && TELEGRAM_BOT_NAME && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.45rem',
-                    marginTop: '0.75rem',
-                    paddingTop: '0.75rem',
-                    borderTop: '1px solid var(--border)',
-                  }}>
-                    <div id="telegram-link-container" style={{ minHeight: 28 }} />
-                    <div style={{
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.68rem',
-                      color: 'var(--text-muted)',
-                      lineHeight: 1.4,
-                      textAlign: 'center',
-                    }}>
-                      Привязка Telegram сохранит этот профиль и не создаст новый.
-                    </div>
-                  </div>
-                )}
                 {linkingError && (
                   <p style={{
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
