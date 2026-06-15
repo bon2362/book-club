@@ -14,18 +14,25 @@ function TelegramAuthInner() {
     const ts = searchParams.get('ts')
 
     if (!token || !ts) {
+      console.error('[telegram-preauth] page: no token/ts in URL')
       router.replace('/')
       return
     }
 
-    signIn('telegram-preauth', { token, ts, redirect: false }).then((result) => {
-      if (result?.error) {
+    signIn('telegram-preauth', { token, ts, redirect: false })
+      .then((result) => {
+        if (result?.error) {
+          console.error('[telegram-preauth] signIn returned error', result.error)
+          router.replace('/?auth=failed')
+        } else {
+          track('auth_success', { provider: 'telegram' })
+          router.replace('/')
+        }
+      })
+      .catch((e) => {
+        console.error('[telegram-preauth] signIn threw', e)
         router.replace('/?auth=failed')
-      } else {
-        track('auth_success', { provider: 'telegram' })
-        router.replace('/')
-      }
-    })
+      })
   }, [searchParams, router])
 
   return (
