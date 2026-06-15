@@ -109,6 +109,30 @@ test.describe('Home submit book CTA layout', () => {
     // iOS Safari auto-zooms focused form controls below 16px.
     expect(fontSize).toBeGreaterThanOrEqual(16)
   })
+
+  test('submitted-by-member badge does not create horizontal overflow on mobile tap', async ({
+    page,
+    createTestBook,
+    dbExec,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const book = await createTestBook({
+      title: `UI Submitted ${Date.now()}`,
+      author: 'Layout Author',
+      description: 'A submitted book used to prove the source badge stays inside the mobile viewport.',
+    })
+    await dbExec('update books set source = $1 where id = $2', ['submission', book.id])
+
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await page.getByPlaceholder('Поиск по названию или автору…').fill(book.title)
+    await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
+
+    await page.locator('[aria-label="Эта книга предложена участни:цей клуба"]').click()
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+  })
 })
 
 test.describe('Matching feature presentation', () => {
