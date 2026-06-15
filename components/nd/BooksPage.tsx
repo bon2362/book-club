@@ -375,7 +375,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
               style={{
                 flex: 1,
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.8rem',
+                fontSize: 'var(--filters-search-font-size)',
                 color: 'var(--text)',
                 background: 'var(--bg-input)',
                 border: '1px solid var(--border)',

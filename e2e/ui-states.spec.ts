@@ -96,6 +96,19 @@ test.describe('Home submit book CTA layout', () => {
     expect(box).not.toBeNull()
     expect(box!.height).toBeLessThanOrEqual(96)
   })
+
+  test('book search input uses iOS-safe font size on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    const fontSize = await page.getByPlaceholder('Поиск по названию или автору…').evaluate((element) => (
+      Number.parseFloat(window.getComputedStyle(element).fontSize)
+    ))
+
+    // iOS Safari auto-zooms focused form controls below 16px.
+    expect(fontSize).toBeGreaterThanOrEqual(16)
+  })
 })
 
 test.describe('Matching feature presentation', () => {
