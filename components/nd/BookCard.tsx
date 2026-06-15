@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { PersonalBookStatus } from '@/lib/signup-books'
 import CoverImage from './CoverImage'
@@ -27,6 +27,7 @@ function formatSignupCount(n: number): string {
 }
 
 const DESCRIPTION_CLAMP_THRESHOLD = 120
+const SUBMITTED_BY_MEMBER_LABEL = 'Эта книга предложена участни:цей клуба'
 
 function parseRecommendationLink(raw: string): { text: string; url: string } | null {
   const idx = Math.max(raw.lastIndexOf('https://'), raw.lastIndexOf('http://'))
@@ -42,19 +43,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
   const [descExpanded, setDescExpanded] = useState(false)
   const [descHovered, setDescHovered] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
-  const [submittedTooltip, setSubmittedTooltip] = useState(false)
-  const submittedBadgeRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    if (!submittedTooltip) return
-    const onDocPointer = (e: Event) => {
-      if (submittedBadgeRef.current && !submittedBadgeRef.current.contains(e.target as Node)) {
-        setSubmittedTooltip(false)
-      }
-    }
-    document.addEventListener('pointerdown', onDocPointer)
-    return () => document.removeEventListener('pointerdown', onDocPointer)
-  }, [submittedTooltip])
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const hasExpandable = isLongDescription
   const isReading = book.status === 'reading'
@@ -136,13 +125,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
         >
           {book.submittedByMember && (
             <div
-              ref={submittedBadgeRef}
-              onMouseEnter={() => setSubmittedTooltip(true)}
-              onMouseLeave={() => setSubmittedTooltip(false)}
-              onClick={() => setSubmittedTooltip(v => !v)}
-              role="button"
-              tabIndex={0}
-              aria-expanded={submittedTooltip}
+              title={SUBMITTED_BY_MEMBER_LABEL}
               style={{
                 position: 'relative',
                 background: 'var(--accent)',
@@ -153,7 +136,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 justifyContent: 'center',
                 cursor: 'pointer',
               }}
-              aria-label="Эта книга предложена участни:цей клуба"
+              aria-label={SUBMITTED_BY_MEMBER_LABEL}
             >
               <svg
                 viewBox="0 0 12 14"
@@ -171,26 +154,6 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 <line x1="4.2" y1="11.6" x2="7.8" y2="11.6" />
                 <line x1="4.8" y1="12.9" x2="7.2" y2="12.9" />
               </svg>
-              {submittedTooltip && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 4px)',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'var(--text)',
-                    color: 'var(--bg)',
-                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                    fontSize: '0.65rem',
-                    padding: '0.3rem 0.5rem',
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
-                    zIndex: 10,
-                  }}
-                >
-                  Эта книга предложена участни:цей клуба
-                </div>
-              )}
             </div>
           )}
           {book.isNew && !isReading && (
