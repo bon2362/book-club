@@ -171,6 +171,7 @@ export const notificationQueue = pgTable('notification_queue', {
   sentAtIdx: index('notification_queue_sent_at_idx').on(t.sentAt),
 }))
 
+// DEPRECATED: больше не используется (серверная выдача сессии, spec 2026-06-15). Таблицу оставили в БД, дроп — отдельным cleanup-PR.
 export const telegramPreauthTokens = pgTable('telegram_preauth_tokens', {
   tokenHash: text('token_hash').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),

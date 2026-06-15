@@ -78,20 +78,15 @@ sequenceDiagram
     participant T as Telegram Widget
     participant C as /api/auth/telegram/callback
     participant DB as Neon Postgres
-    participant P as /auth/telegram
-    participant N as NextAuth
 
     U->>T: Нажимает Telegram login
     T->>C: Redirect с Telegram payload
     C->>C: Проверяет HMAC
     C->>DB: Находит или создает user + identity
-    C->>DB: Создает preauth token
-    C->>P: Redirect с token, ts
-    P->>N: signIn('telegram-preauth')
-    N->>DB: Поглощает token, получает userId и создает session
+    C->>U: Ставит session-куку (issueServerSession) + redirect на /
 ```
 
-В redirect URL намеренно нет внутреннего `user.id` и Telegram `username`: одноразовый token связывается с пользователем в таблице `telegram_preauth_tokens`, а `telegram-preauth` provider получает `userId` только после успешного consume. PostHog pageview дополнительно вычищает чувствительные query-параметры (`token`, `uid`, `ts`, `username`, `email`) перед отправкой.
+Вход через Telegram занимает **один шаг** — промежуточная страница `/auth/telegram` и провайдер `telegram-preauth` удалены (spec 2026-06-15). Ранее использовалась двухпрыжковая схема с preauth-токеном и клиентским `signIn`, которая ненадёжно работала на iOS из-за CSRF/cookie-ограничений при переходе с `oauth.telegram.org`. Теперь callback сам выдаёт session-куку на сервере (`lib/auth-session.ts → issueServerSession`) и сразу редиректит пользователя на главную. PostHog pageview дополнительно вычищает чувствительные query-параметры перед отправкой.
 
 ## Пользовательский профиль
 
@@ -108,7 +103,7 @@ sequenceDiagram
 
 ## Журнал провалов Telegram-входа
 
-Каждый неудачный вход через Telegram записывается в таблицу `telegram_login_failures`. Журнал покрывает **обе стадии** входа: верификацию данных от Telegram (причины: неверная HMAC, истёкший `auth_date`, отсутствующий hash) и потребление одноразового токена провайдером `telegram-preauth` (причины с префиксом `preauth_*`: токен не найден/протух, страница не получила параметры, пользователь пропал). Журнал хранит причину отказа, разницу времени, Telegram ID/username (если переданы) и IP. Записи не аудируются (actor неизвестен до успешного входа) и автоматически удаляются через 30 дней cron-джобой `telegram-preauth-cleanup`. Журнал полезен для диагностики подозрительных попыток входа и проблем со временем на клиенте. Отдельный сигнал: если в таблице `telegram_preauth_tokens` есть непотреблённый токен (`used_at` пуст), а строки `preauth_*` для него нет — значит `signIn` вообще не дошёл до сервера (клиентский сбой, например cookie/CSRF в Safari).
+Каждый неудачный вход через Telegram записывается в таблицу `telegram_login_failures`. Журнал покрывает **стадию верификации** — провалы HMAC-проверки (причины: неверная HMAC, истёкший `auth_date`, отсутствующий hash, нет токена бота). Журнал хранит причину отказа, разницу времени, Telegram ID/username (если переданы) и IP. Записи не аудируются (actor неизвестен до успешного входа) и автоматически удаляются через 30 дней cron-джобой `telegram-preauth-cleanup`. Провайдер `telegram-preauth` и его stадия `preauth_*` удалены (spec 2026-06-15). Таблица `telegram_preauth_tokens` оставлена в БД deprecated.
 
 ## Где смотреть проблемы
 

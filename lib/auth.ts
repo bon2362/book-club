@@ -8,7 +8,6 @@ import { eq, or } from 'drizzle-orm'
 import { Resend as ResendClient } from 'resend'
 import { IdentityAwareDrizzleAdapter } from '@/lib/auth-adapter'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
-import { consumeTelegramPreauthToken, recordTelegramLoginFailure } from '@/lib/telegram-auth'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
 import { IdentityConflictError, linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 
@@ -111,42 +110,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         const { credential } = credentials as { credential: string }
         return authorizeGoogleOneTap(credential)
-      },
-    }),
-    Credentials({
-      id: 'telegram-preauth',
-      credentials: {},
-      async authorize(credentials) {
-        const { token, ts } = credentials as { token: string; ts: string }
-        if (!token || !ts) {
-          console.error('[telegram-preauth] authorize failed', { reason: 'preauth_no_token_ts' })
-          await recordTelegramLoginFailure({ reason: 'preauth_no_token_ts', hasHash: false })
-          return null
-        }
-        // ts is still checked to reject very old auth pages before the DB consume.
-        const issuedAt = Number.parseInt(ts, 10)
-        const now = Math.floor(Date.now() / 1000)
-        const skewSeconds = Number.isFinite(issuedAt) ? now - issuedAt : undefined
-        if (!Number.isFinite(issuedAt) || now - issuedAt > 5 * 60 || issuedAt > now + 60) {
-          console.error('[telegram-preauth] authorize failed', { reason: 'preauth_stale_ts', skewSeconds })
-          await recordTelegramLoginFailure({ reason: 'preauth_stale_ts', skewSeconds, hasHash: false })
-          return null
-        }
-        const userId = await consumeTelegramPreauthToken(token)
-        if (!userId) {
-          console.error('[telegram-preauth] authorize failed', { reason: 'preauth_consume_null' })
-          await recordTelegramLoginFailure({ reason: 'preauth_consume_null', hasHash: false })
-          return null
-        }
-        const existing = await db.select().from(users).where(eq(users.id, userId)).limit(1)
-        if (existing.length === 0) {
-          console.error('[telegram-preauth] authorize failed', { reason: 'preauth_user_missing' })
-          await recordTelegramLoginFailure({ reason: 'preauth_user_missing', hasHash: false })
-          return null
-        }
-        const user = existing[0]
-        console.log('[telegram-preauth] ok', { userId: user.id })
-        return { id: user.id, email: user.contactEmail, contactEmail: user.contactEmail, name: user.name ?? '' }
       },
     }),
   ],

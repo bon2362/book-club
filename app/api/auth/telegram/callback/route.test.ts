@@ -1,20 +1,22 @@
 /**
  * @jest-environment node
  *
- * Unit-тесты для GET /api/auth/telegram/callback — route handler.
- * Проверяет: создание/поиск пользователя через identity helper, генерацию pre-auth токена,
- * redirect на /auth/telegram, отклонение невалидного HMAC.
+ * Unit-тесты для GET /api/auth/telegram/callback — новый серверный флоу.
+ * Успех → кука сессии + redirect 307 на /
+ * Провал HMAC / стухший auth_date / нет bot token → redirect /?auth=failed + recordTelegramLoginFailure, без куки.
  */
 import { NextRequest } from 'next/server'
 import { createHash, createHmac } from 'crypto'
 import { GET } from './route'
 
+jest.mock('@auth/core/jwt', () => ({
+  encode: jest.fn().mockResolvedValue('mocked-session-token'),
+}))
+
 jest.mock('@/lib/db', () => ({
   db: {
     insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockReturnValue({
-        onConflictDoUpdate: jest.fn().mockResolvedValue(undefined),
-      }),
+      values: jest.fn().mockResolvedValue(undefined),
     }),
   },
 }))
@@ -24,11 +26,11 @@ jest.mock('@/lib/user-identities', () => ({
 }))
 
 import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { db } from '@/lib/db'
 
 const BOT_TOKEN = 'test-telegram-bot-token'
 const SECRET = 'test-auth-secret-that-is-long-enough-32'
 
-/** Вычисляет корректный Telegram HMAC для набора параметров */
 function signTelegramParams(params: Record<string, string>): string {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { hash: _omit, ...rest } = params
@@ -62,9 +64,8 @@ describe('GET /api/auth/telegram/callback', () => {
     process.env.NEXTAUTH_SECRET = SECRET
     ;(resolveOrCreateUserFromIdentity as jest.Mock).mockResolvedValue({
       id: 'canonical-uuid',
-      email: 'telegram:123456789@telegram.user',
+      contactEmail: null,
       name: 'Иван Петров',
-      telegramUsername: 'ivanp',
     })
     jest.clearAllMocks()
   })
@@ -74,64 +75,79 @@ describe('GET /api/auth/telegram/callback', () => {
     delete process.env.NEXTAUTH_SECRET
   })
 
-  it('создаёт пользователя через identity helper и редиректит на /auth/telegram при валидном HMAC', async () => {
-    const { db } = await import('@/lib/db')
+  it('при валидном HMAC ставит куку сессии и редиректит на /', async () => {
     const res = await GET(makeRequest(validParams()))
 
     expect(res.status).toBe(307)
     const location = res.headers.get('location')!
     const url = new URL(location)
-    expect(url.pathname).toBe('/auth/telegram')
-    expect(url.searchParams.has('uid')).toBe(false)
-    expect(url.searchParams.get('token')).toBeTruthy()
-    expect(url.searchParams.get('ts')).toBeTruthy()
-    expect(url.searchParams.has('username')).toBe(false)
+    expect(url.pathname).toBe('/')
+    expect(url.searchParams.has('token')).toBe(false)
+    expect(url.searchParams.has('auth')).toBe(false)
+
+    // кука сессии выдана (http → authjs.session-token)
+    const cookieHeader = res.headers.get('set-cookie') ?? ''
+    expect(cookieHeader).toContain('authjs.session-token')
+  })
+
+  it('при валидном HMAC вызывает resolveOrCreateUserFromIdentity', async () => {
+    await GET(makeRequest(validParams()))
+
     expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '123456789', expect.objectContaining({
       name: 'Иван Петров',
       image: null,
       telegramUsername: 'ivanp',
       metadata: { source: 'telegram-callback' },
     }))
-    expect(db.insert).toHaveBeenCalled()
   })
 
-  it('[SEC] редиректит на /?auth=failed при невалидном hash', async () => {
-    const { db } = await import('@/lib/db')
+  it('НЕ редиректит на /auth/telegram и не передаёт ?token=', async () => {
+    const res = await GET(makeRequest(validParams()))
+
+    const location = res.headers.get('location')!
+    expect(location).not.toContain('/auth/telegram')
+    expect(location).not.toContain('token=')
+  })
+
+  it('[SEC] при невалидном hash редиректит на /?auth=failed, кука не ставится', async () => {
     const params = validParams()
-    params.hash = 'a'.repeat(64) // подмена
+    params.hash = 'a'.repeat(64)
     const res = await GET(makeRequest(params))
 
     expect(res.status).toBe(307)
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
-    // провал логируется в telegram_login_failures (db.insert), но пользователь НЕ создаётся
-    expect(db.insert).toHaveBeenCalled()
+
+    const cookieHeader = res.headers.get('set-cookie') ?? ''
+    expect(cookieHeader).not.toContain('authjs.session-token')
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
+
+    // recordTelegramLoginFailure вызвана через db.insert
+    expect(db.insert).toHaveBeenCalled()
   })
 
-  it('[SEC] редиректит на /?auth=failed если auth_date старше 5 минут', async () => {
-    const { db } = await import('@/lib/db')
+  it('[SEC] при протухшем auth_date редиректит на /?auth=failed, кука не ставится', async () => {
     const params = validParams({ auth_date: String(Math.floor(Date.now() / 1000) - 600) })
     const res = await GET(makeRequest(params))
 
     expect(res.status).toBe(307)
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
-    // провал логируется в telegram_login_failures (db.insert), но пользователь НЕ создаётся
-    expect(db.insert).toHaveBeenCalled()
+
+    const cookieHeader = res.headers.get('set-cookie') ?? ''
+    expect(cookieHeader).not.toContain('authjs.session-token')
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
+    expect(db.insert).toHaveBeenCalled()
   })
 
-  it('[SEC] редиректит на /?auth=failed при отсутствии TELEGRAM_BOT_TOKEN', async () => {
-    const { db } = await import('@/lib/db')
+  it('[SEC] при отсутствии TELEGRAM_BOT_TOKEN редиректит на /?auth=failed', async () => {
     delete process.env.TELEGRAM_BOT_TOKEN
     const res = await GET(makeRequest(validParams()))
 
     expect(res.status).toBe(307)
     const url = new URL(res.headers.get('location')!)
     expect(url.searchParams.get('auth')).toBe('failed')
-    // провал логируется в telegram_login_failures (db.insert), но пользователь НЕ создаётся
-    expect(db.insert).toHaveBeenCalled()
+
     expect(resolveOrCreateUserFromIdentity).not.toHaveBeenCalled()
   })
 
@@ -144,23 +160,16 @@ describe('GET /api/auth/telegram/callback', () => {
     base.hash = signTelegramParams(base)
     const res = await GET(makeRequest(base))
 
+    const location = res.headers.get('location')!
+    expect(location).not.toContain('username')
+  })
+
+  it('при ошибке resolveOrCreateUserFromIdentity редиректит на /?auth=failed', async () => {
+    ;(resolveOrCreateUserFromIdentity as jest.Mock).mockRejectedValue(new Error('DB error'))
+    const res = await GET(makeRequest(validParams()))
+
     expect(res.status).toBe(307)
     const url = new URL(res.headers.get('location')!)
-    expect(url.searchParams.has('username')).toBe(false)
-  })
-
-  it('использует first_name + last_name как имя пользователя в identity profile', async () => {
-    await GET(makeRequest(validParams()))
-
-    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledWith('telegram', '123456789', expect.objectContaining({
-      name: 'Иван Петров',
-    }))
-  })
-
-  it('повторный вход делегирует идемпотентность identity helper', async () => {
-    await GET(makeRequest(validParams()))
-    await GET(makeRequest(validParams()))
-
-    expect(resolveOrCreateUserFromIdentity).toHaveBeenCalledTimes(2)
+    expect(url.searchParams.get('auth')).toBe('failed')
   })
 })
