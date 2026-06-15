@@ -22,6 +22,11 @@ jest.mock('@/lib/auth.google-one-tap', () => ({
   authorizeGoogleOneTap: jest.fn(),
 }))
 
+jest.mock('@/lib/telegram-auth', () => ({
+  consumeTelegramPreauthToken: jest.fn(),
+  recordTelegramLoginFailure: jest.fn().mockResolvedValue(undefined),
+}))
+
 jest.mock('@/lib/user-activity', () => ({
   bestEffortRecordUserActivity: jest.fn(),
 }))
@@ -81,6 +86,7 @@ import NextAuth from 'next-auth'
 import { db } from '@/lib/db'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
 import { IdentityConflictError, linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { consumeTelegramPreauthToken, recordTelegramLoginFailure } from '@/lib/telegram-auth'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('@/lib/auth')
@@ -122,12 +128,6 @@ function mockDbUpdate() {
     returning: jest.fn().mockResolvedValue([]),
   }
   ;(db.update as jest.Mock).mockReturnValue(chain)
-  return chain
-}
-
-function mockPreauthConsume(userId: string | null) {
-  const chain = mockDbUpdate()
-  chain.returning.mockResolvedValue(userId ? [{ userId }] : [])
   return chain
 }
 
@@ -497,6 +497,11 @@ describe('telegram-preauth authorize', () => {
     authorize = provider!.authorize!
   })
 
+  beforeEach(() => {
+    ;(recordTelegramLoginFailure as jest.Mock).mockResolvedValue(undefined)
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(null)
+  })
+
   it('возвращает null если token/ts отсутствуют', async () => {
     expect(await authorize({ token: '', ts: '1' })).toBeNull()
     expect(await authorize({ token: 'x', ts: '' })).toBeNull()
@@ -511,7 +516,7 @@ describe('telegram-preauth authorize', () => {
 
   it('возвращает null если одноразовый токен не найден или уже использован', async () => {
     const ts = String(Math.floor(Date.now() / 1000))
-    mockPreauthConsume(null)
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(null)
 
     const result = await authorize({ token: 'token', ts })
 
@@ -522,7 +527,7 @@ describe('telegram-preauth authorize', () => {
     const result = await authorize({ token: 'token', ts: 'not-a-number' })
 
     expect(result).toBeNull()
-    expect(db.update).not.toHaveBeenCalled()
+    expect(consumeTelegramPreauthToken).not.toHaveBeenCalled()
   })
 
   it('возвращает null если пользователь не найден в DB', async () => {
@@ -530,7 +535,7 @@ describe('telegram-preauth authorize', () => {
     const ts = String(Math.floor(Date.now() / 1000))
     const token = 'token'
 
-    mockPreauthConsume(uid)
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(uid)
     mockDbSelect([])
 
     const result = await authorize({ token, ts })
@@ -542,7 +547,7 @@ describe('telegram-preauth authorize', () => {
     const ts = String(Math.floor(Date.now() / 1000))
     const token = 'token'
 
-    mockPreauthConsume(uid)
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(uid)
     mockDbSelect([{ id: uid, contactEmail: null, name: 'Ivan' }])
 
     const result = await authorize({ token, ts })
@@ -559,10 +564,71 @@ describe('telegram-preauth authorize', () => {
     const ts = String(Math.floor(Date.now() / 1000))
     const token = 'token'
 
-    mockPreauthConsume(uid)
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(uid)
     mockDbSelect([{ id: uid, email: 'tg@telegram.user', name: 'Ivan' }])
 
     const result = (await authorize({ token, ts })) as Record<string, unknown>
     expect(result.telegramUsername).toBeUndefined()
+  })
+
+  // ── recordTelegramLoginFailure вызывается на каждой точке отказа ──────────
+
+  it('записывает preauth_no_token_ts при отсутствии token/ts', async () => {
+    await authorize({ token: '', ts: '1' })
+    expect(recordTelegramLoginFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'preauth_no_token_ts', hasHash: false })
+    )
+  })
+
+  it('записывает preauth_stale_ts при протухшем ts', async () => {
+    const staleTs = String(Math.floor(Date.now() / 1000) - 6 * 60)
+    await authorize({ token: 'tok', ts: staleTs })
+    expect(recordTelegramLoginFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'preauth_stale_ts', hasHash: false })
+    )
+  })
+
+  it('записывает preauth_stale_ts при нечисловом ts', async () => {
+    await authorize({ token: 'tok', ts: 'not-a-number' })
+    expect(recordTelegramLoginFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'preauth_stale_ts', hasHash: false })
+    )
+  })
+
+  it('записывает preauth_consume_null если одноразовый токен не найден', async () => {
+    const ts = String(Math.floor(Date.now() / 1000))
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(null)
+
+    await authorize({ token: 'token', ts })
+
+    expect(recordTelegramLoginFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'preauth_consume_null', hasHash: false })
+    )
+  })
+
+  it('записывает preauth_user_missing если пользователь не найден в DB', async () => {
+    const uid = 'ghost-user'
+    const ts = String(Math.floor(Date.now() / 1000))
+
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(uid)
+    mockDbSelect([])
+
+    await authorize({ token: 'token', ts })
+
+    expect(recordTelegramLoginFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'preauth_user_missing', hasHash: false })
+    )
+  })
+
+  it('НЕ вызывает recordTelegramLoginFailure при успешном входе', async () => {
+    const uid = 'real-user-id'
+    const ts = String(Math.floor(Date.now() / 1000))
+
+    ;(consumeTelegramPreauthToken as jest.Mock).mockResolvedValue(uid)
+    mockDbSelect([{ id: uid, contactEmail: null, name: 'Ivan' }])
+
+    await authorize({ token: 'token', ts })
+
+    expect(recordTelegramLoginFailure).not.toHaveBeenCalled()
   })
 })

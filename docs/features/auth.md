@@ -38,6 +38,13 @@
 
 При неудаче верификации HMAC в `/api/auth/telegram/callback` строка пишется в таблицу `telegram_login_failures` (Postgres). Таблица содержит: `reason` (код причины из `TelegramVerifyFailReason`), `skew_seconds` (разница времени, если `auth_date` распарсился), `tg_id` / `tg_username` (из параметров Telegram, если переданы), `has_hash` (был ли hash в запросе вообще), `ip` (первый IP из заголовка `x-forwarded-for`). Запись — best-effort: ошибка БД не прерывает auth-флоу и не меняет редирект пользователя.
 
+Журнал покрывает **обе стадии** Telegram-входа:
+
+- **Стадия верификации (callback)** — провалы HMAC-проверки в `/api/auth/telegram/callback`; `reason` из `TelegramVerifyFailReason`, `has_hash: true/false`, `tg_id`/`tg_username`/`ip` заполнены если переданы Telegram-ом.
+- **Стадия preauth (authorize)** — провалы в `authorize` провайдера `telegram-preauth` в `lib/auth.ts`; `reason` с префиксом `preauth_*` (`preauth_no_token_ts`, `preauth_stale_ts`, `preauth_consume_null`, `preauth_user_missing`), `has_hash: false`, Telegram-данных нет (actor ещё не идентифицирован).
+
+Диагностическое правило: если в логе есть запись о создании preauth-токена (callback прошёл), но нет `preauth_*`-строки, — `signIn()` не дошёл до сервера (клиентский сбой: сеть, браузер, `useEffect` не сработал). Если `preauth_*`-строка есть — сбой на серверной стороне с конкретной причиной.
+
 Таблица **намеренно не включена в `AUDITED_TABLES`** и не имеет аудит-триггера: это диагностический/security-журнал анонимных попыток (actor неизвестен до успешного входа), аудит дал бы шум и вектор флуда. Сам журнал и есть durable-хранилище.
 
 Записи старше 30 дней (`TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS`) удаляются cron-джобой `telegram-preauth-cleanup` (schedule `0 3 * * *`) вместе с устаревшими pre-auth токенами.
