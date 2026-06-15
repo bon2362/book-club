@@ -2,12 +2,12 @@
 // Only works when NEXTAUTH_TEST_MODE=true — never enabled in production.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { encode } from '@auth/core/jwt'
 import { db } from '@/lib/db'
 import { notificationQueue, userIdentities, users } from '@/lib/db/schema'
 import { and, eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { normalizeIdentityProvider, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { issueServerSession } from '@/lib/auth-session'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -41,16 +41,15 @@ export async function POST(req: NextRequest) {
     isAdmin: isAdmin ?? false,
   }).where(eq(users.id, user.id))
 
-  const token = await encode({
-    token: { sub: user.id, email: user.email ?? identityEmail ?? null, name, isAdmin: isAdmin ?? false, provider: identityProvider, contactEmail: user.contactEmail },
-    secret: (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET)!,
-    salt: 'authjs.session-token',
-  })
-
   const res = NextResponse.json({ ok: true, userId: user.id })
-  res.cookies.set('authjs.session-token', token, {
-    httpOnly: true, sameSite: 'lax', path: '/', maxAge: 86400,
-  })
+  await issueServerSession(res, {
+    userId: user.id,
+    email: user.email ?? identityEmail ?? null,
+    name,
+    provider: identityProvider,
+    isAdmin: isAdmin ?? false,
+    contactEmail: user.contactEmail,
+  }, { secure: false, maxAgeSeconds: 86400 })
   return res
 }
 

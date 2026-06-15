@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTelegramPreauthToken, recordTelegramLoginFailure, verifyTelegramHashWithReason } from '@/lib/telegram-auth'
+import { verifyTelegramHashWithReason, recordTelegramLoginFailure } from '@/lib/telegram-auth'
 import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { issueServerSession } from '@/lib/auth-session'
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
@@ -29,20 +30,21 @@ export async function GET(req: NextRequest) {
   const { id, first_name, last_name, username, photo_url } = params
   const name = [first_name, last_name].filter(Boolean).join(' ') || username || String(id)
 
-  const user = await resolveOrCreateUserFromIdentity('telegram', id, {
-    name,
-    image: photo_url || null,
-    telegramUsername: username || null,
-    metadata: { source: 'telegram-callback' },
-  })
-
-  const ts = String(Math.floor(Date.now() / 1000))
-  const { token } = await createTelegramPreauthToken(user.id)
-  console.log('[telegram-callback] ok', { userId: user.id, tgId: id })
-
-  const url = new URL('/auth/telegram', origin)
-  url.searchParams.set('token', token)
-  url.searchParams.set('ts', ts)
-
-  return NextResponse.redirect(url)
+  try {
+    const user = await resolveOrCreateUserFromIdentity('telegram', id, {
+      name,
+      image: photo_url || null,
+      telegramUsername: username || null,
+      metadata: { source: 'telegram-callback' },
+    })
+    const res = NextResponse.redirect(new URL('/', origin))
+    await issueServerSession(res,
+      { userId: user.id, email: user.contactEmail, name: user.name ?? name, provider: 'telegram' },
+      { secure: origin.startsWith('https') })
+    console.log('[telegram-callback] ok', { userId: user.id, tgId: id })
+    return res
+  } catch (e) {
+    console.error('[telegram-callback] session issue failed', { errorName: (e as Error)?.name })
+    return NextResponse.redirect(new URL('/?auth=failed', origin))
+  }
 }

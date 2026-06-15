@@ -5,7 +5,6 @@ export const SITE_ROUTES: string[] = [
   "/admin",
   "/admin/gallery",
   "/admin/sitemap",
-  "/auth/telegram",
   "/matching",
   "/matching/presentation",
   "/privacy",

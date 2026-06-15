@@ -8,7 +8,7 @@
 - **Google One Tap** — Credentials provider (`google-one-tap`); `lib/auth.google-one-tap.ts` верифицирует JWT credential через `google-auth-library`, находит или создаёт пользователя в таблицах `users` + `user_identities`. Рендерится как `<GoogleOneTap />` на главной странице для неавторизованных пользователей. После входа используется `window.location.reload()` (не `router.refresh()`) для избежания race condition, при котором `useSession()` обновляется раньше, чем server props перерендерятся
 - **Google OAuth** — стандартный provider; профиль пользователя сохраняется в `users`, а внешний Google `sub` хранится в `user_identities`
 - **Magic link (Resend provider)** — отправляет ссылку для входа на 24 часа через `noreply@slowreading.club`; кастомный HTML-email в `sendMagicLinkEmail()`
-- **Telegram Login** — использует flow с `data-auth-url` (НЕ callback `data-onauth` — Telegram использует `eval` внутри, который браузеры блокируют). Flow: виджет → `/api/auth/telegram/callback` (верифицирует HMAC, upserts пользователя, генерирует подписанный pre-auth токен) → `/auth/telegram` (client-страница вызывает `signIn('telegram-preauth', ...)`) → главная. Два Credentials provider: `telegram` (прямая HMAC-верификация, legacy) и `telegram-preauth` (валидирует краткоживущий HMAC-токен из callback route). Credentials providers НЕ используют DrizzleAdapter — пользователь должен быть вставлен вручную в `authorize` через `db.insert(users).onConflictDoUpdate(...)`. Требования BotFather: точное совпадение домена (с `www` и без — разные домены) + у бота должна быть фотография профиля
+- **Telegram Login** — использует flow с `data-auth-url` (НЕ callback `data-onauth` — Telegram использует `eval` внутри, который браузеры блокируют). Flow (один шаг, без промежуточной страницы): виджет → `/api/auth/telegram/callback` (верифицирует HMAC, создаёт/находит пользователя через `resolveOrCreateUserFromIdentity`, ставит session-куку через `issueServerSession`) → редирект на главную. Предыдущая двухпрыжковая схема (preauth-токен → `/auth/telegram` → `signIn('telegram-preauth')`) удалена в spec 2026-06-15: client-side `signIn` ненадёжен на iOS из-за CSRF/cookie-проблем при переходе с `oauth.telegram.org`. Прямая выдача куки сервером через `encode` из `@auth/core/jwt` — надёжна и не зависит от браузерного окружения. Таблица `telegram_preauth_tokens` оставлена в БД deprecated (дроп — отдельным cleanup-PR). Требования BotFather: точное совпадение домена (с `www` и без — разные домены) + у бота должна быть фотография профиля
 - **Флаг isAdmin** — устанавливается в `jwt` callback проверкой env-переменной `ADMIN_EMAIL`; хранится в JWT-токене, доступен как `session.user.isAdmin`
 - **Стратегия сессии** — JWT (`strategy: 'jwt'`); `session.user.id = token.sub` устанавливается в `session` callback
 - **Отслеживание способа входа** — источник истины по auth-identity живёт в `user_identities`: `provider`, `provider_account_id`, `email`, `telegram_username`, `last_seen_at`. `users.contacts` остаётся пользовательским контактным полем: при первом Telegram-входе оно автоматически заполняется `@username`, если Telegram вернул username и поле ещё пустое, но дальше пользователь может изменить его сам.
@@ -23,7 +23,7 @@
 - **`data-onauth` (JS callback) не использовать** — Telegram дёргает callback через `eval()`, браузеры его блокируют. Только `data-auth-url`.
 - **`window.onTelegramAuth` в отдельном `useEffect`** — при условном рендере (`authModalOpen && <AuthModal>`) возможна гонка. При callback-подходе ставить callback в тот же эффект, что грузит скрипт виджета.
 - **`router.refresh()` после входа не обновляет серверные компоненты** (header остаётся «ВОЙТИ»). Нужен `window.location.reload()`.
-- **Server-side `signIn('credentials', ...)` в GET route handler** в NextAuth v5 beta работает ненадёжно — использовать client-side `signIn` через промежуточную страницу `/auth/telegram`.
+- **Server-side `signIn('credentials', ...)` в GET route handler** в NextAuth v5 beta работает ненадёжно — не использовать. Для Telegram используется прямая выдача session-куки через `issueServerSession` (`lib/auth-session.ts`), которая кодирует JWT через `encode` из `@auth/core/jwt` и устанавливает куку на ответе сервера. Имя куки и salt зависят от `secure` (prod/HTTPS → `__Secure-authjs.session-token`, dev/HTTP → `authjs.session-token`); salt ВСЕГДА равен имени куки — это требование NextAuth v5.
 - **`useSearchParams()` требует `<Suspense>`** (Next.js 14) — иначе сборка падает на генерации статических страниц. Оборачивать компонент с `useSearchParams()` в `<Suspense>`.
 - **Telegram Login Widget:** домен в BotFather должен совпадать точно (с `www` и без — разные домены); у бота обязано быть фото профиля (иначе «Bot domain invalid»); виджет не работает без third-party cookies (incognito, Safari strict mode).
 
@@ -38,16 +38,15 @@
 
 При неудаче верификации HMAC в `/api/auth/telegram/callback` строка пишется в таблицу `telegram_login_failures` (Postgres). Таблица содержит: `reason` (код причины из `TelegramVerifyFailReason`), `skew_seconds` (разница времени, если `auth_date` распарсился), `tg_id` / `tg_username` (из параметров Telegram, если переданы), `has_hash` (был ли hash в запросе вообще), `ip` (первый IP из заголовка `x-forwarded-for`). Запись — best-effort: ошибка БД не прерывает auth-флоу и не меняет редирект пользователя.
 
-Журнал покрывает **обе стадии** Telegram-входа:
+Журнал покрывает **стадию верификации** Telegram-входа:
 
 - **Стадия верификации (callback)** — провалы HMAC-проверки в `/api/auth/telegram/callback`; `reason` из `TelegramVerifyFailReason`, `has_hash: true/false`, `tg_id`/`tg_username`/`ip` заполнены если переданы Telegram-ом.
-- **Стадия preauth (authorize)** — провалы в `authorize` провайдера `telegram-preauth` в `lib/auth.ts`; `reason` с префиксом `preauth_*` (`preauth_no_token_ts`, `preauth_stale_ts`, `preauth_consume_null`, `preauth_user_missing`), `has_hash: false`, Telegram-данных нет (actor ещё не идентифицирован).
 
-Диагностическое правило: если в логе есть запись о создании preauth-токена (callback прошёл), но нет `preauth_*`-строки, — `signIn()` не дошёл до сервера (клиентский сбой: сеть, браузер, `useEffect` не сработал). Если `preauth_*`-строка есть — сбой на серверной стороне с конкретной причиной.
+Провайдер `telegram-preauth` и промежуточная страница удалены (spec 2026-06-15), поэтому стадия `preauth_*` больше не существует.
 
 Таблица **намеренно не включена в `AUDITED_TABLES`** и не имеет аудит-триггера: это диагностический/security-журнал анонимных попыток (actor неизвестен до успешного входа), аудит дал бы шум и вектор флуда. Сам журнал и есть durable-хранилище.
 
-Записи старше 30 дней (`TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS`) удаляются cron-джобой `telegram-preauth-cleanup` (schedule `0 3 * * *`) вместе с устаревшими pre-auth токенами.
+Записи старше 30 дней (`TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS`) удаляются cron-джобой `telegram-preauth-cleanup` (schedule `0 3 * * *`). Таблица `telegram_preauth_tokens` в БД оставлена deprecated — её очистка выполнена из cron, но сама таблица не дропается до отдельного cleanup-PR.
 
 ## Ключевые файлы
 - `lib/auth.ts` — конфигурация NextAuth, providers, JWT/session callbacks, magic link email
@@ -64,7 +63,7 @@
 - `components/nd/GoogleOneTap.tsx` — client component, рендерится на главной для неавторизованных пользователей
 - `lib/db/schema.ts` — таблицы `users` (профиль и пользовательские контакты), `user_identities` (способы входа и provider-specific ids), `verificationTokens`
 - `app/api/auth/[...nextauth]/route.ts` — handler NextAuth
-- `app/api/auth/telegram/callback/route.ts` — Telegram redirect handler: верифицирует hash, делает upsert пользователя, создаёт HMAC pre-auth токен
-- `app/auth/telegram/page.tsx` — client-страница, вызывает `signIn('telegram-preauth', ...)` и редиректит на главную
+- `lib/auth-session.ts` — `issueServerSession`: кодирует session-JWT и ставит куку сессии NextAuth на ответ сервера; имя куки и salt зависят от `secure`
+- `app/api/auth/telegram/callback/route.ts` — Telegram redirect handler: верифицирует HMAC, создаёт/находит пользователя, ставит session-куку через `issueServerSession` и редиректит на главную
 - `components/nd/AuthModal.tsx` — модал входа с Google, magic link и Telegram-виджетом
 - `middleware.ts` / `proxy.ts` — защита роутов (редирект неавторизованных пользователей)
