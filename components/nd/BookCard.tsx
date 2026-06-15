@@ -134,7 +134,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
+                cursor: 'help',
               }}
               aria-label={SUBMITTED_BY_MEMBER_LABEL}
             >
