@@ -29,6 +29,8 @@ import {
   verifyTelegramHashWithReason,
   recordTelegramLoginFailure,
   cleanupTelegramLoginFailures,
+  createTelegramPreauthToken,
+  consumeTelegramPreauthToken,
   TELEGRAM_AUTH_MAX_AGE_SECONDS,
 } from './telegram-auth'
 
@@ -171,5 +173,58 @@ describe('cleanupTelegramLoginFailures', () => {
 
     expect(db.delete).toHaveBeenCalledTimes(1)
     expect(whereMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('createTelegramPreauthToken', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('вызывает db.insert с tokenHash, userId, expiresAt', async () => {
+    const valuesMock = jest.fn().mockResolvedValue(undefined)
+    ;(db.insert as jest.Mock).mockReturnValue({ values: valuesMock })
+
+    const result = await createTelegramPreauthToken('test-user-id')
+
+    expect(db.insert).toHaveBeenCalledTimes(1)
+    expect(valuesMock).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'test-user-id',
+      tokenHash: expect.any(String),
+      expiresAt: expect.any(Date),
+    }))
+    expect(result.token).toBeDefined()
+    expect(typeof result.token).toBe('string')
+    expect(result.token.length).toBeGreaterThan(0)
+  })
+})
+
+describe('consumeTelegramPreauthToken', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('возвращает userId при успешном consume', async () => {
+    const returningMock = jest.fn().mockResolvedValue([{ userId: 'resolved-user-id' }])
+    const whereMock = jest.fn().mockReturnValue({ returning: returningMock })
+    const setMock = jest.fn().mockReturnValue({ where: whereMock })
+    ;(db.update as jest.Mock).mockReturnValue({ set: setMock })
+
+    const result = await consumeTelegramPreauthToken('some-token')
+
+    expect(db.update).toHaveBeenCalledTimes(1)
+    expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ usedAt: expect.any(Date) }))
+    expect(result).toBe('resolved-user-id')
+  })
+
+  it('возвращает null если токен не найден', async () => {
+    const returningMock = jest.fn().mockResolvedValue([])
+    const whereMock = jest.fn().mockReturnValue({ returning: returningMock })
+    const setMock = jest.fn().mockReturnValue({ where: whereMock })
+    ;(db.update as jest.Mock).mockReturnValue({ set: setMock })
+
+    const result = await consumeTelegramPreauthToken('nonexistent-token')
+
+    expect(result).toBeNull()
   })
 })

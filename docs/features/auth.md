@@ -8,7 +8,8 @@
 - **Google One Tap** — Credentials provider (`google-one-tap`); `lib/auth.google-one-tap.ts` верифицирует JWT credential через `google-auth-library`, находит или создаёт пользователя в таблицах `users` + `user_identities`. Рендерится как `<GoogleOneTap />` на главной странице для неавторизованных пользователей. После входа используется `window.location.reload()` (не `router.refresh()`) для избежания race condition, при котором `useSession()` обновляется раньше, чем server props перерендерятся
 - **Google OAuth** — стандартный provider; профиль пользователя сохраняется в `users`, а внешний Google `sub` хранится в `user_identities`
 - **Magic link (Resend provider)** — отправляет ссылку для входа на 24 часа через `noreply@slowreading.club`; кастомный HTML-email в `sendMagicLinkEmail()`
-- **Telegram Login** — использует flow с `data-auth-url` (НЕ callback `data-onauth` — Telegram использует `eval` внутри, который браузеры блокируют). Flow (один шаг, без промежуточной страницы): виджет → `/api/auth/telegram/callback` (верифицирует HMAC, создаёт/находит пользователя через `resolveOrCreateUserFromIdentity`, ставит session-куку через `issueServerSession`) → редирект на главную. Предыдущая двухпрыжковая схема (preauth-токен → `/auth/telegram` → `signIn('telegram-preauth')`) удалена в spec 2026-06-15: client-side `signIn` ненадёжен на iOS из-за CSRF/cookie-проблем при переходе с `oauth.telegram.org`. Прямая выдача куки сервером через `encode` из `@auth/core/jwt` — надёжна и не зависит от браузерного окружения. Таблица `telegram_preauth_tokens` оставлена в БД deprecated (дроп — отдельным cleanup-PR). Требования BotFather: точное совпадение домена (с `www` и без — разные домены) + у бота должна быть фотография профиля
+- **Telegram Login (bot deep-link, B2 — основной способ)** — вход через Telegram-бота по deep-link, минуя `oauth.telegram.org` (который не работает на Chrome iOS). Flow: пользователь жмёт кнопку «Войти через Telegram» → открывается `https://t.me/<BOT_NAME>?start=login` → пользователь нажимает Start → бот получает `/start` через вебхук `POST /api/telegram/webhook` (защищён заголовком `X-Telegram-Bot-Api-Secret-Token = TELEGRAM_WEBHOOK_SECRET`) → вебхук вызывает `resolveOrCreateUserFromIdentity('telegram', ...)` → создаёт одноразовый токен через `createTelegramPreauthToken` (TTL 5 мин, хранится хэшем в `telegram_preauth_tokens`) → шлёт пользователю в Telegram сообщение с inline-кнопкой `https://<site>/api/auth/telegram/login?token=<token>` → пользователь тапает → `GET /api/auth/telegram/login` вызывает `consumeTelegramPreauthToken` (атомарно помечает использованным, проверяет expiresAt), достаёт user по userId, выдаёт session-куку через `issueServerSession` → редирект на `/`. Настройка: после деплоя вызвать Telegram `setWebhook` с `url=<site>/api/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>`. Один вебхук на бота, смотрит на боевой домен.
+- **Telegram Login Widget (запасной способ)** — использует flow с `data-auth-url` (НЕ callback `data-onauth` — Telegram использует `eval` внутри, который браузеры блокируют). Flow: виджет → `/api/auth/telegram/callback` (верифицирует HMAC, создаёт/находит пользователя через `resolveOrCreateUserFromIdentity`, ставит session-куку через `issueServerSession`) → редирект на главную. В `AuthModal` виджет скрыт за тоглом «войти через виджет Telegram»; загружается скрипт только при открытии тогла. Требования BotFather: точное совпадение домена (с `www` и без — разные домены) + у бота должна быть фотография профиля. Не работает на Chrome iOS (блокировка на стороне `oauth.telegram.org`).
 - **Флаг isAdmin** — устанавливается в `jwt` callback проверкой env-переменной `ADMIN_EMAIL`; хранится в JWT-токене, доступен как `session.user.isAdmin`
 - **Стратегия сессии** — JWT (`strategy: 'jwt'`); `session.user.id = token.sub` устанавливается в `session` callback
 - **Отслеживание способа входа** — источник истины по auth-identity живёт в `user_identities`: `provider`, `provider_account_id`, `email`, `telegram_username`, `last_seen_at`. `users.contacts` остаётся пользовательским контактным полем: при первом Telegram-входе оно автоматически заполняется `@username`, если Telegram вернул username и поле ещё пустое, но дальше пользователь может изменить его сам.
@@ -30,8 +31,9 @@
 ## Env vars
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — обязателен для One Tap (встраивается в client bundle во время сборки)
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — для стандартного Google OAuth и серверной верификации One Tap
-- `TELEGRAM_BOT_TOKEN` — для HMAC-SHA256 верификации данных Telegram-виджета
-- `NEXT_PUBLIC_TELEGRAM_BOT_NAME` — имя бота (без @), рендерится в `data-telegram-login` виджета
+- `TELEGRAM_BOT_TOKEN` — для HMAC-SHA256 верификации данных Telegram-виджета и отправки сообщений ботом (`lib/telegram-bot.ts`)
+- `NEXT_PUBLIC_TELEGRAM_BOT_NAME` — имя бота (без @), рендерится в `data-telegram-login` виджета и в deep-link кнопке `t.me/<BOT_NAME>?start=login`
+- `TELEGRAM_WEBHOOK_SECRET` — секрет для защиты вебхука бота (optional, нужен в prod; Telegram шлёт его заголовком `X-Telegram-Bot-Api-Secret-Token`)
 - `NEXTAUTH_SECRET` — используется как fallback для `AUTH_SECRET`; при ручном использовании секрета вне NextAuth: `process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET`
 
 ## Durable-журнал провалов Telegram-входа
@@ -40,13 +42,12 @@
 
 Журнал покрывает **стадию верификации** Telegram-входа:
 
-- **Стадия верификации (callback)** — провалы HMAC-проверки в `/api/auth/telegram/callback`; `reason` из `TelegramVerifyFailReason`, `has_hash: true/false`, `tg_id`/`tg_username`/`ip` заполнены если переданы Telegram-ом.
-
-Провайдер `telegram-preauth` и промежуточная страница удалены (spec 2026-06-15), поэтому стадия `preauth_*` больше не существует.
+- **Стадия верификации (widget callback)** — провалы HMAC-проверки в `/api/auth/telegram/callback`; `reason` из `TelegramVerifyFailReason`, `has_hash: true/false`, `tg_id`/`tg_username`/`ip` заполнены если переданы Telegram-ом.
+- **Стадия bot-login** — провалы токена в `/api/auth/telegram/login`; `reason: 'bot_token_invalid'`, `has_hash: false`, `ip` из заголовка `x-forwarded-for`. Пишется при истёкшем, использованном или несуществующем preauth-токене.
 
 Таблица **намеренно не включена в `AUDITED_TABLES`** и не имеет аудит-триггера: это диагностический/security-журнал анонимных попыток (actor неизвестен до успешного входа), аудит дал бы шум и вектор флуда. Сам журнал и есть durable-хранилище.
 
-Записи старше 30 дней (`TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS`) удаляются cron-джобой `telegram-preauth-cleanup` (schedule `0 3 * * *`). Таблица `telegram_preauth_tokens` в БД оставлена deprecated — её очистка выполнена из cron, но сама таблица не дропается до отдельного cleanup-PR.
+Записи старше 30 дней (`TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS`) удаляются cron-джобой `telegram-preauth-cleanup` (schedule `0 3 * * *`). Таблица `telegram_preauth_tokens` используется для bot-login (B2); протёкшие токены удаляются тем же cron (`cleanupTelegramPreauthTokens`).
 
 ## Ключевые файлы
 - `lib/auth.ts` — конфигурация NextAuth, providers, JWT/session callbacks, magic link email

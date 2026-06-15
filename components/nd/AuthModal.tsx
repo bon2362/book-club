@@ -30,6 +30,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   const [email, setEmail] = useState('')
   const [magicState, setMagicState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [showOther, setShowOther] = useState(false)
+  const [showWidget, setShowWidget] = useState(false)
   const [rememberedProvider, setRememberedProvider] = useState<RememberedAuthProvider | null>(null)
 
   async function handleMagicLink(e: React.FormEvent) {
@@ -57,9 +58,9 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  // Load the Telegram widget script and set up callback when the modal opens
+  // Load the Telegram widget script only when widget toggle is open
   useEffect(() => {
-    if (!isOpen || !BOT_NAME) return
+    if (!isOpen || !showWidget || !BOT_NAME) return
 
     const container = document.getElementById('telegram-login-container')
     if (!container) return
@@ -78,7 +79,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     return () => {
       container.innerHTML = ''
     }
-  }, [isOpen])
+  }, [isOpen, showWidget])
 
   useEffect(() => {
     if (!isOpen) return
@@ -236,12 +237,67 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
         <div style={{ borderTop: '1px solid var(--border-strong)', marginBottom: '1.5rem' }} />
 
-        {/* Telegram — primary */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-          <div style={{ position: 'relative', display: 'inline-flex' }}>
+        {/* Telegram — primary (bot deep-link) */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ position: 'relative' }}>
             {rememberedProvider === 'telegram' && renderRememberedBadge({ top: '-0.7rem', right: '-0.5rem' })}
-            <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center' }} />
+            <a
+              href={BOT_NAME ? `https://t.me/${BOT_NAME}?start=login` : '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track('auth_attempt', { provider: 'telegram' })}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.625rem',
+                width: '100%',
+                padding: '0.75rem 1rem',
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.8rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                cursor: 'pointer',
+                border: '1px solid var(--border-strong)',
+                background: 'var(--text)',
+                color: 'var(--bg)',
+                textDecoration: 'none',
+                boxSizing: 'border-box',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }} fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.09 14.06l-2.945-.917c-.64-.203-.658-.64.136-.954l11.57-4.46c.537-.194 1.006.131.843.492z"/>
+              </svg>
+              <span>Войти через Telegram</span>
+            </a>
           </div>
+
+          {/* Widget fallback toggle */}
+          <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+            <button
+              onClick={() => setShowWidget(v => !v)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: '0.65rem',
+                color: 'var(--text-muted)',
+                textDecoration: 'underline',
+                textDecorationColor: 'var(--border)',
+                textUnderlineOffset: '3px',
+                padding: 0,
+              }}
+            >
+              {showWidget ? 'скрыть виджет' : 'войти через виджет Telegram'}
+            </button>
+          </div>
+
+          {showWidget && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.75rem' }}>
+              <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center' }} />
+            </div>
+          )}
         </div>
 
         {/* Other methods toggle */}
