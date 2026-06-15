@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { PersonalBookStatus } from '@/lib/signup-books'
 import CoverImage from './CoverImage'
@@ -43,6 +43,19 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
   const [descExpanded, setDescExpanded] = useState(false)
   const [descHovered, setDescHovered] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
+  const [submittedTooltip, setSubmittedTooltip] = useState(false)
+  const submittedBadgeRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!submittedTooltip) return
+    const onDocPointer = (e: Event) => {
+      if (submittedBadgeRef.current && !submittedBadgeRef.current.contains(e.target as Node)) {
+        setSubmittedTooltip(false)
+      }
+    }
+    document.addEventListener('pointerdown', onDocPointer)
+    return () => document.removeEventListener('pointerdown', onDocPointer)
+  }, [submittedTooltip])
 
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const hasExpandable = isLongDescription
@@ -125,7 +138,24 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
         >
           {book.submittedByMember && (
             <div
-              title={SUBMITTED_BY_MEMBER_LABEL}
+              ref={submittedBadgeRef}
+              role="button"
+              tabIndex={0}
+              aria-describedby={submittedTooltip ? 'submitted-book-tooltip' : undefined}
+              aria-expanded={submittedTooltip}
+              onMouseEnter={() => setSubmittedTooltip(true)}
+              onMouseLeave={() => {
+                if (document.activeElement !== submittedBadgeRef.current) setSubmittedTooltip(false)
+              }}
+              onFocus={() => setSubmittedTooltip(true)}
+              onBlur={() => setSubmittedTooltip(false)}
+              onClick={() => setSubmittedTooltip(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setSubmittedTooltip(true)
+                }
+              }}
               style={{
                 position: 'relative',
                 background: 'var(--accent)',
@@ -154,6 +184,30 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 <line x1="4.2" y1="11.6" x2="7.8" y2="11.6" />
                 <line x1="4.8" y1="12.9" x2="7.2" y2="12.9" />
               </svg>
+              {submittedTooltip && (
+                <div
+                  id="submitted-book-tooltip"
+                  data-testid="submitted-book-tooltip"
+                  role="tooltip"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    right: 0,
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
+                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                    fontSize: '0.65rem',
+                    lineHeight: 1.3,
+                    padding: '0.3rem 0.5rem',
+                    width: 'max-content',
+                    maxWidth: 'min(18rem, calc(100vw - 2rem))',
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                  }}
+                >
+                  {SUBMITTED_BY_MEMBER_LABEL}
+                </div>
+              )}
             </div>
           )}
           {book.isNew && !isReading && (

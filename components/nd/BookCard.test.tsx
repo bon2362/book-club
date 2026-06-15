@@ -130,8 +130,22 @@ describe('nd/BookCard', () => {
     render(<BookCard book={submittedBook} isSelected={false} onToggle={() => {}} />)
 
     const badge = screen.getByLabelText('Эта книга предложена участни:цей клуба')
-    expect(badge).toHaveAttribute('title', 'Эта книга предложена участни:цей клуба')
+    expect(badge).not.toHaveAttribute('title')
     expect(badge).not.toHaveStyle({ cursor: 'pointer' })
+  })
+
+  it('показывает подсказку предложенной участником книги по клику и не скрывает повторным кликом', () => {
+    const submittedBook = { ...book, submittedByMember: true }
+    render(<BookCard book={submittedBook} isSelected={false} onToggle={() => {}} />)
+
+    const badge = screen.getByLabelText('Эта книга предложена участни:цей клуба')
+    expect(screen.queryByTestId('submitted-book-tooltip')).not.toBeInTheDocument()
+
+    fireEvent.click(badge)
+    expect(screen.getByTestId('submitted-book-tooltip')).toHaveTextContent('Эта книга предложена участни:цей клуба')
+
+    fireEvent.click(badge)
+    expect(screen.getByTestId('submitted-book-tooltip')).toBeInTheDocument()
   })
 
   it('показывает ссылку на книгу строчными буквами', () => {

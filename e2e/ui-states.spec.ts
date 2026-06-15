@@ -128,10 +128,22 @@ test.describe('Home submit book CTA layout', () => {
     await page.getByPlaceholder('Поиск по названию или автору…').fill(book.title)
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
 
-    await page.locator('[aria-label="Эта книга предложена участни:цей клуба"]').click()
+    const submittedBadge = page.locator('[aria-label="Эта книга предложена участни:цей клуба"]')
+    await submittedBadge.click()
+
+    const tooltip = page.getByTestId('submitted-book-tooltip')
+    await expect(tooltip).toBeVisible()
+    await submittedBadge.click()
+    await expect(tooltip).toBeVisible()
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(overflow).toBeLessThanOrEqual(1)
+
+    const tooltipBox = await tooltip.boundingBox()
+    const viewport = page.viewportSize()!
+    expect(tooltipBox).not.toBeNull()
+    expect(tooltipBox!.x).toBeGreaterThanOrEqual(0)
+    expect(tooltipBox!.x + tooltipBox!.width).toBeLessThanOrEqual(viewport.width)
   })
 })
 
