@@ -125,6 +125,15 @@ describe('nd/BookCard', () => {
     expect(screen.getByText('5')).toBeInTheDocument()
   })
 
+  it('бейдж предложенной участником книги не выглядит кликабельным', () => {
+    const submittedBook = { ...book, submittedByMember: true }
+    render(<BookCard book={submittedBook} isSelected={false} onToggle={() => {}} />)
+
+    const badge = screen.getByLabelText('Эта книга предложена участни:цей клуба')
+    expect(badge).toHaveAttribute('title', 'Эта книга предложена участни:цей клуба')
+    expect(badge).not.toHaveStyle({ cursor: 'pointer' })
+  })
+
   it('показывает ссылку на книгу строчными буквами', () => {
     const bookWithLink = { ...book, link: 'https://example.com/book' }
     render(<BookCard book={bookWithLink} isSelected={false} onToggle={() => {}} />)
