@@ -552,6 +552,50 @@ test.describe('Satisfaction ranking gate layout', () => {
   })
 })
 
+test.describe('BookCardMobile: responsive layout', () => {
+  test('на мобильном (390×800) каталог-мобайл виден, каталог-десктоп и переключатель вида скрыты', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 })
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    // catalog-mobile виден: boundingBox не null и в области просмотра
+    const mobileBox = await page.getByTestId('catalog-mobile').boundingBox()
+    expect(mobileBox).not.toBeNull()
+    expect(mobileBox!.height).toBeGreaterThan(0)
+
+    // catalog-desktop скрыт: display none → boundingBox null
+    const desktopBox = await page.getByTestId('catalog-desktop').boundingBox()
+    expect(desktopBox).toBeNull()
+
+    // filters-view-toggle скрыт
+    const toggleBox = await page.locator('.filters-view-toggle').boundingBox()
+    expect(toggleBox).toBeNull()
+
+    // В мобильном каталоге присутствует хотя бы одна мобильная карточка
+    const cards = page.getByTestId('book-card-mobile')
+    expect(await cards.count()).toBeGreaterThan(0)
+  })
+
+  test('на десктопе (1280×900) каталог-десктоп виден, каталог-мобайл скрыт', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    // catalog-desktop виден
+    const desktopBox = await page.getByTestId('catalog-desktop').boundingBox()
+    expect(desktopBox).not.toBeNull()
+    expect(desktopBox!.height).toBeGreaterThan(0)
+
+    // catalog-mobile скрыт: display none → boundingBox null
+    const mobileBox = await page.getByTestId('catalog-mobile').boundingBox()
+    expect(mobileBox).toBeNull()
+
+    // переключатель вида виден на десктопе
+    const toggleBox = await page.locator('.filters-view-toggle').boundingBox()
+    expect(toggleBox).not.toBeNull()
+  })
+})
+
 test.describe('AuthErrorBanner: conditional render', () => {
   test('баннер виден на /?auth=failed и скрыт на /', async ({ page }) => {
     // Переход на /?auth=failed — баннер должен отображаться
