@@ -10,6 +10,7 @@ import { bookMatchesAuthor, getUniqueAuthors } from '@/lib/authors'
 import Header from './Header'
 import BookCard from './BookCard'
 import BookRow from './BookRow'
+import BookCardMobile from './BookCardMobile'
 import AuthModal from './AuthModal'
 import { track } from '@/lib/analytics'
 import ContactsForm from './ContactsForm'
@@ -489,41 +490,53 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
           <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.875rem', color: 'var(--text-muted)', textAlign: 'center', padding: '3rem 0' }}>
             Ничего не найдено
           </p>
-        ) : viewMode === 'grid' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
-            <SubmitBookCard onClick={handleSubmitBookClick} />
-            {filteredBooks.map(book => (
-              <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
-            ))}
-          </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '2px solid var(--border-strong)' }}>
-            <tbody>
-              <tr style={{ borderBottom: '2px solid var(--border-strong)', background: 'var(--bg)' }}>
-                <td colSpan={6} style={{ padding: '0.75rem 0.75rem' }}>
-                  <button
-                    onClick={handleSubmitBookClick}
-                    style={{
-                      background: 'var(--text)',
-                      border: 'none',
-                      borderRadius: '2px',
-                      padding: '0.4rem 0.85rem',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.75rem',
-                      color: 'var(--bg)',
-                      cursor: 'pointer',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    + Предложить книгу
-                  </button>
-                </td>
-              </tr>
+          <>
+            <div className="catalog-desktop" data-testid="catalog-desktop">
+              {viewMode === 'grid' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                  <SubmitBookCard onClick={handleSubmitBookClick} />
+                  {filteredBooks.map(book => (
+                    <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
+                  ))}
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: '2px solid var(--border-strong)' }}>
+                  <tbody>
+                    <tr style={{ borderBottom: '2px solid var(--border-strong)', background: 'var(--bg)' }}>
+                      <td colSpan={6} style={{ padding: '0.75rem 0.75rem' }}>
+                        <button
+                          onClick={handleSubmitBookClick}
+                          style={{
+                            background: 'var(--text)',
+                            border: 'none',
+                            borderRadius: '2px',
+                            padding: '0.4rem 0.85rem',
+                            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                            fontSize: '0.75rem',
+                            color: 'var(--bg)',
+                            cursor: 'pointer',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          + Предложить книгу
+                        </button>
+                      </td>
+                    </tr>
+                    {filteredBooks.map(book => (
+                      <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="catalog-mobile" data-testid="catalog-mobile">
+              <SubmitBookCard onClick={handleSubmitBookClick} />
               {filteredBooks.map(book => (
-                <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
+                <BookCardMobile key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </main>
 
@@ -565,6 +578,13 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
           .filters-row2 { flex-wrap: nowrap; }
           .filters-select-tag,
           .filters-select-author { flex: 0 0 auto; width: 180px; }
+        }
+
+        .catalog-mobile { display: none; }
+        @media (max-width: 640px) {
+          .catalog-desktop { display: none; }
+          .catalog-mobile { display: flex; flex-direction: column; gap: 13px; }
+          .filters-view-toggle { display: none !important; }
         }
       `}</style>
 
