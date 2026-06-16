@@ -62,7 +62,11 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
   const isRead = book.status === 'read'
 
   return (
-    <article
+    // Корневой <div> (а не <article>), чтобы глобальный e2e-селектор
+    // `locator('article')` продолжал означать только десктоп-карточку
+    // (BookCard) — обе раскладки одновременно присутствуют в DOM и
+    // переключаются media-query, поэтому общий тег создал бы дубли.
+    <div
       data-testid="book-card-mobile"
       style={{
         padding: '14px 13px',
@@ -461,6 +465,6 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
           </a>
         )}
       </div>
-    </article>
+    </div>
   )
 }
