@@ -9,7 +9,8 @@
 | Google OAuth | Кнопка входа | Стандартный redirect-flow Google. |
 | Google One Tap | Главная страница | Быстрый вход через всплывающий Google prompt. |
 | Email magic link | Модал входа | Ссылка приходит через Resend на email. |
-| Telegram Login Widget | Модал входа | Использует redirect через `/api/auth/telegram/callback`, не JS callback. |
+| Telegram (bot deep-link) | Модал входа — основной способ | Кнопка открывает `t.me/<bot>?start=login` → бот шлёт одноразовую ссылку входа. Работает на Chrome iOS и Safari iOS. |
+| Telegram Login Widget | Модал входа — запасной способ | Скрыт под тоглом. Использует redirect через `/api/auth/telegram/callback`. Не работает на Chrome iOS. |
 
 Для удобства входа сайт помнит только последний способ входа в `localStorage` браузера. Это не серверное состояние и не пользовательский профиль, а лишь подсказка для модалки: если последний способ был Google или email, вторичные способы раскрываются сразу, под заголовком появляется напоминание «В прошлый раз вы входили через …», а у соответствующего способа показывается бейдж «Последний вход». В памяти хранится только нормализованный provider (`google`, `telegram` или `email`), без имени, email, Telegram username или user id.
 
@@ -35,14 +36,19 @@ flowchart TD
     Start["Пользователь выбирает способ входа"] --> Provider{"Провайдер"}
     Provider --> Google["Google OAuth / One Tap"]
     Provider --> Email["Email magic link"]
-    Provider --> Telegram["Telegram Login Widget"]
+    Provider --> TgBot["Telegram bot deep-link (основной)"]
+    Provider --> TgWidget["Telegram Widget (запасной)"]
     Google --> Identity["resolveOrCreateUserFromIdentity"]
     Email --> Identity
-    Telegram --> Callback["Telegram callback проверяет HMAC"]
-    Callback --> Preauth["Pre-auth token"]
-    Preauth --> Identity
+    TgBot --> Webhook["Вебхук /api/telegram/webhook"]
+    Webhook --> Identity
+    Webhook --> Token["Одноразовый токен → сообщение в Telegram"]
+    Token --> LoginRoute["/api/auth/telegram/login"]
+    LoginRoute --> Session["issueServerSession → JWT session"]
+    TgWidget --> Callback["Telegram callback проверяет HMAC"]
+    Callback --> Identity
     Identity --> User["user + user_identities"]
-    User --> Session["JWT session"]
+    User --> Session
     Session --> Site["Сайт и админка"]
 ```
 

@@ -1,9 +1,10 @@
-import { createHash, createHmac, timingSafeEqual } from 'crypto'
-import { lt } from 'drizzle-orm'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto'
+import { and, eq, gt, isNull, lt } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { telegramLoginFailures } from '@/lib/db/schema'
+import { telegramLoginFailures, telegramPreauthTokens } from '@/lib/db/schema'
 
 export const TELEGRAM_AUTH_MAX_AGE_SECONDS = 5 * 60
+export const TELEGRAM_PREAUTH_TTL_SECONDS = 5 * 60
 
 export type TelegramVerifyFailReason =
   | 'no_bot_token' | 'no_hash' | 'bad_auth_date' | 'stale' | 'future' | 'hmac_mismatch'
@@ -43,6 +44,47 @@ export function verifyTelegramHashWithReason(
 
 export function verifyTelegramHash(data: Record<string, string>, now = Math.floor(Date.now() / 1000)): boolean {
   return verifyTelegramHashWithReason(data, now).ok
+}
+
+export function hashTelegramPreauthToken(token: string) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+export async function createTelegramPreauthToken(userId: string, now = new Date()) {
+  const token = randomBytes(32).toString('hex')
+  const tokenHash = hashTelegramPreauthToken(token)
+  const expiresAt = new Date(now.getTime() + TELEGRAM_PREAUTH_TTL_SECONDS * 1000)
+
+  await db.insert(telegramPreauthTokens).values({ tokenHash, userId, expiresAt })
+  return { token, expiresAt }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function bindTelegramLoginNonce(nonce: string, userId: string, now = new Date()): Promise<void> {
+  const tokenHash = hashTelegramPreauthToken(nonce)
+  const expiresAt = new Date(now.getTime() + TELEGRAM_PREAUTH_TTL_SECONDS * 1000)
+  await db.insert(telegramPreauthTokens).values({ tokenHash, userId, expiresAt }).onConflictDoNothing()
+}
+
+export async function consumeTelegramPreauthToken(token: string, now = new Date()): Promise<string | null> {
+  const tokenHash = hashTelegramPreauthToken(token)
+  const [row] = await db
+    .update(telegramPreauthTokens)
+    .set({ usedAt: now })
+    .where(and(
+      eq(telegramPreauthTokens.tokenHash, tokenHash),
+      isNull(telegramPreauthTokens.usedAt),
+      gt(telegramPreauthTokens.expiresAt, now)
+    ))
+    .returning({ userId: telegramPreauthTokens.userId })
+
+  return row?.userId ?? null
+}
+
+export async function cleanupTelegramPreauthTokens(now = new Date()) {
+  await db
+    .delete(telegramPreauthTokens)
+    .where(lt(telegramPreauthTokens.expiresAt, now))
 }
 
 export const TELEGRAM_LOGIN_FAILURE_RETENTION_DAYS = 30

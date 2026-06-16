@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { cleanupTelegramLoginFailures } from '@/lib/telegram-auth'
+import { cleanupTelegramLoginFailures, cleanupTelegramPreauthTokens } from '@/lib/telegram-auth'
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET
@@ -12,5 +12,6 @@ export async function GET(req: Request) {
   }
 
   await cleanupTelegramLoginFailures()
+  await cleanupTelegramPreauthTokens()
   return NextResponse.json({ ok: true })
 }
