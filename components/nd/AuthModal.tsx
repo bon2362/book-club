@@ -30,7 +30,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   const [email, setEmail] = useState('')
   const [magicState, setMagicState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [showOther, setShowOther] = useState(false)
-  const [showWidget, setShowWidget] = useState(false)
   const [tgState, setTgState] = useState<'idle' | 'waiting'>('idle')
   const tgTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const [rememberedProvider, setRememberedProvider] = useState<RememberedAuthProvider | null>(null)
@@ -88,29 +87,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
-
-  // Load the Telegram widget script only when widget toggle is open
-  useEffect(() => {
-    if (!isOpen || !showWidget || !BOT_NAME) return
-
-    const container = document.getElementById('telegram-login-container')
-    if (!container) return
-
-    container.innerHTML = ''
-
-    const script = document.createElement('script')
-    script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.setAttribute('data-telegram-login', BOT_NAME)
-    script.setAttribute('data-size', 'large')
-    script.setAttribute('data-lang', 'ru')
-    script.setAttribute('data-auth-url', `${window.location.origin}/api/auth/telegram/callback`)
-    script.async = true
-    container.appendChild(script)
-
-    return () => {
-      container.innerHTML = ''
-    }
-  }, [isOpen, showWidget])
 
   useEffect(() => {
     if (!isOpen) return
@@ -314,32 +290,6 @@ export default function AuthModal({ isOpen, onClose }: Props) {
             </p>
           )}
 
-          {/* Widget fallback toggle */}
-          <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-            <button
-              onClick={() => setShowWidget(v => !v)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                fontSize: '0.65rem',
-                color: 'var(--text-muted)',
-                textDecoration: 'underline',
-                textDecorationColor: 'var(--border)',
-                textUnderlineOffset: '3px',
-                padding: 0,
-              }}
-            >
-              {showWidget ? 'скрыть виджет' : 'войти через виджет Telegram'}
-            </button>
-          </div>
-
-          {showWidget && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.75rem' }}>
-              <div id="telegram-login-container" style={{ display: 'flex', justifyContent: 'center' }} />
-            </div>
-          )}
         </div>
 
         {/* Other methods toggle */}
