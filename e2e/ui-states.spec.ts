@@ -92,7 +92,9 @@ test.describe('Home submit book CTA layout', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    const box = await page.getByTestId('submit-book-card').boundingBox()
+    // На мобильном видим именно мобильный каталог (десктоп-дерево скрыто
+    // media-query, но присутствует в DOM) — скоупим на видимый контейнер.
+    const box = await page.getByTestId('catalog-mobile').getByTestId('submit-book-card').boundingBox()
     expect(box).not.toBeNull()
     expect(box!.height).toBeLessThanOrEqual(96)
   })
@@ -128,10 +130,10 @@ test.describe('Home submit book CTA layout', () => {
     await page.getByPlaceholder('Поиск по названию или автору…').fill(book.title)
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
 
-    const submittedBadge = page.locator('[aria-label="Эта книга предложена участни:цей клуба"]')
+    const submittedBadge = page.getByTestId('catalog-mobile').locator('[aria-label="Эта книга предложена участни:цей клуба"]')
     await submittedBadge.click()
 
-    const tooltip = page.getByTestId('submitted-book-tooltip')
+    const tooltip = page.getByTestId('catalog-mobile').getByTestId('submitted-book-tooltip')
     await expect(tooltip).toBeVisible()
     await submittedBadge.click()
     await expect(tooltip).toBeVisible()
