@@ -407,8 +407,8 @@ export default function ProfileDrawer({
   const [linkEmail, setLinkEmail] = useState('')
   const [linkEmailSent, setLinkEmailSent] = useState(false)
   const [linkingError, setLinkingError] = useState('')
-  const [telegramLinkAuthUrl, setTelegramLinkAuthUrl] = useState<string | null>(null)
-  const hasTelegramIdentity = authIdentities.some(identity => identity.provider === 'telegram')
+  const [tgLinkState, setTgLinkState] = useState<'idle' | 'waiting'>('idle')
+  const tgLinkTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Toast ──
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -579,42 +579,51 @@ export default function ProfileDrawer({
       })
   }, [isOpen, activeTab, authIdentitiesLoaded])
 
-  useEffect(() => {
-    if (!isOpen || activeTab !== 'profile' || !authIdentitiesLoaded || hasTelegramIdentity || !TELEGRAM_BOT_NAME) return
-
-    let cancelled = false
-    fetch('/api/account/identities/telegram/state')
+  // Привязка Telegram через бота: чеканим link-nonce, открываем бота, опрашиваем /api/me
+  // пока Telegram не появится в способах входа. Куку/виджет не используем (iOS-safe).
+  function startTelegramLink() {
+    if (!TELEGRAM_BOT_NAME) return
+    setTgLinkState('waiting')
+    fetch('/api/account/identities/telegram/link-start', { method: 'POST' })
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!cancelled && typeof data?.authUrl === 'string') setTelegramLinkAuthUrl(data.authUrl)
+      .then((data: { nonce?: string } | null) => {
+        if (!data?.nonce) {
+          setTgLinkState('idle')
+          setToast({ message: 'Не удалось начать привязку', type: 'error' })
+          return
+        }
+        window.open(`https://t.me/${TELEGRAM_BOT_NAME}?start=link_${data.nonce}`, '_blank')
+        const started = Date.now()
+        if (tgLinkTimer.current) clearInterval(tgLinkTimer.current)
+        tgLinkTimer.current = setInterval(async () => {
+          if (Date.now() - started > 120000) {
+            if (tgLinkTimer.current) clearInterval(tgLinkTimer.current)
+            setTgLinkState('idle')
+            setToast({ message: 'Не удалось привязать. Проверьте сообщение в боте.', type: 'error' })
+            return
+          }
+          try {
+            const r = await fetch('/api/me')
+            const d = await r.json()
+            const methods: AuthIdentity[] = Array.isArray(d.user?.authMethods)
+              ? d.user.authMethods
+              : Array.isArray(d.user?.identities) ? d.user.identities : []
+            if (methods.some(m => m.provider === 'telegram')) {
+              if (tgLinkTimer.current) clearInterval(tgLinkTimer.current)
+              setAuthIdentities(methods)
+              setTgLinkState('idle')
+              setToast({ message: 'Telegram привязан', type: 'success' })
+            }
+          } catch { /* keep polling */ }
+        }, 2000)
       })
-      .catch(() => {})
+      .catch(() => {
+        setTgLinkState('idle')
+        setToast({ message: 'Не удалось начать привязку', type: 'error' })
+      })
+  }
 
-    return () => {
-      cancelled = true
-    }
-  }, [isOpen, activeTab, authIdentitiesLoaded, hasTelegramIdentity])
-
-  useEffect(() => {
-    if (!isOpen || activeTab !== 'profile' || !telegramLinkAuthUrl || hasTelegramIdentity || !TELEGRAM_BOT_NAME) return
-
-    const container = document.getElementById('telegram-link-container')
-    if (!container) return
-
-    container.innerHTML = ''
-    const script = document.createElement('script')
-    script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.setAttribute('data-telegram-login', TELEGRAM_BOT_NAME)
-    script.setAttribute('data-size', 'small')
-    script.setAttribute('data-lang', 'ru')
-    script.setAttribute('data-auth-url', telegramLinkAuthUrl)
-    script.async = true
-    container.appendChild(script)
-
-    return () => {
-      container.innerHTML = ''
-    }
-  }, [isOpen, activeTab, telegramLinkAuthUrl, hasTelegramIdentity])
+  useEffect(() => () => { if (tgLinkTimer.current) clearInterval(tgLinkTimer.current) }, [])
 
   // ── Keyboard + scroll lock ──
   useEffect(() => {
@@ -1625,16 +1634,26 @@ export default function ProfileDrawer({
                               {linkingEmailExpanded ? 'Скрыть' : 'Привязать'}
                             </button>
                           ) : method.provider === 'telegram' && TELEGRAM_BOT_NAME ? (
-                            <div
-                              id="telegram-link-container"
+                            <button
+                              type="button"
+                              onClick={startTelegramLink}
+                              disabled={tgLinkState === 'waiting'}
+                              data-testid="link-telegram-button"
                               style={{
                                 flexShrink: 0,
-                                minHeight: 28,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'flex-end',
+                                padding: '0.38rem 0.62rem',
+                                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                fontSize: '0.58rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.09em',
+                                background: tgLinkState === 'waiting' ? 'transparent' : 'var(--text)',
+                                color: tgLinkState === 'waiting' ? 'var(--text-secondary)' : 'var(--bg)',
+                                border: '1px solid var(--border-strong)',
+                                cursor: tgLinkState === 'waiting' ? 'default' : 'pointer',
                               }}
-                            />
+                            >
+                              {tgLinkState === 'waiting' ? 'Ждём…' : 'Привязать'}
+                            </button>
                           ) : (
                             <span style={{
                               flexShrink: 0,
