@@ -33,6 +33,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   const [showWidget, setShowWidget] = useState(false)
   const [tgState, setTgState] = useState<'idle' | 'waiting'>('idle')
   const tgTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  const tgWindow = useRef<Window | null>(null)
   const [rememberedProvider, setRememberedProvider] = useState<RememberedAuthProvider | null>(null)
 
   // Bot-login: открываем бота с nonce и опрашиваем сервер, пока вебхук не привяжет вход.
@@ -40,7 +41,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   function startTelegramBotLogin() {
     if (!BOT_NAME) return
     const nonce = crypto.randomUUID()
-    window.open(`https://t.me/${BOT_NAME}?start=${nonce}`, '_blank')
+    tgWindow.current = window.open(`https://t.me/${BOT_NAME}?start=${nonce}`, '_blank')
     track('auth_attempt', { provider: 'telegram' })
     setTgState('waiting')
     const started = Date.now()
@@ -56,6 +57,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         const d = await r.json()
         if (d.status === 'ok') {
           if (tgTimer.current) clearInterval(tgTimer.current)
+          try { tgWindow.current?.close() } catch { /* ignore */ }
           window.location.reload()
         }
       } catch { /* keep polling */ }
