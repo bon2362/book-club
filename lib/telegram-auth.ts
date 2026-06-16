@@ -59,6 +59,13 @@ export async function createTelegramPreauthToken(userId: string, now = new Date(
   return { token, expiresAt }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function bindTelegramLoginNonce(nonce: string, userId: string, now = new Date()): Promise<void> {
+  const tokenHash = hashTelegramPreauthToken(nonce)
+  const expiresAt = new Date(now.getTime() + TELEGRAM_PREAUTH_TTL_SECONDS * 1000)
+  await db.insert(telegramPreauthTokens).values({ tokenHash, userId, expiresAt }).onConflictDoNothing()
+}
+
 export async function consumeTelegramPreauthToken(token: string, now = new Date()): Promise<string | null> {
   const tokenHash = hashTelegramPreauthToken(token)
   const [row] = await db

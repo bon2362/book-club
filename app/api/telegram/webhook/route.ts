@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
-import { createTelegramPreauthToken } from '@/lib/telegram-auth'
+import { bindTelegramLoginNonce } from '@/lib/telegram-auth'
 import { sendTelegramMessage } from '@/lib/telegram-bot'
 
 export const dynamic = 'force-dynamic'
@@ -16,18 +16,22 @@ export async function POST(req: NextRequest) {
   const text = msg?.text ?? ''
   const from = msg?.from
   if (!from?.id || !text.startsWith('/start')) return NextResponse.json({ ok: true })
+  const nonce = text.trim().split(/\s+/)[1]
   try {
+    if (!nonce) {
+      await sendTelegramMessage(from.id, 'Откройте slowreading.club и нажмите «Войти через Telegram».')
+      return NextResponse.json({ ok: true })
+    }
     const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || String(from.id)
     const user = await resolveOrCreateUserFromIdentity('telegram', String(from.id), {
       name, telegramUsername: from.username ?? null, metadata: { source: 'telegram-bot' },
     })
-    const { token } = await createTelegramPreauthToken(user.id)
-    const loginUrl = `${process.env.NEXTAUTH_URL}/api/auth/telegram/login?token=${token}`
-    await sendTelegramMessage(from.id, 'Нажмите кнопку ниже, чтобы войти на slowreading.club 👇', loginUrl)
+    await bindTelegramLoginNonce(nonce, user.id)
+    await sendTelegramMessage(from.id, '✅ Готово! Вернитесь в браузер — вы уже вошли.')
     console.log('[telegram-webhook] ok', { userId: user.id, tgId: String(from.id) })
   } catch (e) {
     console.error('[telegram-webhook] error', { errorName: (e as Error)?.name })
-    await sendTelegramMessage(from.id, 'Не удалось войти, попробуйте позже.', `${process.env.NEXTAUTH_URL}/`)
+    await sendTelegramMessage(from.id, 'Не удалось войти, попробуйте позже.')
   }
   return NextResponse.json({ ok: true })
 }

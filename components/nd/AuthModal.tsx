@@ -31,7 +31,38 @@ export default function AuthModal({ isOpen, onClose }: Props) {
   const [magicState, setMagicState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
   const [showOther, setShowOther] = useState(false)
   const [showWidget, setShowWidget] = useState(false)
+  const [tgState, setTgState] = useState<'idle' | 'waiting'>('idle')
+  const tgTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const [rememberedProvider, setRememberedProvider] = useState<RememberedAuthProvider | null>(null)
+
+  // Bot-login: открываем бота с nonce и опрашиваем сервер, пока вебхук не привяжет вход.
+  // Куку ставит ответ на наш poll — т.е. в ЭТОМ браузере (а не во встроенном браузере Telegram).
+  function startTelegramBotLogin() {
+    if (!BOT_NAME) return
+    const nonce = crypto.randomUUID()
+    window.open(`https://t.me/${BOT_NAME}?start=${nonce}`, '_blank')
+    track('auth_attempt', { provider: 'telegram' })
+    setTgState('waiting')
+    const started = Date.now()
+    if (tgTimer.current) clearInterval(tgTimer.current)
+    tgTimer.current = setInterval(async () => {
+      if (Date.now() - started > 120000) {
+        if (tgTimer.current) clearInterval(tgTimer.current)
+        setTgState('idle')
+        return
+      }
+      try {
+        const r = await fetch(`/api/auth/telegram/poll?nonce=${nonce}`)
+        const d = await r.json()
+        if (d.status === 'ok') {
+          if (tgTimer.current) clearInterval(tgTimer.current)
+          window.location.reload()
+        }
+      } catch { /* keep polling */ }
+    }, 2000)
+  }
+
+  useEffect(() => () => { if (tgTimer.current) clearInterval(tgTimer.current) }, [])
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -241,11 +272,9 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ position: 'relative' }}>
             {rememberedProvider === 'telegram' && renderRememberedBadge({ top: '-0.7rem', right: '-0.5rem' })}
-            <a
-              href={BOT_NAME ? `https://t.me/${BOT_NAME}?start=login` : '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => track('auth_attempt', { provider: 'telegram' })}
+            <button
+              onClick={startTelegramBotLogin}
+              disabled={tgState === 'waiting'}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -257,20 +286,33 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                 fontSize: '0.8rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-                cursor: 'pointer',
+                cursor: tgState === 'waiting' ? 'default' : 'pointer',
                 border: '1px solid var(--border-strong)',
                 background: 'var(--text)',
                 color: 'var(--bg)',
-                textDecoration: 'none',
                 boxSizing: 'border-box',
+                opacity: tgState === 'waiting' ? 0.7 : 1,
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }} fill="currentColor">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.09 14.06l-2.945-.917c-.64-.203-.658-.64.136-.954l11.57-4.46c.537-.194 1.006.131.843.492z"/>
               </svg>
-              <span>Войти через Telegram</span>
-            </a>
+              <span>{tgState === 'waiting' ? 'Ждём подтверждения…' : 'Войти через Telegram'}</span>
+            </button>
           </div>
+
+          {tgState === 'waiting' && (
+            <p style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.72rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5,
+              margin: '0.6rem 0 0',
+              textAlign: 'center',
+            }}>
+              Откройте бота, нажмите Start и вернитесь сюда — вход произойдёт автоматически.
+            </p>
+          )}
 
           {/* Widget fallback toggle */}
           <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
