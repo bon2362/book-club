@@ -1,0 +1,2348 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Читательские круги
+      - link "Долгое наступление" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - button "Предложить книгу" [ref=e9] [cursor=pointer]
+        - button "Войти" [ref=e10] [cursor=pointer]
+  - region "Читательские круги" [ref=e11] [cursor=pointer]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: Что это
+      - generic [ref=e14]:
+        - paragraph [ref=e16]: Мы собираемся группами по 3-4 человека читать книги по демократии
+        - generic [ref=e17]:
+          - button "Подробнее ↓" [ref=e18]
+          - button "×" [ref=e19]
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - searchbox "Поиск по названию или автору…" [ref=e23]
+      - button "Переключить в сетку" [ref=e24] [cursor=pointer]:
+        - img [ref=e25]
+    - generic [ref=e30]:
+      - combobox [ref=e31] [cursor=pointer]:
+        - 'option "Тема: все" [selected]'
+        - option "Государство"
+        - option "Демократия"
+        - option "Капитализм"
+        - option "Левая идея"
+        - option "Народные движения"
+        - option "Путинизм"
+        - option "государство"
+      - combobox [ref=e32] [cursor=pointer]:
+        - 'option "Автор: все" [selected]'
+        - option "Armin Schäfer"
+        - option "Benjamin R. Barber"
+        - option "Bernard Manin"
+        - option "C. B. Macpherson"
+        - option "Charles Mills"
+        - option "Charles Tilly"
+        - option "CrimethInc"
+        - option "Daniel Treisman"
+        - option "Daron Acemoglu"
+        - option "David Graeber"
+        - option "David Harvey"
+        - option "David Wengrow"
+        - option "E2E Author"
+        - option "E2E Автор"
+        - option "Filler Author"
+        - option "Giovanni Arrighi"
+        - option "Howard Zinn"
+        - option "Immanuel Wallerstein"
+        - option "James A. Robinson"
+        - option "James Scott"
+        - option "Jean Baudrillard"
+        - option "John Stuart Mill"
+        - option "Karl Polanyi"
+        - option "Layout Author"
+        - option "Marijana Macukato"
+        - option "Murray Bookchin"
+        - option "Naomi Klein"
+        - option "Patrick Champagne"
+        - option "Paul Krugman"
+        - option "Peter Gelderloos"
+        - option "Peter Mair"
+        - option "Pierre Bourdieu"
+        - option "Quentin Skinner"
+        - option "Robert Darnton"
+        - option "Schattschneider"
+        - option "Sidney Tarrow"
+        - option "Thomas Piketty"
+        - option "Wolfgang Streeck"
+        - option "Алексей Навальный"
+        - option "Артемий Магун"
+        - option "Борис Кагарлицкий"
+        - option "Вадим Волков"
+        - option "Владимир Гельман"
+        - option "Екатерина Шульман"
+        - option "Елена Костюченко"
+        - option "Роман Тиса"
+        - option "Сергей Гуриев"
+        - option "Теодор Шанин"
+      - button "Новинки" [ref=e33] [cursor=pointer]
+      - button "Прочитанные" [ref=e34] [cursor=pointer]
+  - main [ref=e35]:
+    - table [ref=e37]:
+      - rowgroup [ref=e38]:
+        - row "+ Предложить книгу" [ref=e39]:
+          - cell "+ Предложить книгу" [ref=e40]:
+            - button "+ Предложить книгу" [ref=e41] [cursor=pointer]
+        - row "AAA Book sort-low 2024 E2E Author 100 стр. Хочу читать" [ref=e42]:
+          - cell [ref=e43]
+          - cell "AAA Book sort-low 2024 E2E Author" [ref=e44]:
+            - generic [ref=e45]:
+              - generic [ref=e46]: AAA Book sort-low
+              - generic [ref=e47]: "2024"
+            - generic [ref=e48]: E2E Author
+          - cell [ref=e49]
+          - cell "100 стр." [ref=e50]:
+            - generic [ref=e52]: 100 стр.
+          - cell [ref=e53]
+          - cell "Хочу читать" [ref=e54]:
+            - button "Хочу читать" [ref=e55] [cursor=pointer]
+        - row "E2E Admin Users Book B 0-0-1779991072799 2024 E2E Author 100 стр. Хочу читать" [ref=e56]:
+          - cell [ref=e57]
+          - cell "E2E Admin Users Book B 0-0-1779991072799 2024 E2E Author" [ref=e58]:
+            - generic [ref=e59]:
+              - generic [ref=e60]: E2E Admin Users Book B 0-0-1779991072799
+              - generic [ref=e61]: "2024"
+            - generic [ref=e62]: E2E Author
+          - cell [ref=e63]
+          - cell "100 стр." [ref=e64]:
+            - generic [ref=e66]: 100 стр.
+          - cell [ref=e67]
+          - cell "Хочу читать" [ref=e68]:
+            - button "Хочу читать" [ref=e69] [cursor=pointer]
+        - row "E2E Admin Users Book A 0-0-1779991072799 2024 E2E Author 100 стр. Хочу читать" [ref=e70]:
+          - cell [ref=e71]
+          - cell "E2E Admin Users Book A 0-0-1779991072799 2024 E2E Author" [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]: E2E Admin Users Book A 0-0-1779991072799
+              - generic [ref=e75]: "2024"
+            - generic [ref=e76]: E2E Author
+          - cell [ref=e77]
+          - cell "100 стр." [ref=e78]:
+            - generic [ref=e80]: 100 стр.
+          - cell [ref=e81]
+          - cell "Хочу читать" [ref=e82]:
+            - button "Хочу читать" [ref=e83] [cursor=pointer]
+        - row "ZZZ Book sort-high 2024 E2E Author 100 стр. Хочу читать" [ref=e84]:
+          - cell [ref=e85]
+          - cell "ZZZ Book sort-high 2024 E2E Author" [ref=e86]:
+            - generic [ref=e87]:
+              - generic [ref=e88]: ZZZ Book sort-high
+              - generic [ref=e89]: "2024"
+            - generic [ref=e90]: E2E Author
+          - cell [ref=e91]
+          - cell "100 стр." [ref=e92]:
+            - generic [ref=e94]: 100 стр.
+          - cell [ref=e95]
+          - cell "Хочу читать" [ref=e96]:
+            - button "Хочу читать" [ref=e97] [cursor=pointer]
+        - row "UI Move 1780237583509 2024 Layout Author 100 стр. Хочу читать" [ref=e98]:
+          - cell [ref=e99]
+          - cell "UI Move 1780237583509 2024 Layout Author" [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]: UI Move 1780237583509
+              - generic [ref=e103]: "2024"
+            - generic [ref=e104]: Layout Author
+          - cell [ref=e105]
+          - cell "100 стр." [ref=e106]:
+            - generic [ref=e108]: 100 стр.
+          - cell [ref=e109]
+          - cell "Хочу читать" [ref=e110]:
+            - button "Хочу читать" [ref=e111] [cursor=pointer]
+        - row "UI Circle 1780237583417 2024 Layout Author 100 стр. Хочу читать" [ref=e112]:
+          - cell [ref=e113]
+          - cell "UI Circle 1780237583417 2024 Layout Author" [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]: UI Circle 1780237583417
+              - generic [ref=e117]: "2024"
+            - generic [ref=e118]: Layout Author
+          - cell [ref=e119]
+          - cell "100 стр." [ref=e120]:
+            - generic [ref=e122]: 100 стр.
+          - cell [ref=e123]
+          - cell "Хочу читать" [ref=e124]:
+            - button "Хочу читать" [ref=e125] [cursor=pointer]
+        - 'row "E2E Book be9949n7dfi8 #0 2024 E2E Author государство 100 стр. Хочу читать" [ref=e126]':
+          - cell [ref=e127]
+          - 'cell "E2E Book be9949n7dfi8 #0 2024 E2E Author" [ref=e128]':
+            - generic [ref=e129]:
+              - generic [ref=e130]: "E2E Book be9949n7dfi8 #0"
+              - generic [ref=e131]: "2024"
+            - generic [ref=e132]: E2E Author
+          - cell "государство" [ref=e133]:
+            - generic [ref=e135]: государство
+          - cell "100 стр." [ref=e136]:
+            - generic [ref=e138]: 100 стр.
+          - cell [ref=e139]
+          - cell "Хочу читать" [ref=e140]:
+            - button "Хочу читать" [ref=e141] [cursor=pointer]
+        - row "AAA Book sort-low 2024 E2E Author 100 стр. Хочу читать" [ref=e142]:
+          - cell [ref=e143]
+          - cell "AAA Book sort-low 2024 E2E Author" [ref=e144]:
+            - generic [ref=e145]:
+              - generic [ref=e146]: AAA Book sort-low
+              - generic [ref=e147]: "2024"
+            - generic [ref=e148]: E2E Author
+          - cell [ref=e149]
+          - cell "100 стр." [ref=e150]:
+            - generic [ref=e152]: 100 стр.
+          - cell [ref=e153]
+          - cell "Хочу читать" [ref=e154]:
+            - button "Хочу читать" [ref=e155] [cursor=pointer]
+        - 'row "E2E Book be99490zvcau #0 2024 E2E Author государство 100 стр. Хочу читать" [ref=e156]':
+          - cell [ref=e157]
+          - 'cell "E2E Book be99490zvcau #0 2024 E2E Author" [ref=e158]':
+            - generic [ref=e159]:
+              - generic [ref=e160]: "E2E Book be99490zvcau #0"
+              - generic [ref=e161]: "2024"
+            - generic [ref=e162]: E2E Author
+          - cell "государство" [ref=e163]:
+            - generic [ref=e165]: государство
+          - cell "100 стр." [ref=e166]:
+            - generic [ref=e168]: 100 стр.
+          - cell [ref=e169]
+          - cell "Хочу читать" [ref=e170]:
+            - button "Хочу читать" [ref=e171] [cursor=pointer]
+        - row "ZZZ Book sort-high 2024 E2E Author 100 стр. Хочу читать" [ref=e172]:
+          - cell [ref=e173]
+          - cell "ZZZ Book sort-high 2024 E2E Author" [ref=e174]:
+            - generic [ref=e175]:
+              - generic [ref=e176]: ZZZ Book sort-high
+              - generic [ref=e177]: "2024"
+            - generic [ref=e178]: E2E Author
+          - cell [ref=e179]
+          - cell "100 стр." [ref=e180]:
+            - generic [ref=e182]: 100 стр.
+          - cell [ref=e183]
+          - cell "Хочу читать" [ref=e184]:
+            - button "Хочу читать" [ref=e185] [cursor=pointer]
+        - row "E2E Victim Book 1779992008528 2024 E2E Author 100 стр. Хочу читать" [ref=e186]:
+          - cell [ref=e187]
+          - cell "E2E Victim Book 1779992008528 2024 E2E Author" [ref=e188]:
+            - generic [ref=e189]:
+              - generic [ref=e190]: E2E Victim Book 1779992008528
+              - generic [ref=e191]: "2024"
+            - generic [ref=e192]: E2E Author
+          - cell [ref=e193]
+          - cell "100 стр." [ref=e194]:
+            - generic [ref=e196]: 100 стр.
+          - cell [ref=e197]
+          - cell "Хочу читать" [ref=e198]:
+            - button "Хочу читать" [ref=e199] [cursor=pointer]
+        - 'row "E2E Book be994998p02p #0 2024 E2E Author государство 100 стр. Хочу читать" [ref=e200]':
+          - cell [ref=e201]
+          - 'cell "E2E Book be994998p02p #0 2024 E2E Author" [ref=e202]':
+            - generic [ref=e203]:
+              - generic [ref=e204]: "E2E Book be994998p02p #0"
+              - generic [ref=e205]: "2024"
+            - generic [ref=e206]: E2E Author
+          - cell "государство" [ref=e207]:
+            - generic [ref=e209]: государство
+          - cell "100 стр." [ref=e210]:
+            - generic [ref=e212]: 100 стр.
+          - cell [ref=e213]
+          - cell "Хочу читать" [ref=e214]:
+            - button "Хочу читать" [ref=e215] [cursor=pointer]
+        - 'row "E2E Book be9949tafu7p #0 2024 E2E Author государство 100 стр. Хочу читать" [ref=e216]':
+          - cell [ref=e217]
+          - 'cell "E2E Book be9949tafu7p #0 2024 E2E Author" [ref=e218]':
+            - generic [ref=e219]:
+              - generic [ref=e220]: "E2E Book be9949tafu7p #0"
+              - generic [ref=e221]: "2024"
+            - generic [ref=e222]: E2E Author
+          - cell "государство" [ref=e223]:
+            - generic [ref=e225]: государство
+          - cell "100 стр." [ref=e226]:
+            - generic [ref=e228]: 100 стр.
+          - cell [ref=e229]
+          - cell "Хочу читать" [ref=e230]:
+            - button "Хочу читать" [ref=e231] [cursor=pointer]
+        - row "ZZZ Book sort-high 2024 E2E Author 100 стр. Хочу читать" [ref=e232]:
+          - cell [ref=e233]
+          - cell "ZZZ Book sort-high 2024 E2E Author" [ref=e234]:
+            - generic [ref=e235]:
+              - generic [ref=e236]: ZZZ Book sort-high
+              - generic [ref=e237]: "2024"
+            - generic [ref=e238]: E2E Author
+          - cell [ref=e239]
+          - cell "100 стр." [ref=e240]:
+            - generic [ref=e242]: 100 стр.
+          - cell [ref=e243]
+          - cell "Хочу читать" [ref=e244]:
+            - button "Хочу читать" [ref=e245] [cursor=pointer]
+        - row "AAA Book sort-low 2024 E2E Author 100 стр. Хочу читать" [ref=e246]:
+          - cell [ref=e247]
+          - cell "AAA Book sort-low 2024 E2E Author" [ref=e248]:
+            - generic [ref=e249]:
+              - generic [ref=e250]: AAA Book sort-low
+              - generic [ref=e251]: "2024"
+            - generic [ref=e252]: E2E Author
+          - cell [ref=e253]
+          - cell "100 стр." [ref=e254]:
+            - generic [ref=e256]: 100 стр.
+          - cell [ref=e257]
+          - cell "Хочу читать" [ref=e258]:
+            - button "Хочу читать" [ref=e259] [cursor=pointer]
+        - row "E2E Filler B bda32326707131a1f0cd-506c54e2c09c661d680b 2024 Filler Author 100 стр. Хочу читать" [ref=e260]:
+          - cell [ref=e261]
+          - cell "E2E Filler B bda32326707131a1f0cd-506c54e2c09c661d680b 2024 Filler Author" [ref=e262]:
+            - generic [ref=e263]:
+              - generic [ref=e264]: E2E Filler B bda32326707131a1f0cd-506c54e2c09c661d680b
+              - generic [ref=e265]: "2024"
+            - generic [ref=e266]: Filler Author
+          - cell [ref=e267]
+          - cell "100 стр." [ref=e268]:
+            - generic [ref=e270]: 100 стр.
+          - cell [ref=e271]
+          - cell "Хочу читать" [ref=e272]:
+            - button "Хочу читать" [ref=e273] [cursor=pointer]
+        - row "E2E Auto Signup 1781612943631 Новая E2E Автор Хочу читать" [ref=e274]:
+          - cell [ref=e275]
+          - cell "E2E Auto Signup 1781612943631 Новая E2E Автор" [ref=e276]:
+            - generic [ref=e277]:
+              - generic [ref=e278]: E2E Auto Signup 1781612943631
+              - generic [ref=e279]: Новая
+            - generic [ref=e280]: E2E Автор
+          - cell [ref=e281]
+          - cell [ref=e282]
+          - cell [ref=e283]
+          - cell "Хочу читать" [ref=e284]:
+            - button "Хочу читать" [ref=e285] [cursor=pointer]
+        - row "E2E Auto Signup 1781583497500 Новая E2E Автор Хочу читать" [ref=e286]:
+          - cell [ref=e287]
+          - cell "E2E Auto Signup 1781583497500 Новая E2E Автор" [ref=e288]:
+            - generic [ref=e289]:
+              - generic [ref=e290]: E2E Auto Signup 1781583497500
+              - generic [ref=e291]: Новая
+            - generic [ref=e292]: E2E Автор
+          - cell [ref=e293]
+          - cell [ref=e294]
+          - cell [ref=e295]
+          - cell "Хочу читать" [ref=e296]:
+            - button "Хочу читать" [ref=e297] [cursor=pointer]
+        - row "E2E Auto Signup 1781497719296 Новая E2E Автор Хочу читать" [ref=e298]:
+          - cell [ref=e299]
+          - cell "E2E Auto Signup 1781497719296 Новая E2E Автор" [ref=e300]:
+            - generic [ref=e301]:
+              - generic [ref=e302]: E2E Auto Signup 1781497719296
+              - generic [ref=e303]: Новая
+            - generic [ref=e304]: E2E Автор
+          - cell [ref=e305]
+          - cell [ref=e306]
+          - cell [ref=e307]
+          - cell "Хочу читать" [ref=e308]:
+            - button "Хочу читать" [ref=e309] [cursor=pointer]
+        - row "E2E Auto Signup 1781462958147 Новая E2E Автор Хочу читать" [ref=e310]:
+          - cell [ref=e311]
+          - cell "E2E Auto Signup 1781462958147 Новая E2E Автор" [ref=e312]:
+            - generic [ref=e313]:
+              - generic [ref=e314]: E2E Auto Signup 1781462958147
+              - generic [ref=e315]: Новая
+            - generic [ref=e316]: E2E Автор
+          - cell [ref=e317]
+          - cell [ref=e318]
+          - cell [ref=e319]
+          - cell "Хочу читать" [ref=e320]:
+            - button "Хочу читать" [ref=e321] [cursor=pointer]
+        - row "E2E Auto Signup 1781460382024 Новая E2E Автор Хочу читать" [ref=e322]:
+          - cell [ref=e323]
+          - cell "E2E Auto Signup 1781460382024 Новая E2E Автор" [ref=e324]:
+            - generic [ref=e325]:
+              - generic [ref=e326]: E2E Auto Signup 1781460382024
+              - generic [ref=e327]: Новая
+            - generic [ref=e328]: E2E Автор
+          - cell [ref=e329]
+          - cell [ref=e330]
+          - cell [ref=e331]
+          - cell "Хочу читать" [ref=e332]:
+            - button "Хочу читать" [ref=e333] [cursor=pointer]
+        - row "E2E Auto Signup 1781410359695 Новая E2E Автор Хочу читать" [ref=e334]:
+          - cell [ref=e335]
+          - cell "E2E Auto Signup 1781410359695 Новая E2E Автор" [ref=e336]:
+            - generic [ref=e337]:
+              - generic [ref=e338]: E2E Auto Signup 1781410359695
+              - generic [ref=e339]: Новая
+            - generic [ref=e340]: E2E Автор
+          - cell [ref=e341]
+          - cell [ref=e342]
+          - cell [ref=e343]
+          - cell "Хочу читать" [ref=e344]:
+            - button "Хочу читать" [ref=e345] [cursor=pointer]
+        - row "E2E Auto Signup 1781322904554 Новая E2E Автор Хочу читать" [ref=e346]:
+          - cell [ref=e347]
+          - cell "E2E Auto Signup 1781322904554 Новая E2E Автор" [ref=e348]:
+            - generic [ref=e349]:
+              - generic [ref=e350]: E2E Auto Signup 1781322904554
+              - generic [ref=e351]: Новая
+            - generic [ref=e352]: E2E Автор
+          - cell [ref=e353]
+          - cell [ref=e354]
+          - cell [ref=e355]
+          - cell "Хочу читать" [ref=e356]:
+            - button "Хочу читать" [ref=e357] [cursor=pointer]
+        - row "E2E Auto Signup 1781258082878 Новая E2E Автор Хочу читать" [ref=e358]:
+          - cell [ref=e359]
+          - cell "E2E Auto Signup 1781258082878 Новая E2E Автор" [ref=e360]:
+            - generic [ref=e361]:
+              - generic [ref=e362]: E2E Auto Signup 1781258082878
+              - generic [ref=e363]: Новая
+            - generic [ref=e364]: E2E Автор
+          - cell [ref=e365]
+          - cell [ref=e366]
+          - cell [ref=e367]
+          - cell "Хочу читать" [ref=e368]:
+            - button "Хочу читать" [ref=e369] [cursor=pointer]
+        - row "E2E Auto Signup 1781256999490 Новая E2E Автор Хочу читать" [ref=e370]:
+          - cell [ref=e371]
+          - cell "E2E Auto Signup 1781256999490 Новая E2E Автор" [ref=e372]:
+            - generic [ref=e373]:
+              - generic [ref=e374]: E2E Auto Signup 1781256999490
+              - generic [ref=e375]: Новая
+            - generic [ref=e376]: E2E Автор
+          - cell [ref=e377]
+          - cell [ref=e378]
+          - cell [ref=e379]
+          - cell "Хочу читать" [ref=e380]:
+            - button "Хочу читать" [ref=e381] [cursor=pointer]
+        - row "E2E Auto Signup 1781255779327 Новая E2E Автор Хочу читать" [ref=e382]:
+          - cell [ref=e383]
+          - cell "E2E Auto Signup 1781255779327 Новая E2E Автор" [ref=e384]:
+            - generic [ref=e385]:
+              - generic [ref=e386]: E2E Auto Signup 1781255779327
+              - generic [ref=e387]: Новая
+            - generic [ref=e388]: E2E Автор
+          - cell [ref=e389]
+          - cell [ref=e390]
+          - cell [ref=e391]
+          - cell "Хочу читать" [ref=e392]:
+            - button "Хочу читать" [ref=e393] [cursor=pointer]
+        - row "E2E Auto Signup 1781254570899 Новая E2E Автор Хочу читать" [ref=e394]:
+          - cell [ref=e395]
+          - cell "E2E Auto Signup 1781254570899 Новая E2E Автор" [ref=e396]:
+            - generic [ref=e397]:
+              - generic [ref=e398]: E2E Auto Signup 1781254570899
+              - generic [ref=e399]: Новая
+            - generic [ref=e400]: E2E Автор
+          - cell [ref=e401]
+          - cell [ref=e402]
+          - cell [ref=e403]
+          - cell "Хочу читать" [ref=e404]:
+            - button "Хочу читать" [ref=e405] [cursor=pointer]
+        - row "E2E Auto Signup 1781253383621 Новая E2E Автор Хочу читать" [ref=e406]:
+          - cell [ref=e407]
+          - cell "E2E Auto Signup 1781253383621 Новая E2E Автор" [ref=e408]:
+            - generic [ref=e409]:
+              - generic [ref=e410]: E2E Auto Signup 1781253383621
+              - generic [ref=e411]: Новая
+            - generic [ref=e412]: E2E Автор
+          - cell [ref=e413]
+          - cell [ref=e414]
+          - cell [ref=e415]
+          - cell "Хочу читать" [ref=e416]:
+            - button "Хочу читать" [ref=e417] [cursor=pointer]
+        - row "E2E Auto Signup 1781252256268 Новая E2E Автор Хочу читать" [ref=e418]:
+          - cell [ref=e419]
+          - cell "E2E Auto Signup 1781252256268 Новая E2E Автор" [ref=e420]:
+            - generic [ref=e421]:
+              - generic [ref=e422]: E2E Auto Signup 1781252256268
+              - generic [ref=e423]: Новая
+            - generic [ref=e424]: E2E Автор
+          - cell [ref=e425]
+          - cell [ref=e426]
+          - cell [ref=e427]
+          - cell "Хочу читать" [ref=e428]:
+            - button "Хочу читать" [ref=e429] [cursor=pointer]
+        - row "E2E Auto Signup 1781249935439 Новая E2E Автор Хочу читать" [ref=e430]:
+          - cell [ref=e431]
+          - cell "E2E Auto Signup 1781249935439 Новая E2E Автор" [ref=e432]:
+            - generic [ref=e433]:
+              - generic [ref=e434]: E2E Auto Signup 1781249935439
+              - generic [ref=e435]: Новая
+            - generic [ref=e436]: E2E Автор
+          - cell [ref=e437]
+          - cell [ref=e438]
+          - cell [ref=e439]
+          - cell "Хочу читать" [ref=e440]:
+            - button "Хочу читать" [ref=e441] [cursor=pointer]
+        - row "E2E Auto Signup 1781248221388 Новая E2E Автор Хочу читать" [ref=e442]:
+          - cell [ref=e443]
+          - cell "E2E Auto Signup 1781248221388 Новая E2E Автор" [ref=e444]:
+            - generic [ref=e445]:
+              - generic [ref=e446]: E2E Auto Signup 1781248221388
+              - generic [ref=e447]: Новая
+            - generic [ref=e448]: E2E Автор
+          - cell [ref=e449]
+          - cell [ref=e450]
+          - cell [ref=e451]
+          - cell "Хочу читать" [ref=e452]:
+            - button "Хочу читать" [ref=e453] [cursor=pointer]
+        - row "E2E Auto Signup 1781245231024 Новая E2E Автор Хочу читать" [ref=e454]:
+          - cell [ref=e455]
+          - cell "E2E Auto Signup 1781245231024 Новая E2E Автор" [ref=e456]:
+            - generic [ref=e457]:
+              - generic [ref=e458]: E2E Auto Signup 1781245231024
+              - generic [ref=e459]: Новая
+            - generic [ref=e460]: E2E Автор
+          - cell [ref=e461]
+          - cell [ref=e462]
+          - cell [ref=e463]
+          - cell "Хочу читать" [ref=e464]:
+            - button "Хочу читать" [ref=e465] [cursor=pointer]
+        - row "E2E Auto Signup 1781237377249 Новая E2E Автор Хочу читать" [ref=e466]:
+          - cell [ref=e467]
+          - cell "E2E Auto Signup 1781237377249 Новая E2E Автор" [ref=e468]:
+            - generic [ref=e469]:
+              - generic [ref=e470]: E2E Auto Signup 1781237377249
+              - generic [ref=e471]: Новая
+            - generic [ref=e472]: E2E Автор
+          - cell [ref=e473]
+          - cell [ref=e474]
+          - cell [ref=e475]
+          - cell "Хочу читать" [ref=e476]:
+            - button "Хочу читать" [ref=e477] [cursor=pointer]
+        - row "E2E Auto Signup 1781150920647 Новая E2E Автор Хочу читать" [ref=e478]:
+          - cell [ref=e479]
+          - cell "E2E Auto Signup 1781150920647 Новая E2E Автор" [ref=e480]:
+            - generic [ref=e481]:
+              - generic [ref=e482]: E2E Auto Signup 1781150920647
+              - generic [ref=e483]: Новая
+            - generic [ref=e484]: E2E Автор
+          - cell [ref=e485]
+          - cell [ref=e486]
+          - cell [ref=e487]
+          - cell "Хочу читать" [ref=e488]:
+            - button "Хочу читать" [ref=e489] [cursor=pointer]
+        - row "E2E Auto Signup 1781063528449 Новая E2E Автор Хочу читать" [ref=e490]:
+          - cell [ref=e491]
+          - cell "E2E Auto Signup 1781063528449 Новая E2E Автор" [ref=e492]:
+            - generic [ref=e493]:
+              - generic [ref=e494]: E2E Auto Signup 1781063528449
+              - generic [ref=e495]: Новая
+            - generic [ref=e496]: E2E Автор
+          - cell [ref=e497]
+          - cell [ref=e498]
+          - cell [ref=e499]
+          - cell "Хочу читать" [ref=e500]:
+            - button "Хочу читать" [ref=e501] [cursor=pointer]
+        - row "E2E Auto Signup 1780976376901 Новая E2E Автор Хочу читать" [ref=e502]:
+          - cell [ref=e503]
+          - cell "E2E Auto Signup 1780976376901 Новая E2E Автор" [ref=e504]:
+            - generic [ref=e505]:
+              - generic [ref=e506]: E2E Auto Signup 1780976376901
+              - generic [ref=e507]: Новая
+            - generic [ref=e508]: E2E Автор
+          - cell [ref=e509]
+          - cell [ref=e510]
+          - cell [ref=e511]
+          - cell "Хочу читать" [ref=e512]:
+            - button "Хочу читать" [ref=e513] [cursor=pointer]
+        - row "E2E Auto Signup 1780907401660 Новая E2E Автор Хочу читать" [ref=e514]:
+          - cell [ref=e515]
+          - cell "E2E Auto Signup 1780907401660 Новая E2E Автор" [ref=e516]:
+            - generic [ref=e517]:
+              - generic [ref=e518]: E2E Auto Signup 1780907401660
+              - generic [ref=e519]: Новая
+            - generic [ref=e520]: E2E Автор
+          - cell [ref=e521]
+          - cell [ref=e522]
+          - cell [ref=e523]
+          - cell "Хочу читать" [ref=e524]:
+            - button "Хочу читать" [ref=e525] [cursor=pointer]
+        - row "E2E Auto Signup 1780905369045 Новая E2E Автор Хочу читать" [ref=e526]:
+          - cell [ref=e527]
+          - cell "E2E Auto Signup 1780905369045 Новая E2E Автор" [ref=e528]:
+            - generic [ref=e529]:
+              - generic [ref=e530]: E2E Auto Signup 1780905369045
+              - generic [ref=e531]: Новая
+            - generic [ref=e532]: E2E Автор
+          - cell [ref=e533]
+          - cell [ref=e534]
+          - cell [ref=e535]
+          - cell "Хочу читать" [ref=e536]:
+            - button "Хочу читать" [ref=e537] [cursor=pointer]
+        - row "E2E Auto Signup 1780904490186 Новая E2E Автор Хочу читать" [ref=e538]:
+          - cell [ref=e539]
+          - cell "E2E Auto Signup 1780904490186 Новая E2E Автор" [ref=e540]:
+            - generic [ref=e541]:
+              - generic [ref=e542]: E2E Auto Signup 1780904490186
+              - generic [ref=e543]: Новая
+            - generic [ref=e544]: E2E Автор
+          - cell [ref=e545]
+          - cell [ref=e546]
+          - cell [ref=e547]
+          - cell "Хочу читать" [ref=e548]:
+            - button "Хочу читать" [ref=e549] [cursor=pointer]
+        - row "E2E Auto Signup 1780903579281 Новая E2E Автор Хочу читать" [ref=e550]:
+          - cell [ref=e551]
+          - cell "E2E Auto Signup 1780903579281 Новая E2E Автор" [ref=e552]:
+            - generic [ref=e553]:
+              - generic [ref=e554]: E2E Auto Signup 1780903579281
+              - generic [ref=e555]: Новая
+            - generic [ref=e556]: E2E Автор
+          - cell [ref=e557]
+          - cell [ref=e558]
+          - cell [ref=e559]
+          - cell "Хочу читать" [ref=e560]:
+            - button "Хочу читать" [ref=e561] [cursor=pointer]
+        - row "E2E Auto Signup 1780891864126 Новая E2E Автор Хочу читать" [ref=e562]:
+          - cell [ref=e563]
+          - cell "E2E Auto Signup 1780891864126 Новая E2E Автор" [ref=e564]:
+            - generic [ref=e565]:
+              - generic [ref=e566]: E2E Auto Signup 1780891864126
+              - generic [ref=e567]: Новая
+            - generic [ref=e568]: E2E Автор
+          - cell [ref=e569]
+          - cell [ref=e570]
+          - cell [ref=e571]
+          - cell "Хочу читать" [ref=e572]:
+            - button "Хочу читать" [ref=e573] [cursor=pointer]
+        - row "E2E Auto Signup 1780805003182 Новая E2E Автор Хочу читать" [ref=e574]:
+          - cell [ref=e575]
+          - cell "E2E Auto Signup 1780805003182 Новая E2E Автор" [ref=e576]:
+            - generic [ref=e577]:
+              - generic [ref=e578]: E2E Auto Signup 1780805003182
+              - generic [ref=e579]: Новая
+            - generic [ref=e580]: E2E Автор
+          - cell [ref=e581]
+          - cell [ref=e582]
+          - cell [ref=e583]
+          - cell "Хочу читать" [ref=e584]:
+            - button "Хочу читать" [ref=e585] [cursor=pointer]
+        - row "E2E Auto Signup 1780766038155 Новая E2E Автор Хочу читать" [ref=e586]:
+          - cell [ref=e587]
+          - cell "E2E Auto Signup 1780766038155 Новая E2E Автор" [ref=e588]:
+            - generic [ref=e589]:
+              - generic [ref=e590]: E2E Auto Signup 1780766038155
+              - generic [ref=e591]: Новая
+            - generic [ref=e592]: E2E Автор
+          - cell [ref=e593]
+          - cell [ref=e594]
+          - cell [ref=e595]
+          - cell "Хочу читать" [ref=e596]:
+            - button "Хочу читать" [ref=e597] [cursor=pointer]
+        - row "E2E Auto Signup 1780760014544 Новая E2E Автор Хочу читать" [ref=e598]:
+          - cell [ref=e599]
+          - cell "E2E Auto Signup 1780760014544 Новая E2E Автор" [ref=e600]:
+            - generic [ref=e601]:
+              - generic [ref=e602]: E2E Auto Signup 1780760014544
+              - generic [ref=e603]: Новая
+            - generic [ref=e604]: E2E Автор
+          - cell [ref=e605]
+          - cell [ref=e606]
+          - cell [ref=e607]
+          - cell "Хочу читать" [ref=e608]:
+            - button "Хочу читать" [ref=e609] [cursor=pointer]
+        - row "E2E Auto Signup 1780758643258 Новая E2E Автор Хочу читать" [ref=e610]:
+          - cell [ref=e611]
+          - cell "E2E Auto Signup 1780758643258 Новая E2E Автор" [ref=e612]:
+            - generic [ref=e613]:
+              - generic [ref=e614]: E2E Auto Signup 1780758643258
+              - generic [ref=e615]: Новая
+            - generic [ref=e616]: E2E Автор
+          - cell [ref=e617]
+          - cell [ref=e618]
+          - cell [ref=e619]
+          - cell "Хочу читать" [ref=e620]:
+            - button "Хочу читать" [ref=e621] [cursor=pointer]
+        - row "E2E Auto Signup 1780716898514 Новая E2E Автор Хочу читать" [ref=e622]:
+          - cell [ref=e623]
+          - cell "E2E Auto Signup 1780716898514 Новая E2E Автор" [ref=e624]:
+            - generic [ref=e625]:
+              - generic [ref=e626]: E2E Auto Signup 1780716898514
+              - generic [ref=e627]: Новая
+            - generic [ref=e628]: E2E Автор
+          - cell [ref=e629]
+          - cell [ref=e630]
+          - cell [ref=e631]
+          - cell "Хочу читать" [ref=e632]:
+            - button "Хочу читать" [ref=e633] [cursor=pointer]
+        - row "E2E Auto Signup 1780652896816 Новая E2E Автор Хочу читать" [ref=e634]:
+          - cell [ref=e635]
+          - cell "E2E Auto Signup 1780652896816 Новая E2E Автор" [ref=e636]:
+            - generic [ref=e637]:
+              - generic [ref=e638]: E2E Auto Signup 1780652896816
+              - generic [ref=e639]: Новая
+            - generic [ref=e640]: E2E Автор
+          - cell [ref=e641]
+          - cell [ref=e642]
+          - cell [ref=e643]
+          - cell "Хочу читать" [ref=e644]:
+            - button "Хочу читать" [ref=e645] [cursor=pointer]
+        - row "E2E Auto Signup 1780631285802 Новая E2E Автор Хочу читать" [ref=e646]:
+          - cell [ref=e647]
+          - cell "E2E Auto Signup 1780631285802 Новая E2E Автор" [ref=e648]:
+            - generic [ref=e649]:
+              - generic [ref=e650]: E2E Auto Signup 1780631285802
+              - generic [ref=e651]: Новая
+            - generic [ref=e652]: E2E Автор
+          - cell [ref=e653]
+          - cell [ref=e654]
+          - cell [ref=e655]
+          - cell "Хочу читать" [ref=e656]:
+            - button "Хочу читать" [ref=e657] [cursor=pointer]
+        - row "E2E Auto Signup 1780546005016 Новая E2E Автор Хочу читать" [ref=e658]:
+          - cell [ref=e659]
+          - cell "E2E Auto Signup 1780546005016 Новая E2E Автор" [ref=e660]:
+            - generic [ref=e661]:
+              - generic [ref=e662]: E2E Auto Signup 1780546005016
+              - generic [ref=e663]: Новая
+            - generic [ref=e664]: E2E Автор
+          - cell [ref=e665]
+          - cell [ref=e666]
+          - cell [ref=e667]
+          - cell "Хочу читать" [ref=e668]:
+            - button "Хочу читать" [ref=e669] [cursor=pointer]
+        - row "E2E Auto Signup 1780459777335 Новая E2E Автор Хочу читать" [ref=e670]:
+          - cell [ref=e671]
+          - cell "E2E Auto Signup 1780459777335 Новая E2E Автор" [ref=e672]:
+            - generic [ref=e673]:
+              - generic [ref=e674]: E2E Auto Signup 1780459777335
+              - generic [ref=e675]: Новая
+            - generic [ref=e676]: E2E Автор
+          - cell [ref=e677]
+          - cell [ref=e678]
+          - cell [ref=e679]
+          - cell "Хочу читать" [ref=e680]:
+            - button "Хочу читать" [ref=e681] [cursor=pointer]
+        - row "E2E Auto Signup 1780372859023 Новая E2E Автор Хочу читать" [ref=e682]:
+          - cell [ref=e683]
+          - cell "E2E Auto Signup 1780372859023 Новая E2E Автор" [ref=e684]:
+            - generic [ref=e685]:
+              - generic [ref=e686]: E2E Auto Signup 1780372859023
+              - generic [ref=e687]: Новая
+            - generic [ref=e688]: E2E Автор
+          - cell [ref=e689]
+          - cell [ref=e690]
+          - cell [ref=e691]
+          - cell "Хочу читать" [ref=e692]:
+            - button "Хочу читать" [ref=e693] [cursor=pointer]
+        - row "E2E Auto Signup 1780286801316 Новая E2E Автор Хочу читать" [ref=e694]:
+          - cell [ref=e695]
+          - cell "E2E Auto Signup 1780286801316 Новая E2E Автор" [ref=e696]:
+            - generic [ref=e697]:
+              - generic [ref=e698]: E2E Auto Signup 1780286801316
+              - generic [ref=e699]: Новая
+            - generic [ref=e700]: E2E Автор
+          - cell [ref=e701]
+          - cell [ref=e702]
+          - cell [ref=e703]
+          - cell "Хочу читать" [ref=e704]:
+            - button "Хочу читать" [ref=e705] [cursor=pointer]
+        - row "E2E Auto Signup 1780199734039 Новая E2E Автор Хочу читать" [ref=e706]:
+          - cell [ref=e707]
+          - cell "E2E Auto Signup 1780199734039 Новая E2E Автор" [ref=e708]:
+            - generic [ref=e709]:
+              - generic [ref=e710]: E2E Auto Signup 1780199734039
+              - generic [ref=e711]: Новая
+            - generic [ref=e712]: E2E Автор
+          - cell [ref=e713]
+          - cell [ref=e714]
+          - cell [ref=e715]
+          - cell "Хочу читать" [ref=e716]:
+            - button "Хочу читать" [ref=e717] [cursor=pointer]
+        - row "E2E Auto Signup 1780160239123 Новая E2E Автор Хочу читать" [ref=e718]:
+          - cell [ref=e719]
+          - cell "E2E Auto Signup 1780160239123 Новая E2E Автор" [ref=e720]:
+            - generic [ref=e721]:
+              - generic [ref=e722]: E2E Auto Signup 1780160239123
+              - generic [ref=e723]: Новая
+            - generic [ref=e724]: E2E Автор
+          - cell [ref=e725]
+          - cell [ref=e726]
+          - cell [ref=e727]
+          - cell "Хочу читать" [ref=e728]:
+            - button "Хочу читать" [ref=e729] [cursor=pointer]
+        - row "E2E Auto Signup 1780135479759 Новая E2E Автор Хочу читать" [ref=e730]:
+          - cell [ref=e731]
+          - cell "E2E Auto Signup 1780135479759 Новая E2E Автор" [ref=e732]:
+            - generic [ref=e733]:
+              - generic [ref=e734]: E2E Auto Signup 1780135479759
+              - generic [ref=e735]: Новая
+            - generic [ref=e736]: E2E Автор
+          - cell [ref=e737]
+          - cell [ref=e738]
+          - cell [ref=e739]
+          - cell "Хочу читать" [ref=e740]:
+            - button "Хочу читать" [ref=e741] [cursor=pointer]
+        - row "E2E Auto Signup 1780133901432 Новая E2E Автор Хочу читать" [ref=e742]:
+          - cell [ref=e743]
+          - cell "E2E Auto Signup 1780133901432 Новая E2E Автор" [ref=e744]:
+            - generic [ref=e745]:
+              - generic [ref=e746]: E2E Auto Signup 1780133901432
+              - generic [ref=e747]: Новая
+            - generic [ref=e748]: E2E Автор
+          - cell [ref=e749]
+          - cell [ref=e750]
+          - cell [ref=e751]
+          - cell "Хочу читать" [ref=e752]:
+            - button "Хочу читать" [ref=e753] [cursor=pointer]
+        - row "E2E Auto Signup 1780133108544 Новая E2E Автор Хочу читать" [ref=e754]:
+          - cell [ref=e755]
+          - cell "E2E Auto Signup 1780133108544 Новая E2E Автор" [ref=e756]:
+            - generic [ref=e757]:
+              - generic [ref=e758]: E2E Auto Signup 1780133108544
+              - generic [ref=e759]: Новая
+            - generic [ref=e760]: E2E Автор
+          - cell [ref=e761]
+          - cell [ref=e762]
+          - cell [ref=e763]
+          - cell "Хочу читать" [ref=e764]:
+            - button "Хочу читать" [ref=e765] [cursor=pointer]
+        - row "E2E Auto Signup 1780132982677 Новая E2E Автор Хочу читать" [ref=e766]:
+          - cell [ref=e767]
+          - cell "E2E Auto Signup 1780132982677 Новая E2E Автор" [ref=e768]:
+            - generic [ref=e769]:
+              - generic [ref=e770]: E2E Auto Signup 1780132982677
+              - generic [ref=e771]: Новая
+            - generic [ref=e772]: E2E Автор
+          - cell [ref=e773]
+          - cell [ref=e774]
+          - cell [ref=e775]
+          - cell "Хочу читать" [ref=e776]:
+            - button "Хочу читать" [ref=e777] [cursor=pointer]
+        - row "E2E Auto Signup 1780132808352 Новая E2E Автор Хочу читать" [ref=e778]:
+          - cell [ref=e779]
+          - cell "E2E Auto Signup 1780132808352 Новая E2E Автор" [ref=e780]:
+            - generic [ref=e781]:
+              - generic [ref=e782]: E2E Auto Signup 1780132808352
+              - generic [ref=e783]: Новая
+            - generic [ref=e784]: E2E Автор
+          - cell [ref=e785]
+          - cell [ref=e786]
+          - cell [ref=e787]
+          - cell "Хочу читать" [ref=e788]:
+            - button "Хочу читать" [ref=e789] [cursor=pointer]
+        - row "E2E Auto Signup 1780132707417 Новая E2E Автор Хочу читать" [ref=e790]:
+          - cell [ref=e791]
+          - cell "E2E Auto Signup 1780132707417 Новая E2E Автор" [ref=e792]:
+            - generic [ref=e793]:
+              - generic [ref=e794]: E2E Auto Signup 1780132707417
+              - generic [ref=e795]: Новая
+            - generic [ref=e796]: E2E Автор
+          - cell [ref=e797]
+          - cell [ref=e798]
+          - cell [ref=e799]
+          - cell "Хочу читать" [ref=e800]:
+            - button "Хочу читать" [ref=e801] [cursor=pointer]
+        - row "E2E Auto Signup 1780132690342 Новая E2E Автор Хочу читать" [ref=e802]:
+          - cell [ref=e803]
+          - cell "E2E Auto Signup 1780132690342 Новая E2E Автор" [ref=e804]:
+            - generic [ref=e805]:
+              - generic [ref=e806]: E2E Auto Signup 1780132690342
+              - generic [ref=e807]: Новая
+            - generic [ref=e808]: E2E Автор
+          - cell [ref=e809]
+          - cell [ref=e810]
+          - cell [ref=e811]
+          - cell "Хочу читать" [ref=e812]:
+            - button "Хочу читать" [ref=e813] [cursor=pointer]
+        - row "E2E Auto Signup 1780130308313 Новая E2E Автор Хочу читать" [ref=e814]:
+          - cell [ref=e815]
+          - cell "E2E Auto Signup 1780130308313 Новая E2E Автор" [ref=e816]:
+            - generic [ref=e817]:
+              - generic [ref=e818]: E2E Auto Signup 1780130308313
+              - generic [ref=e819]: Новая
+            - generic [ref=e820]: E2E Автор
+          - cell [ref=e821]
+          - cell [ref=e822]
+          - cell [ref=e823]
+          - cell "Хочу читать" [ref=e824]:
+            - button "Хочу читать" [ref=e825] [cursor=pointer]
+        - row "E2E Auto Signup 1780129825367 Новая E2E Автор Хочу читать" [ref=e826]:
+          - cell [ref=e827]
+          - cell "E2E Auto Signup 1780129825367 Новая E2E Автор" [ref=e828]:
+            - generic [ref=e829]:
+              - generic [ref=e830]: E2E Auto Signup 1780129825367
+              - generic [ref=e831]: Новая
+            - generic [ref=e832]: E2E Автор
+          - cell [ref=e833]
+          - cell [ref=e834]
+          - cell [ref=e835]
+          - cell "Хочу читать" [ref=e836]:
+            - button "Хочу читать" [ref=e837] [cursor=pointer]
+        - row "E2E Auto Signup 1780129391690 Новая E2E Автор Хочу читать" [ref=e838]:
+          - cell [ref=e839]
+          - cell "E2E Auto Signup 1780129391690 Новая E2E Автор" [ref=e840]:
+            - generic [ref=e841]:
+              - generic [ref=e842]: E2E Auto Signup 1780129391690
+              - generic [ref=e843]: Новая
+            - generic [ref=e844]: E2E Автор
+          - cell [ref=e845]
+          - cell [ref=e846]
+          - cell [ref=e847]
+          - cell "Хочу читать" [ref=e848]:
+            - button "Хочу читать" [ref=e849] [cursor=pointer]
+        - row "E2E Auto Signup 1780129275223 Новая E2E Автор Хочу читать" [ref=e850]:
+          - cell [ref=e851]
+          - cell "E2E Auto Signup 1780129275223 Новая E2E Автор" [ref=e852]:
+            - generic [ref=e853]:
+              - generic [ref=e854]: E2E Auto Signup 1780129275223
+              - generic [ref=e855]: Новая
+            - generic [ref=e856]: E2E Автор
+          - cell [ref=e857]
+          - cell [ref=e858]
+          - cell [ref=e859]
+          - cell "Хочу читать" [ref=e860]:
+            - button "Хочу читать" [ref=e861] [cursor=pointer]
+        - row "E2E Auto Signup 1780098472032 Новая E2E Автор Хочу читать" [ref=e862]:
+          - cell [ref=e863]
+          - cell "E2E Auto Signup 1780098472032 Новая E2E Автор" [ref=e864]:
+            - generic [ref=e865]:
+              - generic [ref=e866]: E2E Auto Signup 1780098472032
+              - generic [ref=e867]: Новая
+            - generic [ref=e868]: E2E Автор
+          - cell [ref=e869]
+          - cell [ref=e870]
+          - cell [ref=e871]
+          - cell "Хочу читать" [ref=e872]:
+            - button "Хочу читать" [ref=e873] [cursor=pointer]
+        - row "E2E Auto Signup 1780097518100 Новая E2E Автор Хочу читать" [ref=e874]:
+          - cell [ref=e875]
+          - cell "E2E Auto Signup 1780097518100 Новая E2E Автор" [ref=e876]:
+            - generic [ref=e877]:
+              - generic [ref=e878]: E2E Auto Signup 1780097518100
+              - generic [ref=e879]: Новая
+            - generic [ref=e880]: E2E Автор
+          - cell [ref=e881]
+          - cell [ref=e882]
+          - cell [ref=e883]
+          - cell "Хочу читать" [ref=e884]:
+            - button "Хочу читать" [ref=e885] [cursor=pointer]
+        - row "E2E Auto Signup 1780096759431 Новая E2E Автор Хочу читать" [ref=e886]:
+          - cell [ref=e887]
+          - cell "E2E Auto Signup 1780096759431 Новая E2E Автор" [ref=e888]:
+            - generic [ref=e889]:
+              - generic [ref=e890]: E2E Auto Signup 1780096759431
+              - generic [ref=e891]: Новая
+            - generic [ref=e892]: E2E Автор
+          - cell [ref=e893]
+          - cell [ref=e894]
+          - cell [ref=e895]
+          - cell "Хочу читать" [ref=e896]:
+            - button "Хочу читать" [ref=e897] [cursor=pointer]
+        - row "E2E Auto Signup 1780095329673 Новая E2E Автор Хочу читать" [ref=e898]:
+          - cell [ref=e899]
+          - cell "E2E Auto Signup 1780095329673 Новая E2E Автор" [ref=e900]:
+            - generic [ref=e901]:
+              - generic [ref=e902]: E2E Auto Signup 1780095329673
+              - generic [ref=e903]: Новая
+            - generic [ref=e904]: E2E Автор
+          - cell [ref=e905]
+          - cell [ref=e906]
+          - cell [ref=e907]
+          - cell "Хочу читать" [ref=e908]:
+            - button "Хочу читать" [ref=e909] [cursor=pointer]
+        - row "E2E Auto Signup 1780095304103 Новая E2E Автор Хочу читать" [ref=e910]:
+          - cell [ref=e911]
+          - cell "E2E Auto Signup 1780095304103 Новая E2E Автор" [ref=e912]:
+            - generic [ref=e913]:
+              - generic [ref=e914]: E2E Auto Signup 1780095304103
+              - generic [ref=e915]: Новая
+            - generic [ref=e916]: E2E Автор
+          - cell [ref=e917]
+          - cell [ref=e918]
+          - cell [ref=e919]
+          - cell "Хочу читать" [ref=e920]:
+            - button "Хочу читать" [ref=e921] [cursor=pointer]
+        - row "E2E Auto Signup 1780092010621 Новая E2E Автор Хочу читать" [ref=e922]:
+          - cell [ref=e923]
+          - cell "E2E Auto Signup 1780092010621 Новая E2E Автор" [ref=e924]:
+            - generic [ref=e925]:
+              - generic [ref=e926]: E2E Auto Signup 1780092010621
+              - generic [ref=e927]: Новая
+            - generic [ref=e928]: E2E Автор
+          - cell [ref=e929]
+          - cell [ref=e930]
+          - cell [ref=e931]
+          - cell "Хочу читать" [ref=e932]:
+            - button "Хочу читать" [ref=e933] [cursor=pointer]
+        - row "E2E Auto Signup 1780067131186 Новая E2E Автор Хочу читать" [ref=e934]:
+          - cell [ref=e935]
+          - cell "E2E Auto Signup 1780067131186 Новая E2E Автор" [ref=e936]:
+            - generic [ref=e937]:
+              - generic [ref=e938]: E2E Auto Signup 1780067131186
+              - generic [ref=e939]: Новая
+            - generic [ref=e940]: E2E Автор
+          - cell [ref=e941]
+          - cell [ref=e942]
+          - cell [ref=e943]
+          - cell "Хочу читать" [ref=e944]:
+            - button "Хочу читать" [ref=e945] [cursor=pointer]
+        - row "E2E Auto Signup 1780066671162 Новая E2E Автор Хочу читать" [ref=e946]:
+          - cell [ref=e947]
+          - cell "E2E Auto Signup 1780066671162 Новая E2E Автор" [ref=e948]:
+            - generic [ref=e949]:
+              - generic [ref=e950]: E2E Auto Signup 1780066671162
+              - generic [ref=e951]: Новая
+            - generic [ref=e952]: E2E Автор
+          - cell [ref=e953]
+          - cell [ref=e954]
+          - cell [ref=e955]
+          - cell "Хочу читать" [ref=e956]:
+            - button "Хочу читать" [ref=e957] [cursor=pointer]
+        - row "E2E Auto Signup 1780043502410 Новая E2E Автор Хочу читать" [ref=e958]:
+          - cell [ref=e959]
+          - cell "E2E Auto Signup 1780043502410 Новая E2E Автор" [ref=e960]:
+            - generic [ref=e961]:
+              - generic [ref=e962]: E2E Auto Signup 1780043502410
+              - generic [ref=e963]: Новая
+            - generic [ref=e964]: E2E Автор
+          - cell [ref=e965]
+          - cell [ref=e966]
+          - cell [ref=e967]
+          - cell "Хочу читать" [ref=e968]:
+            - button "Хочу читать" [ref=e969] [cursor=pointer]
+        - row "E2E Auto Signup 1780043192002 Новая E2E Автор Хочу читать" [ref=e970]:
+          - cell [ref=e971]
+          - cell "E2E Auto Signup 1780043192002 Новая E2E Автор" [ref=e972]:
+            - generic [ref=e973]:
+              - generic [ref=e974]: E2E Auto Signup 1780043192002
+              - generic [ref=e975]: Новая
+            - generic [ref=e976]: E2E Автор
+          - cell [ref=e977]
+          - cell [ref=e978]
+          - cell [ref=e979]
+          - cell "Хочу читать" [ref=e980]:
+            - button "Хочу читать" [ref=e981] [cursor=pointer]
+        - row "E2E Auto Signup 1780042969979 Новая E2E Автор Хочу читать" [ref=e982]:
+          - cell [ref=e983]
+          - cell "E2E Auto Signup 1780042969979 Новая E2E Автор" [ref=e984]:
+            - generic [ref=e985]:
+              - generic [ref=e986]: E2E Auto Signup 1780042969979
+              - generic [ref=e987]: Новая
+            - generic [ref=e988]: E2E Автор
+          - cell [ref=e989]
+          - cell [ref=e990]
+          - cell [ref=e991]
+          - cell "Хочу читать" [ref=e992]:
+            - button "Хочу читать" [ref=e993] [cursor=pointer]
+        - row "E2E Auto Signup 1780041384770 Новая E2E Автор Хочу читать" [ref=e994]:
+          - cell [ref=e995]
+          - cell "E2E Auto Signup 1780041384770 Новая E2E Автор" [ref=e996]:
+            - generic [ref=e997]:
+              - generic [ref=e998]: E2E Auto Signup 1780041384770
+              - generic [ref=e999]: Новая
+            - generic [ref=e1000]: E2E Автор
+          - cell [ref=e1001]
+          - cell [ref=e1002]
+          - cell [ref=e1003]
+          - cell "Хочу читать" [ref=e1004]:
+            - button "Хочу читать" [ref=e1005] [cursor=pointer]
+        - row "E2E Auto Signup 1780004622261 Новая E2E Автор Хочу читать" [ref=e1006]:
+          - cell [ref=e1007]
+          - cell "E2E Auto Signup 1780004622261 Новая E2E Автор" [ref=e1008]:
+            - generic [ref=e1009]:
+              - generic [ref=e1010]: E2E Auto Signup 1780004622261
+              - generic [ref=e1011]: Новая
+            - generic [ref=e1012]: E2E Автор
+          - cell [ref=e1013]
+          - cell [ref=e1014]
+          - cell [ref=e1015]
+          - cell "Хочу читать" [ref=e1016]:
+            - button "Хочу читать" [ref=e1017] [cursor=pointer]
+        - row "E2E Auto Signup 1780003954799 Новая E2E Автор Хочу читать" [ref=e1018]:
+          - cell [ref=e1019]
+          - cell "E2E Auto Signup 1780003954799 Новая E2E Автор" [ref=e1020]:
+            - generic [ref=e1021]:
+              - generic [ref=e1022]: E2E Auto Signup 1780003954799
+              - generic [ref=e1023]: Новая
+            - generic [ref=e1024]: E2E Автор
+          - cell [ref=e1025]
+          - cell [ref=e1026]
+          - cell [ref=e1027]
+          - cell "Хочу читать" [ref=e1028]:
+            - button "Хочу читать" [ref=e1029] [cursor=pointer]
+        - row "E2E Auto Signup 1779998807256 Новая E2E Автор Хочу читать" [ref=e1030]:
+          - cell [ref=e1031]
+          - cell "E2E Auto Signup 1779998807256 Новая E2E Автор" [ref=e1032]:
+            - generic [ref=e1033]:
+              - generic [ref=e1034]: E2E Auto Signup 1779998807256
+              - generic [ref=e1035]: Новая
+            - generic [ref=e1036]: E2E Автор
+          - cell [ref=e1037]
+          - cell [ref=e1038]
+          - cell [ref=e1039]
+          - cell "Хочу читать" [ref=e1040]:
+            - button "Хочу читать" [ref=e1041] [cursor=pointer]
+        - row "E2E Auto Signup 1779998350682 Новая E2E Автор Хочу читать" [ref=e1042]:
+          - cell [ref=e1043]
+          - cell "E2E Auto Signup 1779998350682 Новая E2E Автор" [ref=e1044]:
+            - generic [ref=e1045]:
+              - generic [ref=e1046]: E2E Auto Signup 1779998350682
+              - generic [ref=e1047]: Новая
+            - generic [ref=e1048]: E2E Автор
+          - cell [ref=e1049]
+          - cell [ref=e1050]
+          - cell [ref=e1051]
+          - cell "Хочу читать" [ref=e1052]:
+            - button "Хочу читать" [ref=e1053] [cursor=pointer]
+        - row "E2E Auto Signup 1779997661584 Новая E2E Автор Хочу читать" [ref=e1054]:
+          - cell [ref=e1055]
+          - cell "E2E Auto Signup 1779997661584 Новая E2E Автор" [ref=e1056]:
+            - generic [ref=e1057]:
+              - generic [ref=e1058]: E2E Auto Signup 1779997661584
+              - generic [ref=e1059]: Новая
+            - generic [ref=e1060]: E2E Автор
+          - cell [ref=e1061]
+          - cell [ref=e1062]
+          - cell [ref=e1063]
+          - cell "Хочу читать" [ref=e1064]:
+            - button "Хочу читать" [ref=e1065] [cursor=pointer]
+        - row "E2E Auto Signup 1779997569167 Новая E2E Автор Хочу читать" [ref=e1066]:
+          - cell [ref=e1067]
+          - cell "E2E Auto Signup 1779997569167 Новая E2E Автор" [ref=e1068]:
+            - generic [ref=e1069]:
+              - generic [ref=e1070]: E2E Auto Signup 1779997569167
+              - generic [ref=e1071]: Новая
+            - generic [ref=e1072]: E2E Автор
+          - cell [ref=e1073]
+          - cell [ref=e1074]
+          - cell [ref=e1075]
+          - cell "Хочу читать" [ref=e1076]:
+            - button "Хочу читать" [ref=e1077] [cursor=pointer]
+        - row "E2E Auto Signup 1779996390658 Новая E2E Автор Хочу читать" [ref=e1078]:
+          - cell [ref=e1079]
+          - cell "E2E Auto Signup 1779996390658 Новая E2E Автор" [ref=e1080]:
+            - generic [ref=e1081]:
+              - generic [ref=e1082]: E2E Auto Signup 1779996390658
+              - generic [ref=e1083]: Новая
+            - generic [ref=e1084]: E2E Автор
+          - cell [ref=e1085]
+          - cell [ref=e1086]
+          - cell [ref=e1087]
+          - cell "Хочу читать" [ref=e1088]:
+            - button "Хочу читать" [ref=e1089] [cursor=pointer]
+        - row "E2E Auto Signup 1779996306714 Новая E2E Автор Хочу читать" [ref=e1090]:
+          - cell [ref=e1091]
+          - cell "E2E Auto Signup 1779996306714 Новая E2E Автор" [ref=e1092]:
+            - generic [ref=e1093]:
+              - generic [ref=e1094]: E2E Auto Signup 1779996306714
+              - generic [ref=e1095]: Новая
+            - generic [ref=e1096]: E2E Автор
+          - cell [ref=e1097]
+          - cell [ref=e1098]
+          - cell [ref=e1099]
+          - cell "Хочу читать" [ref=e1100]:
+            - button "Хочу читать" [ref=e1101] [cursor=pointer]
+        - row "E2E Auto Signup 1779995759889 Новая E2E Автор Хочу читать" [ref=e1102]:
+          - cell [ref=e1103]
+          - cell "E2E Auto Signup 1779995759889 Новая E2E Автор" [ref=e1104]:
+            - generic [ref=e1105]:
+              - generic [ref=e1106]: E2E Auto Signup 1779995759889
+              - generic [ref=e1107]: Новая
+            - generic [ref=e1108]: E2E Автор
+          - cell [ref=e1109]
+          - cell [ref=e1110]
+          - cell [ref=e1111]
+          - cell "Хочу читать" [ref=e1112]:
+            - button "Хочу читать" [ref=e1113] [cursor=pointer]
+        - row "E2E Auto Signup 1779993538685 Новая E2E Автор Хочу читать" [ref=e1114]:
+          - cell [ref=e1115]
+          - cell "E2E Auto Signup 1779993538685 Новая E2E Автор" [ref=e1116]:
+            - generic [ref=e1117]:
+              - generic [ref=e1118]: E2E Auto Signup 1779993538685
+              - generic [ref=e1119]: Новая
+            - generic [ref=e1120]: E2E Автор
+          - cell [ref=e1121]
+          - cell [ref=e1122]
+          - cell [ref=e1123]
+          - cell "Хочу читать" [ref=e1124]:
+            - button "Хочу читать" [ref=e1125] [cursor=pointer]
+        - row "E2E Auto Signup 1779993423456 Новая E2E Автор Хочу читать" [ref=e1126]:
+          - cell [ref=e1127]
+          - cell "E2E Auto Signup 1779993423456 Новая E2E Автор" [ref=e1128]:
+            - generic [ref=e1129]:
+              - generic [ref=e1130]: E2E Auto Signup 1779993423456
+              - generic [ref=e1131]: Новая
+            - generic [ref=e1132]: E2E Автор
+          - cell [ref=e1133]
+          - cell [ref=e1134]
+          - cell [ref=e1135]
+          - cell "Хочу читать" [ref=e1136]:
+            - button "Хочу читать" [ref=e1137] [cursor=pointer]
+        - row "E2E Auto Signup 1779992460023 Новая E2E Автор Хочу читать" [ref=e1138]:
+          - cell [ref=e1139]
+          - cell "E2E Auto Signup 1779992460023 Новая E2E Автор" [ref=e1140]:
+            - generic [ref=e1141]:
+              - generic [ref=e1142]: E2E Auto Signup 1779992460023
+              - generic [ref=e1143]: Новая
+            - generic [ref=e1144]: E2E Автор
+          - cell [ref=e1145]
+          - cell [ref=e1146]
+          - cell [ref=e1147]
+          - cell "Хочу читать" [ref=e1148]:
+            - button "Хочу читать" [ref=e1149] [cursor=pointer]
+        - row "E2E Auto Signup 1779990451810 Новая E2E Автор Хочу читать" [ref=e1150]:
+          - cell [ref=e1151]
+          - cell "E2E Auto Signup 1779990451810 Новая E2E Автор" [ref=e1152]:
+            - generic [ref=e1153]:
+              - generic [ref=e1154]: E2E Auto Signup 1779990451810
+              - generic [ref=e1155]: Новая
+            - generic [ref=e1156]: E2E Автор
+          - cell [ref=e1157]
+          - cell [ref=e1158]
+          - cell [ref=e1159]
+          - cell "Хочу читать" [ref=e1160]:
+            - button "Хочу читать" [ref=e1161] [cursor=pointer]
+        - row "E2E Auto Signup 1779990387022 Новая E2E Автор Хочу читать" [ref=e1162]:
+          - cell [ref=e1163]
+          - cell "E2E Auto Signup 1779990387022 Новая E2E Автор" [ref=e1164]:
+            - generic [ref=e1165]:
+              - generic [ref=e1166]: E2E Auto Signup 1779990387022
+              - generic [ref=e1167]: Новая
+            - generic [ref=e1168]: E2E Автор
+          - cell [ref=e1169]
+          - cell [ref=e1170]
+          - cell [ref=e1171]
+          - cell "Хочу читать" [ref=e1172]:
+            - button "Хочу читать" [ref=e1173] [cursor=pointer]
+        - row "E2E Auto Signup 1779990374800 Новая E2E Автор Хочу читать" [ref=e1174]:
+          - cell [ref=e1175]
+          - cell "E2E Auto Signup 1779990374800 Новая E2E Автор" [ref=e1176]:
+            - generic [ref=e1177]:
+              - generic [ref=e1178]: E2E Auto Signup 1779990374800
+              - generic [ref=e1179]: Новая
+            - generic [ref=e1180]: E2E Автор
+          - cell [ref=e1181]
+          - cell [ref=e1182]
+          - cell [ref=e1183]
+          - cell "Хочу читать" [ref=e1184]:
+            - button "Хочу читать" [ref=e1185] [cursor=pointer]
+        - row "E2E Auto Signup 1779990306491 Новая E2E Автор Хочу читать" [ref=e1186]:
+          - cell [ref=e1187]
+          - cell "E2E Auto Signup 1779990306491 Новая E2E Автор" [ref=e1188]:
+            - generic [ref=e1189]:
+              - generic [ref=e1190]: E2E Auto Signup 1779990306491
+              - generic [ref=e1191]: Новая
+            - generic [ref=e1192]: E2E Автор
+          - cell [ref=e1193]
+          - cell [ref=e1194]
+          - cell [ref=e1195]
+          - cell "Хочу читать" [ref=e1196]:
+            - button "Хочу читать" [ref=e1197] [cursor=pointer]
+        - row "E2E Auto Signup 1779989887244 Новая E2E Автор Хочу читать" [ref=e1198]:
+          - cell [ref=e1199]
+          - cell "E2E Auto Signup 1779989887244 Новая E2E Автор" [ref=e1200]:
+            - generic [ref=e1201]:
+              - generic [ref=e1202]: E2E Auto Signup 1779989887244
+              - generic [ref=e1203]: Новая
+            - generic [ref=e1204]: E2E Автор
+          - cell [ref=e1205]
+          - cell [ref=e1206]
+          - cell [ref=e1207]
+          - cell "Хочу читать" [ref=e1208]:
+            - button "Хочу читать" [ref=e1209] [cursor=pointer]
+        - row "E2E Auto Signup 1779989819895 Новая E2E Автор Хочу читать" [ref=e1210]:
+          - cell [ref=e1211]
+          - cell "E2E Auto Signup 1779989819895 Новая E2E Автор" [ref=e1212]:
+            - generic [ref=e1213]:
+              - generic [ref=e1214]: E2E Auto Signup 1779989819895
+              - generic [ref=e1215]: Новая
+            - generic [ref=e1216]: E2E Автор
+          - cell [ref=e1217]
+          - cell [ref=e1218]
+          - cell [ref=e1219]
+          - cell "Хочу читать" [ref=e1220]:
+            - button "Хочу читать" [ref=e1221] [cursor=pointer]
+        - row "E2E Auto Signup 1779970584847 Новая E2E Автор Хочу читать" [ref=e1222]:
+          - cell [ref=e1223]
+          - cell "E2E Auto Signup 1779970584847 Новая E2E Автор" [ref=e1224]:
+            - generic [ref=e1225]:
+              - generic [ref=e1226]: E2E Auto Signup 1779970584847
+              - generic [ref=e1227]: Новая
+            - generic [ref=e1228]: E2E Автор
+          - cell [ref=e1229]
+          - cell [ref=e1230]
+          - cell [ref=e1231]
+          - cell "Хочу читать" [ref=e1232]:
+            - button "Хочу читать" [ref=e1233] [cursor=pointer]
+        - row "E2E Auto Signup 1779970016346 Новая E2E Автор Хочу читать" [ref=e1234]:
+          - cell [ref=e1235]
+          - cell "E2E Auto Signup 1779970016346 Новая E2E Автор" [ref=e1236]:
+            - generic [ref=e1237]:
+              - generic [ref=e1238]: E2E Auto Signup 1779970016346
+              - generic [ref=e1239]: Новая
+            - generic [ref=e1240]: E2E Автор
+          - cell [ref=e1241]
+          - cell [ref=e1242]
+          - cell [ref=e1243]
+          - cell "Хочу читать" [ref=e1244]:
+            - button "Хочу читать" [ref=e1245] [cursor=pointer]
+        - row "E2E Auto Signup 1779969471814 Новая E2E Автор Хочу читать" [ref=e1246]:
+          - cell [ref=e1247]
+          - cell "E2E Auto Signup 1779969471814 Новая E2E Автор" [ref=e1248]:
+            - generic [ref=e1249]:
+              - generic [ref=e1250]: E2E Auto Signup 1779969471814
+              - generic [ref=e1251]: Новая
+            - generic [ref=e1252]: E2E Автор
+          - cell [ref=e1253]
+          - cell [ref=e1254]
+          - cell [ref=e1255]
+          - cell "Хочу читать" [ref=e1256]:
+            - button "Хочу читать" [ref=e1257] [cursor=pointer]
+        - row "E2E Auto Signup 1779969037047 Новая E2E Автор Хочу читать" [ref=e1258]:
+          - cell [ref=e1259]
+          - cell "E2E Auto Signup 1779969037047 Новая E2E Автор" [ref=e1260]:
+            - generic [ref=e1261]:
+              - generic [ref=e1262]: E2E Auto Signup 1779969037047
+              - generic [ref=e1263]: Новая
+            - generic [ref=e1264]: E2E Автор
+          - cell [ref=e1265]
+          - cell [ref=e1266]
+          - cell [ref=e1267]
+          - cell "Хочу читать" [ref=e1268]:
+            - button "Хочу читать" [ref=e1269] [cursor=pointer]
+        - row "E2E Auto Signup 1779968990922 Новая E2E Автор Хочу читать" [ref=e1270]:
+          - cell [ref=e1271]
+          - cell "E2E Auto Signup 1779968990922 Новая E2E Автор" [ref=e1272]:
+            - generic [ref=e1273]:
+              - generic [ref=e1274]: E2E Auto Signup 1779968990922
+              - generic [ref=e1275]: Новая
+            - generic [ref=e1276]: E2E Автор
+          - cell [ref=e1277]
+          - cell [ref=e1278]
+          - cell [ref=e1279]
+          - cell "Хочу читать" [ref=e1280]:
+            - button "Хочу читать" [ref=e1281] [cursor=pointer]
+        - row "E2E Auto Signup 1779968100835 Новая E2E Автор Хочу читать" [ref=e1282]:
+          - cell [ref=e1283]
+          - cell "E2E Auto Signup 1779968100835 Новая E2E Автор" [ref=e1284]:
+            - generic [ref=e1285]:
+              - generic [ref=e1286]: E2E Auto Signup 1779968100835
+              - generic [ref=e1287]: Новая
+            - generic [ref=e1288]: E2E Автор
+          - cell [ref=e1289]
+          - cell [ref=e1290]
+          - cell [ref=e1291]
+          - cell "Хочу читать" [ref=e1292]:
+            - button "Хочу читать" [ref=e1293] [cursor=pointer]
+        - row "E2E Auto Signup 1779967846403 Новая E2E Автор Хочу читать" [ref=e1294]:
+          - cell [ref=e1295]
+          - cell "E2E Auto Signup 1779967846403 Новая E2E Автор" [ref=e1296]:
+            - generic [ref=e1297]:
+              - generic [ref=e1298]: E2E Auto Signup 1779967846403
+              - generic [ref=e1299]: Новая
+            - generic [ref=e1300]: E2E Автор
+          - cell [ref=e1301]
+          - cell [ref=e1302]
+          - cell [ref=e1303]
+          - cell "Хочу читать" [ref=e1304]:
+            - button "Хочу читать" [ref=e1305] [cursor=pointer]
+        - row "E2E Auto Signup 1779967253345 Новая E2E Автор Хочу читать" [ref=e1306]:
+          - cell [ref=e1307]
+          - cell "E2E Auto Signup 1779967253345 Новая E2E Автор" [ref=e1308]:
+            - generic [ref=e1309]:
+              - generic [ref=e1310]: E2E Auto Signup 1779967253345
+              - generic [ref=e1311]: Новая
+            - generic [ref=e1312]: E2E Автор
+          - cell [ref=e1313]
+          - cell [ref=e1314]
+          - cell [ref=e1315]
+          - cell "Хочу читать" [ref=e1316]:
+            - button "Хочу читать" [ref=e1317] [cursor=pointer]
+        - row "E2E Auto Signup 1779966815175 Новая E2E Автор Хочу читать" [ref=e1318]:
+          - cell [ref=e1319]
+          - cell "E2E Auto Signup 1779966815175 Новая E2E Автор" [ref=e1320]:
+            - generic [ref=e1321]:
+              - generic [ref=e1322]: E2E Auto Signup 1779966815175
+              - generic [ref=e1323]: Новая
+            - generic [ref=e1324]: E2E Автор
+          - cell [ref=e1325]
+          - cell [ref=e1326]
+          - cell [ref=e1327]
+          - cell "Хочу читать" [ref=e1328]:
+            - button "Хочу читать" [ref=e1329] [cursor=pointer]
+        - row "E2E Auto Signup 1779965173747 Новая E2E Автор Хочу читать" [ref=e1330]:
+          - cell [ref=e1331]
+          - cell "E2E Auto Signup 1779965173747 Новая E2E Автор" [ref=e1332]:
+            - generic [ref=e1333]:
+              - generic [ref=e1334]: E2E Auto Signup 1779965173747
+              - generic [ref=e1335]: Новая
+            - generic [ref=e1336]: E2E Автор
+          - cell [ref=e1337]
+          - cell [ref=e1338]
+          - cell [ref=e1339]
+          - cell "Хочу читать" [ref=e1340]:
+            - button "Хочу читать" [ref=e1341] [cursor=pointer]
+        - row "E2E Auto Signup 1779964735382 Новая E2E Автор Хочу читать" [ref=e1342]:
+          - cell [ref=e1343]
+          - cell "E2E Auto Signup 1779964735382 Новая E2E Автор" [ref=e1344]:
+            - generic [ref=e1345]:
+              - generic [ref=e1346]: E2E Auto Signup 1779964735382
+              - generic [ref=e1347]: Новая
+            - generic [ref=e1348]: E2E Автор
+          - cell [ref=e1349]
+          - cell [ref=e1350]
+          - cell [ref=e1351]
+          - cell "Хочу читать" [ref=e1352]:
+            - button "Хочу читать" [ref=e1353] [cursor=pointer]
+        - row "E2E Auto Signup 1779964199094 Новая E2E Автор Хочу читать" [ref=e1354]:
+          - cell [ref=e1355]
+          - cell "E2E Auto Signup 1779964199094 Новая E2E Автор" [ref=e1356]:
+            - generic [ref=e1357]:
+              - generic [ref=e1358]: E2E Auto Signup 1779964199094
+              - generic [ref=e1359]: Новая
+            - generic [ref=e1360]: E2E Автор
+          - cell [ref=e1361]
+          - cell [ref=e1362]
+          - cell [ref=e1363]
+          - cell "Хочу читать" [ref=e1364]:
+            - button "Хочу читать" [ref=e1365] [cursor=pointer]
+        - row "E2E Auto Signup 1779964107106 Новая E2E Автор Хочу читать" [ref=e1366]:
+          - cell [ref=e1367]
+          - cell "E2E Auto Signup 1779964107106 Новая E2E Автор" [ref=e1368]:
+            - generic [ref=e1369]:
+              - generic [ref=e1370]: E2E Auto Signup 1779964107106
+              - generic [ref=e1371]: Новая
+            - generic [ref=e1372]: E2E Автор
+          - cell [ref=e1373]
+          - cell [ref=e1374]
+          - cell [ref=e1375]
+          - cell "Хочу читать" [ref=e1376]:
+            - button "Хочу читать" [ref=e1377] [cursor=pointer]
+        - row "E2E Auto Signup 1779964049064 Новая E2E Автор Хочу читать" [ref=e1378]:
+          - cell [ref=e1379]
+          - cell "E2E Auto Signup 1779964049064 Новая E2E Автор" [ref=e1380]:
+            - generic [ref=e1381]:
+              - generic [ref=e1382]: E2E Auto Signup 1779964049064
+              - generic [ref=e1383]: Новая
+            - generic [ref=e1384]: E2E Автор
+          - cell [ref=e1385]
+          - cell [ref=e1386]
+          - cell [ref=e1387]
+          - cell "Хочу читать" [ref=e1388]:
+            - button "Хочу читать" [ref=e1389] [cursor=pointer]
+        - row "E2E Auto Signup 1779963660414 Новая E2E Автор Хочу читать" [ref=e1390]:
+          - cell [ref=e1391]
+          - cell "E2E Auto Signup 1779963660414 Новая E2E Автор" [ref=e1392]:
+            - generic [ref=e1393]:
+              - generic [ref=e1394]: E2E Auto Signup 1779963660414
+              - generic [ref=e1395]: Новая
+            - generic [ref=e1396]: E2E Автор
+          - cell [ref=e1397]
+          - cell [ref=e1398]
+          - cell [ref=e1399]
+          - cell "Хочу читать" [ref=e1400]:
+            - button "Хочу читать" [ref=e1401] [cursor=pointer]
+        - row "E2E Auto Signup 1779963481910 Новая E2E Автор Хочу читать" [ref=e1402]:
+          - cell [ref=e1403]
+          - cell "E2E Auto Signup 1779963481910 Новая E2E Автор" [ref=e1404]:
+            - generic [ref=e1405]:
+              - generic [ref=e1406]: E2E Auto Signup 1779963481910
+              - generic [ref=e1407]: Новая
+            - generic [ref=e1408]: E2E Автор
+          - cell [ref=e1409]
+          - cell [ref=e1410]
+          - cell [ref=e1411]
+          - cell "Хочу читать" [ref=e1412]:
+            - button "Хочу читать" [ref=e1413] [cursor=pointer]
+        - row "E2E Auto Signup 1779948174499 Новая E2E Автор Хочу читать" [ref=e1414]:
+          - cell [ref=e1415]
+          - cell "E2E Auto Signup 1779948174499 Новая E2E Автор" [ref=e1416]:
+            - generic [ref=e1417]:
+              - generic [ref=e1418]: E2E Auto Signup 1779948174499
+              - generic [ref=e1419]: Новая
+            - generic [ref=e1420]: E2E Автор
+          - cell [ref=e1421]
+          - cell [ref=e1422]
+          - cell [ref=e1423]
+          - cell "Хочу читать" [ref=e1424]:
+            - button "Хочу читать" [ref=e1425] [cursor=pointer]
+        - row "E2E Auto Signup 1779947795463 Новая E2E Автор Хочу читать" [ref=e1426]:
+          - cell [ref=e1427]
+          - cell "E2E Auto Signup 1779947795463 Новая E2E Автор" [ref=e1428]:
+            - generic [ref=e1429]:
+              - generic [ref=e1430]: E2E Auto Signup 1779947795463
+              - generic [ref=e1431]: Новая
+            - generic [ref=e1432]: E2E Автор
+          - cell [ref=e1433]
+          - cell [ref=e1434]
+          - cell [ref=e1435]
+          - cell "Хочу читать" [ref=e1436]:
+            - button "Хочу читать" [ref=e1437] [cursor=pointer]
+        - row "E2E Auto Signup 1779947244856 Новая E2E Автор Хочу читать" [ref=e1438]:
+          - cell [ref=e1439]
+          - cell "E2E Auto Signup 1779947244856 Новая E2E Автор" [ref=e1440]:
+            - generic [ref=e1441]:
+              - generic [ref=e1442]: E2E Auto Signup 1779947244856
+              - generic [ref=e1443]: Новая
+            - generic [ref=e1444]: E2E Автор
+          - cell [ref=e1445]
+          - cell [ref=e1446]
+          - cell [ref=e1447]
+          - cell "Хочу читать" [ref=e1448]:
+            - button "Хочу читать" [ref=e1449] [cursor=pointer]
+        - row "Моя любимая страна 2023 Елена Костюченко Путинизм 229 стр. Читать 3 Хочу читать" [ref=e1450]:
+          - cell [ref=e1451]
+          - cell "Моя любимая страна 2023 Елена Костюченко" [ref=e1452]:
+            - generic [ref=e1453]:
+              - generic [ref=e1454]: Моя любимая страна
+              - generic [ref=e1455]: "2023"
+            - generic [ref=e1456]: Елена Костюченко
+          - cell "Путинизм" [ref=e1457]:
+            - generic [ref=e1459]: Путинизм
+          - cell "229 стр. Читать" [ref=e1460]:
+            - generic [ref=e1461]:
+              - generic [ref=e1462]: 229 стр.
+              - link "Читать" [ref=e1463] [cursor=pointer]:
+                - /url: https://magaz.global/product/elena-kostyuchenko-moya-lyubimaya-strana
+          - cell "3" [ref=e1464]:
+            - generic [ref=e1466]:
+              - img [ref=e1467]
+              - text: "3"
+          - cell "Хочу читать" [ref=e1470]:
+            - button "Хочу читать" [ref=e1471] [cursor=pointer]
+        - row "Патриот 2024 Алексей Навальный Путинизм 398 стр. Читать 5 Хочу читать" [ref=e1472]:
+          - cell [ref=e1473]
+          - cell "Патриот 2024 Алексей Навальный" [ref=e1474]:
+            - generic [ref=e1475]:
+              - generic [ref=e1476]: Патриот
+              - generic [ref=e1477]: "2024"
+            - generic [ref=e1478]: Алексей Навальный
+          - cell "Путинизм" [ref=e1479]:
+            - generic [ref=e1481]: Путинизм
+          - cell "398 стр. Читать" [ref=e1482]:
+            - generic [ref=e1483]:
+              - generic [ref=e1484]: 398 стр.
+              - link "Читать" [ref=e1485] [cursor=pointer]:
+                - /url: https://www.onebookpublishing.org/products/patriot
+          - cell "5" [ref=e1486]:
+            - generic [ref=e1488]:
+              - img [ref=e1489]
+              - text: "5"
+          - cell "Хочу читать" [ref=e1492]:
+            - button "Хочу читать" [ref=e1493] [cursor=pointer]
+        - 'row "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты 2012 Daron Acemoglu, James A. Robinson Государство 510 стр. Читать 1 Хочу читать" [ref=e1494]':
+          - cell [ref=e1495]
+          - 'cell "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты 2012 Daron Acemoglu, James A. Robinson" [ref=e1496]':
+            - generic [ref=e1497]:
+              - generic [ref=e1498]: "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты"
+              - generic [ref=e1499]: "2012"
+            - generic [ref=e1500]: Daron Acemoglu, James A. Robinson
+          - cell "Государство" [ref=e1501]:
+            - generic [ref=e1503]: Государство
+          - cell "510 стр. Читать" [ref=e1504]:
+            - generic [ref=e1505]:
+              - generic [ref=e1506]: 510 стр.
+              - link "Читать" [ref=e1507] [cursor=pointer]:
+                - /url: https://webveblen.wordpress.com/wp-content/uploads/2018/06/acemoglu2.pdf
+          - cell "1" [ref=e1508]:
+            - generic [ref=e1510]:
+              - img [ref=e1511]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1514]:
+            - button "Хочу читать" [ref=e1515] [cursor=pointer]
+        - row "Диктаторы обмана. Новое лицо тирании в XXI веке 2022 Сергей Гуриев, Daniel Treisman Путинизм 500 стр. Читать 1 Хочу читать" [ref=e1516]:
+          - cell [ref=e1517]
+          - cell "Диктаторы обмана. Новое лицо тирании в XXI веке 2022 Сергей Гуриев, Daniel Treisman" [ref=e1518]:
+            - generic [ref=e1519]:
+              - generic [ref=e1520]: Диктаторы обмана. Новое лицо тирании в XXI веке
+              - generic [ref=e1521]: "2022"
+            - generic [ref=e1522]: Сергей Гуриев, Daniel Treisman
+          - cell "Путинизм" [ref=e1523]:
+            - generic [ref=e1525]: Путинизм
+          - cell "500 стр. Читать" [ref=e1526]:
+            - generic [ref=e1527]:
+              - generic [ref=e1528]: 500 стр.
+              - link "Читать" [ref=e1529] [cursor=pointer]:
+                - /url: https://babook.org/drupal/sites/default/files/2023-07/Dictators1.pdf
+          - cell "1" [ref=e1530]:
+            - generic [ref=e1532]:
+              - img [ref=e1533]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1536]:
+            - button "Хочу читать" [ref=e1537] [cursor=pointer]
+        - row "Contentious Politics 2015 Charles Tilly, Sidney Tarrow Государство 288 стр. Читать 1 Хочу читать" [ref=e1538]:
+          - cell [ref=e1539]
+          - cell "Contentious Politics 2015 Charles Tilly, Sidney Tarrow" [ref=e1540]:
+            - generic [ref=e1541]:
+              - generic [ref=e1542]: Contentious Politics
+              - generic [ref=e1543]: "2015"
+            - generic [ref=e1544]: Charles Tilly, Sidney Tarrow
+          - cell "Государство" [ref=e1545]:
+            - generic [ref=e1547]: Государство
+          - cell "288 стр. Читать" [ref=e1548]:
+            - generic [ref=e1549]:
+              - generic [ref=e1550]: 288 стр.
+              - link "Читать" [ref=e1551] [cursor=pointer]:
+                - /url: https://books.apple.com/us/book/contentious-politics/id1024488233
+          - cell "1" [ref=e1552]:
+            - generic [ref=e1554]:
+              - img [ref=e1555]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1558]:
+            - button "Хочу читать" [ref=e1559] [cursor=pointer]
+        - row "Возвращение государства. Россия в нулевые (2000-2012) 2023 Екатерина Шульман Путинизм 208 стр. Читать 2 Хочу читать" [ref=e1560]:
+          - cell [ref=e1561]
+          - cell "Возвращение государства. Россия в нулевые (2000-2012) 2023 Екатерина Шульман" [ref=e1562]:
+            - generic [ref=e1563]:
+              - generic [ref=e1564]: Возвращение государства. Россия в нулевые (2000-2012)
+              - generic [ref=e1565]: "2023"
+            - generic [ref=e1566]: Екатерина Шульман
+          - cell "Путинизм" [ref=e1567]:
+            - generic [ref=e1569]: Путинизм
+          - cell "208 стр. Читать" [ref=e1570]:
+            - generic [ref=e1571]:
+              - generic [ref=e1572]: 208 стр.
+              - link "Читать" [ref=e1573] [cursor=pointer]:
+                - /url: https://flibusta.su/book/168011-vozvraschenie-gosudarstva-rossiya-v-nulevyie-2000-2012/
+          - cell "2" [ref=e1574]:
+            - generic [ref=e1576]:
+              - img [ref=e1577]
+              - text: "2"
+          - cell "Хочу читать" [ref=e1580]:
+            - button "Хочу читать" [ref=e1581] [cursor=pointer]
+        - row "Оружие слабых. Повседневные формы крестьянского сопротивления 1985 James Scott Народные движения 390 стр. Читать 1 Хочу читать" [ref=e1582]:
+          - cell [ref=e1583]
+          - cell "Оружие слабых. Повседневные формы крестьянского сопротивления 1985 James Scott" [ref=e1584]:
+            - generic [ref=e1585]:
+              - generic [ref=e1586]: Оружие слабых. Повседневные формы крестьянского сопротивления
+              - generic [ref=e1587]: "1985"
+            - generic [ref=e1588]: James Scott
+          - cell "Народные движения" [ref=e1589]:
+            - generic [ref=e1591]: Народные движения
+          - cell "390 стр. Читать" [ref=e1592]:
+            - generic [ref=e1593]:
+              - generic [ref=e1594]: 390 стр.
+              - link "Читать" [ref=e1595] [cursor=pointer]:
+                - /url: https://flibusta.su/book/376190-oruzie-slabyh-povsednevnye-formy-krestanskogo-soprotivlenia/
+          - cell "1" [ref=e1596]:
+            - generic [ref=e1598]:
+              - img [ref=e1599]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1602]:
+            - button "Хочу читать" [ref=e1603] [cursor=pointer]
+        - 'row "Работа: Капитализм. Экономика. Сопротивление. 2021 CrimethInc Капитализм 340 стр. Читать 3 Хочу читать" [ref=e1604]':
+          - cell [ref=e1605]
+          - 'cell "Работа: Капитализм. Экономика. Сопротивление. 2021 CrimethInc" [ref=e1606]':
+            - generic [ref=e1607]:
+              - generic [ref=e1608]: "Работа: Капитализм. Экономика. Сопротивление."
+              - generic [ref=e1609]: "2021"
+            - generic [ref=e1610]: CrimethInc
+          - cell "Капитализм" [ref=e1611]:
+            - generic [ref=e1613]: Капитализм
+          - cell "340 стр. Читать" [ref=e1614]:
+            - generic [ref=e1615]:
+              - generic [ref=e1616]: 340 стр.
+              - link "Читать" [ref=e1617] [cursor=pointer]:
+                - /url: https://www.rtpbooks.info/product/rabota-crimethinc/
+          - cell "3" [ref=e1618]:
+            - generic [ref=e1620]:
+              - img [ref=e1621]
+              - text: "3"
+          - cell "Хочу читать" [ref=e1624]:
+            - button "Хочу читать" [ref=e1625] [cursor=pointer]
+        - 'row "Консенсус: Принятие решений в свободном обществе Peter Gelderloos Демократия 106 стр. Читать 2 Хочу читать" [ref=e1626]':
+          - cell [ref=e1627]
+          - 'cell "Консенсус: Принятие решений в свободном обществе Peter Gelderloos" [ref=e1628]':
+            - generic [ref=e1630]: "Консенсус: Принятие решений в свободном обществе"
+            - generic [ref=e1631]: Peter Gelderloos
+          - cell "Демократия" [ref=e1632]:
+            - generic [ref=e1634]: Демократия
+          - cell "106 стр. Читать" [ref=e1635]:
+            - generic [ref=e1636]:
+              - generic [ref=e1637]: 106 стр.
+              - link "Читать" [ref=e1638] [cursor=pointer]:
+                - /url: https://we.riseup.net/assets/64520/consensus.pdf
+          - cell "2" [ref=e1639]:
+            - generic [ref=e1641]:
+              - img [ref=e1642]
+              - text: "2"
+          - cell "Хочу читать" [ref=e1645]:
+            - button "Хочу читать" [ref=e1646] [cursor=pointer]
+        - row "Авторитарная Россия 2021 Владимир Гельман Путинизм 337 стр. Читать 3 Хочу читать" [ref=e1647]:
+          - cell [ref=e1648]
+          - cell "Авторитарная Россия 2021 Владимир Гельман" [ref=e1649]:
+            - generic [ref=e1650]:
+              - generic [ref=e1651]: Авторитарная Россия
+              - generic [ref=e1652]: "2021"
+            - generic [ref=e1653]: Владимир Гельман
+          - cell "Путинизм" [ref=e1654]:
+            - generic [ref=e1656]: Путинизм
+          - cell "337 стр. Читать" [ref=e1657]:
+            - generic [ref=e1658]:
+              - generic [ref=e1659]: 337 стр.
+              - link "Читать" [ref=e1660] [cursor=pointer]:
+                - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%90%D0%B2%D1%82%D0%BE%D1%80%D0%B8%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F%20%D0%A0%D0%BE%D1%81%202021%20336%D1%81.pdf
+          - cell "3" [ref=e1661]:
+            - generic [ref=e1663]:
+              - img [ref=e1664]
+              - text: "3"
+          - cell "Хочу читать" [ref=e1667]:
+            - button "Хочу читать" [ref=e1668] [cursor=pointer]
+        - row "Жизнь и времена либеральной 1977 C. B. Macpherson Демократия 173 стр. Читать 1 Хочу читать" [ref=e1669]:
+          - cell [ref=e1670]
+          - cell "Жизнь и времена либеральной 1977 C. B. Macpherson" [ref=e1671]:
+            - generic [ref=e1672]:
+              - generic [ref=e1673]: Жизнь и времена либеральной
+              - generic [ref=e1674]: "1977"
+            - generic [ref=e1675]: C. B. Macpherson
+          - cell "Демократия" [ref=e1676]:
+            - generic [ref=e1678]: Демократия
+          - cell "173 стр. Читать" [ref=e1679]:
+            - generic [ref=e1680]:
+              - generic [ref=e1681]: 173 стр.
+              - link "Читать" [ref=e1682] [cursor=pointer]:
+                - /url: https://www.klex.ru/zu1
+          - cell "1" [ref=e1683]:
+            - generic [ref=e1685]:
+              - img [ref=e1686]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1689]:
+            - button "Хочу читать" [ref=e1690] [cursor=pointer]
+        - row "Принципы представительного правления 1997 Bernard Manin Демократия 343 стр. Читать 2 Хочу читать" [ref=e1691]:
+          - cell [ref=e1692]
+          - cell "Принципы представительного правления 1997 Bernard Manin" [ref=e1693]:
+            - generic [ref=e1694]:
+              - generic [ref=e1695]: Принципы представительного правления
+              - generic [ref=e1696]: "1997"
+            - generic [ref=e1697]: Bernard Manin
+          - cell "Демократия" [ref=e1698]:
+            - generic [ref=e1700]: Демократия
+          - cell "343 стр. Читать" [ref=e1701]:
+            - generic [ref=e1702]:
+              - generic [ref=e1703]: 343 стр.
+              - link "Читать" [ref=e1704] [cursor=pointer]:
+                - /url: https://eupress.ru/books/index/item/id/8
+          - cell "2" [ref=e1705]:
+            - generic [ref=e1707]:
+              - img [ref=e1708]
+              - text: "2"
+          - cell "Хочу читать" [ref=e1711]:
+            - button "Хочу читать" [ref=e1712] [cursor=pointer]
+        - row "Народная история США 1980 Howard Zinn Народные движения 880 стр. Читать 1 Хочу читать" [ref=e1713]:
+          - cell [ref=e1714]
+          - cell "Народная история США 1980 Howard Zinn" [ref=e1715]:
+            - generic [ref=e1716]:
+              - generic [ref=e1717]: Народная история США
+              - generic [ref=e1718]: "1980"
+            - generic [ref=e1719]: Howard Zinn
+          - cell "Народные движения" [ref=e1720]:
+            - generic [ref=e1722]: Народные движения
+          - cell "880 стр. Читать" [ref=e1723]:
+            - generic [ref=e1724]:
+              - generic [ref=e1725]: 880 стр.
+              - link "Читать" [ref=e1726] [cursor=pointer]:
+                - /url: https://fb2.top/narodnaya-istoriya-ssha-s-1492-goda-do-nashih-dney-330349
+          - cell "1" [ref=e1727]:
+            - generic [ref=e1729]:
+              - img [ref=e1730]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1733]:
+            - button "Хочу читать" [ref=e1734] [cursor=pointer]
+        - row "Великая трансформация 1944 Karl Polanyi Государство 312 стр. Читать 1 Хочу читать" [ref=e1735]:
+          - cell [ref=e1736]
+          - cell "Великая трансформация 1944 Karl Polanyi" [ref=e1737]:
+            - generic [ref=e1738]:
+              - generic [ref=e1739]: Великая трансформация
+              - generic [ref=e1740]: "1944"
+            - generic [ref=e1741]: Karl Polanyi
+          - cell "Государство" [ref=e1742]:
+            - generic [ref=e1744]: Государство
+          - cell "312 стр. Читать" [ref=e1745]:
+            - generic [ref=e1746]:
+              - generic [ref=e1747]: 312 стр.
+              - link "Читать" [ref=e1748] [cursor=pointer]:
+                - /url: http://rustem-nureev.ru/wp-content/uploads/2011/01/277.pdf
+          - cell "1" [ref=e1749]:
+            - generic [ref=e1751]:
+              - img [ref=e1752]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1755]:
+            - button "Хочу читать" [ref=e1756] [cursor=pointer]
+        - 'row "Делать мнение: новая политическая игра 1990 Patrick Champagne Демократия 317 стр. Читать Хочу читать" [ref=e1757]':
+          - cell [ref=e1758]
+          - 'cell "Делать мнение: новая политическая игра 1990 Patrick Champagne" [ref=e1759]':
+            - generic [ref=e1760]:
+              - generic [ref=e1761]: "Делать мнение: новая политическая игра"
+              - generic [ref=e1762]: "1990"
+            - generic [ref=e1763]: Patrick Champagne
+          - cell "Демократия" [ref=e1764]:
+            - generic [ref=e1766]: Демократия
+          - cell "317 стр. Читать" [ref=e1767]:
+            - generic [ref=e1768]:
+              - generic [ref=e1769]: 317 стр.
+              - link "Читать" [ref=e1770] [cursor=pointer]:
+                - /url: https://scepsis.net/library/id_1093.html
+          - cell [ref=e1771]
+          - cell "Хочу читать" [ref=e1772]:
+            - button "Хочу читать" [ref=e1773] [cursor=pointer]
+        - row "Долгий двадцатый век 2006 Giovanni Arrighi Капитализм 727 стр. Читать 1 Хочу читать" [ref=e1774]:
+          - cell [ref=e1775]
+          - cell "Долгий двадцатый век 2006 Giovanni Arrighi" [ref=e1776]:
+            - generic [ref=e1777]:
+              - generic [ref=e1778]: Долгий двадцатый век
+              - generic [ref=e1779]: "2006"
+            - generic [ref=e1780]: Giovanni Arrighi
+          - cell "Капитализм" [ref=e1781]:
+            - generic [ref=e1783]: Капитализм
+          - cell "727 стр. Читать" [ref=e1784]:
+            - generic [ref=e1785]:
+              - generic [ref=e1786]: 727 стр.
+              - link "Читать" [ref=e1787] [cursor=pointer]:
+                - /url: https://crystalbook.ru/wp-content/uploads/2021/05/%D0%90%D1%80%D1%80%D0%B8%D0%B3%D0%B8-%D0%94%D0%B6.-%D0%94%D0%BE%D0%BB%D0%B3%D0%B8%D0%B9-%D0%B4%D0%B2%D0%B0%D0%B4%D1%86%D0%B0%D1%82%D1%8B%D0%B9-%D0%B2%D0%B5%D0%BA.pdf
+          - cell "1" [ref=e1788]:
+            - generic [ref=e1790]:
+              - img [ref=e1791]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1794]:
+            - button "Хочу читать" [ref=e1795] [cursor=pointer]
+        - row "Миросистемный анализ 2006 Immanuel Wallerstein Капитализм 248 стр. Читать 1 Хочу читать" [ref=e1796]:
+          - cell [ref=e1797]
+          - cell "Миросистемный анализ 2006 Immanuel Wallerstein" [ref=e1798]:
+            - generic [ref=e1799]:
+              - generic [ref=e1800]: Миросистемный анализ
+              - generic [ref=e1801]: "2006"
+            - generic [ref=e1802]: Immanuel Wallerstein
+          - cell "Капитализм" [ref=e1803]:
+            - generic [ref=e1805]: Капитализм
+          - cell "248 стр. Читать" [ref=e1806]:
+            - generic [ref=e1807]:
+              - generic [ref=e1808]: 248 стр.
+              - link "Читать" [ref=e1809] [cursor=pointer]:
+                - /url: https://socioline.ru/files/5/48/vallerstain_i._-_analiz_mirovyh_sistem_i_situaciya_v_sovremennom_mire_-_2001.pdf
+          - cell "1" [ref=e1810]:
+            - generic [ref=e1812]:
+              - img [ref=e1813]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1816]:
+            - button "Хочу читать" [ref=e1817] [cursor=pointer]
+        - row "Капитал и идеология 2019 Thomas Piketty Капитализм 1150 стр. Читать 2 Хочу читать" [ref=e1818]:
+          - cell [ref=e1819]
+          - cell "Капитал и идеология 2019 Thomas Piketty" [ref=e1820]:
+            - generic [ref=e1821]:
+              - generic [ref=e1822]: Капитал и идеология
+              - generic [ref=e1823]: "2019"
+            - generic [ref=e1824]: Thomas Piketty
+          - cell "Капитализм" [ref=e1825]:
+            - generic [ref=e1827]: Капитализм
+          - cell "1150 стр. Читать" [ref=e1828]:
+            - generic [ref=e1829]:
+              - generic [ref=e1830]: 1150 стр.
+              - link "Читать" [ref=e1831] [cursor=pointer]:
+                - /url: https://fb2.top/kapital-i-ideologiya-749702
+          - cell "2" [ref=e1832]:
+            - generic [ref=e1834]:
+              - img [ref=e1835]
+              - text: "2"
+          - cell "Хочу читать" [ref=e1838]:
+            - button "Хочу читать" [ref=e1839] [cursor=pointer]
+        - row "Размышления о представительном правлении 1861 John Stuart Mill Демократия 340 стр. Читать Хочу читать" [ref=e1840]:
+          - cell [ref=e1841]
+          - cell "Размышления о представительном правлении 1861 John Stuart Mill" [ref=e1842]:
+            - generic [ref=e1843]:
+              - generic [ref=e1844]: Размышления о представительном правлении
+              - generic [ref=e1845]: "1861"
+            - generic [ref=e1846]: John Stuart Mill
+          - cell "Демократия" [ref=e1847]:
+            - generic [ref=e1849]: Демократия
+          - cell "340 стр. Читать" [ref=e1850]:
+            - generic [ref=e1851]:
+              - generic [ref=e1852]: 340 стр.
+              - link "Читать" [ref=e1853] [cursor=pointer]:
+                - /url: https://readli.net/rassuzhdeniya-o-predstavitelnom-pravlenii/
+          - cell [ref=e1854]
+          - cell "Хочу читать" [ref=e1855]:
+            - button "Хочу читать" [ref=e1856] [cursor=pointer]
+        - 'row "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future 2020 Paul Krugman Капитализм 464 стр. Читать Хочу читать" [ref=e1857]':
+          - cell [ref=e1858]
+          - 'cell "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future 2020 Paul Krugman" [ref=e1859]':
+            - generic [ref=e1860]:
+              - generic [ref=e1861]: "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future"
+              - generic [ref=e1862]: "2020"
+            - generic [ref=e1863]: Paul Krugman
+          - cell "Капитализм" [ref=e1864]:
+            - generic [ref=e1866]: Капитализм
+          - cell "464 стр. Читать" [ref=e1867]:
+            - generic [ref=e1868]:
+              - generic [ref=e1869]: 464 стр.
+              - link "Читать" [ref=e1870] [cursor=pointer]:
+                - /url: https://dokumen.pub/arguing-with-zombies-economics-politics-and-the-fight-for-a-better-future-hardcovernbsped-1324005017-9781324005018.html
+          - cell [ref=e1871]
+          - cell "Хочу читать" [ref=e1872]:
+            - button "Хочу читать" [ref=e1873] [cursor=pointer]
+        - row "Социологическое воображение 1959 Charles Mills Демократия 257 стр. Читать 1 Хочу читать" [ref=e1874]:
+          - cell [ref=e1875]
+          - cell "Социологическое воображение 1959 Charles Mills" [ref=e1876]:
+            - generic [ref=e1877]:
+              - generic [ref=e1878]: Социологическое воображение
+              - generic [ref=e1879]: "1959"
+            - generic [ref=e1880]: Charles Mills
+          - cell "Демократия" [ref=e1881]:
+            - generic [ref=e1883]: Демократия
+          - cell "257 стр. Читать" [ref=e1884]:
+            - generic [ref=e1885]:
+              - generic [ref=e1886]: 257 стр.
+              - link "Читать" [ref=e1887] [cursor=pointer]:
+                - /url: https://readli.net/sotsiologicheskoe-voobrazhenie/
+          - cell "1" [ref=e1888]:
+            - generic [ref=e1890]:
+              - img [ref=e1891]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1894]:
+            - button "Хочу читать" [ref=e1895] [cursor=pointer]
+        - row "Освобождение человека 2023 Роман Тиса Левая идея 321 стр. Читать 1 Хочу читать" [ref=e1896]:
+          - cell [ref=e1897]
+          - cell "Освобождение человека 2023 Роман Тиса" [ref=e1898]:
+            - generic [ref=e1899]:
+              - generic [ref=e1900]: Освобождение человека
+              - generic [ref=e1901]: "2023"
+            - generic [ref=e1902]: Роман Тиса
+          - cell "Левая идея" [ref=e1903]:
+            - generic [ref=e1905]: Левая идея
+          - cell "321 стр. Читать" [ref=e1906]:
+            - generic [ref=e1907]:
+              - generic [ref=e1908]: 321 стр.
+              - link "Читать" [ref=e1909] [cursor=pointer]:
+                - /url: https://directiolibera.com/osvobozhdenie-cheloveka
+          - cell "1" [ref=e1910]:
+            - generic [ref=e1912]:
+              - img [ref=e1913]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1916]:
+            - button "Хочу читать" [ref=e1917] [cursor=pointer]
+        - row "Войны в Заливе не было 1991 Jean Baudrillard Демократия 82 стр. Читать 1 Хочу читать" [ref=e1918]:
+          - cell [ref=e1919]
+          - cell "Войны в Заливе не было 1991 Jean Baudrillard" [ref=e1920]:
+            - generic [ref=e1921]:
+              - generic [ref=e1922]: Войны в Заливе не было
+              - generic [ref=e1923]: "1991"
+            - generic [ref=e1924]: Jean Baudrillard
+          - cell "Демократия" [ref=e1925]:
+            - generic [ref=e1927]: Демократия
+          - cell "82 стр. Читать" [ref=e1928]:
+            - generic [ref=e1929]:
+              - generic [ref=e1930]: 82 стр.
+              - link "Читать" [ref=e1931] [cursor=pointer]:
+                - /url: https://books.google.rs/books?id=oc1FDQAAQBAJ&pg=PA5&source=gbs_selected_pages&cad=1#v=onepage&q&f=false
+          - cell "1" [ref=e1932]:
+            - generic [ref=e1934]:
+              - img [ref=e1935]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1938]:
+            - button "Хочу читать" [ref=e1939] [cursor=pointer]
+        - row "Истоки современной политической мысли 1978 Quentin Skinner Государство 973 стр. Читать 1 Хочу читать" [ref=e1940]:
+          - cell [ref=e1941]
+          - cell "Истоки современной политической мысли 1978 Quentin Skinner" [ref=e1942]:
+            - generic [ref=e1943]:
+              - generic [ref=e1944]: Истоки современной политической мысли
+              - generic [ref=e1945]: "1978"
+            - generic [ref=e1946]: Quentin Skinner
+          - cell "Государство" [ref=e1947]:
+            - generic [ref=e1949]: Государство
+          - cell "973 стр. Читать" [ref=e1950]:
+            - generic [ref=e1951]:
+              - generic [ref=e1952]: 973 стр.
+              - link "Читать" [ref=e1953] [cursor=pointer]:
+                - /url: https://vse-svobodny.com/product/skinner-k-istoki-sovremennoy-politicheskoy-2-toma/
+          - cell "1" [ref=e1954]:
+            - generic [ref=e1956]:
+              - img [ref=e1957]
+              - text: "1"
+          - cell "Хочу читать" [ref=e1960]:
+            - button "Хочу читать" [ref=e1961] [cursor=pointer]
+        - 'row "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton 1974 Benjamin R. Barber Демократия 314 стр. Читать 2 Хочу читать" [ref=e1962]':
+          - cell [ref=e1963]
+          - 'cell "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton 1974 Benjamin R. Barber" [ref=e1964]':
+            - generic [ref=e1965]:
+              - generic [ref=e1966]: "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton"
+              - generic [ref=e1967]: "1974"
+            - generic [ref=e1968]: Benjamin R. Barber
+          - cell "Демократия" [ref=e1969]:
+            - generic [ref=e1971]: Демократия
+          - cell "314 стр. Читать" [ref=e1972]:
+            - generic [ref=e1973]:
+              - generic [ref=e1974]: 314 стр.
+              - link "Читать" [ref=e1975] [cursor=pointer]:
+                - /url: https://dokumen.pub/qdownload/the-death-of-communal-liberty-a-history-of-freedom-in-a-swiss-mountain-canton-9781400867172.html
+          - cell "2" [ref=e1976]:
+            - generic [ref=e1978]:
+              - img [ref=e1979]
+              - text: "2"
+          - cell "Хочу читать" [ref=e1982]:
+            - button "Хочу читать" [ref=e1983] [cursor=pointer]
+        - row "Государство или Цена порядка 2018 Вадим Волков Государство 160 стр. Читать 1 Хочу читать" [ref=e1984]:
+          - cell [ref=e1985]
+          - cell "Государство или Цена порядка 2018 Вадим Волков" [ref=e1986]:
+            - generic [ref=e1987]:
+              - generic [ref=e1988]: Государство или Цена порядка
+              - generic [ref=e1989]: "2018"
+            - generic [ref=e1990]: Вадим Волков
+          - cell "Государство" [ref=e1991]:
+            - generic [ref=e1993]: Государство
+          - cell "160 стр. Читать" [ref=e1994]:
+            - generic [ref=e1995]:
+              - generic [ref=e1996]: 160 стр.
+              - link "Читать" [ref=e1997] [cursor=pointer]:
+                - /url: https://eupress.ru/books/index/item/id/348
+          - cell "1" [ref=e1998]:
+            - generic [ref=e2000]:
+              - img [ref=e2001]
+              - text: "1"
+          - cell "Хочу читать" [ref=e2004]:
+            - button "Хочу читать" [ref=e2005] [cursor=pointer]
+        - row "Управляя пустотой. Размывание западной демократии 2019 Peter Mair Демократия 216 стр. Читать Хочу читать" [ref=e2006]:
+          - cell [ref=e2007]
+          - cell "Управляя пустотой. Размывание западной демократии 2019 Peter Mair" [ref=e2008]:
+            - generic [ref=e2009]:
+              - generic [ref=e2010]: Управляя пустотой. Размывание западной демократии
+              - generic [ref=e2011]: "2019"
+            - generic [ref=e2012]: Peter Mair
+          - cell "Демократия" [ref=e2013]:
+            - generic [ref=e2015]: Демократия
+          - cell "216 стр. Читать" [ref=e2016]:
+            - generic [ref=e2017]:
+              - generic [ref=e2018]: 216 стр.
+              - link "Читать" [ref=e2019] [cursor=pointer]:
+                - /url: https://readli.net/upravlyaya-pustotoy-razmyivanie-zapadnoy-demokratii/
+          - cell [ref=e2020]
+          - cell "Хочу читать" [ref=e2021]:
+            - button "Хочу читать" [ref=e2022] [cursor=pointer]
+        - row "Краткая история равенства 2021 Thomas Piketty Капитализм 394 стр. Читать Хочу читать" [ref=e2023]:
+          - cell [ref=e2024]
+          - cell "Краткая история равенства 2021 Thomas Piketty" [ref=e2025]:
+            - generic [ref=e2026]:
+              - generic [ref=e2027]: Краткая история равенства
+              - generic [ref=e2028]: "2021"
+            - generic [ref=e2029]: Thomas Piketty
+          - cell "Капитализм" [ref=e2030]:
+            - generic [ref=e2032]: Капитализм
+          - cell "394 стр. Читать" [ref=e2033]:
+            - generic [ref=e2034]:
+              - generic [ref=e2035]: 394 стр.
+              - link "Читать" [ref=e2036] [cursor=pointer]:
+                - /url: https://books.yandex.ru/books/i1qwdSc2
+          - cell [ref=e2037]
+          - cell "Хочу читать" [ref=e2038]:
+            - button "Хочу читать" [ref=e2039] [cursor=pointer]
+        - row "Революция как момент истины 1997 Теодор Шанин Народные движения 555 стр. Читать 3 Хочу читать" [ref=e2040]:
+          - cell [ref=e2041]
+          - cell "Революция как момент истины 1997 Теодор Шанин" [ref=e2042]:
+            - generic [ref=e2043]:
+              - generic [ref=e2044]: Революция как момент истины
+              - generic [ref=e2045]: "1997"
+            - generic [ref=e2046]: Теодор Шанин
+          - cell "Народные движения" [ref=e2047]:
+            - generic [ref=e2049]: Народные движения
+          - cell "555 стр. Читать" [ref=e2050]:
+            - generic [ref=e2051]:
+              - generic [ref=e2052]: 555 стр.
+              - link "Читать" [ref=e2053] [cursor=pointer]:
+                - /url: https://rabkrin.org/shanin-teodor-revolyutsiya-kak-moment-istinyi-kniga/
+          - cell "3" [ref=e2054]:
+            - generic [ref=e2056]:
+              - img [ref=e2057]
+              - text: "3"
+          - cell "Хочу читать" [ref=e2060]:
+            - button "Хочу читать" [ref=e2061] [cursor=pointer]
+        - row "Принуждение, капитал и европейские государства 1992 Charles Tilly Государство 360 стр. Читать 2 Хочу читать" [ref=e2062]:
+          - cell [ref=e2063]
+          - cell "Принуждение, капитал и европейские государства 1992 Charles Tilly" [ref=e2064]:
+            - generic [ref=e2065]:
+              - generic [ref=e2066]: Принуждение, капитал и европейские государства
+              - generic [ref=e2067]: "1992"
+            - generic [ref=e2068]: Charles Tilly
+          - cell "Государство" [ref=e2069]:
+            - generic [ref=e2071]: Государство
+          - cell "360 стр. Читать" [ref=e2072]:
+            - generic [ref=e2073]:
+              - generic [ref=e2074]: 360 стр.
+              - link "Читать" [ref=e2075] [cursor=pointer]:
+                - /url: http://kyiv-heritage-guide.com/sites/default/files/%D0%A2%D0%98%D0%9B%D0%9B%D0%98%20-%20%D0%9F%D1%80%D0%B8%D0%BD%D1%83%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5%202009%20328c.pdf
+          - cell "2" [ref=e2076]:
+            - generic [ref=e2078]:
+              - img [ref=e2079]
+              - text: "2"
+          - cell "Хочу читать" [ref=e2082]:
+            - button "Хочу читать" [ref=e2083] [cursor=pointer]
+        - row "Общественное мнение не существует 1972 Pierre Bourdieu Демократия Читать 1 Хочу читать" [ref=e2084]:
+          - cell [ref=e2085]
+          - cell "Общественное мнение не существует 1972 Pierre Bourdieu" [ref=e2086]:
+            - generic [ref=e2087]:
+              - generic [ref=e2088]: Общественное мнение не существует
+              - generic [ref=e2089]: "1972"
+            - generic [ref=e2090]: Pierre Bourdieu
+          - cell "Демократия" [ref=e2091]:
+            - generic [ref=e2093]: Демократия
+          - cell "Читать" [ref=e2094]:
+            - link "Читать" [ref=e2096] [cursor=pointer]:
+              - /url: http://bourdieu.name/content/obshhestvennoe-mnenie-ne-sushhestvuet
+          - cell "1" [ref=e2097]:
+            - generic [ref=e2099]:
+              - img [ref=e2100]
+              - text: "1"
+          - cell "Хочу читать" [ref=e2103]:
+            - button "Хочу читать" [ref=e2104] [cursor=pointer]
+        - row "Предпринимательское государство 2023 Marijana Macukato Капитализм 360 стр. Читать 2 Хочу читать" [ref=e2105]:
+          - cell [ref=e2106]
+          - cell "Предпринимательское государство 2023 Marijana Macukato" [ref=e2107]:
+            - generic [ref=e2108]:
+              - generic [ref=e2109]: Предпринимательское государство
+              - generic [ref=e2110]: "2023"
+            - generic [ref=e2111]: Marijana Macukato
+          - cell "Капитализм" [ref=e2112]:
+            - generic [ref=e2114]: Капитализм
+          - cell "360 стр. Читать" [ref=e2115]:
+            - generic [ref=e2116]:
+              - generic [ref=e2117]: 360 стр.
+              - link "Читать" [ref=e2118] [cursor=pointer]:
+                - /url: https://id.hse.ru/books/795933140.html
+          - cell "2" [ref=e2119]:
+            - generic [ref=e2121]:
+              - img [ref=e2122]
+              - text: "2"
+          - cell "Хочу читать" [ref=e2125]:
+            - button "Хочу читать" [ref=e2126] [cursor=pointer]
+        - row "Политика в эпоху жесткой экономии 2015 Wolfgang Streeck, Armin Schäfer Капитализм 392 стр. Читать 2 Хочу читать" [ref=e2127]:
+          - cell [ref=e2128]
+          - cell "Политика в эпоху жесткой экономии 2015 Wolfgang Streeck, Armin Schäfer" [ref=e2129]:
+            - generic [ref=e2130]:
+              - generic [ref=e2131]: Политика в эпоху жесткой экономии
+              - generic [ref=e2132]: "2015"
+            - generic [ref=e2133]: Wolfgang Streeck, Armin Schäfer
+          - cell "Капитализм" [ref=e2134]:
+            - generic [ref=e2136]: Капитализм
+          - cell "392 стр. Читать" [ref=e2137]:
+            - generic [ref=e2138]:
+              - generic [ref=e2139]: 392 стр.
+              - link "Читать" [ref=e2140] [cursor=pointer]:
+                - /url: https://rabkrin.org/politika-v-epohu-zhestkoy-ekonomii-2015-kniga/
+          - cell "2" [ref=e2141]:
+            - generic [ref=e2143]:
+              - img [ref=e2144]
+              - text: "2"
+          - cell "Хочу читать" [ref=e2147]:
+            - button "Хочу читать" [ref=e2148] [cursor=pointer]
+        - row "Недостойное правление 2019 Владимир Гельман Путинизм 225 стр. Читать 1 Хочу читать" [ref=e2149]:
+          - cell [ref=e2150]
+          - cell "Недостойное правление 2019 Владимир Гельман" [ref=e2151]:
+            - generic [ref=e2152]:
+              - generic [ref=e2153]: Недостойное правление
+              - generic [ref=e2154]: "2019"
+            - generic [ref=e2155]: Владимир Гельман
+          - cell "Путинизм" [ref=e2156]:
+            - generic [ref=e2158]: Путинизм
+          - cell "225 стр. Читать" [ref=e2159]:
+            - generic [ref=e2160]:
+              - generic [ref=e2161]: 225 стр.
+              - link "Читать" [ref=e2162] [cursor=pointer]:
+                - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%9D%D0%B5%D0%B4%D0%BE%D1%81%D1%82%D0%BE%D0%B9%D0%BD%D0%BE%D0%B5%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%202019%20254c.pdf
+          - cell "1" [ref=e2163]:
+            - generic [ref=e2165]:
+              - img [ref=e2166]
+              - text: "1"
+          - cell "Хочу читать" [ref=e2169]:
+            - button "Хочу читать" [ref=e2170] [cursor=pointer]
+        - row "Свобода до либерализма 1998 Quentin Skinner Демократия 113 стр. Читать Хочу читать" [ref=e2171]:
+          - cell [ref=e2172]
+          - cell "Свобода до либерализма 1998 Quentin Skinner" [ref=e2173]:
+            - generic [ref=e2174]:
+              - generic [ref=e2175]: Свобода до либерализма
+              - generic [ref=e2176]: "1998"
+            - generic [ref=e2177]: Quentin Skinner
+          - cell "Демократия" [ref=e2178]:
+            - generic [ref=e2180]: Демократия
+          - cell "113 стр. Читать" [ref=e2181]:
+            - generic [ref=e2182]:
+              - generic [ref=e2183]: 113 стр.
+              - link "Читать" [ref=e2184] [cursor=pointer]:
+                - /url: https://www.eupress.ru/books/index/item/id/9
+          - cell [ref=e2185]
+          - cell "Хочу читать" [ref=e2186]:
+            - button "Хочу читать" [ref=e2187] [cursor=pointer]
+        - 'row "Долг: первые 5000 лет истории 2011 David Graeber Капитализм 534 стр. Читать 1 Хочу читать" [ref=e2188]':
+          - cell [ref=e2189]
+          - 'cell "Долг: первые 5000 лет истории 2011 David Graeber" [ref=e2190]':
+            - generic [ref=e2191]:
+              - generic [ref=e2192]: "Долг: первые 5000 лет истории"
+              - generic [ref=e2193]: "2011"
+            - generic [ref=e2194]: David Graeber
+          - cell "Капитализм" [ref=e2195]:
+            - generic [ref=e2197]: Капитализм
+          - cell "534 стр. Читать" [ref=e2198]:
+            - generic [ref=e2199]:
+              - generic [ref=e2200]: 534 стр.
+              - link "Читать" [ref=e2201] [cursor=pointer]:
+                - /url: https://monoskop.org/images/c/cd/Greber_Devid_Dolg_pervyye_5000_let_istorii_2015.pdf
+          - cell "1" [ref=e2202]:
+            - generic [ref=e2204]:
+              - img [ref=e2205]
+              - text: "1"
+          - cell "Хочу читать" [ref=e2208]:
+            - button "Хочу читать" [ref=e2209] [cursor=pointer]
+        - row "Купленное время. Отсроченный кризис демократического капитализма 2019 Wolfgang Streeck Капитализм 280 стр. Читать 1 Хочу читать" [ref=e2210]:
+          - cell [ref=e2211]
+          - cell "Купленное время. Отсроченный кризис демократического капитализма 2019 Wolfgang Streeck" [ref=e2212]:
+            - generic [ref=e2213]:
+              - generic [ref=e2214]: Купленное время. Отсроченный кризис демократического капитализма
+              - generic [ref=e2215]: "2019"
+            - generic [ref=e2216]: Wolfgang Streeck
+          - cell "Капитализм" [ref=e2217]:
+            - generic [ref=e2219]: Капитализм
+          - cell "280 стр. Читать" [ref=e2220]:
+            - generic [ref=e2221]:
+              - generic [ref=e2222]: 280 стр.
+              - link "Читать" [ref=e2223] [cursor=pointer]:
+                - /url: https://www.labirint.ru/books/683515/
+          - cell "1" [ref=e2224]:
+            - generic [ref=e2226]:
+              - img [ref=e2227]
+              - text: "1"
+          - cell "Хочу читать" [ref=e2230]:
+            - button "Хочу читать" [ref=e2231] [cursor=pointer]
+        - row "Будущая революция 2023 Murray Bookchin Левая идея 248 стр. Читать 2 Хочу читать" [ref=e2232]:
+          - cell [ref=e2233]
+          - cell "Будущая революция 2023 Murray Bookchin" [ref=e2234]:
+            - generic [ref=e2235]:
+              - generic [ref=e2236]: Будущая революция
+              - generic [ref=e2237]: "2023"
+            - generic [ref=e2238]: Murray Bookchin
+          - cell "Левая идея" [ref=e2239]:
+            - generic [ref=e2241]: Левая идея
+          - cell "248 стр. Читать" [ref=e2242]:
+            - generic [ref=e2243]:
+              - generic [ref=e2244]: 248 стр.
+              - link "Читать" [ref=e2245] [cursor=pointer]:
+                - /url: https://www.rtpbooks.info/product/budushhaja-revoljucija-narodnye-assamblei-i-perspektiva-prjamoj-demokratii-mjurrej-bukchin/
+          - cell "2" [ref=e2246]:
+            - generic [ref=e2248]:
+              - img [ref=e2249]
+              - text: "2"
+          - cell "Хочу читать" [ref=e2252]:
+            - button "Хочу читать" [ref=e2253] [cursor=pointer]
+        - row "Доктирна шока 2009 Naomi Klein Капитализм 656 стр. Читать 2 Хочу читать" [ref=e2254]:
+          - cell [ref=e2255]
+          - cell "Доктирна шока 2009 Naomi Klein" [ref=e2256]:
+            - generic [ref=e2257]:
+              - generic [ref=e2258]: Доктирна шока
+              - generic [ref=e2259]: "2009"
+            - generic [ref=e2260]: Naomi Klein
+          - cell "Капитализм" [ref=e2261]:
+            - generic [ref=e2263]: Капитализм
+          - cell "656 стр. Читать" [ref=e2264]:
+            - generic [ref=e2265]:
+              - generic [ref=e2266]: 656 стр.
+              - link "Читать" [ref=e2267] [cursor=pointer]:
+                - /url: https://royallib.com/read/klyayn_naomi/doktrina_shoka_stanovlenie_kapitalizma_katastrof.html#0
+          - cell "2" [ref=e2268]:
+            - generic [ref=e2270]:
+              - img [ref=e2271]
+              - text: "2"
+          - cell "Хочу читать" [ref=e2274]:
+            - button "Хочу читать" [ref=e2275] [cursor=pointer]
+        - row "Краткая история неолиберализма 2007 David Harvey Капитализм 288 стр. Читать 3 Хочу читать" [ref=e2276]:
+          - cell [ref=e2277]
+          - cell "Краткая история неолиберализма 2007 David Harvey" [ref=e2278]:
+            - generic [ref=e2279]:
+              - generic [ref=e2280]: Краткая история неолиберализма
+              - generic [ref=e2281]: "2007"
+            - generic [ref=e2282]: David Harvey
+          - cell "Капитализм" [ref=e2283]:
+            - generic [ref=e2285]: Капитализм
+          - cell "288 стр. Читать" [ref=e2286]:
+            - generic [ref=e2287]:
+              - generic [ref=e2288]: 288 стр.
+              - link "Читать" [ref=e2289] [cursor=pointer]:
+                - /url: https://royallib.com/read/harvi_devid/kratkaya_istoriya_neoliberalizma.html#0
+          - cell "3" [ref=e2290]:
+            - generic [ref=e2292]:
+              - img [ref=e2293]
+              - text: "3"
+          - cell "Хочу читать" [ref=e2296]:
+            - button "Хочу читать" [ref=e2297] [cursor=pointer]
+        - row "The semisovereign people 1960 Schattschneider Демократия 180 стр. Читать Хочу читать" [ref=e2298]:
+          - cell [ref=e2299]
+          - cell "The semisovereign people 1960 Schattschneider" [ref=e2300]:
+            - generic [ref=e2301]:
+              - generic [ref=e2302]: The semisovereign people
+              - generic [ref=e2303]: "1960"
+            - generic [ref=e2304]: Schattschneider
+          - cell "Демократия" [ref=e2305]:
+            - generic [ref=e2307]: Демократия
+          - cell "180 стр. Читать" [ref=e2308]:
+            - generic [ref=e2309]:
+              - generic [ref=e2310]: 180 стр.
+              - link "Читать" [ref=e2311] [cursor=pointer]:
+                - /url: https://archive.org/details/semisovereignpeo00scha/mode/2up
+          - cell [ref=e2312]
+          - cell "Хочу читать" [ref=e2313]:
+            - button "Хочу читать" [ref=e2314] [cursor=pointer]
+        - row "Демократия, или Демон и Гегемон 2016 Артемий Магун Демократия 152 стр. Читать 2 Хочу читать" [ref=e2315]:
+          - cell [ref=e2316]
+          - cell "Демократия, или Демон и Гегемон 2016 Артемий Магун" [ref=e2317]:
+            - generic [ref=e2318]:
+              - generic [ref=e2319]: Демократия, или Демон и Гегемон
+              - generic [ref=e2320]: "2016"
+            - generic [ref=e2321]: Артемий Магун
+          - cell "Демократия" [ref=e2322]:
+            - generic [ref=e2324]: Демократия
+          - cell "152 стр. Читать" [ref=e2325]:
+            - generic [ref=e2326]:
+              - generic [ref=e2327]: 152 стр.
+              - link "Читать" [ref=e2328] [cursor=pointer]:
+                - /url: https://eupress.ru/books/index/item/id/409
+          - cell "2" [ref=e2329]:
+            - generic [ref=e2331]:
+              - img [ref=e2332]
+              - text: "2"
+          - cell "Хочу читать" [ref=e2335]:
+            - button "Хочу читать" [ref=e2336] [cursor=pointer]
+        - row "Заря всего 2024 David Wengrow, David Graeber Государство 560 стр. Читать 3 Хочу читать" [ref=e2337]:
+          - cell [ref=e2338]
+          - cell "Заря всего 2024 David Wengrow, David Graeber" [ref=e2339]:
+            - generic [ref=e2340]:
+              - generic [ref=e2341]: Заря всего
+              - generic [ref=e2342]: "2024"
+            - generic [ref=e2343]: David Wengrow, David Graeber
+          - cell "Государство" [ref=e2344]:
+            - generic [ref=e2346]: Государство
+          - cell "560 стр. Читать" [ref=e2347]:
+            - generic [ref=e2348]:
+              - generic [ref=e2349]: 560 стр.
+              - link "Читать" [ref=e2350] [cursor=pointer]:
+                - /url: "https://books.yandex.ru/books/VMifNlUI "
+          - cell "3" [ref=e2351]:
+            - generic [ref=e2353]:
+              - img [ref=e2354]
+              - text: "3"
+          - cell "Хочу читать" [ref=e2357]:
+            - button "Хочу читать" [ref=e2358] [cursor=pointer]
+        - row "Революционный темперамент. Париж в 1748–1789 годах 2026 Robert Darnton Народные движения 242 стр. Читать 1 Хочу читать" [ref=e2359]:
+          - cell [ref=e2360]
+          - cell "Революционный темперамент. Париж в 1748–1789 годах 2026 Robert Darnton" [ref=e2361]:
+            - generic [ref=e2362]:
+              - generic [ref=e2363]: Революционный темперамент. Париж в 1748–1789 годах
+              - generic [ref=e2364]: "2026"
+            - generic [ref=e2365]: Robert Darnton
+          - cell "Народные движения" [ref=e2366]:
+            - generic [ref=e2368]: Народные движения
+          - cell "242 стр. Читать" [ref=e2369]:
+            - generic [ref=e2370]:
+              - generic [ref=e2371]: 242 стр.
+              - link "Читать" [ref=e2372] [cursor=pointer]:
+                - /url: https://books.yandex.ru/books/OPaDWzEK
+          - cell "1" [ref=e2373]:
+            - generic [ref=e2375]:
+              - img [ref=e2376]
+              - text: "1"
+          - cell "Хочу читать" [ref=e2379]:
+            - button "Хочу читать" [ref=e2380] [cursor=pointer]
+  - contentinfo [ref=e2381]:
+    - button "Написать автору проекта" [ref=e2383] [cursor=pointer]
+  - dialog [ref=e2384]:
+    - generic [ref=e2385]:
+      - generic [ref=e2387]: Личный кабинет
+      - button [ref=e2388] [cursor=pointer]: ×
+    - generic [ref=e2389]:
+      - button [ref=e2390] [cursor=pointer]: Мои книги
+      - button [ref=e2391] [cursor=pointer]: Предложил:а
+      - button [ref=e2392] [cursor=pointer]: Профиль
+  - alert [ref=e2396]
+```
