@@ -27,6 +27,7 @@ function formatSignupCount(n: number): string {
 }
 
 const DESCRIPTION_CLAMP_THRESHOLD = 120
+const SUBMITTED_BY_MEMBER_LABEL = 'Эта книга предложена участни:цей клуба'
 
 function parseRecommendationLink(raw: string): { text: string; url: string } | null {
   const idx = Math.max(raw.lastIndexOf('https://'), raw.lastIndexOf('http://'))
@@ -55,6 +56,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
     document.addEventListener('pointerdown', onDocPointer)
     return () => document.removeEventListener('pointerdown', onDocPointer)
   }, [submittedTooltip])
+
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const hasExpandable = isLongDescription
   const isReading = book.status === 'reading'
@@ -137,12 +139,23 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
           {book.submittedByMember && (
             <div
               ref={submittedBadgeRef}
-              onMouseEnter={() => setSubmittedTooltip(true)}
-              onMouseLeave={() => setSubmittedTooltip(false)}
-              onClick={() => setSubmittedTooltip(v => !v)}
               role="button"
               tabIndex={0}
+              aria-describedby={submittedTooltip ? 'submitted-book-tooltip' : undefined}
               aria-expanded={submittedTooltip}
+              onMouseEnter={() => setSubmittedTooltip(true)}
+              onMouseLeave={() => {
+                if (document.activeElement !== submittedBadgeRef.current) setSubmittedTooltip(false)
+              }}
+              onFocus={() => setSubmittedTooltip(true)}
+              onBlur={() => setSubmittedTooltip(false)}
+              onClick={() => setSubmittedTooltip(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setSubmittedTooltip(true)
+                }
+              }}
               style={{
                 position: 'relative',
                 background: 'var(--accent)',
@@ -151,9 +164,9 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
+                cursor: 'help',
               }}
-              aria-label="Эта книга предложена участни:цей клуба"
+              aria-label={SUBMITTED_BY_MEMBER_LABEL}
             >
               <svg
                 viewBox="0 0 12 14"
@@ -173,22 +186,26 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               </svg>
               {submittedTooltip && (
                 <div
+                  id="submitted-book-tooltip"
+                  data-testid="submitted-book-tooltip"
+                  role="tooltip"
                   style={{
                     position: 'absolute',
                     top: 'calc(100% + 4px)',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
+                    right: 0,
                     background: 'var(--text)',
                     color: 'var(--bg)',
                     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                     fontSize: '0.65rem',
+                    lineHeight: 1.3,
                     padding: '0.3rem 0.5rem',
-                    whiteSpace: 'nowrap',
+                    width: 'max-content',
+                    maxWidth: 'min(18rem, calc(100vw - 2rem))',
                     pointerEvents: 'none',
                     zIndex: 10,
                   }}
                 >
-                  Эта книга предложена участни:цей клуба
+                  {SUBMITTED_BY_MEMBER_LABEL}
                 </div>
               )}
             </div>

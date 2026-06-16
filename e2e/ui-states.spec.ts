@@ -96,6 +96,55 @@ test.describe('Home submit book CTA layout', () => {
     expect(box).not.toBeNull()
     expect(box!.height).toBeLessThanOrEqual(96)
   })
+
+  test('book search input uses iOS-safe font size on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+
+    const fontSize = await page.getByPlaceholder('Поиск по названию или автору…').evaluate((element) => (
+      Number.parseFloat(window.getComputedStyle(element).fontSize)
+    ))
+
+    // iOS Safari auto-zooms focused form controls below 16px.
+    expect(fontSize).toBeGreaterThanOrEqual(16)
+  })
+
+  test('submitted-by-member badge does not create horizontal overflow on mobile tap', async ({
+    page,
+    createTestBook,
+    dbExec,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const book = await createTestBook({
+      title: `UI Submitted ${Date.now()}`,
+      author: 'Layout Author',
+      description: 'A submitted book used to prove the source badge stays inside the mobile viewport.',
+    })
+    await dbExec('update books set source = $1 where id = $2', ['submission', book.id])
+
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await page.getByPlaceholder('Поиск по названию или автору…').fill(book.title)
+    await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
+
+    const submittedBadge = page.locator('[aria-label="Эта книга предложена участни:цей клуба"]')
+    await submittedBadge.click()
+
+    const tooltip = page.getByTestId('submitted-book-tooltip')
+    await expect(tooltip).toBeVisible()
+    await submittedBadge.click()
+    await expect(tooltip).toBeVisible()
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+
+    const tooltipBox = await tooltip.boundingBox()
+    const viewport = page.viewportSize()!
+    expect(tooltipBox).not.toBeNull()
+    expect(tooltipBox!.x).toBeGreaterThanOrEqual(0)
+    expect(tooltipBox!.x + tooltipBox!.width).toBeLessThanOrEqual(viewport.width)
+  })
 })
 
 test.describe('Matching feature presentation', () => {

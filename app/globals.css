@@ -142,6 +142,13 @@
 
   /* ── Header height (runtime, выставляется ResizeObserver в Header.tsx) ──── */
   --header-height:   57px;
+  --filters-search-font-size: 0.8rem;
+}
+
+@media (max-width: 540px) {
+  :root {
+    --filters-search-font-size: 16px;
+  }
 }
 
 /* ── Header mobile ────────────────────────────────────────────────────────── */
