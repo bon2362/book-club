@@ -1,11 +1,11 @@
 # Авторизация
 
 ## Что делает
-Пользователи могут войти через Google One Tap, Google OAuth, magic link (email) или Telegram. После входа данные сессии хранятся как JWT. Администраторы получают флаг `isAdmin`, открывающий доступ к панели администратора.
+Пользователи могут войти через Google (OAuth), magic link (email) или Telegram. После входа данные сессии хранятся как JWT. Администраторы получают флаг `isAdmin`, открывающий доступ к панели администратора.
 
 ## Как работает
 - **NextAuth v5** (`lib/auth.ts`) — серверная функция `auth()` используется в Server Components и API routes
-- **Google One Tap** — Credentials provider (`google-one-tap`); `lib/auth.google-one-tap.ts` верифицирует JWT credential через `google-auth-library`, находит или создаёт пользователя в таблицах `users` + `user_identities`. Рендерится как `<GoogleOneTap />` на главной странице для неавторизованных пользователей. После входа используется `window.location.reload()` (не `router.refresh()`) для избежания race condition, при котором `useSession()` обновляется раньше, чем server props перерендерятся
+- **Google One Tap — авто-попап убран.** Компонент `<GoogleOneTap/>` на главной удалён, чтобы не противоречить призыву входить через Telegram. Серверный Credentials-provider `google-one-tap` (`lib/auth.google-one-tap.ts`, верификация GIS-credential) пока оставлен, но из UI больше не вызывается (мёртвый, безвредный; кандидат на удаление отдельно). Вход через Google теперь только кнопкой «Войти через Google» в модале (OAuth-provider).
 - **Google OAuth** — стандартный provider; профиль пользователя сохраняется в `users`, а внешний Google `sub` хранится в `user_identities`
 - **Magic link (Resend provider)** — отправляет ссылку для входа на 24 часа через `noreply@slowreading.club`; кастомный HTML-email в `sendMagicLinkEmail()`
 - **Telegram Login (bot deep-link + поллинг, B2 — основной способ)** — вход через Telegram-бота, минуя `oauth.telegram.org` (который не работает на Chrome iOS). Используется **поллинг**, а не ссылка из бота: ссылка из бота открывалась бы во встроенном браузере Telegram, и кука сессии легла бы не в браузер пользователя. Flow: браузер генерит `nonce` (`crypto.randomUUID`), жмёт «Войти через Telegram» → открывает `https://t.me/<BOT_NAME>?start=<nonce>` в новой вкладке → начинает опрашивать `GET /api/auth/telegram/poll?nonce=<nonce>` (раз в 2с, до 2 мин). Пользователь нажимает Start → бот получает `/start <nonce>` через вебхук `POST /api/telegram/webhook` (защищён `X-Telegram-Bot-Api-Secret-Token = TELEGRAM_WEBHOOK_SECRET`) → вебхук вызывает `resolveOrCreateUserFromIdentity('telegram', ...)`, привязывает nonce к userId через `bindTelegramLoginNonce` (хэш nonce в `telegram_preauth_tokens`, TTL 5 мин), шлёт боту сообщение «✅ Готово, вернитесь в браузер». Опрос замечает привязку: `poll` вызывает `consumeTelegramPreauthToken(nonce)` → достаёт user → выдаёт session-куку через `issueServerSession` **в ответе на запрос браузера** (поэтому кука в браузере пользователя) → браузер делает `window.location.reload()` и оказывается залогинен. Настройка: после деплоя вызвать Telegram `setWebhook` с `url=<site>/api/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>`. Один вебхук на бота, смотрит на боевой домен.
@@ -17,9 +17,6 @@
 - **Явная привязка аккаунтов** — вкладка «Профиль» показывает три канонических способа входа (Telegram, Google, почта) и статусы из `user_identities`. Последний использованный provider получает метку «последний вход». Для Telegram отображается `@username`, если Telegram вернул username; если username нет, профиль показывает нейтральное «Telegram ID привязан» без раскрытия numeric provider id. Отвязка способов входа не реализована. Google linking идёт через `POST /api/account/identities/google`: клиент получает Google Identity Services credential, сервер проверяет JWT через `verifyGoogleCredential`, затем под `withAuditContext(source='account-linking')` вызывает `linkVerifiedIdentityToUser`. Почтовая привязка идёт отдельным flow, а не через общий email sign-in: `POST /api/account/identities/email` требует активную session cookie, создаёт одноразовый token в `verificationToken` для пары `current userId + email` и отправляет Resend-письмо; callback `/api/account/identities/email/callback` снова требует активную session cookie, consume-ит token и привязывает `email:address` только если token принадлежит текущему `session.user.id`. Telegram linking идёт через бота (как и вход, B3): `POST /api/account/identities/telegram/link-start` (требует session) чеканит link-nonce, привязанный к `userId` (`createTelegramPreauthToken`); профиль открывает `t.me/<bot>?start=link_<nonce>`; вебхук по префиксу `link_` достаёт целевой `userId` (`consumeTelegramPreauthToken`) и под `withAuditContext(source='account-linking-bot')` вызывает `linkVerifiedIdentityToUser`; профиль опрашивает `/api/me`, пока Telegram не появится в способах входа. Конфликт (`IdentityConflictError`) → сообщение бота «уже привязан к другому аккаунту». Старый виджет-flow (`/api/account/identities/telegram/state`, `/callback`, `lib/account-linking-state.ts`) удалён. Если provider identity уже принадлежит другому пользователю, возвращается conflict (`409 identity_conflict` для Google или redirect `?account_link=email_conflict` / `?account_link=telegram_conflict` для email/Telegram); автоматического merge по имени/username/email нет.
 - **Админское слияние дублей** — если дубли уже появились до явной привязки, администратор может слить source user в target user через `POST /api/admin/users/merge`. Слияние переносит `user_identities` и пользовательские связи, но не запускается автоматически из auth callback, чтобы не склеить разных людей по похожему имени или username.
 
-## Race condition: ContactsForm после входа через One Tap
-После входа через One Tap `useSession()` (client) обновляется раньше, чем приходят server props (`currentUser`) после `router.refresh()`. Это приводит к кратковременному открытию ContactsForm с пустыми полями. Решение: `GoogleOneTap` устанавливает `sessionStorage.setItem('reloading_after_onetap', '1')` перед `window.location.reload()`, а `BooksPage` проверяет и очищает этот флаг перед показом формы.
-
 ## Грабли (выучено на ошибках)
 - **`data-onauth` (JS callback) не использовать** — Telegram дёргает callback через `eval()`, браузеры его блокируют. Только `data-auth-url`.
 - **`window.onTelegramAuth` в отдельном `useEffect`** — при условном рендере (`authModalOpen && <AuthModal>`) возможна гонка. При callback-подходе ставить callback в тот же эффект, что грузит скрипт виджета.
@@ -29,7 +26,7 @@
 - **Telegram Login Widget:** домен в BotFather должен совпадать точно (с `www` и без — разные домены); у бота обязано быть фото профиля (иначе «Bot domain invalid»); виджет не работает без third-party cookies (incognito, Safari strict mode).
 
 ## Env vars
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — обязателен для One Tap (встраивается в client bundle во время сборки)
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — нужен для Google Identity Services (привязка Google в профиле); встраивается в client bundle во время сборки
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — для стандартного Google OAuth и серверной верификации One Tap
 - `TELEGRAM_BOT_TOKEN` — для HMAC-SHA256 верификации данных Telegram-виджета и отправки сообщений ботом (`lib/telegram-bot.ts`)
 - `NEXT_PUBLIC_TELEGRAM_BOT_NAME` — имя бота (без @), в deep-link: `t.me/<BOT_NAME>?start=<nonce>` (вход) и `?start=link_<nonce>` (привязка в профиле)
@@ -54,14 +51,12 @@
 - `lib/account-email-linking.ts` — одноразовые token'ы для привязки почты к текущему профилю
 - `lib/auth.google-one-tap.ts` — верификация Google One Tap credential и upsert пользователя
 - `lib/google-credential.ts` — общая серверная проверка Google Identity Services credential для One Tap и привязки Google
-- `lib/account-linking-state.ts` — короткоживущий signed state для Telegram account linking
 - `lib/admin/user-merge.ts` — admin-only merge дублей, когда identity уже оказалась в другом внутреннем user
 - `app/api/account/identities/google/route.ts` — explicit linking Google identity к текущему пользователю
 - `app/api/account/identities/email/route.ts` — отправляет письмо подтверждения для привязки почты к текущему пользователю
 - `app/api/account/identities/email/callback/route.ts` — consume-ит email-link token и привязывает email identity к текущему пользователю
-- `app/api/account/identities/telegram/state/route.ts` — выдаёт signed state и callback URL для Telegram Widget в режиме привязки
-- `app/api/account/identities/telegram/callback/route.ts` — explicit linking Telegram identity к текущему пользователю через Telegram Widget redirect
-- `components/nd/GoogleOneTap.tsx` — client component, рендерится на главной для неавторизованных пользователей
+- `app/api/account/identities/telegram/link-start/route.ts` — чеканит link-nonce для привязки Telegram через бота
+- `app/api/telegram/webhook/route.ts` — вебхук бота: вход (`link_`-ветка — привязка), `bindTelegramLoginNonce` / `linkVerifiedIdentityToUser`
 - `lib/db/schema.ts` — таблицы `users` (профиль и пользовательские контакты), `user_identities` (способы входа и provider-specific ids), `verificationTokens`
 - `app/api/auth/[...nextauth]/route.ts` — handler NextAuth
 - `lib/auth-session.ts` — `issueServerSession`: кодирует session-JWT и ставит куку сессии NextAuth на ответ сервера; имя куки и salt зависят от `secure`

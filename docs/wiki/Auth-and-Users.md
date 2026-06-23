@@ -6,8 +6,7 @@
 
 | Способ | Где используется | Что важно |
 | --- | --- | --- |
-| Google OAuth | Кнопка входа | Стандартный redirect-flow Google. |
-| Google One Tap | Главная страница | Быстрый вход через всплывающий Google prompt. |
+| Google OAuth | Модал входа | Стандартный redirect-flow Google. Авто-попап One Tap на главной убран. |
 | Email magic link | Модал входа | Ссылка приходит через Resend на email. |
 | Telegram (bot deep-link) | Модал входа — единственный Telegram-способ | Кнопка открывает `t.me/<bot>?start=<код>`; пользователь жмёт Start, бот подтверждает, вкладка сама логинит (поллинг). Работает на Chrome iOS и Safari iOS. Старый веб-виджет удалён. |
 
@@ -33,7 +32,7 @@
 ```mermaid
 flowchart TD
     Start["Пользователь выбирает способ входа"] --> Provider{"Провайдер"}
-    Provider --> Google["Google OAuth / One Tap"]
+    Provider --> Google["Google OAuth"]
     Provider --> Email["Email magic link"]
     Provider --> TgBot["Telegram bot deep-link (основной)"]
     Provider --> TgWidget["Telegram Widget (запасной)"]
@@ -115,8 +114,7 @@ sequenceDiagram
 | Симптом | Что проверить |
 | --- | --- |
 | Пользователь не входит | Provider credentials, NextAuth secret, callback URL, cookies. |
-| Telegram не работает | BotFather domain, фото бота, `TELEGRAM_BOT_TOKEN`, HMAC callback. |
-| Google One Tap не появляется | `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, Google OAuth настройки, браузерные ограничения. |
+| Telegram-вход не работает | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, регистрация вебхука бота (`getWebhookInfo`), доступность бота. |
 | Пользователь видит дубль профиля | Попросить войти в основной профиль и привязать второй способ входа; если identity уже занята другим user, нужен админский merge. |
 | Админ не видит `/admin` | `user.is_admin`, `ADMIN_EMAIL`, session callback. |
 | Профиль открывается пустым | `user.name`, `user.contacts`, `contact_email`, session refresh. |
