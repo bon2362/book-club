@@ -89,11 +89,15 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
     .groupBy(signupBooks.bookId)
 
   const countById = new Map(countsByBookId.map(c => [c.bookId, Number(c.count)]))
+  // The summaries table is introduced by a manual DB migration. Keep the
+  // public catalog available while production deployment and migration are
+  // briefly out of sync; summary-specific surfaces still require the table.
   const summaryCountsByBookId = await db
     .select({ bookId: bookSummaries.bookId, count: sql<number>`count(*)::int` })
     .from(bookSummaries)
     .where(eq(bookSummaries.status, 'published'))
     .groupBy(bookSummaries.bookId)
+    .catch(() => [])
 
   const summaryCountById = new Map(summaryCountsByBookId.map(c => [c.bookId, Number(c.count)]))
 
