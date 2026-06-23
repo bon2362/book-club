@@ -122,6 +122,33 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
             Сейчас читаем
           </div>
         )}
+        {book.summaryCount > 0 && (
+          <a
+            href={`/books/${book.id}/summaries`}
+            aria-label={`${book.summaryCount} саммари клуба`}
+            style={{
+              position: 'absolute',
+              left: '0.5rem',
+              right: '0.5rem',
+              bottom: '0.5rem',
+              zIndex: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+              background: 'var(--accent)',
+              color: 'var(--bg)',
+              padding: '0.5rem 0.65rem',
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <span>{book.summaryCount === 1 ? '✦ Саммари клуба' : `✦ ${book.summaryCount} саммари клуба`}</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        )}
       </div>
 
       {(book.submittedByMember || (book.isNew && !isReading)) && (

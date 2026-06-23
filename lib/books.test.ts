@@ -106,11 +106,14 @@ describe('lib/books — fetchBooksWithCovers', () => {
       { bookId: 'b1', count: 3 },
       { bookId: 'b2', count: 5 },
     ])
+    pushResult([
+      { bookId: 'b1', count: 2 },
+    ])
 
     const result = await fetchBooksWithCovers()
     expect(result).toHaveLength(2)
-    expect(result[0]).toMatchObject({ id: 'b1', name: 'Book One', signupCount: 3 })
-    expect(result[1]).toMatchObject({ id: 'b2', name: 'Book Two', signupCount: 5 })
+    expect(result[0]).toMatchObject({ id: 'b1', name: 'Book One', signupCount: 3, summaryCount: 2 })
+    expect(result[1]).toMatchObject({ id: 'b2', name: 'Book Two', signupCount: 5, summaryCount: 0 })
   })
 
   it('reports signupCount=0 when no signups exist for a book', async () => {

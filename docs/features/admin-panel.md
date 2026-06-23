@@ -1,7 +1,7 @@
 # Панель администратора
 
 ## Что делает
-Позволяет администраторам управлять участниками клуба и каталогом книг. Вкладки: «Участники», «Каталог» (CRUD книг), «Теги», «Заявки», «Фидбеки», «Интро».
+Позволяет администраторам управлять участниками клуба и каталогом книг. Вкладки: «Участники», «Каталог» (CRUD книг), «Теги», «Заявки», «Саммари», «Фидбеки», «Интро», «Матчинг», «История изменений».
 
 ## Как работает
 - **Контроль доступа** — `session.user.isAdmin` проверяется на сервере; не-администраторы получают 403 от всех роутов `/api/admin/*`
@@ -11,6 +11,7 @@
 - **Статусы книг** — поле `books.reading_status` (`reading`/`read`/null); обновляется через `PATCH /api/admin/books/:id`
 - **Флаги new** — поле `books.is_new`; обновляется через `PATCH /api/admin/books/:id`
 - **Описания тегов** — таблица `tag_descriptions`; редактируются inline через `PATCH /api/admin/tag-description`
+- **Саммари участников** — вкладка «Саммари» читает `GET /api/admin/summaries`, фильтрует по статусам `draft`/`pending`/`published`/`rejected`, позволяет править текст и метаданные, публиковать или отклонять саммари.
 - **Отображение приоритетов** — `AdminStatusBar` показывает размер очереди digest и топ приоритетных книг по каждому пользователю
 
 ## API каталога книг
@@ -43,6 +44,7 @@ Google Sheets лист `signups` больше не участвует в runtime
 - `components/nd/AdminBooksCatalog.tsx` — вкладка «Каталог»: список, фильтры, форма создания, inline-редактор
 - `components/nd/AdminStatusBar.tsx` — статистика очереди digest
 - `app/api/admin/books/route.ts`, `app/api/admin/books/[id]/route.ts` — CRUD API каталога
+- `app/api/admin/summaries/` — модерация саммари участников
 - `app/api/admin/users/merge/route.ts` — admin API слияния дублей
 - `app/api/admin/` — остальные API routes (delete-user, tag-description, priorities, submissions и др.)
 - `lib/books.ts` — `fetchBooksWithCovers`, `fetchBooksForAdmin`, `createBook`, `updateBook`, `BookValidationError`

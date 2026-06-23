@@ -24,6 +24,7 @@ const book: BookWithCover = {
   whyRead: null,
   recommendationLink: null,
   isNew: false,
+  summaryCount: 0,
 }
 
 describe('nd/BookCard', () => {
@@ -123,6 +124,12 @@ describe('nd/BookCard', () => {
     const bookWithCount = { ...book, signupCount: 5 }
     render(<BookCard book={bookWithCount} isSelected={false} onToggle={() => {}} />)
     expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('показывает ссылку на саммари когда есть опубликованные саммари', () => {
+    const bookWithSummaries = { ...book, summaryCount: 3 }
+    render(<BookCard book={bookWithSummaries} isSelected={false} onToggle={() => {}} />)
+    expect(screen.getByRole('link', { name: /3 саммари клуба/i })).toHaveAttribute('href', '/books/1/summaries')
   })
 
   it('бейдж предложенной участником книги не выглядит кликабельным', () => {

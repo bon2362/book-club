@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { books, signupBooks } from '@/lib/db/schema'
+import { bookSummaries, books, signupBooks } from '@/lib/db/schema'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
@@ -27,6 +27,7 @@ export interface BookWithCover {
   isNew: boolean
   status?: 'reading' | 'read' | null
   signupCount?: number
+  summaryCount: number
   submittedByMember?: boolean
   visibility?: 'hidden' | 'published'
   source?: 'admin' | 'submission'
@@ -39,7 +40,7 @@ export interface BookWithCover {
 // its own book via the `createTestBook` fixture (see e2e/fixtures.ts), and the
 // fixture removes it in teardown.
 
-function rowToBook(row: typeof books.$inferSelect, signupCount = 0): BookWithCover {
+function rowToBook(row: typeof books.$inferSelect, signupCount = 0, summaryCount = 0): BookWithCover {
   return {
     id: row.id,
     name: row.title,
@@ -60,6 +61,7 @@ function rowToBook(row: typeof books.$inferSelect, signupCount = 0): BookWithCov
     submittedByMember: row.source === 'submission',
     sortOrder: row.sortOrder,
     signupCount,
+    summaryCount,
   }
 }
 
@@ -87,6 +89,13 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
     .groupBy(signupBooks.bookId)
 
   const countById = new Map(countsByBookId.map(c => [c.bookId, Number(c.count)]))
+  const summaryCountsByBookId = await db
+    .select({ bookId: bookSummaries.bookId, count: sql<number>`count(*)::int` })
+    .from(bookSummaries)
+    .where(eq(bookSummaries.status, 'published'))
+    .groupBy(bookSummaries.bookId)
+
+  const summaryCountById = new Map(summaryCountsByBookId.map(c => [c.bookId, Number(c.count)]))
 
   // Defence-in-depth: even if an e2e-test-created book somehow leaks into the
   // production DB (e.g. someone runs e2e against the wrong DATABASE_URL),
@@ -112,7 +121,7 @@ async function loadBooks(options: ListOptions = {}): Promise<BookWithCover[]> {
       )
     : rows
 
-  return safeRows.map(row => rowToBook(row, countById.get(row.id) ?? 0))
+  return safeRows.map(row => rowToBook(row, countById.get(row.id) ?? 0, summaryCountById.get(row.id) ?? 0))
 }
 
 export async function fetchBooksWithCovers(): Promise<BookWithCover[]> {

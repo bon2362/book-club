@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import CoverImage from './CoverImage'
 import { parseRecommendationLink, withAdminName } from './matching-shared'
 import type { BookParticipant } from './MatchingPersonalList'
@@ -21,6 +22,11 @@ export interface MatchingBookDetail {
   personalStatus?: string | null
   isInList?: boolean
 }
+
+type SummaryState = {
+  id: string
+  status: 'draft' | 'pending' | 'published' | 'rejected'
+} | null
 
 interface Props {
   book: MatchingBookDetail
@@ -47,12 +53,36 @@ export default function MatchingBookDetailModal({
   adminNamesByPseudonym = null,
 }: Props) {
   const [busy, setBusy] = useState(false)
+  const [summary, setSummary] = useState<SummaryState>(null)
+  const [summaryLoaded, setSummaryLoaded] = useState(false)
+  const [summaryBusy, setSummaryBusy] = useState(false)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  useEffect(() => {
+    let cancelled = false
+    setSummary(null)
+    setSummaryLoaded(false)
+    if (book.personalStatus !== 'read') return
+
+    fetch(`/api/summaries/by-book/${book.bookId}`)
+      .then(res => res.ok ? res.json() : { summary: null })
+      .then(data => {
+        if (!cancelled) {
+          setSummary(data.summary ?? null)
+          setSummaryLoaded(true)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSummaryLoaded(true)
+      })
+
+    return () => { cancelled = true }
+  }, [book.bookId, book.personalStatus])
 
   async function handleAddToList() {
     if (!onAddToList) return
@@ -70,6 +100,18 @@ export default function MatchingBookDetailModal({
     if (!onStatusChange) return
     setBusy(true)
     try { await onStatusChange(book.bookId, newStatus) } finally { setBusy(false) }
+  }
+
+  async function handleWriteSummary() {
+    setSummaryBusy(true)
+    try {
+      const res = await fetch(`/api/summaries/by-book/${book.bookId}`, { method: 'POST' })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.summary?.id) window.location.href = `/summaries/${data.summary.id}/edit`
+    } finally {
+      setSummaryBusy(false)
+    }
   }
 
   const meta: string[] = []
@@ -278,6 +320,46 @@ export default function MatchingBookDetailModal({
             </div>
           )}
 
+          {book.personalStatus === 'read' && summaryLoaded && (
+            <div style={{ margin: '0 0 1rem' }}>
+              {!summary && (
+                <button
+                  type="button"
+                  onClick={handleWriteSummary}
+                  disabled={summaryBusy}
+                  style={{
+                    width: '100%',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: 'var(--bg-input)',
+                    borderRadius: 'var(--radius-control)',
+                    padding: '0.75rem 0.9rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    cursor: summaryBusy ? 'default' : 'pointer',
+                  }}
+                >
+                  {summaryBusy ? 'Открываем…' : '✦ Написать саммари'}
+                </button>
+              )}
+              {summary?.status === 'draft' && (
+                <a href={`/summaries/${summary.id}/edit`} style={summaryLinkStyle}>Продолжить саммари</a>
+              )}
+              {summary?.status === 'rejected' && (
+                <a href={`/summaries/${summary.id}/edit`} style={summaryLinkStyle}>Доработать саммари</a>
+              )}
+              {summary?.status === 'pending' && (
+                <div style={summaryDisabledStyle}>Саммари на проверке</div>
+              )}
+              {summary?.status === 'published' && (
+                <a href={`/books/${book.bookId}/summaries`} style={summaryLinkStyle}>Саммари опубликовано</a>
+              )}
+              <p style={{ margin: '0.45rem 0 0', fontSize: '0.76rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
+                Саммари проходит проверку администратора перед публикацией.
+              </p>
+            </div>
+          )}
+
           {canEdit && (
             <div className="flex gap-3 items-center">
               {book.isInList ? (
@@ -323,4 +405,24 @@ export default function MatchingBookDetailModal({
       </div>
     </div>
   )
+}
+
+const summaryLinkStyle: CSSProperties = {
+  display: 'block',
+  width: '100%',
+  textAlign: 'center',
+  border: 'none',
+  background: 'var(--accent)',
+  color: 'var(--bg-input)',
+  borderRadius: 'var(--radius-control)',
+  padding: '0.75rem 0.9rem',
+  fontSize: '0.9rem',
+  fontWeight: 700,
+  textDecoration: 'none',
+}
+
+const summaryDisabledStyle: CSSProperties = {
+  ...summaryLinkStyle,
+  background: 'var(--chip-bg)',
+  color: 'var(--text-secondary)',
 }

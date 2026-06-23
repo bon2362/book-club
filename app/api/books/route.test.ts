@@ -25,6 +25,7 @@ const mockBook = {
   isNew: false,
   status: null as 'reading' | 'read' | null,
   signupCount: 0,
+  summaryCount: 0,
 }
 
 describe('GET /api/books', () => {
