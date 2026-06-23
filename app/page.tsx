@@ -7,7 +7,6 @@ import { db } from '@/lib/db'
 import { tagDescriptions, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import BooksPage from '@/components/nd/BooksPage'
-import GoogleOneTap from '@/components/nd/GoogleOneTap'
 import SiteVisitTracker from '@/components/nd/SiteVisitTracker'
 import AuthErrorBanner from '@/components/nd/AuthErrorBanner'
 import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
@@ -65,7 +64,6 @@ export default async function Home() {
 
   return (
     <>
-      {!session && <GoogleOneTap />}
       {session?.user?.id && <SiteVisitTracker />}
       <Suspense fallback={null}><AuthErrorBanner /></Suspense>
       <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} initialAboutVisible={initialAboutVisible} initialViewMode={initialViewMode} initialShowRead={initialShowRead} />

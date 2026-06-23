@@ -176,10 +176,6 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
 
   useEffect(() => {
     if (isLoggedIn && !currentUser && !savedUser && !isAdmin) {
-      if (sessionStorage.getItem('reloading_after_onetap')) {
-        sessionStorage.removeItem('reloading_after_onetap')
-        return
-      }
       setShowContactsForm(true)
     }
   }, [isLoggedIn, currentUser, savedUser, isAdmin])
