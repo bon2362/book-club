@@ -601,12 +601,14 @@ function BookEditor({
   saving,
   onChange,
   onSave,
+  allTags,
 }: {
   book: AdminBook
   hasEdits: boolean
   saving: boolean
   onChange: (field: keyof AdminBook, value: unknown) => void
   onSave: () => void
+  allTags: string[]
 }) {
   // Auto-adjust all textareas when editor opens or book switches
   const editorRef = useRef<HTMLDivElement>(null)
@@ -665,12 +667,23 @@ function BookEditor({
         <Field label="Автор">
           <input value={book.author} onChange={e => onChange('author', e.target.value)} style={inputStyle} />
         </Field>
-        <Field label="Теги (через запятую)">
-          <input
-            value={Array.isArray(book.tags) ? book.tags.join(', ') : ''}
-            onChange={e => onChange('tags', e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
-            style={inputStyle}
-          />
+        <Field label="Тег">
+          {(() => {
+            const current = Array.isArray(book.tags) && book.tags.length ? book.tags[0] : ''
+            // Текущий тег всегда в списке опций, даже если он вне общего набора.
+            const options = current && !allTags.includes(current) ? [current, ...allTags] : allTags
+            return (
+              <select
+                value={current}
+                onChange={e => onChange('tags', e.target.value ? [e.target.value] : [])}
+                style={inputStyle}
+                aria-label="Тег"
+              >
+                <option value="">— не выбран —</option>
+                {options.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )
+          })()}
         </Field>
         <Field label="Тип">
           <select value={book.type} onChange={e => onChange('type', e.target.value)} style={inputStyle} aria-label="Тип">
@@ -1081,11 +1094,13 @@ function CreateBookForm({
   setForm,
   saving,
   onSubmit,
+  allTags,
 }: {
   form: CreateFormShape
   setForm: React.Dispatch<React.SetStateAction<CreateFormShape>>
   saving: boolean
   onSubmit: () => void
+  allTags: string[]
 }) {
   return (
     <div
@@ -1109,14 +1124,16 @@ function CreateBookForm({
             style={inputStyle}
           />
         </Field>
-        <Field label="Теги (через запятую)">
-          <input
-            value={form.tags.join(', ')}
-            onChange={e =>
-              setForm(f => ({ ...f, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))
-            }
+        <Field label="Тег">
+          <select
+            value={form.tags[0] ?? ''}
+            onChange={e => setForm(f => ({ ...f, tags: e.target.value ? [e.target.value] : [] }))}
             style={inputStyle}
-          />
+            aria-label="Тег"
+          >
+            <option value="">— не выбран —</option>
+            {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
         </Field>
         <Field label="Тип">
           <select
@@ -1425,6 +1442,13 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const allFiltered = useMemo(() => books.filter(matches), [books, q, statusFilter, sourceFilter])
 
+  // Закрытый набор тегов для select'ов: уникальные теги всех книг, отсортированы по алфавиту.
+  const allTags = useMemo(() => {
+    const s = new Set<string>()
+    books.forEach(b => (Array.isArray(b.tags) ? b.tags : []).forEach(t => s.add(t)))
+    return Array.from(s).sort((a, b) => a.localeCompare(b, 'ru'))
+  }, [books])
+
   const sortFn = (sort: SortState) => (a: AdminBook, b: AdminBook) => {
     const dir = sort.dir === 'asc' ? 1 : -1
     const val = (book: AdminBook): string | number => {
@@ -1479,6 +1503,7 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
         saving={saving === b.id}
         onChange={(field, value) => handleInlineEditorChange(b.id, field, value)}
         onSave={() => saveBook(b.id)}
+        allTags={allTags}
       />
     )
   }
@@ -1586,7 +1611,7 @@ export default function AdminBooksCatalog({ participantsByBookId = {} }: AdminBo
       )}
 
       {creating && (
-        <CreateBookForm form={createForm} setForm={setCreateForm} saving={createSaving} onSubmit={submitCreate} />
+        <CreateBookForm form={createForm} setForm={setCreateForm} saving={createSaving} onSubmit={submitCreate} allTags={allTags} />
       )}
 
       {loading && <p style={{ fontFamily: SANS, color: 'var(--text-secondary)' }}>Загрузка…</p>}
