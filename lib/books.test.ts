@@ -3,10 +3,12 @@
  */
 
 // Queue of mocked SQL results, consumed in order by terminal query methods.
-const queue: unknown[][] = []
+const queue: Array<unknown[] | Error> = []
 function pushResult(rows: unknown[]) { queue.push(rows) }
+function pushError(error: Error) { queue.push(error) }
 function pullResult(): Promise<unknown[]> {
-  return Promise.resolve(queue.length > 0 ? queue.shift()! : [])
+  const next = queue.length > 0 ? queue.shift()! : []
+  return next instanceof Error ? Promise.reject(next) : Promise.resolve(next)
 }
 
 const insertValuesCalls: unknown[] = []
@@ -29,6 +31,7 @@ jest.mock('@/lib/db', () => {
       orderBy: jest.fn(() => chain),
       limit: jest.fn(() => chain),
       then: <T,>(onFulfilled: (value: unknown) => T) => pullResult().then(onFulfilled),
+      catch: <T,>(onRejected: (reason: unknown) => T) => pullResult().catch(onRejected),
     } as unknown as Record<string, jest.Mock>
     return chain
   }
@@ -114,6 +117,16 @@ describe('lib/books — fetchBooksWithCovers', () => {
     expect(result).toHaveLength(2)
     expect(result[0]).toMatchObject({ id: 'b1', name: 'Book One', signupCount: 3, summaryCount: 2 })
     expect(result[1]).toMatchObject({ id: 'b2', name: 'Book Two', signupCount: 5, summaryCount: 0 })
+  })
+
+  it('keeps the catalog available when the summaries migration is not applied yet', async () => {
+    pushResult([bookRow({ id: 'b1', title: 'Book One' })])
+    pushResult([{ bookId: 'b1', count: 3 }])
+    pushError(new Error('relation "book_summaries" does not exist'))
+
+    const result = await fetchBooksWithCovers()
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ id: 'b1', name: 'Book One', signupCount: 3, summaryCount: 0 })
   })
 
   it('reports signupCount=0 when no signups exist for a book', async () => {
