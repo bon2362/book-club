@@ -34,6 +34,27 @@ interface Submission {
   updatedAt: string
 }
 
+interface AdminSummary {
+  id: string
+  bookId: string
+  bookTitle: string
+  bookAuthor: string
+  authorUserId: string
+  authorName: string | null
+  authorEmail: string | null
+  displayName: string
+  title: string
+  tldr: string
+  bodyMarkdown: string
+  status: 'draft' | 'pending' | 'published' | 'rejected'
+  rejectionReason: string | null
+  createdAt: string
+  updatedAt: string
+  submittedAt: string | null
+  publishedAt: string | null
+  rejectedAt: string | null
+}
+
 interface BookEntry {
   book: BookWithCover
   users: UserSignup[]
@@ -50,12 +71,13 @@ interface Props {
   catalogCount: number
 }
 
-type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'feedback' | 'intro' | 'matching' | 'audit'
+type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'summaries' | 'feedback' | 'intro' | 'matching' | 'audit'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
+type SummaryFilter = 'all' | 'draft' | 'pending' | 'published' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastActivityAt' | 'createdAt'
 
-const ADMIN_VIEWS: View[] = ['users', 'catalog', 'tags', 'submissions', 'feedback', 'intro', 'matching', 'audit']
+const ADMIN_VIEWS: View[] = ['users', 'catalog', 'tags', 'submissions', 'summaries', 'feedback', 'intro', 'matching', 'audit']
 const READ_SUBMISSIONS_STORAGE_KEY = 'admin_read_submission_ids'
 const READ_FEEDBACK_STORAGE_KEY = 'admin_read_feedback_ids'
 
@@ -304,6 +326,12 @@ export default function AdminPanel({
   const [submissionActionLoading, setSubmissionActionLoading] = useState<string | null>(null)
   const [submissionDeleteConfirm, setSubmissionDeleteConfirm] = useState<string | null>(null)
   const [readSubmissionIds, setReadSubmissionIds] = useState<Set<string>>(() => readStoredIdSet(READ_SUBMISSIONS_STORAGE_KEY))
+  const [summaries, setSummaries] = useState<AdminSummary[]>([])
+  const [summariesLoaded, setSummariesLoaded] = useState(false)
+  const [summaryFilter, setSummaryFilter] = useState<SummaryFilter>('pending')
+  const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null)
+  const [summaryEdits, setSummaryEdits] = useState<Record<string, Partial<AdminSummary>>>({})
+  const [summaryActionLoading, setSummaryActionLoading] = useState<string | null>(null)
   const [feedbackItems, setFeedbackItems] = useState<AdminFeedbackItem[]>([])
   const [feedbackLoaded, setFeedbackLoaded] = useState(false)
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
@@ -331,6 +359,18 @@ export default function AdminPanel({
       })
       .catch(() => {})
       .finally(() => setSubmissionsLoaded(true))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/admin/summaries')
+      .then(r => r.json())
+      .then(d => {
+        if (!Array.isArray(d.summaries)) return
+        setSummaries(d.summaries)
+        setSummaryFilter(d.summaries.some((summary: AdminSummary) => summary.status === 'pending') ? 'pending' : 'all')
+      })
+      .catch(() => {})
+      .finally(() => setSummariesLoaded(true))
   }, [])
 
   const loadAdminUsers = useCallback(async () => {
@@ -582,6 +622,84 @@ export default function AdminPanel({
     finally { setSubmissionActionLoading(null) }
   }
 
+  function updateSummaryEdit(id: string, field: keyof AdminSummary, value: unknown) {
+    setSummaryEdits(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+  }
+
+  function updateSummaryInList(summary: AdminSummary) {
+    setSummaries(prev => prev.map(item => item.id === summary.id ? summary : item))
+  }
+
+  async function handleSaveSummaryEdits(id: string) {
+    const edits = summaryEdits[id]
+    if (!edits || Object.keys(edits).length === 0) return
+    setSummaryActionLoading(id)
+    try {
+      const res = await fetch(`/api/admin/summaries/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(edits),
+      })
+      if (res.ok) {
+        const d = await res.json()
+        if (d.summary) updateSummaryInList(d.summary)
+        setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+      }
+    } catch { /* silently ignore */ }
+    finally { setSummaryActionLoading(null) }
+  }
+
+  async function handlePublishSummary(id: string) {
+    setSummaryActionLoading(id)
+    try {
+      const edits = summaryEdits[id]
+      if (edits && Object.keys(edits).length > 0) {
+        await fetch(`/api/admin/summaries/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(edits),
+        })
+      }
+      const res = await fetch(`/api/admin/summaries/${id}/publish`, { method: 'POST' })
+      if (res.ok) {
+        const d = await res.json()
+        if (d.summary) {
+          updateSummaryInList(d.summary)
+          if (!summaries.some(summary => summary.id !== id && summary.status === 'pending')) setSummaryFilter('all')
+        }
+        setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+        setSelectedSummaryId(null)
+      }
+    } catch { /* silently ignore */ }
+    finally { setSummaryActionLoading(null) }
+  }
+
+  async function handleRejectSummary(id: string) {
+    const summary = summaries.find(item => item.id === id)
+    const edits = summaryEdits[id] ?? {}
+    setSummaryActionLoading(id)
+    try {
+      const res = await fetch(`/api/admin/summaries/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...edits,
+          rejectionReason: edits.rejectionReason ?? summary?.rejectionReason ?? '',
+        }),
+      })
+      if (res.ok) {
+        const d = await res.json()
+        if (d.summary) {
+          updateSummaryInList(d.summary)
+          if (!summaries.some(item => item.id !== id && item.status === 'pending')) setSummaryFilter('all')
+        }
+        setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+        setSelectedSummaryId(null)
+      }
+    } catch { /* silently ignore */ }
+    finally { setSummaryActionLoading(null) }
+  }
+
   const tabStyle = (active: boolean): React.CSSProperties => ({
     fontFamily: 'var(--nd-sans), system-ui, sans-serif',
     fontSize: '0.7rem',
@@ -623,6 +741,17 @@ export default function AdminPanel({
   const filteredSubmissions = submissionFilter === 'all'
     ? submissions
     : submissions.filter(s => s.status === submissionFilter)
+
+  const summaryCounts: Record<SummaryFilter, number> = {
+    all: summaries.length,
+    draft: summaries.filter(summary => summary.status === 'draft').length,
+    pending: summaries.filter(summary => summary.status === 'pending').length,
+    published: summaries.filter(summary => summary.status === 'published').length,
+    rejected: summaries.filter(summary => summary.status === 'rejected').length,
+  }
+  const filteredSummaries = summaryFilter === 'all'
+    ? summaries
+    : summaries.filter(summary => summary.status === summaryFilter)
 
   const filteredAdminUsers = adminUsers
     .filter(u => {
@@ -705,6 +834,18 @@ export default function AdminPanel({
 
   const submissionStatusLabel: Record<string, string> = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' }
   const submissionStatusColor: Record<string, string> = { pending: 'var(--accent)', approved: 'var(--success)', rejected: 'var(--text-muted)' }
+  const summaryStatusLabel: Record<AdminSummary['status'], string> = {
+    draft: 'Черновик',
+    pending: 'На проверке',
+    published: 'Опубликовано',
+    rejected: 'Отклонено',
+  }
+  const summaryStatusColor: Record<AdminSummary['status'], string> = {
+    draft: 'var(--text-muted)',
+    pending: 'var(--accent)',
+    published: 'var(--success)',
+    rejected: 'var(--text-muted)',
+  }
 
   return (
     <>
@@ -738,6 +879,9 @@ export default function AdminPanel({
           <button style={tabStyle(view === 'submissions')} onClick={() => selectView('submissions')}>
             Заявки ({submissions.length})
             <CountBadge count={unreadSubmissionsCount} />
+          </button>
+          <button style={tabStyle(view === 'summaries')} onClick={() => selectView('summaries')}>
+            Саммари ({summaries.length})
           </button>
           <button style={tabStyle(view === 'feedback')} onClick={() => selectView('feedback')}>
             Фидбеки ({feedbackItems.length})
@@ -1137,6 +1281,195 @@ export default function AdminPanel({
                                       Удалить
                                     </button>
                                   )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {view === 'summaries' && (
+          <div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+              {(['all', 'draft', 'pending', 'published', 'rejected'] as const).map(f => {
+                const labels = { all: 'Все', draft: 'Черновики', pending: 'На проверке', published: 'Опубликованные', rejected: 'Отклонённые' }
+                return (
+                  <button key={f} onClick={() => setSummaryFilter(f)} style={filterBtnStyle(summaryFilter === f)}>
+                    {labels[f]} ({summaryCounts[f]})
+                  </button>
+                )
+              })}
+            </div>
+
+            {!summariesLoaded && <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Загрузка…</p>}
+
+            {summariesLoaded && filteredSummaries.length === 0 && (
+              <p style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Нет саммари</p>
+            )}
+
+            {summariesLoaded && filteredSummaries.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={headCell}>Саммари</th>
+                    <th style={headCell}>Книга</th>
+                    <th style={headCell}>Автор</th>
+                    <th style={headCell}>Статус</th>
+                    <th style={headCell}>Дата</th>
+                    <th style={headCell}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSummaries.map(summary => {
+                    const isSelected = selectedSummaryId === summary.id
+                    const edits = summaryEdits[summary.id] ?? {}
+                    const isActing = summaryActionLoading === summary.id
+                    const hasEdits = Object.keys(edits).length > 0
+                    const title = edits.title ?? summary.title
+                    const tldr = edits.tldr ?? summary.tldr
+                    const displayName = edits.displayName ?? summary.displayName
+                    const bodyMarkdown = edits.bodyMarkdown ?? summary.bodyMarkdown
+                    const rejectionReason = edits.rejectionReason ?? summary.rejectionReason ?? ''
+
+                    return (
+                      <Fragment key={summary.id}>
+                        <tr
+                          onClick={() => setSelectedSummaryId(isSelected ? null : summary.id)}
+                          style={{ cursor: 'pointer', background: isSelected ? 'var(--bg-elevated)' : 'transparent' }}
+                        >
+                          <td style={cell}>
+                            <div style={{ fontWeight: 700 }}>{summary.title}</div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem', marginTop: '0.2rem' }}>
+                              {summary.tldr}
+                            </div>
+                          </td>
+                          <td style={cell}>
+                            <div>{summary.bookTitle}</div>
+                            <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '0.15rem' }}>{summary.bookAuthor}</div>
+                          </td>
+                          <td style={cell}>
+                            <div>{summary.displayName}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: '0.15rem' }}>
+                              {summary.authorEmail ?? summary.authorName ?? '—'}
+                            </div>
+                          </td>
+                          <td style={cell}>
+                            <span style={{ color: summaryStatusColor[summary.status], fontWeight: summary.status === 'pending' ? 700 : 400 }}>
+                              {summaryStatusLabel[summary.status]}
+                            </span>
+                          </td>
+                          <td style={{ ...cell, color: 'var(--text-muted)' }}>
+                            {new Date(summary.updatedAt).toLocaleDateString('ru-RU')}
+                          </td>
+                          <td style={{ ...cell, textAlign: 'right', color: 'var(--text-muted)' }}>
+                            {isSelected ? '▲' : '▼'}
+                          </td>
+                        </tr>
+                        {isSelected && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '1rem 0.75rem 1.25rem', background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border-strong)' }}>
+                              <div style={{ display: 'grid', gap: '0.75rem', maxWidth: '820px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.75rem' }}>
+                                  <div>
+                                    <div style={fieldLabel}>Книга</div>
+                                    <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                      {summary.bookTitle} · {summary.bookAuthor}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div style={fieldLabel}>Участник</div>
+                                    <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                      {summary.authorName ?? summary.displayName}
+                                      {summary.authorEmail ? ` · ${summary.authorEmail}` : ''}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Имя в публикации</div>
+                                  <input
+                                    aria-label="Имя для публикации саммари"
+                                    value={displayName}
+                                    onChange={e => updateSummaryEdit(summary.id, 'displayName', e.target.value)}
+                                    style={fieldInput}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Заголовок</div>
+                                  <input
+                                    aria-label="Заголовок саммари в админке"
+                                    value={title}
+                                    onChange={e => updateSummaryEdit(summary.id, 'title', e.target.value)}
+                                    style={fieldInput}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Коротко</div>
+                                  <textarea
+                                    aria-label="Коротко о саммари"
+                                    value={tldr}
+                                    onChange={e => updateSummaryEdit(summary.id, 'tldr', e.target.value)}
+                                    rows={2}
+                                    style={{ ...fieldInput, resize: 'vertical' }}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Markdown</div>
+                                  <textarea
+                                    aria-label="Markdown саммари"
+                                    value={bodyMarkdown}
+                                    onChange={e => updateSummaryEdit(summary.id, 'bodyMarkdown', e.target.value)}
+                                    rows={12}
+                                    style={{ ...fieldInput, resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', lineHeight: 1.55 }}
+                                  />
+                                </div>
+                                <div>
+                                  <div style={fieldLabel}>Причина отказа</div>
+                                  <textarea
+                                    aria-label="Причина отказа саммари"
+                                    value={rejectionReason}
+                                    onChange={e => updateSummaryEdit(summary.id, 'rejectionReason', e.target.value || null)}
+                                    rows={2}
+                                    placeholder="Нужно для отклонения"
+                                    style={{ ...fieldInput, resize: 'vertical' }}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem', alignItems: 'center' }}>
+                                  {hasEdits && (
+                                    <button
+                                      onClick={() => handleSaveSummaryEdits(summary.id)}
+                                      disabled={isActing}
+                                      style={actionBtnStyle('var(--text)', isActing)}
+                                    >
+                                      {isActing ? 'Сохранение…' : 'Сохранить'}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handlePublishSummary(summary.id)}
+                                    disabled={isActing || summary.status === 'published'}
+                                    style={actionBtnStyle('var(--success)', isActing || summary.status === 'published')}
+                                  >
+                                    Опубликовать
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectSummary(summary.id)}
+                                    disabled={isActing || summary.status === 'rejected'}
+                                    style={actionBtnStyle('var(--accent)', isActing || summary.status === 'rejected')}
+                                  >
+                                    Отклонить
+                                  </button>
+                                  <Link
+                                    href={`/books/${summary.bookId}/summaries`}
+                                    style={{ ...actionBtnStyle('var(--text-muted)', false), textDecoration: 'none' }}
+                                  >
+                                    Страница книги
+                                  </Link>
                                 </div>
                               </div>
                             </td>

@@ -40,6 +40,9 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET/PUT | `/api/priorities` | Читать и сохранять приоритеты. |
 | GET/POST | `/api/submissions` | Читать и создавать свои заявки. |
 | DELETE | `/api/submissions/{id}` | Удалить свою заявку. |
+| GET/POST | `/api/summaries/by-book/{bookId}` | Читать своё саммари по книге или создать draft для прочитанной книги. |
+| PATCH | `/api/summaries/{id}` | Автосохранить своё draft/rejected саммари. |
+| POST | `/api/summaries/{id}/submit` | Отправить саммари на модерацию. |
 | GET | `/api/matching/feed` | Лента значимых событий active matching-сессии (`best`, `leftout`) для участников и админов; отдаёт псевдонимы и агрегаты без внутренних `userId`. |
 
 ## Основные admin endpoints
@@ -55,6 +58,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET | `/api/admin/matching/preference-events` | Аналитика изменений предпочтений в matching-сессиях. |
 | GET | `/api/admin/feedback` | Фидбек-сообщения. |
 | GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |
+| GET/PATCH/POST | `/api/admin/summaries` | Модерация саммари участников: список, правка, публикация, отклонение. |
 
 ## Безопасность API
 

@@ -13,6 +13,7 @@
 - [Данные и база](Data-and-Database)
 - [Авторизация и пользователи](Auth-and-Users)
 - [Каталог книг](Books-Catalog)
+- [Саммари книг от участников](Book-Summaries)
 - [Панель администратора](Admin-Panel)
 - [Заявки, записи и приоритеты](Submissions-Signups-and-Priorities)
 - [Уведомления и письма](Notifications-and-Email)
@@ -33,10 +34,13 @@
 flowchart LR
     Visitor["Посетитель"] --> Catalog["Каталог книг"]
     Catalog --> Signup["Запись на книги"]
+    Signup --> Summaries["Саммари прочитанных книг"]
     Visitor --> Submission["Предложить книгу"]
     Signup --> Profile["Профиль и приоритеты"]
+    Summaries --> SummaryModeration["Модерация саммари"]
     Submission --> Moderation["Модерация в админке"]
     Moderation --> Books["Опубликованный каталог"]
+    SummaryModeration --> Books
     Signup --> Digest["Очередь email-уведомлений"]
     Admin["Администратор"] --> Moderation
     Admin --> Users["Участники и активность"]
@@ -45,6 +49,7 @@ flowchart LR
 ## Что важно помнить
 
 - Runtime-источник каталога сейчас **Postgres**, а не Google Sheets.
+- Опубликованные саммари участников хранятся в Postgres и проходят админскую модерацию.
 - Основной домен: [www.slowreading.club](https://www.slowreading.club).
 - Резервный Vercel-домен: [book-club-slow-rising.vercel.app](https://book-club-slow-rising.vercel.app).
 - Репозиторий: [bon2362/book-club](https://github.com/bon2362/book-club).

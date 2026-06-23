@@ -91,6 +91,28 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
           }}
         >
           <CoverImage coverUrl={book.coverUrl} title={book.name} author={book.author} />
+          {book.summaryCount > 0 && (
+            <a
+              href={`/books/${book.id}/summaries`}
+              aria-label={`${book.summaryCount} саммари клуба`}
+              style={{
+                position: 'absolute',
+                left: 4,
+                right: 4,
+                bottom: 4,
+                background: 'var(--accent)',
+                color: 'var(--bg)',
+                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                fontSize: 8.5,
+                fontWeight: 700,
+                textAlign: 'center',
+                textDecoration: 'none',
+                padding: '4px 3px',
+              }}
+            >
+              ✦ {book.summaryCount}
+            </a>
+          )}
         </div>
 
         {/* Колонка меты */}

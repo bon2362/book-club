@@ -123,11 +123,13 @@ const STATUS_LABEL: Record<'null' | 'reading' | 'read', string> = {
 
 type LocalStatus = { personalStatus: PersonalBookStatus; statusUpdatedAt: string | null }
 
-function StatusMenu({
+export function StatusMenu({
   current,
+  bookId,
   onChange,
 }: {
   current: PersonalBookStatus
+  bookId?: string
   onChange: (s: PersonalBookStatus) => void
 }) {
   const opts: Array<{ value: PersonalBookStatus; label: string }> = [
@@ -135,6 +137,14 @@ function StatusMenu({
     { value: 'reading', label: STATUS_LABEL.reading },
     { value: 'read', label: STATUS_LABEL.read },
   ]
+  async function openSummaryDraft() {
+    if (!bookId) return
+    const res = await fetch(`/api/summaries/by-book/${bookId}`, { method: 'POST' })
+    if (!res.ok) return
+    const data = await res.json()
+    if (data.summary?.id) window.location.href = `/summaries/${data.summary.id}/edit`
+  }
+
   return (
     <div
       role="menu"
@@ -174,6 +184,26 @@ function StatusMenu({
           </button>
         )
       })}
+      {current === 'read' && bookId && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={openSummaryDraft}
+          style={{
+            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+            fontSize: '0.62rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            padding: '0.32rem 0.6rem',
+            background: 'var(--accent)',
+            color: 'var(--bg)',
+            border: '1px solid var(--accent)',
+            cursor: 'pointer',
+          }}
+        >
+          ✦ Написать саммари
+        </button>
+      )}
     </div>
   )
 }
@@ -298,7 +328,7 @@ function SortableBookItem({
           {isUnsubscribed ? '↩' : '×'}
         </button>
       </div>
-      {isMenuOpen && <StatusMenu current={null} onChange={onStatusChange} />}
+      {isMenuOpen && <StatusMenu current={null} bookId={id} onChange={onStatusChange} />}
     </div>
   )
 }
@@ -355,7 +385,7 @@ function StatusBookItem({
           <span style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.3 }}>{author}</span>
         </span>
       </div>
-      {isMenuOpen && <StatusMenu current={current} onChange={onStatusChange} />}
+      {isMenuOpen && <StatusMenu current={current} bookId={id} onChange={onStatusChange} />}
     </div>
   )
 }

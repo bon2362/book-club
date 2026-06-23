@@ -10,6 +10,7 @@ describe('0040 audit triggers migration', () => {
   const allSql = [
     '0040_audit_triggers.sql',
     '0043_user_merge_events.sql',
+    '0044_book_summaries.sql',
   ].map(file => readFileSync(join(process.cwd(), 'drizzle', file), 'utf8')).join('\n')
 
   it('defines the audit_capture function reading app.audit_* settings', () => {

@@ -9,6 +9,7 @@ export const AUDITED_TABLES = [
   'user',
   'book_priorities',
   'book_submissions',
+  'book_summaries',
   'intro_sections',
   'signup_books',
   'feedback',

@@ -181,6 +181,10 @@
           },
           "sortOrder": {
             "type": "integer"
+          },
+          "summaryCount": {
+            "type": "integer",
+            "description": "Количество опубликованных саммари по книге"
           }
         },
         "required": [
@@ -194,7 +198,8 @@
           "link",
           "description",
           "coverUrl",
-          "isNew"
+          "isNew",
+          "summaryCount"
         ]
       },
       "AdminBook": {
@@ -816,6 +821,134 @@
             "$ref": "#/components/schemas/DateTime"
           }
         }
+      },
+      "BookSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bookId": {
+            "type": "string"
+          },
+          "authorUserId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "tldr": {
+            "type": "string"
+          },
+          "bodyMarkdown": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "published",
+              "rejected"
+            ]
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "nullable": true
+          },
+          "publishedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "nullable": true
+          },
+          "rejectedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/DateTime"
+          },
+          "bookTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "bookAuthor": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "bookId",
+          "authorUserId",
+          "displayName",
+          "title",
+          "tldr",
+          "bodyMarkdown",
+          "status",
+          "rejectionReason",
+          "submittedAt",
+          "publishedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "BookSummaryPatch": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "tldr": {
+            "type": "string"
+          },
+          "bodyMarkdown": {
+            "type": "string"
+          }
+        }
+      },
+      "BookSummaryRejectInput": {
+        "type": "object",
+        "properties": {
+          "rejectionReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rejectionReason"
+        ]
       }
     }
   },
@@ -2952,7 +3085,11 @@
                   "status": {
                     "type": "string",
                     "nullable": true,
-                    "enum": ["reading", "read", null],
+                    "enum": [
+                      "reading",
+                      "read",
+                      null
+                    ],
                     "description": "null = В списке (активный кандидат), 'reading' = Читаю сейчас, 'read' = Прочитал(а)"
                   }
                 }
@@ -3908,7 +4045,9 @@
     },
     "/api/test/books": {
       "post": {
-        "tags": ["Testing"],
+        "tags": [
+          "Testing"
+        ],
         "summary": "Создать per-test книгу для E2E (createTestBook fixture)",
         "responses": {
           "200": {
@@ -3918,21 +4057,33 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "book": { "type": "object" }
+                    "book": {
+                      "type": "object"
+                    }
                   },
-                  "required": ["book"]
+                  "required": [
+                    "book"
+                  ]
                 }
               }
             }
           },
           "403": {
             "description": "Ошибка",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
       "delete": {
-        "tags": ["Testing"],
+        "tags": [
+          "Testing"
+        ],
         "summary": "Удалить per-test книгу по id (cascade удалит signups/priorities)",
         "responses": {
           "200": {
@@ -3941,15 +4092,27 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": { "ok": { "type": "boolean" } },
-                  "required": ["ok"]
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
                 }
               }
             }
           },
           "403": {
             "description": "Ошибка",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -4115,6 +4278,516 @@
           },
           "403": {
             "description": "Ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/summaries/by-book/{bookId}": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Моё саммари по книге",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/BookSummary"
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Открыть или создать draft саммари по прочитанной книге",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "$ref": "#/components/schemas/BookSummary"
+                    }
+                  },
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Книга не отмечена прочитанной или некорректные данные",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/summaries/{id}": {
+      "patch": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Автосохранить своё саммари",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookSummaryPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "$ref": "#/components/schemas/BookSummary"
+                    }
+                  },
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/summaries/{id}/submit": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Отправить своё саммари на модерацию",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submitted summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "$ref": "#/components/schemas/BookSummary"
+                    }
+                  },
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Неполное саммари или книга не прочитана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/summaries": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Все саммари для модерации",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summaries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BookSummary"
+                      }
+                    }
+                  },
+                  "required": [
+                    "summaries"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/summaries/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Править саммари как администратор",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookSummaryPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "$ref": "#/components/schemas/BookSummary"
+                    }
+                  },
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/summaries/{id}/publish": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Опубликовать саммари",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "$ref": "#/components/schemas/BookSummary"
+                    }
+                  },
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/summaries/{id}/reject": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Отклонить саммари",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookSummaryRejectInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rejected summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "$ref": "#/components/schemas/BookSummary"
+                    }
+                  },
+                  "required": [
+                    "summary"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {

@@ -117,6 +117,26 @@ export const bookSubmissions = pgTable('book_submissions', {
   bookIdIdx: index('book_submissions_book_id_idx').on(t.bookId),
 }))
 
+export const bookSummaries = pgTable('book_summaries', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  authorUserId: text('author_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  displayName: text('display_name').notNull(),
+  title: text('title').notNull().default(''),
+  tldr: text('tldr').notNull().default(''),
+  bodyMarkdown: text('body_markdown').notNull().default(''),
+  status: text('status').notNull().default('draft'),
+  rejectionReason: text('rejection_reason'),
+  submittedAt: timestamp('submitted_at', { mode: 'date' }),
+  publishedAt: timestamp('published_at', { mode: 'date' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  bookAuthorUnique: uniqueIndex('book_summaries_book_author_unique').on(t.bookId, t.authorUserId),
+  bookStatusIdx: index('book_summaries_book_status_idx').on(t.bookId, t.status),
+  authorStatusIdx: index('book_summaries_author_status_idx').on(t.authorUserId, t.status),
+}))
+
 export const bookPriorities = pgTable('book_priorities', {
   userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   bookId:    text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),

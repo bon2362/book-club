@@ -87,6 +87,7 @@ const mockByBook = [
       whyRead: null,
       recommendationLink: null,
       isNew: false,
+      summaryCount: 0,
     },
     users: [
       { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-1', name: 'Анна', email: 'anna@test.com', contacts: '', selectedBooks: ['Книга с одной записью'], selectedBookIds: ['1'], signups: [] },
@@ -107,6 +108,7 @@ const mockByBook = [
       whyRead: null,
       recommendationLink: null,
       isNew: false,
+      summaryCount: 0,
     },
     users: [
       { timestamp: '2026-03-01T10:00:00.000Z', userId: 'user-2', name: 'Борис', email: 'boris@test.com', contacts: '', selectedBooks: ['Книга с тремя записями'], selectedBookIds: ['2'], signups: [] },
@@ -179,6 +181,28 @@ const mockFeedback = [
     createdAt: '2026-03-02T10:00:00.000Z',
     userName: null,
     userEmail: null,
+  },
+]
+
+const mockSummaries = [
+  {
+    id: 'sum-1',
+    bookId: 'book-1',
+    authorUserId: 'user-1',
+    displayName: 'alina.reads',
+    title: 'Институты, а не география',
+    tldr: 'Коротко про институты',
+    bodyMarkdown: '**Текст**',
+    status: 'pending',
+    rejectionReason: null,
+    submittedAt: '2026-06-20T10:00:00.000Z',
+    publishedAt: null,
+    createdAt: '2026-06-19T10:00:00.000Z',
+    updatedAt: '2026-06-20T10:00:00.000Z',
+    bookTitle: 'Почему одни страны богатые',
+    bookAuthor: 'Аджемоглу',
+    authorName: 'Алина',
+    authorEmail: 'alina@test.com',
   },
 ]
 
@@ -481,12 +505,35 @@ describe('AdminPanel — Заявки таб', () => {
   })
 })
 
+describe('AdminPanel — Саммари таб', () => {
+  it('загружает и показывает саммари на проверке', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ json: () => Promise.resolve({ summaries: mockSummaries }), ok: true })
+      }
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }), ok: true })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+    fireEvent.click(screen.getByText(/саммари/i))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/admin/summaries')
+      expect(screen.getByText('Институты, а не география')).toBeInTheDocument()
+      expect(screen.getByText('Почему одни страны богатые')).toBeInTheDocument()
+    })
+  })
+})
+
 describe('AdminPanel — merge users', () => {
   it('не показывает ID пользователей в списке и не ищет по ID', async () => {
     ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url === '/api/admin/submissions') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ summaries: [] }) })
       }
       if (url === '/api/admin/feedback') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
@@ -519,6 +566,9 @@ describe('AdminPanel — merge users', () => {
       const url = String(input)
       if (url === '/api/admin/submissions') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ summaries: [] }) })
       }
       if (url === '/api/admin/feedback') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
@@ -574,6 +624,9 @@ describe('AdminPanel — merge users', () => {
       const url = String(input)
       if (url === '/api/admin/submissions') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      }
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ summaries: [] }) })
       }
       if (url === '/api/admin/feedback') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
