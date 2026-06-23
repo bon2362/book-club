@@ -2,7 +2,14 @@ name: Notification Digest
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # Раз в сутки в 03:00 UTC — намеренно совмещено с Vercel-кроном
+    # `telegram-preauth-cleanup` (vercel.json, тоже `0 3 * * *`). Оба бьют в
+    # production-ветку Neon, поэтому compute просыпается ОДИН раз, обслуживает оба
+    # джоба и засыпает по scale-to-zero — digest не добавляет отдельного пробуждения.
+    # Частить нет смысла: сам digest дебаунсит отправку (cooling 30мин / forced-flush 2ч),
+    # а прежний `*/10` будил БД ~50% суток вхолостую и выжигал ~90 CU-час/мес на Free.
+    # НЕ совмещать с e2e-nightly: тот работает на отдельной ветке `e2e` (другой compute).
+    - cron: '0 3 * * *'
   workflow_dispatch: # ручной запуск для тестирования
 
 jobs:
