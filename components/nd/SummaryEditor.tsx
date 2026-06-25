@@ -15,31 +15,54 @@ export interface EditableSummary {
   rejectionReason: string | null
 }
 
+export interface EditableSummaryRevision {
+  id: string
+  summaryId: string
+  displayName: string
+  title: string
+  tldr: string
+  bodyMarkdown: string
+  status: 'draft' | 'pending' | 'rejected'
+  rejectionReason: string | null
+}
+
 interface Props {
   initialSummary: EditableSummary
+  initialRevision?: EditableSummaryRevision | null
   bookTitle: string
   bookAuthor: string
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-export default function SummaryEditor({ initialSummary, bookTitle, bookAuthor }: Props) {
-  const [displayName, setDisplayName] = useState(initialSummary.displayName)
-  const [title, setTitle] = useState(initialSummary.title)
-  const [tldr, setTldr] = useState(initialSummary.tldr)
-  const [bodyMarkdown, setBodyMarkdown] = useState(initialSummary.bodyMarkdown)
+export default function SummaryEditor({ initialSummary, initialRevision = null, bookTitle, bookAuthor }: Props) {
+  const [revision, setRevision] = useState(initialRevision)
+  const initialDocument = initialRevision ?? initialSummary
+  const [displayName, setDisplayName] = useState(initialDocument.displayName)
+  const [title, setTitle] = useState(initialDocument.title)
+  const [tldr, setTldr] = useState(initialDocument.tldr)
+  const [bodyMarkdown, setBodyMarkdown] = useState(initialDocument.bodyMarkdown)
   const [preview, setPreview] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [dirty, setDirty] = useState(false)
+  const [creatingRevision, setCreatingRevision] = useState(false)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
-  const canEdit = initialSummary.status === 'draft' || initialSummary.status === 'rejected'
+  const canEdit = revision
+    ? revision.status === 'draft' || revision.status === 'rejected'
+    : initialSummary.status === 'draft' || initialSummary.status === 'rejected'
 
   const payload = { displayName, title, tldr, bodyMarkdown }
+  const saveUrl = revision
+    ? `/api/summary-revisions/${revision.id}`
+    : `/api/summaries/${initialSummary.id}`
+  const submitUrl = revision
+    ? `/api/summary-revisions/${revision.id}/submit`
+    : `/api/summaries/${initialSummary.id}/submit`
 
   async function saveDraft() {
     if (!canEdit) return
     setSaveState('saving')
-    const res = await fetch(`/api/summaries/${initialSummary.id}`, {
+    const res = await fetch(saveUrl, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -68,13 +91,56 @@ export default function SummaryEditor({ initialSummary, bookTitle, bookAuthor }:
 
   async function submit() {
     if (dirty) await saveDraft()
-    const res = await fetch(`/api/summaries/${initialSummary.id}/submit`, { method: 'POST' })
+    const res = await fetch(submitUrl, { method: 'POST' })
     if (!res.ok) {
       setSaveState('error')
       return
     }
     window.location.href = '/'
   }
+
+  async function createRevision() {
+    setCreatingRevision(true)
+    try {
+      const res = await fetch(`/api/summaries/${initialSummary.id}/revision`, { method: 'POST' })
+      if (!res.ok) {
+        setSaveState('error')
+        return
+      }
+      const data = await res.json()
+      const next = data.revision as EditableSummaryRevision | undefined
+      if (!next) {
+        setSaveState('error')
+        return
+      }
+      setRevision(next)
+      setDisplayName(next.displayName)
+      setTitle(next.title)
+      setTldr(next.tldr)
+      setBodyMarkdown(next.bodyMarkdown)
+      setDirty(false)
+      setSaveState('idle')
+    } catch {
+      setSaveState('error')
+    } finally {
+      setCreatingRevision(false)
+    }
+  }
+
+  const statusLabel = revision
+    ? revision.status === 'draft'
+      ? 'Правки: черновик'
+      : revision.status === 'pending'
+        ? 'Правки на проверке'
+        : 'Правки отклонены'
+    : initialSummary.status === 'draft'
+      ? 'Черновик'
+      : initialSummary.status === 'pending'
+        ? 'На проверке'
+        : initialSummary.status === 'published'
+          ? 'Опубликовано'
+          : 'Отклонено'
+  const rejectionReason = revision?.rejectionReason ?? initialSummary.rejectionReason
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
@@ -95,7 +161,7 @@ export default function SummaryEditor({ initialSummary, bookTitle, bookAuthor }:
         <div>
           <a href="/" style={{ color: 'var(--text)', textDecoration: 'none', fontFamily: 'var(--nd-sans)' }}>← Книга</a>
           <span style={{ marginLeft: '0.75rem', fontFamily: 'var(--nd-sans)', fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            {initialSummary.status === 'rejected' ? 'Отклонено' : 'Черновик'}
+            {statusLabel}
           </span>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -103,15 +169,21 @@ export default function SummaryEditor({ initialSummary, bookTitle, bookAuthor }:
             {saveState === 'saving' ? 'Сохранение...' : saveState === 'saved' ? 'Сохранено' : saveState === 'error' ? 'Ошибка сохранения' : ''}
           </span>
           <button type="button" onClick={() => setPreview(v => !v)} style={ghostButton}>Предпросмотр</button>
-          <button type="button" onClick={submit} disabled={!canEdit} style={darkButton}>Отправить на проверку</button>
+          {initialSummary.status === 'published' && !revision ? (
+            <button type="button" onClick={createRevision} disabled={creatingRevision} style={darkButton}>
+              {creatingRevision ? 'Открываем...' : 'Редактировать'}
+            </button>
+          ) : (
+            <button type="button" onClick={submit} disabled={!canEdit} style={darkButton}>Отправить на проверку</button>
+          )}
         </div>
       </div>
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
-        {initialSummary.status === 'rejected' && initialSummary.rejectionReason && (
+        {rejectionReason && (
           <section style={{ marginBottom: '1.25rem', padding: '1rem', borderLeft: '2px solid var(--accent)', background: 'var(--bg-tint)' }}>
             <div style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)', marginBottom: '0.35rem' }}>Комментарий админа</div>
-            <p style={{ margin: 0, fontFamily: 'var(--nd-sans)', fontSize: '0.9rem', color: 'var(--text-body)' }}>{initialSummary.rejectionReason}</p>
+            <p style={{ margin: 0, fontFamily: 'var(--nd-sans)', fontSize: '0.9rem', color: 'var(--text-body)' }}>{rejectionReason}</p>
           </section>
         )}
 
@@ -140,7 +212,9 @@ export default function SummaryEditor({ initialSummary, bookTitle, bookAuthor }:
               В двух словах
               <textarea aria-label="В двух словах" disabled={!canEdit} value={tldr} onChange={e => update(setTldr, e.target.value)} rows={3} style={{ ...textareaStyle, borderLeft: '2px solid var(--accent)' }} />
             </label>
-            <MarkdownToolbar textareaRef={bodyRef} value={bodyMarkdown} onChange={value => update(setBodyMarkdown, value)} />
+            {canEdit && (
+              <MarkdownToolbar textareaRef={bodyRef} value={bodyMarkdown} onChange={value => update(setBodyMarkdown, value)} />
+            )}
             <textarea ref={bodyRef} aria-label="Текст саммари" disabled={!canEdit} value={bodyMarkdown} onChange={e => update(setBodyMarkdown, e.target.value)} rows={14} style={textareaStyle} />
           </div>
         )}

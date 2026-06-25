@@ -43,6 +43,9 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET/POST | `/api/summaries/by-book/{bookId}` | Читать своё саммари по книге или создать draft для прочитанной книги. |
 | PATCH | `/api/summaries/{id}` | Автосохранить своё draft/rejected саммари. |
 | POST | `/api/summaries/{id}/submit` | Отправить саммари на модерацию. |
+| POST | `/api/summaries/{id}/revision` | Создать или открыть правки опубликованного саммари. |
+| PATCH | `/api/summary-revisions/{id}` | Автосохранить правки опубликованного саммари. |
+| POST | `/api/summary-revisions/{id}/submit` | Отправить правки на повторную модерацию. |
 | GET | `/api/matching/feed` | Лента значимых событий active matching-сессии (`best`, `leftout`) для участников и админов; отдаёт псевдонимы и агрегаты без внутренних `userId`. |
 
 ## Основные admin endpoints
@@ -59,6 +62,9 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET | `/api/admin/feedback` | Фидбек-сообщения. |
 | GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |
 | GET/PATCH/POST | `/api/admin/summaries` | Модерация саммари участников: список, правка, публикация, отклонение. |
+| PATCH | `/api/admin/summary-revisions/{id}` | Правка ревизии опубликованного саммари. |
+| POST | `/api/admin/summary-revisions/{id}/publish` | Применить ревизию к публичному саммари. |
+| POST | `/api/admin/summary-revisions/{id}/reject` | Отклонить ревизию, сохранив текущую публикацию. |
 
 ## Безопасность API
 

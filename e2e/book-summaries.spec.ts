@@ -76,5 +76,72 @@ test.describe('Саммари книг', () => {
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
     await expect(page.getByText('Reader One')).toBeVisible()
     await expect(page.getByText('Институты задают стимулы')).toBeVisible()
+
+    await loginAsUser({ email: user.email, name: user.name })
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText('Опубликовано')).toBeVisible()
+
+    const revisionResponse = page.waitForResponse(
+      response => response.url().includes(`/api/summaries/${draft.summary.id}/revision`) && response.request().method() === 'POST',
+    )
+    await page.getByRole('button', { name: 'Редактировать' }).click()
+    expect((await revisionResponse).ok()).toBe(true)
+    await expect(page.getByText('Правки: черновик')).toBeVisible()
+
+    await page.getByLabel('Заголовок саммари').fill('Почему институты меняются')
+    await page.getByLabel('В двух словах').fill('Обновлённый вывод о правилах игры.')
+    await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByLabel('Заголовок саммари')).toHaveValue('Почему институты меняются')
+
+    await page.getByRole('button', { name: 'Отправить на проверку' }).click()
+    await expect(page).toHaveURL(/\/$/)
+
+    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Почему институты меняются' })).toHaveCount(0)
+
+    await loginAsAdmin({ name: 'E2E Summary Admin' })
+    await page.goto('/admin?tab=summaries')
+    await page.waitForLoadState('networkidle')
+    await page.getByText('Почему институты меняются').click()
+    await expect(page.getByText('Правки к опубликованному')).toBeVisible()
+    await expect(page.getByText('Почему институты решают')).toBeVisible()
+    await page.getByLabel('Причина отказа саммари').fill('Нужно уточнить вывод')
+    const rejectResponse = page.waitForResponse(
+      response => response.url().includes('/api/admin/summary-revisions/') && response.url().endsWith('/reject') && response.request().method() === 'POST',
+    )
+    await page.getByRole('button', { name: 'Отклонить правки' }).click()
+    expect((await rejectResponse).ok()).toBe(true)
+
+    await loginAsUser({ email: user.email, name: user.name })
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText('Правки отклонены')).toBeVisible()
+    await expect(page.getByText('Нужно уточнить вывод')).toBeVisible()
+    await page.getByLabel('Заголовок саммари').fill('Почему институты меняются со временем')
+    await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
+    await page.getByRole('button', { name: 'Отправить на проверку' }).click()
+    await expect(page).toHaveURL(/\/$/)
+
+    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
+
+    await loginAsAdmin({ name: 'E2E Summary Admin' })
+    await page.goto('/admin?tab=summaries')
+    await page.waitForLoadState('networkidle')
+    await page.getByText('Почему институты меняются со временем').click()
+    const revisionPublishResponse = page.waitForResponse(
+      response => response.url().includes('/api/admin/summary-revisions/') && response.url().endsWith('/publish') && response.request().method() === 'POST',
+    )
+    await page.getByRole('button', { name: 'Опубликовать правки' }).click()
+    expect((await revisionPublishResponse).ok()).toBe(true)
+
+    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Почему институты меняются со временем' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toHaveCount(0)
   })
 })

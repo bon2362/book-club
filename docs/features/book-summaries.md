@@ -7,12 +7,13 @@
 - У одной пары `book_id + author_user_id` может быть только одно саммари.
 - Писать можно только по книге, которая есть у пользователя в `signup_books` с `personal_status='read'`.
 - Автор может редактировать только `draft` и `rejected`.
-- После отправки статус становится `pending`; после публикации автор в MVP уже не редактирует текст.
+- После публикации автор редактирует отдельную ревизию; текущий публичный текст не меняется до повторного approve.
+- У опубликованного саммари может быть только одна активная ревизия.
 - Несколько опубликованных саммари от разных участников показываются на одной странице книги.
 - Реакций, комментариев, email-уведомлений и личного раздела “Мои саммари” в MVP нет.
 
 ## Модель данных
-Таблица `book_summaries` создаётся миграцией `drizzle/0044_book_summaries.sql`.
+Таблица `book_summaries` создаётся миграцией `drizzle/0044_book_summaries.sql`. Активные правки опубликованного текста хранятся в `book_summary_revisions`, созданной миграцией `drizzle/0045_book_summary_revisions.sql`.
 
 Ключевые поля:
 - `book_id` -> `books.id`
@@ -24,7 +25,7 @@
 
 Уникальность: `unique(book_id, author_user_id)`.
 
-Таблица аудируется: она добавлена в `AUDITED_TABLES`, а миграция создаёт audit-trigger.
+Обе таблицы аудируются: они добавлены в `AUDITED_TABLES`, а миграции создают audit-trigger. При approve поля ревизии копируются в `book_summaries`, после чего ревизия удаляется в той же транзакции. `published_at` сохраняет дату первой публикации.
 
 ## Жизненный цикл
 ```mermaid
@@ -34,12 +35,19 @@ stateDiagram-v2
     Pending --> Published: админ публикует
     Pending --> Rejected: админ отклоняет
     Rejected --> Pending: участник исправляет и отправляет
+    Published --> RevisionDraft: автор начинает правки
+    RevisionDraft --> RevisionPending: отправить правки
+    RevisionPending --> Published: админ применяет правки
+    RevisionPending --> RevisionRejected: админ отклоняет правки
+    RevisionRejected --> RevisionPending: автор исправляет правки
 ```
 
 ## Пользовательский UI
 - В профиле и модалке книги действие “Написать саммари” появляется только для книг с личным статусом `read`.
 - Редактор находится на `/summaries/{id}/edit`.
 - Редактор поддерживает Markdown toolbar, автосейв и preview.
+- Для `published` редактор сначала показывает текущую версию read-only. Действие `Редактировать` создаёт ревизию, предзаполненную опубликованным текстом.
+- Пока ревизия находится на проверке или отклонена, публичная страница продолжает показывать предыдущую опубликованную версию.
 - Публичная страница опубликованных саммари: `/books/{bookId}/summaries`.
 - Каталог показывает ссылку на саммари, если у книги есть хотя бы одно опубликованное саммари (`summaryCount > 0`).
 
@@ -51,7 +59,7 @@ stateDiagram-v2
 - опубликованные;
 - отклонённые.
 
-Администратор может раскрыть строку, поправить `displayName`, `title`, `tldr`, `bodyMarkdown`, указать причину отказа, сохранить изменения, опубликовать или отклонить.
+Администратор может раскрыть строку, поправить `displayName`, `title`, `tldr`, `bodyMarkdown`, указать причину отказа, сохранить изменения, опубликовать или отклонить. Ревизии помечены как `Правки к опубликованному` и показывают текущую публичную версию для сравнения.
 
 ## API
 Пользовательские:
@@ -59,12 +67,18 @@ stateDiagram-v2
 - `POST /api/summaries/by-book/{bookId}` — открыть существующее или создать draft; требует `personal_status='read'`.
 - `PATCH /api/summaries/{id}` — автосейв draft/rejected автора.
 - `POST /api/summaries/{id}/submit` — отправить на модерацию.
+- `POST /api/summaries/{id}/revision` — создать или открыть активную ревизию опубликованного саммари.
+- `PATCH /api/summary-revisions/{id}` — автосейв draft/rejected ревизии.
+- `POST /api/summary-revisions/{id}/submit` — отправить ревизию на повторную модерацию.
 
 Админские:
 - `GET /api/admin/summaries` — список саммари для модерации.
 - `PATCH /api/admin/summaries/{id}` — правка текста/метаданных.
 - `POST /api/admin/summaries/{id}/publish` — публикация.
 - `POST /api/admin/summaries/{id}/reject` — отклонение с причиной.
+- `PATCH /api/admin/summary-revisions/{id}` — правка ревизии.
+- `POST /api/admin/summary-revisions/{id}/publish` — атомарно применить ревизию к публикации.
+- `POST /api/admin/summary-revisions/{id}/reject` — отклонить ревизию, не меняя публичный текст.
 
 ## Ключевые файлы
 - `lib/book-summaries.ts` — бизнес-правила, статусы, проверки прав и операции с БД.
@@ -75,5 +89,4 @@ stateDiagram-v2
 - `components/nd/AdminPanel.tsx` — вкладка модерации “Саммари”.
 - `app/books/[bookId]/summaries/page.tsx` — публичная страница.
 - `app/summaries/[id]/edit/page.tsx` — страница редактирования.
-- `app/api/summaries/` и `app/api/admin/summaries/` — API.
-
+- `app/api/summaries/`, `app/api/summary-revisions/` и соответствующие admin routes — API.

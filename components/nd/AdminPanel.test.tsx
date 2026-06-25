@@ -206,6 +206,32 @@ const mockSummaries = [
   },
 ]
 
+const mockSummaryRevision = {
+  id: 'rev-1',
+  summaryId: 'sum-published',
+  kind: 'revision',
+  bookId: 'book-1',
+  authorUserId: 'user-1',
+  displayName: 'alina.reads',
+  title: 'Новая версия институтов',
+  tldr: 'Новый короткий вывод',
+  bodyMarkdown: '**Новый текст**',
+  status: 'pending',
+  rejectionReason: null,
+  submittedAt: '2026-06-25T10:00:00.000Z',
+  publishedAt: '2026-06-20T10:00:00.000Z',
+  createdAt: '2026-06-24T10:00:00.000Z',
+  updatedAt: '2026-06-25T10:00:00.000Z',
+  bookTitle: 'Почему одни страны богатые',
+  bookAuthor: 'Аджемоглу',
+  authorName: 'Алина',
+  authorEmail: 'alina@test.com',
+  publishedDisplayName: 'alina.reads',
+  publishedTitle: 'Старая версия институтов',
+  publishedTldr: 'Старый короткий вывод',
+  publishedBodyMarkdown: '**Старый текст**',
+}
+
 beforeEach(() => {
   window.localStorage.clear()
   mockRouterReplace.mockClear()
@@ -521,6 +547,33 @@ describe('AdminPanel — Саммари таб', () => {
       expect(global.fetch).toHaveBeenCalledWith('/api/admin/summaries')
       expect(screen.getByText('Институты, а не география')).toBeInTheDocument()
       expect(screen.getByText('Почему одни страны богатые')).toBeInTheDocument()
+    })
+  })
+
+  it('показывает и публикует правки к опубликованному саммари', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ json: () => Promise.resolve({ summaries: [mockSummaryRevision] }), ok: true })
+      }
+      if (url === '/api/admin/summary-revisions/rev-1/publish' && init?.method === 'POST') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ summary: { ...mockSummaryRevision, id: 'sum-published', kind: 'summary', status: 'published' } }),
+          ok: true,
+        })
+      }
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }), ok: true })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+    fireEvent.click(screen.getByText(/саммари/i))
+
+    fireEvent.click(await screen.findByText('Новая версия институтов'))
+    expect(screen.getByText('Правки к опубликованному')).toBeInTheDocument()
+    expect(screen.getByText('Старая версия институтов')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Опубликовать правки' }))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/admin/summary-revisions/rev-1/publish', { method: 'POST' })
     })
   })
 })

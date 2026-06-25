@@ -10,6 +10,7 @@ export const AUDITED_TABLES = [
   'book_priorities',
   'book_submissions',
   'book_summaries',
+  'book_summary_revisions',
   'intro_sections',
   'signup_books',
   'feedback',

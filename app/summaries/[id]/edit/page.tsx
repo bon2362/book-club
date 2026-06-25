@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { fetchBookById } from '@/lib/books'
-import { getAuthorSummaryById } from '@/lib/book-summaries'
+import { getActiveSummaryRevision, getAuthorSummaryById } from '@/lib/book-summaries'
 import SummaryEditor from '@/components/nd/SummaryEditor'
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +15,9 @@ export default async function EditSummaryPage({ params }: { params: { id: string
 
   const book = await fetchBookById(summary.bookId)
   if (!book) notFound()
+  const revision = summary.status === 'published'
+    ? await getActiveSummaryRevision(summary.id)
+    : null
 
   return (
     <SummaryEditor
@@ -28,6 +31,16 @@ export default async function EditSummaryPage({ params }: { params: { id: string
         status: summary.status,
         rejectionReason: summary.rejectionReason,
       }}
+      initialRevision={revision ? {
+        id: revision.id,
+        summaryId: revision.summaryId,
+        displayName: revision.displayName,
+        title: revision.title,
+        tldr: revision.tldr,
+        bodyMarkdown: revision.bodyMarkdown,
+        status: revision.status,
+        rejectionReason: revision.rejectionReason,
+      } : null}
       bookTitle={book.name}
       bookAuthor={book.author}
     />
