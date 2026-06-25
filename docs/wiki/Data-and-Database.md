@@ -22,6 +22,7 @@ erDiagram
     books ||--o{ book_submissions : may_publish_from
     user ||--o{ book_summaries : writes
     books ||--o{ book_summaries : has
+    book_summaries ||--o| book_summary_revisions : has_active_edit
     user ||--o{ feedback : may_send
     books ||--o{ notification_queue : referenced_in_payload
 
@@ -127,6 +128,7 @@ erDiagram
 | `book_priorities` | Порядок книг у пользователя. | Помогает понять, что человек хочет сильнее всего. |
 | `book_submissions` | Предложенные пользователями книги. | Материал для модерации и пополнения каталога. |
 | `book_summaries` | Markdown-саммари участников по прочитанным книгам. | Публичный клубный слой поверх каталога после админской модерации. |
+| `book_summary_revisions` | Одна активная ревизия опубликованного саммари. | Позволяет повторно модерировать правки, не скрывая текущую публикацию. |
 | `feedback` | Сообщения обратной связи. | Канал связи с владельцем. |
 | `notification_queue` | Очередь email-уведомлений. | Позволяет отправлять digest, а не письмо на каждое действие. |
 | `intro_sections` | Редактируемые блоки intro на главной. | Позволяет менять объяснение сайта из админки. |
@@ -175,6 +177,7 @@ erDiagram
 - `0030_matching_freeze_metrics.sql` — колонки метрик заморозки в `matching_sessions`.
 - `0043_user_merge_events.sql` — summary-таблица для admin merge дублей и audit-триггер.
 - `0044_book_summaries.sql` — саммари книг от участников и audit-триггер.
+- `0045_book_summary_revisions.sql` — активные ревизии опубликованных саммари и audit-триггер.
 - `0034_matching_pseudonym_reservations.sql` — временные резервы псевдонимов для welcome screen.
 - `0035_matching_preference_events.sql` — персистентная аналитика изменений предпочтений в matching.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).
