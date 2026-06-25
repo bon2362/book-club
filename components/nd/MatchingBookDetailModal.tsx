@@ -352,7 +352,20 @@ export default function MatchingBookDetailModal({
                 <div style={summaryDisabledStyle}>Саммари на проверке</div>
               )}
               {summary?.status === 'published' && (
-                <a href={`/books/${book.bookId}/summaries`} style={summaryLinkStyle}>Саммари опубликовано</a>
+                <div style={{ display: 'grid', gap: '0.45rem' }}>
+                  <a href={`/books/${book.bookId}/summaries`} style={summaryLinkStyle}>Читать саммари</a>
+                  <a
+                    href={`/summaries/${summary.id}/edit`}
+                    style={{
+                      ...summaryLinkStyle,
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      border: '1px solid var(--border-strong)',
+                    }}
+                  >
+                    Редактировать
+                  </a>
+                </div>
               )}
               <p style={{ margin: '0.45rem 0 0', fontSize: '0.76rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
                 Саммари проходит проверку администратора перед публикацией.

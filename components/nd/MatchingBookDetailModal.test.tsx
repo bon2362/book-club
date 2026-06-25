@@ -54,6 +54,7 @@ describe('MatchingBookDetailModal summary action', () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ summary: { id: 's3', status: 'published' } }) })
     rerender(<MatchingBookDetailModal book={{ ...book, bookId: 'b2' }} frozen={false} onClose={() => {}} />)
 
-    expect(await screen.findByRole('link', { name: /саммари опубликовано/i })).toHaveAttribute('href', '/books/b2/summaries')
+    expect(await screen.findByRole('link', { name: 'Читать саммари' })).toHaveAttribute('href', '/books/b2/summaries')
+    expect(screen.getByRole('link', { name: 'Редактировать' })).toHaveAttribute('href', '/summaries/s3/edit')
   })
 })

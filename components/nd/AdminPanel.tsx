@@ -36,6 +36,8 @@ interface Submission {
 
 interface AdminSummary {
   id: string
+  kind?: 'summary' | 'revision'
+  summaryId?: string
   bookId: string
   bookTitle: string
   bookAuthor: string
@@ -53,6 +55,10 @@ interface AdminSummary {
   submittedAt: string | null
   publishedAt: string | null
   rejectedAt: string | null
+  publishedDisplayName?: string | null
+  publishedTitle?: string | null
+  publishedTldr?: string | null
+  publishedBodyMarkdown?: string | null
 }
 
 interface BookEntry {
@@ -631,18 +637,24 @@ export default function AdminPanel({
   }
 
   async function handleSaveSummaryEdits(id: string) {
+    const summary = summaries.find(item => item.id === id)
+    if (!summary) return
     const edits = summaryEdits[id]
     if (!edits || Object.keys(edits).length === 0) return
     setSummaryActionLoading(id)
     try {
-      const res = await fetch(`/api/admin/summaries/${id}`, {
+      const endpoint = summary.kind === 'revision'
+        ? `/api/admin/summary-revisions/${id}`
+        : `/api/admin/summaries/${id}`
+      const res = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(edits),
       })
       if (res.ok) {
         const d = await res.json()
-        if (d.summary) updateSummaryInList(d.summary)
+        const updated = d.revision ?? d.summary
+        if (updated) updateSummaryInList({ ...summary, ...updated })
         setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
       }
     } catch { /* silently ignore */ }
@@ -650,20 +662,32 @@ export default function AdminPanel({
   }
 
   async function handlePublishSummary(id: string) {
+    const summary = summaries.find(item => item.id === id)
+    if (!summary) return
+    const isRevision = summary.kind === 'revision'
     setSummaryActionLoading(id)
     try {
       const edits = summaryEdits[id]
       if (edits && Object.keys(edits).length > 0) {
-        await fetch(`/api/admin/summaries/${id}`, {
+        await fetch(isRevision ? `/api/admin/summary-revisions/${id}` : `/api/admin/summaries/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(edits),
         })
       }
-      const res = await fetch(`/api/admin/summaries/${id}/publish`, { method: 'POST' })
+      const res = await fetch(
+        isRevision
+          ? `/api/admin/summary-revisions/${id}/publish`
+          : `/api/admin/summaries/${id}/publish`,
+        { method: 'POST' },
+      )
       if (res.ok) {
         const d = await res.json()
-        if (d.summary) {
+        if (isRevision) {
+          setSummaries(prev => prev
+            .filter(item => item.id !== id)
+            .map(item => item.id === d.summary?.id ? { ...item, ...d.summary } : item))
+        } else if (d.summary) {
           updateSummaryInList(d.summary)
           if (!summaries.some(summary => summary.id !== id && summary.status === 'pending')) setSummaryFilter('all')
         }
@@ -676,10 +700,14 @@ export default function AdminPanel({
 
   async function handleRejectSummary(id: string) {
     const summary = summaries.find(item => item.id === id)
+    if (!summary) return
+    const isRevision = summary.kind === 'revision'
     const edits = summaryEdits[id] ?? {}
     setSummaryActionLoading(id)
     try {
-      const res = await fetch(`/api/admin/summaries/${id}/reject`, {
+      const res = await fetch(isRevision
+        ? `/api/admin/summary-revisions/${id}/reject`
+        : `/api/admin/summaries/${id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -689,8 +717,9 @@ export default function AdminPanel({
       })
       if (res.ok) {
         const d = await res.json()
-        if (d.summary) {
-          updateSummaryInList(d.summary)
+        const updated = d.revision ?? d.summary
+        if (updated) {
+          updateSummaryInList({ ...summary, ...updated })
           if (!summaries.some(item => item.id !== id && item.status === 'pending')) setSummaryFilter('all')
         }
         setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
@@ -1328,6 +1357,7 @@ export default function AdminPanel({
                 </thead>
                 <tbody>
                   {filteredSummaries.map(summary => {
+                    const isRevision = summary.kind === 'revision'
                     const isSelected = selectedSummaryId === summary.id
                     const edits = summaryEdits[summary.id] ?? {}
                     const isActing = summaryActionLoading === summary.id
@@ -1345,6 +1375,11 @@ export default function AdminPanel({
                           style={{ cursor: 'pointer', background: isSelected ? 'var(--bg-elevated)' : 'transparent' }}
                         >
                           <td style={cell}>
+                            {isRevision && (
+                              <div style={{ ...fieldLabel, color: 'var(--accent)', marginBottom: '0.25rem' }}>
+                                Правки к опубликованному
+                              </div>
+                            )}
                             <div style={{ fontWeight: 700 }}>{summary.title}</div>
                             <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem', marginTop: '0.2rem' }}>
                               {summary.tldr}
@@ -1376,6 +1411,16 @@ export default function AdminPanel({
                           <tr>
                             <td colSpan={6} style={{ padding: '1rem 0.75rem 1.25rem', background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border-strong)' }}>
                               <div style={{ display: 'grid', gap: '0.75rem', maxWidth: '820px' }}>
+                                {isRevision && (
+                                  <section style={{ borderLeft: '2px solid var(--border-strong)', paddingLeft: '0.75rem' }}>
+                                    <div style={{ ...fieldLabel, marginBottom: '0.35rem' }}>Текущая публикация</div>
+                                    <div style={{ fontFamily: 'var(--nd-serif)', fontWeight: 700 }}>{summary.publishedTitle}</div>
+                                    <div style={{ marginTop: '0.25rem', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>{summary.publishedTldr}</div>
+                                    <div style={{ marginTop: '0.4rem', color: 'var(--text-muted)', fontSize: '0.74rem', whiteSpace: 'pre-wrap' }}>
+                                      {summary.publishedBodyMarkdown}
+                                    </div>
+                                  </section>
+                                )}
                                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.75rem' }}>
                                   <div>
                                     <div style={fieldLabel}>Книга</div>
@@ -1455,14 +1500,14 @@ export default function AdminPanel({
                                     disabled={isActing || summary.status === 'published'}
                                     style={actionBtnStyle('var(--success)', isActing || summary.status === 'published')}
                                   >
-                                    Опубликовать
+                                    {isRevision ? 'Опубликовать правки' : 'Опубликовать'}
                                   </button>
                                   <button
                                     onClick={() => handleRejectSummary(summary.id)}
                                     disabled={isActing || summary.status === 'rejected'}
                                     style={actionBtnStyle('var(--accent)', isActing || summary.status === 'rejected')}
                                   >
-                                    Отклонить
+                                    {isRevision ? 'Отклонить правки' : 'Отклонить'}
                                   </button>
                                   <Link
                                     href={`/books/${summary.bookId}/summaries`}
