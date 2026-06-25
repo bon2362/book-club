@@ -1,7 +1,7 @@
 # Редактирование опубликованных саммари — дизайн
 
-**Дата:** 2026-06-26  
-**Цель:** позволить автору предложить изменения в опубликованное саммари, не скрывая текущую публичную версию до повторной модерации.  
+**Дата:** 2026-06-26
+**Цель:** позволить автору предложить изменения в опубликованное саммари, не скрывая текущую публичную версию до повторной модерации.
 **Связанный issue:** [#409](https://github.com/bon2362/book-club/issues/409), follow-up к #16.
 
 ## 1. Проблема
@@ -94,13 +94,13 @@ Approve проверяет полноту ревизии и выполняет u
 
 Авторские endpoints:
 
-- `POST /api/summaries/{summaryId}/revision`  
+- `POST /api/summaries/{summaryId}/revision`
   Создать или вернуть активную ревизию опубликованного саммари.
 
-- `PATCH /api/summary-revisions/{revisionId}`  
+- `PATCH /api/summary-revisions/{revisionId}`
   Автосохранение `draft` или `rejected`.
 
-- `POST /api/summary-revisions/{revisionId}/submit`  
+- `POST /api/summary-revisions/{revisionId}/submit`
   Проверить обязательные поля и `personal_status='read'`, перевести в `pending`.
 
 Существующие endpoints для первого draft сохраняются без изменений.
