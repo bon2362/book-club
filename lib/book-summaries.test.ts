@@ -4,6 +4,7 @@
 const queue: unknown[][] = []
 const insertValuesCalls: unknown[] = []
 const updateSetCalls: unknown[] = []
+const deleteWhereCalls: unknown[] = []
 const auditContexts: unknown[] = []
 
 function pushResult(rows: unknown[]) { queue.push(rows) }
@@ -51,6 +52,12 @@ jest.mock('@/lib/db', () => {
           return { where: jest.fn(() => ({ returning: jest.fn(() => pullResult()) })) }
         }),
       })),
+      delete: jest.fn(() => ({
+        where: jest.fn((value: unknown) => {
+          deleteWhereCalls.push(value)
+          return { returning: jest.fn(() => pullResult()) }
+        }),
+      })),
     },
   }
 })
@@ -64,13 +71,20 @@ jest.mock('@/lib/audit/with-audit-context', () => ({
 
 import {
   SummaryValidationError,
+  adminPublishSummaryRevision,
   adminPublishSummary,
+  adminRejectSummaryRevision,
   adminRejectSummary,
+  getActiveSummaryRevision,
   getAuthorSummaryById,
   getPublishedSummaryCounts,
+  listAdminSummaryRevisions,
   normalizeSummaryPatch,
+  openOrCreateSummaryRevision,
   openOrCreateSummaryDraft,
+  saveAuthorSummaryRevision,
   saveAuthorSummary,
+  submitAuthorSummaryRevision,
   submitAuthorSummary,
 } from './book-summaries'
 
@@ -97,10 +111,39 @@ function summaryRow(overrides: Record<string, unknown> = {}) {
   }
 }
 
+function revisionRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'r1',
+    summaryId: 's1',
+    displayName: 'Алина',
+    title: 'Новая версия',
+    tldr: 'Новое коротко',
+    bodyMarkdown: 'Новый текст',
+    status: 'draft',
+    rejectionReason: null,
+    submittedAt: null,
+    createdAt: new Date('2026-06-02T10:00:00Z'),
+    updatedAt: new Date('2026-06-02T10:00:00Z'),
+    bookId: 'b1',
+    authorUserId: 'u1',
+    bookTitle: 'Книга',
+    bookAuthor: 'Автор',
+    authorName: 'Алина Аккаунт',
+    authorEmail: 'a@example.test',
+    publishedDisplayName: 'Алина',
+    publishedTitle: 'Институты',
+    publishedTldr: 'Коротко',
+    publishedBodyMarkdown: 'Текст',
+    publishedAt: new Date('2026-06-01T12:00:00Z'),
+    ...overrides,
+  }
+}
+
 beforeEach(() => {
   queue.length = 0
   insertValuesCalls.length = 0
   updateSetCalls.length = 0
+  deleteWhereCalls.length = 0
   auditContexts.length = 0
 })
 
@@ -261,5 +304,181 @@ describe('admin moderation and published counts', () => {
       ['b1', 2],
       ['b2', 1],
     ]))
+  })
+})
+
+describe('published summary revisions', () => {
+  it('returns an active revision for a summary', async () => {
+    pushResult([revisionRow()])
+
+    await expect(getActiveSummaryRevision('s1')).resolves.toMatchObject({
+      id: 'r1',
+      summaryId: 's1',
+      status: 'draft',
+    })
+  })
+
+  it('creates a draft revision copied from a published summary', async () => {
+    pushResult([summaryRow({ status: 'published', publishedAt: new Date('2026-06-01T12:00:00Z') })])
+    pushResult([]) // existing revision
+    pushResult([{ bookId: 'b1' }]) // personal read signup
+    pushResult([revisionRow()])
+
+    const result = await openOrCreateSummaryRevision({
+      summaryId: 's1',
+      userId: 'u1',
+      actorLabel: 'Алина',
+    })
+
+    expect(result.id).toBe('r1')
+    expect(insertValuesCalls[0]).toMatchObject({
+      summaryId: 's1',
+      displayName: 'Алина',
+      title: 'Институты',
+      tldr: 'Коротко',
+      bodyMarkdown: 'Текст',
+      status: 'draft',
+    })
+    expect(auditContexts[0]).toMatchObject({ actorUserId: 'u1', source: 'summary' })
+  })
+
+  it('returns the existing active revision without inserting', async () => {
+    pushResult([summaryRow({ status: 'published' })])
+    pushResult([revisionRow({ id: 'existing' })])
+
+    const result = await openOrCreateSummaryRevision({
+      summaryId: 's1',
+      userId: 'u1',
+      actorLabel: 'Алина',
+    })
+
+    expect(result.id).toBe('existing')
+    expect(insertValuesCalls).toHaveLength(0)
+  })
+
+  it('rejects revision creation for a non-published summary', async () => {
+    pushResult([summaryRow({ status: 'pending' })])
+
+    await expect(openOrCreateSummaryRevision({
+      summaryId: 's1',
+      userId: 'u1',
+      actorLabel: 'Алина',
+    })).rejects.toThrow(new SummaryValidationError('published summary is required'))
+  })
+
+  it('requires the book to remain read before creating a revision', async () => {
+    pushResult([summaryRow({ status: 'published' })])
+    pushResult([]) // existing revision
+    pushResult([]) // personal read signup
+
+    await expect(openOrCreateSummaryRevision({
+      summaryId: 's1',
+      userId: 'u1',
+      actorLabel: 'Алина',
+    })).rejects.toThrow(new SummaryValidationError('book must be marked as read'))
+  })
+
+  it('allows author autosave for draft revisions', async () => {
+    pushResult([revisionRow({ status: 'draft' })])
+    pushResult([revisionRow({ title: 'Исправлено' })])
+
+    const result = await saveAuthorSummaryRevision({
+      id: 'r1',
+      userId: 'u1',
+      actorLabel: 'Алина',
+      patch: { title: '  Исправлено  ' },
+    })
+
+    expect(result.title).toBe('Исправлено')
+    expect(updateSetCalls[0]).toMatchObject({ title: 'Исправлено' })
+  })
+
+  it('blocks author autosave for pending revisions', async () => {
+    pushResult([revisionRow({ status: 'pending' })])
+
+    await expect(saveAuthorSummaryRevision({
+      id: 'r1',
+      userId: 'u1',
+      actorLabel: 'Алина',
+      patch: { title: 'Исправлено' },
+    })).rejects.toThrow(new SummaryValidationError('summary revision is not editable by author'))
+    expect(updateSetCalls).toHaveLength(0)
+  })
+
+  it('submits a complete rejected revision after checking read status', async () => {
+    pushResult([revisionRow({ status: 'rejected', rejectionReason: 'Уточнить' })])
+    pushResult([{ bookId: 'b1' }])
+    pushResult([revisionRow({ status: 'pending', rejectionReason: null })])
+
+    const result = await submitAuthorSummaryRevision({
+      id: 'r1',
+      userId: 'u1',
+      actorLabel: 'Алина',
+    })
+
+    expect(result.status).toBe('pending')
+    expect(updateSetCalls[0]).toMatchObject({ status: 'pending', rejectionReason: null })
+  })
+
+  it('lists revisions with published, book, and author metadata', async () => {
+    pushResult([revisionRow({ status: 'pending' })])
+
+    await expect(listAdminSummaryRevisions()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'r1',
+        summaryId: 's1',
+        bookId: 'b1',
+        authorUserId: 'u1',
+        publishedTitle: 'Институты',
+      }),
+    ])
+  })
+
+  it('rejects a revision without changing the published summary', async () => {
+    pushResult([revisionRow({ status: 'pending' })])
+    pushResult([revisionRow({ status: 'rejected', rejectionReason: 'Уточнить вывод' })])
+
+    const result = await adminRejectSummaryRevision({
+      id: 'r1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+      rejectionReason: 'Уточнить вывод',
+    })
+
+    expect(result.status).toBe('rejected')
+    expect(updateSetCalls[0]).toMatchObject({
+      status: 'rejected',
+      rejectionReason: 'Уточнить вывод',
+    })
+    expect(deleteWhereCalls).toHaveLength(0)
+  })
+
+  it('applies a revision atomically and preserves publishedAt', async () => {
+    const publishedAt = new Date('2026-06-01T12:00:00Z')
+    pushResult([revisionRow({ status: 'pending', publishedAt })]) // select joined revision
+    pushResult([summaryRow({
+      status: 'published',
+      title: 'Новая версия',
+      publishedAt,
+    })]) // updated summary
+    pushResult([revisionRow({ status: 'pending' })]) // deleted revision
+
+    const result = await adminPublishSummaryRevision({
+      id: 'r1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+    })
+
+    expect(result.title).toBe('Новая версия')
+    expect(result.publishedAt).toEqual(publishedAt)
+    expect(updateSetCalls[0]).toMatchObject({
+      displayName: 'Алина',
+      title: 'Новая версия',
+      tldr: 'Новое коротко',
+      bodyMarkdown: 'Новый текст',
+    })
+    expect(updateSetCalls[0]).not.toHaveProperty('publishedAt')
+    expect(deleteWhereCalls).toHaveLength(1)
+    expect(auditContexts[0]).toMatchObject({ actorUserId: 'admin', source: 'admin' })
   })
 })
