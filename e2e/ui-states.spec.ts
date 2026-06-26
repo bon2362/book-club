@@ -149,6 +149,54 @@ test.describe('Home submit book CTA layout', () => {
   })
 })
 
+test.describe('Summary editor layout', () => {
+  test('main markdown field reads as a large writing page', async ({ page, createTestBook, loginAsUser }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const book = await createTestBook({
+      title: `UI Summary Page ${Date.now()}`,
+      author: 'Layout Author',
+    })
+    const user = await loginAsUser({ name: 'UI Summary Writer' })
+
+    const signupRes = await page.request.post('/api/test/signup', {
+      data: {
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        contacts: '@ui_summary_writer',
+        selectedBookIds: [book.id],
+      },
+    })
+    expect(signupRes.ok()).toBe(true)
+
+    const statusRes = await page.request.patch(`/api/signup-books/${encodeURIComponent(book.id)}/status`, {
+      data: { status: 'read' },
+    })
+    expect(statusRes.ok()).toBe(true)
+
+    const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(book.id)}`)
+    expect(draftRes.ok()).toBe(true)
+    const draft = (await draftRes.json()) as { summary: { id: string } }
+
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+
+    const viewport = page.viewportSize()!
+    const workspaceBox = await page.getByTestId('summary-editor-workspace').boundingBox()
+    const bodyBox = await page.getByLabel('Текст саммари').boundingBox()
+    const toolbarBox = await page.getByTestId('summary-editor-toolbar').boundingBox()
+
+    expect(workspaceBox).not.toBeNull()
+    expect(bodyBox).not.toBeNull()
+    expect(toolbarBox).not.toBeNull()
+    expect(workspaceBox!.width).toBeGreaterThan(860)
+    expect(workspaceBox!.width).toBeLessThanOrEqual(984)
+    expect(bodyBox!.height).toBeGreaterThanOrEqual(viewport.height * 0.64)
+    expect(bodyBox!.width).toBeGreaterThan(860)
+    expect(toolbarBox!.width).toBeGreaterThan(860)
+  })
+})
+
 test.describe('Matching feature presentation', () => {
   test('interactive prototype shows how Maria changes the best scenario', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 950 })
