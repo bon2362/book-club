@@ -22,6 +22,7 @@ const tools: Tool[] = [
   { label: 'Заголовок', text: 'H', before: '## ', after: '', placeholder: 'Заголовок' },
   { label: 'Цитата', text: '❝', before: '> ', after: '', placeholder: 'Цитата' },
   { label: 'Список', text: '•', before: '- ', after: '', placeholder: 'Пункт списка' },
+  { label: 'Сворачиваемый раздел', text: '▾', before: '\n<details>\n<summary>Заголовок раздела</summary>\n\n', after: '\n</details>', placeholder: 'Текст раздела' },
   { label: 'Ссылка', text: 'Link', before: '[', after: '](https://)', placeholder: 'текст ссылки' },
 ]
 

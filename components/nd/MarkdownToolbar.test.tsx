@@ -24,4 +24,22 @@ describe('MarkdownToolbar', () => {
 
     expect(textarea.value).toBe('**важный** текст')
   })
+
+  it('inserts a portable details block template', () => {
+    render(<Harness />)
+    const textarea = screen.getByLabelText('markdown') as HTMLTextAreaElement
+    textarea.focus()
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Сворачиваемый раздел' }))
+
+    expect(textarea.value).toBe([
+      'важный текст',
+      '<details>',
+      '<summary>Заголовок раздела</summary>',
+      '',
+      'Текст раздела',
+      '</details>',
+    ].join('\n'))
+  })
 })
