@@ -75,6 +75,20 @@ describe('SummaryEditor', () => {
     expect(screen.getByText('Коротко')).toBeInTheDocument()
   })
 
+  it('gives the main markdown body a large page-like workspace', () => {
+    render(<SummaryEditor initialSummary={summary} bookTitle="Книга" bookAuthor="Автор" />)
+
+    expect(screen.getByTestId('summary-editor-workspace')).toHaveStyle({
+      maxWidth: '920px',
+    })
+    expect(screen.getByTestId('summary-editor-toolbar')).toHaveStyle({
+      position: 'sticky',
+    })
+    expect(screen.getByLabelText('Текст саммари')).toHaveStyle({
+      minHeight: '65vh',
+    })
+  })
+
   it('labels pending and published summaries truthfully', () => {
     const { rerender } = render(
       <SummaryEditor

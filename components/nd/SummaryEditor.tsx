@@ -179,7 +179,7 @@ export default function SummaryEditor({ initialSummary, initialRevision = null, 
         </div>
       </div>
 
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+      <div data-testid="summary-editor-workspace" style={workspaceStyle}>
         {rejectionReason && (
           <section style={{ marginBottom: '1.25rem', padding: '1rem', borderLeft: '2px solid var(--accent)', background: 'var(--bg-tint)' }}>
             <div style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)', marginBottom: '0.35rem' }}>Комментарий админа</div>
@@ -188,7 +188,7 @@ export default function SummaryEditor({ initialSummary, initialRevision = null, 
         )}
 
         {preview ? (
-          <article>
+          <article style={previewArticleStyle}>
             <p style={{ fontFamily: 'var(--nd-sans)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{bookTitle} · {bookAuthor}</p>
             <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '2rem', lineHeight: 1.15 }}>{title || 'Без названия'}</h1>
             <section style={{ margin: '1rem 0 1.5rem', padding: '1rem', borderLeft: '2px solid var(--accent)', background: 'var(--bg-tint)' }}>
@@ -198,7 +198,7 @@ export default function SummaryEditor({ initialSummary, initialRevision = null, 
             <SummaryMarkdown markdown={bodyMarkdown} />
           </article>
         ) : (
-          <div style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gap: '1.1rem' }}>
             <label style={labelStyle}>
               Имя для публикации
               <input aria-label="Имя для публикации" disabled={!canEdit} value={displayName} onChange={e => update(setDisplayName, e.target.value)} style={inputStyle} />
@@ -213,14 +213,36 @@ export default function SummaryEditor({ initialSummary, initialRevision = null, 
               <textarea aria-label="В двух словах" disabled={!canEdit} value={tldr} onChange={e => update(setTldr, e.target.value)} rows={3} style={{ ...textareaStyle, borderLeft: '2px solid var(--accent)' }} />
             </label>
             {canEdit && (
-              <MarkdownToolbar textareaRef={bodyRef} value={bodyMarkdown} onChange={value => update(setBodyMarkdown, value)} />
+              <div data-testid="summary-editor-toolbar" style={toolbarShellStyle}>
+                <MarkdownToolbar textareaRef={bodyRef} value={bodyMarkdown} onChange={value => update(setBodyMarkdown, value)} />
+              </div>
             )}
-            <textarea ref={bodyRef} aria-label="Текст саммари" disabled={!canEdit} value={bodyMarkdown} onChange={e => update(setBodyMarkdown, e.target.value)} rows={14} style={textareaStyle} />
+            <textarea ref={bodyRef} aria-label="Текст саммари" disabled={!canEdit} value={bodyMarkdown} onChange={e => update(setBodyMarkdown, e.target.value)} rows={24} style={bodyTextareaStyle} />
           </div>
         )}
       </div>
     </main>
   )
+}
+
+const workspaceStyle: React.CSSProperties = {
+  maxWidth: 920,
+  margin: '0 auto',
+  padding: '2rem clamp(1rem, 4vw, 2rem) 5rem',
+}
+
+const previewArticleStyle: React.CSSProperties = {
+  maxWidth: 760,
+  margin: '0 auto',
+}
+
+const toolbarShellStyle: React.CSSProperties = {
+  position: 'sticky',
+  top: 68,
+  zIndex: 5,
+  padding: '0.5rem 0',
+  borderBottom: '1px solid var(--border)',
+  background: 'var(--bg)',
 }
 
 const labelStyle: React.CSSProperties = {
@@ -253,6 +275,14 @@ const textareaStyle: React.CSSProperties = {
   color: 'var(--text)',
   background: 'var(--bg)',
   resize: 'vertical',
+}
+
+const bodyTextareaStyle: React.CSSProperties = {
+  ...textareaStyle,
+  minHeight: '65vh',
+  padding: '1.25rem',
+  fontSize: '1rem',
+  lineHeight: 1.75,
 }
 
 const ghostButton: React.CSSProperties = {
