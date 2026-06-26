@@ -42,7 +42,19 @@ test.describe('Саммари книг', () => {
     await page.getByLabel('Имя для публикации').fill('Reader One')
     await page.getByLabel('Заголовок саммари').fill('Почему институты важны')
     await page.getByLabel('В двух словах').fill('Экономика держится на правилах игры.')
-    await page.getByLabel('Текст саммари').fill('## Главная мысль\n\n**Институты** задают стимулы и ограничения.')
+    await page.getByLabel('Текст саммари').fill([
+      '## Главная мысль',
+      '',
+      '### Разбор аргумента',
+      '',
+      '#### Внутренний тезис',
+      '',
+      '<details open>',
+      '<summary>Длинный контекст</summary>',
+      '',
+      '**Институты** задают стимулы и ограничения.',
+      '</details>',
+    ].join('\n'))
 
     await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
     await page.reload()
@@ -52,6 +64,9 @@ test.describe('Саммари книг', () => {
 
     await page.getByRole('button', { name: 'Предпросмотр' }).click()
     await expect(page.getByRole('heading', { name: 'Почему институты важны' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Разбор аргумента', level: 3 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Внутренний тезис', level: 4 })).toBeVisible()
+    await expect(page.getByText('Длинный контекст')).toBeVisible()
     await expect(page.getByText('Институты задают стимулы')).toBeVisible()
     await page.getByRole('button', { name: 'Предпросмотр' }).click()
 
@@ -75,6 +90,9 @@ test.describe('Саммари книг', () => {
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
     await expect(page.getByText('Reader One')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Разбор аргумента', level: 3 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Внутренний тезис', level: 4 })).toBeVisible()
+    await expect(page.getByText('Длинный контекст')).toBeVisible()
     await expect(page.getByText('Институты задают стимулы')).toBeVisible()
 
     await loginAsUser({ email: user.email, name: user.name })
