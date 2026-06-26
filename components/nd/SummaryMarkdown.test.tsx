@@ -16,6 +16,7 @@ jest.mock('react-markdown', () => ({
         const H2 = components.h2 ?? 'h2'
         const H3 = components.h3 ?? 'h3'
         const H4 = components.h4 ?? 'h4'
+        const P = components.p ?? 'p'
         const Ul = components.ul ?? 'ul'
         const Ol = components.ol ?? 'ol'
         const Li = components.li ?? 'li'
@@ -34,7 +35,7 @@ jest.mock('react-markdown', () => ({
         }
         if (/^\d+\. /.test(line)) return null
         if (line.startsWith('**') && line.endsWith('**')) return <strong key={index}>{line.slice(2, -2)}</strong>
-        return line ? <p key={index}>{line}</p> : null
+        return line ? <P key={index}>{line}</P> : null
       })}
     </div>
   ),
@@ -103,6 +104,17 @@ describe('SummaryMarkdown', () => {
     })
     expect(screen.getByText('Первый вопрос')).toHaveStyle({
       margin: '0.2rem 0',
+    })
+  })
+
+  it('keeps readable spacing between paragraphs', () => {
+    render(<SummaryMarkdown markdown={'Первый абзац.\n\nВторой абзац.'} />)
+
+    expect(screen.getByText('Первый абзац.')).toHaveStyle({
+      margin: '0 0 1rem',
+    })
+    expect(screen.getByText('Второй абзац.')).toHaveStyle({
+      margin: '0 0 1rem',
     })
   })
 })

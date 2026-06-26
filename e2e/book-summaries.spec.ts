@@ -45,6 +45,10 @@ test.describe('Саммари книг', () => {
     await page.getByLabel('Текст саммари').fill([
       '## Главная мысль',
       '',
+      'Первый абзац раскрывает общий тезис.',
+      '',
+      'Второй абзац продолжает мысль с видимым отступом.',
+      '',
       '### Разбор аргумента',
       '',
       '#### Внутренний тезис',
@@ -70,12 +74,19 @@ test.describe('Саммари книг', () => {
 
     await page.getByRole('button', { name: 'Предпросмотр' }).click()
     await expect(page.getByRole('heading', { name: 'Почему институты важны' })).toBeVisible()
+    await expect(page.getByText('Первый абзац раскрывает общий тезис.')).toBeVisible()
+    await expect(page.getByText('Второй абзац продолжает мысль с видимым отступом.')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Разбор аргумента', level: 3 })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Внутренний тезис', level: 4 })).toBeVisible()
     await expect(page.getByText('Длинный контекст')).toBeVisible()
     await expect(page.getByText('Институты задают стимулы')).toBeVisible()
     await expect(page.getByRole('listitem').filter({ hasText: 'Противоречит ли социализм демократии?' })).toBeVisible()
     await expect(page.getByRole('listitem').filter({ hasText: 'Сначала разобрать исторический контекст' })).toBeVisible()
+    const previewFirstParagraphBox = await page.getByText('Первый абзац раскрывает общий тезис.').boundingBox()
+    const previewSecondParagraphBox = await page.getByText('Второй абзац продолжает мысль с видимым отступом.').boundingBox()
+    expect(previewFirstParagraphBox).not.toBeNull()
+    expect(previewSecondParagraphBox).not.toBeNull()
+    expect(previewSecondParagraphBox!.y - (previewFirstParagraphBox!.y + previewFirstParagraphBox!.height)).toBeGreaterThan(8)
     await page.getByRole('button', { name: 'Предпросмотр' }).click()
 
     await page.getByRole('button', { name: 'Отправить на проверку' }).click()
@@ -98,12 +109,19 @@ test.describe('Саммари книг', () => {
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
     await expect(page.getByText('Reader One')).toBeVisible()
+    await expect(page.getByText('Первый абзац раскрывает общий тезис.')).toBeVisible()
+    await expect(page.getByText('Второй абзац продолжает мысль с видимым отступом.')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Разбор аргумента', level: 3 })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Внутренний тезис', level: 4 })).toBeVisible()
     await expect(page.getByText('Длинный контекст')).toBeVisible()
     await expect(page.getByText('Институты задают стимулы')).toBeVisible()
     await expect(page.getByRole('listitem').filter({ hasText: 'Противоречит ли социализм демократии?' })).toBeVisible()
     await expect(page.getByRole('listitem').filter({ hasText: 'Сначала разобрать исторический контекст' })).toBeVisible()
+    const publicFirstParagraphBox = await page.getByText('Первый абзац раскрывает общий тезис.').boundingBox()
+    const publicSecondParagraphBox = await page.getByText('Второй абзац продолжает мысль с видимым отступом.').boundingBox()
+    expect(publicFirstParagraphBox).not.toBeNull()
+    expect(publicSecondParagraphBox).not.toBeNull()
+    expect(publicSecondParagraphBox!.y - (publicFirstParagraphBox!.y + publicFirstParagraphBox!.height)).toBeGreaterThan(8)
 
     await loginAsUser({ email: user.email, name: user.name })
     await page.goto(`/summaries/${draft.summary.id}/edit`)
