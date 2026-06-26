@@ -14,6 +14,7 @@ interface Tool {
   before: string
   after: string
   placeholder: string
+  format?: (text: string) => string
 }
 
 const tools: Tool[] = [
@@ -21,10 +22,30 @@ const tools: Tool[] = [
   { label: 'Курсив', text: 'I', before: '*', after: '*', placeholder: 'курсив' },
   { label: 'Заголовок', text: 'H', before: '## ', after: '', placeholder: 'Заголовок' },
   { label: 'Цитата', text: '❝', before: '> ', after: '', placeholder: 'Цитата' },
-  { label: 'Список', text: '•', before: '- ', after: '', placeholder: 'Пункт списка' },
+  { label: 'Маркированный список', text: '•', before: '', after: '', placeholder: 'Пункт списка', format: formatUnorderedList },
+  { label: 'Нумерованный список', text: '1.', before: '', after: '', placeholder: 'Пункт списка', format: formatOrderedList },
   { label: 'Сворачиваемый раздел', text: '▾', before: '\n<details>\n<summary>Заголовок раздела</summary>\n\n', after: '\n</details>', placeholder: 'Текст раздела' },
   { label: 'Ссылка', text: 'Link', before: '[', after: '](https://)', placeholder: 'текст ссылки' },
 ]
+
+function formatUnorderedList(text: string): string {
+  return text
+    .split('\n')
+    .map(line => line.trim() ? `- ${line.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, '')}` : line)
+    .join('\n')
+}
+
+function formatOrderedList(text: string): string {
+  let index = 1
+  return text
+    .split('\n')
+    .map(line => {
+      if (!line.trim()) return line
+      const clean = line.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, '')
+      return `${index++}. ${clean}`
+    })
+    .join('\n')
+}
 
 export default function MarkdownToolbar({ textareaRef, value, onChange }: Props) {
   function applyTool(tool: Tool) {
@@ -32,7 +53,7 @@ export default function MarkdownToolbar({ textareaRef, value, onChange }: Props)
     const start = textarea?.selectionStart ?? value.length
     const end = textarea?.selectionEnd ?? value.length
     const selected = value.slice(start, end)
-    const inner = selected || tool.placeholder
+    const inner = tool.format ? tool.format(selected || tool.placeholder) : selected || tool.placeholder
     const next = `${value.slice(0, start)}${tool.before}${inner}${tool.after}${value.slice(end)}`
     onChange(next)
 

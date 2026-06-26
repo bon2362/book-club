@@ -54,6 +54,12 @@ test.describe('Саммари книг', () => {
       '',
       '**Институты** задают стимулы и ограничения.',
       '</details>',
+      '',
+      '- Противоречит ли социализм демократии?',
+      '- Нужна ли диктатура как переходный этап?',
+      '',
+      '1. Сначала разобрать исторический контекст',
+      '2. Затем сравнить политические выводы',
     ].join('\n'))
 
     await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
@@ -68,6 +74,8 @@ test.describe('Саммари книг', () => {
     await expect(page.getByRole('heading', { name: 'Внутренний тезис', level: 4 })).toBeVisible()
     await expect(page.getByText('Длинный контекст')).toBeVisible()
     await expect(page.getByText('Институты задают стимулы')).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: 'Противоречит ли социализм демократии?' })).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: 'Сначала разобрать исторический контекст' })).toBeVisible()
     await page.getByRole('button', { name: 'Предпросмотр' }).click()
 
     await page.getByRole('button', { name: 'Отправить на проверку' }).click()
@@ -94,6 +102,8 @@ test.describe('Саммари книг', () => {
     await expect(page.getByRole('heading', { name: 'Внутренний тезис', level: 4 })).toBeVisible()
     await expect(page.getByText('Длинный контекст')).toBeVisible()
     await expect(page.getByText('Институты задают стимулы')).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: 'Противоречит ли социализм демократии?' })).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: 'Сначала разобрать исторический контекст' })).toBeVisible()
 
     await loginAsUser({ email: user.email, name: user.name })
     await page.goto(`/summaries/${draft.summary.id}/edit`)
