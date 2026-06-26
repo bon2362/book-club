@@ -11,15 +11,28 @@ jest.mock('react-markdown', () => ({
     components?: Record<string, React.ComponentType<{ children: React.ReactNode; href?: string }>>
   }) => (
     <div>
-      {children.split('\n').map((line, index) => {
+      {children.split('\n').map((line, index, lines) => {
         const H1 = components.h1 ?? 'h1'
         const H2 = components.h2 ?? 'h2'
         const H3 = components.h3 ?? 'h3'
         const H4 = components.h4 ?? 'h4'
+        const Ul = components.ul ?? 'ul'
+        const Ol = components.ol ?? 'ol'
+        const Li = components.li ?? 'li'
         if (line.startsWith('# ')) return <H1 key={index}>{line.slice(2)}</H1>
         if (line.startsWith('## ')) return <H2 key={index}>{line.slice(3)}</H2>
         if (line.startsWith('### ')) return <H3 key={index}>{line.slice(4)}</H3>
         if (line.startsWith('#### ')) return <H4 key={index}>{line.slice(5)}</H4>
+        if (line.startsWith('- ') && !lines[index - 1]?.startsWith('- ')) {
+          const items = lines.slice(index).filter(item => item.startsWith('- '))
+          return <Ul key={index}>{items.map(item => <Li key={item}>{item.slice(2)}</Li>)}</Ul>
+        }
+        if (line.startsWith('- ')) return null
+        if (/^\d+\. /.test(line) && !/^\d+\. /.test(lines[index - 1] ?? '')) {
+          const items = lines.slice(index).filter(item => /^\d+\. /.test(item))
+          return <Ol key={index}>{items.map(item => <Li key={item}>{item.replace(/^\d+\. /, '')}</Li>)}</Ol>
+        }
+        if (/^\d+\. /.test(line)) return null
         if (line.startsWith('**') && line.endsWith('**')) return <strong key={index}>{line.slice(2, -2)}</strong>
         return line ? <p key={index}>{line}</p> : null
       })}
@@ -73,5 +86,23 @@ describe('SummaryMarkdown', () => {
     expect(open).toHaveAttribute('open')
     expect(screen.getByText('Первый тезис')).toBeInTheDocument()
     expect(screen.getByText('Открыт сразу')).toBeInTheDocument()
+  })
+
+  it('styles unordered and ordered lists with visible markers', () => {
+    render(<SummaryMarkdown markdown={'- Первый вопрос\n- Второй вопрос\n\n1. Первый шаг\n2. Второй шаг'} />)
+
+    const [unordered, ordered] = screen.getAllByRole('list')
+
+    expect(unordered.tagName).toBe('UL')
+    expect(unordered).toHaveStyle({
+      listStyleType: 'disc',
+    })
+    expect(ordered.tagName).toBe('OL')
+    expect(ordered).toHaveStyle({
+      listStyleType: 'decimal',
+    })
+    expect(screen.getByText('Первый вопрос')).toHaveStyle({
+      margin: '0.2rem 0',
+    })
   })
 })

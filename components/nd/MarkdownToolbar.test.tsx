@@ -42,4 +42,28 @@ describe('MarkdownToolbar', () => {
       '</details>',
     ].join('\n'))
   })
+
+  it('turns selected lines into an unordered list', () => {
+    render(<Harness />)
+    const textarea = screen.getByLabelText('markdown') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: 'первый\nвторой' } })
+    textarea.focus()
+    textarea.setSelectionRange(0, textarea.value.length)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Маркированный список' }))
+
+    expect(textarea.value).toBe('- первый\n- второй')
+  })
+
+  it('turns selected lines into an ordered list', () => {
+    render(<Harness />)
+    const textarea = screen.getByLabelText('markdown') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: 'первый\nвторой' } })
+    textarea.focus()
+    textarea.setSelectionRange(0, textarea.value.length)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Нумерованный список' }))
+
+    expect(textarea.value).toBe('1. первый\n2. второй')
+  })
 })
