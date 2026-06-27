@@ -190,4 +190,110 @@ test.describe('Саммари книг', () => {
     await expect(page.getByRole('heading', { name: 'Почему институты меняются со временем' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toHaveCount(0)
   })
+
+  test('Wikipedia-вставка: автор добавляет через тулбар, превью прелоадит, публичная страница показывает, при ошибке остаётся фолбэк', async ({ page, createTestBook, loginAsUser, loginAsAdmin }) => {
+    const wikipediaFixture = {
+      language: 'ru',
+      title: 'Социализм',
+      articleUrl: 'https://ru.wikipedia.org/wiki/%D0%A1%D0%BE%D1%86%D0%B8%D0%B0%D0%BB%D0%B8%D0%B7%D0%BC',
+      historyUrl: 'https://ru.wikipedia.org/wiki/%D0%A1%D0%BE%D1%86%D0%B8%D0%B0%D0%BB%D0%B8%D0%B7%D0%BC?action=history',
+      revisionId: 1,
+      revisionTimestamp: '2026-01-01T00:00:00Z',
+      nodes: [{ type: 'paragraph', children: [{ type: 'text', value: 'Социализм — это общественный строй.' }] }],
+    }
+
+    let wikipediaRequests = 0
+    let failNext = false
+    await page.route('**/api/wikipedia/article?**', async route => {
+      wikipediaRequests += 1
+      if (failNext) {
+        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'rate_limited' }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(wikipediaFixture) })
+    })
+
+    const book = await createTestBook({
+      title: `E2E Wiki Book ${Date.now()}`,
+      author: 'E2E Wiki Author',
+      tags: ['институты'],
+    })
+    const user = await loginAsUser({ name: 'E2E Wiki Reader' })
+
+    await page.request.post('/api/test/signup', {
+      data: {
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        contacts: '@e2e_wiki_reader',
+        selectedBookIds: [book.id],
+      },
+    })
+    await page.request.patch(`/api/signup-books/${encodeURIComponent(book.id)}/status`, { data: { status: 'read' } })
+
+    const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(book.id)}`)
+    expect(draftRes.ok()).toBe(true)
+    const draft = (await draftRes.json()) as { summary: { id: string } }
+
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+
+    await page.getByLabel('Имя для публикации').fill('Wiki Reader')
+    await page.getByLabel('Заголовок саммари').fill('Социализм и его истоки')
+    await page.getByLabel('В двух словах').fill('Кратко об идее равенства.')
+
+    await page.getByLabel('Текст саммари').fill('Социализм как способ разрешения противоречий.')
+    await page.getByLabel('Текст саммари').evaluate((element: HTMLTextAreaElement) =>
+      element.setSelectionRange(0, element.value.length),
+    )
+    await page.getByRole('button', { name: 'Вставка из Wikipedia' }).click()
+    await page.getByLabel('Ссылка на статью Wikipedia').fill('https://ru.wikipedia.org/wiki/Социализм')
+    await page.getByRole('button', { name: 'Вставить' }).click()
+
+    await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByLabel('Текст саммари')).toHaveValue(/Социализм как способ разрешения противоречий\./)
+    await expect(page.getByLabel('Текст саммари')).toHaveValue(/"wikipedia"/)
+
+    await page.getByRole('button', { name: 'Предпросмотр' }).click()
+    await expect.poll(() => wikipediaRequests).toBeGreaterThan(0)
+    await page.locator('.nd-wikipedia-embed').getByRole('button', { name: /wikipedia/i }).click()
+    await expect(
+      page.locator('.nd-wikipedia-embed__reader').getByRole('heading', { name: 'Социализм', exact: true }),
+    ).toBeVisible()
+    await expect(page.getByText('Социализм — это общественный строй.')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Открыть оригинал' })).toBeVisible()
+    await page.getByRole('button', { name: 'Предпросмотр' }).click()
+
+    await page.getByRole('button', { name: 'Отправить на проверку' }).click()
+    await expect(page).toHaveURL(/\/$/)
+
+    await loginAsAdmin({ name: 'E2E Wiki Admin' })
+    await page.goto('/admin?tab=summaries')
+    await page.waitForLoadState('networkidle')
+    await page.getByText('Социализм и его истоки').click()
+    const publishResponse = page.waitForResponse(
+      response =>
+        response.url().includes(`/api/admin/summaries/${draft.summary.id}/publish`) &&
+        response.request().method() === 'POST',
+    )
+    await page.getByRole('button', { name: 'Опубликовать' }).click()
+    expect((await publishResponse).ok()).toBe(true)
+
+    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await expect(page.locator('.nd-wikipedia-embed')).toBeVisible()
+    await page.locator('.nd-wikipedia-embed').getByRole('button', { name: /wikipedia/i }).click()
+    await expect(
+      page.locator('.nd-wikipedia-embed__reader').getByRole('heading', { name: 'Социализм', exact: true }),
+    ).toBeVisible()
+
+    // Upstream failure must keep the author text and surface a safe fallback link.
+    failNext = true
+    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await expect(page.getByText('Социализм как способ разрешения противоречий.')).toBeVisible()
+    await expect(
+      page.locator('.nd-wikipedia-embed').getByRole('link', { name: /Открыть статью в Wikipedia/i }),
+    ).toBeVisible()
+  })
 })

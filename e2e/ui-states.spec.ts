@@ -880,3 +880,84 @@ test.describe('ProfileDrawer: auth methods layout', () => {
     }
   })
 })
+
+test.describe('Wikipedia summary widget layout', () => {
+  test('раскрывается во внутренний скролл и сдвигает следующий абзац', async ({ page, createTestBook, loginAsUser }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+
+    const tallArticle = {
+      language: 'ru',
+      title: 'Социализм',
+      articleUrl: 'https://ru.wikipedia.org/wiki/X',
+      historyUrl: 'https://ru.wikipedia.org/wiki/X?action=history',
+      revisionId: 1,
+      revisionTimestamp: '2026-01-01T00:00:00Z',
+      nodes: Array.from({ length: 60 }, (_, index) => ({
+        type: 'paragraph',
+        children: [{ type: 'text', value: `Параграф номер ${index} с достаточным текстом, чтобы reader пришлось прокручивать.` }],
+      })),
+    }
+    await page.route('**/api/wikipedia/article?**', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(tallArticle) })
+    })
+
+    const book = await createTestBook({ title: `UI Wiki ${Date.now()}`, author: 'Layout Author' })
+    const user = await loginAsUser({ name: 'UI Wiki Writer' })
+
+    const signupRes = await page.request.post('/api/test/signup', {
+      data: {
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        contacts: '@ui_wiki_writer',
+        selectedBookIds: [book.id],
+      },
+    })
+    expect(signupRes.ok()).toBe(true)
+    await page.request.patch(`/api/signup-books/${encodeURIComponent(book.id)}/status`, { data: { status: 'read' } })
+
+    const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(book.id)}`)
+    expect(draftRes.ok()).toBe(true)
+    const draft = (await draftRes.json()) as { summary: { id: string } }
+
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+    await page.getByLabel('Текст саммари').fill([
+      '> Авторская подводка к статье.',
+      '>',
+      '> [Wikipedia: Социализм](https://ru.wikipedia.org/wiki/Социализм "wikipedia")',
+      '',
+      'Абзац после Wikipedia-вставки.',
+    ].join('\n'))
+
+    await page.getByRole('button', { name: 'Предпросмотр' }).click()
+
+    const widget = page.locator('.nd-wikipedia-embed')
+    await expect(widget).toBeVisible()
+
+    const followingParagraph = page.getByText('Абзац после Wikipedia-вставки.')
+    const before = await followingParagraph.boundingBox()
+
+    await widget.getByRole('button', { name: /wikipedia/i }).click()
+    await expect(
+      widget.locator('.nd-wikipedia-embed__reader').getByRole('heading', { name: 'Социализм', exact: true }),
+    ).toBeVisible()
+
+    const after = await followingParagraph.boundingBox()
+    const reader = widget.locator('.nd-wikipedia-embed__reader')
+    const readerBox = await reader.boundingBox()
+
+    expect(before).not.toBeNull()
+    expect(after).not.toBeNull()
+    expect(readerBox).not.toBeNull()
+    // Opening the reader pushes the next paragraph well down the page…
+    expect(after!.y).toBeGreaterThan(before!.y + 200)
+    // …while the reader itself stays bounded by 64vh and scrolls internally.
+    expect(readerBox!.height).toBeLessThanOrEqual(900 * 0.64 + 2)
+    expect(await reader.evaluate(element => element.scrollHeight)).toBeGreaterThan(readerBox!.height)
+
+    // Clicking inside the reader must not collapse the widget.
+    await reader.getByText('Параграф номер 0', { exact: false }).click()
+    await expect(reader).toBeVisible()
+  })
+})
