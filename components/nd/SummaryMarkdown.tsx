@@ -1,4 +1,6 @@
 import ReactMarkdown from 'react-markdown'
+import { remarkWikipediaEmbeds } from '@/lib/wikipedia/markdown'
+import WikipediaEmbed from './WikipediaEmbed'
 
 interface Props {
   markdown: string
@@ -62,7 +64,16 @@ function MarkdownContent({ markdown }: Props) {
 function MarkdownBlock({ markdown }: Props) {
   return (
       <ReactMarkdown
+        remarkPlugins={[remarkWikipediaEmbeds]}
         components={{
+          aside: props => {
+            const attrs = props as Record<string, unknown>
+            const source = attrs['data-wikipedia-source']
+            if (attrs['data-wikipedia-embed'] === 'true' && typeof source === 'string') {
+              return <WikipediaEmbed sourceUrl={source}>{props.children}</WikipediaEmbed>
+            }
+            return <aside>{props.children}</aside>
+          },
           a: ({ href, children }) => (
             <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
               {children}
