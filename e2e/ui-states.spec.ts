@@ -192,8 +192,92 @@ test.describe('Summary editor layout', () => {
     expect(workspaceBox!.width).toBeGreaterThan(860)
     expect(workspaceBox!.width).toBeLessThanOrEqual(984)
     expect(bodyBox!.height).toBeGreaterThanOrEqual(viewport.height * 0.64)
-    expect(bodyBox!.width).toBeGreaterThan(860)
-    expect(toolbarBox!.width).toBeGreaterThan(860)
+    expect(bodyBox!.width).toBeGreaterThanOrEqual(workspaceBox!.width - 64)
+    expect(toolbarBox!.width).toBeGreaterThanOrEqual(workspaceBox!.width - 64)
+  })
+
+  test('details rail spans the open block and only the rail collapses body text', async ({ page, createTestBook, loginAsUser }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    const book = await createTestBook({
+      title: `UI Summary Details ${Date.now()}`,
+      author: 'Layout Author',
+    })
+    const user = await loginAsUser({ name: 'UI Details Writer' })
+
+    const signupRes = await page.request.post('/api/test/signup', {
+      data: {
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        contacts: '@ui_details_writer',
+        selectedBookIds: [book.id],
+      },
+    })
+    expect(signupRes.ok()).toBe(true)
+
+    const statusRes = await page.request.patch(`/api/signup-books/${encodeURIComponent(book.id)}/status`, {
+      data: { status: 'read' },
+    })
+    expect(statusRes.ok()).toBe(true)
+
+    const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(book.id)}`)
+    expect(draftRes.ok()).toBe(true)
+    const draft = (await draftRes.json()) as { summary: { id: string } }
+
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+    await page.getByLabel('Текст саммари').fill([
+      'Короткая выжимка остается видимой.',
+      '',
+      '<details open>',
+      '<summary>Революция и демократия</summary>',
+      '',
+      'Текст подробного слоя можно спокойно выделять.',
+      '',
+      '> Политика начинается там, где заканчивается утопия.',
+      '</details>',
+    ].join('\n'))
+    await page.getByRole('button', { name: 'Предпросмотр' }).click()
+
+    const details = page.locator('.nd-summary-details')
+    const rail = details.locator('.nd-summary-details__rail')
+    const bodyText = page.getByText('Текст подробного слоя можно спокойно выделять.')
+    const quote = page.locator('.nd-summary-blockquote')
+    const quoteMark = quote.locator('.nd-summary-blockquote__mark')
+
+    await expect(details).toHaveAttribute('open', '')
+    await expect(bodyText).toBeVisible()
+    await expect(quoteMark).toHaveText('“')
+
+    const detailsBox = await details.boundingBox()
+    const railBox = await rail.boundingBox()
+    const bodyBox = await bodyText.boundingBox()
+    const quoteBox = await quote.boundingBox()
+    const quoteMarkBox = await quoteMark.boundingBox()
+
+    expect(detailsBox).not.toBeNull()
+    expect(railBox).not.toBeNull()
+    expect(bodyBox).not.toBeNull()
+    expect(quoteBox).not.toBeNull()
+    expect(quoteMarkBox).not.toBeNull()
+    expect(railBox!.height).toBeGreaterThanOrEqual(detailsBox!.height - 1)
+    expect(railBox!.width).toBeGreaterThanOrEqual(20)
+    expect(bodyBox!.x).toBeGreaterThan(railBox!.x + railBox!.width)
+    expect(quoteMarkBox!.x).toBeLessThan(quoteBox!.x + 38)
+
+    await bodyText.hover()
+    const restingWidth = await rail.evaluate(element => Number.parseFloat(getComputedStyle(element, '::before').width))
+    expect(restingWidth).toBe(2)
+    await rail.hover()
+    await expect.poll(
+      () => rail.evaluate(element => Number.parseFloat(getComputedStyle(element, '::before').width)),
+    ).toBe(5)
+
+    await bodyText.click()
+    await expect(details).toHaveAttribute('open', '')
+    await rail.click({ position: { x: railBox!.width / 2, y: railBox!.height - 8 } })
+    await expect(details).not.toHaveAttribute('open')
+    await expect(bodyText).not.toBeVisible()
   })
 })
 

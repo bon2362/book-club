@@ -35,29 +35,14 @@ function MarkdownContent({ markdown }: Props) {
     parts.push(
       <details
         key={`details-${match.index}`}
+        className="nd-summary-details"
         open={openAttr !== undefined}
-        style={{
-          borderTop: '1px solid var(--border)',
-          borderBottom: '1px solid var(--border)',
-          margin: '1.25rem 0',
-          padding: '0.65rem 0',
-        }}
       >
-        <summary
-          style={{
-            cursor: 'pointer',
-            fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-            fontSize: '0.76rem',
-            fontWeight: 600,
-            letterSpacing: '0.08em',
-            lineHeight: 1.4,
-            textTransform: 'uppercase',
-            color: 'var(--text)',
-          }}
-        >
-          {summary}
+        <summary className="nd-summary-details__summary">
+          <span className="nd-summary-details__rail" aria-hidden="true" />
+          <span className="nd-summary-details__title">{summary}</span>
         </summary>
-        <div style={{ marginTop: '0.85rem' }}>
+        <div className="nd-summary-details__body">
           <MarkdownContent markdown={body.trim()} />
         </div>
       </details>,
@@ -88,7 +73,12 @@ function MarkdownBlock({ markdown }: Props) {
           h3: ({ children }) => <h3 style={{ fontFamily: 'var(--nd-serif)', fontSize: '1.12rem', lineHeight: 1.25, margin: '1.2rem 0 0.5rem' }}>{children}</h3>,
           h4: ({ children }) => <h4 style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.72rem', lineHeight: 1.4, margin: '1rem 0 0.4rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>{children}</h4>,
           p: ({ children }) => <p style={{ margin: '0 0 1rem' }}>{children}</p>,
-          blockquote: ({ children }) => <blockquote style={{ borderLeft: '2px solid var(--border-strong)', margin: '1rem 0', paddingLeft: '1rem', fontStyle: 'italic' }}>{children}</blockquote>,
+          blockquote: ({ children }) => (
+            <blockquote className="nd-summary-blockquote">
+              <span className="nd-summary-blockquote__mark" aria-hidden="true">“</span>
+              {children}
+            </blockquote>
+          ),
           ul: ({ children }) => <ul style={{ listStyleType: 'disc', listStylePosition: 'outside', margin: '1rem 0', paddingLeft: '1.35rem' }}>{children}</ul>,
           ol: ({ children }) => <ol style={{ listStyleType: 'decimal', listStylePosition: 'outside', margin: '1rem 0', paddingLeft: '1.45rem' }}>{children}</ol>,
           li: ({ children }) => <li style={{ margin: '0.2rem 0', paddingLeft: '0.15rem' }}>{children}</li>,

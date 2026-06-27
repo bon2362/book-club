@@ -20,6 +20,7 @@ jest.mock('react-markdown', () => ({
         const Ul = components.ul ?? 'ul'
         const Ol = components.ol ?? 'ol'
         const Li = components.li ?? 'li'
+        const Blockquote = components.blockquote ?? 'blockquote'
         if (line.startsWith('# ')) return <H1 key={index}>{line.slice(2)}</H1>
         if (line.startsWith('## ')) return <H2 key={index}>{line.slice(3)}</H2>
         if (line.startsWith('### ')) return <H3 key={index}>{line.slice(4)}</H3>
@@ -34,6 +35,7 @@ jest.mock('react-markdown', () => ({
           return <Ol key={index}>{items.map(item => <Li key={item}>{item.replace(/^\d+\. /, '')}</Li>)}</Ol>
         }
         if (/^\d+\. /.test(line)) return null
+        if (line.startsWith('> ')) return <Blockquote key={index}><P>{line.slice(2)}</P></Blockquote>
         if (line.startsWith('**') && line.endsWith('**')) return <strong key={index}>{line.slice(2, -2)}</strong>
         return line ? <P key={index}>{line}</P> : null
       })}
@@ -87,6 +89,34 @@ describe('SummaryMarkdown', () => {
     expect(open).toHaveAttribute('open')
     expect(screen.getByText('Первый тезис')).toBeInTheDocument()
     expect(screen.getByText('Открыт сразу')).toBeInTheDocument()
+  })
+
+  it('renders an editorial details spine and hanging quote without toggle signs', () => {
+    render(
+      <SummaryMarkdown
+        markdown={[
+          '<details open>',
+          '<summary>Революция и демократия</summary>',
+          '',
+          '> Политика начинается там, где заканчивается утопия.',
+          '</details>',
+        ].join('\n')}
+      />,
+    )
+
+    const summary = screen.getByText('Революция и демократия')
+    const details = summary.closest('details')
+    const quote = screen.getByText('Политика начинается там, где заканчивается утопия.').closest('blockquote')
+
+    expect(details).toHaveClass('nd-summary-details')
+    expect(summary).toHaveClass('nd-summary-details__title')
+    expect(details?.querySelector('.nd-summary-details__summary')).toBeInTheDocument()
+    expect(details?.querySelector('.nd-summary-details__rail')).toHaveAttribute('aria-hidden', 'true')
+    expect(details?.querySelector('.nd-summary-details__body')).toBeInTheDocument()
+    expect(details).not.toHaveTextContent(/[+−]/)
+    expect(quote).toHaveClass('nd-summary-blockquote')
+    expect(quote?.querySelector('.nd-summary-blockquote__mark')).toHaveTextContent('“')
+    expect(quote?.querySelector('.nd-summary-blockquote__mark')).toHaveAttribute('aria-hidden', 'true')
   })
 
   it('styles unordered and ordered lists with visible markers', () => {
