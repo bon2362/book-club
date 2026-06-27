@@ -93,7 +93,33 @@ stateDiagram-v2
 - `POST /api/admin/summary-revisions/{id}/publish` — атомарно применить ревизию к публикации.
 - `POST /api/admin/summary-revisions/{id}/reject` — отклонить ревизию, не меняя публичный текст.
 
+## Wikipedia-вставки
+Авторы вставляют в саммари портативные блоки со статьёй Wikipedia. Это **не** меняет схему БД и аудит — вставка хранится прямо в Markdown саммари.
+
+**Контракт Markdown.** Блок — обычный blockquote, где последний абзац состоит ровно из одной ссылки с title `wikipedia`:
+```
+> Авторский текст-тизер
+>
+> [Wikipedia: Социализм](https://ru.wikipedia.org/wiki/Социализм "wikipedia")
+```
+`remarkWikipediaEmbeds` (`lib/wikipedia/markdown.ts`) распознаёт этот паттерн, убирает строку-источник из авторского текста и помечает blockquote как `<aside data-wikipedia-embed data-wikipedia-source>`. Любой обычный blockquote и любая невалидная/обманная ссылка остаются обычной цитатой.
+
+**Allowlist ссылок.** `parseWikipediaUrl` (`lib/wikipedia/url.ts`) принимает только `https://<lang>.wikipedia.org/wiki/<Title>` или `/w/index.php?title=` для **любого** языкового раздела (включая `*.m.` мобильные хосты, нормализуются к десктопу). Отклоняются `http`, `www`, поддомены-обманки (`wikipedia.org.evil.com`), commons и прочие хосты.
+
+**Загрузка и кэш.** Клиентский `WikipediaEmbed` при монтировании фоном (preload) дёргает same-origin `GET /api/wikipedia/article?url=<canonical>`; раскрытие виджета не делает второй запрос. Роут отдаёт `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400`.
+
+**Граница безопасности.** Сервер (`lib/wikipedia/fetch.ts` + `transform.ts`) запрашивает MediaWiki Action API (метаданные, ревизия, imageinfo) и REST `/page/{title}/html`, затем конвертирует HTML в **маленький типизированный AST** (`WikipediaArticleNode`). Клиент рендерит только известные React-узлы — никакого `dangerouslySetInnerHTML`. Удаляются: `script/style/iframe/form/table`, инфобоксы, навбоксы, hatnote, ToC, references, editsection и скрытые узлы. Картинки попадают в вывод только если их хост — `*.wikimedia.org` по `https` **и** есть полная атрибуция.
+
+**Атрибуция.** Текст автора (`Artist`) и подписи очищаются от HTML через Cheerio. Картинка показывается только при наличии artist + license short name + license URL + description URL; иначе фигура опускается. В футере статьи — ссылки на оригинал, историю правок и CC BY-SA 4.0.
+
+**Ограничения и отказы.** Таймаут 8s на запрос, один retry только на `429/503` (с учётом `Retry-After` до 1s), лимит тела 1.5 МБ (по `content-length` и по факту). Коды ошибок (`not_found→404`, `rate_limited→503`, `timeout→504`, `article_too_large→413`, `upstream_error→502`, `invalid_url→400`) маппятся в статусы роута. При любой ошибке виджет сохраняет авторский текст и показывает безопасную ссылку-фолбэк + кнопку «Повторить»; роут логирует только код и язык/заголовок, никогда полный URL или тело.
+
+**Ключевые новые файлы.** `lib/wikipedia/{types,url,markdown,transform,fetch}.ts`, `app/api/wikipedia/article/route.ts`, `components/nd/{WikipediaEmbed,WikipediaArticle,WikipediaInsertDialog}.tsx`.
+
 ## Ключевые файлы
+- `lib/wikipedia/` — URL-allowlist, remark-распознавание, transform MediaWiki HTML → typed AST, fetch-пайплайн.
+- `app/api/wikipedia/article/route.ts` — публичный кэширующий API статьи.
+- `components/nd/WikipediaEmbed.tsx` / `WikipediaArticle.tsx` / `WikipediaInsertDialog.tsx` — preload/disclosure, типизированный рендер, диалог вставки.
 - `lib/book-summaries.ts` — бизнес-правила, статусы, проверки прав и операции с БД.
 - `lib/books.ts` — добавляет `summaryCount` в книги каталога.
 - `components/nd/SummaryEditor.tsx` — авторский редактор.
