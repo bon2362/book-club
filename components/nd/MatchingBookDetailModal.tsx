@@ -9,6 +9,7 @@ import ParticipantInterestChip from './ParticipantInterestChip'
 
 export interface MatchingBookDetail {
   bookId: string
+  bookSlug?: string | null
   title: string
   author: string
   description: string
@@ -56,6 +57,10 @@ export default function MatchingBookDetailModal({
   const [summary, setSummary] = useState<SummaryState>(null)
   const [summaryLoaded, setSummaryLoaded] = useState(false)
   const [summaryBusy, setSummaryBusy] = useState(false)
+  const friendlyBookRef = book.bookSlug ?? book.bookId
+  const summaryEditHref = book.bookSlug
+    ? `/books/${book.bookSlug}/my-summary/edit`
+    : summary ? `/summaries/${summary.id}/edit` : ''
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -343,19 +348,19 @@ export default function MatchingBookDetailModal({
                 </button>
               )}
               {summary?.status === 'draft' && (
-                <a href={`/summaries/${summary.id}/edit`} style={summaryLinkStyle}>Продолжить саммари</a>
+                <a href={summaryEditHref} style={summaryLinkStyle}>Продолжить саммари</a>
               )}
               {summary?.status === 'rejected' && (
-                <a href={`/summaries/${summary.id}/edit`} style={summaryLinkStyle}>Доработать саммари</a>
+                <a href={summaryEditHref} style={summaryLinkStyle}>Доработать саммари</a>
               )}
               {summary?.status === 'pending' && (
                 <div style={summaryDisabledStyle}>Саммари на проверке</div>
               )}
               {summary?.status === 'published' && (
                 <div style={{ display: 'grid', gap: '0.45rem' }}>
-                  <a href={`/books/${book.bookId}/summaries`} style={summaryLinkStyle}>Читать саммари</a>
+                  <a href={`/books/${friendlyBookRef}/summaries`} style={summaryLinkStyle}>Читать саммари</a>
                   <a
-                    href={`/summaries/${summary.id}/edit`}
+                    href={summaryEditHref}
                     style={{
                       ...summaryLinkStyle,
                       background: 'transparent',

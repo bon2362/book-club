@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { bookSummaries, bookSummaryRevisions, books, signupBooks, users } from '@/lib/db/schema'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { BookValidationError, normalizeBookSlug } from '@/lib/books'
 
 export const SUMMARY_STATUSES = ['draft', 'pending', 'published', 'rejected'] as const
 export type SummaryStatus = (typeof SUMMARY_STATUSES)[number]
@@ -31,6 +32,7 @@ export interface BookSummary {
   updatedAt: Date
   bookTitle?: string | null
   bookAuthor?: string | null
+  bookSlug?: string | null
   authorName?: string | null
   authorEmail?: string | null
 }
@@ -58,6 +60,7 @@ export interface BookSummaryRevision {
   authorUserId?: string | null
   bookTitle?: string | null
   bookAuthor?: string | null
+  bookSlug?: string | null
   authorName?: string | null
   authorEmail?: string | null
   publishedDisplayName?: string | null
@@ -70,6 +73,7 @@ export interface BookSummaryRevision {
 type SummaryRow = typeof bookSummaries.$inferSelect & {
   bookTitle?: string | null
   bookAuthor?: string | null
+  bookSlug?: string | null
   authorName?: string | null
   authorEmail?: string | null
 }
@@ -79,6 +83,7 @@ type SummaryRevisionRow = typeof bookSummaryRevisions.$inferSelect & {
   authorUserId?: string | null
   bookTitle?: string | null
   bookAuthor?: string | null
+  bookSlug?: string | null
   authorName?: string | null
   authorEmail?: string | null
   publishedDisplayName?: string | null
@@ -117,6 +122,7 @@ function rowToSummary(row: SummaryRow): BookSummary {
     updatedAt: row.updatedAt,
     bookTitle: row.bookTitle ?? null,
     bookAuthor: row.bookAuthor ?? null,
+    bookSlug: row.bookSlug ?? null,
     authorName: row.authorName ?? null,
     authorEmail: row.authorEmail ?? null,
   }
@@ -139,6 +145,7 @@ function rowToSummaryRevision(row: SummaryRevisionRow): BookSummaryRevision {
     authorUserId: row.authorUserId ?? null,
     bookTitle: row.bookTitle ?? null,
     bookAuthor: row.bookAuthor ?? null,
+    bookSlug: row.bookSlug ?? null,
     authorName: row.authorName ?? null,
     authorEmail: row.authorEmail ?? null,
     publishedDisplayName: row.publishedDisplayName ?? null,
@@ -151,6 +158,26 @@ function rowToSummaryRevision(row: SummaryRevisionRow): BookSummaryRevision {
 
 function normalizeText(value: unknown): string | undefined {
   return typeof value === 'string' ? value.trim() : undefined
+}
+
+function normalizeAdminBookSlug(value: unknown): string {
+  try {
+    return normalizeBookSlug(value)
+  } catch (error) {
+    if (error instanceof BookValidationError) throw new SummaryValidationError(error.message)
+    throw error
+  }
+}
+
+function ensureBookSlug(slug: string | null | undefined): asserts slug is string {
+  if (!slug?.trim()) throw new SummaryValidationError('book slug is required')
+}
+
+function rethrowSlugConstraint(error: unknown): never {
+  if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+    throw new SummaryValidationError('book slug already exists')
+  }
+  throw error
 }
 
 export function normalizeSummaryPatch(input: Record<string, unknown>): SummaryPatch {
@@ -240,6 +267,7 @@ async function selectRevisionById(id: string, dbClient: DbClient = db): Promise<
       updatedAt: bookSummaryRevisions.updatedAt,
       bookId: bookSummaries.bookId,
       authorUserId: bookSummaries.authorUserId,
+      bookSlug: books.slug,
       publishedDisplayName: bookSummaries.displayName,
       publishedTitle: bookSummaries.title,
       publishedTldr: bookSummaries.tldr,
@@ -248,9 +276,20 @@ async function selectRevisionById(id: string, dbClient: DbClient = db): Promise<
     })
     .from(bookSummaryRevisions)
     .innerJoin(bookSummaries, eq(bookSummaryRevisions.summaryId, bookSummaries.id))
+    .innerJoin(books, eq(bookSummaries.bookId, books.id))
     .where(eq(bookSummaryRevisions.id, id))
     .limit(1)
   return row ? rowToSummaryRevision(row as SummaryRevisionRow) : null
+}
+
+async function selectAdminBookForSummary(id: string, dbClient: DbClient = db): Promise<{ bookId: string; bookSlug: string | null } | null> {
+  const [row] = await dbClient
+    .select({ bookId: bookSummaries.bookId, bookSlug: books.slug })
+    .from(bookSummaries)
+    .innerJoin(books, eq(bookSummaries.bookId, books.id))
+    .where(eq(bookSummaries.id, id))
+    .limit(1)
+  return row ?? null
 }
 
 async function hasReadSignup(userId: string, bookId: string, dbClient: DbClient = db): Promise<boolean> {
@@ -503,6 +542,7 @@ export async function getPublishedSummariesForBook(bookId: string): Promise<Book
       updatedAt: bookSummaries.updatedAt,
       bookTitle: books.title,
       bookAuthor: books.author,
+      bookSlug: books.slug,
     })
     .from(bookSummaries)
     .innerJoin(books, eq(bookSummaries.bookId, books.id))
@@ -538,6 +578,7 @@ export async function listAdminSummaries(): Promise<BookSummary[]> {
       updatedAt: bookSummaries.updatedAt,
       bookTitle: books.title,
       bookAuthor: books.author,
+      bookSlug: books.slug,
       authorName: users.name,
       authorEmail: users.contactEmail,
     })
@@ -566,6 +607,7 @@ export async function listAdminSummaryRevisions(): Promise<BookSummaryRevision[]
       authorUserId: bookSummaries.authorUserId,
       bookTitle: books.title,
       bookAuthor: books.author,
+      bookSlug: books.slug,
       authorName: users.name,
       authorEmail: users.contactEmail,
       publishedDisplayName: bookSummaries.displayName,
@@ -593,20 +635,39 @@ export async function adminUpdateSummaryRevision({
   actorLabel?: string | null
   patch: Record<string, unknown> & { rejectionReason?: unknown }
 }): Promise<BookSummaryRevision> {
+  const current = await selectRevisionById(id)
+  if (!current || !current.bookId) throw new SummaryValidationError('summary revision not found')
   const normalized = normalizeSummaryPatch(patch)
   const rejectionReason = normalizeText(patch.rejectionReason)
+  const bookSlug = patch.bookSlug === undefined ? undefined : normalizeAdminBookSlug(patch.bookSlug)
+  ensureBookSlug(bookSlug ?? current.bookSlug)
   const update: Partial<typeof bookSummaryRevisions.$inferInsert> = { ...normalized, updatedAt: new Date() }
   if (rejectionReason !== undefined) update.rejectionReason = rejectionReason || null
 
-  const [updated] = await withAuditContext(
-    { actorUserId: adminUserId, actorLabel: auditLabel(actorLabel), source: 'admin' },
-    async (tx) => tx.update(bookSummaryRevisions)
-      .set(update)
-      .where(eq(bookSummaryRevisions.id, id))
-      .returning(),
-  )
+  let updated: typeof bookSummaryRevisions.$inferSelect | undefined
+  try {
+    ;[updated] = await withAuditContext(
+      { actorUserId: adminUserId, actorLabel: auditLabel(actorLabel), source: 'admin' },
+      async (tx) => {
+        const rows = await tx.update(bookSummaryRevisions)
+          .set(update)
+          .where(eq(bookSummaryRevisions.id, id))
+          .returning()
+        if (bookSlug !== undefined) {
+          await tx.update(books).set({ slug: bookSlug, updatedAt: new Date() }).where(eq(books.id, current.bookId!))
+        }
+        return rows
+      },
+    )
+  } catch (error) {
+    rethrowSlugConstraint(error)
+  }
   if (!updated) throw new SummaryValidationError('summary revision not found')
-  return rowToSummaryRevision(updated as SummaryRevisionRow)
+  return rowToSummaryRevision({
+    ...(updated as SummaryRevisionRow),
+    bookId: current.bookId,
+    bookSlug: bookSlug ?? current.bookSlug,
+  })
 }
 
 export async function adminPublishSummaryRevision({
@@ -624,6 +685,7 @@ export async function adminPublishSummaryRevision({
     throw new SummaryValidationError('summary revision is not pending')
   }
   ensureCompleteForSubmit(revision)
+  ensureBookSlug(revision.bookSlug)
 
   const now = new Date()
   return withAuditContext(
@@ -645,7 +707,7 @@ export async function adminPublishSummaryRevision({
         .where(eq(bookSummaryRevisions.id, id))
         .returning()
 
-      return rowToSummary(updated as SummaryRow)
+      return rowToSummary({ ...(updated as SummaryRow), bookSlug: revision.bookSlug })
     },
   )
 }
@@ -669,6 +731,7 @@ export async function adminRejectSummaryRevision({
   if (current.status !== 'pending') {
     throw new SummaryValidationError('summary revision is not pending')
   }
+  ensureBookSlug(current.bookSlug)
 
   const [updated] = await withAuditContext(
     { actorUserId: adminUserId, actorLabel: auditLabel(actorLabel), source: 'admin', reason },
@@ -681,7 +744,13 @@ export async function adminRejectSummaryRevision({
       .where(eq(bookSummaryRevisions.id, id))
       .returning(),
   )
-  return rowToSummaryRevision(updated as SummaryRevisionRow)
+  return rowToSummaryRevision({
+    ...(updated as SummaryRevisionRow),
+    summaryId: current.summaryId,
+    bookId: current.bookId,
+    bookSlug: current.bookSlug,
+    authorUserId: current.authorUserId,
+  })
 }
 
 export async function adminUpdateSummary({
@@ -695,17 +764,35 @@ export async function adminUpdateSummary({
   actorLabel?: string | null
   patch: Record<string, unknown> & { rejectionReason?: unknown }
 }): Promise<BookSummary> {
+  const current = await selectAdminBookForSummary(id)
+  if (!current) throw new SummaryValidationError('summary not found')
   const normalized = normalizeSummaryPatch(patch)
   const rejectionReason = normalizeText(patch.rejectionReason)
+  const bookSlug = patch.bookSlug === undefined ? undefined : normalizeAdminBookSlug(patch.bookSlug)
+  ensureBookSlug(bookSlug ?? current.bookSlug)
   const update: Partial<typeof bookSummaries.$inferInsert> = { ...normalized, updatedAt: new Date() }
   if (rejectionReason !== undefined) update.rejectionReason = rejectionReason || null
 
-  const [updated] = await withAuditContext(
-    { actorUserId: adminUserId, actorLabel: auditLabel(actorLabel), source: 'admin' },
-    async (tx) => tx.update(bookSummaries).set(update).where(eq(bookSummaries.id, id)).returning(),
-  )
+  let updated: typeof bookSummaries.$inferSelect | undefined
+  try {
+    ;[updated] = await withAuditContext(
+      { actorUserId: adminUserId, actorLabel: auditLabel(actorLabel), source: 'admin' },
+      async (tx) => {
+        const rows = await tx.update(bookSummaries).set(update).where(eq(bookSummaries.id, id)).returning()
+        if (bookSlug !== undefined) {
+          await tx.update(books).set({ slug: bookSlug, updatedAt: new Date() }).where(eq(books.id, current.bookId))
+        }
+        return rows
+      },
+    )
+  } catch (error) {
+    rethrowSlugConstraint(error)
+  }
   if (!updated) throw new SummaryValidationError('summary not found')
-  return rowToSummary(updated as SummaryRow)
+  return rowToSummary({
+    ...(updated as SummaryRow),
+    bookSlug: bookSlug ?? current.bookSlug,
+  })
 }
 
 export async function adminPublishSummary({
@@ -717,6 +804,9 @@ export async function adminPublishSummary({
   adminUserId: string
   actorLabel?: string | null
 }): Promise<BookSummary> {
+  const current = await selectAdminBookForSummary(id)
+  if (!current) throw new SummaryValidationError('summary not found')
+  ensureBookSlug(current.bookSlug)
   const now = new Date()
   const [updated] = await withAuditContext(
     { actorUserId: adminUserId, actorLabel: auditLabel(actorLabel), source: 'admin' },
@@ -728,7 +818,7 @@ export async function adminPublishSummary({
     }).where(eq(bookSummaries.id, id)).returning(),
   )
   if (!updated) throw new SummaryValidationError('summary not found')
-  return rowToSummary(updated as SummaryRow)
+  return rowToSummary({ ...(updated as SummaryRow), bookSlug: current.bookSlug })
 }
 
 export async function adminRejectSummary({
@@ -745,6 +835,10 @@ export async function adminRejectSummary({
   const reason = rejectionReason.trim()
   if (!reason) throw new SummaryValidationError('rejection reason is required')
 
+  const current = await selectAdminBookForSummary(id)
+  if (!current) throw new SummaryValidationError('summary not found')
+  ensureBookSlug(current.bookSlug)
+
   const [updated] = await withAuditContext(
     { actorUserId: adminUserId, actorLabel: auditLabel(actorLabel), source: 'admin', reason },
     async (tx) => tx.update(bookSummaries).set({
@@ -754,5 +848,5 @@ export async function adminRejectSummary({
     }).where(eq(bookSummaries.id, id)).returning(),
   )
   if (!updated) throw new SummaryValidationError('summary not found')
-  return rowToSummary(updated as SummaryRow)
+  return rowToSummary({ ...(updated as SummaryRow), bookSlug: current.bookSlug })
 }

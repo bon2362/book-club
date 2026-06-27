@@ -39,6 +39,7 @@ interface AdminSummary {
   kind?: 'summary' | 'revision'
   summaryId?: string
   bookId: string
+  bookSlug: string | null
   bookTitle: string
   bookAuthor: string
   authorUserId: string
@@ -338,6 +339,7 @@ export default function AdminPanel({
   const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null)
   const [summaryEdits, setSummaryEdits] = useState<Record<string, Partial<AdminSummary>>>({})
   const [summaryActionLoading, setSummaryActionLoading] = useState<string | null>(null)
+  const [summaryActionErrors, setSummaryActionErrors] = useState<Record<string, string>>({})
   const [feedbackItems, setFeedbackItems] = useState<AdminFeedbackItem[]>([])
   const [feedbackLoaded, setFeedbackLoaded] = useState(false)
   const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
@@ -630,10 +632,38 @@ export default function AdminPanel({
 
   function updateSummaryEdit(id: string, field: keyof AdminSummary, value: unknown) {
     setSummaryEdits(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+    setSummaryActionErrors(prev => { const next = { ...prev }; delete next[id]; return next })
   }
 
   function updateSummaryInList(summary: AdminSummary) {
     setSummaries(prev => prev.map(item => item.id === summary.id ? summary : item))
+  }
+
+  async function persistSummaryEdits(summary: AdminSummary, edits: Partial<AdminSummary>): Promise<boolean> {
+    if (Object.keys(edits).length === 0) return true
+    const endpoint = summary.kind === 'revision'
+      ? `/api/admin/summary-revisions/${summary.id}`
+      : `/api/admin/summaries/${summary.id}`
+    try {
+      const res = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(edits),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setSummaryActionErrors(prev => ({ ...prev, [summary.id]: d.error ?? 'Не удалось сохранить изменения' }))
+        return false
+      }
+      const updated = d.revision ?? d.summary
+      if (updated) updateSummaryInList({ ...summary, ...updated })
+      setSummaryEdits(prev => { const next = { ...prev }; delete next[summary.id]; return next })
+      setSummaryActionErrors(prev => { const next = { ...prev }; delete next[summary.id]; return next })
+      return true
+    } catch {
+      setSummaryActionErrors(prev => ({ ...prev, [summary.id]: 'Не удалось сохранить изменения' }))
+      return false
+    }
   }
 
   async function handleSaveSummaryEdits(id: string) {
@@ -642,38 +672,25 @@ export default function AdminPanel({
     const edits = summaryEdits[id]
     if (!edits || Object.keys(edits).length === 0) return
     setSummaryActionLoading(id)
-    try {
-      const endpoint = summary.kind === 'revision'
-        ? `/api/admin/summary-revisions/${id}`
-        : `/api/admin/summaries/${id}`
-      const res = await fetch(endpoint, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(edits),
-      })
-      if (res.ok) {
-        const d = await res.json()
-        const updated = d.revision ?? d.summary
-        if (updated) updateSummaryInList({ ...summary, ...updated })
-        setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
-      }
-    } catch { /* silently ignore */ }
-    finally { setSummaryActionLoading(null) }
+    await persistSummaryEdits(summary, edits)
+    setSummaryActionLoading(null)
   }
 
   async function handlePublishSummary(id: string) {
     const summary = summaries.find(item => item.id === id)
     if (!summary) return
     const isRevision = summary.kind === 'revision'
+    const bookSlug = String(summaryEdits[id]?.bookSlug ?? summary.bookSlug ?? '').trim()
+    if (!bookSlug) {
+      setSummaryActionErrors(prev => ({ ...prev, [id]: 'Красивый URL обязателен' }))
+      return
+    }
     setSummaryActionLoading(id)
     try {
       const edits = summaryEdits[id]
       if (edits && Object.keys(edits).length > 0) {
-        await fetch(isRevision ? `/api/admin/summary-revisions/${id}` : `/api/admin/summaries/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(edits),
-        })
+        const saved = await persistSummaryEdits(summary, edits)
+        if (!saved) return
       }
       const res = await fetch(
         isRevision
@@ -681,8 +698,8 @@ export default function AdminPanel({
           : `/api/admin/summaries/${id}/publish`,
         { method: 'POST' },
       )
+      const d = await res.json().catch(() => ({}))
       if (res.ok) {
-        const d = await res.json()
         if (isRevision) {
           setSummaries(prev => prev
             .filter(item => item.id !== id)
@@ -693,8 +710,12 @@ export default function AdminPanel({
         }
         setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
         setSelectedSummaryId(null)
+      } else {
+        setSummaryActionErrors(prev => ({ ...prev, [id]: d.error ?? 'Не удалось опубликовать саммари' }))
       }
-    } catch { /* silently ignore */ }
+    } catch {
+      setSummaryActionErrors(prev => ({ ...prev, [id]: 'Не удалось опубликовать саммари' }))
+    }
     finally { setSummaryActionLoading(null) }
   }
 
@@ -703,20 +724,28 @@ export default function AdminPanel({
     if (!summary) return
     const isRevision = summary.kind === 'revision'
     const edits = summaryEdits[id] ?? {}
+    const bookSlug = String(edits.bookSlug ?? summary.bookSlug ?? '').trim()
+    if (!bookSlug) {
+      setSummaryActionErrors(prev => ({ ...prev, [id]: 'Красивый URL обязателен' }))
+      return
+    }
     setSummaryActionLoading(id)
     try {
+      if (Object.keys(edits).length > 0) {
+        const saved = await persistSummaryEdits(summary, edits)
+        if (!saved) return
+      }
       const res = await fetch(isRevision
         ? `/api/admin/summary-revisions/${id}/reject`
         : `/api/admin/summaries/${id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...edits,
           rejectionReason: edits.rejectionReason ?? summary?.rejectionReason ?? '',
         }),
       })
+      const d = await res.json().catch(() => ({}))
       if (res.ok) {
-        const d = await res.json()
         const updated = d.revision ?? d.summary
         if (updated) {
           updateSummaryInList({ ...summary, ...updated })
@@ -724,8 +753,12 @@ export default function AdminPanel({
         }
         setSummaryEdits(prev => { const next = { ...prev }; delete next[id]; return next })
         setSelectedSummaryId(null)
+      } else {
+        setSummaryActionErrors(prev => ({ ...prev, [id]: d.error ?? 'Не удалось отклонить саммари' }))
       }
-    } catch { /* silently ignore */ }
+    } catch {
+      setSummaryActionErrors(prev => ({ ...prev, [id]: 'Не удалось отклонить саммари' }))
+    }
     finally { setSummaryActionLoading(null) }
   }
 
@@ -1367,6 +1400,8 @@ export default function AdminPanel({
                     const displayName = edits.displayName ?? summary.displayName
                     const bodyMarkdown = edits.bodyMarkdown ?? summary.bodyMarkdown
                     const rejectionReason = edits.rejectionReason ?? summary.rejectionReason ?? ''
+                    const bookSlug = edits.bookSlug ?? summary.bookSlug ?? ''
+                    const actionError = summaryActionErrors[summary.id]
 
                     return (
                       <Fragment key={summary.id}>
@@ -1436,6 +1471,34 @@ export default function AdminPanel({
                                     </div>
                                   </div>
                                 </div>
+                                <div data-testid="summary-moderation-url">
+                                  <div style={fieldLabel}>Красивый URL</div>
+                                  <input
+                                    aria-label="Красивый URL книги"
+                                    value={bookSlug}
+                                    onChange={e => updateSummaryEdit(summary.id, 'bookSlug', e.target.value)}
+                                    required
+                                    maxLength={100}
+                                    pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                                    placeholder="dolgoe-otstuplenie"
+                                    style={fieldInput}
+                                  />
+                                  <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                                    /books/{bookSlug || '…'}/summaries
+                                  </div>
+                                </div>
+                                <div data-testid="summary-moderation-ids" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+                                  <div>
+                                    <div style={fieldLabel}>ID саммари</div>
+                                    <code style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{summary.summaryId ?? summary.id}</code>
+                                  </div>
+                                  {isRevision && (
+                                    <div>
+                                      <div style={fieldLabel}>ID ревизии</div>
+                                      <code style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{summary.id}</code>
+                                    </div>
+                                  )}
+                                </div>
                                 <div>
                                   <div style={fieldLabel}>Имя в публикации</div>
                                   <input
@@ -1485,6 +1548,11 @@ export default function AdminPanel({
                                     style={{ ...fieldInput, resize: 'vertical' }}
                                   />
                                 </div>
+                                {actionError && (
+                                  <div role="alert" style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.78rem', color: 'var(--accent)', borderLeft: '2px solid var(--accent)', paddingLeft: '0.65rem' }}>
+                                    {actionError}
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem', alignItems: 'center' }}>
                                   {hasEdits && (
                                     <button
@@ -1510,7 +1578,7 @@ export default function AdminPanel({
                                     {isRevision ? 'Отклонить правки' : 'Отклонить'}
                                   </button>
                                   <Link
-                                    href={`/books/${summary.bookId}/summaries`}
+                                    href={`/books/${summary.bookSlug ?? summary.bookId}/summaries`}
                                     style={{ ...actionBtnStyle('var(--text-muted)', false), textDecoration: 'none' }}
                                   >
                                     Страница книги

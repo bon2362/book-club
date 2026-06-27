@@ -150,6 +150,62 @@ test.describe('Home submit book CTA layout', () => {
 })
 
 test.describe('Summary editor layout', () => {
+  test('admin moderation keeps the slug field and summary ID visible', async ({
+    page,
+    createTestBook,
+    loginAsUser,
+    loginAsAdmin,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const book = await createTestBook({
+      title: `UI Summary Moderation ${Date.now()}`,
+      author: 'Layout Author',
+    })
+    const user = await loginAsUser({ name: 'UI Summary Reviewer' })
+    await page.request.post('/api/test/signup', {
+      data: {
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        contacts: '@ui_summary_reviewer',
+        selectedBookIds: [book.id],
+      },
+    })
+    await page.request.patch(`/api/signup-books/${encodeURIComponent(book.id)}/status`, {
+      data: { status: 'read' },
+    })
+    const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(book.id)}`)
+    expect(draftRes.ok()).toBe(true)
+    const draft = (await draftRes.json()) as { summary: { id: string } }
+    const saveRes = await page.request.patch(`/api/summaries/${draft.summary.id}`, {
+      data: {
+        displayName: 'UI Reviewer',
+        title: 'UI Moderation Summary',
+        tldr: 'Короткий вывод для layout-проверки.',
+        bodyMarkdown: 'Полный текст для layout-проверки.',
+      },
+    })
+    expect(saveRes.ok()).toBe(true)
+    const submitRes = await page.request.post(`/api/summaries/${draft.summary.id}/submit`)
+    expect(submitRes.ok()).toBe(true)
+
+    await loginAsAdmin({ name: 'UI Summary Admin' })
+    await page.goto('/admin?tab=summaries')
+    await page.waitForLoadState('networkidle')
+    await page.getByText('UI Moderation Summary').click()
+
+    const slugBox = await page.getByLabel('Красивый URL книги').boundingBox()
+    const idsBox = await page.getByTestId('summary-moderation-ids').boundingBox()
+    const viewport = page.viewportSize()!
+    expect(slugBox).not.toBeNull()
+    expect(idsBox).not.toBeNull()
+    expect(slugBox!.x).toBeGreaterThanOrEqual(0)
+    expect(slugBox!.x + slugBox!.width).toBeLessThanOrEqual(viewport.width)
+    expect(idsBox!.x).toBeGreaterThanOrEqual(0)
+    expect(idsBox!.x + idsBox!.width).toBeLessThanOrEqual(viewport.width)
+    await expect(page.getByTestId('summary-moderation-ids')).toContainText(draft.summary.id)
+  })
+
   test('main markdown field reads as a large writing page', async ({ page, createTestBook, loginAsUser }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     const book = await createTestBook({

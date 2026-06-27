@@ -59,13 +59,14 @@ jest.mock('@/lib/db', () => {
 })
 
 import {
-  fetchBooksWithCovers, fetchBooksForAdmin, fetchBookById,
-  createBook, updateBook, BookValidationError,
+  fetchBooksWithCovers, fetchBooksForAdmin, fetchBookById, fetchBookBySlug,
+  createBook, updateBook, BookValidationError, normalizeBookSlug,
 } from './books'
 
 function bookRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'b1',
+    slug: null,
     title: 'Title',
     author: 'Author',
     tags: ['tag'],
@@ -216,6 +217,37 @@ describe('lib/books — fetchBookById', () => {
     pushResult([bookRow({ id: 'x', title: 'Hello' })])
     const got = await fetchBookById('x')
     expect(got).toMatchObject({ id: 'x', name: 'Hello' })
+  })
+})
+
+describe('lib/books — fetchBookBySlug', () => {
+  it('returns the mapped book for a slug', async () => {
+    pushResult([bookRow({ id: 'x', slug: 'dolgoe-otstuplenie', title: 'Долгое отступление' })])
+
+    await expect(fetchBookBySlug('dolgoe-otstuplenie')).resolves.toMatchObject({
+      id: 'x',
+      slug: 'dolgoe-otstuplenie',
+      name: 'Долгое отступление',
+    })
+  })
+})
+
+describe('lib/books — normalizeBookSlug', () => {
+  it('normalizes surrounding whitespace and ASCII case', () => {
+    expect(normalizeBookSlug('  Dolgoe-Otstuplenie  ')).toBe('dolgoe-otstuplenie')
+  })
+
+  it.each([
+    '',
+    '   ',
+    'долгое-отступление',
+    '-dolgoe',
+    'dolgoe-',
+    'dolgoe--otstuplenie',
+    'dolgoe_otstuplenie',
+    'a'.repeat(101),
+  ])('rejects invalid slug %p', (slug) => {
+    expect(() => normalizeBookSlug(slug)).toThrow(BookValidationError)
   })
 })
 

@@ -4,6 +4,7 @@ import { eq, and, asc, sql } from 'drizzle-orm'
 
 export interface PersonalListBook {
   bookId: string
+  bookSlug?: string | null
   title: string
   author: string
   coverUrl: string | null
@@ -16,6 +17,7 @@ export async function fetchPersonalList(userId: string): Promise<PersonalListBoo
   const rows = await db
     .select({
       bookId: signupBooks.bookId,
+      bookSlug: books.slug,
       title: books.title,
       author: books.author,
       coverUrl: books.coverUrl,
@@ -48,6 +50,7 @@ export async function fetchPersonalList(userId: string): Promise<PersonalListBoo
 
 export interface CatalogBook {
   bookId: string
+  bookSlug?: string | null
   title: string
   author: string
   description: string
@@ -67,6 +70,7 @@ export async function fetchCatalogWithPersonalData(userId: string): Promise<Cata
   const rows = await db
     .select({
       bookId: books.id,
+      bookSlug: books.slug,
       title: books.title,
       author: books.author,
       description: books.description,
@@ -99,6 +103,7 @@ export async function fetchCatalogWithPersonalData(userId: string): Promise<Cata
 
   return rows.map((row) => ({
     bookId: row.bookId,
+    bookSlug: row.bookSlug,
     title: row.title,
     author: row.author,
     description: row.description,

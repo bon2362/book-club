@@ -1,21 +1,21 @@
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { fetchBookById } from '@/lib/books'
-import { getActiveSummaryRevision, getAuthorSummaryById } from '@/lib/book-summaries'
+import { fetchBookBySlug } from '@/lib/books'
+import { getActiveSummaryRevision, getAuthorSummaryForBook } from '@/lib/book-summaries'
 import SummaryEditor from '@/components/nd/SummaryEditor'
 
 export const dynamic = 'force-dynamic'
 
-export default async function EditSummaryPage({ params }: { params: { id: string } }) {
+export default async function MySummaryEditPage({ params }: { params: { bookSlug: string } }) {
   const session = await auth()
   if (!session?.user?.id) redirect('/')
 
-  const summary = await getAuthorSummaryById(params.id, session.user.id)
+  const book = await fetchBookBySlug(params.bookSlug)
+  if (!book) notFound()
+
+  const summary = await getAuthorSummaryForBook(book.id, session.user.id)
   if (!summary) notFound()
 
-  const book = await fetchBookById(summary.bookId)
-  if (!book) notFound()
-  if (book.slug) redirect(`/books/${book.slug}/my-summary/edit`)
   const revision = summary.status === 'published'
     ? await getActiveSummaryRevision(summary.id)
     : null

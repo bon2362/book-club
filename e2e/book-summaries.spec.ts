@@ -10,6 +10,7 @@ test.describe('Саммари книг', () => {
   })
 
   test('участник отправляет саммари, админ публикует, публичная страница показывает текст', async ({ page, createTestBook, loginAsUser, loginAsAdmin }) => {
+    const bookSlug = `e2e-summary-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const book = await createTestBook({
       title: 'E2E Summary Book',
       author: 'E2E Summary Author',
@@ -98,6 +99,9 @@ test.describe('Саммари книг', () => {
     await expect(page.getByText('Почему институты важны')).toBeVisible({ timeout: 10_000 })
 
     await page.getByText('Почему институты важны').click()
+    await expect(page.getByText('ID саммари')).toBeVisible()
+    await expect(page.getByText(draft.summary.id)).toBeVisible()
+    await page.getByLabel('Красивый URL книги').fill(bookSlug)
     await page.getByLabel('Заголовок саммари в админке').fill('Почему институты решают')
     const publishResponse = page.waitForResponse(
       response => response.url().includes(`/api/admin/summaries/${draft.summary.id}/publish`) && response.request().method() === 'POST',
@@ -106,6 +110,7 @@ test.describe('Саммари книг', () => {
     expect((await publishResponse).ok()).toBe(true)
 
     await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await expect(page).toHaveURL(new RegExp(`/books/${bookSlug}/summaries$`))
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
     await expect(page.getByText('Reader One')).toBeVisible()
@@ -126,6 +131,7 @@ test.describe('Саммари книг', () => {
     await loginAsUser({ email: user.email, name: user.name })
     await page.goto(`/summaries/${draft.summary.id}/edit`)
     await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(new RegExp(`/books/${bookSlug}/my-summary/edit$`))
     await expect(page.getByText('Опубликовано')).toBeVisible()
 
     const revisionResponse = page.waitForResponse(
@@ -145,7 +151,7 @@ test.describe('Саммари книг', () => {
     await page.getByRole('button', { name: 'Отправить на проверку' }).click()
     await expect(page).toHaveURL(/\/$/)
 
-    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await page.goto(`/books/${bookSlug}/summaries`)
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Почему институты меняются' })).toHaveCount(0)
 
@@ -165,6 +171,7 @@ test.describe('Саммари книг', () => {
     await loginAsUser({ email: user.email, name: user.name })
     await page.goto(`/summaries/${draft.summary.id}/edit`)
     await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(new RegExp(`/books/${bookSlug}/my-summary/edit$`))
     await expect(page.getByText('Правки отклонены')).toBeVisible()
     await expect(page.getByText('Нужно уточнить вывод')).toBeVisible()
     await page.getByLabel('Заголовок саммари').fill('Почему институты меняются со временем')
@@ -172,7 +179,7 @@ test.describe('Саммари книг', () => {
     await page.getByRole('button', { name: 'Отправить на проверку' }).click()
     await expect(page).toHaveURL(/\/$/)
 
-    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await page.goto(`/books/${bookSlug}/summaries`)
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
 
     await loginAsAdmin({ name: 'E2E Summary Admin' })
@@ -185,13 +192,14 @@ test.describe('Саммари книг', () => {
     await page.getByRole('button', { name: 'Опубликовать правки' }).click()
     expect((await revisionPublishResponse).ok()).toBe(true)
 
-    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await page.goto(`/books/${bookSlug}/summaries`)
     await page.reload()
     await expect(page.getByRole('heading', { name: 'Почему институты меняются со временем' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toHaveCount(0)
   })
 
   test('Wikipedia-вставка: автор добавляет через тулбар, превью прелоадит, публичная страница показывает, при ошибке остаётся фолбэк', async ({ page, createTestBook, loginAsUser, loginAsAdmin }) => {
+    const bookSlug = `e2e-wikipedia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const wikipediaFixture = {
       language: 'ru',
       title: 'Социализм',
@@ -275,6 +283,7 @@ test.describe('Саммари книг', () => {
     await page.goto('/admin?tab=summaries')
     await page.waitForLoadState('networkidle')
     await page.getByText('Социализм и его истоки').click()
+    await page.getByLabel('Красивый URL книги').fill(bookSlug)
     const publishResponse = page.waitForResponse(
       response =>
         response.url().includes(`/api/admin/summaries/${draft.summary.id}/publish`) &&
@@ -283,7 +292,7 @@ test.describe('Саммари книг', () => {
     await page.getByRole('button', { name: 'Опубликовать' }).click()
     expect((await publishResponse).ok()).toBe(true)
 
-    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await page.goto(`/books/${bookSlug}/summaries`)
     await expect(page.locator('.nd-wikipedia-embed')).toBeVisible()
     await page.locator('.nd-wikipedia-embed').getByRole('button', { name: /wikipedia/i }).click()
     await expect(
@@ -292,7 +301,7 @@ test.describe('Саммари книг', () => {
 
     // Upstream failure must keep the author text and surface a safe fallback link.
     failNext = true
-    await page.goto(`/books/${encodeURIComponent(book.id)}/summaries`)
+    await page.goto(`/books/${bookSlug}/summaries`)
     await expect(page.getByText('Социализм как способ разрешения противоречий.')).toBeVisible()
     await expect(
       page.locator('.nd-wikipedia-embed').getByRole('link', { name: /Открыть статью в Wikipedia/i }),

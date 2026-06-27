@@ -57,6 +57,7 @@ type IntroSectionOverrides = Partial<Pick<IntroSection, 'title' | 'body' | 'isPu
 
 type TestBook = {
   id: string
+  slug: string | null
   title: string
   author: string
   tags: string[]
@@ -69,7 +70,7 @@ type TestBook = {
   visibility: 'published' | 'draft' | 'hidden'
 }
 
-type TestBookOverrides = Partial<Pick<TestBook, 'id' | 'title' | 'author' | 'tags' | 'description' | 'pages' | 'publishedDate' | 'textUrl' | 'whyRead' | 'recommendationLink' | 'visibility'>>
+type TestBookOverrides = Partial<Pick<TestBook, 'id' | 'slug' | 'title' | 'author' | 'tags' | 'description' | 'pages' | 'publishedDate' | 'textUrl' | 'whyRead' | 'recommendationLink' | 'visibility'>>
 
 type MatchingSession = {
   id: string

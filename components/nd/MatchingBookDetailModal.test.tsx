@@ -8,6 +8,7 @@ jest.mock('./CoverImage', () => ({
 
 const book: MatchingBookDetail = {
   bookId: 'b1',
+  bookSlug: 'kniga',
   title: 'Книга',
   author: 'Автор',
   description: 'Описание',
@@ -54,7 +55,7 @@ describe('MatchingBookDetailModal summary action', () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ summary: { id: 's3', status: 'published' } }) })
     rerender(<MatchingBookDetailModal book={{ ...book, bookId: 'b2' }} frozen={false} onClose={() => {}} />)
 
-    expect(await screen.findByRole('link', { name: 'Читать саммари' })).toHaveAttribute('href', '/books/b2/summaries')
-    expect(screen.getByRole('link', { name: 'Редактировать' })).toHaveAttribute('href', '/summaries/s3/edit')
+    expect(await screen.findByRole('link', { name: 'Читать саммари' })).toHaveAttribute('href', '/books/kniga/summaries')
+    expect(screen.getByRole('link', { name: 'Редактировать' })).toHaveAttribute('href', '/books/kniga/my-summary/edit')
   })
 })
