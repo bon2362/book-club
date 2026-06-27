@@ -20,6 +20,7 @@ function notAllowed() {
 
 type BookOverrides = {
   id?: string
+  slug?: string
   title?: string
   author?: string
   tags?: string[]
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     .insert(books)
     .values({
       id,
+      slug: overrides.slug ?? null,
       title,
       author: overrides.author ?? 'E2E Author',
       tags: overrides.tags ?? [],

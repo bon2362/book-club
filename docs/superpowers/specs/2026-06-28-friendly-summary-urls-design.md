@@ -9,7 +9,7 @@ Replace public UUID-based book-summary URLs with admin-curated book slugs and pr
 - Public collection: `/books/{bookSlug}/summaries`.
 - Author editor after moderation assigned a slug: `/books/{bookSlug}/my-summary/edit`.
 - Before the first review, when the book has no slug yet, the author continues to use `/summaries/{summaryId}/edit`.
-- Once a slug exists, the legacy public UUID URL and legacy editor UUID URL permanently redirect to their canonical friendly URLs.
+- Once a slug exists, the legacy public UUID URL and legacy editor UUID URL redirect to their canonical friendly URLs. The redirect is deliberately non-permanent because the administrator may later edit the slug.
 - Database IDs remain unchanged and continue to be used by APIs, foreign keys, audit records, and article anchors.
 
 The editor route is intentionally contextual: the authenticated user and the book identify the unique summary through the existing `book_id + author_user_id` constraint. Different authors can therefore use the same friendly editor URL and receive their own summary.
@@ -44,9 +44,9 @@ Slug validation failures and uniqueness conflicts are returned as visible admin-
 
 Book lookup gains a slug-based query alongside ID lookup.
 
-- The public dynamic book-summary route resolves a slug first. If the parameter is an existing book UUID with a slug, it issues a permanent redirect to the slug route.
+- The public dynamic book-summary route resolves a slug first. If the parameter is an existing book UUID with a slug, it issues a server redirect to the slug route.
 - The friendly `my-summary/edit` route requires authentication, resolves the book by slug, then loads the current user's summary for that book.
-- The legacy UUID editor remains functional for books without a slug. When a slug is present, it permanently redirects to the friendly editor.
+- The legacy UUID editor remains functional for books without a slug. When a slug is present, it redirects to the friendly editor.
 - All catalog, matching, and profile links use the slug when it exists. Draft creation may still return the UUID editor before first review.
 
 Public pages expose a canonical URL based on the slug. APIs continue accepting IDs and do not change their resource identity.

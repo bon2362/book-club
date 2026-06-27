@@ -127,9 +127,9 @@ describe('nd/BookCard', () => {
   })
 
   it('показывает ссылку на саммари когда есть опубликованные саммари', () => {
-    const bookWithSummaries = { ...book, summaryCount: 3 }
+    const bookWithSummaries = { ...book, slug: 'dolgoe-otstuplenie', summaryCount: 3 }
     render(<BookCard book={bookWithSummaries} isSelected={false} onToggle={() => {}} />)
-    expect(screen.getByRole('link', { name: /3 саммари клуба/i })).toHaveAttribute('href', '/books/1/summaries')
+    expect(screen.getByRole('link', { name: /3 саммари клуба/i })).toHaveAttribute('href', '/books/dolgoe-otstuplenie/summaries')
   })
 
   it('бейдж предложенной участником книги не выглядит кликабельным', () => {

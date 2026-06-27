@@ -6,6 +6,7 @@ const insertValuesCalls: unknown[] = []
 const updateSetCalls: unknown[] = []
 const deleteWhereCalls: unknown[] = []
 const auditContexts: unknown[] = []
+let updateReturningError: Error | null = null
 
 function pushResult(rows: unknown[]) { queue.push(rows) }
 function pullResult(): Promise<unknown[]> {
@@ -49,7 +50,18 @@ jest.mock('@/lib/db', () => {
       update: jest.fn(() => ({
         set: jest.fn((value: unknown) => {
           updateSetCalls.push(value)
-          return { where: jest.fn(() => ({ returning: jest.fn(() => pullResult()) })) }
+          return {
+            where: jest.fn(() => ({
+              returning: jest.fn(() => {
+                if (updateReturningError) {
+                  const error = updateReturningError
+                  updateReturningError = null
+                  return Promise.reject(error)
+                }
+                return pullResult()
+              }),
+            })),
+          }
         }),
       })),
       delete: jest.fn(() => ({
@@ -75,9 +87,12 @@ import {
   adminPublishSummary,
   adminRejectSummaryRevision,
   adminRejectSummary,
+  adminUpdateSummary,
+  adminUpdateSummaryRevision,
   getActiveSummaryRevision,
   getAuthorSummaryById,
   getPublishedSummaryCounts,
+  listAdminSummaries,
   listAdminSummaryRevisions,
   normalizeSummaryPatch,
   openOrCreateSummaryRevision,
@@ -105,6 +120,7 @@ function summaryRow(overrides: Record<string, unknown> = {}) {
     updatedAt: new Date('2026-06-01T10:00:00Z'),
     bookTitle: 'Книга',
     bookAuthor: 'Автор',
+    bookSlug: 'kniga',
     authorName: 'Алина Аккаунт',
     authorEmail: 'a@example.test',
     ...overrides,
@@ -128,6 +144,7 @@ function revisionRow(overrides: Record<string, unknown> = {}) {
     authorUserId: 'u1',
     bookTitle: 'Книга',
     bookAuthor: 'Автор',
+    bookSlug: 'kniga',
     authorName: 'Алина Аккаунт',
     authorEmail: 'a@example.test',
     publishedDisplayName: 'Алина',
@@ -145,6 +162,7 @@ beforeEach(() => {
   updateSetCalls.length = 0
   deleteWhereCalls.length = 0
   auditContexts.length = 0
+  updateReturningError = null
 })
 
 describe('normalizeSummaryPatch', () => {
@@ -190,6 +208,7 @@ describe('openOrCreateSummaryDraft', () => {
 
     expect(result.id).toBe('existing')
     expect(result.status).toBe('rejected')
+    expect(result.bookSlug).toBe('kniga')
     expect(insertValuesCalls).toHaveLength(0)
   })
 
@@ -277,6 +296,55 @@ describe('submitAuthorSummary', () => {
 })
 
 describe('admin moderation and published counts', () => {
+  it('lists summaries with the book slug', async () => {
+    pushResult([summaryRow({ status: 'pending', bookSlug: 'dolgoe-otstuplenie' })])
+
+    await expect(listAdminSummaries()).resolves.toEqual([
+      expect.objectContaining({ id: 's1', bookSlug: 'dolgoe-otstuplenie' }),
+    ])
+  })
+
+  it('saves a normalized book slug in the same admin audit context', async () => {
+    pushResult([summaryRow({ status: 'pending', bookSlug: null })])
+    pushResult([summaryRow({ status: 'pending', bookSlug: null })])
+
+    const result = await adminUpdateSummary({
+      id: 's1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+      patch: { bookSlug: '  Dolgoe-Otstuplenie  ' },
+    })
+
+    expect(result.bookSlug).toBe('dolgoe-otstuplenie')
+    expect(updateSetCalls).toContainEqual(expect.objectContaining({ slug: 'dolgoe-otstuplenie' }))
+    expect(auditContexts).toEqual([expect.objectContaining({ actorUserId: 'admin', source: 'admin' })])
+  })
+
+  it('does not save admin edits while the required book slug is missing', async () => {
+    pushResult([{ bookId: 'b1', bookSlug: null }])
+
+    await expect(adminUpdateSummary({
+      id: 's1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+      patch: { title: 'Новый заголовок' },
+    })).rejects.toThrow(new SummaryValidationError('book slug is required'))
+
+    expect(updateSetCalls).toHaveLength(0)
+  })
+
+  it('reports a duplicate book slug as a validation error', async () => {
+    pushResult([{ bookId: 'b1', bookSlug: null }])
+    updateReturningError = Object.assign(new Error('duplicate key'), { code: '23505' })
+
+    await expect(adminUpdateSummary({
+      id: 's1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+      patch: { bookSlug: 'duplicate' },
+    })).rejects.toThrow(new SummaryValidationError('book slug already exists'))
+  })
+
   it('rejects only with a non-empty reason', async () => {
     await expect(adminRejectSummary({
       id: 's1',
@@ -287,6 +355,7 @@ describe('admin moderation and published counts', () => {
   })
 
   it('publishes through admin audit context and clears rejection reason', async () => {
+    pushResult([{ bookId: 'b1', bookSlug: 'kniga' }])
     pushResult([summaryRow({ status: 'published' })])
 
     const result = await adminPublishSummary({ id: 's1', adminUserId: 'admin', actorLabel: 'Admin' })
@@ -295,6 +364,25 @@ describe('admin moderation and published counts', () => {
     expect(updateSetCalls[0]).toMatchObject({ status: 'published', rejectionReason: null })
     expect(updateSetCalls[0]).toHaveProperty('publishedAt')
     expect(auditContexts[0]).toMatchObject({ actorUserId: 'admin', source: 'admin' })
+  })
+
+  it('does not publish or reject before the book slug is assigned', async () => {
+    pushResult([{ bookId: 'b1', bookSlug: null }])
+    await expect(adminPublishSummary({
+      id: 's1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+    })).rejects.toThrow(new SummaryValidationError('book slug is required'))
+
+    pushResult([{ bookId: 'b1', bookSlug: null }])
+    await expect(adminRejectSummary({
+      id: 's1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+      rejectionReason: 'Уточнить',
+    })).rejects.toThrow(new SummaryValidationError('book slug is required'))
+
+    expect(updateSetCalls).toHaveLength(0)
   })
 
   it('returns published summary counts by book', async () => {
@@ -421,7 +509,7 @@ describe('published summary revisions', () => {
   })
 
   it('lists revisions with published, book, and author metadata', async () => {
-    pushResult([revisionRow({ status: 'pending' })])
+    pushResult([revisionRow({ status: 'pending', bookSlug: 'kniga' })])
 
     await expect(listAdminSummaryRevisions()).resolves.toEqual([
       expect.objectContaining({
@@ -429,9 +517,23 @@ describe('published summary revisions', () => {
         summaryId: 's1',
         bookId: 'b1',
         authorUserId: 'u1',
+        bookSlug: 'kniga',
         publishedTitle: 'Институты',
       }),
     ])
+  })
+
+  it('does not save admin revision edits while the required book slug is missing', async () => {
+    pushResult([revisionRow({ status: 'pending', bookSlug: null })])
+
+    await expect(adminUpdateSummaryRevision({
+      id: 'r1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+      patch: { title: 'Новый заголовок' },
+    })).rejects.toThrow(new SummaryValidationError('book slug is required'))
+
+    expect(updateSetCalls).toHaveLength(0)
   })
 
   it('rejects a revision without changing the published summary', async () => {
@@ -453,6 +555,19 @@ describe('published summary revisions', () => {
     expect(deleteWhereCalls).toHaveLength(0)
   })
 
+  it('does not moderate a revision before the book slug is assigned', async () => {
+    pushResult([revisionRow({ status: 'pending', bookSlug: null })])
+
+    await expect(adminRejectSummaryRevision({
+      id: 'r1',
+      adminUserId: 'admin',
+      actorLabel: 'Admin',
+      rejectionReason: 'Уточнить вывод',
+    })).rejects.toThrow(new SummaryValidationError('book slug is required'))
+
+    expect(updateSetCalls).toHaveLength(0)
+  })
+
   it('applies a revision atomically and preserves publishedAt', async () => {
     const publishedAt = new Date('2026-06-01T12:00:00Z')
     pushResult([revisionRow({ status: 'pending', publishedAt })]) // select joined revision
@@ -470,6 +585,7 @@ describe('published summary revisions', () => {
     })
 
     expect(result.title).toBe('Новая версия')
+    expect(result.bookSlug).toBe('kniga')
     expect(result.publishedAt).toEqual(publishedAt)
     expect(updateSetCalls[0]).toMatchObject({
       displayName: 'Алина',

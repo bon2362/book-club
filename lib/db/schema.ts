@@ -65,6 +65,7 @@ export const verificationTokens = pgTable('verificationToken', {
 // See docs/planning-artifacts/books-catalog-db-refactor-plan.md.
 export const books = pgTable('books', {
   id: text('id').primaryKey(),
+  slug: text('slug'),
   title: text('title').notNull(),
   author: text('author').notNull().default(''),
   tags: jsonb('tags').$type<string[]>().notNull().default([]),
@@ -86,6 +87,7 @@ export const books = pgTable('books', {
   publishedAt: timestamp('published_at', { mode: 'date' }),
   hiddenAt: timestamp('hidden_at', { mode: 'date' }),
 }, (t) => ({
+  slugUnique: uniqueIndex('books_slug_unique').on(t.slug),
   visibilityIdx: index('books_visibility_idx').on(t.visibility),
   sortOrderIdx: index('books_sort_order_idx').on(t.sortOrder),
 }))

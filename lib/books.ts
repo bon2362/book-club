@@ -13,6 +13,7 @@ export type BookType = (typeof ALLOWED_TYPES)[number]
 
 export interface BookWithCover {
   id: string
+  slug?: string | null
   name: string
   tags: string[]
   author: string
@@ -43,6 +44,7 @@ export interface BookWithCover {
 function rowToBook(row: typeof books.$inferSelect, signupCount = 0, summaryCount = 0): BookWithCover {
   return {
     id: row.id,
+    slug: row.slug,
     name: row.title,
     tags: Array.isArray(row.tags) ? row.tags : [],
     author: row.author,
@@ -141,6 +143,11 @@ export async function fetchBookById(id: string, dbClient: typeof db = db): Promi
   return row ? rowToBook(row) : null
 }
 
+export async function fetchBookBySlug(slug: string, dbClient: typeof db = db): Promise<BookWithCover | null> {
+  const [row] = await dbClient.select().from(books).where(eq(books.slug, slug)).limit(1)
+  return row ? rowToBook(row) : null
+}
+
 function normalizeTags(input: unknown): string[] {
   if (Array.isArray(input)) {
     return input.map(t => String(t).trim()).filter(Boolean)
@@ -162,6 +169,18 @@ export class BookValidationError extends Error {
     super(message)
     this.name = 'BookValidationError'
   }
+}
+
+const BOOK_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+export function normalizeBookSlug(value: unknown): string {
+  if (typeof value !== 'string') throw new BookValidationError('book slug is required')
+  const slug = value.trim().toLowerCase()
+  if (!slug) throw new BookValidationError('book slug is required')
+  if (slug.length > 100 || !BOOK_SLUG_PATTERN.test(slug)) {
+    throw new BookValidationError('book slug must contain lowercase Latin letters, digits, and single hyphens')
+  }
+  return slug
 }
 
 export interface CreateBookInput {

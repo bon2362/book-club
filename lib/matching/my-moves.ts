@@ -5,6 +5,7 @@ import type { GroupMember, MatchingScenario } from './scenarios'
 
 export interface MyMoveBook {
   bookId: string
+  bookSlug?: string | null
   title: string
   author: string
   description: string
@@ -125,6 +126,7 @@ export async function fetchMyMoves(
   const bookDetails = await db
     .select({
       id: books.id,
+      slug: books.slug,
       title: books.title,
       author: books.author,
       description: books.description,
@@ -143,6 +145,7 @@ export async function fetchMyMoves(
 
   return bookDetails.map(book => ({
     bookId: book.id,
+    bookSlug: book.slug,
     title: book.title,
     author: book.author,
     description: book.description,

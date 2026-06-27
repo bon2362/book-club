@@ -201,6 +201,7 @@ const mockSummaries = [
     updatedAt: '2026-06-20T10:00:00.000Z',
     bookTitle: 'Почему одни страны богатые',
     bookAuthor: 'Аджемоглу',
+    bookSlug: null,
     authorName: 'Алина',
     authorEmail: 'alina@test.com',
   },
@@ -224,6 +225,7 @@ const mockSummaryRevision = {
   updatedAt: '2026-06-25T10:00:00.000Z',
   bookTitle: 'Почему одни страны богатые',
   bookAuthor: 'Аджемоглу',
+  bookSlug: 'instituty',
   authorName: 'Алина',
   authorEmail: 'alina@test.com',
   publishedDisplayName: 'alina.reads',
@@ -550,6 +552,83 @@ describe('AdminPanel — Саммари таб', () => {
     })
   })
 
+  it('требует красивый URL и показывает ID саммари', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ json: () => Promise.resolve({ summaries: mockSummaries }), ok: true })
+      }
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }), ok: true })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+    fireEvent.click(screen.getByText(/саммари/i))
+    fireEvent.click(await screen.findByText('Институты, а не география'))
+
+    expect(screen.getByLabelText('Красивый URL книги')).toBeRequired()
+    expect(screen.getByText('ID саммари')).toBeInTheDocument()
+    expect(screen.getByText('sum-1')).toBeInTheDocument()
+  })
+
+  it('не публикует, если красивый URL не сохранился', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ json: () => Promise.resolve({ summaries: mockSummaries }), ok: true })
+      }
+      if (url === '/api/admin/summaries/sum-1' && init?.method === 'PATCH') {
+        return Promise.resolve({ json: () => Promise.resolve({ error: 'book slug already exists' }), ok: false })
+      }
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }), ok: true })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+    fireEvent.click(screen.getByText(/саммари/i))
+    fireEvent.click(await screen.findByText('Институты, а не география'))
+    fireEvent.change(screen.getByLabelText('Красивый URL книги'), { target: { value: 'duplicate' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Опубликовать' }))
+
+    expect(await screen.findByText('book slug already exists')).toBeInTheDocument()
+    expect(global.fetch).not.toHaveBeenCalledWith('/api/admin/summaries/sum-1/publish', { method: 'POST' })
+  })
+
+  it('сохраняет красивый URL перед первым отклонением', async () => {
+    ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/admin/summaries') {
+        return Promise.resolve({ json: () => Promise.resolve({ summaries: mockSummaries }), ok: true })
+      }
+      if (url === '/api/admin/summaries/sum-1' && init?.method === 'PATCH') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ summary: { ...mockSummaries[0], bookSlug: 'instituty' } }),
+          ok: true,
+        })
+      }
+      if (url === '/api/admin/summaries/sum-1/reject' && init?.method === 'POST') {
+        return Promise.resolve({
+          json: () => Promise.resolve({ summary: { ...mockSummaries[0], bookSlug: 'instituty', status: 'rejected' } }),
+          ok: true,
+        })
+      }
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }), ok: true })
+    })
+
+    render(<AdminPanel {...defaultProps} />)
+    fireEvent.click(screen.getByText(/саммари/i))
+    fireEvent.click(await screen.findByText('Институты, а не география'))
+    fireEvent.change(screen.getByLabelText('Красивый URL книги'), { target: { value: 'instituty' } })
+    fireEvent.change(screen.getByLabelText('Причина отказа саммари'), { target: { value: 'Нужно уточнить' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Отклонить' }))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/admin/summaries/sum-1', expect.objectContaining({
+        method: 'PATCH',
+        body: expect.stringContaining('"bookSlug":"instituty"'),
+      }))
+      expect(global.fetch).toHaveBeenCalledWith('/api/admin/summaries/sum-1/reject', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ rejectionReason: 'Нужно уточнить' }),
+      }))
+    })
+  })
+
   it('показывает и публикует правки к опубликованному саммари', async () => {
     ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
       if (url === '/api/admin/summaries') {
@@ -570,6 +649,10 @@ describe('AdminPanel — Саммари таб', () => {
     fireEvent.click(await screen.findByText('Новая версия институтов'))
     expect(screen.getByText('Правки к опубликованному')).toBeInTheDocument()
     expect(screen.getByText('Старая версия институтов')).toBeInTheDocument()
+    expect(screen.getByText('ID саммари')).toBeInTheDocument()
+    expect(screen.getByText('sum-published')).toBeInTheDocument()
+    expect(screen.getByText('ID ревизии')).toBeInTheDocument()
+    expect(screen.getByText('rev-1')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Опубликовать правки' }))
 
     await waitFor(() => {

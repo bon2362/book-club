@@ -69,7 +69,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
           )}
           {book.summaryCount > 0 && (
             <a
-              href={`/books/${book.id}/summaries`}
+              href={`/books/${book.slug ?? book.id}/summaries`}
               style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', textDecoration: 'none', borderBottom: '1px solid var(--accent)' }}
             >
               ✦ {book.summaryCount === 1 ? 'Саммари' : `${book.summaryCount} саммари`}

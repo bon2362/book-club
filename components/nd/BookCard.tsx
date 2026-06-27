@@ -124,7 +124,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
         )}
         {book.summaryCount > 0 && (
           <a
-            href={`/books/${book.id}/summaries`}
+            href={`/books/${book.slug ?? book.id}/summaries`}
             aria-label={`${book.summaryCount} саммари клуба`}
             style={{
               position: 'absolute',

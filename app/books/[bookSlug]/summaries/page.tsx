@@ -1,22 +1,41 @@
-import { notFound } from 'next/navigation'
-import { fetchBookById } from '@/lib/books'
+import type { Metadata } from 'next'
+import { notFound, redirect } from 'next/navigation'
+import { fetchBookById, fetchBookBySlug } from '@/lib/books'
 import { getPublishedSummariesForBook } from '@/lib/book-summaries'
 import SummaryMarkdown from '@/components/nd/SummaryMarkdown'
 
 export const dynamic = 'force-dynamic'
+
+async function resolveBookReference(bookReference: string) {
+  const slugBook = await fetchBookBySlug(bookReference)
+  return {
+    slugBook,
+    book: slugBook ?? await fetchBookById(bookReference),
+  }
+}
+
+export async function generateMetadata({ params }: { params: { bookSlug: string } }): Promise<Metadata> {
+  const { book } = await resolveBookReference(params.bookSlug)
+  if (!book) return {}
+  return {
+    alternates: {
+      canonical: `/books/${book.slug ?? book.id}/summaries`,
+    },
+  }
+}
 
 function formatDate(date: Date | null): string {
   if (!date) return ''
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(date)
 }
 
-export default async function BookSummariesPage({ params }: { params: { bookId: string } }) {
-  const [book, summaries] = await Promise.all([
-    fetchBookById(params.bookId),
-    getPublishedSummariesForBook(params.bookId),
-  ])
+export default async function BookSummariesPage({ params }: { params: { bookSlug: string } }) {
+  const { slugBook, book } = await resolveBookReference(params.bookSlug)
+  if (!book) notFound()
+  if (!slugBook && book.slug) redirect(`/books/${book.slug}/summaries`)
 
-  if (!book || summaries.length === 0) notFound()
+  const summaries = await getPublishedSummariesForBook(book.id)
+  if (summaries.length === 0) notFound()
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>

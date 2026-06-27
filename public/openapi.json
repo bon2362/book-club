@@ -897,6 +897,11 @@
             "type": "string",
             "nullable": true
           },
+          "bookSlug": {
+            "type": "string",
+            "nullable": true,
+            "description": "Уникальный красивый URL книги; до первой модерации может отсутствовать."
+          },
           "authorName": {
             "type": "string",
             "nullable": true
@@ -974,6 +979,11 @@
             "type": "string",
             "nullable": true
           },
+          "bookSlug": {
+            "type": "string",
+            "nullable": true,
+            "description": "Уникальный красивый URL связанной книги."
+          },
           "authorUserId": {
             "type": "string",
             "nullable": true
@@ -1021,6 +1031,28 @@
             "type": "string"
           }
         }
+      },
+      "AdminBookSummaryPatch": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BookSummaryPatch"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "bookSlug": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "maxLength": 100,
+                "description": "Уникальный slug книги. Обязателен до publish или reject."
+              },
+              "rejectionReason": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        ]
       },
       "BookSummaryRejectInput": {
         "type": "object",
@@ -4853,7 +4885,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BookSummaryPatch"
+                "$ref": "#/components/schemas/AdminBookSummaryPatch"
               }
             }
           }
@@ -5116,7 +5148,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BookSummaryPatch"
+                "$ref": "#/components/schemas/AdminBookSummaryPatch"
               }
             }
           }

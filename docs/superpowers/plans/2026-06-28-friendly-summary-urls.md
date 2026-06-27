@@ -152,7 +152,7 @@ Expected: PASS.
 
 - [ ] **Step 1: Write failing resolver tests**
 
-Test `fetchBookBySlug`, slug-first resolution, UUID fallback, and current-user summary lookup. Assert that UUID routes call `permanentRedirect('/books/dolgoe-otstuplenie/...')` once a slug exists and remain renderable when it does not.
+Test `fetchBookBySlug`, slug-first resolution, UUID fallback, and current-user summary lookup. Assert that UUID routes call `redirect('/books/dolgoe-otstuplenie/...')` once a slug exists and remain renderable when it does not.
 
 - [ ] **Step 2: Run focused tests and verify RED**
 
@@ -162,7 +162,7 @@ Expected: FAIL on missing lookup and routes.
 
 - [ ] **Step 3: Implement slug resolution and redirects**
 
-Add `fetchBookBySlug(slug)`. The public route resolves slug first, falls back to ID, and permanently redirects UUID references when `book.slug` exists. The friendly editor authenticates, resolves by slug, then calls `getAuthorSummaryForBook(book.id, session.user.id)`. The legacy editor permanently redirects after loading a book with a slug.
+Add `fetchBookBySlug(slug)`. The public route resolves slug first, falls back to ID, and redirects UUID references when `book.slug` exists. The friendly editor authenticates, resolves by slug, then calls `getAuthorSummaryForBook(book.id, session.user.id)`. The legacy editor redirects after loading a book with a slug. These redirects stay non-permanent because an administrator may later edit the slug.
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 

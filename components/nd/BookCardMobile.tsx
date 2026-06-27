@@ -93,7 +93,7 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
           <CoverImage coverUrl={book.coverUrl} title={book.name} author={book.author} />
           {book.summaryCount > 0 && (
             <a
-              href={`/books/${book.id}/summaries`}
+              href={`/books/${book.slug ?? book.id}/summaries`}
               aria-label={`${book.summaryCount} саммари клуба`}
               style={{
                 position: 'absolute',
