@@ -11,6 +11,9 @@ const config: Config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^transliteration$': '<rootDir>/node_modules/transliteration/dist/node/src/node/index.js',
+    // jsdom selects cheerio's ESM "browser" build; pin the slim CommonJS entry
+    // for Jest (slim omits the undici-based fromURL helper we never use).
+    '^cheerio$': '<rootDir>/node_modules/cheerio/dist/commonjs/slim.js',
   },
   clearMocks: true,
   collectCoverageFrom: [
