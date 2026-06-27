@@ -258,6 +258,8 @@ test.describe('Саммари книг', () => {
 
     await page.getByRole('button', { name: 'Предпросмотр' }).click()
     await expect.poll(() => wikipediaRequests).toBeGreaterThan(0)
+    // The article title shows in the collapsed card header once preloaded.
+    await expect(page.locator('.nd-wikipedia-embed__title')).toHaveText('Социализм')
     await page.locator('.nd-wikipedia-embed').getByRole('button', { name: /wikipedia/i }).click()
     await expect(
       page.locator('.nd-wikipedia-embed__reader').getByRole('heading', { name: 'Социализм', exact: true }),
