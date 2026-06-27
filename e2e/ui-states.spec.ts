@@ -935,6 +935,19 @@ test.describe('Wikipedia summary widget layout', () => {
     const widget = page.locator('.nd-wikipedia-embed')
     await expect(widget).toBeVisible()
 
+    // The article title is pinned to the top-right of the collapsed card.
+    const title = widget.locator('.nd-wikipedia-embed__title')
+    await expect(title).toHaveText('Социализм')
+    const widgetBox = await widget.boundingBox()
+    const titleBox = await title.boundingBox()
+    const labelBox = await widget.locator('.nd-wikipedia-embed__label').boundingBox()
+    expect(widgetBox).not.toBeNull()
+    expect(titleBox).not.toBeNull()
+    expect(labelBox).not.toBeNull()
+    expect(widgetBox!.x + widgetBox!.width - (titleBox!.x + titleBox!.width)).toBeLessThan(40)
+    expect(titleBox!.x).toBeGreaterThan(labelBox!.x + labelBox!.width)
+    expect(titleBox!.y).toBeLessThan(labelBox!.y + labelBox!.height + 8)
+
     const followingParagraph = page.getByText('Абзац после Wikipedia-вставки.')
     const before = await followingParagraph.boundingBox()
 

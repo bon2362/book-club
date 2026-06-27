@@ -57,12 +57,17 @@ export default function WikipediaEmbed({ sourceUrl, children }: Props) {
   return (
     <aside className="nd-wikipedia-embed" data-open={open ? 'true' : 'false'}>
       <div className="nd-wikipedia-embed__summary">
-        <span className="nd-wikipedia-embed__label">
-          <span className="nd-wikipedia-embed__mark" aria-hidden="true">
-            W
+        <div className="nd-wikipedia-embed__header">
+          <span className="nd-wikipedia-embed__label">
+            <span className="nd-wikipedia-embed__mark" aria-hidden="true">
+              W
+            </span>
+            Wikipedia
           </span>
-          Wikipedia
-        </span>
+          {load.status === 'ready' && (
+            <span className="nd-wikipedia-embed__title">{load.article.title}</span>
+          )}
+        </div>
         <div className="nd-wikipedia-embed__author">{children}</div>
         <div className="nd-wikipedia-embed__actions">
           {load.status === 'error' ? (

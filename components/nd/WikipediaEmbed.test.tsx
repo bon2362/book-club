@@ -61,6 +61,20 @@ describe('WikipediaEmbed', () => {
     expect(screen.queryByRole('region', { name: /статья wikipedia/i })).not.toBeInTheDocument()
   })
 
+  it('shows the article title in the collapsed card once preloaded', async () => {
+    render(
+      <WikipediaEmbed sourceUrl={sourceUrl}>
+        <p>Авторский текст</p>
+      </WikipediaEmbed>,
+    )
+
+    const title = await screen.findByText('Socialism')
+    expect(title).toBeVisible()
+    expect(title).toHaveClass('nd-wikipedia-embed__title')
+    // The title appears in the card header without opening the reader.
+    expect(screen.queryByRole('region', { name: /статья wikipedia/i })).not.toBeInTheDocument()
+  })
+
   it('opens ready content without a second request', async () => {
     render(
       <WikipediaEmbed sourceUrl={sourceUrl}>
