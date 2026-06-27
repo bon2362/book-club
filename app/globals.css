@@ -217,6 +217,16 @@ body {
   outline-offset: 4px;
 }
 
+.nd-summary-details:not([open]) .nd-summary-details__summary {
+  margin-left: -1.25rem;
+  padding-left: 1.25rem;
+  transition: background 120ms ease;
+}
+
+.nd-summary-details:not([open]) .nd-summary-details__summary:hover {
+  background: var(--accent-soft);
+}
+
 .nd-summary-details__rail {
   position: absolute;
   z-index: 1;
@@ -277,12 +287,18 @@ body {
     padding-left: 1rem;
   }
 
+  .nd-summary-details:not([open]) .nd-summary-details__summary {
+    margin-left: -1rem;
+    padding-left: 1rem;
+  }
+
   .nd-summary-blockquote {
     padding-left: 2.1rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .nd-summary-details:not([open]) .nd-summary-details__summary,
   .nd-summary-details__rail::before {
     transition: none;
   }

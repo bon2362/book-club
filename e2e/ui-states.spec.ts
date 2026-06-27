@@ -240,6 +240,7 @@ test.describe('Summary editor layout', () => {
     await page.getByRole('button', { name: 'Предпросмотр' }).click()
 
     const details = page.locator('.nd-summary-details')
+    const summary = details.locator('.nd-summary-details__summary')
     const rail = details.locator('.nd-summary-details__rail')
     const bodyText = page.getByText('Текст подробного слоя можно спокойно выделять.')
     const quote = page.locator('.nd-summary-blockquote')
@@ -278,6 +279,18 @@ test.describe('Summary editor layout', () => {
     await rail.click({ position: { x: railBox!.width / 2, y: railBox!.height - 8 } })
     await expect(details).not.toHaveAttribute('open')
     await expect(bodyText).not.toBeVisible()
+
+    const accentSoft = await page.evaluate(() => {
+      const probe = document.createElement('div')
+      probe.style.background = 'var(--accent-soft)'
+      document.body.appendChild(probe)
+      const color = getComputedStyle(probe).backgroundColor
+      probe.remove()
+      return color
+    })
+    await expect(summary).not.toHaveCSS('background-color', accentSoft)
+    await summary.hover()
+    await expect(summary).toHaveCSS('background-color', accentSoft)
   })
 })
 
