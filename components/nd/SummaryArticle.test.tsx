@@ -21,7 +21,7 @@ describe('SummaryArticle', () => {
     )
     expect(screen.getByRole('heading', { name: 'Почему институты важны', level: 2 })).toBeInTheDocument()
     expect(screen.getByText('Reader One')).toBeInTheDocument()
-    expect(screen.getByText('8 мин чтения', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('8 мин чтения · опубликовано 14 марта')).toBeInTheDocument()
     expect(screen.getByText('Экономика держится на правилах игры.')).toBeInTheDocument()
   })
 })

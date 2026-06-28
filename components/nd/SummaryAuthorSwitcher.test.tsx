@@ -11,7 +11,7 @@ describe('SummaryAuthorSwitcher', () => {
     render(<SummaryAuthorSwitcher authors={authors} activeSlug="боря" basePath="/books/x/summaries" writeHref="/books/x/my-summary/edit" />)
     const active = screen.getByRole('link', { name: /Боря/ })
     expect(active).toHaveAttribute('href', '/books/x/summaries?author=%D0%B1%D0%BE%D1%80%D1%8F')
-    expect(active).toHaveAttribute('aria-current', 'true')
+    expect(active).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /Аня/ })).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('link', { name: '+ Написать своё' })).toHaveAttribute('href', '/books/x/my-summary/edit')
   })

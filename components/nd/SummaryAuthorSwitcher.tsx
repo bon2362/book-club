@@ -41,7 +41,7 @@ export default function SummaryAuthorSwitcher({ authors, activeSlug, basePath, w
           <Link
             key={author.slug}
             href={`${basePath}?author=${encodeURIComponent(author.slug)}`}
-            aria-current={active ? 'true' : undefined}
+            aria-current={active ? 'page' : undefined}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
