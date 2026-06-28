@@ -58,6 +58,10 @@ interface Tool {
   after: string
   placeholder: string
   format?: (text: string) => string
+  // Когда текст уже был выделен, после вставки выделить эту подстроку из `after`
+  // (например URL у ссылки), чтобы её можно было сразу перепечатать. Без выделения
+  // работает обычная логика — выделяется вставленный плейсхолдер.
+  selectInAfterWhenSelected?: string
 }
 
 const tools: Tool[] = [
@@ -68,7 +72,7 @@ const tools: Tool[] = [
   { label: 'Маркированный список', text: '•', before: '', after: '', placeholder: 'Пункт списка', format: formatUnorderedList },
   { label: 'Нумерованный список', text: '1.', before: '', after: '', placeholder: 'Пункт списка', format: formatOrderedList },
   { label: 'Сворачиваемый раздел', text: '▾', before: '\n<details>\n<summary>Заголовок раздела</summary>\n\n', after: '\n</details>', placeholder: 'Текст раздела' },
-  { label: 'Ссылка', text: 'Link', before: '[', after: '](https://)', placeholder: 'текст ссылки' },
+  { label: 'Ссылка', text: 'Link', before: '[', after: '](https://)', placeholder: 'текст ссылки', selectInAfterWhenSelected: 'https://' },
 ]
 
 function formatUnorderedList(text: string): string {
@@ -126,9 +130,18 @@ export default function MarkdownToolbar({ textareaRef, value, onChange }: Props)
     const next = `${value.slice(0, start)}${tool.before}${inner}${tool.after}${value.slice(end)}`
     onChange(next)
 
-    const cursorStart = start + tool.before.length
-    const cursorEnd = cursorStart + inner.length
-    restoreTextareaSelection(textareaRef, cursorStart, cursorEnd, selection)
+    const hadSelection = start !== end
+    const afterTarget = tool.selectInAfterWhenSelected
+    if (hadSelection && afterTarget) {
+      const offset = tool.after.indexOf(afterTarget)
+      const cursorStart = start + tool.before.length + inner.length + offset
+      const cursorEnd = cursorStart + afterTarget.length
+      restoreTextareaSelection(textareaRef, cursorStart, cursorEnd, selection)
+    } else {
+      const cursorStart = start + tool.before.length
+      const cursorEnd = cursorStart + inner.length
+      restoreTextareaSelection(textareaRef, cursorStart, cursorEnd, selection)
+    }
   }
 
   return (

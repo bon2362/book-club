@@ -99,6 +99,42 @@ describe('MarkdownToolbar', () => {
     expect(textarea.value).toBe('1. первый\n2. второй')
   })
 
+  it('selects the URL placeholder after linking selected text', () => {
+    jest.useFakeTimers()
+    try {
+      render(<Harness />)
+      const textarea = screen.getByLabelText('markdown') as HTMLTextAreaElement
+      textarea.focus()
+      textarea.setSelectionRange(0, 6)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ссылка' }))
+      act(() => { jest.runOnlyPendingTimers() })
+
+      expect(textarea.value).toBe('[важный](https://) текст')
+      expect(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd)).toBe('https://')
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('selects the link-text placeholder when nothing was selected', () => {
+    jest.useFakeTimers()
+    try {
+      render(<Harness />)
+      const textarea = screen.getByLabelText('markdown') as HTMLTextAreaElement
+      textarea.focus()
+      textarea.setSelectionRange(0, 0)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ссылка' }))
+      act(() => { jest.runOnlyPendingTimers() })
+
+      expect(textarea.value).toBe('[текст ссылки](https://)важный текст')
+      expect(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd)).toBe('текст ссылки')
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
   function openDialog(textarea: HTMLTextAreaElement, start: number, end: number) {
     textarea.focus()
     textarea.setSelectionRange(start, end)
