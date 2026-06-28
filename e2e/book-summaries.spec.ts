@@ -113,6 +113,7 @@ test.describe('Саммари книг', () => {
     await expect(page).toHaveURL(new RegExp(`/books/${bookSlug}/summaries$`))
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Почему институты решают' })).toBeVisible()
+    await expect(page.getByText('Пока одно саммари этой книги.')).toBeVisible()
     await expect(page.getByText('Reader One')).toBeVisible()
     await expect(page.getByText('Первый абзац раскрывает общий тезис.')).toBeVisible()
     await expect(page.getByText('Второй абзац продолжает мысль с видимым отступом.')).toBeVisible()
@@ -306,5 +307,76 @@ test.describe('Саммари книг', () => {
     await expect(
       page.locator('.nd-wikipedia-embed').getByRole('link', { name: /Открыть статью в Wikipedia/i }),
     ).toBeVisible()
+  })
+
+  async function publishSummary(
+    page: import('@playwright/test').Page,
+    opts: { bookId: string; bookSlug: string; userName: string; displayName: string; title: string; tldr: string; body: string },
+    loginAsUser: (args: { name: string }) => Promise<{ userId: string; name: string; email: string }>,
+    loginAsAdmin: (args: { name: string }) => Promise<unknown>,
+  ) {
+    const user = await loginAsUser({ name: opts.userName })
+    await page.request.post('/api/test/signup', {
+      data: { userId: user.userId, name: user.name, email: user.email, contacts: '@e2e', selectedBookIds: [opts.bookId] },
+    })
+    await page.request.patch(`/api/signup-books/${encodeURIComponent(opts.bookId)}/status`, { data: { status: 'read' } })
+    const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(opts.bookId)}`)
+    const draft = (await draftRes.json()) as { summary: { id: string } }
+
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+    await page.getByLabel('Имя для публикации').fill(opts.displayName)
+    await page.getByLabel('Заголовок саммари').fill(opts.title)
+    await page.getByLabel('В двух словах').fill(opts.tldr)
+    await page.getByLabel('Текст саммари').fill(opts.body)
+    await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
+    await page.getByRole('button', { name: 'Отправить на проверку' }).click()
+    await expect(page).toHaveURL(/\/$/)
+
+    await loginAsAdmin({ name: 'E2E Switcher Admin' })
+    await page.goto('/admin?tab=summaries')
+    await page.waitForLoadState('networkidle')
+    await page.getByText(opts.title).first().click()
+    await page.getByLabel('Красивый URL книги').fill(opts.bookSlug)
+    const publishResponse = page.waitForResponse(
+      r => r.url().includes(`/api/admin/summaries/${draft.summary.id}/publish`) && r.request().method() === 'POST',
+    )
+    await page.getByRole('button', { name: 'Опубликовать' }).click()
+    expect((await publishResponse).ok()).toBe(true)
+    return draft.summary.id
+  }
+
+  test('переключатель авторов показывает одно саммари за раз и хранит выбор в URL', async ({ page, createTestBook, loginAsUser, loginAsAdmin }) => {
+    const bookSlug = `e2e-switch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const book = await createTestBook({ title: 'E2E Switcher Book', author: 'E2E Author', tags: ['институты'] })
+
+    await publishSummary(page, {
+      bookId: book.id, bookSlug, userName: 'E2E Alpha', displayName: 'Автор Альфа',
+      title: 'Саммари Альфы', tldr: 'Тезис Альфы.', body: '## Раздел Альфы\n\nТекст саммари Альфы.',
+    }, loginAsUser, loginAsAdmin)
+
+    await publishSummary(page, {
+      bookId: book.id, bookSlug, userName: 'E2E Beta', displayName: 'Автор Бета',
+      title: 'Саммари Беты', tldr: 'Тезис Беты.', body: '## Раздел Беты\n\nТекст саммари Беты.',
+    }, loginAsUser, loginAsAdmin)
+
+    await page.goto(`/books/${bookSlug}/summaries`)
+    await page.waitForLoadState('networkidle')
+
+    // Дефолт — самое свежее саммари (Бета опубликована последней).
+    await expect(page.getByRole('heading', { name: 'Саммари Беты', level: 2 })).toBeVisible()
+    await expect(page.getByText('Текст саммари Альфы.')).toHaveCount(0)
+
+    // Переключаемся на Альфу.
+    await page.getByRole('link', { name: /Автор Альфа/ }).click()
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(/\?author=/)
+    await expect(page.getByRole('heading', { name: 'Саммари Альфы', level: 2 })).toBeVisible()
+    await expect(page.getByText('Текст саммари Беты.')).toHaveCount(0)
+
+    // Выбор хранится в URL — после перезагрузки остаётся Альфа.
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('heading', { name: 'Саммари Альфы', level: 2 })).toBeVisible()
   })
 })
