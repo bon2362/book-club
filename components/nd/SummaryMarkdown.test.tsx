@@ -56,10 +56,13 @@ describe('SummaryMarkdown', () => {
     render(<SummaryMarkdown markdown={'### Подраздел\n\n#### Внутренний тезис'} />)
 
     expect(screen.getByRole('heading', { name: 'Подраздел', level: 3 })).toHaveStyle({
-      fontSize: '1.12rem',
+      fontSize: '0.78rem',
+      textTransform: 'uppercase',
+      color: 'var(--accent)',
     })
     expect(screen.getByRole('heading', { name: 'Внутренний тезис', level: 4 })).toHaveStyle({
       textTransform: 'uppercase',
+      color: 'var(--text-muted)',
     })
   })
 
