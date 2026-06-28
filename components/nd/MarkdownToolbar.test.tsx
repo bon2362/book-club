@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useRef, useState } from 'react'
 import MarkdownToolbar from './MarkdownToolbar'
 
@@ -23,6 +23,38 @@ describe('MarkdownToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Жирный' }))
 
     expect(textarea.value).toBe('**важный** текст')
+  })
+
+  it('restores selection and textarea viewport without scrolling on focus', () => {
+    jest.useFakeTimers()
+    let focusSpy: jest.SpyInstance | undefined
+    try {
+      render(<Harness />)
+      const textarea = screen.getByLabelText('markdown') as HTMLTextAreaElement
+      focusSpy = jest.spyOn(textarea, 'focus')
+      textarea.focus()
+      focusSpy.mockClear()
+      textarea.setSelectionRange(0, 6)
+      textarea.scrollTop = 240
+      textarea.scrollLeft = 12
+
+      fireEvent.click(screen.getByRole('button', { name: 'Жирный' }))
+      act(() => { jest.runOnlyPendingTimers() })
+
+      expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+      expect(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd)).toBe('важный')
+      expect(textarea.scrollTop).toBe(240)
+      expect(textarea.scrollLeft).toBe(12)
+    } finally {
+      focusSpy?.mockRestore()
+      jest.useRealTimers()
+    }
+  })
+
+  it('does not let a pointer press steal focus from the textarea', () => {
+    render(<Harness />)
+
+    expect(fireEvent.mouseDown(screen.getByRole('button', { name: 'Жирный' }))).toBe(false)
   })
 
   it('inserts a portable details block template', () => {

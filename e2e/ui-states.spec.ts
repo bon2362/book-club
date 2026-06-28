@@ -252,6 +252,87 @@ test.describe('Summary editor layout', () => {
     expect(toolbarBox!.width).toBeGreaterThanOrEqual(workspaceBox!.width - 64)
   })
 
+  test('форматирование не меняет прокрутку и сохраняет выделенный текст', async ({
+    page,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    const book = await createTestBook({
+      title: `UI Summary Formatting ${Date.now()}`,
+      author: 'Layout Author',
+    })
+    const user = await loginAsUser({ name: 'UI Formatting Writer' })
+    const signupRes = await page.request.post('/api/test/signup', {
+      data: {
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        contacts: '@ui_formatting_writer',
+        selectedBookIds: [book.id],
+      },
+    })
+    expect(signupRes.ok()).toBe(true)
+    const statusRes = await page.request.patch(`/api/signup-books/${encodeURIComponent(book.id)}/status`, {
+      data: { status: 'read' },
+    })
+    expect(statusRes.ok()).toBe(true)
+    const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(book.id)}`)
+    expect(draftRes.ok()).toBe(true)
+    const draft = (await draftRes.json()) as { summary: { id: string } }
+    const marker = 'выделенный фрагмент'
+    const longBody = [
+      ...Array.from({ length: 70 }, (_, index) => `Вводная строка ${index}`),
+      marker,
+      ...Array.from({ length: 70 }, (_, index) => `Заключительная строка ${index}`),
+    ].join('\n')
+    const saveRes = await page.request.patch(`/api/summaries/${draft.summary.id}`, {
+      data: { bodyMarkdown: longBody },
+    })
+    expect(saveRes.ok()).toBe(true)
+
+    await page.goto(`/summaries/${draft.summary.id}/edit`)
+    await page.waitForLoadState('networkidle')
+    const textarea = page.getByLabel('Текст саммари')
+    const boldButton = page.getByRole('button', { name: 'Жирный' })
+    await expect(textarea).toBeVisible()
+    await expect(boldButton).toBeVisible()
+
+    await textarea.evaluate((element, selectedText) => {
+      const input = element as HTMLTextAreaElement
+      const start = input.value.indexOf(selectedText)
+      input.focus()
+      input.setSelectionRange(start, start + selectedText.length)
+      input.scrollTop = Math.min(900, input.scrollHeight - input.clientHeight)
+    }, marker)
+    await page.evaluate(() => window.scrollTo({ top: 640, behavior: 'instant' }))
+
+    const before = await textarea.evaluate(element => {
+      const input = element as HTMLTextAreaElement
+      return { pageY: window.scrollY, scrollTop: input.scrollTop }
+    })
+
+    await boldButton.click()
+    await expect.poll(() => textarea.evaluate(element => {
+      const input = element as HTMLTextAreaElement
+      return input.value.slice(input.selectionStart, input.selectionEnd)
+    })).toBe(marker)
+
+    const after = await textarea.evaluate(element => {
+      const input = element as HTMLTextAreaElement
+      return {
+        pageY: window.scrollY,
+        scrollTop: input.scrollTop,
+        focused: document.activeElement === input,
+        formatted: input.value.includes('**выделенный фрагмент**'),
+      }
+    })
+    expect(after.focused).toBe(true)
+    expect(after.formatted).toBe(true)
+    expect(Math.abs(after.pageY - before.pageY)).toBeLessThanOrEqual(1)
+    expect(Math.abs(after.scrollTop - before.scrollTop)).toBeLessThanOrEqual(1)
+  })
+
   test('details rail spans the open block and only the rail collapses body text', async ({ page, createTestBook, loginAsUser }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     const book = await createTestBook({
