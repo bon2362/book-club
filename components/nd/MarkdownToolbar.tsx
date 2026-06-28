@@ -10,6 +10,38 @@ interface Props {
   onChange: (value: string) => void
 }
 
+interface TextareaSelection {
+  start: number
+  end: number
+  scrollTop: number
+  scrollLeft: number
+}
+
+function readTextareaSelection(textarea: HTMLTextAreaElement | null, fallback: number): TextareaSelection {
+  return {
+    start: textarea?.selectionStart ?? fallback,
+    end: textarea?.selectionEnd ?? fallback,
+    scrollTop: textarea?.scrollTop ?? 0,
+    scrollLeft: textarea?.scrollLeft ?? 0,
+  }
+}
+
+function restoreTextareaSelection(
+  textareaRef: RefObject<HTMLTextAreaElement>,
+  start: number,
+  end: number,
+  viewport: Pick<TextareaSelection, 'scrollTop' | 'scrollLeft'>,
+) {
+  window.setTimeout(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    textarea.focus({ preventScroll: true })
+    textarea.setSelectionRange(start, end)
+    textarea.scrollTop = viewport.scrollTop
+    textarea.scrollLeft = viewport.scrollLeft
+  }, 0)
+}
+
 export function formatWikipediaEmbed(text: string, target: WikipediaTarget): string {
   const authorText = text || 'Текст вставки'
   const quote = authorText
@@ -60,19 +92,15 @@ function formatOrderedList(text: string): string {
 
 export default function MarkdownToolbar({ textareaRef, value, onChange }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const selectionRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 })
+  const selectionRef = useRef<TextareaSelection>({ start: 0, end: 0, scrollTop: 0, scrollLeft: 0 })
 
   function openWikipediaDialog() {
-    const textarea = textareaRef.current
-    selectionRef.current = {
-      start: textarea?.selectionStart ?? value.length,
-      end: textarea?.selectionEnd ?? value.length,
-    }
+    selectionRef.current = readTextareaSelection(textareaRef.current, value.length)
     setDialogOpen(true)
   }
 
   function insertWikipedia(target: WikipediaTarget) {
-    const { start, end } = selectionRef.current
+    const { start, end, scrollTop, scrollLeft } = selectionRef.current
     const selected = value.slice(start, end)
     const authorText = selected || 'Текст вставки'
     const block = formatWikipediaEmbed(selected, target)
@@ -87,28 +115,20 @@ export default function MarkdownToolbar({ textareaRef, value, onChange }: Props)
 
     const authorStart = before.length + leading.length + 2 // skip the leading "> "
     const authorEnd = authorStart + authorText.length
-    window.setTimeout(() => {
-      const textarea = textareaRef.current
-      textarea?.focus()
-      textarea?.setSelectionRange(authorStart, authorEnd)
-    }, 0)
+    restoreTextareaSelection(textareaRef, authorStart, authorEnd, { scrollTop, scrollLeft })
   }
 
   function applyTool(tool: Tool) {
-    const textarea = textareaRef.current
-    const start = textarea?.selectionStart ?? value.length
-    const end = textarea?.selectionEnd ?? value.length
+    const selection = readTextareaSelection(textareaRef.current, value.length)
+    const { start, end } = selection
     const selected = value.slice(start, end)
     const inner = tool.format ? tool.format(selected || tool.placeholder) : selected || tool.placeholder
     const next = `${value.slice(0, start)}${tool.before}${inner}${tool.after}${value.slice(end)}`
     onChange(next)
 
-    window.setTimeout(() => {
-      textarea?.focus()
-      const cursorStart = start + tool.before.length
-      const cursorEnd = cursorStart + inner.length
-      textarea?.setSelectionRange(cursorStart, cursorEnd)
-    }, 0)
+    const cursorStart = start + tool.before.length
+    const cursorEnd = cursorStart + inner.length
+    restoreTextareaSelection(textareaRef, cursorStart, cursorEnd, selection)
   }
 
   return (
@@ -118,6 +138,7 @@ export default function MarkdownToolbar({ textareaRef, value, onChange }: Props)
           key={tool.label}
           type="button"
           aria-label={tool.label}
+          onMouseDown={event => event.preventDefault()}
           onClick={() => applyTool(tool)}
           style={{
             minWidth: 30,
@@ -138,6 +159,7 @@ export default function MarkdownToolbar({ textareaRef, value, onChange }: Props)
       <button
         type="button"
         aria-label="Вставка из Wikipedia"
+        onMouseDown={event => event.preventDefault()}
         onClick={openWikipediaDialog}
         style={{
           minWidth: 30,
