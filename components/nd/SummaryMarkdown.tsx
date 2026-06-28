@@ -81,7 +81,7 @@ function MarkdownBlock({ markdown }: Props) {
           ),
           h1: ({ children }) => <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '1.8rem', lineHeight: 1.15, margin: '1.5rem 0 0.75rem' }}>{children}</h1>,
           h2: ({ children }) => <h2 style={{ fontFamily: 'var(--nd-serif)', fontSize: '1.35rem', lineHeight: 1.2, margin: '1.35rem 0 0.6rem' }}>{children}</h2>,
-          h3: ({ children }) => <h3 style={{ fontFamily: 'var(--nd-serif)', fontSize: '1.12rem', lineHeight: 1.25, margin: '1.2rem 0 0.5rem' }}>{children}</h3>,
+          h3: ({ children }) => <h3 style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.78rem', fontWeight: 600, lineHeight: 1.4, margin: '2.25rem 0 0.6rem', textTransform: 'uppercase', letterSpacing: '0.13em', color: 'var(--accent)' }}>{children}</h3>,
           h4: ({ children }) => <h4 style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.72rem', lineHeight: 1.4, margin: '1rem 0 0.4rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>{children}</h4>,
           p: ({ children }) => <p style={{ margin: '0 0 1rem' }}>{children}</p>,
           blockquote: ({ children }) => (
