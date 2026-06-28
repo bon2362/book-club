@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { fetchBookById, fetchBookBySlug } from '@/lib/books'
 import { getPublishedSummariesForBook } from '@/lib/book-summaries'
-import SummaryMarkdown from '@/components/nd/SummaryMarkdown'
+import SummaryAuthorSwitcher from '@/components/nd/SummaryAuthorSwitcher'
+import SummaryArticle from '@/components/nd/SummaryArticle'
+import { buildAuthorSlugs, estimateReadingMinutes, selectSummaryIndex } from '@/lib/summary-view'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,18 +26,26 @@ export async function generateMetadata({ params }: { params: { bookSlug: string 
   }
 }
 
-function formatDate(date: Date | null): string {
-  if (!date) return ''
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(date)
-}
-
-export default async function BookSummariesPage({ params }: { params: { bookSlug: string } }) {
+export default async function BookSummariesPage({
+  params,
+  searchParams,
+}: {
+  params: { bookSlug: string }
+  searchParams: { author?: string }
+}) {
   const { slugBook, book } = await resolveBookReference(params.bookSlug)
   if (!book) notFound()
   if (!slugBook && book.slug) redirect(`/books/${book.slug}/summaries`)
 
   const summaries = await getPublishedSummariesForBook(book.id)
   if (summaries.length === 0) notFound()
+
+  const slugs = buildAuthorSlugs(summaries)
+  const activeIndex = selectSummaryIndex(slugs, searchParams.author)
+  const active = summaries[activeIndex]
+  const basePath = `/books/${book.slug ?? book.id}/summaries`
+  const writeHref = `/books/${book.slug ?? book.id}/my-summary/edit`
+  const authors = summaries.map((summary, index) => ({ slug: slugs[index], displayName: summary.displayName }))
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
@@ -49,29 +59,17 @@ export default async function BookSummariesPage({ params }: { params: { bookSlug
           </p>
         </header>
 
-        <div style={{ display: 'grid', gap: '2.5rem' }}>
-          {summaries.map((summary, index) => (
-            <article key={summary.id} id={summary.id} style={{ borderBottom: index === summaries.length - 1 ? 'none' : '1px solid var(--border)', paddingBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
-                <div style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: 'var(--text)' }}>{summary.displayName}</strong>
-                  {summary.publishedAt ? ` · ${formatDate(summary.publishedAt)}` : ''}
-                </div>
-                {summaries.length > 1 && (
-                  <span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    {index + 1} / {summaries.length}
-                  </span>
-                )}
-              </div>
-              <h2 style={{ fontFamily: 'var(--nd-serif)', fontSize: '1.55rem', lineHeight: 1.18, margin: '0 0 1rem' }}>{summary.title}</h2>
-              <section style={{ margin: '0 0 1.4rem', padding: '1rem', borderLeft: '2px solid var(--accent)', background: 'var(--bg-tint)' }}>
-                <div style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: '0.4rem' }}>В двух словах</div>
-                <p style={{ margin: 0, fontFamily: 'var(--nd-serif)', lineHeight: 1.6 }}>{summary.tldr}</p>
-              </section>
-              <SummaryMarkdown markdown={summary.bodyMarkdown} />
-            </article>
-          ))}
-        </div>
+        <SummaryAuthorSwitcher authors={authors} activeSlug={slugs[activeIndex]} basePath={basePath} writeHref={writeHref} />
+
+        <SummaryArticle
+          key={active.id}
+          displayName={active.displayName}
+          title={active.title}
+          tldr={active.tldr}
+          bodyMarkdown={active.bodyMarkdown}
+          publishedAt={active.publishedAt}
+          readingMinutes={estimateReadingMinutes(active.bodyMarkdown)}
+        />
       </div>
     </main>
   )
