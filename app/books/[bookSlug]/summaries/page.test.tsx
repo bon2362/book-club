@@ -17,7 +17,8 @@ jest.mock('@/lib/books', () => ({
 jest.mock('@/lib/book-summaries', () => ({
   getPublishedSummariesForBook: jest.fn(),
 }))
-jest.mock('@/components/nd/SummaryMarkdown', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/nd/SummaryAuthorSwitcher', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/nd/SummaryArticle', () => ({ __esModule: true, default: () => null }))
 
 import { fetchBookById, fetchBookBySlug } from '@/lib/books'
 import BookSummariesPage, { generateMetadata } from './page'
@@ -48,7 +49,7 @@ describe('/books/[bookSlug]/summaries', () => {
       author: 'Автор',
     })
 
-    await expect(BookSummariesPage({ params: { bookSlug: 'legacy-book-id' } })).rejects.toThrow('NEXT_REDIRECT')
+    await expect(BookSummariesPage({ params: { bookSlug: 'legacy-book-id' }, searchParams: {} })).rejects.toThrow('NEXT_REDIRECT')
     expect(redirect).toHaveBeenCalledWith('/books/novyi-slug/summaries')
   })
 })
