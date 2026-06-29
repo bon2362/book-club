@@ -65,4 +65,11 @@ describe('no-legacy-matching-runtime', () => {
     )
     expect(hits).toHaveLength(0)
   })
+
+  it('does not import deleted preference-event-display module', () => {
+    const hits = rg("from.*preference-event-display", RUNTIME_DIRS).filter(
+      (line) => !line.includes('no-legacy-runtime.test.ts'),
+    )
+    expect(hits).toHaveLength(0)
+  })
 })
