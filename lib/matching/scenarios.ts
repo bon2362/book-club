@@ -223,6 +223,13 @@ export function filterSignupsByMode(
   mode: OptimizationMode,
 ): ScenarioSignup[] {
   if (mode !== 'satisfaction') return signups
+  return filterRankedSignups(signups, ranks)
+}
+
+export function filterRankedSignups(
+  signups: ScenarioSignup[],
+  ranks: ScenarioRank[],
+): ScenarioSignup[] {
   const ranked = new Set(
     ranks
       .filter((rank) => rank.rank !== null)
@@ -597,6 +604,16 @@ export function generateScenarioSets(input: GenerateScenariosInput): ScenarioSet
     maxGroupSize,
     mode,
   }
+}
+
+export function generateSatisfactionScenarioSets(
+  input: Omit<GenerateScenariosInput, 'mode' | 'maxResults'>,
+): ScenarioSetOverview {
+  return generateScenarioSets({
+    ...input,
+    signups: filterRankedSignups(input.signups, input.ranks),
+    mode: 'satisfaction',
+  })
 }
 
 function toScenarioCard(circle: MatchingCircle, tier: ScenarioCard['tier']): ScenarioCard {

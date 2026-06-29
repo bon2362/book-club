@@ -108,3 +108,66 @@ export function publicizeMyMoves(moves: MyMoveBook[], ids: ParticipantIdMap): My
       : undefined,
   }))
 }
+
+export interface InternalMatchingParticipantState {
+  userId: string
+  publicRef: string
+  displayName: string
+  online: boolean
+  confirmedCircleKey: string | null
+}
+
+export interface InternalMatchingCircleState {
+  circleKey: string
+  bookId: string
+  memberUserIds: string[]
+  confirmedUserIds: string[]
+}
+
+export interface PublicMatchingParticipantState {
+  ref: string
+  displayName: string
+  online: boolean
+  confirmedCircleKey: string | null
+}
+
+export interface PublicMatchingCircleState {
+  circleKey: string
+  bookId: string
+  memberRefs: string[]
+  confirmedRefs: string[]
+}
+
+function requirePublicRef(userId: string, refs: ReadonlyMap<string, string>): string {
+  const ref = refs.get(userId)
+  if (!ref) throw new Error(`Unknown matching participant: ${userId}`)
+  return ref
+}
+
+export function buildPublicMatchingState(input: {
+  participants: InternalMatchingParticipantState[]
+  circles: InternalMatchingCircleState[]
+}): {
+  participants: PublicMatchingParticipantState[]
+  circles: PublicMatchingCircleState[]
+} {
+  const refs = new Map(input.participants.map((participant) => [
+    participant.userId,
+    participant.publicRef,
+  ]))
+
+  return {
+    participants: input.participants.map((participant) => ({
+      ref: participant.publicRef,
+      displayName: participant.displayName,
+      online: participant.online,
+      confirmedCircleKey: participant.confirmedCircleKey,
+    })),
+    circles: input.circles.map((circle) => ({
+      circleKey: circle.circleKey,
+      bookId: circle.bookId,
+      memberRefs: circle.memberUserIds.map((userId) => requirePublicRef(userId, refs)),
+      confirmedRefs: circle.confirmedUserIds.map((userId) => requirePublicRef(userId, refs)),
+    })),
+  }
+}

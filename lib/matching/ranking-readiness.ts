@@ -13,26 +13,39 @@ function key(userId: string, bookId: string) {
   return `${userId}\u0000${bookId}`
 }
 
-export function userHasCompleteActiveRanking(
+export function userNeedsRankingGate(
   userId: string,
   activeSignups: ActiveSignup[],
   ranks: RankRow[],
 ) {
   const userActiveSignups = activeSignups.filter((signup) => signup.userId === userId)
-  if (userActiveSignups.length === 0) return false
-
   const ranked = new Set(
     ranks
       .filter((rank) => rank.rank !== null)
       .map((rank) => key(rank.userId, rank.bookId)),
   )
 
-  return userActiveSignups.every((signup) => ranked.has(key(signup.userId, signup.bookId)))
+  return userActiveSignups.some((signup) => !ranked.has(key(signup.userId, signup.bookId)))
+}
+
+export function listNeedsRankingGate(
+  books: { isInList: boolean; personalStatus: string | null; rank: number | null }[],
+) {
+  return books.some(
+    (book) => book.isInList && book.personalStatus === null && book.rank === null,
+  )
+}
+
+export function userHasCompleteActiveRanking(
+  userId: string,
+  activeSignups: ActiveSignup[],
+  ranks: RankRow[],
+) {
+  return !userNeedsRankingGate(userId, activeSignups, ranks)
 }
 
 export function listHasCompleteActiveRanking(
   books: { isInList: boolean; personalStatus: string | null; rank: number | null }[],
 ) {
-  const activeBooks = books.filter((book) => book.isInList && book.personalStatus === null)
-  return activeBooks.length > 0 && activeBooks.every((book) => book.rank !== null)
+  return !listNeedsRankingGate(books)
 }
