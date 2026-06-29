@@ -2,130 +2,62 @@
  * @jest-environment node
  */
 import { POST } from './route'
-import * as authModule from '@/lib/auth'
-import { db } from '@/lib/db'
-import * as pseudonymsModule from '@/lib/matching/pseudonyms'
-import { consumePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
+import { auth } from '@/lib/auth'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { MatchingTransitionError } from '@/lib/matching/session-transition'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/audit/with-audit-context', () => ({
-  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
-}))
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn() } }))
-jest.mock('@/lib/db/schema', () => ({
-  matchingSessions: {},
-  matchingSessionParticipants: {},
-}))
-jest.mock('@/lib/matching/pseudonyms', () => ({
-  assignPseudonym: jest.fn().mockReturnValue('Барсук'),
-}))
-jest.mock('@/lib/matching/pseudonym-reservations', () => ({
-  consumePseudonymReservation: jest.fn(),
-}))
-jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
+jest.mock('@/lib/db', () => ({ db: { select: jest.fn() } }))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 
-const mockAuth = authModule.auth as jest.Mock
-const mockDb = db as jest.Mocked<typeof db>
-const mockAssignPseudonym = pseudonymsModule.assignPseudonym as jest.Mock
-const mockConsumeReservation = consumePseudonymReservation as jest.Mock
+const mockAuth = auth as jest.Mock
+const mockRunTransition = runMatchingTransition as jest.Mock
 
-function makeReq(sessionId: string) {
-  return new Request(`http://localhost/api/matching/sessions/${sessionId}/join`, {
+function request(body: unknown) {
+  return new Request('http://localhost/api/matching/sessions/s1/join', {
     method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
   }) as unknown as import('next/server').NextRequest
 }
 
-const userSession = { user: { id: 'user1', isAdmin: false } }
+const viewerSession = {
+  user: { id: 'u1', name: 'Старое имя', contactEmail: null, isAdmin: false },
+}
 
 describe('POST /api/matching/sessions/[id]/join', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockConsumeReservation.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(viewerSession)
+    mockRunTransition.mockResolvedValue({ changed: true, stateVersion: 1 })
   })
 
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
-    const res = await POST(makeReq('s1'), { params: { id: 's1' } })
-    expect(res.status).toBe(401)
+    expect((await POST(request({ name: 'Анна' }), { params: { id: 's1' } })).status).toBe(401)
   })
 
-  it('returns 404 when session not found', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const chain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([]) }
-    mockDb.select = jest.fn().mockReturnValue(chain)
-    const res = await POST(makeReq('bad-id'), { params: { id: 'bad-id' } })
-    expect(res.status).toBe(404)
+  it('requires a non-empty global profile name', async () => {
+    const response = await POST(request({ name: '   ' }), { params: { id: 's1' } })
+    expect(response.status).toBe(400)
+    expect(mockRunTransition).not.toHaveBeenCalled()
   })
 
-  it('returns 409 when session is frozen', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const chain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'frozen' }]) }
-    mockDb.select = jest.fn().mockReturnValue(chain)
-    const res = await POST(makeReq('s1'), { params: { id: 's1' } })
-    expect(res.status).toBe(409)
+  it('updates the global name and joins atomically through the transition service', async () => {
+    const response = await POST(request({ name: '  Анна  ' }), { params: { id: 's1' } })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ changed: true, stateVersion: 1 })
+    expect(mockRunTransition).toHaveBeenCalledWith({
+      sessionId: 's1',
+      actor: { userId: 'u1', label: 'Анна', source: 'matching' },
+      action: { type: 'self_join', userId: 'u1', name: 'Анна' },
+    })
   })
 
-  it('returns 200 with existing pseudonym if already joined', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    let callCount = 0
-    mockDb.select = jest.fn().mockImplementation(() => ({
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockImplementation(() => {
-        callCount++
-        if (callCount === 1) return Promise.resolve([{ id: 's1', status: 'active' }])
-        return Promise.resolve([{ pseudonym: 'Выдра' }])
-      }),
-    }))
-    const res = await POST(makeReq('s1'), { params: { id: 's1' } })
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.pseudonym).toBe('Выдра')
-  })
-
-  it('creates new participant with pseudonym and returns 201', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    let callCount = 0
-    mockDb.select = jest.fn().mockImplementation(() => ({
-      from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockImplementation(() => {
-        callCount++
-        if (callCount === 1) return Promise.resolve([{ id: 's1', status: 'active' }])
-        return Promise.resolve([]) // not joined yet
-      }),
-    }))
-    // taken pseudonyms query (no limit)
-    const takenChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) })
-      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([]) })
-      .mockReturnValueOnce(takenChain)
-    const insertChain = { values: jest.fn().mockResolvedValue([]) }
-    mockDb.insert = jest.fn().mockReturnValue(insertChain)
-    mockAssignPseudonym.mockReturnValue('Барсук')
-    const res = await POST(makeReq('s1'), { params: { id: 's1' } })
-    expect(res.status).toBe(201)
-    const json = await res.json()
-    expect(json.pseudonym).toBe('Барсук')
-  })
-
-  it('uses a reserved pseudonym when it is still available', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    mockConsumeReservation.mockResolvedValue('Выдра')
-    const takenChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) })
-      .mockReturnValueOnce({ from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([]) })
-      .mockReturnValueOnce(takenChain)
-    const insertChain = { values: jest.fn().mockResolvedValue([]) }
-    mockDb.insert = jest.fn().mockReturnValue(insertChain)
-
-    const res = await POST(makeReq('s1'), { params: { id: 's1' } })
-    const json = await res.json()
-
-    expect(res.status).toBe(201)
-    expect(json.pseudonym).toBe('Выдра')
-    expect(mockAssignPseudonym).not.toHaveBeenCalled()
+  it('maps an unknown session to 404', async () => {
+    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_not_found'))
+    const response = await POST(request({ name: 'Анна' }), { params: { id: 'missing' } })
+    expect(response.status).toBe(404)
   })
 })

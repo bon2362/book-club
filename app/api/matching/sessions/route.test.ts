@@ -87,7 +87,7 @@ describe('POST /api/matching/sessions', () => {
     expect(json.data.id).toBe('new-id')
   })
 
-  it('persists optimizationMode=satisfaction when provided', async () => {
+  it('does not persist or return a legacy mode selector', async () => {
     mockAuth.mockResolvedValue(adminSession)
     const selectChain = {
       from: jest.fn().mockReturnThis(),
@@ -105,22 +105,14 @@ describe('POST /api/matching/sessions', () => {
       name: 'Satisfaction session',
       minGroupSize: 3,
       maxGroupSize: 3,
-      optimizationMode: 'satisfaction',
+      legacyMode: 'ignored',
     }))
 
     expect(res.status).toBe(201)
-    expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({
-      optimizationMode: 'satisfaction',
+    expect(insertChain.values).toHaveBeenCalledWith(expect.not.objectContaining({
+      legacyMode: expect.anything(),
     }))
-  })
-
-  it('rejects an invalid optimizationMode', async () => {
-    mockAuth.mockResolvedValue(adminSession)
-    const res = await POST(makeRequest({ name: 'Bad mode', optimizationMode: 'bogus' }))
-
-    expect(res.status).toBe(400)
-    const json = await res.json()
-    expect(json.error).toMatch(/optimizationMode/)
+    expect(await res.json()).not.toHaveProperty('data.legacyMode')
   })
 })
 
@@ -144,5 +136,9 @@ describe('GET /api/matching/sessions', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.data).toHaveLength(1)
+    expect(mockDb.select).toHaveBeenCalledWith(expect.not.objectContaining({
+      optimizationMode: expect.anything(),
+      metricCoverage: expect.anything(),
+    }))
   })
 })

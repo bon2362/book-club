@@ -2,17 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import {
-  getPseudonymIllustrationGlyph,
-  getPseudonymIllustrationKind,
-  getPseudonymPhoto,
-} from '@/lib/matching/pseudonym-illustrations'
 
 interface Props {
   sessionId: string
   sessionName: string
-  pseudonym: string
+  /** Global profile name, pre-populated from users.name */
+  initialName: string
 }
 
 const pageStyle: React.CSSProperties = {
@@ -32,7 +27,6 @@ const cardStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
   borderTop: '2px solid var(--text)',
   borderRadius: 'var(--radius)',
-  boxShadow: 'var(--shadow-card)',
   padding: 'clamp(1.6rem, 5vw, 2.4rem)',
 }
 
@@ -45,39 +39,26 @@ const microStyle: React.CSSProperties = {
   color: 'var(--text-muted)',
 }
 
-export default function MatchingWelcome({ sessionId, sessionName, pseudonym: initialPseudonym }: Props) {
+export default function MatchingWelcome({ sessionId, sessionName, initialName }: Props) {
   const router = useRouter()
-  const [pseudonym, setPseudonym] = useState(initialPseudonym)
+  const [name, setName] = useState(initialName)
   const [joining, setJoining] = useState(false)
-  const [rerolling, setRerolling] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const kind = getPseudonymIllustrationKind(pseudonym)
-  const glyph = getPseudonymIllustrationGlyph(kind)
-  const photo = getPseudonymPhoto(pseudonym)
-  const [photoError, setPhotoError] = useState(false)
-  const showPhoto = photo !== null && !photoError
-
-  async function handleReroll() {
-    setRerolling(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/matching/sessions/${sessionId}/pseudonym`, { method: 'POST' })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(json.error ?? 'Не удалось сменить ник')
-      setPhotoError(false)
-      setPseudonym(json.pseudonym)
-    } catch (event) {
-      setError(event instanceof Error ? event.message : 'Не удалось сменить ник')
-    } finally {
-      setRerolling(false)
-    }
-  }
 
   async function handleJoin() {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      setError('Введите имя')
+      return
+    }
     setJoining(true)
     setError(null)
     try {
-      const res = await fetch(`/api/matching/sessions/${sessionId}/join`, { method: 'POST' })
+      const res = await fetch(`/api/matching/sessions/${sessionId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json.error ?? 'Не удалось войти в сессию')
       router.refresh()
@@ -90,17 +71,6 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym: ini
 
   return (
     <main style={pageStyle}>
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundImage: 'linear-gradient(var(--hair-soft) 1px, transparent 1px)',
-          backgroundSize: '100% 2.1rem',
-          opacity: 0.5,
-          pointerEvents: 'none',
-        }}
-      />
       <section style={{ ...cardStyle, position: 'relative' }} aria-labelledby="matching-welcome-title">
         <div style={{ ...microStyle, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
@@ -117,101 +87,70 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym: ini
             color: 'var(--text)',
           }}
         >
-          Добро пожаловать
+          {sessionName}
         </h1>
         <p style={{ margin: '0.55rem 0 0', fontFamily: 'var(--nd-serif)', fontSize: '0.95rem', lineHeight: 1.5, color: 'var(--text-body)' }}>
-          Ты узнаешь, что хотят читать остальные. Меняй выбор книг, чтобы продвинуть лучший для всех сценарий.
+          Ты видишь, что хотят читать остальные. После того как все подтвердят круг, страница остаётся доступна для наблюдения.
         </p>
+
+        {/* Real name disclosure */}
         <div
           style={{
             marginTop: '1rem',
-            border: '1px solid var(--hair)',
-            background: 'var(--bg-input)',
+            borderLeft: '3px solid var(--accent)',
+            background: 'var(--bg-tint)',
+            padding: '0.75rem 0.9rem',
           }}
         >
-          <div
-            data-testid="welcome-illustration"
-            aria-label={`Иллюстрация ника ${pseudonym}`}
-            style={{
-              position: 'relative',
-              width: '100%',
-              aspectRatio: '16 / 7',
-              borderBottom: '1px solid var(--hair)',
-              background: 'var(--bg-elevated)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--accent)',
-              overflow: 'hidden',
-            }}
-          >
-            {showPhoto ? (
-              <Image
-                data-testid="welcome-species-photo"
-                src={photo!.file}
-                alt={`Фотография: ${pseudonym}`}
-                fill
-                sizes="(max-width: 432px) 100vw, 432px"
-                style={{ objectFit: 'contain', borderRadius: 'var(--radius)' }}
-                onError={() => setPhotoError(true)}
-              />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                <span data-testid="welcome-species-glyph" aria-hidden="true" style={{ fontFamily: 'var(--nd-serif)', fontSize: '2.4rem', fontWeight: 700 }}>
-                  {glyph}
-                </span>
-                <span style={{ ...microStyle, color: 'var(--text-muted)', textAlign: 'center' }}>{pseudonym}</span>
-              </div>
-            )}
-          </div>
-          <div style={{ padding: '0.6rem 1rem' }}>
-            <div style={microStyle}>Ваш ник</div>
-            <div data-testid="welcome-pseudonym" style={{ marginTop: '0.2rem', fontFamily: 'var(--nd-serif)', fontSize: '1.5rem', lineHeight: 1.05, fontWeight: 700 }}>
-              {pseudonym}
-            </div>
-            <div style={{ marginTop: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              Сессия: {sessionName}
-            </div>
-            <button
-              type="button"
-              data-testid="welcome-reroll"
-              onClick={handleReroll}
-              disabled={rerolling || joining}
-              style={{
-                marginTop: '0.5rem',
-                padding: '0.35rem 0.65rem',
-                background: 'none',
-                border: '1px solid var(--border-strong)',
-                borderRadius: 'var(--radius)',
-                color: 'var(--text)',
-                fontFamily: 'var(--nd-sans)',
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                cursor: rerolling || joining ? 'default' : 'pointer',
-                opacity: rerolling ? 0.6 : 1,
-              }}
-            >
-              {rerolling ? 'Меняем…' : '↻ Другой ник'}
-            </button>
-          </div>
-        </div>
-        {showPhoto && photo && (
-          <p style={{ margin: '0.3rem 0 0', ...microStyle, color: 'var(--text-muted)' }}>
-            фото: {photo.author} · {photo.license}
+          <p style={{ margin: 0, fontSize: '0.84rem', lineHeight: 1.5, color: 'var(--text-body)' }}>
+            <strong style={{ color: 'var(--text)' }}>Реальные имена видны всем участникам.</strong>{' '}
+            Твоё имя будет отображаться рядом с твоими книгами и кругами.
           </p>
-        )}
-        <p style={{ margin: '0.55rem 0 0', fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
-          Мы <strong style={{ color: 'var(--text)' }}>не показываем настоящие имена</strong>. Тебе присвоен ник «<strong style={{ color: 'var(--text)' }}>{pseudonym}</strong>».
-        </p>
+        </div>
+
+        {/* Name field */}
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <label
+            htmlFor="welcome-name"
+            style={microStyle}
+          >
+            Твоё имя
+          </label>
+          <input
+            id="welcome-name"
+            data-testid="welcome-name-input"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={joining}
+            placeholder="Имя"
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              border: '1px solid var(--border)',
+              background: 'var(--bg)',
+              color: 'var(--text)',
+              fontFamily: 'var(--nd-sans)',
+              fontSize: '1rem',
+              padding: '0.65rem 0.8rem',
+              borderRadius: 'var(--radius)',
+              outline: 'none',
+            }}
+          />
+          <p style={{ margin: 0, fontSize: '0.72rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
+            Сессия: {sessionName}
+          </p>
+        </div>
+
         {error && (
           <p role="alert" style={{ margin: '0.6rem 0 0', fontSize: '0.78rem', color: 'var(--accent)' }}>
             {error}
           </p>
         )}
+
         <button
           type="button"
+          data-testid="welcome-join-button"
           onClick={handleJoin}
           disabled={joining}
           style={{
@@ -228,12 +167,13 @@ export default function MatchingWelcome({ sessionId, sessionName, pseudonym: ini
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
             cursor: joining ? 'default' : 'pointer',
+            opacity: joining ? 0.7 : 1,
           }}
         >
           {joining ? 'Входим…' : 'Войти'}
         </button>
         <p style={{ margin: '0.55rem 0 0', textAlign: 'center', fontSize: '0.72rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
-          После входа ты становишься участником сессии — твои книги начинают влиять на сценарии и ходы.
+          После входа твои книги начинают влиять на сценарии.
         </p>
       </section>
     </main>

@@ -4,22 +4,14 @@
 import { NextRequest } from 'next/server'
 import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
-import { db } from '@/lib/db'
-import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
-import { bumpSessionState } from '@/lib/matching/realtime/version'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { MatchingTransitionError } from '@/lib/matching/session-transition'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), delete: jest.fn() } }))
-jest.mock('@/lib/matching/preference-events', () => ({ recordParticipantLeftEvent: jest.fn() }))
-jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
-jest.mock('@/lib/audit/with-audit-context', () => ({
-  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
-}))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
-const mockDb = db as jest.Mocked<typeof db>
-const mockRecordLeft = recordParticipantLeftEvent as jest.Mock
-const mockBump = bumpSessionState as jest.Mock
+const mockRunTransition = runMatchingTransition as jest.Mock
 
 const params = { params: { id: 'session-1', userId: 'user-1' } }
 
@@ -29,56 +21,38 @@ function makeReq() {
   })
 }
 
-function mockSessionLookup(status: string | null) {
-  mockDb.select = jest.fn().mockReturnValue({
-    from: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockResolvedValue(status ? [{ id: 'session-1', status }] : []),
-  })
-}
-
 describe('DELETE /api/admin/matching/sessions/[id]/participants/[userId]', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockRecordLeft.mockResolvedValue(undefined)
-    mockBump.mockResolvedValue(undefined)
-    mockDb.delete = jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) })
+    mockAuth.mockResolvedValue({ user: { id: 'admin-1', name: 'Админ', contactEmail: null, isAdmin: true } })
+    mockRunTransition.mockResolvedValue({ changed: true, stateVersion: 3 })
   })
 
   it('403 без админ-сессии', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'u', isAdmin: false } })
     const res = await DELETE(makeReq(), params)
     expect(res.status).toBe(403)
-    expect(mockRecordLeft).not.toHaveBeenCalled()
+    expect(mockRunTransition).not.toHaveBeenCalled()
   })
 
-  it('пишет participant_left с source=admin и актором-админом ДО удаления', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'admin-1', isAdmin: true } })
-    mockSessionLookup('active')
-
+  it('removes the participant through the transition service with admin actor', async () => {
     const res = await DELETE(makeReq(), params)
-
     expect(res.status).toBe(200)
-    expect(mockRecordLeft).toHaveBeenCalledWith({
+    expect(mockRunTransition).toHaveBeenCalledWith({
       sessionId: 'session-1',
-      userId: 'user-1',
-      actorUserId: 'admin-1',
-      source: 'admin',
+      actor: { userId: 'admin-1', label: 'Админ', source: 'admin' },
+      action: { type: 'admin_remove', userId: 'user-1' },
     })
-    const recordOrder = mockRecordLeft.mock.invocationCallOrder[0]
-    const deleteOrder = (mockDb.delete as jest.Mock).mock.invocationCallOrder[0]
-    expect(recordOrder).toBeLessThan(deleteOrder)
-    expect(mockBump).toHaveBeenCalledWith('session-1')
   })
 
-  it('409 для неактивной сессии', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'admin-1', isAdmin: true } })
-    mockSessionLookup('frozen')
-
+  it('refuses to remove a locked member (409)', async () => {
+    mockRunTransition.mockRejectedValue(new MatchingTransitionError('participant_locked'))
     const res = await DELETE(makeReq(), params)
-
     expect(res.status).toBe(409)
-    expect(mockRecordLeft).not.toHaveBeenCalled()
-    expect(mockDb.delete).not.toHaveBeenCalled()
+  })
+
+  it('maps a frozen session to 409', async () => {
+    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_frozen'))
+    expect((await DELETE(makeReq(), params)).status).toBe(409)
   })
 })

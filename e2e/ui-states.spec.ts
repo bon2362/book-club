@@ -460,27 +460,10 @@ test.describe('Summary editor layout', () => {
   })
 })
 
-test.describe('Matching feature presentation', () => {
-  test('interactive prototype shows how Maria changes the best scenario', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 950 })
-    await page.goto('/matching/presentation')
-    await expect(page.getByRole('heading', { name: /как выбирать группы/i })).toBeVisible()
-
-    const prototype = page.getByTestId('matching-presentation-prototype')
-    await prototype.scrollIntoViewIfNeeded()
-    await expect(prototype.getByText(/все попали в группы/i).first()).toBeVisible()
-    await expect(prototype.getByText(/вне групп/i)).toBeVisible()
-
-    await prototype.getByRole('button', { name: /показать после хода/i }).click()
-
-    await expect(prototype.getByText(/равное покрытие может сочетаться/i)).toBeVisible()
-    await expect(prototype.getByText(/равное покрытие, сильнее интерес/i)).toBeVisible()
-    await expect(prototype.getByText(/краткая история неолиберализма/i).first()).toBeVisible()
-  })
-})
-
 async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, bookIds: string[]) {
-  const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`)
+  const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`, {
+    data: { name: 'E2E Matching Reader' },
+  })
   expect(joinRes.ok()).toBe(true)
   for (const bookId of bookIds) {
     const addRes = await page.request.post('/api/matching/books', { data: { bookId } })
@@ -493,125 +476,7 @@ async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, boo
 }
 
 test.describe('Matching layout', () => {
-  test('reader circles and moves occupy first viewport; catalog starts below', async ({
-    page,
-    createMatchingSession,
-    createTestBook,
-    loginAsUser,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 900 })
-    const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
-    const circleBook = await createTestBook({ title: `UI Circle ${Date.now()}`, author: 'Layout Author' })
-    const moveBook = await createTestBook({ title: `UI Move ${Date.now()}`, author: 'Layout Author' })
-
-    await loginAsUser({ name: 'UI Matching One' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id, moveBook.id])
-    await loginAsUser({ name: 'UI Matching Two' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id, moveBook.id])
-    await loginAsUser({ name: 'UI Matching Three' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
-
-    await page.goto('/matching')
-    await expect(page.getByTestId('matching-reader-circles-panel')).toBeVisible()
-    await expect(page.getByTestId('matching-my-moves-panel')).toBeVisible()
-
-    const viewport = page.viewportSize()!
-    const circlesBox = await page.getByTestId('matching-reader-circles-panel').boundingBox()
-    const movesBox = await page.getByTestId('matching-my-moves-panel').boundingBox()
-    const catalogBox = await page.getByTestId('matching-catalog-panel').boundingBox()
-
-    expect(circlesBox).not.toBeNull()
-    expect(movesBox).not.toBeNull()
-    expect(catalogBox).not.toBeNull()
-    expect(circlesBox!.y).toBeLessThan(viewport.height)
-    expect(movesBox!.y).toBeLessThan(viewport.height)
-    expect(circlesBox!.y + circlesBox!.height).toBeLessThanOrEqual(viewport.height + 1)
-    expect(movesBox!.y + movesBox!.height).toBeLessThanOrEqual(viewport.height + 1)
-    expect(catalogBox!.y).toBeGreaterThanOrEqual(viewport.height - 24)
-  })
-
-  test('participant chip separators keep space away from names', async ({
-    page,
-    createMatchingSession,
-    createTestBook,
-    loginAsUser,
-  }) => {
-    test.setTimeout(90_000)
-    await page.setViewportSize({ width: 1440, height: 900 })
-    const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
-    const circleBook = await createTestBook({ title: `UI Chip Circle ${Date.now()}`, author: 'Layout Author' })
-    const moveBook = await createTestBook({ title: `UI Chip Move ${Date.now()}`, author: 'Layout Author' })
-    const fillerBookA = await createTestBook({ title: `UI Chip Filler A ${Date.now()}`, author: 'Layout Author' })
-    const fillerBookB = await createTestBook({ title: `UI Chip Filler B ${Date.now()}`, author: 'Layout Author' })
-
-    await loginAsUser({ name: 'UI Chip One' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [moveBook.id, fillerBookA.id, fillerBookB.id, circleBook.id])
-    await loginAsUser({ name: 'UI Chip Two' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [moveBook.id, fillerBookA.id, fillerBookB.id, circleBook.id])
-    await loginAsUser({ name: 'UI Chip Three' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
-
-    await page.goto('/matching')
-    const circlesPanel = page.getByTestId('matching-reader-circles-panel')
-    const movesPanel = page.getByTestId('matching-my-moves-panel')
-    await expect(circlesPanel).toBeVisible({ timeout: 20_000 })
-    await expect(movesPanel.getByRole('button', { name: moveBook.title, exact: true }).first()).toBeVisible({ timeout: 20_000 })
-
-    await movesPanel.locator('li').filter({ hasText: moveBook.title }).first().hover()
-
-    await expect(circlesPanel.locator('.nd-scenario-preview-card')).toBeVisible()
-    await expect(circlesPanel.locator('.nd-scenario-preview-slot')).toHaveClass(/is-open/)
-    await expect.poll(async () => {
-      const maxHeight = await circlesPanel.locator('.nd-scenario-preview-clip').evaluate((element) => (
-        window.getComputedStyle(element).maxHeight
-      ))
-      return Number.parseFloat(maxHeight)
-    }).toBeGreaterThan(0)
-
-    const chipTextOffsets = await circlesPanel.locator('.nd-chip-text').evaluateAll((chips) => (
-      chips.filter((chip) => chip.previousElementSibling?.classList.contains('nd-chip-text')).map((chip) => {
-        const chipBox = chip.getBoundingClientRect()
-        const nameBox = chip.querySelector('b')?.getBoundingClientRect()
-        return nameBox ? nameBox.left - chipBox.left : 0
-      })
-    ))
-
-    expect(chipTextOffsets.length).toBeGreaterThan(0)
-    for (const offset of chipTextOffsets) {
-      expect(offset).toBeGreaterThanOrEqual(8)
-    }
-  })
-
-  test('back-to-catalog link is visible and left of session title', async ({
-    page,
-    createMatchingSession,
-    loginAsUser,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 900 })
-    const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 3 })
-    await loginAsUser({ name: 'UI Back Link User' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [])
-
-    await page.goto('/matching')
-    await expect(page.getByRole('link', { name: 'На каталог' })).toBeVisible()
-
-    const backBox = await page.getByRole('link', { name: 'На каталог' }).boundingBox()
-    const titleBox = await page.getByRole('heading', { level: 1 }).boundingBox()
-
-    expect(backBox).not.toBeNull()
-    expect(titleBox).not.toBeNull()
-    // back link starts to the left of the session title
-    expect(backBox!.x).toBeLessThan(titleBox!.x)
-    // back link is within the top area (header)
-    expect(backBox!.y).toBeLessThan(100)
-  })
-})
-
-test.describe('Matching feed height', () => {
-  // #337: лента ограничена по высоте и скроллится внутри, а не растягивает шапку.
-  const MAX_FEED_HEIGHT_PX = 288 // 18rem при базовом 16px
-
-  test('развёрнутая лента ограничена по высоте и имеет внутренний скролл', async ({
+  test('scenarios use the released full width and legacy panels occupy no layout', async ({
     page,
     createMatchingSession,
     createTestBook,
@@ -619,36 +484,24 @@ test.describe('Matching feed height', () => {
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
-    const book = await createTestBook({ title: `UI Feed ${Date.now()}`, author: 'Feed Author' })
+    const circleBook = await createTestBook({ title: `UI Circle ${Date.now()}`, author: 'Layout Author' })
 
-    // Двое участников с общей книгой → формируется круг → в ленту пишется событие.
-    await loginAsUser({ name: 'UI Feed One' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [book.id])
-    await loginAsUser({ name: 'UI Feed Two' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [book.id])
+    await loginAsUser({ name: 'UI Matching One' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
+    await loginAsUser({ name: 'UI Matching Two' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
 
     await page.goto('/matching')
-
-    // Тикер появляется только когда есть события ленты.
-    const toggle = page.getByTestId('matching-feed-toggle')
-    await expect(toggle).toBeVisible({ timeout: 15_000 })
-    await toggle.click()
-
-    const feed = page.getByTestId('matching-feed')
-    await expect(feed).toBeVisible()
-
-    // CSS-контракт: max-height задан и включён вертикальный скролл.
-    const { maxHeight, overflowY } = await feed.evaluate((el) => {
-      const cs = window.getComputedStyle(el)
-      return { maxHeight: cs.maxHeight, overflowY: cs.overflowY }
-    })
-    expect(Number.parseFloat(maxHeight)).toBeCloseTo(MAX_FEED_HEIGHT_PX, 0)
-    expect(overflowY).toBe('auto')
-
-    // Фактическая высота списка не превышает кап (с допуском на рамку).
-    const box = await feed.boundingBox()
-    expect(box).not.toBeNull()
-    expect(box!.height).toBeLessThanOrEqual(MAX_FEED_HEIGHT_PX + 2)
+    const board = page.getByTestId('matching-realtime-client')
+    const card = page.getByTestId('matching-scenario-card').first()
+    await expect(card).toBeVisible()
+    const boardBox = await board.boundingBox()
+    const cardBox = await card.boundingBox()
+    expect(boardBox).not.toBeNull()
+    expect(cardBox).not.toBeNull()
+    expect(cardBox!.width).toBeGreaterThanOrEqual(boardBox!.width * 0.95)
+    await expect(page.getByText('Мои ходы', { exact: true })).toHaveCount(0)
+    await expect(page.getByText('Лента событий', { exact: true })).toHaveCount(0)
   })
 })
 
@@ -835,7 +688,6 @@ test.describe('Satisfaction ranking gate layout', () => {
     const session = await createMatchingSession({
       minGroupSize: 3,
       maxGroupSize: 3,
-      optimizationMode: 'satisfaction',
     })
     const bookA = await createTestBook({ title: `UI Gate Book A ${Date.now()}`, author: 'Gate Author' })
     const bookB = await createTestBook({ title: `UI Gate Book B ${Date.now()}`, author: 'Gate Author' })
@@ -848,8 +700,12 @@ test.describe('Satisfaction ranking gate layout', () => {
 
     // Third participant joins but has NOT submitted a ranking — should see the gate
     await loginAsUser({ name: 'UI Gate Viewer' })
-    const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`)
+    const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`, {
+      data: { name: 'UI Gate Viewer' },
+    })
     expect(joinRes.ok()).toBe(true)
+    const addRes = await page.request.post('/api/matching/books', { data: { bookId: bookA.id } })
+    expect(addRes.ok()).toBe(true)
 
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/matching')

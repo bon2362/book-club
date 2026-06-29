@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { upsertSignupByBookIds } from '@/lib/signup-books'
+import { previewSignupByBookIds, upsertSignupByBookIds } from '@/lib/signup-books'
 import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
 import { and, eq, notInArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
@@ -9,11 +9,9 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
-import {
-  captureMatchingMutationSnapshot,
-  finalizeMatchingMutationEffects,
-} from '@/lib/matching/mutation-effects'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { transitionError } from '@/lib/matching/transition-http'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -30,7 +28,6 @@ export async function POST(req: NextRequest) {
   }
 
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(pgUserId)
-  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   const auditCtx = {
     actorUserId: pgUserId,
@@ -40,34 +37,51 @@ export async function POST(req: NextRequest) {
 
   let result
   try {
-    result = await withAuditContext(auditCtx, async (tx) => {
-      const upsert = await upsertSignupByBookIds(pgUserId, selectedBookIds as string[], tx)
+    if (activeSessionId) {
+      result = await previewSignupByBookIds(pgUserId, selectedBookIds as string[])
+      await runMatchingTransition({
+        sessionId: activeSessionId,
+        actor: {
+          userId: pgUserId,
+          label: session.user.name ?? session.user.contactEmail ?? null,
+          source: 'catalog',
+        },
+        action: {
+          type: 'replace_signup',
+          userId: pgUserId,
+          name: name.trim(),
+          contacts: contacts.trim(),
+          bookIds: result.addedBookIds,
+        },
+      })
+    } else {
+      result = await withAuditContext(auditCtx, async (tx) => {
+        const upsert = await upsertSignupByBookIds(pgUserId, selectedBookIds as string[], tx)
 
-      await tx.update(users).set({
-        name: name.trim(),
-        contacts: contacts.trim(),
-        ...(upsert.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
-      }).where(eq(users.id, pgUserId))
+        await tx.update(users).set({
+          name: name.trim(),
+          contacts: contacts.trim(),
+          ...(upsert.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
+        }).where(eq(users.id, pgUserId))
 
-      // Clean up book_priorities for books no longer in selectedBookIds.
-      if (upsert.addedBookIds.length > 0) {
-        await tx
-          .delete(bookPriorities)
-          .where(
+        if (upsert.addedBookIds.length > 0) {
+          await tx.delete(bookPriorities).where(
             and(
               eq(bookPriorities.userId, pgUserId),
-              notInArray(bookPriorities.bookId, upsert.addedBookIds)
+              notInArray(bookPriorities.bookId, upsert.addedBookIds),
             )
           )
-      } else {
-        await tx
-          .delete(bookPriorities)
-          .where(eq(bookPriorities.userId, pgUserId))
-      }
+        } else {
+          await tx.delete(bookPriorities).where(eq(bookPriorities.userId, pgUserId))
+        }
 
-      return upsert
-    })
-  } catch {
+        return upsert
+      })
+    }
+  } catch (error) {
+    if (activeSessionId && !(error instanceof Error && error.message === 'BOOK_ID_NOT_FOUND')) {
+      return transitionError(error)
+    }
     return NextResponse.json({ error: 'Some books were not found' }, { status: 400 })
   }
 
@@ -116,22 +130,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  if (activeSessionId) {
-    await finalizeMatchingMutationEffects({
-      sessionId: activeSessionId,
-      targetUserId: pgUserId,
-      actorUserId: pgUserId,
-      bookId: null,
-      kind: 'catalog_signup_updated',
-      source: 'catalog',
-      before,
-      metadata: {
-        addedBookIds: result.newlyAddedBookIds,
-        removedBookIds: result.removedBookIds,
-      },
-    })
-  }
-  await broadcastActiveMatchingStateChangeForParticipant(pgUserId)
+  if (!activeSessionId) await broadcastActiveMatchingStateChangeForParticipant(pgUserId)
 
   return NextResponse.json({ ok: true })
 }

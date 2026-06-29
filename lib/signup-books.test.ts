@@ -1,7 +1,12 @@
 /**
  * @jest-environment node
  */
-import { getAllSignups, removeBookFromSignup, upsertSignupByBookIds } from './signup-books'
+import {
+  getAllSignups,
+  previewSignupByBookIds,
+  removeBookFromSignup,
+  upsertSignupByBookIds,
+} from './signup-books'
 import { db } from '@/lib/db'
 
 jest.mock('@/lib/db', () => ({
@@ -124,6 +129,31 @@ describe('signup-books', () => {
       newlyAddedBookIds: ['book-b'],
       removedBookIds: ['book-x'],
     })
+  })
+
+  it('previewSignupByBookIds вычисляет ту же дельту без записи вне matching-транзакции', async () => {
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce(selectChain([
+        { id: 'book-a', title: 'Книга A' },
+        { id: 'book-b', title: 'Книга B' },
+      ]))
+      .mockReturnValueOnce(selectChain([
+        { bookId: 'book-a' },
+        { bookId: 'book-x' },
+      ]))
+
+    const result = await previewSignupByBookIds('user-1', ['book-a', 'book-b'])
+
+    expect(result).toEqual({
+      isNew: false,
+      addedBooks: ['Книга A', 'Книга B'],
+      addedBookIds: ['book-a', 'book-b'],
+      newlyAddedBookIds: ['book-b'],
+      removedBookIds: ['book-x'],
+    })
+    expect(db.insert).not.toHaveBeenCalled()
+    expect(db.delete).not.toHaveBeenCalled()
+    expect(db.transaction).not.toHaveBeenCalled()
   })
 
   it('upsertSignupByBookIds с пустым списком удаляет все записи пользователя', async () => {

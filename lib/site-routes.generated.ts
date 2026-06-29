@@ -3,11 +3,12 @@
 export const SITE_ROUTES: string[] = [
   "/",
   "/admin",
-  "/admin/gallery",
   "/admin/sitemap",
+  "/books/[bookSlug]/my-summary/edit",
+  "/books/[bookSlug]/summaries",
   "/matching",
-  "/matching/presentation",
   "/privacy",
   "/styleguide",
+  "/summaries/[id]/edit",
   "/vibe"
 ]

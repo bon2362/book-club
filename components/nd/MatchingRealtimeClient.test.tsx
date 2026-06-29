@@ -1,7 +1,11 @@
-import { render, waitFor } from '@testing-library/react'
-import MatchingRealtimeClient from './MatchingRealtimeClient'
+import { render, waitFor, screen } from '@testing-library/react'
+import MatchingRealtimeClient, { type MatchingPublicState } from './MatchingRealtimeClient'
 
-describe('MatchingRealtimeClient (polling)', () => {
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
+}))
+
+describe('MatchingRealtimeClient', () => {
   let fetchMock: jest.Mock
 
   beforeEach(() => {
@@ -26,52 +30,99 @@ describe('MatchingRealtimeClient (polling)', () => {
     document.dispatchEvent(new Event('visibilitychange'))
   }
 
-  function respondVersion(version: number) {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ version, status: 'active' }),
+  function respondVersion(version: number, status = 'active', online: string[] = ['u1']) {
+    fetchMock.mockImplementationOnce((url: string) => {
+      if (url.includes('/version')) {
+        return Promise.resolve({ ok: true, json: async () => ({ version, status, online }) })
+      }
+      return Promise.resolve({ ok: false })
     })
   }
 
-  function respond(payload: { version: number; status?: string; online?: string[] }) {
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => payload })
+  function makeInitialState(stateVersion = 1): MatchingPublicState {
+    return {
+      session: { status: 'active', stateVersion },
+      viewer: { role: 'active', ref: 'r1', lockedCircleId: null },
+      scenarios: [],
+      lockedCircles: [],
+      notices: [],
+      viewerConfirmedCircleKey: null,
+    }
   }
 
-  it('does not fire onStateChange on the first poll (baseline)', async () => {
+  it('renders the board container', () => {
     respondVersion(1)
-    const onChange = jest.fn()
-    render(<MatchingRealtimeClient sessionId="s1" onStateChange={onChange} />)
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    expect(onChange).not.toHaveBeenCalled()
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={makeInitialState()}
+        bookTitleById={{}}
+        pollIntervalMs={50_000}
+      />,
+    )
+    expect(screen.getByTestId('matching-realtime-client')).toBeInTheDocument()
   })
 
-  it('fires onStateChange when the version increases', async () => {
-    // First poll returns v1 (baseline), second poll returns v2 (changed)
-    respondVersion(1)
-    respondVersion(2)
-
-    const onChange = jest.fn()
-
-    // Use a short interval so we don't need fake timers
+  it('does not fire a state fetch on the first poll when version is unchanged', async () => {
+    respondVersion(1) // same as initialState stateVersion=1
     render(
-      <MatchingRealtimeClient sessionId="s1" onStateChange={onChange} pollIntervalMs={50} />
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={makeInitialState(1)}
+        bookTitleById={{}}
+        pollIntervalMs={50}
+      />,
+    )
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    // Only version URL called, no /state call
+    expect(fetchMock.mock.calls[0][0]).toContain('/version')
+  })
+
+  it('fetches full state when version changes', async () => {
+    const stateResponse = {
+      ok: true,
+      json: async () => ({
+        session: { status: 'active', stateVersion: 2 },
+        viewer: { role: 'active', ref: 'r1', lockedCircleId: null },
+        scenarios: [],
+        lockedCircles: [],
+        notices: [],
+        participants: [],
+      }),
+    }
+
+    // First call: /version returns v1 (baseline, no fetch)
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'active', online: ['u1'] }) })
+    // Second call: /version returns v2 (changed)
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'active', online: ['u1'] }) })
+    // Third call: /state fetch
+    fetchMock.mockResolvedValueOnce(stateResponse)
+
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={makeInitialState(1)}
+        bookTitleById={{}}
+        pollIntervalMs={50}
+      />,
     )
 
-    // Wait for first poll (baseline, no callback)
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    expect(onChange).not.toHaveBeenCalled()
-
-    // Wait for second poll (version changed → callback fires)
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+    // Wait for /state fetch to be called (after version change triggers it)
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/state'),
+    ), { timeout: 2000 })
   })
 
   it('does not poll while the tab is hidden', async () => {
     setTabVisibility('hidden')
-    respondVersion(1)
-    render(<MatchingRealtimeClient sessionId="s1" onStateChange={jest.fn()} pollIntervalMs={20} />)
-
-    // Дать таймеру шанс сработать, если бы он шёл.
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={makeInitialState()}
+        bookTitleById={{}}
+        pollIntervalMs={20}
+      />,
+    )
     await new Promise((r) => setTimeout(r, 60))
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -79,28 +130,98 @@ describe('MatchingRealtimeClient (polling)', () => {
   it('does an immediate catch-up poll when the tab becomes visible', async () => {
     setTabVisibility('hidden')
     respondVersion(1)
-    render(<MatchingRealtimeClient sessionId="s1" onStateChange={jest.fn()} pollIntervalMs={5_000} />)
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={makeInitialState()}
+        bookTitleById={{}}
+        pollIntervalMs={5_000}
+      />,
+    )
     await new Promise((r) => setTimeout(r, 30))
     expect(fetchMock).not.toHaveBeenCalled()
 
-    // Возврат на вкладку → немедленный poll, не дожидаясь интервала.
     setTabVisibility('visible')
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
   })
 
-  it('stops polling once the session is frozen (layer C)', async () => {
-    respond({ version: 1, status: 'active' }) // baseline
-    respond({ version: 2, status: 'frozen' }) // фриз: refresh + стоп
-    const onChange = jest.fn()
+  it('stops polling once the session is frozen', async () => {
+    // v1 baseline
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'active', online: ['u1'] }) })
+    // v2 frozen
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'frozen', online: ['u1'] }) })
+    // /state fetch after version change
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        session: { status: 'frozen', stateVersion: 2 },
+        viewer: { role: 'active', ref: 'r1', lockedCircleId: null },
+        scenarios: [],
+        lockedCircles: [],
+        notices: [],
+        participants: [],
+      }),
+    })
 
-    render(<MatchingRealtimeClient sessionId="s1" onStateChange={onChange} pollIntervalMs={20} />)
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={makeInitialState(1)}
+        bookTitleById={{}}
+        pollIntervalMs={20}
+      />,
+    )
 
-    // Второй опрос видит frozen → один финальный onStateChange.
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+    // Wait for baseline + frozen poll
+    await waitFor(() => {
+      const versionCalls = fetchMock.mock.calls.filter(([url]) => (url as string).includes('/version'))
+      expect(versionCalls.length).toBe(2)
+    })
 
-    // Дальше опрос остановлен — счётчик не растёт.
+    // Give it time to NOT poll more
     await new Promise((r) => setTimeout(r, 80))
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const versionCallsAfter = fetchMock.mock.calls.filter(([url]) => (url as string).includes('/version'))
+    expect(versionCallsAfter.length).toBe(2)
+  })
+
+  it('renders notices when state has them', () => {
+    const stateWithNotice = makeInitialState()
+    stateWithNotice.notices = [
+      { id: 'n1', kind: 'circle_locked', payload: {}, createdAt: '2026-06-29T10:00:00.000Z' },
+    ]
+    respondVersion(1)
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={stateWithNotice}
+        bookTitleById={{}}
+        pollIntervalMs={50_000}
+      />,
+    )
+    expect(screen.getByTestId('matching-notices')).toBeInTheDocument()
+  })
+
+  it('renders locked circles when state has them', () => {
+    const stateWithLock = makeInitialState()
+    stateWithLock.lockedCircles = [
+      {
+        id: 'lc1',
+        circleKey: 'key1',
+        bookId: 'b1',
+        lockedAt: '2026-06-29T10:00:00.000Z',
+        members: [{ ref: 'r1', displayName: 'Анна' }],
+      },
+    ]
+    respondVersion(1)
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={stateWithLock}
+        bookTitleById={{ b1: 'Первая книга' }}
+        pollIntervalMs={50_000}
+      />,
+    )
+    expect(screen.getByTestId('matching-locked-circles')).toBeInTheDocument()
+    expect(screen.getByText('Первая книга')).toBeInTheDocument()
   })
 })

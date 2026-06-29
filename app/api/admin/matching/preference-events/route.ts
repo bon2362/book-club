@@ -2,10 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { and, desc, eq, type SQL } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingPreferenceEvents, matchingSessionParticipants, users } from '@/lib/db/schema'
+import { matchingEvents } from '@/lib/db/schema'
 
 const DEFAULT_LIMIT = 100
 const MAX_LIMIT = 500
@@ -33,57 +32,32 @@ export async function GET(req: NextRequest) {
   const source = params.get('source')
   const bookId = params.get('bookId')
 
-  if (sessionId) conditions.push(eq(matchingPreferenceEvents.sessionId, sessionId))
-  if (userId) conditions.push(eq(matchingPreferenceEvents.userId, userId))
-  if (actorUserId) conditions.push(eq(matchingPreferenceEvents.actorUserId, actorUserId))
-  if (eventType) conditions.push(eq(matchingPreferenceEvents.eventType, eventType))
-  if (source) conditions.push(eq(matchingPreferenceEvents.source, source))
-  if (bookId) conditions.push(eq(matchingPreferenceEvents.bookId, bookId))
-
-  // Aliases so we can resolve display names for both the affected user and the
-  // actor. Names come from `users` (persist even after a participant leaves);
-  // pseudonyms come from `matching_session_participants` (null once they leave —
-  // for that case the pseudonym is stored in the event metadata at write time).
-  const eventUser = alias(users, 'event_user')
-  const eventActor = alias(users, 'event_actor')
-  const eventUserParticipant = alias(matchingSessionParticipants, 'event_user_participant')
-  const eventActorParticipant = alias(matchingSessionParticipants, 'event_actor_participant')
+  if (sessionId) conditions.push(eq(matchingEvents.sessionId, sessionId))
+  // userId filter maps to subjectUserId in the new event model
+  if (userId) conditions.push(eq(matchingEvents.subjectUserId, userId))
+  if (actorUserId) conditions.push(eq(matchingEvents.actorUserId, actorUserId))
+  if (eventType) conditions.push(eq(matchingEvents.eventType, eventType))
+  if (source) conditions.push(eq(matchingEvents.source, source))
+  if (bookId) conditions.push(eq(matchingEvents.bookId, bookId))
 
   let query = db
     .select({
-      id: matchingPreferenceEvents.id,
-      sessionId: matchingPreferenceEvents.sessionId,
-      userId: matchingPreferenceEvents.userId,
-      actorUserId: matchingPreferenceEvents.actorUserId,
-      userName: eventUser.name,
-      actorName: eventActor.name,
-      userPseudonym: eventUserParticipant.pseudonym,
-      actorPseudonym: eventActorParticipant.pseudonym,
-      eventType: matchingPreferenceEvents.eventType,
-      source: matchingPreferenceEvents.source,
-      bookId: matchingPreferenceEvents.bookId,
-      before: matchingPreferenceEvents.before,
-      after: matchingPreferenceEvents.after,
-      metadata: matchingPreferenceEvents.metadata,
-      occurredAt: matchingPreferenceEvents.occurredAt,
+      id: matchingEvents.id,
+      sessionId: matchingEvents.sessionId,
+      eventType: matchingEvents.eventType,
+      source: matchingEvents.source,
+      actorUserId: matchingEvents.actorUserId,
+      actorNameSnapshot: matchingEvents.actorNameSnapshot,
+      subjectUserId: matchingEvents.subjectUserId,
+      subjectNameSnapshot: matchingEvents.subjectNameSnapshot,
+      bookId: matchingEvents.bookId,
+      before: matchingEvents.before,
+      after: matchingEvents.after,
+      metadata: matchingEvents.metadata,
+      stateVersion: matchingEvents.stateVersion,
+      occurredAt: matchingEvents.occurredAt,
     })
-    .from(matchingPreferenceEvents)
-    .leftJoin(eventUser, eq(eventUser.id, matchingPreferenceEvents.userId))
-    .leftJoin(eventActor, eq(eventActor.id, matchingPreferenceEvents.actorUserId))
-    .leftJoin(
-      eventUserParticipant,
-      and(
-        eq(eventUserParticipant.sessionId, matchingPreferenceEvents.sessionId),
-        eq(eventUserParticipant.userId, matchingPreferenceEvents.userId),
-      ),
-    )
-    .leftJoin(
-      eventActorParticipant,
-      and(
-        eq(eventActorParticipant.sessionId, matchingPreferenceEvents.sessionId),
-        eq(eventActorParticipant.userId, matchingPreferenceEvents.actorUserId),
-      ),
-    )
+    .from(matchingEvents)
     .$dynamic()
 
   if (conditions.length > 0) {
@@ -91,7 +65,7 @@ export async function GET(req: NextRequest) {
   }
 
   const events = await query
-    .orderBy(desc(matchingPreferenceEvents.occurredAt))
+    .orderBy(desc(matchingEvents.occurredAt))
     .limit(parseLimit(params.get('limit')))
 
   return NextResponse.json({ events })

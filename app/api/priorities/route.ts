@@ -11,11 +11,9 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
-import {
-  captureMatchingMutationSnapshot,
-  finalizeMatchingMutationEffects,
-} from '@/lib/matching/mutation-effects'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { transitionError } from '@/lib/matching/transition-http'
 
 export async function GET() {
   const session = await auth()
@@ -66,43 +64,35 @@ export async function PUT(req: NextRequest) {
   }
   const now = new Date()
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
-  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
-
-  // Capture the ranking before the change so the admin viewer can show the diff.
-  const previousRankedBookIds = activeSessionId
-    ? (
-        await db
-          .select({ bookId: bookPriorities.bookId })
-          .from(bookPriorities)
-          .where(eq(bookPriorities.userId, userId))
-          .orderBy(asc(bookPriorities.rank))
-      ).map(row => row.bookId)
-    : []
-
-  await withAuditContext(
-    { actorUserId: userId, actorLabel: session!.user.name ?? session!.user.contactEmail ?? null, source: 'priorities' },
-    async (tx) => {
-    await tx
-      .delete(bookPriorities)
-      .where(eq(bookPriorities.userId, userId))
-
-    await tx
-      .insert(bookPriorities)
-      .values(
-        validBookIds.map((bookId, index) => ({
+  if (activeSessionId) {
+    try {
+      await runMatchingTransition({
+        sessionId: activeSessionId,
+        actor: {
+          userId,
+          label: session!.user.name ?? session!.user.contactEmail ?? null,
+          source: 'profile',
+        },
+        action: { type: 'reorder_priorities', userId, bookIds: validBookIds },
+      })
+    } catch (error) {
+      return transitionError(error)
+    }
+  } else {
+    await withAuditContext(
+      { actorUserId: userId, actorLabel: session!.user.name ?? session!.user.contactEmail ?? null, source: 'priorities' },
+      async (tx) => {
+        await tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
+        await tx.insert(bookPriorities).values(validBookIds.map((bookId, index) => ({
           userId,
           bookId,
           rank: index + 1,
           updatedAt: now,
-        }))
-      )
-
-    await tx
-      .update(users)
-      .set({ prioritiesSet: true })
-      .where(eq(users.id, userId))
-    },
-  )
+        })))
+        await tx.update(users).set({ prioritiesSet: true }).where(eq(users.id, userId))
+      },
+    )
+  }
 
   await bestEffortRecordUserActivity(userId, 'priorities_updated', {
     occurredAt: now,
@@ -113,19 +103,7 @@ export async function PUT(req: NextRequest) {
   })
 
   revalidatePath('/admin')
-  if (activeSessionId) {
-    await finalizeMatchingMutationEffects({
-      sessionId: activeSessionId,
-      targetUserId: userId,
-      actorUserId: userId,
-      bookId: null,
-      kind: 'priorities_updated',
-      source: 'profile',
-      before,
-      metadata: { rankedBookIds: validBookIds, previousRankedBookIds },
-    })
-  }
-  await broadcastActiveMatchingStateChangeForParticipant(userId)
+  if (!activeSessionId) await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
 }

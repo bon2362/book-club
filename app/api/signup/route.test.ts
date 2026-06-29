@@ -11,13 +11,16 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
-import { finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/audit/with-audit-context', () => ({
   withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
 }))
-jest.mock('@/lib/signup-books', () => ({ upsertSignupByBookIds: jest.fn() }))
+jest.mock('@/lib/signup-books', () => ({
+  previewSignupByBookIds: jest.fn(),
+  upsertSignupByBookIds: jest.fn(),
+}))
 jest.mock('@/lib/db', () => ({
   db: {
     insert: jest.fn().mockReturnValue({ values: jest.fn().mockReturnValue({ catch: jest.fn() }) }),
@@ -42,18 +45,16 @@ jest.mock('@/lib/matching/realtime/state-change', () => ({
   broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
   getActiveMatchingSessionIdForParticipant: jest.fn(),
 }))
-jest.mock('@/lib/matching/mutation-effects', () => ({
-  captureMatchingMutationSnapshot: jest.fn(),
-  finalizeMatchingMutationEffects: jest.fn(),
-}))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockUpsertSignupByBookIds = signups.upsertSignupByBookIds as jest.Mock
+const mockPreviewSignupByBookIds = signups.previewSignupByBookIds as jest.Mock
 const mockInsert = dbModule.db.insert as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
-const mockFinalizeEffects = finalizeMatchingMutationEffects as jest.Mock
+const mockRunMatchingTransition = runMatchingTransition as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/signup', {
@@ -77,6 +78,7 @@ describe('POST /api/signup', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetActiveSessionId.mockResolvedValue(null)
+    mockPreviewSignupByBookIds.mockResolvedValue(upsertResult())
   })
 
   it('возвращает 401 без сессии', async () => {
@@ -146,21 +148,27 @@ describe('POST /api/signup', () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
     mockGetActiveSessionId.mockResolvedValue('session-1')
     // добавлена book-b, убрана book-x
-    mockUpsertSignupByBookIds.mockResolvedValue(
+    mockPreviewSignupByBookIds.mockResolvedValue(
       upsertResult(['Book A', 'Book B'], ['book-a', 'book-b'], false, ['book-b'], ['book-x']),
     )
 
     const res = await POST(makeRequest({ name: 'Test User', contacts: '@test', selectedBookIds: ['book-a', 'book-b'] }))
 
     expect(res.status).toBe(200)
-    expect(mockFinalizeEffects).toHaveBeenCalledWith(
+    expect(mockRunMatchingTransition).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'session-1',
-        kind: 'catalog_signup_updated',
-        source: 'catalog',
-        metadata: { addedBookIds: ['book-b'], removedBookIds: ['book-x'] },
+        actor: expect.objectContaining({ source: 'catalog' }),
+        action: {
+          type: 'replace_signup',
+          userId: 'user-1',
+          name: 'Test User',
+          contacts: '@test',
+          bookIds: ['book-a', 'book-b'],
+        },
       }),
     )
+    expect(mockUpsertSignupByBookIds).not.toHaveBeenCalled()
   })
 
   it('не принимает legacy selectedBooks по названиям', async () => {

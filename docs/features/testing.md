@@ -139,6 +139,10 @@ Global setup/teardown удаляет E2E users и E2E matching sessions чере
 | `theme.spec.ts` | UI | Переключение темы |
 | `view-mode.spec.ts` | UI | Режимы отображения (сетка/список) |
 | `ui-states.spec.ts` | UI | CSS-поведение: скрытие header при скролле |
+| `matching-satisfaction.spec.ts` | Матчинг | Disclosure и глобальное имя, Ranking Gate, подтверждение с reload, видимость статуса, закрепление и observer-mode |
+| `matching-realtime.spec.ts` | Матчинг | Polling public state по `state_version` и реальные display names без raw user ids |
+
+Matching E2E создают минимум двух пользователей и собственную active session. Проверки персистентности подтверждения обязательно делают `page.reload()`. Удаление тестовой книги сначала очищает связанные locked circles, поскольку production FK намеренно запрещает удалить книгу из закреплённого результата.
 
 ### Правила написания E2E-тестов
 

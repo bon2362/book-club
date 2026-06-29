@@ -1,176 +1,179 @@
-import { render, screen } from '@testing-library/react'
-import MatchingScenarios from './MatchingScenarios'
-import type { MatchingScenario, ScenarioSetOverview } from '@/lib/matching/scenarios'
-import type { MyMoveBook } from '@/lib/matching/my-moves'
-import type { MatchingBookDetail } from './MatchingBookDetailModal'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import MatchingScenarios, { type PublicScenario } from './MatchingScenarios'
 
-type BookInfo = MatchingBookDetail & { id: string }
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
+}))
 
-jest.mock('./CoverImage', () => function MockCoverImage() {
-  return <div data-testid="cover-image" />
+beforeEach(() => {
+  ;(global.fetch as unknown) = jest.fn()
 })
 
-const score = {
-  coveredCount: 3,
-  totalCount: 4,
-  coverageRatio: 0.75,
-  strongInterestCount: 1,
-  rankedCount: 1,
-  unrankedCount: 0,
-  rankSum: 1,
-  avgRank: 1,
-  worstRank: 1,
-}
-
-function makeCircle(bookId: string, circleId: string) {
+function makeScenario(id: string, circles: Array<{
+  key: string
+  bookId: string
+  memberRefs: string[]
+  confirmedRefs?: string[]
+  viewerIsMember?: boolean
+}>): PublicScenario {
   return {
-    id: circleId,
-    bookId,
-    members: [{ userId: 'user-1', pseudonym: 'Лиса', rank: 1, interest: 'очень хочу' as const }],
-    minSize: 3,
-    maxSize: 3,
-    wantsCount: 1,
-    avgRank: 1,
-    worstRank: 1,
-    unrankedCount: 0,
+    ref: id,
+    circles: circles.map((c) => ({
+      circleKey: c.key,
+      bookId: c.bookId,
+      members: c.memberRefs.map((ref) => ({
+        ref,
+        displayName: `Участник-${ref}`,
+        confirmed: (c.confirmedRefs ?? []).includes(ref),
+      })),
+      confirmedCount: (c.confirmedRefs ?? []).length,
+      memberCount: c.memberRefs.length,
+      viewerIsMember: c.viewerIsMember ?? false,
+    })),
   }
 }
 
-function scenario(id: string, tier: MatchingScenario['tier'], leftOutUserIds: string[], extraBookIds: string[] = []): MatchingScenario {
-  return {
-    id,
-    tier,
-    circles: [
-      makeCircle('book-1', `${id}-circle`),
-      ...extraBookIds.map((bookId, i) => makeCircle(bookId, `${id}-circle-${i + 2}`)),
-    ],
-    leftOut: leftOutUserIds.map((userId) => ({ userId, pseudonym: userId === 'viewer' ? 'Пчела' : 'Кит' })),
-    score,
-  }
-}
-
-function renderScenarios(
-  scenarios: MatchingScenario[],
-  options: { mode?: ScenarioSetOverview['mode']; previewMove?: MyMoveBook; previewOpen?: boolean } = {},
-) {
-  const overview: ScenarioSetOverview = {
-    scenarios,
-    leader: scenarios[0] ?? null,
-    totalCount: 4,
-    minGroupSize: 3,
-    maxGroupSize: 3,
-    mode: options.mode ?? 'coverage',
-  }
-
-  const bookEntry = (bookId: string, title: string): [string, BookInfo] => [bookId, {
-    id: bookId,
-    bookId,
-    title,
-    author: 'Автор',
-    description: 'Описание',
-    coverUrl: null,
-    pages: null,
-    publishedDate: '',
-    tags: [],
-    textUrl: '',
-    whyRead: null,
-    recommendationLink: null,
-  }]
-
-  render(
-    <MatchingScenarios
-      overview={overview}
-      bookById={new Map([bookEntry('book-1', 'Книга'), bookEntry('book-2', 'Вторая книга')])}
-      bookParticipants={[]}
-      viewingUserId="viewer"
-      previewMove={options.previewMove}
-      previewOpen={options.previewOpen}
-      mode={options.mode}
-    />,
-  )
+const base = {
+  sessionId: 's1',
+  stateVersion: 1,
+  viewerConfirmedCircleKey: null as string | null,
+  viewerRole: 'active' as const,
+  frozen: false,
+  bookTitleById: { 'book-1': 'Первая книга', 'book-2': 'Вторая книга' },
 }
 
 describe('MatchingScenarios', () => {
-  it('marks only the leader scenario when the viewer is left out', () => {
-    renderScenarios([
-      scenario('leader', 'leader', []),
-      scenario('alternative', 'full-coverage', ['viewer']),
-    ])
-
-    const alternative = screen.getByText('Сценарий 2').closest('li')
-
-    expect(alternative).toHaveAttribute('data-viewer-left-out', 'false')
+  it('renders nothing special when scenarios are empty', () => {
+    render(<MatchingScenarios {...base} scenarios={[]} />)
+    expect(screen.getByTestId('matching-scenarios-empty')).toBeInTheDocument()
+    expect(screen.queryByTestId('matching-scenarios-list')).toBeNull()
   })
 
-  it('marks the leader scenario when the viewer is left out of the leader', () => {
-    renderScenarios([
-      scenario('leader', 'leader', ['viewer']),
-      scenario('alternative', 'full-coverage', []),
-    ])
-
-    const leader = screen.getByText('Сценарий 1').closest('li')
-
-    expect(leader).toHaveAttribute('data-viewer-left-out', 'true')
+  it('renders one card per scenario (no leader highlight)', () => {
+    const scenarios = [
+      makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1', 'r2'] }]),
+      makeScenario('s2', [{ key: 'k2', bookId: 'book-2', memberRefs: ['r1', 'r3'] }]),
+    ]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    const cards = screen.getAllByTestId('matching-scenario-card')
+    expect(cards).toHaveLength(2)
+    // No leader/highlighted style difference — same data-testid for both
+    expect(screen.getByText('Сценарий 1')).toBeInTheDocument()
+    expect(screen.getByText('Сценарий 2')).toBeInTheDocument()
   })
 
-  it('shows circle counter with correct pluralization in scenario header', () => {
-    renderScenarios([
-      scenario('leader', 'leader', [], ['book-2']),
-      scenario('alt', 'full-coverage', []),
-    ])
-
-    expect(screen.getByText('2 круга')).toBeInTheDocument()
-    expect(screen.getByText('1 круг')).toBeInTheDocument()
+  it('shows book titles for each circle', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'] }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    expect(screen.getByText('Первая книга')).toBeInTheDocument()
   })
 
-  it('shows "круг" label above members in every book row', () => {
-    renderScenarios([
-      scenario('leader', 'leader', [], ['book-2']),
-    ])
-
-    const labels = screen.getAllByText('круг')
-    expect(labels.length).toBeGreaterThanOrEqual(2)
+  it('shows member display names', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1', 'r2'] }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    expect(screen.getByText('Участник-r1')).toBeInTheDocument()
+    expect(screen.getByText('Участник-r2')).toBeInTheDocument()
   })
 
-  it('uses satisfaction copy for scenario cards and preview cards', () => {
-    const previewScenario = scenario('preview', 'leader', [])
-    const previewMove = {
-      bookId: 'book-1',
-      title: 'Книга',
-      author: 'Автор',
-      description: 'Описание',
-      coverUrl: null,
-      pages: null,
-      publishedDate: '',
-      tags: [],
-      textUrl: '',
-      whyRead: null,
-      recommendationLink: null,
-      existingParticipants: [],
-      impact: {
-        scenarioId: previewScenario.id,
-        scenarioTitle: 'preview',
-        coverageLabel: '',
-        summary: '',
-        circleTitles: [],
-        circleBooks: [],
-        previewScenario,
-        formsNewCircle: true,
-        coverage: { before: 3, after: 4 },
-        strongInterest: { before: 1, after: 2 },
-        beneficiaries: [],
-      },
-    } satisfies MyMoveBook
+  it('shows CTA "Хочу в этот круг" when viewer is a member and not confirmed', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    expect(screen.getByTestId('circle-confirm-button')).toBeInTheDocument()
+    expect(screen.getByTestId('circle-confirm-button')).toHaveTextContent('Хочу в этот круг')
+  })
 
-    renderScenarios([scenario('leader', 'leader', ['viewer'])], {
-      mode: 'satisfaction',
-      previewMove,
-      previewOpen: true,
-    })
+  it('shows no CTA when viewer is not a member', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: false }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    expect(screen.queryByTestId('circle-confirm-button')).toBeNull()
+  })
 
-    expect(screen.getByText('↑ Добавится новый расклад')).toBeInTheDocument()
-    expect(screen.getByText('+1 сценарий')).toBeInTheDocument()
-    expect(screen.getByText('За бортом остаются:')).toBeInTheDocument()
-    expect(screen.queryByText(/средний ранг/i)).not.toBeInTheDocument()
+  it('shows waiting state with cancel when viewer confirmed this circle', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true, confirmedRefs: ['r1'] }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} viewerConfirmedCircleKey="k1" />)
+    expect(screen.getByTestId('circle-waiting')).toBeInTheDocument()
+    expect(screen.getByTestId('circle-cancel-button')).toBeInTheDocument()
+    expect(screen.getByText(/Подтверждено/)).toBeInTheDocument()
+    expect(screen.getByText(/временно/)).toBeInTheDocument()
+    expect(screen.queryByTestId('circle-confirm-button')).toBeNull()
+  })
+
+  it('opens dialog when clicking confirm CTA', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('shows switch dialog with from/to when viewer has a different confirmation', () => {
+    const scenarios = [
+      makeScenario('s1', [
+        { key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: false, confirmedRefs: ['r1'] },
+        { key: 'k2', bookId: 'book-2', memberRefs: ['r2'], viewerIsMember: true },
+      ]),
+    ]
+    render(<MatchingScenarios {...base} scenarios={scenarios} viewerConfirmedCircleKey="k1" />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    // "from" book and "to" book shown (may appear in card + dialog)
+    expect(screen.getAllByText('Первая книга').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Вторая книга').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('PUTs confirmation and calls onConfirmationChange on success', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({}) })
+    const onChange = jest.fn()
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} onConfirmationChange={onChange} />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/matching/sessions/s1/confirmation',
+      expect.objectContaining({ method: 'PUT' }),
+    ))
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+  })
+
+  it('DELETEs confirmation on cancel and calls onConfirmationChange', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({}) })
+    const onChange = jest.fn()
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true, confirmedRefs: ['r1'] }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} viewerConfirmedCircleKey="k1" onConfirmationChange={onChange} />)
+    fireEvent.click(screen.getByTestId('circle-cancel-button'))
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/matching/sessions/s1/confirmation',
+      expect.objectContaining({ method: 'DELETE' }),
+    ))
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+  })
+
+  it('shows no CTA in read-only (observer) mode', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} viewerRole="observer" />)
+    expect(screen.queryByTestId('circle-confirm-button')).toBeNull()
+  })
+
+  it('shows no CTA when frozen', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} frozen />)
+    expect(screen.queryByTestId('circle-confirm-button')).toBeNull()
+  })
+
+  it('shows no cancel in read-only waiting state (observer)', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true, confirmedRefs: ['r1'] }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} viewerConfirmedCircleKey="k1" viewerRole="observer" />)
+    expect(screen.getByTestId('circle-waiting')).toBeInTheDocument()
+    expect(screen.queryByTestId('circle-cancel-button')).toBeNull()
+  })
+
+  it('shows error message when confirm fails', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, json: async () => ({ error: 'stale_version' }) })
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.getByRole('alert')).toHaveTextContent('stale_version')
   })
 })

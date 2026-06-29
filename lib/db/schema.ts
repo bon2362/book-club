@@ -284,14 +284,102 @@ export const matchingSessions = pgTable('matching_sessions', {
 export const matchingSessionParticipants = pgTable('matching_session_participants', {
   sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
   userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  pseudonym: text('pseudonym').notNull(),
+  publicRef: text('public_ref').notNull().$defaultFn(() => crypto.randomUUID()),
+  joinSource: text('join_source').notNull().default('self'), // 'self' | 'admin'
+  // Phase A compatibility only. The simplified runtime never reads or writes it.
+  pseudonym: text('pseudonym'),
   joinedAt:  timestamp('joined_at', { mode: 'date' }).notNull().defaultNow(),
   // Heartbeat присутствия (#338): обновляется при опросе /api/matching/version.
   // Телеметрия — audit_capture пропускает чисто last_seen_at-апдейты (миграция 0042).
   lastSeenAt: timestamp('last_seen_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
-  pk:                primaryKey({ columns: [t.sessionId, t.userId] }),
-  sessionPseudoUniq: uniqueIndex('matching_session_participants_session_pseudo_idx').on(t.sessionId, t.pseudonym),
+  pk: primaryKey({ columns: [t.sessionId, t.userId] }),
+  sessionPublicRefUniq: uniqueIndex('matching_session_participants_session_public_ref_idx').on(t.sessionId, t.publicRef),
+  joinSourceCheck: check('matching_session_participants_join_source_check', sql`${t.joinSource} IN ('self', 'admin')`),
+}))
+
+export const matchingCircleConfirmations = pgTable('matching_circle_confirmations', {
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  circleKey: text('circle_key').notNull(),
+  memberUserIdsJson: jsonb('member_user_ids_json').$type<string[]>().notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({
+    name: 'matching_circle_confirmations_session_user_pk',
+    columns: [t.sessionId, t.userId],
+  }),
+  sessionCircleIdx: index('matching_circle_confirmations_session_circle_idx').on(t.sessionId, t.circleKey),
+}))
+
+export const matchingLockedCircles = pgTable('matching_locked_circles', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
+  circleKey: text('circle_key').notNull(),
+  status: text('status').notNull().default('locked'), // 'locked' | 'dissolved'
+  lockedAt: timestamp('locked_at', { mode: 'date' }).notNull().defaultNow(),
+  lockedStateVersion: integer('locked_state_version').notNull(),
+  dissolvedAt: timestamp('dissolved_at', { mode: 'date' }),
+  dissolvedBy: text('dissolved_by').references(() => users.id, { onDelete: 'set null' }),
+  dissolveReason: text('dissolve_reason'),
+}, (t) => ({
+  activeCircleUniq: uniqueIndex('matching_locked_circles_active_circle_idx')
+    .on(t.sessionId, t.circleKey)
+    .where(sql`${t.status} = 'locked'`),
+  sessionLockedAtIdx: index('matching_locked_circles_session_locked_at_idx').on(t.sessionId, t.lockedAt),
+  statusCheck: check('matching_locked_circles_status_check', sql`${t.status} IN ('locked', 'dissolved')`),
+}))
+
+export const matchingLockedCircleMembers = pgTable('matching_locked_circle_members', {
+  circleId: text('circle_id').notNull().references(() => matchingLockedCircles.id, { onDelete: 'cascade' }),
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  displayNameSnapshot: text('display_name_snapshot').notNull(),
+  releasedAt: timestamp('released_at', { mode: 'date' }),
+}, (t) => ({
+  pk: primaryKey({
+    name: 'matching_locked_circle_members_circle_user_pk',
+    columns: [t.circleId, t.userId],
+  }),
+  activeUserUniq: uniqueIndex('matching_locked_circle_members_active_user_idx')
+    .on(t.sessionId, t.userId)
+    .where(sql`${t.releasedAt} IS NULL`),
+}))
+
+export const matchingNotices = pgTable('matching_notices', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(),
+  payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  readAt: timestamp('read_at', { mode: 'date' }),
+}, (t) => ({
+  unreadIdx: index('matching_notices_session_user_unread_idx').on(t.sessionId, t.userId, t.readAt),
+}))
+
+export const matchingEvents = pgTable('matching_events', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  eventType: text('event_type').notNull(),
+  actorUserId: text('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  actorNameSnapshot: text('actor_name_snapshot'),
+  subjectUserId: text('subject_user_id').references(() => users.id, { onDelete: 'set null' }),
+  subjectNameSnapshot: text('subject_name_snapshot'),
+  source: text('source').notNull(),
+  bookId: text('book_id').references(() => books.id, { onDelete: 'set null' }),
+  before: jsonb('before'),
+  after: jsonb('after'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  stateVersion: integer('state_version').notNull(),
+  occurredAt: timestamp('occurred_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  sessionOccurredAtIdx: index('matching_events_session_occurred_at_idx').on(t.sessionId, t.occurredAt),
+  subjectOccurredAtIdx: index('matching_events_subject_occurred_at_idx').on(t.subjectUserId, t.occurredAt),
+  typeOccurredAtIdx: index('matching_events_type_occurred_at_idx').on(t.eventType, t.occurredAt),
 }))
 
 export const matchingPseudonymReservations = pgTable('matching_pseudonym_reservations', {

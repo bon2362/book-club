@@ -19,19 +19,21 @@ export function isOnline(
 
 /**
  * Heartbeat присутствия (#338): отмечает userId как «виден сейчас» и возвращает
- * псевдонимы участников, онлайн в окне PRESENCE_WINDOW_MS.
+ * непрозрачные public refs участников, онлайн в окне PRESENCE_WINDOW_MS.
  *
  * Это телеметрия — audit_capture пропускает чисто `last_seen_at`-апдейты (миграция 0042),
  * поэтому heartbeat не засоряет audit-лог. Прямой `db.update` здесь легитимен: телеметрия
  * живёт в lib/ (как `lib/user-activity.ts`), а не в route-хендлере.
  */
-export async function fetchOnlinePseudonyms(
+export async function fetchOnlineParticipantRefs(
   sessionId: string,
   dbClient: typeof db = db,
 ): Promise<string[]> {
   const threshold = new Date(Date.now() - PRESENCE_WINDOW_MS)
   const rows = await dbClient
-    .select({ pseudonym: matchingSessionParticipants.pseudonym })
+    .select({
+      publicRef: matchingSessionParticipants.publicRef,
+    })
     .from(matchingSessionParticipants)
     .where(
       and(
@@ -39,10 +41,10 @@ export async function fetchOnlinePseudonyms(
         gte(matchingSessionParticipants.lastSeenAt, threshold),
       ),
     )
-  return rows.map((r) => r.pseudonym)
+  return rows.map((row) => row.publicRef)
 }
 
-export async function touchAndGetOnlinePseudonyms(
+export async function touchAndGetOnlineParticipantRefs(
   sessionId: string,
   userId: string,
   dbClient: typeof db = db,
@@ -58,5 +60,5 @@ export async function touchAndGetOnlinePseudonyms(
       ),
     )
 
-  return fetchOnlinePseudonyms(sessionId, dbClient)
+  return fetchOnlineParticipantRefs(sessionId, dbClient)
 }

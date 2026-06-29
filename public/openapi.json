@@ -703,153 +703,143 @@
           }
         }
       },
-      "MatchingFeedEvent": {
+      "MatchingParticipant": {
         "type": "object",
-        "description": "Публичное событие matching-ленты. Содержит псевдонимы участников и агрегаты сценария без внутренних userId.",
+        "description": "Участник public state. Raw userId намеренно отсутствует.",
         "properties": {
-          "id": {
-            "type": "number"
+          "ref": { "type": "string" },
+          "displayName": { "type": "string" },
+          "online": { "type": "boolean" },
+          "confirmedCircleKey": { "type": "string", "nullable": true }
+        },
+        "required": ["ref", "displayName", "online", "confirmedCircleKey"]
+      },
+      "MatchingCircle": {
+        "type": "object",
+        "properties": {
+          "circleKey": { "type": "string" },
+          "bookId": { "type": "string" },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ref": { "type": "string" },
+                "displayName": { "type": "string" },
+                "confirmed": { "type": "boolean" }
+              },
+              "required": ["ref", "displayName", "confirmed"]
+            }
           },
-          "ts": {
-            "type": "number",
-            "description": "Unix timestamp в миллисекундах"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "best",
-              "leftout"
-            ]
-          },
-          "actor": {
-            "type": "object",
-            "properties": {
-              "pseudonym": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "pseudonym"
-            ]
-          },
-          "affected": {
-            "type": "object",
-            "description": "Только для событий leftout.",
-            "properties": {
-              "pseudonym": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "pseudonym"
-            ]
-          },
-          "mutationKind": {
-            "type": "string",
-            "enum": [
-              "book_added",
-              "book_removed",
-              "rank_changed",
-              "status_changed",
-              "catalog_signup_updated",
-              "priorities_updated"
-            ]
-          },
-          "before": {
-            "$ref": "#/components/schemas/MatchingFeedScenarioSummary"
-          },
-          "after": {
-            "$ref": "#/components/schemas/MatchingFeedScenarioSummary"
-          },
-          "bookId": {
-            "type": "string"
+          "confirmedCount": { "type": "integer" },
+          "memberCount": { "type": "integer" },
+          "viewerIsMember": { "type": "boolean" }
+        },
+        "required": ["circleKey", "bookId", "members", "confirmedCount", "memberCount", "viewerIsMember"]
+      },
+      "MatchingScenario": {
+        "type": "object",
+        "properties": {
+          "ref": { "type": "string" },
+          "circles": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingCircle" } }
+        },
+        "required": ["ref", "circles"]
+      },
+      "MatchingLockedCircle": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "circleKey": { "type": "string" },
+          "bookId": { "type": "string" },
+          "lockedAt": { "$ref": "#/components/schemas/DateTime" },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": { "ref": { "type": "string" }, "displayName": { "type": "string" } },
+              "required": ["ref", "displayName"]
+            }
           }
         },
-        "required": [
-          "id",
-          "ts",
-          "type",
-          "actor",
-          "bookId",
-          "mutationKind"
-        ]
+        "required": ["id", "circleKey", "bookId", "lockedAt", "members"]
       },
-      "MatchingFeedScenarioSummary": {
+      "MatchingNotice": {
         "type": "object",
-        "nullable": true,
-        "description": "Агрегированное состояние сценария без внутренних списков userId/bookId.",
         "properties": {
-          "coveredCount": {
-            "type": "number"
-          },
-          "totalCount": {
-            "type": "number"
-          },
-          "strongInterestCount": {
-            "type": "number"
-          }
+          "id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["confirmation_transferred", "confirmation_invalidated", "circle_locked"] },
+          "payload": { "type": "object", "additionalProperties": true },
+          "createdAt": { "$ref": "#/components/schemas/DateTime" }
         },
-        "required": [
-          "coveredCount",
-          "totalCount",
-          "strongInterestCount"
-        ]
+        "required": ["id", "kind", "payload", "createdAt"]
       },
-      "MatchingPreferenceEvent": {
+      "MatchingPublicState": {
         "type": "object",
-        "description": "Персистентное событие изменения предпочтений в matching-сессии.",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "sessionId": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "actorUserId": {
-            "type": "string"
-          },
-          "eventType": {
-            "type": "string",
-            "enum": [
-              "book_added",
-              "book_removed",
-              "status_changed",
-              "catalog_signup_updated",
-              "priorities_updated"
-            ]
-          },
-          "source": {
-            "type": "string",
-            "enum": [
-              "matching",
-              "catalog",
-              "profile",
-              "admin"
-            ]
-          },
-          "bookId": {
-            "type": "string",
-            "nullable": true
-          },
-          "before": {
+          "session": {
             "type": "object",
-            "nullable": true
+            "properties": {
+              "name": { "type": "string" },
+              "status": { "type": "string", "enum": ["active", "frozen"] },
+              "stateVersion": { "type": "integer" },
+              "minGroupSize": { "type": "integer" },
+              "maxGroupSize": { "type": "integer" },
+              "frozenSnapshot": { "type": "object", "nullable": true }
+            },
+            "required": ["name", "status", "stateVersion", "minGroupSize", "maxGroupSize"]
           },
-          "after": {
+          "viewer": {
             "type": "object",
-            "nullable": true
+            "properties": {
+              "role": { "type": "string", "enum": ["active", "observer"] },
+              "ref": { "type": "string" },
+              "lockedCircleId": { "type": "string", "nullable": true }
+            },
+            "required": ["role", "ref", "lockedCircleId"]
           },
-          "metadata": {
-            "type": "object",
-            "nullable": true
-          },
-          "occurredAt": {
-            "$ref": "#/components/schemas/DateTime"
-          }
-        }
+          "participants": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingParticipant" } },
+          "scenarios": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingScenario" } },
+          "lockedCircles": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingLockedCircle" } },
+          "notices": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingNotice" } }
+        },
+        "required": ["session", "viewer", "participants", "scenarios", "lockedCircles", "notices"]
+      },
+      "MatchingEvent": {
+        "type": "object",
+        "description": "Смысловое событие matching для админской аналитики.",
+        "properties": {
+          "id": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "eventType": { "type": "string" },
+          "source": { "type": "string" },
+          "actorUserId": { "type": "string", "nullable": true },
+          "actorNameSnapshot": { "type": "string", "nullable": true },
+          "subjectUserId": { "type": "string", "nullable": true },
+          "subjectNameSnapshot": { "type": "string", "nullable": true },
+          "bookId": { "type": "string", "nullable": true },
+          "before": { "type": "object", "nullable": true },
+          "after": { "type": "object", "nullable": true },
+          "metadata": { "type": "object", "nullable": true },
+          "stateVersion": { "type": "integer" },
+          "occurredAt": { "$ref": "#/components/schemas/DateTime" }
+        },
+        "required": ["id", "sessionId", "eventType", "source", "stateVersion", "occurredAt"]
+      },
+      "MatchingConfirmationRequest": {
+        "type": "object",
+        "properties": {
+          "circleKey": { "type": "string" },
+          "expectedStateVersion": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["circleKey", "expectedStateVersion"]
+      },
+      "MatchingTransitionResult": {
+        "type": "object",
+        "properties": {
+          "stateVersion": { "type": "integer" },
+          "changed": { "type": "boolean" }
+        },
+        "additionalProperties": true
       },
       "BookSummary": {
         "type": "object",
@@ -2011,91 +2001,130 @@
         }
       }
     },
-    "/api/matching/feed": {
+    "/api/matching/state": {
       "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Лента значимых событий matching-сессии",
-        "description": "Возвращает in-memory ленту событий `best` и `leftout`. Доступна участникам указанной сессии и администраторам.",
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
+        "tags": ["Auth"],
+        "summary": "Public state matching-сессии",
+        "description": "Возвращает реальные display names, но не raw userId. Доступно участнику сессии; админ может передать as.",
+        "security": [{ "sessionCookie": [] }],
         "parameters": [
-          {
-            "name": "session",
-            "in": "query",
-            "required": true,
-            "description": "Matching session id",
-            "schema": {
-              "type": "string"
-            }
-          }
+          { "name": "session", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "as", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Только admin impersonation" }
         ],
         "responses": {
           "200": {
-            "description": "Feed events",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "events": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/MatchingFeedEvent"
-                      }
-                    }
-                  },
-                  "required": [
-                    "events"
-                  ]
-                }
-              }
-            }
+            "description": "Полное публичное состояние",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingPublicState" } } }
           },
-          "400": {
-            "description": "Ошибка",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+          "400": { "description": "session param required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Not a participant" },
+          "404": { "description": "Session not found" }
+        }
+      }
+    },
+    "/api/matching/version": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Лёгкий polling matching-сессии",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "session", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Версия, статус и непрозрачные online refs",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "version": { "type": "integer" },
+                "status": { "type": "string" },
+                "online": { "type": "array", "items": { "type": "string" } }
+              },
+              "required": ["version", "status", "online"]
+            } } }
           },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Not a participant" },
+          "404": { "description": "Session not found" }
+        }
+      }
+    },
+    "/api/matching/sessions/{id}/join": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Сохранить глобальное имя и вступить в matching-сессию",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": { "name": { "type": "string", "minLength": 1 } },
+          "required": ["name"]
+        } } } },
+        "responses": {
+          "200": { "description": "Участник добавлен", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "400": { "description": "Name required" },
+          "409": { "description": "Session state conflict" }
+        }
+      }
+    },
+    "/api/matching/sessions/{id}/confirmation": {
+      "put": {
+        "tags": ["Auth"],
+        "summary": "Подтвердить или атомарно переключить выбранный круг",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingConfirmationRequest" } } } },
+        "responses": {
+          "200": { "description": "Переход выполнен", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "409": { "description": "Версия устарела, круг недоступен или пользователь observer" }
+        }
+      },
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Отменить временное подтверждение",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": { "expectedStateVersion": { "type": "integer", "minimum": 0 } },
+          "required": ["expectedStateVersion"]
+        } } } },
+        "responses": {
+          "200": { "description": "Подтверждение отменено", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "409": { "description": "Session state conflict" }
+        }
+      }
+    },
+    "/api/matching/notices/{id}/ack": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Пометить matching-уведомление прочитанным",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Прочитано", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ok" } } } },
+          "404": { "description": "Notice not found" }
+        }
+      }
+    },
+    "/api/admin/matching/sessions/{id}/circles/{circleId}/dissolve": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Аварийно распустить закреплённый круг целиком",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "circleId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": { "reason": { "type": "string", "minLength": 1 } },
+          "required": ["reason"]
+        } } } },
+        "responses": {
+          "200": { "description": "Весь состав возвращён в active" },
+          "400": { "description": "Reason required" },
+          "403": { "description": "Forbidden" },
+          "409": { "description": "Circle/session conflict" }
         }
       }
     },
@@ -2206,7 +2235,7 @@
           "Admin"
         ],
         "summary": "Аналитика изменений предпочтений matching",
-        "description": "Возвращает события из `matching_preference_events`; доступно только администраторам.",
+        "description": "Возвращает смысловые события из `matching_events`; доступно только администраторам. URL сохранён для совместимости админского UI.",
         "security": [
           {
             "sessionCookie": []
@@ -2283,7 +2312,7 @@
                     "events": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/MatchingPreferenceEvent"
+                        "$ref": "#/components/schemas/MatchingEvent"
                       }
                     }
                   },

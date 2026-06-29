@@ -61,11 +61,17 @@ export const AUDITED_TABLES = [
   'book_summaries', 'book_summary_revisions', 'book_summary_helpful_reactions',
   'intro_sections', 'signup_books', 'feedback', 'tag_descriptions',
   'matching_sessions', 'matching_session_participants',
-  'matching_pseudonym_reservations', 'matching_preference_events',
+  'matching_circle_confirmations', 'matching_locked_circles',
+  'matching_locked_circle_members', 'matching_notices', 'matching_events',
+  'matching_pseudonym_reservations', 'matching_preference_events', // Phase A legacy only
   'user_merge_events', 'user_identities',
   'verificationToken', 'telegram_preauth_tokens', 'notification_queue',
 ] as const
 ```
+
+`matching_events` не заменяет глобальный аудит. Это смысловой продуктовый журнал: он хранит тип доменного действия, actor/subject, книгу, before/after, metadata, `state_version` и снимки имён для вкладки «Аналитика изменений предпочтений». `audit_log` параллельно фиксирует технические row-level изменения во всех пяти новых matching-таблицах. Оба журнала создаются внутри той же транзакции `runMatchingTransition`.
+
+`matching_pseudonym_reservations` и `matching_preference_events` временно остаются в реестре на Phase A, пока физические legacy-таблицы ещё существуют. Runtime их не читает и не пишет; после production smoke-check отдельная Phase B миграция удаляет таблицы и записи реестра.
 
 Реестр — единый источник правды для:
 - генерации триггер-миграций (`drizzle/0040_audit_triggers.sql`);

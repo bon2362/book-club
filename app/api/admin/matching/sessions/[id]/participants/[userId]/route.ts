@@ -2,12 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
-import { bumpSessionState } from '@/lib/matching/realtime/version'
-import { recordParticipantLeftEvent } from '@/lib/matching/preference-events'
-import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { transitionError } from '@/lib/matching/transition-http'
 
 interface Params { params: { id: string; userId: string } }
 
@@ -16,46 +12,20 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!session?.user?.isAdmin || !session.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const adminId = session.user.id
   const { id: sessionId, userId } = params
 
-  const [matchingSession] = await db
-    .select({ id: matchingSessions.id, status: matchingSessions.status })
-    .from(matchingSessions)
-    .where(eq(matchingSessions.id, sessionId))
-    .limit(1)
-
-  if (!matchingSession) {
-    return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  try {
+    const result = await runMatchingTransition({
+      sessionId,
+      actor: {
+        userId: session.user.id,
+        label: session.user.name ?? session.user.contactEmail ?? null,
+        source: 'admin',
+      },
+      action: { type: 'admin_remove', userId },
+    })
+    return NextResponse.json({ success: true, ...result })
+  } catch (error) {
+    return transitionError(error)
   }
-  if (matchingSession.status !== 'active') {
-    return NextResponse.json({ error: 'Session is not active' }, { status: 409 })
-  }
-
-  // Record the analytics event BEFORE deleting the participant row (pseudonym
-  // snapshot + membership guard need the row to still exist). Actor = admin.
-  await recordParticipantLeftEvent({
-    sessionId,
-    userId,
-    actorUserId: adminId,
-    source: 'admin',
-  }).catch(() => {}) // analytics must never block the removal
-
-  await withAuditContext(
-    { actorUserId: adminId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: 'admin' },
-    async (tx) => {
-      await tx
-        .delete(matchingSessionParticipants)
-        .where(
-          and(
-            eq(matchingSessionParticipants.sessionId, sessionId),
-            eq(matchingSessionParticipants.userId, userId),
-          ),
-        )
-    },
-  )
-
-  await bumpSessionState(sessionId)
-
-  return NextResponse.json({ success: true })
 }

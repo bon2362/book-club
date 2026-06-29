@@ -1,14 +1,3 @@
-export const PSEUDONYM_COLORS = Array(16).fill({
-  chip: 'bg-[var(--bg-tag)] text-[var(--text-secondary)] border border-[var(--border)]',
-  border: 'border-[var(--border)]',
-})
-
-export function getPseudonymColor(pseudonym: string) {
-  let hash = 0
-  for (let i = 0; i < pseudonym.length; i++) hash = pseudonym.charCodeAt(i) + ((hash << 5) - hash)
-  return PSEUDONYM_COLORS[Math.abs(hash) % PSEUDONYM_COLORS.length]
-}
-
 export function personalStatusLabel(personalStatus: string | null): string {
   if (personalStatus === 'reading') return 'Читаю сейчас'
   if (personalStatus === 'read') return 'Прочитал:а'
@@ -31,17 +20,16 @@ export function isStrongInterest(rank: number | null): boolean {
 }
 
 /**
- * Для админа возвращает «Псевдоним (Имя)» если карта есть и имя не пустое.
- * Для обычного пользователя (map=null) — возвращает чистый псевдоним.
+ * Дополняет отображаемое имя административной подписью, если она передана.
  */
 export function withAdminName(
-  pseudonym: string,
-  adminNamesByPseudonym: Map<string, string | null> | null | undefined,
+  displayName: string,
+  adminNamesByDisplayName: Map<string, string | null> | null | undefined,
 ): string {
-  if (!adminNamesByPseudonym) return pseudonym
-  const name = adminNamesByPseudonym.get(pseudonym)
-  if (!name) return pseudonym
-  return `${pseudonym} (${name})`
+  if (!adminNamesByDisplayName) return displayName
+  const name = adminNamesByDisplayName.get(displayName)
+  if (!name) return displayName
+  return `${displayName} (${name})`
 }
 
 export function parseRecommendationLink(raw: string): { text: string; url: string } | null {

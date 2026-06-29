@@ -48,7 +48,11 @@ API проекта описан в OpenAPI-файле и доступен чер
 | PATCH | `/api/summary-revisions/{id}` | Автосохранить правки опубликованного саммари. |
 | POST | `/api/summary-revisions/{id}/submit` | Отправить правки на повторную модерацию. |
 | POST | `/api/summaries/helpful/reconcile` | После входа перенести реакции гостевой cookie к аккаунту и схлопнуть дубли. |
-| GET | `/api/matching/feed` | Лента значимых событий active matching-сессии (`best`, `leftout`) для участников и админов; отдаёт псевдонимы и агрегаты без внутренних `userId`. |
+| GET | `/api/matching/state?session={id}` | Public state с реальными display names, сценариями, подтверждениями, закреплёнными кругами и notices; без raw `userId`. |
+| GET | `/api/matching/version?session={id}` | Лёгкий polling версии, статуса и online refs. |
+| POST | `/api/matching/sessions/{id}/join` | Сохранить глобальное имя и вступить в сессию после disclosure. |
+| PUT/DELETE | `/api/matching/sessions/{id}/confirmation` | Подтвердить/переключить либо отменить выбранный круг. |
+| POST | `/api/matching/notices/{id}/ack` | Пометить персональное matching-уведомление прочитанным. |
 
 ## Основные admin endpoints
 
@@ -60,7 +64,8 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET/POST | `/api/admin/books` | Каталог книг. |
 | PATCH | `/api/admin/books/{id}` | Обновить книгу. |
 | PUT | `/api/admin/books/reorder` | Обновить порядок книг. |
-| GET | `/api/admin/matching/preference-events` | Аналитика изменений предпочтений в matching-сессиях. |
+| GET | `/api/admin/matching/preference-events` | Аналитика matching из смыслового журнала `matching_events`. |
+| POST | `/api/admin/matching/sessions/{id}/circles/{circleId}/dissolve` | Аварийно распустить закреплённый круг целиком; требуется причина. |
 | GET | `/api/admin/feedback` | Фидбек-сообщения. |
 | GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |
 | GET/PATCH/POST | `/api/admin/summaries` | Модерация саммари участников: список, правка, публикация, отклонение. |

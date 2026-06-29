@@ -10,7 +10,7 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
-import { finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 
 jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
@@ -34,16 +34,13 @@ jest.mock('@/lib/matching/realtime/state-change', () => ({
   broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
   getActiveMatchingSessionIdForParticipant: jest.fn(),
 }))
-jest.mock('@/lib/matching/mutation-effects', () => ({
-  captureMatchingMutationSnapshot: jest.fn(),
-  finalizeMatchingMutationEffects: jest.fn(),
-}))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as jest.Mock
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
-const mockFinalizeEffects = finalizeMatchingMutationEffects as jest.Mock
+const mockRunMatchingTransition = runMatchingTransition as jest.Mock
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -191,13 +188,13 @@ describe('PUT /api/priorities', () => {
     const res = await PUT(makePut({ bookIds: ['book-b', 'book-a'] }))
 
     expect(res.status).toBe(200)
-    expect(mockFinalizeEffects).toHaveBeenCalledWith(
+    expect(mockRunMatchingTransition).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'session-1',
-        kind: 'priorities_updated',
-        source: 'profile',
-        metadata: { rankedBookIds: ['book-b', 'book-a'], previousRankedBookIds: [] },
+        actor: expect.objectContaining({ source: 'profile' }),
+        action: { type: 'reorder_priorities', userId: 'user-1', bookIds: ['book-b', 'book-a'] },
       }),
     )
+    expect(db.insert).not.toHaveBeenCalled()
   })
 })

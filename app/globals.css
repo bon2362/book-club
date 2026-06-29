@@ -21,6 +21,7 @@
   --bg-tag:          #EDE5D8;   /* нейтральный фон тега/чипа */
   --bg-tag-green:    #EFF5F1;   /* очень лёгкий success-тинт; предпочитать акцент через линию */
   --bg-tint:         #F6EAE2;   /* мягкий терракотовый тинт за accent-линией (блок «В двух словах») */
+  --overlay:          rgba(17, 17, 17, 0.45); /* затемнение под диалогами */
 
   /* ── Text ──────────────────────────────────────────────────────────────── */
   --text:            #111111;   /* основной */
@@ -49,54 +50,6 @@
   --status-warn-soft: #F3E8D1;   /* мягкий warm warn — фон баннера/чипов */
 
   /* ── Matching participant chips ───────────────────────────────────────── */
-  --pseudonym-1-bg:     #EFE6FF;
-  --pseudonym-1-text:   #6B3FA0;
-  --pseudonym-1-border: #D9C7F2;
-  --pseudonym-2-bg:     #E3F7EC;
-  --pseudonym-2-text:   #2F6B4D;
-  --pseudonym-2-border: #BEE8D0;
-  --pseudonym-3-bg:     #FFF5BE;
-  --pseudonym-3-text:   #755B00;
-  --pseudonym-3-border: #E9D77A;
-  --pseudonym-4-bg:     #E7F0FF;
-  --pseudonym-4-text:   #305C9B;
-  --pseudonym-4-border: #C4D8F8;
-  --pseudonym-5-bg:     #FFE7EF;
-  --pseudonym-5-text:   #9B3D5D;
-  --pseudonym-5-border: #F3C4D4;
-  --pseudonym-6-bg:     #E9F4F1;
-  --pseudonym-6-text:   #2E675E;
-  --pseudonym-6-border: #C8E2DA;
-  --pseudonym-7-bg:     #F3EBDA;
-  --pseudonym-7-text:   #76562B;
-  --pseudonym-7-border: #DDC89F;
-  --pseudonym-8-bg:     #EAF4FF;
-  --pseudonym-8-text:   #275F84;
-  --pseudonym-8-border: #C4E0F2;
-  --pseudonym-9-bg:     #F2EAFD;
-  --pseudonym-9-text:   #6F4594;
-  --pseudonym-9-border: #D9C6EC;
-  --pseudonym-10-bg:    #E6F7F5;
-  --pseudonym-10-text:  #2E6E67;
-  --pseudonym-10-border:#BCE4DE;
-  --pseudonym-11-bg:    #FDEDE2;
-  --pseudonym-11-text:  #8B4E29;
-  --pseudonym-11-border:#ECC8AF;
-  --pseudonym-12-bg:    #EDF0E3;
-  --pseudonym-12-text:  #58652D;
-  --pseudonym-12-border:#CED8A9;
-  --pseudonym-13-bg:    #FBE7E5;
-  --pseudonym-13-text:  #934840;
-  --pseudonym-13-border:#E8C1BC;
-  --pseudonym-14-bg:    #E8F0EA;
-  --pseudonym-14-text:  #42664C;
-  --pseudonym-14-border:#C5D9CB;
-  --pseudonym-15-bg:    #F1ECFF;
-  --pseudonym-15-text:  #5B5293;
-  --pseudonym-15-border:#D2C9F1;
-  --pseudonym-16-bg:    #F0F1D9;
-  --pseudonym-16-text:  #646728;
-  --pseudonym-16-border:#D9DB9A;
 
   /* ── Elevation ─────────────────────────────────────────────────────────── */
   --shadow:          transparent;
@@ -119,15 +72,6 @@
 
   /* Мягкий акцентный тинт (выделение «лучшего», без рамок) */
   --accent-soft:     #F4E7DD;
-
-  /* ── Feed event chips (Лента) ──────────────────────────────────────────── */
-  /* Чистые чипы тикера: светлый фон + тёмный читаемый текст + рамка в цвет. */
-  --feed-best-text:   #A8462A;   /* «лучший расклад» — глубокая терракота */
-  --feed-best-bg:     #FBEDE4;
-  --feed-best-border: #EFD3C2;
-  --feed-warn-text:   #98640F;   /* «…за бортом» — медово-янтарный */
-  --feed-warn-bg:     #FCF2DA;
-  --feed-warn-border: #ECD8A0;
 
   /* Тёплый фон чипа/тега (вместо рамки) */
   --chip-bg:         #F1EADD;
