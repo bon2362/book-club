@@ -2,85 +2,35 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
-import { eq, and, sql } from 'drizzle-orm'
-import { assignPseudonym } from '@/lib/matching/pseudonyms'
-import { bumpSessionState } from '@/lib/matching/realtime/version'
-import { consumePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
-import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { MatchingTransitionError } from '@/lib/matching/session-transition'
 
-interface Params { params: { id: string } }
+type Params = { params: { id: string } }
 
-export async function POST(_req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const userId = session.user.id
-  const { id: sessionId } = params
 
-  // Load matching session
-  const [matchingSession] = await db
-    .select({ id: matchingSessions.id, status: matchingSessions.status })
-    .from(matchingSessions)
-    .where(eq(matchingSessions.id, sessionId))
-    .limit(1)
-
-  if (!matchingSession) {
-    return NextResponse.json({ error: 'Session not found' }, { status: 404 })
-  }
-  if (matchingSession.status !== 'active') {
-    return NextResponse.json({ error: 'Session is not active' }, { status: 409 })
+  const body = await req.json().catch(() => ({}))
+  const name = typeof body.name === 'string' ? body.name.trim() : ''
+  if (!name) {
+    return NextResponse.json({ error: 'name required' }, { status: 400 })
   }
 
-  // Check if already joined
-  const [existing] = await db
-    .select({
-      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
+  try {
+    const result = await runMatchingTransition({
+      sessionId: params.id,
+      actor: { userId: session.user.id, label: name, source: 'matching' },
+      action: { type: 'self_join', userId: session.user.id, name },
     })
-    .from(matchingSessionParticipants)
-    .where(
-      and(
-        eq(matchingSessionParticipants.sessionId, sessionId),
-        eq(matchingSessionParticipants.userId, userId),
-      ),
-    )
-    .limit(1)
-
-  if (existing) {
-    return NextResponse.json({ success: true, pseudonym: existing.pseudonym }, { status: 200 })
+    return NextResponse.json(result)
+  } catch (error) {
+    if (error instanceof MatchingTransitionError) {
+      const status = error.code === 'session_not_found' ? 404 : 409
+      return NextResponse.json({ error: error.code }, { status })
+    }
+    return NextResponse.json({ error: 'matching_transition_failed' }, { status: 500 })
   }
-
-  // Assign a new unique pseudonym, preferring the welcome-screen reservation.
-  const taken = await db
-    .select({
-      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
-    })
-    .from(matchingSessionParticipants)
-    .where(eq(matchingSessionParticipants.sessionId, sessionId))
-
-  const takenSet = new Set(taken.map(r => r.pseudonym))
-  const reserved = await consumePseudonymReservation(sessionId, userId)
-  const pseudonym = reserved && !takenSet.has(reserved)
-    ? reserved
-    : assignPseudonym(takenSet)
-
-  await withAuditContext(
-    {
-      actorUserId: userId,
-      actorLabel: session.user.name ?? session.user.contactEmail ?? null,
-      source: 'matching',
-    },
-    async (tx) =>
-      tx.insert(matchingSessionParticipants).values({
-        sessionId,
-        userId,
-        pseudonym,
-      }),
-  )
-
-  await bumpSessionState(sessionId)
-
-  return NextResponse.json({ success: true, pseudonym }, { status: 201 })
 }
