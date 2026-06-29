@@ -12,6 +12,7 @@ describe('0040 audit triggers migration', () => {
     '0043_user_merge_events.sql',
     '0044_book_summaries.sql',
     '0045_book_summary_revisions.sql',
+    '0047_summary_helpful_reactions.sql',
   ].map(file => readFileSync(join(process.cwd(), 'drizzle', file), 'utf8')).join('\n')
 
   it('defines the audit_capture function reading app.audit_* settings', () => {

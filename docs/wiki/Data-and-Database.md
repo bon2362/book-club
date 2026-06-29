@@ -23,6 +23,8 @@ erDiagram
     user ||--o{ book_summaries : writes
     books ||--o{ book_summaries : has
     book_summaries ||--o| book_summary_revisions : has_active_edit
+    book_summaries ||--o{ book_summary_helpful_reactions : receives
+    user ||--o{ book_summary_helpful_reactions : may_react
     user ||--o{ feedback : may_send
     books ||--o{ notification_queue : referenced_in_payload
 
@@ -115,6 +117,14 @@ erDiagram
       jsonb target_snapshot
       jsonb moved_counts
     }
+
+    book_summary_helpful_reactions {
+      text id
+      text summary_id
+      text user_id
+      text visitor_hash
+      timestamp created_at
+    }
 ```
 
 ## Основные таблицы
@@ -130,6 +140,7 @@ erDiagram
 | `book_submissions` | Предложенные пользователями книги. | Материал для модерации и пополнения каталога. |
 | `book_summaries` | Markdown-саммари участников по прочитанным книгам. | Публичный клубный слой поверх каталога после админской модерации. |
 | `book_summary_revisions` | Одна активная ревизия опубликованного саммари. | Позволяет повторно модерировать правки, не скрывая текущую публикацию. |
+| `book_summary_helpful_reactions` | Одна реакция «Полезно» на саммари от аккаунта или SHA-256 гостевого браузера. | Даёт тёплый социальный сигнал без обязательной регистрации и без списка голосовавших. |
 | `feedback` | Сообщения обратной связи. | Канал связи с владельцем. |
 | `notification_queue` | Очередь email-уведомлений. | Позволяет отправлять digest, а не письмо на каждое действие. |
 | `intro_sections` | Редактируемые блоки intro на главной. | Позволяет менять объяснение сайта из админки. |
@@ -160,6 +171,7 @@ erDiagram
 - `matching_pseudonym_reservations`
 - `matching_preference_events`
 - `book_submissions`
+- `book_summary_helpful_reactions`
 - `telegram_preauth_tokens`
 
 Фидбек остается, но `feedback.user_id` становится пустым. Это сохраняет историю сообщений без привязки к удаленному пользователю.
@@ -180,6 +192,7 @@ erDiagram
 - `0044_book_summaries.sql` — саммари книг от участников и audit-триггер.
 - `0045_book_summary_revisions.sql` — активные ревизии опубликованных саммари и audit-триггер.
 - `0046_book_slugs.sql` — nullable slug книги и уникальный индекс для красивых URL саммари.
+- `0047_summary_helpful_reactions.sql` — реакции, partial unique-индексы, audit trigger и masking `visitor_hash`.
 - `0034_matching_pseudonym_reservations.sql` — временные резервы псевдонимов для welcome screen.
 - `0035_matching_preference_events.sql` — персистентная аналитика изменений предпочтений в matching.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).

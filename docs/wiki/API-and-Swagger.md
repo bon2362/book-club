@@ -29,6 +29,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET | `/api/intro` | Опубликованные intro-блоки. |
 | POST | `/api/feedback` | Отправить обратную связь. |
 | GET | `/api/auth/telegram/callback` | Telegram Login Widget callback. |
+| GET/PUT/DELETE | `/api/summaries/{id}/helpful` | Состояние, добавление и снятие реакции «Полезно» для опубликованного саммари. |
 
 ## Основные пользовательские endpoints
 
@@ -46,6 +47,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | POST | `/api/summaries/{id}/revision` | Создать или открыть правки опубликованного саммари. |
 | PATCH | `/api/summary-revisions/{id}` | Автосохранить правки опубликованного саммари. |
 | POST | `/api/summary-revisions/{id}/submit` | Отправить правки на повторную модерацию. |
+| POST | `/api/summaries/helpful/reconcile` | После входа перенести реакции гостевой cookie к аккаунту и схлопнуть дубли. |
 | GET | `/api/matching/feed` | Лента значимых событий active matching-сессии (`best`, `leftout`) для участников и админов; отдаёт псевдонимы и агрегаты без внутренних `userId`. |
 
 ## Основные admin endpoints

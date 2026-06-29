@@ -3,7 +3,7 @@
   "info": {
     "title": "Долгое наступление — Book Club API",
     "description": "API сайта книжного клуба «Долгое наступление». Runtime-каталог хранится в Postgres. Авторизация через NextAuth v5 с session cookie; /api/admin/* требуют session.user.isAdmin=true; /api/cron/* требуют Bearer CRON_SECRET; /api/test/* доступны только в NEXTAUTH_TEST_MODE=true вне production.",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "servers": [
     {
@@ -69,6 +69,35 @@
         },
         "required": [
           "error"
+        ]
+      },
+      "SummaryHelpfulState": {
+        "type": "object",
+        "description": "Персонализированное состояние реакции; ответы всегда private, no-store.",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reacted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "count",
+          "reacted"
+        ]
+      },
+      "SummaryHelpfulReconcileRequest": {
+        "type": "object",
+        "properties": {
+          "summaryId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "summaryId"
         ]
       },
       "Ok": {
@@ -4585,6 +4614,212 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/summaries/{id}/helpful": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "ID опубликованного саммари",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Получить состояние реакции «Полезно»",
+        "description": "Возвращает публичный счётчик и персональное состояние. Гость без cookie не получает новую cookie; существующая first-party HttpOnly cookie продлевается на 12 месяцев. Ответ Cache-Control: private, no-store.",
+        "responses": {
+          "200": {
+            "description": "Helpful state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryHelpfulState"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Саммари отсутствует или не опубликовано",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Поставить реакцию «Полезно»",
+        "description": "Идемпотентно добавляет одну реакцию для аккаунта или гостевого браузера. Первый успешный гостевой запрос устанавливает __Secure-summary-helpful: HttpOnly, Secure, SameSite=Lax, Path=/api/summaries, Max-Age=31536000.",
+        "responses": {
+          "200": {
+            "description": "Authoritative helpful state after mutation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryHelpfulState"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Саммари отсутствует или не опубликовано",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Мутация не сохранена; новая cookie не устанавливается",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Снять реакцию «Полезно»",
+        "description": "Идемпотентно удаляет реакцию текущего аккаунта или гостевого браузера и возвращает актуальный счётчик.",
+        "responses": {
+          "200": {
+            "description": "Authoritative helpful state after mutation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryHelpfulState"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Саммари отсутствует или не опубликовано",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Внутренняя ошибка",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/summaries/helpful/reconcile": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Связать гостевые реакции с аккаунтом",
+        "description": "Атомарно переносит все реакции текущей scoped guest cookie к session.user.id, схлопывает конфликты и удаляет guest cookie только после успеха.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryHelpfulReconcileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Helpful state for the requested summary after reconciliation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryHelpfulState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "summaryId отсутствует",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Саммари отсутствует или не опубликовано",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Транзакция откачена; guest cookie сохранена",
             "content": {
               "application/json": {
                 "schema": {

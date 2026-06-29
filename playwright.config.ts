@@ -60,7 +60,20 @@ if (!Object.keys(TEST_ENV).length && !process.env.CI) {
 // Порт сервера под тесты. По умолчанию 3000; можно переопределить через
 // PLAYWRIGHT_PORT, если 3000 занят другим локальным процессом.
 const PORT = process.env.PLAYWRIGHT_PORT || '3000'
-const BASE_URL = `http://127.0.0.1:${PORT}`
+// Secure-cookie scenarios opt into Next's local HTTPS server. CI keeps using
+// the regular HTTP `next start`; production itself terminates TLS at Vercel.
+const USE_LOCAL_HTTPS = process.env.PLAYWRIGHT_HTTPS === 'true' && !process.env.CI
+const LOCAL_HTTPS_KEY = process.env.PLAYWRIGHT_HTTPS_KEY
+const LOCAL_HTTPS_CERT = process.env.PLAYWRIGHT_HTTPS_CERT
+const BASE_URL = `${USE_LOCAL_HTTPS ? 'https' : 'http'}://127.0.0.1:${PORT}`
+
+function localDevCommand(): string {
+  if (!USE_LOCAL_HTTPS) return `npm run dev -- -p ${PORT}`
+  if (LOCAL_HTTPS_KEY && LOCAL_HTTPS_CERT) {
+    return `npm run dev -- -p ${PORT} --experimental-https --experimental-https-key ${LOCAL_HTTPS_KEY} --experimental-https-cert ${LOCAL_HTTPS_CERT}`
+  }
+  return `npm run dev -- -p ${PORT} --experimental-https`
+}
 
 export default defineConfig({
   testDir: './e2e',
@@ -89,6 +102,7 @@ export default defineConfig({
     : 'list',
   use: {
     baseURL: BASE_URL,
+    ignoreHTTPSErrors: USE_LOCAL_HTTPS,
     trace: 'on-first-retry',
   },
   projects: [
@@ -105,8 +119,11 @@ export default defineConfig({
     // билд сразу. Сборка делается отдельным шагом в CI (.github/workflows/
     // ci.yml, job e2e) перед запуском Playwright.
     // Локально оставляем dev для быстрого hot-reload цикла.
-    command: process.env.CI ? `npm run start -- -p ${PORT}` : `npm run dev -- -p ${PORT}`,
+    command: process.env.CI
+      ? `npm run start -- -p ${PORT}`
+      : localDevCommand(),
     url: BASE_URL,
+    ignoreHTTPSErrors: USE_LOCAL_HTTPS,
     // На CI всегда поднимаем свежий сервер; локально переиспользуем
     // уже запущенный dev, если он есть.
     reuseExistingServer: !process.env.CI,
