@@ -25,13 +25,13 @@ interface Props {
   viewingUserId: string
   mutationUserId?: string
   frozen?: boolean
-  adminNamesByPseudonym?: Map<string, string | null> | null
+  adminNamesByDisplayName?: Map<string, string | null> | null
   children: React.ReactNode
 }
 
 /**
  * Единственный книжный попап на доске матчинга (#341/рефактор): «Сценарии кругов»,
- * «Мои ходы» и «Мои книги» зовут `openBook(...)`, а модалка рендерится здесь один раз.
+ * Каталог и личный список зовут `openBook(...)`, а модалка рендерится здесь один раз.
  * Контролы (статус / добавить / убрать) появляются по данным книги: модалка обогащается
  * персональным `isInList`/`personalStatus` смотрящего из `personalBooks`.
  *
@@ -43,7 +43,7 @@ export default function BookDetailProvider({
   viewingUserId,
   mutationUserId,
   frozen = false,
-  adminNamesByPseudonym = null,
+  adminNamesByDisplayName = null,
   children,
 }: Props) {
   const router = useRouter()
@@ -103,7 +103,7 @@ export default function BookDetailProvider({
           onStatusChange={handleStatusChange}
           onAddToList={handleAddToList}
           onRemoveFromList={handleRemoveFromList}
-          adminNamesByPseudonym={adminNamesByPseudonym}
+          adminNamesByDisplayName={adminNamesByDisplayName}
         />
       )}
     </BookDetailContext.Provider>

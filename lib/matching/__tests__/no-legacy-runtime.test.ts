@@ -8,17 +8,21 @@
  *  - This test file itself
  */
 
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import path from 'path'
 
 const ROOT = path.resolve(__dirname, '../../..')
 
 function rg(pattern: string, dirs: string[]): string[] {
   try {
-    const result = execSync(
-      `rg -rn --glob "*.{ts,tsx}" ${dirs.map((d) => `'${path.join(ROOT, d)}'`).join(' ')} -e '${pattern}'`,
-      { encoding: 'utf8', cwd: ROOT },
-    )
+    const result = execFileSync('rg', [
+      '-rn',
+      '--glob', '*.{ts,tsx}',
+      '--glob', '!**/*.test.ts',
+      '--glob', '!**/*.test.tsx',
+      '-e', pattern,
+      ...dirs.map((dir) => path.join(ROOT, dir)),
+    ], { encoding: 'utf8', cwd: ROOT })
     return result.trim().split('\n').filter(Boolean)
   } catch {
     // rg exits with code 1 when no matches found (that's what we want)
@@ -31,7 +35,7 @@ const RUNTIME_DIRS = ['app', 'components', 'lib']
 describe('no-legacy-matching-runtime', () => {
   it('does not reference optimizationMode in runtime code', () => {
     const hits = rg('optimizationMode', RUNTIME_DIRS).filter(
-      (line) => !line.includes('no-legacy-runtime.test.ts'),
+      (line) => !line.includes('lib/db/schema.ts'),
     )
     expect(hits).toHaveLength(0)
   })

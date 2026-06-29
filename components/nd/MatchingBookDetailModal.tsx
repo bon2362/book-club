@@ -38,8 +38,8 @@ interface Props {
   onStatusChange?: (bookId: string, status: string | null) => Promise<void>
   onAddToList?: (bookId: string) => Promise<void>
   onRemoveFromList?: (bookId: string) => Promise<void>
-  /** Карта pseudonym → name; задаётся только для админа (#341). */
-  adminNamesByPseudonym?: Map<string, string | null> | null
+  /** Карта displayName → name; задаётся только для админа (#341). */
+  adminNamesByDisplayName?: Map<string, string | null> | null
 }
 
 export default function MatchingBookDetailModal({
@@ -51,7 +51,7 @@ export default function MatchingBookDetailModal({
   onStatusChange,
   onAddToList,
   onRemoveFromList,
-  adminNamesByPseudonym = null,
+  adminNamesByDisplayName = null,
 }: Props) {
   const [busy, setBusy] = useState(false)
   const [summary, setSummary] = useState<SummaryState>(null)
@@ -214,7 +214,7 @@ export default function MatchingBookDetailModal({
                     <ParticipantInterestChip
                       key={p.userId}
                       userId={p.userId}
-                      pseudonym={withAdminName(p.pseudonym, adminNamesByPseudonym)}
+                      displayName={withAdminName(p.displayName, adminNamesByDisplayName)}
                       rank={p.rank}
                       personalStatus={p.personalStatus}
                       viewingUserId={viewingUserId}

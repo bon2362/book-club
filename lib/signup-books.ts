@@ -177,6 +177,28 @@ async function upsertResolvedSignup(
   }
 }
 
+export async function previewSignupByBookIds(
+  userId: string,
+  bookIds: string[],
+): Promise<UpsertResult> {
+  const selectedBooks = await resolveBooksByIds(bookIds)
+  const selectedBookIds = selectedBooks.map((book) => book.id)
+  const existing = await db
+    .select({ bookId: signupBooks.bookId })
+    .from(signupBooks)
+    .where(eq(signupBooks.userId, userId))
+  const existingIds = new Set(existing.map((row) => row.bookId))
+  const selectedIds = new Set(selectedBookIds)
+
+  return {
+    isNew: false,
+    addedBooks: selectedBooks.map((book) => book.title),
+    addedBookIds: selectedBookIds,
+    newlyAddedBookIds: selectedBookIds.filter((bookId) => !existingIds.has(bookId)),
+    removedBookIds: Array.from(existingIds).filter((bookId) => !selectedIds.has(bookId)),
+  }
+}
+
 export async function upsertSignupByBookIds(
   userId: string,
   bookIds: string[],

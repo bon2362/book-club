@@ -9,11 +9,9 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
-import {
-  captureMatchingMutationSnapshot,
-  finalizeMatchingMutationEffects,
-} from '@/lib/matching/mutation-effects'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { transitionError } from '@/lib/matching/transition-http'
 
 export async function DELETE(req: NextRequest) {
   const session = await auth()
@@ -27,7 +25,23 @@ export async function DELETE(req: NextRequest) {
   }
 
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
-  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
+
+  if (activeSessionId) {
+    try {
+      await runMatchingTransition({
+        sessionId: activeSessionId,
+        actor: {
+          userId: session.user.id ?? null,
+          label: session.user.name ?? session.user.contactEmail ?? null,
+          source: 'admin',
+        },
+        action: { type: 'change_book', userId, bookId, operation: 'remove' },
+      })
+      return NextResponse.json({ ok: true })
+    } catch (error) {
+      return transitionError(error)
+    }
+  }
 
   await withAuditContext(
     {
@@ -56,17 +70,6 @@ export async function DELETE(req: NextRequest) {
     },
   )
 
-  if (activeSessionId) {
-    await finalizeMatchingMutationEffects({
-      sessionId: activeSessionId,
-      targetUserId: userId,
-      actorUserId: session.user.id!,
-      bookId,
-      kind: 'book_removed',
-      source: 'admin',
-      before,
-    })
-  }
   await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })

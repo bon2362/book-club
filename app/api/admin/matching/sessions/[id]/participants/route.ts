@@ -7,7 +7,7 @@ import { matchingSessionParticipants, matchingLockedCircleMembers, users } from 
 import { and, eq, isNull } from 'drizzle-orm'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { transitionError } from '@/lib/matching/transition-http'
-import { fetchOnlinePseudonyms } from '@/lib/matching/presence'
+import { fetchOnlineParticipantRefs } from '@/lib/matching/presence'
 
 interface Params { params: { id: string } }
 
@@ -47,7 +47,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   // Онлайн-статус — best-effort: если колонка last_seen_at ещё не накатана, не падаем.
   let online: string[] = []
   try {
-    online = await fetchOnlinePseudonyms(sessionId)
+    online = await fetchOnlineParticipantRefs(sessionId)
   } catch {
     online = []
   }

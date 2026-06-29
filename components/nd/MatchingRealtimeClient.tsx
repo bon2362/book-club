@@ -129,7 +129,7 @@ export default function MatchingRealtimeClient({
           bottom: 8,
           right: 8,
           fontSize: '0.6rem',
-          color: healthy ? '#4a7' : 'var(--text-muted)',
+          color: healthy ? 'var(--success)' : 'var(--text-muted)',
           fontFamily: 'var(--nd-mono), monospace',
           opacity: 0.6,
           userSelect: 'none',

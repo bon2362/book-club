@@ -47,4 +47,23 @@ describe('buildMatchingEventRows', () => {
       source: 'admin',
     }))
   })
+
+  it('enriches preference events with book titles for admin analytics', () => {
+    const rows = buildMatchingEventRows({
+      sessionId: 's1',
+      actor: { userId: 'u1', label: 'Анна', source: 'profile' },
+      namesByUserId: new Map([['u1', 'Анна']]),
+      bookTitlesById: new Map([['b1', 'Идиот'], ['b2', 'Обломов']]),
+      events: [
+        { eventType: 'change_status', stateVersion: 2, subjectUserId: 'u1', bookId: 'b1', after: { status: 'read' } },
+        { eventType: 'reorder_priorities', stateVersion: 2, subjectUserId: 'u1', after: { bookIds: ['b2', 'b1'] } },
+      ],
+    })
+
+    expect(rows[0].metadata).toEqual({ bookTitle: 'Идиот' })
+    expect(rows[1].after).toEqual({
+      bookIds: ['b2', 'b1'],
+      rankedBookTitles: ['Обломов', 'Идиот'],
+    })
+  })
 })

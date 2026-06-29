@@ -8,6 +8,7 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({
@@ -22,10 +23,7 @@ jest.mock('@/lib/matching/realtime/state-change', () => ({
   broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
   getActiveMatchingSessionIdForParticipant: jest.fn(),
 }))
-jest.mock('@/lib/matching/mutation-effects', () => ({
-  captureMatchingMutationSnapshot: jest.fn(),
-  finalizeMatchingMutationEffects: jest.fn(),
-}))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 jest.mock('@/lib/audit/with-audit-context', () => ({
   withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) =>
     fn((jest.requireMock('@/lib/db') as { db: unknown }).db),
@@ -35,6 +33,7 @@ import { auth } from '@/lib/auth'
 const mockAuth = auth as jest.Mock
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
+const mockRunMatchingTransition = runMatchingTransition as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/admin/signup-books', {
@@ -99,6 +98,26 @@ describe('PATCH /api/admin/signup-books — security & validation', () => {
 })
 
 describe('PATCH /api/admin/signup-books — happy path', () => {
+  it('runs an active participant status change inside the matching transaction', async () => {
+    mockAuth.mockResolvedValueOnce({ user: { id: 'admin-1', name: 'Админ', isAdmin: true } })
+    mockGetActiveSessionId.mockResolvedValue('session-1')
+    const signupChain = {
+      from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ bookId: 'b1' }]),
+    }
+    ;(db.select as jest.Mock).mockReturnValueOnce(signupChain)
+
+    const res = await PATCH(makeRequest({ userId: 'u1', bookId: 'b1', status: 'read' }))
+
+    expect(res.status).toBe(200)
+    expect(mockRunMatchingTransition).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: 'session-1',
+      actor: expect.objectContaining({ userId: 'admin-1', source: 'admin' }),
+      action: { type: 'change_status', userId: 'u1', bookId: 'b1', status: 'read' },
+    }))
+    expect(db.update).not.toHaveBeenCalled()
+  })
+
   it('returns 200 when status = reading and user is signed up (no priority row)', async () => {
     mockAuth.mockResolvedValueOnce({ user: { isAdmin: true } })
 

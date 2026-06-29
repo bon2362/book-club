@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   formatMatchingEvent,
@@ -161,7 +160,7 @@ function DissolveDialog({ circle, onClose, onDissolved, sessionId }: DissolveDia
   const overlayStyle: React.CSSProperties = {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.45)',
+    background: 'var(--overlay)',
     zIndex: 1000,
     display: 'flex',
     alignItems: 'center',
@@ -301,7 +300,7 @@ export default function AdminMatchingSession() {
       const json = await res.json()
       if (res.ok) {
         setParticipants(json.data ?? [])
-        // online list may be publicRefs or pseudonyms — store as-is for best-effort display
+        // Online list contains publicRefs; store as-is for best-effort display.
         setOnlinePublicRefs(new Set<string>(json.online ?? []))
       }
     } finally {
@@ -476,24 +475,6 @@ export default function AdminMatchingSession() {
       <h3 style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem' }}>
         Matching-сессия
       </h3>
-
-      <Link
-        href="/admin/gallery"
-        data-testid="admin-gallery-link"
-        style={{
-          display: 'inline-block',
-          marginBottom: '1rem',
-          padding: '0.35rem 0.7rem',
-          border: '1px solid var(--border-strong)',
-          color: 'var(--text)',
-          textDecoration: 'none',
-          fontSize: '0.72rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-        }}
-      >
-        🖼 Галерея фото видов
-      </Link>
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Загрузка…</p>}
       {error && <p style={{ color: 'var(--accent)' }}>{error}</p>}

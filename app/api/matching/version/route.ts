@@ -5,7 +5,7 @@ import { and, eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessionParticipants, matchingSessions } from '@/lib/db/schema'
-import { touchAndGetOnlinePseudonyms } from '@/lib/matching/presence'
+import { touchAndGetOnlineParticipantRefs } from '@/lib/matching/presence'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -41,12 +41,12 @@ export async function GET(req: NextRequest) {
     if (!participant) return NextResponse.json({ error: 'Not a participant' }, { status: 403 })
   }
 
-  // Присутствие (#338): heartbeat звонящего + список онлайн-псевдонимов.
+  // Присутствие (#338): heartbeat звонящего + список непрозрачных participant refs.
   // try/catch — если колонка last_seen_at ещё не накатана на проде, version/status
   // продолжают работать, presence просто пуст.
   let online: string[] = []
   try {
-    online = await touchAndGetOnlinePseudonyms(sessionId, session.user.id)
+    online = await touchAndGetOnlineParticipantRefs(sessionId, session.user.id)
   } catch {
     online = []
   }

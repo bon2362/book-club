@@ -7,17 +7,17 @@ import * as authModule from '@/lib/auth'
 import { db } from '@/lib/db'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { MatchingTransitionError } from '@/lib/matching/session-transition'
-import { fetchOnlinePseudonyms } from '@/lib/matching/presence'
+import { fetchOnlineParticipantRefs } from '@/lib/matching/presence'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn() } }))
 jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
-jest.mock('@/lib/matching/presence', () => ({ fetchOnlinePseudonyms: jest.fn() }))
+jest.mock('@/lib/matching/presence', () => ({ fetchOnlineParticipantRefs: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as unknown as { select: jest.Mock }
 const mockRunTransition = runMatchingTransition as jest.Mock
-const mockOnline = fetchOnlinePseudonyms as jest.Mock
+const mockOnline = fetchOnlineParticipantRefs as jest.Mock
 
 const params = { params: { id: 'session-1' } }
 

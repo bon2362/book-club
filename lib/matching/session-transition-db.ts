@@ -15,6 +15,7 @@ import {
   users,
 } from '@/lib/db/schema'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { upsertSignupByBookIds } from '@/lib/signup-books'
 import { assignMatchingDisplayNames } from './display-names'
 import { buildCircleKey } from './circle-key'
 import { buildMatchingEventRows } from './matching-events'
@@ -164,7 +165,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     const overview = generateSatisfactionScenarioSets({
       participants: activeParticipants.map((participant) => ({
         userId: participant.userId,
-        pseudonym: displayNames.get(participant.userId) ?? 'Без имени',
+        displayName: displayNames.get(participant.userId) ?? 'Без имени',
       })),
       books: allBooks
         .filter((book) => signedUpBookIds.has(book.id))
@@ -245,7 +246,6 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
             userId: action.userId,
             publicRef: randomUUID(),
             joinSource: action.type === 'admin_add' ? 'admin' : 'self',
-            pseudonym: null,
           })
           .onConflictDoNothing()
           .returning({ userId: matchingSessionParticipants.userId })
@@ -266,6 +266,10 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         return this.changeBook(action.userId, action.bookId, action.operation)
       case 'change_rank':
         return this.changeRank(action.userId, action.bookId, action.rank)
+      case 'change_status':
+        return this.changeStatus(action.userId, action.bookId, action.status)
+      case 'replace_signup':
+        return this.replaceSignup(action.userId, action.name, action.contacts, action.bookIds)
       case 'reorder_priorities':
         return this.reorderPriorities(action.userId, action.bookIds)
       case 'change_group_size': {
@@ -376,6 +380,99 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     return true
   }
 
+  private async replaceSignup(
+    userId: string,
+    name: string,
+    contacts: string,
+    bookIds: string[],
+  ): Promise<boolean> {
+    const [currentUser] = await this.tx
+      .select({ name: users.name, contacts: users.contacts })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+    const result = await upsertSignupByBookIds(userId, bookIds, this.tx)
+
+    const normalizedName = name.trim()
+    const normalizedContacts = contacts.trim()
+    const profileChanged = Boolean(currentUser) && (
+      currentUser.name !== normalizedName || currentUser.contacts !== normalizedContacts
+    )
+    if (profileChanged || result.addedBookIds.length === 0) {
+      await this.tx
+        .update(users)
+        .set({
+          name: normalizedName,
+          contacts: normalizedContacts,
+          ...(result.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
+        })
+        .where(eq(users.id, userId))
+    }
+
+    if (result.addedBookIds.length > 0) {
+      const retainedPriorities = await this.tx
+        .select({ bookId: bookPriorities.bookId })
+        .from(bookPriorities)
+        .where(eq(bookPriorities.userId, userId))
+      const selected = new Set(result.addedBookIds)
+      const removedPriorityIds = retainedPriorities
+        .map((row) => row.bookId)
+        .filter((bookId) => !selected.has(bookId))
+      if (removedPriorityIds.length > 0) {
+        await this.tx
+          .delete(bookPriorities)
+          .where(and(
+            eq(bookPriorities.userId, userId),
+            inArray(bookPriorities.bookId, removedPriorityIds),
+          ))
+      }
+    } else {
+      await this.tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
+    }
+
+    return profileChanged || result.newlyAddedBookIds.length > 0 || result.removedBookIds.length > 0
+  }
+
+  private async changeStatus(
+    userId: string,
+    bookId: string,
+    status: 'reading' | 'read' | null,
+  ): Promise<boolean> {
+    const [signup] = await this.tx
+      .select({ personalStatus: signupBooks.personalStatus })
+      .from(signupBooks)
+      .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+      .limit(1)
+    if (!signup || signup.personalStatus === status) return false
+
+    await this.tx
+      .update(signupBooks)
+      .set({ personalStatus: status, personalStatusUpdatedAt: new Date() })
+      .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+
+    if (status !== null) {
+      await this.tx
+        .delete(bookPriorities)
+        .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
+      const remaining = await this.tx
+        .select({ bookId: bookPriorities.bookId })
+        .from(bookPriorities)
+        .where(eq(bookPriorities.userId, userId))
+        .orderBy(asc(bookPriorities.rank))
+      for (let index = 0; index < remaining.length; index++) {
+        await this.tx
+          .update(bookPriorities)
+          .set({ rank: index + 1, updatedAt: new Date() })
+          .where(and(
+            eq(bookPriorities.userId, userId),
+            eq(bookPriorities.bookId, remaining[index].bookId),
+          ))
+      }
+    }
+
+    return true
+  }
+
   private async changeRank(userId: string, bookId: string, rank: number | null): Promise<boolean> {
     if (rank === null) {
       const deleted = await this.tx
@@ -443,11 +540,21 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     const names = userIds.length > 0
       ? await this.tx.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, userIds))
       : []
+    const bookIds = Array.from(new Set(events.flatMap((event) => {
+      const afterBookIds = event.after && typeof event.after === 'object' && 'bookIds' in event.after && Array.isArray(event.after.bookIds)
+        ? event.after.bookIds.filter((value): value is string => typeof value === 'string')
+        : []
+      return [event.bookId, ...afterBookIds].filter((value): value is string => Boolean(value))
+    })))
+    const bookRows = bookIds.length > 0
+      ? await this.tx.select({ id: books.id, title: books.title }).from(books).where(inArray(books.id, bookIds))
+      : []
     const namesByUserId = new Map(names.map((row) => [row.id, row.name?.trim() || 'Без имени']))
     const rows = buildMatchingEventRows({
       sessionId,
       actor: this.actor,
       namesByUserId,
+      bookTitlesById: new Map(bookRows.map((row) => [row.id, row.title])),
       events,
     })
     await this.tx.insert(matchingEvents).values(rows)

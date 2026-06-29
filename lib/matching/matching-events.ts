@@ -22,6 +22,7 @@ export function buildMatchingEventRows(input: {
   sessionId: string
   actor: MatchingTransitionActor
   namesByUserId: ReadonlyMap<string, string>
+  bookTitlesById?: ReadonlyMap<string, string>
   events: MatchingEventDraft[]
 }): MatchingEventInsert[] {
   return input.events.map((event) => {
@@ -31,6 +32,21 @@ export function buildMatchingEventRows(input: {
       ? input.actor.label
       : actorUserId ? input.namesByUserId.get(actorUserId) ?? null : null
     const subjectUserId = event.subjectUserId ?? null
+    const title = event.bookId ? input.bookTitlesById?.get(event.bookId) : undefined
+    const metadata = title
+      ? { ...(event.metadata ?? {}), bookTitle: title }
+      : event.metadata ?? null
+    const after = event.after && typeof event.after === 'object' && 'bookIds' in event.after
+      ? {
+          ...event.after,
+          rankedBookTitles: Array.isArray(event.after.bookIds)
+            ? event.after.bookIds.flatMap((bookId) => {
+                const bookTitle = typeof bookId === 'string' ? input.bookTitlesById?.get(bookId) : null
+                return bookTitle ? [bookTitle] : []
+              })
+            : [],
+        }
+      : event.after ?? null
 
     return {
       sessionId: input.sessionId,
@@ -44,8 +60,8 @@ export function buildMatchingEventRows(input: {
       source: input.actor.source,
       bookId: event.bookId ?? null,
       before: event.before ?? null,
-      after: event.after ?? null,
-      metadata: event.metadata ?? null,
+      after,
+      metadata,
       stateVersion: event.stateVersion,
     }
   })

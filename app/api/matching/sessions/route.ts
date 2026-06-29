@@ -12,7 +12,6 @@ interface CreateSessionBody {
   minGroupSize?: number
   maxGroupSize?: number
   deadlineAt?: string | null
-  optimizationMode?: string
 }
 
 const MAX_GROUP_SIZE_LIMIT = 10
@@ -53,14 +52,6 @@ export async function POST(req: NextRequest) {
   const groupSizeRange = parseGroupSizeRange(body)
   if ('error' in groupSizeRange) return NextResponse.json({ error: groupSizeRange.error }, { status: 400 })
 
-  const optimizationMode = body.optimizationMode ?? 'coverage'
-  if (optimizationMode !== 'coverage' && optimizationMode !== 'satisfaction') {
-    return NextResponse.json(
-      { error: "optimizationMode must be 'coverage' or 'satisfaction'" },
-      { status: 400 },
-    )
-  }
-
   let deadlineAt: Date | null = null
   if (body.deadlineAt) {
     deadlineAt = new Date(body.deadlineAt)
@@ -94,7 +85,6 @@ export async function POST(req: NextRequest) {
           status: 'active',
           minGroupSize: groupSizeRange.minGroupSize,
           maxGroupSize: groupSizeRange.maxGroupSize,
-          optimizationMode,
           deadlineAt,
         })
         .returning({
@@ -103,7 +93,6 @@ export async function POST(req: NextRequest) {
           status: matchingSessions.status,
           minGroupSize: matchingSessions.minGroupSize,
           maxGroupSize: matchingSessions.maxGroupSize,
-          optimizationMode: matchingSessions.optimizationMode,
         })
       return rows
     },
@@ -119,7 +108,17 @@ export async function GET() {
   }
 
   const sessions = await db
-    .select()
+    .select({
+      id: matchingSessions.id,
+      name: matchingSessions.name,
+      status: matchingSessions.status,
+      minGroupSize: matchingSessions.minGroupSize,
+      maxGroupSize: matchingSessions.maxGroupSize,
+      deadlineAt: matchingSessions.deadlineAt,
+      createdAt: matchingSessions.createdAt,
+      frozenAt: matchingSessions.frozenAt,
+      stateVersion: matchingSessions.stateVersion,
+    })
     .from(matchingSessions)
     .orderBy(matchingSessions.createdAt)
 

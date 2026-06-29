@@ -34,7 +34,12 @@ export default async function MatchingPage({
 
   // Find the active session
   const [activeSession] = await db
-    .select()
+    .select({
+      id: matchingSessions.id,
+      name: matchingSessions.name,
+      status: matchingSessions.status,
+      stateVersion: matchingSessions.stateVersion,
+    })
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'active'))
     .limit(1)
@@ -42,7 +47,12 @@ export default async function MatchingPage({
 
   // Also check frozen sessions if no active one
   const [anySession] = activeSession ? [activeSession] : await db
-    .select()
+    .select({
+      id: matchingSessions.id,
+      name: matchingSessions.name,
+      status: matchingSessions.status,
+      stateVersion: matchingSessions.stateVersion,
+    })
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'frozen'))
     .limit(1)
@@ -145,7 +155,7 @@ export default async function MatchingPage({
             rows.map((row) => ({
               userId: row.userId,
               bookId: row.bookId,
-              pseudonym: participantRows.find((p) => p.userId === row.userId)?.name ?? row.userId,
+              displayName: participantRows.find((p) => p.userId === row.userId)?.name ?? row.userId,
               rank: row.rank,
               personalStatus: row.personalStatus ?? null,
             })),

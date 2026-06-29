@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { books } from '@/lib/db/schema'
+import { books, matchingLockedCircles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 
@@ -78,8 +78,13 @@ export async function DELETE(req: NextRequest) {
   const { id } = (await req.json().catch(() => ({}))) as { id?: string }
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
-  // FKs from signup_books / book_priorities / book_submissions are
-  // ON DELETE CASCADE, so removing the book row also clears references.
-  await db.delete(books).where(eq(books.id, id))
+  // A locked circle intentionally protects its book with ON DELETE RESTRICT.
+  // Test teardown removes that disposable matching state first; its members
+  // cascade, then the usual book cascades clear signups and priorities.
+  // eslint-disable-next-line no-restricted-syntax -- isolated test-only cleanup transaction
+  await db.transaction(async (tx) => {
+    await tx.delete(matchingLockedCircles).where(eq(matchingLockedCircles.bookId, id))
+    await tx.delete(books).where(eq(books.id, id))
+  })
   return NextResponse.json({ ok: true })
 }

@@ -14,6 +14,8 @@ export type MatchingAction =
   | { type: 'cancel_confirmation'; userId: string }
   | { type: 'change_book'; userId: string; bookId: string; operation: 'add' | 'remove' }
   | { type: 'change_rank'; userId: string; bookId: string; rank: number | null }
+  | { type: 'change_status'; userId: string; bookId: string; status: 'reading' | 'read' | null }
+  | { type: 'replace_signup'; userId: string; name: string; contacts: string; bookIds: string[] }
   | { type: 'reorder_priorities'; userId: string; bookIds: string[] }
   | { type: 'change_group_size'; min: number; max: number }
   | { type: 'dissolve_circle'; circleId: string; reason: string }
@@ -82,6 +84,8 @@ function participantUserId(action: MatchingAction): string | null {
     case 'cancel_confirmation':
     case 'change_book':
     case 'change_rank':
+    case 'change_status':
+    case 'replace_signup':
     case 'reorder_priorities':
       return action.userId
     case 'change_group_size':
@@ -92,7 +96,57 @@ function participantUserId(action: MatchingAction): string | null {
 }
 
 function requiresActiveParticipant(action: MatchingAction): boolean {
-  return !['self_join', 'admin_add', 'change_group_size', 'dissolve_circle', 'freeze'].includes(action.type)
+  return ![
+    'self_join',
+    'admin_add',
+    'change_book',
+    'change_rank',
+    'change_status',
+    'replace_signup',
+    'reorder_priorities',
+    'change_group_size',
+    'dissolve_circle',
+    'freeze',
+  ].includes(action.type)
+}
+
+function actionEventDraft(
+  action: MatchingAction,
+  stateVersion: number,
+  actorUserId: string | null,
+): MatchingEventDraft {
+  const base: MatchingEventDraft = {
+    eventType: action.type,
+    stateVersion,
+    actorUserId,
+    subjectUserId: participantUserId(action),
+  }
+
+  switch (action.type) {
+    case 'change_book':
+      return { ...base, bookId: action.bookId, metadata: { operation: action.operation } }
+    case 'change_rank':
+      return { ...base, bookId: action.bookId, after: { rank: action.rank } }
+    case 'change_status':
+      return { ...base, bookId: action.bookId, after: { status: action.status } }
+    case 'replace_signup':
+      return { ...base, after: { bookIds: action.bookIds, name: action.name } }
+    case 'reorder_priorities':
+      return { ...base, after: { bookIds: action.bookIds } }
+    case 'change_group_size':
+      return { ...base, after: { minGroupSize: action.min, maxGroupSize: action.max } }
+    case 'dissolve_circle':
+      return { ...base, metadata: { reason: action.reason, circleId: action.circleId } }
+    case 'self_join':
+      return { ...base, after: action.name === undefined ? null : { name: action.name } }
+    case 'admin_add':
+    case 'leave':
+    case 'admin_remove':
+    case 'freeze':
+    case 'set_confirmation':
+    case 'cancel_confirmation':
+      return base
+  }
 }
 
 function findCircle(
@@ -269,12 +323,7 @@ export async function executeMatchingTransition(
   } else {
     changed = await store.applyAction(input.sessionId, action)
     if (changed) {
-      events.push({
-        eventType: action.type,
-        stateVersion: nextStateVersion,
-        actorUserId: input.actor.userId,
-        subjectUserId,
-      })
+      events.push(actionEventDraft(action, nextStateVersion, input.actor.userId))
     }
   }
 

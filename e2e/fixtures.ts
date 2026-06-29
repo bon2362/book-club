@@ -91,10 +91,9 @@ type MatchingSession = {
   name: string
   minGroupSize: number
   maxGroupSize: number
-  optimizationMode: 'coverage' | 'satisfaction'
 }
 
-type MatchingSessionOverrides = Partial<Pick<MatchingSession, 'name' | 'minGroupSize' | 'maxGroupSize' | 'optimizationMode'>>
+type MatchingSessionOverrides = Partial<Pick<MatchingSession, 'name' | 'minGroupSize' | 'maxGroupSize'>>
 
 interface AdminSession {
   email: string
@@ -368,7 +367,6 @@ export const test = base.extend<E2EHelpers>({
           name: overrides?.name ?? `E2E Matching ${testInfo.testId}`,
           minGroupSize: overrides?.minGroupSize ?? 3,
           maxGroupSize: overrides?.maxGroupSize ?? overrides?.minGroupSize ?? 3,
-          optimizationMode: overrides?.optimizationMode ?? 'coverage',
         },
       })
       if (!res.ok()) {

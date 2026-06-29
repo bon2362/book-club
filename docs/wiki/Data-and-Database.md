@@ -14,10 +14,11 @@ erDiagram
     books ||--o{ book_priorities : ranked
     user ||--o{ matching_session_participants : joins
     matching_sessions ||--o{ matching_session_participants : contains
-    user ||--o{ matching_pseudonym_reservations : reserves
-    matching_sessions ||--o{ matching_pseudonym_reservations : previews
-    user ||--o{ matching_preference_events : changes
-    matching_sessions ||--o{ matching_preference_events : records
+    matching_sessions ||--o{ matching_circle_confirmations : confirms
+    matching_sessions ||--o{ matching_locked_circles : locks
+    matching_locked_circles ||--o{ matching_locked_circle_members : contains
+    matching_sessions ||--o{ matching_notices : notifies
+    matching_sessions ||--o{ matching_events : records
     user ||--o{ book_submissions : submits
     books ||--o{ book_submissions : may_publish_from
     user ||--o{ book_summaries : writes
@@ -87,22 +88,33 @@ erDiagram
     matching_session_participants {
       text session_id
       text user_id
-      text pseudonym
+      text public_ref
+      text join_source
       timestamp joined_at
     }
 
-    matching_pseudonym_reservations {
+    matching_circle_confirmations {
       text session_id
       text user_id
-      text pseudonym
-      timestamp expires_at
+      text book_id
+      text circle_key
+      jsonb member_user_ids_json
     }
 
-    matching_preference_events {
+    matching_locked_circles {
       text id
       text session_id
-      text user_id
+      text book_id
+      text circle_key
+      text status
+      text dissolve_reason
+    }
+
+    matching_events {
+      text id
+      text session_id
       text actor_user_id
+      text subject_user_id
       text event_type
       text source
       text book_id
@@ -145,10 +157,12 @@ erDiagram
 | `notification_queue` | Очередь email-уведомлений. | Позволяет отправлять digest, а не письмо на каждое действие. |
 | `intro_sections` | Редактируемые блоки intro на главной. | Позволяет менять объяснение сайта из админки. |
 | `telegram_preauth_tokens` | Короткоживущие токены Telegram-входа. | Нужны для безопасного Telegram redirect flow. |
-| `matching_sessions` | Matching-сессии (имя, статус, дедлайн, метрики заморозки). | Координирует выбор читательских групп. |
-| `matching_session_participants` | Участники каждой сессии с псевдонимами. | Псевдоним стабилен в рамках сессии, новый в каждой следующей. |
-| `matching_pseudonym_reservations` | Временные резервы псевдонимов для welcome screen. | Позволяет показать будущий псевдоним до явного входа, не влияя на сценарии. |
-| `matching_preference_events` | Аналитика изменений предпочтений в matching-сессиях (включая `participant_left`). | Помогает администратору видеть, какие действия меняли лучший сценарий и состав участников; доступна по любой сессии, активной или зафиксированной. |
+| `matching_sessions` | Matching-сессии: статус, размеры групп, `state_version`, freeze snapshot. | Координирует транзакционные пересчёты. |
+| `matching_session_participants` | Участники, непрозрачный public ref, presence и источник self/admin. | Сохраняет доступ и для observer после закрепления. |
+| `matching_circle_confirmations` | Одно временное подтверждение книги и точного состава на пользователя. | Позволяет собрать единогласие и безопасно перенести выбор. |
+| `matching_locked_circles` / `matching_locked_circle_members` | Закреплённые или распущенные круги и их состав. | Неизменяемый участниками результат; dissolve освобождает весь состав. |
+| `matching_notices` | Durable-сообщения о переносе, сбросе и закреплении. | Уведомление переживает закрытую страницу. |
+| `matching_events` | Смысловой журнал matching с actor/subject, before/after и снимками имён. | Источник админской аналитики изменений предпочтений. |
 | `user_merge_events` | Summary-события admin merge дублей пользователей. | Даёт читаемую историю слияния поверх подробного row-level audit. |
 
 ## Как связаны пользователь и способ входа
@@ -168,8 +182,10 @@ erDiagram
 - `signup_books`
 - `book_priorities`
 - `matching_session_participants`
-- `matching_pseudonym_reservations`
-- `matching_preference_events`
+- `matching_circle_confirmations`
+- `matching_locked_circle_members`
+- `matching_notices`
+- `matching_events`
 - `book_submissions`
 - `book_summary_helpful_reactions`
 - `telegram_preauth_tokens`
@@ -193,6 +209,7 @@ erDiagram
 - `0045_book_summary_revisions.sql` — активные ревизии опубликованных саммари и audit-триггер.
 - `0046_book_slugs.sql` — nullable slug книги и уникальный индекс для красивых URL саммари.
 - `0047_summary_helpful_reactions.sql` — реакции, partial unique-индексы, audit trigger и masking `visitor_hash`.
+- `0048_matching_simplified.sql` — public refs, confirmations, locked circles, notices, matching events, ограничения и audit triggers нового flow.
 - `0034_matching_pseudonym_reservations.sql` — временные резервы псевдонимов для welcome screen.
 - `0035_matching_preference_events.sql` — персистентная аналитика изменений предпочтений в matching.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).
@@ -210,3 +227,5 @@ erDiagram
 Если нужно понять “когда он был активен”, надо смотреть:
 
 `user.last_activity_at` и `user_activity_events`.
+
+Если нужно понять matching, смотреть связку `matching_session_participants` → `matching_circle_confirmations` → `matching_locked_circles`, а историю решения — в `matching_events`. Legacy matching-колонки и две прежние таблицы временно остаются nullable и не используются runtime; они удаляются отдельной Phase B миграцией после production smoke-check.

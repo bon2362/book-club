@@ -5,7 +5,7 @@ import {
 
 const participants = ['u1', 'u2', 'u3', 'u4'].map((userId) => ({
   userId,
-  pseudonym: userId,
+  displayName: userId,
 }))
 
 describe('filterRankedSignups', () => {

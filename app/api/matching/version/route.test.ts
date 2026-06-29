@@ -102,7 +102,7 @@ describe('GET /api/matching/version', () => {
     expect(await res.json()).toEqual({ version: 3, status: 'frozen', online: [] })
   })
 
-  it('возвращает online-псевдонимы и делает heartbeat (#338)', async () => {
+  it('возвращает непрозрачные online refs и делает heartbeat (#338)', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'u1', isAdmin: false } })
     const sessionSelect = {
       from: jest.fn().mockReturnThis(),
@@ -116,7 +116,7 @@ describe('GET /api/matching/version', () => {
     }
     const presenceSelect = {
       from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockResolvedValue([{ pseudonym: 'Барсук' }, { pseudonym: 'Белка' }]),
+      where: jest.fn().mockResolvedValue([{ publicRef: 'ref-1' }, { publicRef: 'ref-2' }]),
     }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(sessionSelect)
@@ -128,7 +128,7 @@ describe('GET /api/matching/version', () => {
 
     const res = await GET(makeReq('s1'))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ version: 5, status: 'active', online: ['Барсук', 'Белка'] })
+    expect(await res.json()).toEqual({ version: 5, status: 'active', online: ['ref-1', 'ref-2'] })
     expect(setWhere).toHaveBeenCalled() // heartbeat выполнен
   })
 })

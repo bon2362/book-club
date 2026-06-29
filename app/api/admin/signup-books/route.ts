@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
 import { bookPriorities, signupBooks } from '@/lib/db/schema'
 import { removeBookFromSignup } from '@/lib/signup-books'
 import { and, eq, gt, sql } from 'drizzle-orm'
@@ -9,11 +10,9 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
-import {
-  captureMatchingMutationSnapshot,
-  finalizeMatchingMutationEffects,
-} from '@/lib/matching/mutation-effects'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { transitionError } from '@/lib/matching/transition-http'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -38,9 +37,38 @@ export async function PATCH(req: NextRequest) {
   }
 
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
-  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
-  let signupExists = false
+  const [signup] = await db
+    .select({ bookId: signupBooks.bookId })
+    .from(signupBooks)
+    .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+    .limit(1)
+  if (!signup) {
+    return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
+  }
+
+  if (activeSessionId) {
+    try {
+      await runMatchingTransition({
+        sessionId: activeSessionId,
+        actor: {
+          userId: session.user.id ?? null,
+          label: session.user.name ?? session.user.contactEmail ?? null,
+          source: 'admin',
+        },
+        action: {
+          type: 'change_status',
+          userId,
+          bookId,
+          status: (status ?? null) as 'reading' | 'read' | null,
+        },
+      })
+      return NextResponse.json({ ok: true })
+    } catch (error) {
+      return transitionError(error)
+    }
+  }
+
   await withAuditContext(
     {
       actorUserId: session.user.id,
@@ -48,24 +76,11 @@ export async function PATCH(req: NextRequest) {
       source: 'admin',
     },
     async (tx) => {
-    // 1. Verify the user is signed up for this book (inside transaction to avoid race condition)
-    const [signup] = await tx
-      .select({ bookId: signupBooks.bookId })
-      .from(signupBooks)
-      .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
-      .limit(1)
-
-    if (!signup) return
-
-    signupExists = true
-
-    // 2. Update personal_status
     await tx
       .update(signupBooks)
       .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
       .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 
-    // 3. If moving to reading/read: remove from book_priorities and rerank
     if (status !== null && status !== undefined) {
       const [existing] = await tx
         .select({ rank: bookPriorities.rank })
@@ -84,26 +99,8 @@ export async function PATCH(req: NextRequest) {
           .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, existing.rank)))
       }
     }
-    // If status === null: leave book_priorities untouched
     },
   )
-
-  if (!signupExists) {
-    return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
-  }
-
-  if (activeSessionId) {
-    await finalizeMatchingMutationEffects({
-      sessionId: activeSessionId,
-      targetUserId: userId,
-      actorUserId: session.user.id!,
-      bookId,
-      kind: 'status_changed',
-      source: 'admin',
-      before,
-      metadata: { status: status ?? null },
-    })
-  }
   await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
@@ -121,7 +118,23 @@ export async function DELETE(req: NextRequest) {
   }
 
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
-  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
+
+  if (activeSessionId) {
+    try {
+      await runMatchingTransition({
+        sessionId: activeSessionId,
+        actor: {
+          userId: session.user.id ?? null,
+          label: session.user.name ?? session.user.contactEmail ?? null,
+          source: 'admin',
+        },
+        action: { type: 'change_book', userId, bookId, operation: 'remove' },
+      })
+      return NextResponse.json({ ok: true })
+    } catch (error) {
+      return transitionError(error)
+    }
+  }
 
   await withAuditContext(
     {
@@ -151,17 +164,6 @@ export async function DELETE(req: NextRequest) {
     },
   )
 
-  if (activeSessionId) {
-    await finalizeMatchingMutationEffects({
-      sessionId: activeSessionId,
-      targetUserId: userId,
-      actorUserId: session.user.id!,
-      bookId,
-      kind: 'book_removed',
-      source: 'admin',
-      before,
-    })
-  }
   await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })

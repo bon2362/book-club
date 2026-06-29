@@ -22,7 +22,7 @@ import { test, expect, type Page } from './fixtures'
 /**
  * Создаёт тестового пользователя в отдельном browser-контексте,
  * присоединяет его к сессии, добавляет книгу и ранжирует её.
- * Возвращает псевдоним и функцию очистки сессии.
+ * Возвращает функцию очистки сессии.
  */
 async function joinAsExtraUser(
   page: Page,
@@ -30,7 +30,7 @@ async function joinAsExtraUser(
   name: string,
   sessionId: string,
   bookId: string,
-): Promise<{ pseudonym: string; cleanup: () => Promise<void> }> {
+): Promise<{ cleanup: () => Promise<void> }> {
   // Устанавливаем сессию для доп. пользователя через тот же page-контекст,
   // но на отдельный email — каждый вызов /api/test/session сменяет cookie.
   // Для независимости мы используем отдельный APIRequestContext через browser.newContext().
@@ -42,12 +42,10 @@ async function joinAsExtraUser(
     throw new Error(`/api/test/session failed: ${sessionRes.status()} ${await sessionRes.text()}`)
   }
 
-  const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`)
+  const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`, { data: { name } })
   if (!joinRes.ok()) {
     throw new Error(`join failed: ${joinRes.status()} ${await joinRes.text()}`)
   }
-  const { pseudonym } = (await joinRes.json()) as { pseudonym: string }
-
   const addRes = await page.request.post('/api/matching/books', { data: { bookId } })
   if (!addRes.ok()) {
     throw new Error(`add book failed: ${addRes.status()} ${await addRes.text()}`)
@@ -59,7 +57,6 @@ async function joinAsExtraUser(
   }
 
   return {
-    pseudonym,
     cleanup: async () => {
       await page.request.delete('/api/test/session', { data: { email } })
     },
@@ -85,7 +82,9 @@ test(
 
     // --- Наблюдатель (User B): присоединяемся и открываем /matching ---
     await loginAsUser({ name: 'E2E Realtime Observer' })
-    const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`)
+    const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`, {
+      data: { name: 'E2E Realtime Observer' },
+    })
     if (!joinRes.ok()) {
       throw new Error(`Observer join failed: ${joinRes.status()} ${await joinRes.text()}`)
     }
@@ -109,9 +108,8 @@ test(
       await page.waitForLoadState('networkidle')
     }
 
-    // Убеждаемся в начальном состоянии: ОДИН участник → кругов нет → виден текст «Нужно минимум 2».
-    // (Наблюдатель уже в сессии, но второго участника ещё нет → scenarios.length === 0)
-    const emptyStateLocator = page.getByText(/Нужно минимум 2/)
+    // Один участник — кругов ещё нет.
+    const emptyStateLocator = page.getByTestId('matching-scenarios-empty')
     await expect(emptyStateLocator).toBeVisible({ timeout: 10_000 })
 
     // --- Второй участник (User A): отдельный browser-контекст ---
@@ -142,7 +140,7 @@ test(
       // КЛЮЧЕВАЯ ПРОВЕРКА: БЕЗ page.reload() на странице наблюдателя.
       // Polling (каждые 3с) обнаружит изменение state_version и вызовет router.refresh().
       // После обновления страницы два участника с одной книгой образуют круг →
-      // overview.scenarios.length > 0 → MatchingScenarios больше не рендерит «Нужно минимум 2».
+      // scenarios.length > 0 → MatchingScenarios убирает пустое состояние.
       //
       // Таймаут 15_000ms: poll 3с + сетевые задержки + рендер + запас.
       // Исчезновение пустого состояния = сценарии сформировались = realtime-обновление

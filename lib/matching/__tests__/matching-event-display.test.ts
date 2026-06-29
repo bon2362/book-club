@@ -51,6 +51,8 @@ describe('matchingEventTypeLabel', () => {
   it('переводит preference-события', () => {
     expect(matchingEventTypeLabel('change_book')).toBe('Изменение книги')
     expect(matchingEventTypeLabel('change_rank')).toBe('Ранг изменён')
+    expect(matchingEventTypeLabel('change_status')).toBe('Статус чтения изменён')
+    expect(matchingEventTypeLabel('replace_signup')).toBe('Список книг обновлён')
     expect(matchingEventTypeLabel('reorder_priorities')).toBe('Перестановка приоритетов')
     expect(matchingEventTypeLabel('change_group_size')).toBe('Изменение размера групп')
   })
@@ -149,6 +151,23 @@ describe('formatMatchingEvent — detail', () => {
       metadata: { bookTitle: 'Идиот' },
     })
     expect(formatMatchingEvent(e)).toMatch(/удалён|убран/i)
+  })
+
+  it('change_status — показывает книгу и новый статус', () => {
+    const e = event('change_status', {
+      after: { status: 'read' },
+      metadata: { bookTitle: 'Идиот' },
+    })
+    expect(formatMatchingEvent(e)).toContain('Идиот')
+    expect(formatMatchingEvent(e)).toContain('прочитана')
+  })
+
+  it('replace_signup — показывает новый список книг', () => {
+    const e = event('replace_signup', {
+      after: { rankedBookTitles: ['Идиот', 'Обломов'] },
+    })
+    expect(formatMatchingEvent(e)).toContain('Идиот')
+    expect(formatMatchingEvent(e)).toContain('Обломов')
   })
 
   it('reorder_priorities — показывает новый порядок', () => {

@@ -18,7 +18,6 @@ type MatchingSessionOverrides = {
   minGroupSize?: number
   maxGroupSize?: number
   deadlineAt?: string | null
-  optimizationMode?: string
 }
 
 const ACTIVE_SLOT_TIMEOUT_MS = 120_000
@@ -60,10 +59,6 @@ export async function POST(req: NextRequest) {
   if (!isTestEndpointAllowed()) return notAllowed()
 
   const overrides = (await req.json().catch(() => ({}))) as MatchingSessionOverrides
-  const optimizationMode = overrides.optimizationMode ?? 'coverage'
-  if (optimizationMode !== 'coverage' && optimizationMode !== 'satisfaction') {
-    return NextResponse.json({ error: "optimizationMode must be 'coverage' or 'satisfaction'" }, { status: 400 })
-  }
   const startedAt = Date.now()
 
   while (Date.now() - startedAt < ACTIVE_SLOT_TIMEOUT_MS) {
@@ -77,7 +72,6 @@ export async function POST(req: NextRequest) {
           status: 'active',
           minGroupSize: overrides.minGroupSize ?? 3,
           maxGroupSize: overrides.maxGroupSize ?? overrides.minGroupSize ?? 3,
-          optimizationMode,
           deadlineAt: overrides.deadlineAt ? new Date(overrides.deadlineAt) : null,
         })
         .returning({
@@ -85,7 +79,6 @@ export async function POST(req: NextRequest) {
           name: matchingSessions.name,
           minGroupSize: matchingSessions.minGroupSize,
           maxGroupSize: matchingSessions.maxGroupSize,
-          optimizationMode: matchingSessions.optimizationMode,
         })
 
       return NextResponse.json({ session: created }, { status: 201 })

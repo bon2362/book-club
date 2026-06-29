@@ -28,7 +28,14 @@ class MemoryTransitionStore implements MatchingTransitionStore {
   scenarios: RankedReconciliationScenario[] = [{ circles: [circle('circle-a')] }]
   confirmations: CircleConfirmation[] = []
   calls: string[] = []
-  events: Array<{ eventType: string; stateVersion: number }> = []
+  events: Array<{
+    eventType: string
+    stateVersion: number
+    bookId?: string | null
+    before?: unknown
+    after?: unknown
+    metadata?: Record<string, unknown>
+  }> = []
   notices: Array<{ userId: string; kind: string }> = []
   locked: ReconciliationCircle[] = []
   failEvents = false
@@ -169,6 +176,49 @@ describe('executeMatchingTransition', () => {
     expect(store.calls).toContain('applyAction:reorder_priorities')
     expect(store.events.map((event) => event.eventType)).toEqual(['reorder_priorities'])
     expect(store.calls.filter((call) => call === 'bumpStateVersion')).toHaveLength(1)
+  })
+
+  it('records enough detail to explain preference changes in matching analytics', async () => {
+    const store = new MemoryTransitionStore()
+
+    await executeMatchingTransition({
+      sessionId: 's1',
+      actor,
+      action: { type: 'change_status', userId: 'u1', bookId: 'b1', status: 'reading' },
+    }, store)
+
+    expect(store.events).toEqual([
+      expect.objectContaining({
+        eventType: 'change_status',
+        bookId: 'b1',
+        after: { status: 'reading' },
+      }),
+    ])
+  })
+
+  it('allows global profile preferences to change for an observer without returning them to calculations', async () => {
+    const store = new MemoryTransitionStore()
+    store.roles.set('u1', 'observer')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1',
+      actor,
+      action: {
+        type: 'replace_signup',
+        userId: 'u1',
+        name: 'Анна',
+        contacts: '@anna',
+        bookIds: ['b1'],
+      },
+    }, store)).resolves.toEqual({ changed: true, stateVersion: 5 })
+
+    expect(store.roles.get('u1')).toBe('observer')
+    expect(store.events).toEqual([
+      expect.objectContaining({
+        eventType: 'replace_signup',
+        after: { bookIds: ['b1'], name: 'Анна' },
+      }),
+    ])
   })
 
   it('rejects stale, frozen, and observer actions before mutation', async () => {

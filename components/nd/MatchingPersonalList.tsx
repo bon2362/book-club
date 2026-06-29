@@ -33,7 +33,7 @@ import { addToList, patchPriorities, patchStatus, removeFromList } from '@/lib/m
 export interface BookParticipant {
   userId: string
   bookId: string
-  pseudonym: string
+  displayName: string
   rank: number | null
   personalStatus: string | null
 }
@@ -49,8 +49,8 @@ interface Props {
   onChange?: (activeRankingComplete: boolean) => void
   size?: 'compact' | 'large'
   fill?: boolean
-  /** Карта pseudonym → name; задаётся только для админа (#341). Чипы участников книг получают «(Имя)». */
-  adminNamesByPseudonym?: Map<string, string | null> | null
+  /** Карта displayName → name; задаётся только для админа (#341). Чипы участников книг получают «(Имя)». */
+  adminNamesByDisplayName?: Map<string, string | null> | null
 }
 
 // ── Size-variant styles factory ───────────────────────────────────────────────
@@ -166,9 +166,9 @@ const panelHeadStyle: React.CSSProperties = {
 }
 
 // ── Co-signups line ────────────────────────────────────────────────────────────
-function CoSignups({ others, adminNamesByPseudonym = null }: { others: BookParticipant[]; adminNamesByPseudonym?: Map<string, string | null> | null }) {
+function CoSignups({ others, adminNamesByDisplayName = null }: { others: BookParticipant[]; adminNamesByDisplayName?: Map<string, string | null> | null }) {
   if (others.length === 0) return null
-  const names = others.map((p) => withAdminName(p.pseudonym, adminNamesByPseudonym))
+  const names = others.map((p) => withAdminName(p.displayName, adminNamesByDisplayName))
   return (
     <div
       style={{
@@ -205,10 +205,10 @@ interface SortableRowProps {
   onClick: (book: CatalogBook) => void
   onRemove: (bookId: string) => void
   styles: ListStyles
-  adminNamesByPseudonym?: Map<string, string | null> | null
+  adminNamesByDisplayName?: Map<string, string | null> | null
 }
 
-function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles: s, adminNamesByPseudonym = null }: SortableRowProps) {
+function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles: s, adminNamesByDisplayName = null }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: book.bookId,
     disabled: frozen,
@@ -261,7 +261,7 @@ function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles:
         <div style={s.author}>
           {book.author}
         </div>
-        <CoSignups others={others} adminNamesByPseudonym={adminNamesByPseudonym} />
+        <CoSignups others={others} adminNamesByDisplayName={adminNamesByDisplayName} />
         {book.rank === null && (
           <div
             style={{
@@ -312,10 +312,10 @@ interface StatusRowProps {
   others: BookParticipant[]
   onClick: (book: CatalogBook) => void
   styles: ListStyles
-  adminNamesByPseudonym?: Map<string, string | null> | null
+  adminNamesByDisplayName?: Map<string, string | null> | null
 }
 
-function StatusRow({ book, isFirst, others, onClick, styles: s, adminNamesByPseudonym = null }: StatusRowProps) {
+function StatusRow({ book, isFirst, others, onClick, styles: s, adminNamesByDisplayName = null }: StatusRowProps) {
   const statusIcon = book.personalStatus === 'reading' ? '📖' : '✓'
   return (
     <li
@@ -336,7 +336,7 @@ function StatusRow({ book, isFirst, others, onClick, styles: s, adminNamesByPseu
         <div style={s.author}>
           {book.author}
         </div>
-        <CoSignups others={others} adminNamesByPseudonym={adminNamesByPseudonym} />
+        <CoSignups others={others} adminNamesByDisplayName={adminNamesByDisplayName} />
       </div>
     </li>
   )
@@ -414,7 +414,7 @@ export default function MatchingPersonalList({
   onChange,
   size = 'compact',
   fill = false,
-  adminNamesByPseudonym = null,
+  adminNamesByDisplayName = null,
 }: Props) {
   const s = getListStyles(size)
   const router = useRouter()
@@ -595,7 +595,7 @@ export default function MatchingPersonalList({
           chips={bookParticipants.filter((p) => p.bookId === modalBook.bookId)}
           viewingUserId={viewingUserId}
           frozen={frozen}
-          adminNamesByPseudonym={adminNamesByPseudonym}
+          adminNamesByDisplayName={adminNamesByDisplayName}
           onClose={() => setModalBook(null)}
           onStatusChange={handleStatusChange}
           onAddToList={handleAddToList}
@@ -674,7 +674,7 @@ export default function MatchingPersonalList({
                       onClick={handleBookClick}
                       onRemove={handleRemoveFromList}
                       styles={s}
-                      adminNamesByPseudonym={adminNamesByPseudonym}
+                      adminNamesByDisplayName={adminNamesByDisplayName}
                     />
                   ))}
                 </ul>
@@ -695,7 +695,7 @@ export default function MatchingPersonalList({
               </div>
               <ul className="list-none p-0 m-0">
                 {statusBooks.map((book, idx) => (
-                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} others={othersFor(book.bookId)} onClick={handleBookClick} styles={s} adminNamesByPseudonym={adminNamesByPseudonym} />
+                  <StatusRow key={book.bookId} book={book} isFirst={idx === 0} others={othersFor(book.bookId)} onClick={handleBookClick} styles={s} adminNamesByDisplayName={adminNamesByDisplayName} />
                 ))}
               </ul>
             </>

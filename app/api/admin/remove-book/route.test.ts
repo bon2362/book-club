@@ -10,6 +10,7 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/signup-books', () => ({ removeBookFromSignup: jest.fn() }))
@@ -25,10 +26,7 @@ jest.mock('@/lib/matching/realtime/state-change', () => ({
   broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
   getActiveMatchingSessionIdForParticipant: jest.fn(),
 }))
-jest.mock('@/lib/matching/mutation-effects', () => ({
-  captureMatchingMutationSnapshot: jest.fn(),
-  finalizeMatchingMutationEffects: jest.fn(),
-}))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 jest.mock('@/lib/audit/with-audit-context', () => ({
   withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) =>
     fn((jest.requireMock('@/lib/db') as { db: unknown }).db),
@@ -38,6 +36,7 @@ const mockAuth = authModule.auth as jest.Mock
 const mockRemoveBook = signups.removeBookFromSignup as jest.Mock
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
+const mockRunMatchingTransition = runMatchingTransition as jest.Mock
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/admin/remove-book', {
@@ -98,6 +97,21 @@ describe('DELETE /api/admin/remove-book — security', () => {
 })
 
 describe('DELETE /api/admin/remove-book', () => {
+  it('runs an active participant removal inside the matching transaction', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'admin-1', name: 'Админ', isAdmin: true } })
+    mockGetActiveSessionId.mockResolvedValue('session-1')
+
+    const res = await DELETE(makeRequest({ userId: 'u1', bookId: 'book-a' }))
+
+    expect(res.status).toBe(200)
+    expect(mockRunMatchingTransition).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: 'session-1',
+      actor: expect.objectContaining({ userId: 'admin-1', source: 'admin' }),
+      action: { type: 'change_book', userId: 'u1', bookId: 'book-a', operation: 'remove' },
+    }))
+    expect(mockRemoveBook).not.toHaveBeenCalled()
+  })
+
   it('возвращает 403 без сессии', async () => {
     mockAuth.mockResolvedValue(null)
 

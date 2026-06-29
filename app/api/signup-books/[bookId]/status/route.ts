@@ -9,11 +9,9 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
-import {
-  captureMatchingMutationSnapshot,
-  finalizeMatchingMutationEffects,
-} from '@/lib/matching/mutation-effects'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { transitionError } from '@/lib/matching/transition-http'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -40,7 +38,6 @@ export async function PATCH(
   const { bookId } = params
   const userId = asUserId ?? session.user.id
   const activeSessionId = await getActiveMatchingSessionIdForParticipant(userId)
-  const before = activeSessionId ? await captureMatchingMutationSnapshot(activeSessionId) : null
 
   // Verify user is signed up for this book
   const [signup] = await db
@@ -53,30 +50,31 @@ export async function PATCH(
     return NextResponse.json({ error: 'Not signed up for this book' }, { status: 404 })
   }
 
-  const actorId = session.user.id
-  await withAuditContext(
-    { actorUserId: actorId, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: asUserId ? 'admin' : 'catalog' },
-    async (tx) => {
-      await tx
-        .update(signupBooks)
-        .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
-        .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
-    },
-  )
-
   if (activeSessionId) {
-    await finalizeMatchingMutationEffects({
-      sessionId: activeSessionId,
-      targetUserId: userId,
-      actorUserId: session.user.id,
-      bookId,
-      kind: 'status_changed',
-      source: asUserId ? 'admin' : 'catalog',
-      before,
-      metadata: { status: status ?? null },
-    })
+    try {
+      await runMatchingTransition({
+        sessionId: activeSessionId,
+        actor: {
+          userId: session.user.id,
+          label: session.user.name ?? session.user.contactEmail ?? null,
+          source: asUserId ? 'admin' : 'catalog',
+        },
+        action: { type: 'change_status', userId, bookId, status: status ?? null },
+      })
+    } catch (error) {
+      return transitionError(error)
+    }
+  } else {
+    await withAuditContext(
+      { actorUserId: session.user.id, actorLabel: session.user.name ?? session.user.contactEmail ?? null, source: asUserId ? 'admin' : 'catalog' },
+      async (tx) => {
+        await tx.update(signupBooks)
+          .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
+          .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+      },
+    )
+    await broadcastActiveMatchingStateChangeForParticipant(userId)
   }
-  await broadcastActiveMatchingStateChangeForParticipant(userId)
 
   return NextResponse.json({ ok: true })
 }

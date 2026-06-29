@@ -31,8 +31,8 @@ export interface MatchingSatisfactionFlowProps {
   header?: React.ReactNode
   workspace?: React.ReactNode
   catalogIntro?: React.ReactNode
-  /** Карта pseudonym → name; задаётся только для админа (#341). */
-  adminNamesByPseudonym?: Map<string, string | null> | null
+  /** Карта displayName → name; задаётся только для админа (#341). */
+  adminNamesByDisplayName?: Map<string, string | null> | null
 }
 
 /**
@@ -44,7 +44,7 @@ export interface MatchingSatisfactionFlowProps {
  * the same tree position in both phases, so the instance is preserved: when the
  * server returns `phase="board"` the `board` prop flips false→true and the
  * grid-rows collapsibles transition **with the board content already present** —
- * the «Сценарии»/«Мои ходы» section grows from zero height coupled with the
+ * the board section grows from zero height coupled with the
  * catalog sliding down. (Triggering the grow on click instead would animate an
  * empty section, then pop the content in — which is the bug this avoids.)
  */
@@ -59,7 +59,7 @@ export default function MatchingSatisfactionFlow({
   header,
   workspace,
   catalogIntro,
-  adminNamesByPseudonym = null,
+  adminNamesByDisplayName = null,
 }: MatchingSatisfactionFlowProps) {
   const router = useRouter()
   const board = phase === 'board'
@@ -101,8 +101,9 @@ export default function MatchingSatisfactionFlow({
       </Collapsible>
 
       {/* Gate intro (collapses on enter) */}
-      <Collapsible open={!board}>
-        <div className="nd-flow-fade-collapse nd-flow-gate-intro" data-testid="ranking-gate" style={{ padding: '1.6rem 1rem 0.4rem' }}>
+      {!board && (
+        <Collapsible open>
+          <div className="nd-flow-fade-collapse nd-flow-gate-intro" data-testid="ranking-gate" style={{ padding: '1.6rem 1rem 0.4rem' }}>
           <section style={{ maxWidth: 640 }}>
             <h1
               style={{
@@ -128,8 +129,9 @@ export default function MatchingSatisfactionFlow({
               На пересечении интересов мы собираем читательские круги. Расставь свои книги по степени интереса.
             </p>
           </section>
-        </div>
-      </Collapsible>
+          </div>
+        </Collapsible>
+      )}
 
       {/* Persistent personal list — always mounted; board: catalog viewport,
           gate: fills the remaining screen. Never inside a Collapsible. */}
@@ -160,14 +162,15 @@ export default function MatchingSatisfactionFlow({
             fill={!board}
             suppressRefresh={!board}
             onChange={!board ? setCanEnter : undefined}
-            adminNamesByPseudonym={adminNamesByPseudonym}
+            adminNamesByDisplayName={adminNamesByDisplayName}
           />
         </div>
       </div>
 
       {/* Gate footer (collapses on enter) */}
-      <Collapsible open={!board}>
-        <div
+      {!board && (
+        <Collapsible open>
+          <div
           className="nd-flow-fade-collapse p-4"
           style={{
             borderTop: '1px solid var(--hair)',
@@ -204,8 +207,9 @@ export default function MatchingSatisfactionFlow({
           >
             {submitting ? 'Входим…' : 'Войти в сессию →'}
           </button>
-        </div>
-      </Collapsible>
+          </div>
+        </Collapsible>
+      )}
 
       {board && <MatchingRealtimeWrapper sessionId={sessionId} />}
     </div>

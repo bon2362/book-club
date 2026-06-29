@@ -4,7 +4,7 @@ import { interestLabel, isStrongInterest, rankTooltip } from './matching-shared'
 
 interface Props {
   userId: string
-  pseudonym: string
+  displayName: string
   rank: number | null
   personalStatus?: string | null
   viewingUserId?: string
@@ -15,7 +15,7 @@ interface Props {
 
 export default function ParticipantInterestChip({
   userId,
-  pseudonym,
+  displayName,
   rank,
   personalStatus = null,
   viewingUserId,
@@ -43,7 +43,7 @@ export default function ParticipantInterestChip({
         opacity: dimmed ? 0.4 : 1,
         transition: 'opacity 0.16s ease, background 0.16s ease',
       }}
-      title={`${pseudonym}: ${rankTooltip(rank)}`}
+      title={`${displayName}: ${rankTooltip(rank)}`}
     >
       <b
         style={{
@@ -51,7 +51,7 @@ export default function ParticipantInterestChip({
           color: highlighted || strong ? 'var(--accent)' : 'inherit',
         }}
       >
-        {pseudonym}
+        {displayName}
       </b>
       {!compact && (
         <span

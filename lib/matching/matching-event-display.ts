@@ -30,6 +30,8 @@ export function matchingEventTypeLabel(eventType: string): string {
     case 'freeze': return 'Сессия зафиксирована'
     case 'change_book': return 'Изменение книги'
     case 'change_rank': return 'Ранг изменён'
+    case 'change_status': return 'Статус чтения изменён'
+    case 'replace_signup': return 'Список книг обновлён'
     case 'reorder_priorities': return 'Перестановка приоритетов'
     case 'change_group_size': return 'Изменение размера групп'
     default: return eventType
@@ -130,6 +132,21 @@ export function formatMatchingEvent(event: MatchingEventLike): string {
       const rank = after?.rank
       const suffix = rank == null ? 'ранг удалён' : `→ #${rank}`
       return title ? `${title}: ${suffix}` : suffix
+    }
+    case 'change_status': {
+      const after = event.after as Record<string, unknown> | null
+      const status = after?.status
+      const label = status === 'reading'
+        ? 'читается сейчас'
+        : status === 'read' ? 'прочитана' : 'снова в списке'
+      return title ? `${title}: ${label}` : label
+    }
+    case 'replace_signup': {
+      const after = event.after as Record<string, unknown> | null
+      const titles = Array.isArray(after?.rankedBookTitles)
+        ? (after.rankedBookTitles as string[]).join(', ')
+        : null
+      return titles || 'список пуст'
     }
     case 'reorder_priorities': {
       const after = event.after as Record<string, unknown> | null

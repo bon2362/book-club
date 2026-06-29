@@ -12,7 +12,7 @@ function scenario(id: string, members: string[]): MatchingScenario {
       bookId: 'book-1',
       members: members.map((userId) => ({
         userId,
-        pseudonym: userId,
+        displayName: userId,
         rank: 1,
         interest: 'очень хочу',
       })),
@@ -27,7 +27,6 @@ function scenario(id: string, members: string[]): MatchingScenario {
     score: {
       coveredCount: members.length,
       totalCount: members.length,
-      coverageRatio: 1,
       strongInterestCount: members.length,
       rankedCount: members.length,
       unrankedCount: 0,

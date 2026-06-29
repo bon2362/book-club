@@ -57,7 +57,7 @@ export default function MatchingConfirmationDialog({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'var(--overlay, rgba(0,0,0,0.4))',
+        background: 'var(--overlay)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

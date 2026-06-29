@@ -8,6 +8,7 @@ import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/audit/with-audit-context', () => ({
@@ -21,15 +22,13 @@ jest.mock('@/lib/matching/realtime/state-change', () => ({
   broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
   getActiveMatchingSessionIdForParticipant: jest.fn(),
 }))
-jest.mock('@/lib/matching/mutation-effects', () => ({
-  captureMatchingMutationSnapshot: jest.fn(),
-  finalizeMatchingMutationEffects: jest.fn(),
-}))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockDb = db as jest.Mocked<typeof db>
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
+const mockRunMatchingTransition = runMatchingTransition as jest.Mock
 
 function makeReq(body: object, asUserId?: string) {
   const suffix = asUserId ? `?as=${asUserId}` : ''
@@ -104,6 +103,25 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
 
     expect(res.status).toBe(200)
     expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('participant1')
+  })
+
+  it('runs an active participant status change inside the matching transaction', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    mockGetActiveSessionId.mockResolvedValue('session-1')
+    const signupChain = {
+      from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
+    }
+    mockDb.select = jest.fn().mockReturnValueOnce(signupChain)
+
+    const res = await PATCH(makeReq({ status: 'reading' }), params)
+
+    expect(res.status).toBe(200)
+    expect(mockRunMatchingTransition).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: 'session-1',
+      action: { type: 'change_status', userId: 'user1', bookId: 'book-1', status: 'reading' },
+    }))
+    expect(mockDb.update).not.toHaveBeenCalled()
   })
 
   it('rejects non-admin impersonated mutations', async () => {
