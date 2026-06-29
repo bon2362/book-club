@@ -19,7 +19,6 @@ function makeReq(query = '') {
 function mockSelect(events: unknown[]) {
   const chain = {
     from: jest.fn().mockReturnThis(),
-    leftJoin: jest.fn().mockReturnThis(),
     $dynamic: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
@@ -41,25 +40,24 @@ describe('GET /api/admin/matching/preference-events', () => {
     expect(mockDb.select).not.toHaveBeenCalled()
   })
 
-  it('returns latest events for admins', async () => {
+  it('returns latest events for admins from matching_events table', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', isAdmin: true } })
     const occurredAt = new Date('2026-06-01T12:00:00Z')
     mockSelect([
       {
         id: 'event-1',
         sessionId: 'session-1',
-        userId: 'user-1',
-        actorUserId: 'admin-1',
-        userName: 'Иван',
-        actorName: 'Админ',
-        userPseudonym: 'Белка',
-        actorPseudonym: null,
-        eventType: 'priority_reordered',
-        source: 'matching_feed',
-        bookId: 'book-1',
-        before: { rank: 3 },
-        after: { rank: 1 },
+        eventType: 'self_join',
+        source: 'matching',
+        actorUserId: 'user-1',
+        actorNameSnapshot: 'Иван',
+        subjectUserId: 'user-1',
+        subjectNameSnapshot: 'Иван',
+        bookId: null,
+        before: null,
+        after: null,
         metadata: null,
+        stateVersion: 1,
         occurredAt,
       },
     ])
@@ -71,18 +69,50 @@ describe('GET /api/admin/matching/preference-events', () => {
     expect(data.events).toHaveLength(1)
     expect(data.events[0].id).toBe('event-1')
     expect(data.events[0]).toMatchObject({
-      userName: 'Иван',
-      actorName: 'Админ',
-      userPseudonym: 'Белка',
-      actorPseudonym: null,
+      actorNameSnapshot: 'Иван',
+      subjectNameSnapshot: 'Иван',
+      eventType: 'self_join',
+      source: 'matching',
+      stateVersion: 1,
     })
+  })
+
+  it('does not return legacy pseudonym fields', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'admin-1', isAdmin: true } })
+    mockSelect([
+      {
+        id: 'event-1',
+        sessionId: 'session-1',
+        eventType: 'change_rank',
+        source: 'matching',
+        actorUserId: 'user-1',
+        actorNameSnapshot: 'Мария',
+        subjectUserId: 'user-1',
+        subjectNameSnapshot: 'Мария',
+        bookId: 'book-1',
+        before: { rank: 3 },
+        after: { rank: 1 },
+        metadata: null,
+        stateVersion: 5,
+        occurredAt: new Date(),
+      },
+    ])
+
+    const res = await GET(makeReq())
+    const data = await res.json()
+
+    expect(data.events[0]).not.toHaveProperty('userName')
+    expect(data.events[0]).not.toHaveProperty('userPseudonym')
+    expect(data.events[0]).not.toHaveProperty('actorPseudonym')
+    expect(data.events[0]).toHaveProperty('actorNameSnapshot', 'Мария')
+    expect(data.events[0]).toHaveProperty('subjectNameSnapshot', 'Мария')
   })
 
   it('applies supported filters and caps limit', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', isAdmin: true } })
     const chain = mockSelect([])
 
-    const res = await GET(makeReq('?sessionId=s1&userId=u1&actorUserId=a1&eventType=rank&source=matching&bookId=b1&limit=9999'))
+    const res = await GET(makeReq('?sessionId=s1&userId=u1&actorUserId=a1&eventType=self_join&source=matching&bookId=b1&limit=9999'))
 
     expect(res.status).toBe(200)
     expect(chain.where).toHaveBeenCalledTimes(1)
