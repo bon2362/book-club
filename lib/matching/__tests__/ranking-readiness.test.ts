@@ -1,7 +1,29 @@
 import {
+  listCanEnterSession,
   listNeedsRankingGate,
   userNeedsRankingGate,
 } from '../ranking-readiness'
+
+describe('listCanEnterSession', () => {
+  it('does not let an empty list enter through the gate', () => {
+    expect(listCanEnterSession([])).toBe(false)
+  })
+
+  it('does not let in while an active book is unranked', () => {
+    expect(listCanEnterSession([
+      { isInList: true, personalStatus: null, rank: 1 },
+      { isInList: true, personalStatus: null, rank: null },
+    ])).toBe(false)
+  })
+
+  it('lets in once every active book is ranked', () => {
+    expect(listCanEnterSession([
+      { isInList: true, personalStatus: null, rank: 1 },
+      { isInList: false, personalStatus: null, rank: null },
+      { isInList: true, personalStatus: 'read', rank: null },
+    ])).toBe(true)
+  })
+})
 
 describe('listNeedsRankingGate', () => {
   it('does not block a participant with an empty list', () => {

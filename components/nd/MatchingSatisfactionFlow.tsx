@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import MatchingPersonalList, { type BookParticipant } from './MatchingPersonalList'
 import MatchingRealtimeWrapper from './MatchingRealtimeWrapper'
 import type { CatalogBook } from '@/lib/matching/personal-list'
-import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
+import { listCanEnterSession } from '@/lib/matching/ranking-readiness'
 
 /** Coupled height collapse/grow via the grid-rows 0fr↔1fr trick. The section
  *  grows from zero height together with its content (pushing the catalog down),
@@ -64,7 +64,7 @@ export default function MatchingSatisfactionFlow({
   const router = useRouter()
   const board = phase === 'board'
 
-  const initialCanEnter = useMemo(() => listHasCompleteActiveRanking(books), [books])
+  const initialCanEnter = useMemo(() => listCanEnterSession(books), [books])
   const [canEnter, setCanEnter] = useState(initialCanEnter)
   const [submitting, setSubmitting] = useState(false)
 

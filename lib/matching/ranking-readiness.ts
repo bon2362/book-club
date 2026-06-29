@@ -49,3 +49,15 @@ export function listHasCompleteActiveRanking(
 ) {
   return !listNeedsRankingGate(books)
 }
+
+/**
+ * Можно войти в сессию, только если у пользователя есть хотя бы одна активная
+ * книга и все активные книги проранжированы. Пустой список не пускает в сессию
+ * через gate (доска для пустого списка открывается отдельным путём, минуя gate).
+ */
+export function listCanEnterSession(
+  books: { isInList: boolean; personalStatus: string | null; rank: number | null }[],
+) {
+  const active = books.filter((book) => book.isInList && book.personalStatus === null)
+  return active.length > 0 && active.every((book) => book.rank !== null)
+}
