@@ -3,14 +3,10 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingSessions, signupBooks, bookPriorities, users } from '@/lib/db/schema'
-import { asc, eq } from 'drizzle-orm'
-import { bumpSessionState } from '@/lib/matching/realtime/version'
-import {
-  captureMatchingMutationSnapshot,
-  finalizeMatchingMutationEffects,
-} from '@/lib/matching/mutation-effects'
-import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { matchingSessions } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { transitionError } from '@/lib/matching/transition-http'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -20,73 +16,28 @@ export async function POST(req: NextRequest) {
   const userId = asUserId ?? session.user.id
 
   const [activeSession] = await db
-    .select()
+    .select({ id: matchingSessions.id })
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'active'))
     .limit(1)
-
   if (!activeSession) return NextResponse.json({ error: 'No active session' }, { status: 404 })
-  if (activeSession.status === 'frozen') return NextResponse.json({ error: 'Session is frozen' }, { status: 409 })
 
   const body = await req.json().catch(() => ({}))
   const bookId = typeof body.bookId === 'string' ? body.bookId.trim() : ''
   if (!bookId) return NextResponse.json({ error: 'bookId required' }, { status: 400 })
 
-  const before = await captureMatchingMutationSnapshot(activeSession.id)
-
-  const actorId = session.user.id
-  const actorLabel = session.user.name ?? session.user.contactEmail ?? null
-  const auditSource = asUserId ? 'admin' : 'matching'
-
-  await withAuditContext(
-    { actorUserId: actorId, actorLabel, source: auditSource },
-    async (tx) => {
-      await tx
-        .insert(signupBooks)
-        .values({ userId, bookId })
-        .onConflictDoNothing()
-
-      const rows = await tx
-        .select({ bookId: bookPriorities.bookId })
-        .from(bookPriorities)
-        .where(eq(bookPriorities.userId, userId))
-        .orderBy(asc(bookPriorities.rank))
-
-      const nextOrder = [
-        bookId,
-        ...rows
-          .map((row) => row.bookId)
-          .filter((existingBookId) => existingBookId !== bookId),
-      ]
-
-      for (let i = 0; i < nextOrder.length; i++) {
-        await tx
-          .insert(bookPriorities)
-          .values({ userId, bookId: nextOrder[i], rank: i + 1 })
-          .onConflictDoUpdate({
-            target: [bookPriorities.userId, bookPriorities.bookId],
-            set: { rank: i + 1, updatedAt: new Date() },
-          })
-      }
-
-      await tx
-        .update(users)
-        .set({ prioritiesSet: true })
-        .where(eq(users.id, userId))
-
-    },
-  )
-
-  await finalizeMatchingMutationEffects({
-    sessionId: activeSession.id,
-    targetUserId: userId,
-    actorUserId: actorId,
-    bookId,
-    kind: 'book_added',
-    source: auditSource,
-    before,
-  })
-  await bumpSessionState(activeSession.id)
-
-  return NextResponse.json({ ok: true }, { status: 200 })
+  try {
+    const result = await runMatchingTransition({
+      sessionId: activeSession.id,
+      actor: {
+        userId: session.user.id,
+        label: session.user.name ?? session.user.contactEmail ?? null,
+        source: asUserId ? 'admin' : 'matching',
+      },
+      action: { type: 'change_book', userId, bookId, operation: 'add' },
+    })
+    return NextResponse.json(result)
+  } catch (error) {
+    return transitionError(error)
+  }
 }

@@ -155,6 +155,22 @@ describe('executeMatchingTransition', () => {
     ])
   })
 
+  it('routes a generic scenario-changing action through applyAction and bumps version once', async () => {
+    const store = new MemoryTransitionStore()
+
+    const result = await executeMatchingTransition({
+      sessionId: 's1',
+      actor,
+      expectedStateVersion: 4,
+      action: { type: 'reorder_priorities', userId: 'u1', bookIds: ['b1', 'b2'] },
+    }, store)
+
+    expect(result).toEqual({ changed: true, stateVersion: 5 })
+    expect(store.calls).toContain('applyAction:reorder_priorities')
+    expect(store.events.map((event) => event.eventType)).toEqual(['reorder_priorities'])
+    expect(store.calls.filter((call) => call === 'bumpStateVersion')).toHaveLength(1)
+  })
+
   it('rejects stale, frozen, and observer actions before mutation', async () => {
     const staleStore = new MemoryTransitionStore()
     await expect(executeMatchingTransition({

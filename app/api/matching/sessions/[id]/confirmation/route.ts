@@ -3,42 +3,9 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
-import {
-  MatchingTransitionError,
-  type MatchingTransitionErrorCode,
-} from '@/lib/matching/session-transition'
+import { expectedVersion, transitionError } from '@/lib/matching/transition-http'
 
 type Params = { params: { id: string } }
-
-function transitionStatus(code: MatchingTransitionErrorCode): number {
-  switch (code) {
-    case 'session_not_found':
-    case 'circle_not_found':
-      return 404
-    case 'participant_missing':
-      return 403
-    case 'session_frozen':
-    case 'stale_state':
-    case 'participant_locked':
-      return 409
-    case 'cascade_limit':
-      return 500
-  }
-}
-
-function transitionError(error: unknown): NextResponse {
-  if (error instanceof MatchingTransitionError) {
-    return NextResponse.json(
-      { error: error.code },
-      { status: transitionStatus(error.code) },
-    )
-  }
-  return NextResponse.json({ error: 'matching_transition_failed' }, { status: 500 })
-}
-
-function expectedVersion(value: unknown): number | null {
-  return Number.isInteger(value) && Number(value) >= 0 ? Number(value) : null
-}
 
 export async function PUT(req: NextRequest, { params }: Params) {
   const session = await auth()

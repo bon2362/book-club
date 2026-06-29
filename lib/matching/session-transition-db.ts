@@ -266,6 +266,8 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         return this.changeBook(action.userId, action.bookId, action.operation)
       case 'change_rank':
         return this.changeRank(action.userId, action.bookId, action.rank)
+      case 'reorder_priorities':
+        return this.reorderPriorities(action.userId, action.bookIds)
       case 'change_group_size': {
         const updated = await this.tx
           .update(matchingSessions)
@@ -358,6 +360,20 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         ))
     }
     return deleted.length > 0
+  }
+
+  private async reorderPriorities(userId: string, bookIds: string[]): Promise<boolean> {
+    for (let index = 0; index < bookIds.length; index++) {
+      await this.tx
+        .insert(bookPriorities)
+        .values({ userId, bookId: bookIds[index], rank: index + 1 })
+        .onConflictDoUpdate({
+          target: [bookPriorities.userId, bookPriorities.bookId],
+          set: { rank: index + 1, updatedAt: new Date() },
+        })
+    }
+    await this.tx.update(users).set({ prioritiesSet: true }).where(eq(users.id, userId))
+    return true
   }
 
   private async changeRank(userId: string, bookId: string, rank: number | null): Promise<boolean> {

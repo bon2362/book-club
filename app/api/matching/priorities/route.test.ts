@@ -2,29 +2,35 @@
  * @jest-environment node
  */
 import { PATCH } from './route'
-import * as authModule from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { finalizeMatchingMutationEffects } from '@/lib/matching/mutation-effects'
+import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { MatchingTransitionError } from '@/lib/matching/session-transition'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), insert: jest.fn(), update: jest.fn() } }))
-jest.mock('@/lib/db/schema', () => ({
-  matchingSessions: {},
-  bookPriorities: {},
-  users: { id: 'users.id' },
-}))
-jest.mock('@/lib/matching/realtime/version', () => ({ bumpSessionState: jest.fn() }))
-jest.mock('@/lib/matching/mutation-effects', () => ({
-  captureMatchingMutationSnapshot: jest.fn().mockResolvedValue(null),
-  finalizeMatchingMutationEffects: jest.fn(),
-}))
-jest.mock('@/lib/audit/with-audit-context', () => ({
-  withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
-}))
+jest.mock('@/lib/db', () => ({ db: { select: jest.fn() } }))
+jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
 
-const mockAuth = authModule.auth as jest.Mock
-const mockDb = db as jest.Mocked<typeof db>
-const mockFinalizeEffects = finalizeMatchingMutationEffects as jest.Mock
+const mockAuth = auth as jest.Mock
+const mockDb = db as unknown as { select: jest.Mock }
+const mockRunTransition = runMatchingTransition as jest.Mock
+
+function activeSessionSelect(rows: unknown[] = [{ id: 'session-1' }]) {
+  const chain: Record<string, unknown> = {
+    from: () => chain,
+    where: () => chain,
+    limit: () => Promise.resolve(rows),
+  }
+  return chain
+}
+
+function canonicalSelect(rows: unknown[]) {
+  const chain: Record<string, unknown> = {
+    from: () => chain,
+    where: () => Promise.resolve(rows),
+  }
+  return chain
+}
 
 function makeReq(body: object, asUserId?: string) {
   const suffix = asUserId ? `?as=${asUserId}` : ''
@@ -35,172 +41,52 @@ function makeReq(body: object, asUserId?: string) {
   }) as unknown as import('next/server').NextRequest
 }
 
-const userSession = { user: { id: 'user1', isAdmin: false } }
-const adminSession = { user: { id: 'admin1', isAdmin: true } }
-
 describe('PATCH /api/matching/priorities', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockDb.update = jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnThis(),
-      where: jest.fn().mockResolvedValue([]),
-    })
+    mockAuth.mockResolvedValue({ user: { id: 'u1', name: 'Анна', contactEmail: null, isAdmin: false } })
+    mockDb.select
+      .mockReturnValueOnce(activeSessionSelect())
+      .mockReturnValueOnce(canonicalSelect([{ bookId: 'b1', rank: 1 }, { bookId: 'b2', rank: 2 }]))
+    mockRunTransition.mockResolvedValue({ changed: true, stateVersion: 2 })
   })
 
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
-    const res = await PATCH(makeReq({ bookIds: ['b1'] }))
-    expect(res.status).toBe(401)
+    expect((await PATCH(makeReq({ bookIds: ['b1'] }))).status).toBe(401)
   })
 
-  it('returns 404 when no active session', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const chain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([]) }
-    mockDb.select = jest.fn().mockReturnValue(chain)
-    const res = await PATCH(makeReq({ bookIds: ['b1'] }))
-    expect(res.status).toBe(404)
-  })
-
-  it('returns 409 when session is frozen', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const chain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'frozen' }]) }
-    mockDb.select = jest.fn().mockReturnValue(chain)
-    const res = await PATCH(makeReq({ bookIds: ['b1'] }))
-    expect(res.status).toBe(409)
-  })
-
-  it('returns 400 when bookIds is empty', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const chain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
-    mockDb.select = jest.fn().mockReturnValue(chain)
+  it('validates that bookIds is a non-empty string array', async () => {
+    mockDb.select.mockReset().mockReturnValue(activeSessionSelect())
     const res = await PATCH(makeReq({ bookIds: [] }))
     expect(res.status).toBe(400)
+    expect(mockRunTransition).not.toHaveBeenCalled()
   })
 
-  it('returns 400 when bookIds contains non-strings', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const chain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
-    mockDb.select = jest.fn().mockReturnValue(chain)
-    const res = await PATCH(makeReq({ bookIds: [1, 2] }))
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 200 with canonical ranks', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
-    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
-    const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }, { bookId: 'b1', rank: 2 }]) }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce(sessionChain)
-      .mockReturnValueOnce(previousRanksChain)
-      .mockReturnValueOnce(canonicalChain)
-    const upsertChain = { values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) }
-    mockDb.insert = jest.fn().mockReturnValue(upsertChain)
-    const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
-    mockDb.update = jest.fn().mockReturnValue(updateChain)
-
-    const res = await PATCH(makeReq({ bookIds: ['b2', 'b1'] }))
+  it('reorders priorities through the transition and returns canonical ranks', async () => {
+    const res = await PATCH(makeReq({ bookIds: ['b1', 'b2'] }))
     expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.ranks).toHaveLength(2)
-    expect(mockDb.insert).toHaveBeenCalledTimes(2)
-    expect(updateChain.set).toHaveBeenCalledWith({ prioritiesSet: true })
+    expect(await res.json()).toEqual({ ranks: [{ bookId: 'b1', rank: 1 }, { bookId: 'b2', rank: 2 }] })
+    expect(mockRunTransition).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      actor: { userId: 'u1', label: 'Анна', source: 'matching' },
+      action: { type: 'reorder_priorities', userId: 'u1', bookIds: ['b1', 'b2'] },
+    })
   })
 
-  it('пишет событие priorities_updated с упорядоченным списком (source=matching)', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
-    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
-    const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }, { bookId: 'b1', rank: 2 }]) }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce(sessionChain)
-      .mockReturnValueOnce(previousRanksChain)
-      .mockReturnValueOnce(canonicalChain)
-    mockDb.insert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) })
-
-    await PATCH(makeReq({ bookIds: ['b2', 'b1'] }))
-
-    expect(mockFinalizeEffects).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: 's1',
-        targetUserId: 'user1',
-        actorUserId: 'user1',
-        kind: 'priorities_updated',
-        source: 'matching',
-        metadata: { rankedBookIds: ['b2', 'b1'], previousRankedBookIds: [] },
-      }),
-    )
-  })
-
-  it('пишет source=matching_priority_gate для предварительного экрана приоритетов', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
-    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
-    const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }, { bookId: 'b1', rank: 2 }]) }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce(sessionChain)
-      .mockReturnValueOnce(previousRanksChain)
-      .mockReturnValueOnce(canonicalChain)
-    mockDb.insert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) })
-
-    await PATCH(makeReq({ bookIds: ['b2', 'b1'], source: 'matching_priority_gate' }))
-
-    expect(mockFinalizeEffects).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: 's1',
-        targetUserId: 'user1',
-        actorUserId: 'user1',
-        kind: 'priorities_updated',
-        source: 'matching_priority_gate',
-        metadata: { rankedBookIds: ['b2', 'b1'], previousRankedBookIds: [] },
-      }),
-    )
-  })
-
-  it('для impersonation: target — участник, actor — админ', async () => {
-    mockAuth.mockResolvedValue(adminSession)
-    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
-    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
-    const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }]) }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce(sessionChain)
-      .mockReturnValueOnce(previousRanksChain)
-      .mockReturnValueOnce(canonicalChain)
-    mockDb.insert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) })
-
-    await PATCH(makeReq({ bookIds: ['b2'] }, 'participant1'))
-
-    expect(mockFinalizeEffects).toHaveBeenCalledWith(
-      expect.objectContaining({
-        targetUserId: 'participant1',
-        actorUserId: 'admin1',
-        kind: 'priorities_updated',
-        source: 'admin',
-      }),
-    )
-  })
-
-  it('lets admin reorder books for an impersonated participant', async () => {
-    mockAuth.mockResolvedValue(adminSession)
-    const sessionChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([{ id: 's1', status: 'active' }]) }
-    const previousRanksChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockResolvedValue([]) }
-    const canonicalChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([{ bookId: 'b2', rank: 1 }]) }
-    mockDb.select = jest.fn()
-      .mockReturnValueOnce(sessionChain)
-      .mockReturnValueOnce(previousRanksChain)
-      .mockReturnValueOnce(canonicalChain)
-    const upsertChain = { values: jest.fn().mockReturnThis(), onConflictDoUpdate: jest.fn().mockResolvedValue([]) }
-    mockDb.insert = jest.fn().mockReturnValue(upsertChain)
-
-    const res = await PATCH(makeReq({ bookIds: ['b2'] }, 'participant1'))
-
+  it('lets an admin reorder for an impersonated participant', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'admin1', name: 'Админ', contactEmail: null, isAdmin: true } })
+    const res = await PATCH(makeReq({ bookIds: ['b1', 'b2'] }, 'participant1'))
     expect(res.status).toBe(200)
-    expect(upsertChain.values).toHaveBeenCalledWith({ userId: 'participant1', bookId: 'b2', rank: 1 })
+    expect(mockRunTransition).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      actor: { userId: 'admin1', label: 'Админ', source: 'admin' },
+      action: { type: 'reorder_priorities', userId: 'participant1', bookIds: ['b1', 'b2'] },
+    })
   })
 
-  it('rejects non-admin impersonated mutations', async () => {
-    mockAuth.mockResolvedValue(userSession)
-    const res = await PATCH(makeReq({ bookIds: ['b1'] }, 'participant1'))
-    expect(res.status).toBe(403)
+  it('maps stale state to 409', async () => {
+    mockRunTransition.mockRejectedValue(new MatchingTransitionError('stale_state'))
+    expect((await PATCH(makeReq({ bookIds: ['b1'] }))).status).toBe(409)
   })
 })

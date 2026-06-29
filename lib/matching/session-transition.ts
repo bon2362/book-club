@@ -14,6 +14,7 @@ export type MatchingAction =
   | { type: 'cancel_confirmation'; userId: string }
   | { type: 'change_book'; userId: string; bookId: string; operation: 'add' | 'remove' }
   | { type: 'change_rank'; userId: string; bookId: string; rank: number | null }
+  | { type: 'reorder_priorities'; userId: string; bookIds: string[] }
   | { type: 'change_group_size'; min: number; max: number }
   | { type: 'dissolve_circle'; circleId: string; reason: string }
   | { type: 'freeze' }
@@ -81,6 +82,7 @@ function participantUserId(action: MatchingAction): string | null {
     case 'cancel_confirmation':
     case 'change_book':
     case 'change_rank':
+    case 'reorder_priorities':
       return action.userId
     case 'change_group_size':
     case 'dissolve_circle':
