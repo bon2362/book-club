@@ -10,7 +10,7 @@
 - После публикации автор редактирует отдельную ревизию; текущий публичный текст не меняется до повторного approve.
 - У опубликованного саммари может быть только одна активная ревизия.
 - Несколько опубликованных саммари от разных участников показываются на одной странице книги.
-- Реакций, комментариев, email-уведомлений и личного раздела “Мои саммари” в MVP нет.
+- Комментариев, email-уведомлений и личного раздела “Мои саммари” в MVP нет. Единственная социальная реакция v1 — необязательная «Полезно».
 
 ## Модель данных
 Таблица `book_summaries` создаётся миграцией `drizzle/0044_book_summaries.sql`. Активные правки опубликованного текста хранятся в `book_summary_revisions`, созданной миграцией `drizzle/0045_book_summary_revisions.sql`. Красивый адрес хранится на самой книге в nullable-колонке `books.slug`; уникальный индекс добавлен миграцией `drizzle/0046_book_slugs.sql`.
@@ -26,6 +26,8 @@
 Уникальность: `unique(book_id, author_user_id)`.
 
 Обе таблицы аудируются: они добавлены в `AUDITED_TABLES`, а миграции создают audit-trigger. При approve поля ревизии копируются в `book_summaries`, после чего ревизия удаляется в той же транзакции. `published_at` сохраняет дату первой публикации.
+
+Реакции хранятся в `book_summary_helpful_reactions` (миграция `0047`). Строка принадлежит конкретному `summary_id` и содержит ровно одну идентичность: `user_id` для аккаунта или SHA-256 `visitor_hash` для гостевого браузера. Check constraint обеспечивает XOR, а два частичных unique-индекса гарантируют одну реакцию на саммари для аккаунта и гостя. Обе связи каскадные: удаление саммари или аккаунта удаляет связанные реакции.
 
 ## Жизненный цикл
 ```mermaid
@@ -64,6 +66,18 @@ stateDiagram-v2
 - Пока ревизия находится на проверке или отклонена, публичная страница продолжает показывать предыдущую опубликованную версию.
 - Публичная страница опубликованных саммари: `/books/{bookSlug}/summaries`. Старый адрес `/books/{bookId}/summaries` остаётся совместимым и перенаправляет на красивый URL, если slug уже назначен.
 - Каталог показывает ссылку на саммари, если у книги есть хотя бы одно опубликованное саммари (`summaryCount > 0`).
+- Внизу активного опубликованного текста находится кнопка «Полезно». При нуле она не показывает `· 0`; при реакции имеет `aria-pressed=true`. Счётчик принадлежит конкретному саммари и меняется вместе с выбранным автором.
+- Кнопка гидратирует персональное состояние через API, блокируется на время запроса, меняется оптимистично и принимает авторитетные `count/reacted` сервера. При ошибке состояние откатывается и показывается короткая подсказка.
+
+## Реакция «Полезно»: идентичность и cookie
+
+- Аккаунт дедуплицируется по внутреннему `user.id` между устройствами.
+- Гость получает случайный UUID только после первого успешного `PUT`. В БД хранится только SHA-256, исходный UUID не логируется и не передаётся в PostHog.
+- Cookie `__Secure-summary-helpful` — first-party, `HttpOnly`, `Secure`, `SameSite=Lax`, host-only, `Path=/api/summaries`, `Max-Age=31536000`.
+- Срок скользящий: cookie продлевается только при успешном обращении к reaction API. Обычный просмотр других страниц её не создаёт и не продлевает.
+- После входа `POST /api/summaries/helpful/reconcile` атомарно переносит все реакции текущего браузера к аккаунту, схлопывает дубли и удаляет guest cookie после успешной транзакции.
+- Реакции разрешены только для `status='published'`; отсутствующий и неопубликованный текст одинаково возвращают 404.
+- Мутации проходят через `withAuditContext` с `source='summary-helpful'`. Audit trigger удаляет `visitor_hash` из `before/after`.
 
 ## Админский UI
 Вкладка `/admin?tab=summaries` показывает все саммари с фильтрами:
@@ -82,6 +96,10 @@ stateDiagram-v2
 - `PATCH /api/summaries/{id}` — автосейв draft/rejected автора.
 - `POST /api/summaries/{id}/submit` — отправить на модерацию.
 - `POST /api/summaries/{id}/revision` — создать или открыть активную ревизию опубликованного саммари.
+- `GET /api/summaries/{id}/helpful` — получить `{ count, reacted }` без создания новой guest cookie.
+- `PUT /api/summaries/{id}/helpful` — идемпотентно поставить реакцию; первый успешный гостевой запрос создаёт scoped cookie.
+- `DELETE /api/summaries/{id}/helpful` — идемпотентно снять реакцию.
+- `POST /api/summaries/helpful/reconcile` — требует сессию, переносит реакции cookie к аккаунту и возвращает состояние указанного `summaryId`.
 - `PATCH /api/summary-revisions/{id}` — автосейв draft/rejected ревизии.
 - `POST /api/summary-revisions/{id}/submit` — отправить ревизию на повторную модерацию.
 
@@ -126,6 +144,9 @@ stateDiagram-v2
 - `components/nd/SummaryEditor.tsx` — авторский редактор.
 - `components/nd/MarkdownToolbar.tsx` — Markdown toolbar.
 - `components/nd/SummaryMarkdown.tsx` — безопасный Markdown render без raw HTML.
+- `lib/summary-helpful.ts` — идентичность, published guard, count/state, dedupe и reconcile.
+- `components/nd/SummaryHelpfulButton.tsx` — optimistic UI и персональная hydration.
+- `app/api/summaries/[id]/helpful/` и `app/api/summaries/helpful/reconcile/` — reaction API и scoped cookie.
 - `components/nd/AdminPanel.tsx` — вкладка модерации “Саммари”.
 - `app/books/[bookSlug]/summaries/page.tsx` — публичная страница с UUID-fallback и redirect.
 - `app/books/[bookSlug]/my-summary/edit/page.tsx` — канонический редактор после назначения slug.

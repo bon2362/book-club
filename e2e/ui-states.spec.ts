@@ -150,6 +150,35 @@ test.describe('Home submit book CTA layout', () => {
 })
 
 test.describe('Summary editor layout', () => {
+  test('helpful footer stays below the summary body without hydration shift', async ({
+    page,
+    createPublishedSummary,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    const summary = await createPublishedSummary({
+      bodyMarkdown: 'Первый абзац саммари.\n\nВторой абзац делает тело достаточно заметным.',
+    })
+
+    await page.goto(summary.url, { waitUntil: 'domcontentloaded' })
+    const article = page.getByTestId('summary-article')
+    const body = page.getByTestId('summary-article-body')
+    const footer = page.getByTestId('summary-helpful-footer')
+    const beforeHydration = await footer.boundingBox()
+    await page.waitForLoadState('networkidle')
+    const articleBox = await article.boundingBox()
+    const bodyBox = await body.boundingBox()
+    const footerBox = await footer.boundingBox()
+
+    expect(beforeHydration).not.toBeNull()
+    expect(articleBox).not.toBeNull()
+    expect(bodyBox).not.toBeNull()
+    expect(footerBox).not.toBeNull()
+    expect(footerBox!.y).toBeGreaterThanOrEqual(bodyBox!.y + bodyBox!.height)
+    expect(footerBox!.x).toBeGreaterThanOrEqual(articleBox!.x)
+    expect(footerBox!.x + footerBox!.width).toBeLessThanOrEqual(articleBox!.x + articleBox!.width)
+    expect(Math.abs(footerBox!.y - beforeHydration!.y)).toBeLessThanOrEqual(1)
+  })
+
   test('admin moderation keeps the slug field and summary ID visible', async ({
     page,
     createTestBook,

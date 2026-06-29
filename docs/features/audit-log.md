@@ -42,6 +42,7 @@ export const auditLog = pgTable('audit_log', {
 2. **Маскирует секреты** по `TG_TABLE_NAME`:
    - `verificationToken` → вырезает поле `token` (`v_after - 'token'`) — иначе действующий magic-link был бы виден в просмотрщике.
    - `telegram_preauth_tokens` → вырезает `token_hash`.
+   - `book_summary_helpful_reactions` → вырезает псевдонимный `visitor_hash` из `before` и `after`.
 3. Для UPDATE вычисляет `changedFields` — ключи, где `v_after -> key IS DISTINCT FROM v_before -> key`.
 4. Собирает `entity_id`: сначала пробует `id`; при композитных PK — конкатенирует `session_id:user_id:book_id` (актуально для `book_priorities`, `signup_books`, `matching_*`).
 5. Читает контекст из transaction-local настроек:
@@ -57,11 +58,12 @@ export const auditLog = pgTable('audit_log', {
 // lib/audit/audited-tables.ts
 export const AUDITED_TABLES = [
   'books', 'user', 'book_priorities', 'book_submissions',
+  'book_summaries', 'book_summary_revisions', 'book_summary_helpful_reactions',
   'intro_sections', 'signup_books', 'feedback', 'tag_descriptions',
   'matching_sessions', 'matching_session_participants',
   'matching_pseudonym_reservations', 'matching_preference_events',
-  'user_activity_events', 'user_identities',
-  'user_merge_events', 'verificationToken', 'telegram_preauth_tokens', 'notification_queue',
+  'user_merge_events', 'user_identities',
+  'verificationToken', 'telegram_preauth_tokens', 'notification_queue',
 ] as const
 ```
 
@@ -179,3 +181,4 @@ FK на `actor_user_id` снят намеренно: `ON DELETE set null` пот
 - `app/api/admin/audit-log/route.ts` — GET API для просмотрщика
 - `components/nd/AdminAuditLog.tsx` — UI вкладки «История изменений»
 - `drizzle/0040_audit_triggers.test.ts` — reconciliation-тест реестра и триггеров
+- `drizzle/0047_summary_helpful_reactions.sql` — trigger для реакций и masking `visitor_hash`

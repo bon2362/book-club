@@ -72,6 +72,20 @@ type TestBook = {
 
 type TestBookOverrides = Partial<Pick<TestBook, 'id' | 'slug' | 'title' | 'author' | 'tags' | 'description' | 'pages' | 'publishedDate' | 'textUrl' | 'whyRead' | 'recommendationLink' | 'visibility'>>
 
+type TestPublishedSummary = {
+  id: string
+  bookId: string
+  bookSlug: string
+  url: string
+}
+
+type TestPublishedSummaryOverrides = {
+  displayName?: string
+  title?: string
+  tldr?: string
+  bodyMarkdown?: string
+}
+
 type MatchingSession = {
   id: string
   name: string
@@ -141,6 +155,12 @@ interface E2EHelpers {
    * Does NOT require an admin session.
    */
   createTestBook: (overrides?: TestBookOverrides) => Promise<TestBook>
+
+  /**
+   * Create a published summary and its isolated author in the E2E Neon branch.
+   * Cleanup removes the summary/author; book cleanup cascades helpful reactions.
+   */
+  createPublishedSummary: (overrides?: TestPublishedSummaryOverrides) => Promise<TestPublishedSummary>
 
   /**
    * Create an active matching session through a test-only API and delete it in teardown.
@@ -295,6 +315,48 @@ export const test = base.extend<E2EHelpers>({
         await request.delete('/api/test/books', { data: { id } })
       } catch { /* best-effort — cleanup hooks would still mop up next run */ }
     }
+  },
+
+  createPublishedSummary: async ({ createTestBook, dbExec }, use, testInfo) => {
+    let count = 0
+
+    const create: E2EHelpers['createPublishedSummary'] = async (overrides) => {
+      const suffix = `${testInfo.testId.slice(0, 6)}${Math.random().toString(36).slice(2, 8)}${count++}`
+      const bookSlug = `e2e-helpful-${suffix}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+      const book = await createTestBook({
+        slug: bookSlug,
+        title: `E2E Helpful Book ${suffix}`,
+        author: 'E2E Helpful Author',
+      })
+      const userId = `__e2e_helpful_user_${suffix}__`
+      const summaryId = `__e2e_helpful_summary_${suffix}__`
+
+      await dbExec(
+        'insert into "user" (id, name, created_at, priorities_set, is_admin) values ($1, $2, now(), false, false)',
+        [userId, `E2E Helpful Writer ${suffix}`],
+      )
+      dbExec.registerCleanup('delete from "user" where id = $1', [userId])
+
+      await dbExec(
+        `insert into book_summaries
+          (id, book_id, author_user_id, display_name, title, tldr, body_markdown, status, published_at, created_at, updated_at)
+         values ($1, $2, $3, $4, $5, $6, $7, 'published', now(), now(), now())`,
+        [
+          summaryId,
+          book.id,
+          userId,
+          overrides?.displayName ?? 'E2E Helpful Reader',
+          overrides?.title ?? 'Полезное саммари',
+          overrides?.tldr ?? 'Короткий вывод для проверки реакции.',
+          overrides?.bodyMarkdown ?? 'Основной текст саммари для проверки реакции «Полезно».',
+        ],
+      )
+      dbExec.registerCleanup('delete from book_summaries where id = $1', [summaryId])
+
+      return { id: summaryId, bookId: book.id, bookSlug, url: `/books/${bookSlug}/summaries` }
+    }
+
+    await use(create)
   },
 
   createMatchingSession: async ({ request }, use, testInfo) => {

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'Как мы обрабатываем персональные данные пользователей сайта slowreading.club',
 }
 
-const EFFECTIVE_DATE = '18 мая 2026'
+const EFFECTIVE_DATE = '29 июня 2026'
 
 const linkStyle: React.CSSProperties = {
   color: '#222',

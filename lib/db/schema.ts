@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
-  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb, real,
+  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb, real, check,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -154,6 +154,25 @@ export const bookSummaryRevisions = pgTable('book_summary_revisions', {
 }, (t) => ({
   summaryUnique: uniqueIndex('book_summary_revisions_summary_unique').on(t.summaryId),
   statusIdx: index('book_summary_revisions_status_idx').on(t.status),
+}))
+
+export const bookSummaryHelpfulReactions = pgTable('book_summary_helpful_reactions', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  summaryId: text('summary_id').notNull().references(() => bookSummaries.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  visitorHash: text('visitor_hash'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  actorCheck: check(
+    'book_summary_helpful_reactions_actor_check',
+    sql`num_nonnulls(${t.userId}, ${t.visitorHash}) = 1`,
+  ),
+  summaryUserUnique: uniqueIndex('book_summary_helpful_reactions_summary_user_unique')
+    .on(t.summaryId, t.userId)
+    .where(sql`${t.userId} IS NOT NULL`),
+  summaryVisitorUnique: uniqueIndex('book_summary_helpful_reactions_summary_visitor_unique')
+    .on(t.summaryId, t.visitorHash)
+    .where(sql`${t.visitorHash} IS NOT NULL`),
 }))
 
 export const bookPriorities = pgTable('book_priorities', {

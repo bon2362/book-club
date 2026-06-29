@@ -5,6 +5,8 @@ import { getPublishedSummariesForBook } from '@/lib/book-summaries'
 import SummaryAuthorSwitcher from '@/components/nd/SummaryAuthorSwitcher'
 import SummaryArticle from '@/components/nd/SummaryArticle'
 import { buildAuthorSlugs, estimateReadingMinutes, selectSummaryIndex } from '@/lib/summary-view'
+import { getSummaryHelpfulCount } from '@/lib/summary-helpful'
+import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +45,10 @@ export default async function BookSummariesPage({
   const slugs = buildAuthorSlugs(summaries)
   const activeIndex = selectSummaryIndex(slugs, searchParams.author)
   const active = summaries[activeIndex]
+  const [helpfulCount, session] = await Promise.all([
+    getSummaryHelpfulCount(active.id),
+    auth(),
+  ])
   const basePath = `/books/${book.slug ?? book.id}/summaries`
   const writeHref = `/books/${book.slug ?? book.id}/my-summary/edit`
   const authors = summaries.map((summary, index) => ({ slug: slugs[index], displayName: summary.displayName }))
@@ -69,6 +75,9 @@ export default async function BookSummariesPage({
           bodyMarkdown={active.bodyMarkdown}
           publishedAt={active.publishedAt}
           readingMinutes={estimateReadingMinutes(active.bodyMarkdown)}
+          summaryId={active.id}
+          initialHelpfulCount={helpfulCount}
+          hasSession={Boolean(session?.user?.id)}
         />
       </div>
     </main>

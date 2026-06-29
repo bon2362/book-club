@@ -1,5 +1,6 @@
 import AuthorAvatar from './AuthorAvatar'
 import SummaryMarkdown from './SummaryMarkdown'
+import SummaryHelpfulButton from './SummaryHelpfulButton'
 
 interface Props {
   displayName: string
@@ -8,6 +9,9 @@ interface Props {
   bodyMarkdown: string
   publishedAt: Date | null
   readingMinutes: number
+  summaryId: string
+  initialHelpfulCount: number
+  hasSession: boolean
 }
 
 function formatDate(date: Date | null): string {
@@ -15,10 +19,20 @@ function formatDate(date: Date | null): string {
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date)
 }
 
-export default function SummaryArticle({ displayName, title, tldr, bodyMarkdown, publishedAt, readingMinutes }: Props) {
+export default function SummaryArticle({
+  displayName,
+  title,
+  tldr,
+  bodyMarkdown,
+  publishedAt,
+  readingMinutes,
+  summaryId,
+  initialHelpfulCount,
+  hasSession,
+}: Props) {
   const dateLabel = formatDate(publishedAt)
   return (
-    <article>
+    <article data-testid="summary-article">
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginBottom: '1rem' }}>
         <AuthorAvatar name={displayName} size={40} />
         <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -33,7 +47,19 @@ export default function SummaryArticle({ displayName, title, tldr, bodyMarkdown,
         <div style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: '0.4rem' }}>В двух словах</div>
         <p style={{ margin: 0, fontFamily: 'var(--nd-serif)', lineHeight: 1.6 }}>{tldr}</p>
       </section>
-      <SummaryMarkdown markdown={bodyMarkdown} />
+      <div data-testid="summary-article-body">
+        <SummaryMarkdown markdown={bodyMarkdown} />
+      </div>
+      <footer
+        data-testid="summary-helpful-footer"
+        style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}
+      >
+        <SummaryHelpfulButton
+          summaryId={summaryId}
+          initialHelpfulCount={initialHelpfulCount}
+          hasSession={hasSession}
+        />
+      </footer>
     </article>
   )
 }
