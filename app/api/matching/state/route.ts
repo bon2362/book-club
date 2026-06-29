@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, signupBooks, bookPriorities, books } from '@/lib/db/schema'
-import { eq, inArray, and } from 'drizzle-orm'
+import { eq, inArray, and, sql } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { fetchMyMoves } from '@/lib/matching/my-moves'
 import {
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   const participants = await db
     .select({
       userId: matchingSessionParticipants.userId,
-      pseudonym: matchingSessionParticipants.pseudonym,
+      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
     })
     .from(matchingSessionParticipants)
     .where(eq(matchingSessionParticipants.sessionId, sessionId))

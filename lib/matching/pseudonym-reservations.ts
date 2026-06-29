@@ -179,7 +179,7 @@ async function getTakenPseudonyms(
   ])
 
   return new Set([
-    ...participants.map((row) => row.pseudonym),
+    ...participants.flatMap((row) => row.pseudonym === null ? [] : [row.pseudonym]),
     ...reservations.map((row) => row.pseudonym),
   ])
 }

@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users, signupBooks, bookPriorities, books } from '@/lib/db/schema'
-import { eq, inArray, and } from 'drizzle-orm'
+import { eq, inArray, and, sql } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { emptyScenarioSetOverview, filterSignupsByMode, generateScenarioSets } from '@/lib/matching/scenarios'
 import type { GenerateScenariosInput, MatchingScenario, OptimizationMode } from '@/lib/matching/scenarios'
@@ -78,7 +78,9 @@ export default async function MatchingPage({
 
   const [currentParticipant] = !isImpersonating
     ? await db
-        .select({ pseudonym: matchingSessionParticipants.pseudonym })
+        .select({
+          pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
+        })
         .from(matchingSessionParticipants)
         .where(
           and(
@@ -104,7 +106,7 @@ export default async function MatchingPage({
     db
       .select({
         userId: matchingSessionParticipants.userId,
-        pseudonym: matchingSessionParticipants.pseudonym,
+        pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
         joinedAt: matchingSessionParticipants.joinedAt,
         name: users.name,
       })

@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -31,7 +31,7 @@ export async function fetchScenarioInputForSession(
   const participants = await db
     .select({
       userId: matchingSessionParticipants.userId,
-      pseudonym: matchingSessionParticipants.pseudonym,
+      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
     })
     .from(matchingSessionParticipants)
     .where(eq(matchingSessionParticipants.sessionId, sessionId))

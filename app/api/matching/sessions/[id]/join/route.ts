@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import { consumePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
@@ -36,7 +36,9 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   // Check if already joined
   const [existing] = await db
-    .select({ pseudonym: matchingSessionParticipants.pseudonym })
+    .select({
+      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
+    })
     .from(matchingSessionParticipants)
     .where(
       and(
@@ -52,7 +54,9 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   // Assign a new unique pseudonym, preferring the welcome-screen reservation.
   const taken = await db
-    .select({ pseudonym: matchingSessionParticipants.pseudonym })
+    .select({
+      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
+    })
     .from(matchingSessionParticipants)
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
 

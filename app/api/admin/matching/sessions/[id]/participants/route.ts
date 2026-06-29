@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { assignPseudonym } from '@/lib/matching/pseudonyms'
 import { bumpSessionState } from '@/lib/matching/realtime/version'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
@@ -69,7 +69,9 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const [existing] = await db
-    .select({ pseudonym: matchingSessionParticipants.pseudonym })
+    .select({
+      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
+    })
     .from(matchingSessionParticipants)
     .where(and(
       eq(matchingSessionParticipants.sessionId, sessionId),
@@ -82,7 +84,9 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const taken = await db
-    .select({ pseudonym: matchingSessionParticipants.pseudonym })
+    .select({
+      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
+    })
     .from(matchingSessionParticipants)
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
 

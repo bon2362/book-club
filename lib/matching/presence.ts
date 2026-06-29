@@ -1,4 +1,4 @@
-import { and, eq, gte } from 'drizzle-orm'
+import { and, eq, gte, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matchingSessionParticipants } from '@/lib/db/schema'
 import { PRESENCE_WINDOW_MS } from './presence-window'
@@ -31,7 +31,9 @@ export async function fetchOnlinePseudonyms(
 ): Promise<string[]> {
   const threshold = new Date(Date.now() - PRESENCE_WINDOW_MS)
   const rows = await dbClient
-    .select({ pseudonym: matchingSessionParticipants.pseudonym })
+    .select({
+      pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
+    })
     .from(matchingSessionParticipants)
     .where(
       and(
