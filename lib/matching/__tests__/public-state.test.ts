@@ -1,168 +1,152 @@
-import {
-  publicizeMyMoves,
-  publicizeScenario,
-  publicizeScenarioOverview,
-  publicizeScenarioSetOverview,
-} from '../public-state'
-import type { MatchingScenario, ScenarioOverview, ScenarioSetOverview } from '../scenarios'
-import type { MyMoveBook } from '../my-moves'
+import { buildPublicMatchingState, assemblePublicSessionState } from '../public-state'
+import type { RankedReconciliationScenario, CircleConfirmation } from '../confirmation-reconciliation'
 
-const ids = new Map([
-  ['user-uuid-1', 'Пчела'],
-  ['user-uuid-2', 'Мальма'],
-  ['user-uuid-3', 'Чеглок'],
-])
+describe('buildPublicMatchingState', () => {
+  const participants = [
+    { userId: 'uid-1', publicRef: 'ref-1', displayName: 'Анна', online: true, confirmedCircleKey: null },
+    { userId: 'uid-2', publicRef: 'ref-2', displayName: 'Борис', online: false, confirmedCircleKey: null },
+  ]
 
-const scenario: MatchingScenario = {
-  id: 'book-a:user-uuid-1+user-uuid-2',
-  tier: 'leader',
-  circles: [{
-    id: 'book-a:user-uuid-1+user-uuid-2',
-    bookId: 'book-a',
-    members: [
-      { userId: 'user-uuid-1', pseudonym: 'Пчела', rank: 1, interest: 'очень хочу' },
-      { userId: 'user-uuid-2', pseudonym: 'Мальма', rank: null, interest: 'без ранга' },
-    ],
-    minSize: 2,
-    maxSize: 3,
-    wantsCount: 1,
-    avgRank: 1,
-    worstRank: 1,
-    unrankedCount: 1,
-  }],
-  leftOut: [{ userId: 'user-uuid-3', pseudonym: 'Чеглок' }],
-  score: {
-    coveredCount: 2,
-    totalCount: 3,
-    coverageRatio: 2 / 3,
-    strongInterestCount: 1,
-    rankedCount: 1,
-    unrankedCount: 1,
-    rankSum: 1,
-    avgRank: 1,
-    worstRank: 1,
-  },
-}
-
-describe('public matching state sanitizers', () => {
-  it('replaces internal ids in scenarios and regenerates stable public scenario ids', () => {
-    const result = publicizeScenario(scenario, ids)
-
-    expect(result.id).toBe('scenario-1')
-    expect(result.circles[0].id).toBe('book-a:circle-1')
-    expect(result.circles[0].members.map((member) => member.userId)).toEqual(['Пчела', 'Мальма'])
-    expect(result.leftOut).toEqual([{ userId: 'Чеглок', pseudonym: 'Чеглок' }])
-    expect(JSON.stringify(result)).not.toContain('user-uuid')
+  it('maps internal participant state to public refs', () => {
+    const result = buildPublicMatchingState({ participants, circles: [] })
+    expect(result.participants[0].ref).toBe('ref-1')
+    expect(result.participants[1].ref).toBe('ref-2')
+    expect(JSON.stringify(result)).not.toContain('uid-1')
   })
 
-  it('falls back to the participant pseudonym when an id is missing from the public map', () => {
-    const result = publicizeScenario(scenario, new Map())
-
-    expect(result.circles[0].members.map((member) => member.userId)).toEqual(['Пчела', 'Мальма'])
-    expect(result.leftOut).toEqual([{ userId: 'Чеглок', pseudonym: 'Чеглок' }])
-    expect(JSON.stringify(result)).not.toContain('user-uuid')
-  })
-
-  it('sanitizes scenario overview cards, candidates and conflicts', () => {
-    const overview: ScenarioOverview = {
-      current: [{
-        bookId: 'book-a',
-        tier: 'leader',
-        members: scenario.circles[0].members,
-        wantsCount: 1,
-        avgRank: 1,
-        worstRank: 1,
-        unrankedCount: 1,
-      }],
-      candidates: [{
-        bookId: 'book-b',
-        tier: 'sub-max',
-        members: scenario.circles[0].members,
-        wantsCount: 1,
-        avgRank: 1,
-        worstRank: 1,
-        unrankedCount: 1,
-        inCurrentLayout: false,
-        conflictsWith: ['book-a:user-uuid-1+user-uuid-2'],
-      }],
-      leftOut: scenario.leftOut,
-      coveredCount: 2,
-      totalCount: 3,
-      minGroupSize: 2,
-      maxGroupSize: 3,
-      mode: 'coverage',
-    }
-
-    const result = publicizeScenarioOverview(overview, ids)
-
-    expect(result.current[0].members[0].userId).toBe('Пчела')
-    expect(result.candidates[0].members[1].userId).toBe('Мальма')
-    expect(result.candidates[0].conflictsWith).toEqual([])
-    expect(JSON.stringify(result)).not.toContain('user-uuid')
-  })
-
-  it('sanitizes scenario sets and keeps the public leader aligned with its index', () => {
-    const secondScenario: MatchingScenario = {
-      ...scenario,
-      id: 'book-c:user-uuid-2+user-uuid-3',
-      circles: [{ ...scenario.circles[0], bookId: 'book-c', id: 'book-c:user-uuid-2+user-uuid-3' }],
-    }
-    const overview: ScenarioSetOverview = {
-      scenarios: [scenario, secondScenario],
-      leader: secondScenario,
-      totalCount: 3,
-      minGroupSize: 2,
-      maxGroupSize: 3,
-      mode: 'coverage',
-    }
-
-    const result = publicizeScenarioSetOverview(overview, ids)
-
-    expect(result.scenarios.map((item) => item.id)).toEqual(['scenario-1', 'scenario-2'])
-    expect(result.leader?.id).toBe('scenario-2')
-    expect(JSON.stringify(result)).not.toContain('user-uuid')
-  })
-
-  it('sanitizes my-moves participant ids and simulated impact ids', () => {
-    const moves: MyMoveBook[] = [{
-      bookId: 'book-a',
-      title: 'Book',
-      author: 'Author',
-      description: '',
-      coverUrl: null,
-      pages: null,
-      publishedDate: '',
-      textUrl: '',
-      whyRead: null,
-      recommendationLink: null,
-      tags: [],
-      existingParticipants: [{ userId: 'user-uuid-1', pseudonym: 'Пчела', rank: 1 }],
-      impact: {
-        scenarioId: 'book-a:user-uuid-1+user-uuid-2',
-        scenarioTitle: 'scenario',
-        coverageLabel: '2 из 3',
-        summary: 'summary',
-        circleTitles: ['Book'],
-        circleBooks: [{ bookId: 'book-a', title: 'Book' }],
-        previewScenario: scenario,
-        formsNewCircle: true,
-        coverage: { before: 1, after: 2 },
-        strongInterest: { before: 0, after: 1 },
-        beneficiaries: [{
-          userId: 'user-uuid-2',
-          pseudonym: 'Мальма',
-          before: { place: 'leftOut' },
-          after: 'очень хочу',
-          afterRank: null,
-        }],
-      },
+  it('maps circle member and confirmed ids to public refs', () => {
+    const circles = [{
+      circleKey: 'ck1',
+      bookId: 'b1',
+      memberUserIds: ['uid-1', 'uid-2'],
+      confirmedUserIds: ['uid-1'],
     }]
+    const result = buildPublicMatchingState({ participants, circles })
+    expect(result.circles[0].memberRefs).toEqual(['ref-1', 'ref-2'])
+    expect(result.circles[0].confirmedRefs).toEqual(['ref-1'])
+    expect(JSON.stringify(result)).not.toContain('uid-')
+  })
 
-    const result = publicizeMyMoves(moves, ids)
+  it('throws if a circle references an unknown userId', () => {
+    const circles = [{
+      circleKey: 'ck1',
+      bookId: 'b1',
+      memberUserIds: ['uid-unknown'],
+      confirmedUserIds: [],
+    }]
+    expect(() => buildPublicMatchingState({ participants, circles })).toThrow()
+  })
+})
 
-    expect(result[0].existingParticipants[0].userId).toBe('Пчела')
-    expect(result[0].impact?.scenarioId).toBe('scenario-preview')
-    expect(result[0].impact?.beneficiaries[0].userId).toBe('Мальма')
-    expect(JSON.stringify(result)).not.toContain('user-uuid')
+describe('assemblePublicSessionState', () => {
+  const session = {
+    id: 's1',
+    name: 'Тест',
+    status: 'active',
+    stateVersion: 5,
+    minGroupSize: 2,
+    maxGroupSize: 4,
+    frozenSnapshot: null,
+  }
+  const participants = [
+    { userId: 'uid-1', publicRef: 'ref-1', displayName: 'Анна', online: true },
+    { userId: 'uid-2', publicRef: 'ref-2', displayName: 'Борис', online: false },
+  ]
+
+  const emptyConfirmations: CircleConfirmation[] = []
+  const emptyScenarios: RankedReconciliationScenario[] = []
+
+  it('returns viewer role=active when no locked circle contains the viewer', () => {
+    const result = assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-1',
+      participants,
+      rankedScenarios: emptyScenarios,
+      confirmations: emptyConfirmations,
+      lockedCircles: [],
+      notices: [],
+    })
+    expect(result.viewer.role).toBe('active')
+    expect(result.viewer.lockedCircleId).toBeNull()
+  })
+
+  it('returns viewer role=observer when the viewer is in a locked circle', () => {
+    const lockedCircles = [{
+      id: 'lc1',
+      circleKey: 'ck1',
+      bookId: 'b1',
+      lockedAt: new Date('2026-06-29T10:00:00Z'),
+      members: [
+        { userId: 'uid-1', displayNameSnapshot: 'Анна' },
+        { userId: 'uid-2', displayNameSnapshot: 'Борис' },
+      ],
+    }]
+    const result = assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-1',
+      participants,
+      rankedScenarios: emptyScenarios,
+      confirmations: emptyConfirmations,
+      lockedCircles,
+      notices: [],
+    })
+    expect(result.viewer.role).toBe('observer')
+    expect(result.viewer.lockedCircleId).toBe('lc1')
+  })
+
+  it('maps scenario circles with viewerIsMember and confirmed flags', () => {
+    const circle = { circleKey: 'ck1', bookId: 'b1', memberUserIds: ['uid-1', 'uid-2'] }
+    const rankedScenarios: RankedReconciliationScenario[] = [{ circles: [circle] }]
+    const confirmations: CircleConfirmation[] = [
+      { userId: 'uid-1', bookId: 'b1', circleKey: 'ck1', memberUserIds: ['uid-1', 'uid-2'] },
+    ]
+    const result = assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-1',
+      participants,
+      rankedScenarios,
+      confirmations,
+      lockedCircles: [],
+      notices: [],
+    })
+    const c = result.scenarios[0].circles[0]
+    expect(c.viewerIsMember).toBe(true)
+    expect(c.confirmedCount).toBe(1)
+    expect(c.members[0].confirmed).toBe(true)
+    expect(c.members[1].confirmed).toBe(false)
+    expect(JSON.stringify(result)).not.toContain('uid-1')
+  })
+
+  it('translates confirmation_transferred notice payload to display names', () => {
+    const notices = [{
+      id: 'n1',
+      kind: 'confirmation_transferred',
+      payload: { fromMemberUserIds: ['uid-1'], toMemberUserIds: ['uid-2'] },
+      createdAt: new Date('2026-06-29T10:00:00Z'),
+    }]
+    const result = assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-1',
+      participants,
+      rankedScenarios: emptyScenarios,
+      confirmations: emptyConfirmations,
+      lockedCircles: [],
+      notices,
+    })
+    expect(result.notices[0].payload.fromMembers).toEqual(['Анна'])
+    expect(result.notices[0].payload.toMembers).toEqual(['Борис'])
+    expect(JSON.stringify(result)).not.toContain('uid-')
+  })
+
+  it('throws if the viewerUserId is not in participants', () => {
+    expect(() => assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-unknown',
+      participants,
+      rankedScenarios: emptyScenarios,
+      confirmations: emptyConfirmations,
+      lockedCircles: [],
+      notices: [],
+    })).toThrow()
   })
 })

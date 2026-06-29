@@ -1,31 +1,39 @@
 'use client'
 
-import { useCallback } from 'react'
-import type { MatchingCircle, MatchingScenario, OptimizationMode, ScenarioSetOverview } from '@/lib/matching/scenarios'
-import type { MyMoveBook } from '@/lib/matching/my-moves'
-import CoverImage from './CoverImage'
-import type { MatchingBookDetail } from './MatchingBookDetailModal'
-import type { BookParticipant } from './MatchingPersonalList'
-import ParticipantInterestChip from './ParticipantInterestChip'
-import { withAdminName } from './matching-shared'
-import { useBookDetail } from './BookDetailProvider'
+import { useState } from 'react'
+import MatchingConfirmationDialog from './MatchingConfirmationDialog'
 
-interface BookInfo extends MatchingBookDetail {
-  id: string
+// Public state types coming from assemblePublicSessionState
+export interface PublicScenarioMember {
+  ref: string
+  displayName: string
+  confirmed: boolean
 }
 
-interface Props {
-  overview: ScenarioSetOverview
-  bookById: Map<string, BookInfo>
-  bookParticipants: BookParticipant[]
-  viewingUserId: string
-  highlightedScenarioId?: string | null
-  highlightedBookId?: string | null
-  highlightedUserIds?: string[]
-  previewMove?: MyMoveBook | null
-  previewOpen?: boolean
-  mode?: OptimizationMode
-  adminNamesByPseudonym?: Map<string, string | null> | null
+export interface PublicScenarioCircle {
+  circleKey: string
+  bookId: string
+  members: PublicScenarioMember[]
+  confirmedCount: number
+  memberCount: number
+  viewerIsMember: boolean
+}
+
+export interface PublicScenario {
+  ref: string
+  circles: PublicScenarioCircle[]
+}
+
+export interface MatchingScenariosProps {
+  sessionId: string
+  stateVersion: number
+  scenarios: PublicScenario[]
+  /** The viewer's confirmed circleKey, or null if not confirmed */
+  viewerConfirmedCircleKey: string | null
+  viewerRole: 'active' | 'observer'
+  frozen: boolean
+  bookTitleById?: Record<string, string>
+  onConfirmationChange?: () => void
 }
 
 function pluralizeCircles(n: number): string {
@@ -36,434 +44,327 @@ function pluralizeCircles(n: number): string {
   return 'кругов'
 }
 
-const tierLabel: Record<MatchingScenario['tier'], string | null> = {
-  leader: 'лучший',
-  'full-coverage': 'полное покрытие',
-  'best-achievable-partial': null,
-  partial: null,
-  'blocked-better': 'может стать лучше',
-}
-
 export default function MatchingScenarios({
-  overview,
-  bookById,
-  bookParticipants,
-  viewingUserId,
-  highlightedScenarioId = null,
-  highlightedBookId = null,
-  highlightedUserIds = [],
-  previewMove = null,
-  previewOpen = false,
-  mode = overview.mode,
-  adminNamesByPseudonym = null,
-}: Props) {
-  const { openBook } = useBookDetail()
-  const openModal = useCallback(
-    (book: BookInfo) => openBook(book, bookParticipants.filter((p) => p.bookId === book.bookId)),
-    [openBook, bookParticipants],
-  )
-  const previewScenario = previewMove?.impact?.previewScenario ?? null
+  sessionId,
+  stateVersion,
+  scenarios,
+  viewerConfirmedCircleKey,
+  viewerRole,
+  frozen,
+  bookTitleById = {},
+  onConfirmationChange,
+}: MatchingScenariosProps) {
+  const [pendingCircle, setPendingCircle] = useState<PublicScenarioCircle | null>(null)
+  const [pendingBookTitle, setPendingBookTitle] = useState<string>('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [actionPending, setActionPending] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  if (overview.scenarios.length === 0) {
+  const isReadOnly = frozen || viewerRole === 'observer'
+
+  async function confirmCircle(circle: PublicScenarioCircle) {
+    setActionPending(circle.circleKey)
+    setErrorMsg(null)
+    try {
+      const res = await fetch(`/api/matching/sessions/${sessionId}/confirmation`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ circleKey: circle.circleKey, expectedStateVersion: stateVersion }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setErrorMsg(json.error ?? 'Не удалось подтвердить круг')
+        return
+      }
+      onConfirmationChange?.()
+    } finally {
+      setActionPending(null)
+      setDialogOpen(false)
+      setPendingCircle(null)
+    }
+  }
+
+  async function cancelConfirmation() {
+    setActionPending('cancel')
+    setErrorMsg(null)
+    try {
+      const res = await fetch(`/api/matching/sessions/${sessionId}/confirmation`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expectedStateVersion: stateVersion }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setErrorMsg(json.error ?? 'Не удалось отменить подтверждение')
+        return
+      }
+      onConfirmationChange?.()
+    } finally {
+      setActionPending(null)
+    }
+  }
+
+  function openConfirmDialog(circle: PublicScenarioCircle) {
+    setPendingCircle(circle)
+    setPendingBookTitle(bookTitleById[circle.bookId] ?? 'Книга')
+    setDialogOpen(true)
+  }
+
+  // Find the circle viewer is currently confirmed in (to show as "from" in dialog)
+  const viewerCurrentCircle = viewerConfirmedCircleKey
+    ? scenarios.flatMap((s) => s.circles).find((c) => c.circleKey === viewerConfirmedCircleKey) ?? null
+    : null
+  const viewerCurrentBookTitle = viewerCurrentCircle
+    ? (bookTitleById[viewerCurrentCircle.bookId] ?? 'Книга')
+    : null
+
+  if (scenarios.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center h-full p-6 text-center"
-        style={{ color: 'var(--text-muted)' }}
+        data-testid="matching-scenarios-empty"
+        style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--nd-sans)' }}
       >
-        <div className="text-3xl mb-2">🎯</div>
-        <p className="text-sm">
-          Пока недостаточно участников или записей для формирования кругов. Нужно минимум {overview.minGroupSize}
-        </p>
+        Пока недостаточно участников для формирования кругов.
       </div>
     )
   }
 
   return (
     <>
-      {/* Тёплый фон контейнера — белые карточки сценариев читаются на нём */}
-      <ul
-        className="list-none p-0 m-0 flex flex-col"
-        style={{ background: 'var(--bg)', padding: '0.7rem', gap: '0.7rem', display: 'flex', flexDirection: 'column' }}
-      >
-        <li className={`nd-scenario-preview-slot ${previewOpen ? 'is-open' : ''}`} aria-hidden={!previewOpen}>
-          <div className="nd-scenario-preview-clip">
-            {previewScenario && (
-              <>
-                <div className="nd-scenario-preview-banner">
-                  <span>{mode === 'satisfaction' ? '↑ Добавится новый расклад' : '↑ Нашёлся расклад лучше'}</span>
-                </div>
-                <ScenarioSetCard
-                  scenario={{ ...previewScenario, tier: 'leader' }}
-                  scenarioNumber={1}
-                  bookById={bookById}
-                  onOpen={openModal}
-                  viewingUserId={viewingUserId}
-                  highlightedUserIds={highlightedUserIds}
-                  highlighted
-                  variant="preview"
-                  previewMoveTitle={previewMove?.title ?? null}
-                  mode={mode}
-                  adminNamesByPseudonym={adminNamesByPseudonym}
-                />
-              </>
-            )}
-          </div>
-        </li>
-        {overview.scenarios.map((scenario, index) => (
-          <ScenarioSetCard
-            key={scenario.id}
-            scenario={scenario}
-            scenarioNumber={index + 1}
-            bookById={bookById}
-            onOpen={openModal}
-            viewingUserId={viewingUserId}
-            highlightedUserIds={highlightedUserIds}
-            highlighted={
-              scenario.id === highlightedScenarioId ||
-              scenario.circles.some((circle) => circle.bookId === highlightedBookId)
-            }
-            muted={previewOpen}
-            mode={mode}
-            adminNamesByPseudonym={adminNamesByPseudonym}
-          />
-        ))}
-      </ul>
-    </>
-  )
-}
-
-function ScenarioSetCard({
-  scenario,
-  scenarioNumber,
-  bookById,
-  onOpen,
-  viewingUserId,
-  highlightedUserIds,
-  highlighted,
-  muted,
-  variant = 'current',
-  previewMoveTitle = null,
-  mode = 'coverage',
-  adminNamesByPseudonym = null,
-}: {
-  scenario: MatchingScenario
-  scenarioNumber: number
-  bookById: Map<string, BookInfo>
-  onOpen: (book: BookInfo) => void
-  viewingUserId: string
-  highlightedUserIds: string[]
-  highlighted: boolean
-  muted?: boolean
-  variant?: 'current' | 'preview'
-  previewMoveTitle?: string | null
-  mode?: OptimizationMode
-  adminNamesByPseudonym?: Map<string, string | null> | null
-}) {
-  const isLeader = scenario.tier === 'leader'
-  const isPreview = variant === 'preview'
-  const isSatisfaction = mode === 'satisfaction' && !isPreview
-  const usesSatisfactionCopy = mode === 'satisfaction'
-  const isLinking = (isLeader || isPreview) && highlightedUserIds.length > 0
-  const highlightedUserIdSet = new Set(highlightedUserIds)
-  const hasViewerLeftOut = scenario.leftOut.some((participant) => participant.userId === viewingUserId)
-  const shouldWarnViewerLeftOut = isLeader && hasViewerLeftOut
-  const CardElement = isPreview ? 'div' : 'li'
-  const circleRankLines = scenario.circles.map((circle, idx) => {
-    const bookTitle = bookById.get(circle.bookId)?.title ?? circle.bookId
-    const avg = circle.avgRank === null ? 'нет' : circle.avgRank.toFixed(1)
-    return `Круг ${idx + 1} — ${bookTitle}: средний ранг ${avg}`
-  })
-  const scoreTitle = [
-    `Покрытие: ${scenario.score.coveredCount}/${scenario.score.totalCount}`,
-    `Очень хотят: ${scenario.score.strongInterestCount}`,
-    ...circleRankLines,
-    `Средний ранг по сценарию: ${scenario.score.avgRank === null ? 'нет' : scenario.score.avgRank.toFixed(1)}`,
-    `Худший ранг: ${scenario.score.worstRank ?? 'нет'}`,
-    `Без ранга: ${scenario.score.unrankedCount}`,
-    mode === 'satisfaction'
-      ? 'Сортировка: ниже средний ранг → ниже худший ранг → больше размер круга → стабильный id.'
-      : 'Сортировка: больше покрытие → больше «очень хочу» → ниже средний ранг → ниже худший ранг → меньше записей без ранга.',
-  ].join('\n')
-
-  return (
-    <CardElement
-      className={[
-        isPreview ? 'nd-scenario-preview-card' : 'nd-scenario-current',
-        !isPreview && muted ? 'nd-scenario-muted' : '',
-      ].filter(Boolean).join(' ')}
-      style={{
-        background: isPreview
-          ? 'var(--bg-input)'
-          : isLeader ? 'var(--accent-soft)' : highlighted ? 'var(--accent-soft)' : 'var(--bg-input)',
-        borderRadius: 'var(--radius-card)',
-        boxShadow: isPreview || isLeader ? 'none' : 'var(--shadow-card)',
-        borderLeft: shouldWarnViewerLeftOut && !isSatisfaction ? '3px solid var(--status-warn)' : undefined,
-        padding: '0.85rem 1rem',
-      }}
-      data-highlighted={highlighted ? 'true' : 'false'}
-      data-viewer-left-out={shouldWarnViewerLeftOut ? 'true' : 'false'}
-      data-testid={isPreview ? 'matching-scenario-preview-card' : 'matching-scenario-card'}
-    >
-      {/* Header row */}
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <h3
-          className="m-0"
-          title={scoreTitle}
+      {errorMsg && (
+        <div
+          role="alert"
           style={{
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            textTransform: 'uppercase' as const,
-            letterSpacing: '0.1em',
-            color: isLeader ? 'var(--accent)' : 'var(--text-muted)',
+            borderLeft: '3px solid var(--accent)',
+            background: 'var(--bg-tint)',
+            padding: '0.6rem 0.9rem',
+            fontSize: '0.85rem',
+            color: 'var(--accent)',
+            marginBottom: '0.7rem',
           }}
         >
-          {isPreview ? 'Если добавишь' : `Сценарий ${scenarioNumber}`}
-        </h3>
-        {isPreview && previewMoveTitle && (
-          <span
+          {errorMsg}
+        </div>
+      )}
+
+      <ul
+        data-testid="matching-scenarios-list"
+        style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.7rem' }}
+      >
+        {scenarios.map((scenario, index) => (
+          <li
+            key={scenario.ref}
+            data-testid="matching-scenario-card"
             style={{
-              minWidth: 0,
-              color: 'var(--text-secondary)',
-              fontSize: '0.68rem',
-              fontWeight: 600,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-            title={previewMoveTitle}
-          >
-            «{previewMoveTitle}»
-          </span>
-        )}
-        {isPreview ? (
-          <span
-            style={{
-              fontSize: '0.66rem',
-              fontWeight: 700,
-              textTransform: 'uppercase' as const,
-              letterSpacing: '0.06em',
-              background: 'var(--accent)',
-              color: 'var(--bg-input)',
-              padding: '0.12rem 0.5rem',
-              borderRadius: 'var(--radius-pill)',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--hair)',
+              padding: '0.85rem 1rem',
             }}
           >
-            {usesSatisfactionCopy ? '+1 сценарий' : 'станет лучшим'}
-          </span>
-        ) : isLeader && (
-          <span
-            style={{
-              fontSize: '0.66rem',
-              fontWeight: 700,
-              textTransform: 'uppercase' as const,
-              letterSpacing: '0.06em',
-              background: 'var(--accent)',
-              color: 'var(--bg-input)',
-              padding: '0.12rem 0.5rem',
-              borderRadius: 'var(--radius-pill)',
-            }}
-          >
-            {isSatisfaction ? 'оптимальный' : 'лучший сейчас'}
-          </span>
-        )}
-        {!isSatisfaction && !isLeader && tierLabel[scenario.tier] && (
-          <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
-            {tierLabel[scenario.tier]}
-          </span>
-        )}
-        <span
-          className="ml-auto flex items-center"
-          style={{ fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}
-        >
-          {scenario.circles.length > 0 && (
-            <>
-              <span style={{ color: 'var(--text-secondary)' }}>
+            {/* Scenario header — equal styling, no leader highlight */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+              <h3
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--nd-sans)',
+                  fontSize: '0.62rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                Сценарий {index + 1}
+              </h3>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 {scenario.circles.length} {pluralizeCircles(scenario.circles.length)}
               </span>
-              <span style={{ color: 'var(--hair)', margin: '0 0.45rem' }}>·</span>
-            </>
-          )}
-          <span>
-            {isSatisfaction
-              ? `охват: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`
-              : scenario.score.coveredCount === scenario.score.totalCount
-                ? `Покрытие: все ${scenario.score.totalCount}`
-                : `Покрытие: ${scenario.score.coveredCount} из ${scenario.score.totalCount}`}
-          </span>
-        </span>
-      </div>
+            </div>
 
-      {/* Circles: rows separated by hairline */}
-      <div>
-        {scenario.circles.map((circle, idx) => (
-          <CircleItem
-            key={circle.id}
-            circle={circle}
-            book={bookById.get(circle.bookId)}
-            onOpen={onOpen}
-            isFirst={idx === 0}
-            isLeader={isLeader}
-            isSatisfaction={isSatisfaction}
-            isLinking={isLinking}
-            highlightedUserIds={highlightedUserIdSet}
-            adminNamesByPseudonym={adminNamesByPseudonym}
-          />
+            {/* Circles */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {scenario.circles.map((circle, ci) => {
+                const isViewerMember = circle.viewerIsMember
+                const isWaiting = isViewerMember && viewerConfirmedCircleKey === circle.circleKey
+                const hasOtherConfirmation = !isWaiting && viewerConfirmedCircleKey !== null
+                const bookTitle = bookTitleById[circle.bookId] ?? 'Книга'
+                const isPendingAction = actionPending === circle.circleKey
+
+                return (
+                  <div
+                    key={circle.circleKey}
+                    data-testid="matching-circle"
+                    style={{
+                      borderTop: ci === 0 ? 'none' : '1px solid var(--hair-soft)',
+                      paddingTop: ci === 0 ? 0 : '0.85rem',
+                    }}
+                  >
+                    {/* Book title */}
+                    <div
+                      style={{
+                        fontFamily: 'var(--nd-serif)',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        color: 'var(--text)',
+                        marginBottom: '0.45rem',
+                      }}
+                    >
+                      {bookTitle}
+                    </div>
+
+                    {/* Members */}
+                    <div
+                      style={{
+                        paddingLeft: '0.6rem',
+                        borderLeft: '2px solid var(--hair)',
+                        marginBottom: '0.55rem',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.12em',
+                          color: 'var(--text-muted)',
+                          marginBottom: '0.3rem',
+                        }}
+                      >
+                        круг
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 0.6rem' }}>
+                        {circle.members.map((member) => (
+                          <span
+                            key={member.ref}
+                            style={{
+                              fontSize: '0.85rem',
+                              color: member.confirmed ? 'var(--success)' : 'var(--text-body)',
+                              fontWeight: member.confirmed ? 600 : 400,
+                            }}
+                          >
+                            {member.displayName}
+                            {member.confirmed && (
+                              <span
+                                aria-label="подтвердил"
+                                style={{ marginLeft: '0.25rem', fontSize: '0.7rem', color: 'var(--success)' }}
+                              >
+                                ✓
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Waiting state — viewer confirmed this circle */}
+                    {isWaiting && (
+                      <div
+                        data-testid="circle-waiting"
+                        style={{
+                          borderLeft: '3px solid var(--success)',
+                          background: 'var(--bg-tag-green)',
+                          padding: '0.5rem 0.7rem',
+                          marginBottom: '0.45rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.8rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.82rem', color: 'var(--success)', fontWeight: 600 }}>
+                          Подтверждено · {circle.confirmedCount} из {circle.memberCount} · временно
+                        </span>
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            data-testid="circle-cancel-button"
+                            onClick={cancelConfirmation}
+                            disabled={actionPending === 'cancel'}
+                            style={{
+                              flexShrink: 0,
+                              border: '1px solid var(--border)',
+                              background: 'transparent',
+                              color: 'var(--text)',
+                              padding: '0.35rem 0.7rem',
+                              borderRadius: 'var(--radius)',
+                              fontFamily: 'var(--nd-sans)',
+                              fontSize: '0.62rem',
+                              letterSpacing: '0.1em',
+                              textTransform: 'uppercase',
+                              fontWeight: 700,
+                              cursor: actionPending === 'cancel' ? 'default' : 'pointer',
+                              opacity: actionPending === 'cancel' ? 0.6 : 1,
+                            }}
+                          >
+                            Отменить
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* CTA — viewer is a member but not yet confirmed this circle (and not read-only) */}
+                    {isViewerMember && !isWaiting && !isReadOnly && (
+                      <div className="nd-circle-cta">
+                        <button
+                          type="button"
+                          data-testid="circle-confirm-button"
+                          onClick={() => {
+                            if (hasOtherConfirmation) {
+                              openConfirmDialog(circle)
+                            } else {
+                              openConfirmDialog(circle)
+                            }
+                          }}
+                          disabled={!!isPendingAction}
+                          style={{
+                            border: 'none',
+                            background: 'var(--accent)',
+                            color: 'var(--bg-input)',
+                            padding: '0.5rem 1rem',
+                            borderRadius: 'var(--radius)',
+                            fontFamily: 'var(--nd-sans)',
+                            fontSize: '0.68rem',
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                            fontWeight: 700,
+                            cursor: isPendingAction ? 'default' : 'pointer',
+                            opacity: isPendingAction ? 0.6 : 1,
+                          }}
+                        >
+                          {isPendingAction ? 'Подтверждаем…' : 'Хочу в этот круг'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </li>
         ))}
-      </div>
+      </ul>
 
-      {scenario.leftOut.length > 0 && (
-        <div
-          className="flex flex-wrap items-center gap-1"
-          style={{ marginTop: '0.7rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}
-        >
-          <span>{usesSatisfactionCopy ? 'За бортом остаются:' : 'За бортом:'}</span>
-          {scenario.leftOut.map((participant, idx) => (
-            <LeftOutName
-              key={participant.userId}
-              participant={participant}
-              isMe={participant.userId === viewingUserId}
-              isLinked={isLinking && highlightedUserIdSet.has(participant.userId)}
-              isDimmed={isLinking && !highlightedUserIdSet.has(participant.userId)}
-              prefix={idx > 0}
-              soft={isSatisfaction}
-              adminNamesByPseudonym={adminNamesByPseudonym}
-            />
-          ))}
-        </div>
-      )}
-    </CardElement>
-  )
-}
-
-function LeftOutName({
-  participant,
-  isMe,
-  isLinked,
-  isDimmed,
-  prefix,
-  soft,
-  adminNamesByPseudonym = null,
-}: {
-  participant: { userId: string; pseudonym: string }
-  isMe: boolean
-  isLinked: boolean
-  isDimmed: boolean
-  prefix: boolean
-  soft: boolean
-  adminNamesByPseudonym?: Map<string, string | null> | null
-}) {
-  const displayName = withAdminName(participant.pseudonym, adminNamesByPseudonym)
-  return (
-    <span
-      style={{
-        color: soft ? 'var(--text-secondary)' : isMe ? 'var(--status-warn)' : isLinked ? 'var(--accent)' : 'var(--text-secondary)',
-        fontWeight: isMe || isLinked ? 700 : 400,
-        background: isLinked ? 'var(--accent-soft)' : 'transparent',
-        borderRadius: 'var(--radius)',
-        padding: isLinked ? '0.06rem 0.4rem' : 0,
-        opacity: isDimmed && !isMe ? 0.4 : 1,
-        transition: 'opacity 0.16s ease, background 0.16s ease',
-      }}
-    >
-      {prefix && <span style={{ color: 'var(--hair)', margin: '0 0.2rem' }}>·</span>}
-      {displayName}{isMe ? ' · вы' : ''}
-    </span>
-  )
-}
-
-function CircleItem({
-  circle,
-  book,
-  onOpen,
-  isFirst,
-  isLeader,
-  isSatisfaction,
-  isLinking,
-  highlightedUserIds,
-  adminNamesByPseudonym = null,
-}: {
-  circle: MatchingCircle
-  book: BookInfo | undefined
-  onOpen: (book: BookInfo) => void
-  isFirst: boolean
-  isLeader: boolean
-  isSatisfaction: boolean
-  isLinking: boolean
-  highlightedUserIds: Set<string>
-  adminNamesByPseudonym?: Map<string, string | null> | null
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '0.8rem',
-        alignItems: 'flex-start',
-        padding: '0.55rem 0',
-        borderTop: isFirst ? 'none' : `1px solid ${isLeader && !isSatisfaction ? 'var(--accent-soft)' : 'var(--hair-soft)'}`,
-      }}
-    >
-      {book && (
-        <div
-          className="relative overflow-hidden shrink-0"
-          style={{ width: 42, height: 60, borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-card)' }}
-        >
-          <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <button
-          type="button"
-          onClick={() => book && onOpen(book)}
-          className="text-left leading-snug"
-          style={{
-            fontFamily: 'var(--nd-serif)',
-            fontWeight: 700,
-            fontSize: '1rem',
-            letterSpacing: '-0.01em',
-            color: 'var(--text)',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
+      {/* Confirmation / switch dialog */}
+      {pendingCircle && (
+        <MatchingConfirmationDialog
+          open={dialogOpen}
+          from={viewerCurrentCircle && viewerCurrentBookTitle ? {
+            bookTitle: viewerCurrentBookTitle,
+            members: viewerCurrentCircle.members.map((m) => m.displayName),
+          } : null}
+          to={{
+            bookTitle: pendingBookTitle,
+            members: pendingCircle.members.map((m) => m.displayName),
           }}
-          onMouseEnter={(e) => { (e.target as HTMLElement).style.color = 'var(--accent)' }}
-          onMouseLeave={(e) => { (e.target as HTMLElement).style.color = 'var(--text)' }}
-        >
-          {book?.title ?? circle.bookId}
-        </button>
-        <div
-          className="mt-1.5"
-          style={{
-            paddingLeft: '0.6rem',
-            borderLeft: `2px solid ${isLeader && !isSatisfaction ? 'var(--accent-line)' : 'var(--hair)'}`,
+          onConfirm={() => {
+            if (pendingCircle) confirmCircle(pendingCircle)
           }}
-        >
-          <div
-            style={{
-              fontSize: '0.62rem',
-              fontWeight: 700,
-              textTransform: 'uppercase' as const,
-              letterSpacing: '0.11em',
-              color: 'var(--text-muted)',
-              marginBottom: '0.25rem',
-            }}
-          >
-            круг
-          </div>
-          <div className="flex flex-wrap" style={{ gap: '0.3rem 0.55rem' }}>
-            {circle.members.map((member) => (
-              <ParticipantInterestChip
-                key={member.userId}
-                userId={member.userId}
-                pseudonym={withAdminName(member.pseudonym, adminNamesByPseudonym)}
-                rank={member.rank}
-                highlighted={isLinking && highlightedUserIds.has(member.userId)}
-                dimmed={isLinking && !highlightedUserIds.has(member.userId)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+          onCancel={() => {
+            setDialogOpen(false)
+            setPendingCircle(null)
+          }}
+        />
+      )}
+    </>
   )
 }

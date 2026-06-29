@@ -3,31 +3,21 @@ export const dynamic = 'force-dynamic'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
-import { matchingSessions, matchingSessionParticipants, users, signupBooks, bookPriorities, books } from '@/lib/db/schema'
-import { eq, inArray, and, sql } from 'drizzle-orm'
+import { matchingSessions, matchingSessionParticipants, users } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
-import { emptyScenarioSetOverview, filterSignupsByMode, generateScenarioSets } from '@/lib/matching/scenarios'
-import type { GenerateScenariosInput, MatchingScenario, OptimizationMode } from '@/lib/matching/scenarios'
-import { fetchMyMoves } from '@/lib/matching/my-moves'
-import type { MyMoveBook } from '@/lib/matching/my-moves'
-import MatchingPersonalList from '@/components/nd/MatchingPersonalList'
-import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
-import MatchingImpactWorkspace from '@/components/nd/MatchingImpactWorkspace'
-import MatchingRealtimeWrapper from '@/components/nd/MatchingRealtimeWrapper'
-import MatchingBoardProvider from '@/components/nd/MatchingBoardProvider'
-import BookDetailProvider from '@/components/nd/BookDetailProvider'
-import MatchingHeader from '@/components/nd/MatchingHeader'
+import { listNeedsRankingGate } from '@/lib/matching/ranking-readiness'
+import { fetchMatchingPublicState, PublicMatchingStateError } from '@/lib/matching/public-state-db'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import MatchingSatisfactionFlow from '@/components/nd/MatchingSatisfactionFlow'
-import { buildMoveImpact, sortMovesByImpact } from '@/lib/matching/move-impact'
-import { getOrCreatePseudonymReservation } from '@/lib/matching/pseudonym-reservations'
-import { fetchFeedForSession } from '@/lib/matching/realtime/feed'
-import { fetchAdriftCauseForUser, isViewerAdrift } from '@/lib/matching/adrift'
-import {
-  publicizeMyMoves,
-  publicizeScenarioSetOverview,
-} from '@/lib/matching/public-state'
-import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
+import MatchingBoardProvider from '@/components/nd/MatchingBoardProvider'
+import BookDetailProvider from '@/components/nd/BookDetailProvider'
+import MatchingRealtimeClient from '@/components/nd/MatchingRealtimeClient'
+import type { MatchingPublicState } from '@/components/nd/MatchingRealtimeClient'
+import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
+import { db as drizzle } from '@/lib/db'
+import { signupBooks, bookPriorities } from '@/lib/db/schema'
+import { inArray } from 'drizzle-orm'
 
 export default async function MatchingPage({
   searchParams,
@@ -38,35 +28,38 @@ export default async function MatchingPage({
   if (!session?.user?.id) redirect('/')
 
   const isAdmin = session.user.isAdmin ?? false
-
-  // Admin impersonation: ?as=userId silently ignored for non-admins
   const asParam = isAdmin && searchParams.as ? searchParams.as : null
   const isImpersonating = asParam !== null
-  const viewingUserId = isImpersonating ? asParam : session.user.id!
+  const viewerUserId = isImpersonating ? asParam : session.user.id!
 
+  // Find the active session
   const [activeSession] = await db
     .select()
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'active'))
     .limit(1)
+    .catch(() => [])
 
-  if (!activeSession) {
-    if (!isAdmin) {
-      redirect('/')
-    }
+  // Also check frozen sessions if no active one
+  const [anySession] = activeSession ? [activeSession] : await db
+    .select()
+    .from(matchingSessions)
+    .where(eq(matchingSessions.status, 'frozen'))
+    .limit(1)
+    .catch(() => [])
+
+  if (!anySession) {
+    if (!isAdmin) redirect('/')
     return (
       <main
-        className="p-8 max-w-2xl mx-auto"
-        style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100svh' }}
+        style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100svh', padding: '2rem' }}
       >
-        <h1 className="text-lg font-semibold mb-4">Матчинг</h1>
-        <p style={{ color: 'var(--text-muted)' }}>
+        <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+          Матчинг
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--nd-sans)' }}>
           Нет активной сессии. Создайте её в{' '}
-          <a
-            href="/admin?tab=matching"
-            className="underline"
-            style={{ color: 'var(--accent)' }}
-          >
+          <a href="/admin?tab=matching" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
             Админ-панели → Матчинг
           </a>
           .
@@ -74,59 +67,65 @@ export default async function MatchingPage({
       </main>
     )
   }
-  const mode = (activeSession.optimizationMode ?? 'coverage') as OptimizationMode
 
+  const currentSession = activeSession ?? anySession
+
+  // Check if the viewer is already a participant
   const [currentParticipant] = !isImpersonating
     ? await db
-        .select({
-          pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
-        })
+        .select({ userId: matchingSessionParticipants.userId })
         .from(matchingSessionParticipants)
         .where(
           and(
-            eq(matchingSessionParticipants.sessionId, activeSession.id),
+            eq(matchingSessionParticipants.sessionId, currentSession.id),
             eq(matchingSessionParticipants.userId, session.user.id!),
           ),
         )
         .limit(1)
-    : []
+    : [null]
 
-  if (!isImpersonating && activeSession.status === 'active' && !currentParticipant) {
-    const pseudonym = await getOrCreatePseudonymReservation(activeSession.id, session.user.id!)
+  // Not joined + active session → Welcome
+  if (!isImpersonating && currentSession.status === 'active' && !currentParticipant) {
+    // Fetch user's current global name
+    const [userRow] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, session.user.id!))
+      .limit(1)
+
     return (
       <MatchingWelcome
-        sessionId={activeSession.id}
-        sessionName={activeSession.name}
-        pseudonym={pseudonym}
+        sessionId={currentSession.id}
+        sessionName={currentSession.name}
+        initialName={userRow?.name ?? ''}
       />
     )
   }
 
-  const [participants, personalBooks, myMoves] = await Promise.all([
-    db
-      .select({
-        userId: matchingSessionParticipants.userId,
-        pseudonym: sql<string>`coalesce(${matchingSessionParticipants.pseudonym}, ${matchingSessionParticipants.userId})`,
-        joinedAt: matchingSessionParticipants.joinedAt,
-        name: users.name,
-      })
-      .from(matchingSessionParticipants)
-      .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
-      .where(eq(matchingSessionParticipants.sessionId, activeSession.id))
-      .orderBy(matchingSessionParticipants.joinedAt),
-    fetchCatalogWithPersonalData(viewingUserId),
-    fetchMyMoves(viewingUserId, activeSession.id, activeSession.minGroupSize),
-  ])
+  // Viewer is a participant (or impersonating). Fetch personal books.
+  const personalBooks = await fetchCatalogWithPersonalData(viewerUserId)
 
-  const participantUserIds = participants.map((p) => p.userId)
-  const viewedParticipant = isImpersonating
-    ? participants.find((p) => p.userId === asParam)
-    : null
+  // Ranking Gate: joined + active session + has unranked active books
+  const showRankingGate =
+    !isImpersonating &&
+    currentSession.status === 'active' &&
+    listNeedsRankingGate(personalBooks)
 
-  // Fetch per-book participant signups for chips in the popup (all catalog books, not just user's list)
+  // Fetch book participants for personal list chips
+  const participantRows = await db
+    .select({
+      userId: matchingSessionParticipants.userId,
+      name: users.name,
+    })
+    .from(matchingSessionParticipants)
+    .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
+    .where(eq(matchingSessionParticipants.sessionId, currentSession.id))
+
+  const participantUserIds = participantRows.map((p) => p.userId)
+
   const bookParticipants: BookParticipant[] =
     participantUserIds.length > 0
-      ? await db
+      ? await drizzle
           .select({
             userId: signupBooks.userId,
             bookId: signupBooks.bookId,
@@ -143,421 +142,139 @@ export default async function MatchingPage({
           )
           .where(inArray(signupBooks.userId, participantUserIds))
           .then((rows) =>
-            rows.map((row) => {
-              const participant = participants.find((p) => p.userId === row.userId)
-              return {
-                userId: row.userId,
-                bookId: row.bookId,
-                pseudonym: participant?.pseudonym ?? row.userId,
-                rank: row.rank,
-                personalStatus: row.personalStatus ?? null,
-              }
-            }),
+            rows.map((row) => ({
+              userId: row.userId,
+              bookId: row.bookId,
+              pseudonym: participantRows.find((p) => p.userId === row.userId)?.name ?? row.userId,
+              rank: row.rank,
+              personalStatus: row.personalStatus ?? null,
+            })),
           )
       : []
 
-  const viewerHasCompleteRanking = listHasCompleteActiveRanking(personalBooks)
-  const canSwitchOptimizationMode = canSwitchMatchingMode(participantUserIds, bookParticipants)
-  const showRankingGate =
-    mode === 'satisfaction' &&
-    !isImpersonating &&
-    activeSession.status === 'active' &&
-    !viewerHasCompleteRanking
-
-  // Get current user's pseudonym (not impersonating) or null if impersonating
-  const userPseudonym = !isImpersonating
-    ? participants.find((p) => p.userId === session.user.id)?.pseudonym ?? null
-    : null
-  const publicUserIdByInternalId = new Map(participants.map((participant) => [
-    participant.userId,
-    isAdmin ? participant.userId : participant.pseudonym,
-  ]))
-  const clientViewingUserId = isAdmin
-    ? viewingUserId
-    : publicUserIdByInternalId.get(viewingUserId) ?? userPseudonym ?? viewingUserId
-  const clientBookParticipants = isAdmin
-    ? bookParticipants
-    : bookParticipants.map((participant) => ({
-        ...participant,
-        userId: publicUserIdByInternalId.get(participant.userId) ?? participant.pseudonym,
-      }))
-
-  // Имена участников для админа (#341): pseudonym → name. Только для админа (иначе null —
-  // настоящие имена не уходят в клиентские пропсы не-админа). Чипы участников книг рендерят
-  // реальный псевдоним даже для админа, поэтому карта по псевдониму применима и к ним.
-  const adminNamesByPseudonym: Map<string, string | null> | null = isAdmin
-    ? new Map(participants.map((p) => [p.pseudonym, p.name ?? null]))
-    : null
-
   if (showRankingGate) {
     return (
-      <MatchingSatisfactionFlow
-        phase="gate"
-        sessionId={activeSession.id}
-        books={personalBooks}
-        bookParticipants={clientBookParticipants}
-        viewingUserId={clientViewingUserId}
-        adminNamesByPseudonym={adminNamesByPseudonym}
-      />
-    )
-  }
-
-  const scenarioParticipants = participants.map((p) => ({ userId: p.userId, pseudonym: p.pseudonym }))
-  const scenarioInput = await fetchScenarioInput(
-    scenarioParticipants,
-    activeSession.minGroupSize,
-    activeSession.maxGroupSize,
-    mode,
-  )
-  const scenarioSetOverview =
-    participantUserIds.length >= activeSession.minGroupSize
-      ? generateScenarioSets(scenarioInput)
-      : emptyScenarioSetOverview(scenarioParticipants, activeSession.minGroupSize, activeSession.maxGroupSize, mode)
-
-  const bookTitleById = new Map(personalBooks.map((book) => [book.bookId, book.title]))
-  const feedEvents = await fetchFeedForSession(activeSession.id)
-  const feedBookTitles = Object.fromEntries(bookTitleById)
-  const myMovesWithImpact = addMoveImpacts(
-    myMoves,
-    scenarioInput,
-    viewingUserId,
-    bookTitleById,
-    scenarioSetOverview.leader,
-    mode,
-  )
-  const bookById = new Map(personalBooks.map((b) => [b.bookId, {
-    ...b,
-    id: b.bookId,
-    tags: Array.isArray(b.tags) ? b.tags : [],
-  }]))
-
-  const isReadOnly = activeSession.status === 'frozen'
-  const viewerIsAdrift = isViewerAdrift(scenarioSetOverview, viewingUserId)
-  const adriftCause = viewerIsAdrift
-    ? await fetchAdriftCauseForUser(activeSession.id, viewingUserId)
-    : null
-  const adrift = viewerIsAdrift
-    ? {
-        reason: adriftCause ? 'change' as const : 'never' as const,
-        cause: adriftCause
-          ? {
-              ...adriftCause,
-              bookTitle: bookTitleById.get(adriftCause.bookId) ?? null,
-            }
-          : null,
-      }
-    : null
-
-  const clientScenarioSetOverview = isAdmin
-    ? scenarioSetOverview
-    : publicizeScenarioSetOverview(scenarioSetOverview, publicUserIdByInternalId)
-  const clientMoves = isAdmin
-    ? myMovesWithImpact
-    : publicizeMyMoves(myMovesWithImpact, publicUserIdByInternalId)
-  const clientAdrift = isAdmin || !adrift?.cause
-    ? adrift
-    : {
-        ...adrift,
-        cause: {
-          ...adrift.cause,
-          actor: {
-            ...adrift.cause.actor,
-            userId: publicUserIdByInternalId.get(adrift.cause.actor.userId) ?? adrift.cause.actor.pseudonym,
-          },
-        },
-      }
-
-  const headerSlot = (
-    <MatchingHeader
-      sessionId={activeSession.id}
-      sessionName={activeSession.name}
-      sessionStatus={activeSession.status}
-      minGroupSize={activeSession.minGroupSize}
-      maxGroupSize={activeSession.maxGroupSize}
-      optimizationMode={mode}
-      canSwitchMode={canSwitchOptimizationMode}
-      deadlineAt={activeSession.deadlineAt ? new Date(activeSession.deadlineAt).toISOString() : null}
-      participants={participants.map((p) => ({
-        userId: isAdmin ? p.userId : p.pseudonym,
-        pseudonym: p.pseudonym,
-        name: isAdmin ? p.name ?? null : null,
-      }))}
-      isAdmin={isAdmin}
-      isImpersonating={isImpersonating}
-      viewedPseudonym={viewedParticipant?.pseudonym ?? null}
-      viewedName={viewedParticipant?.name ?? null}
-      asParam={asParam}
-      userPseudonym={userPseudonym}
-      feedEvents={feedEvents}
-      feedBookTitles={feedBookTitles}
-    />
-  )
-
-  const workspaceSlot = (
-    <MatchingImpactWorkspace
-      sessionId={activeSession.id}
-      overview={clientScenarioSetOverview}
-      bookById={bookById}
-      bookParticipants={clientBookParticipants}
-      viewingUserId={clientViewingUserId}
-      moves={clientMoves}
-      frozen={isReadOnly}
-      movesHeading={isImpersonating ? 'Ходы участника' : 'Мои ходы'}
-      mutationUserId={isImpersonating ? viewingUserId : undefined}
-      adrift={clientAdrift}
-      adminNamesByPseudonym={adminNamesByPseudonym}
-    />
-  )
-
-  const catalogIntroSlot = (
-    <div style={{ padding: '1.4rem 0 1rem' }}>
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: 'var(--nd-serif)',
-          fontSize: '1.12rem',
-          fontWeight: 700,
-          letterSpacing: '-0.01em',
-          color: 'var(--text)',
-        }}
-      >
-        {isImpersonating ? 'Список участника' : 'Каталог'}
-      </h2>
-      {!isImpersonating && (
-        <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Слева — книги клуба, справа — ваш список и приоритеты
-        </p>
-      )}
-    </div>
-  )
-
-  // Satisfaction renders the gate ↔ board as one morphing full-width page.
-  if (mode === 'satisfaction') {
-    return (
-      <MatchingBoardProvider stateVersion={activeSession.stateVersion}>
+      <MatchingBoardProvider stateVersion={currentSession.stateVersion}>
         <BookDetailProvider
           personalBooks={personalBooks}
-          viewingUserId={clientViewingUserId}
-          mutationUserId={isImpersonating ? viewingUserId : undefined}
-          frozen={isReadOnly}
-          adminNamesByPseudonym={adminNamesByPseudonym}
+          viewingUserId={viewerUserId}
+          frozen={false}
         >
           <MatchingSatisfactionFlow
-            phase="board"
-            sessionId={activeSession.id}
+            phase="gate"
+            sessionId={currentSession.id}
             books={personalBooks}
-            bookParticipants={clientBookParticipants}
-            viewingUserId={clientViewingUserId}
-            frozen={isReadOnly}
-            mutationUserId={isImpersonating ? viewingUserId : undefined}
-            header={headerSlot}
-            workspace={workspaceSlot}
-            catalogIntro={catalogIntroSlot}
-            adminNamesByPseudonym={adminNamesByPseudonym}
+            bookParticipants={bookParticipants}
+            viewingUserId={viewerUserId}
           />
         </BookDetailProvider>
       </MatchingBoardProvider>
     )
   }
 
-  // Coverage board — unchanged full-width layout.
+  // Board phase: fetch the public state for the realtime client
+  let publicState: MatchingPublicState | null = null
+  try {
+    const raw = await fetchMatchingPublicState(currentSession.id, viewerUserId)
+    // Derive viewerConfirmedCircleKey from participants
+    const viewerRef = raw.viewer.ref
+    const me = raw.participants.find((p: { ref: string; confirmedCircleKey: string | null }) => p.ref === viewerRef)
+    publicState = {
+      session: raw.session,
+      viewer: raw.viewer,
+      scenarios: raw.scenarios,
+      lockedCircles: raw.lockedCircles,
+      notices: raw.notices,
+      viewerConfirmedCircleKey: me?.confirmedCircleKey ?? null,
+    }
+  } catch (error) {
+    if (error instanceof PublicMatchingStateError && error.code === 'participant_missing') {
+      // Participant was added by admin; state will populate after first join
+      publicState = {
+        session: {
+          status: currentSession.status,
+          stateVersion: currentSession.stateVersion,
+        },
+        viewer: { role: 'active', ref: viewerUserId, lockedCircleId: null },
+        scenarios: [],
+        lockedCircles: [],
+        notices: [],
+        viewerConfirmedCircleKey: null,
+      }
+    } else {
+      throw error
+    }
+  }
+
+  // Build bookTitleById for the scenarios display
+  const bookTitleById = Object.fromEntries(
+    personalBooks.map((b) => [b.bookId, b.title]),
+  )
+
+  const isReadOnly = currentSession.status === 'frozen'
+
   return (
-    <MatchingBoardProvider stateVersion={activeSession.stateVersion}>
-    <BookDetailProvider
-      personalBooks={personalBooks}
-      viewingUserId={clientViewingUserId}
-      mutationUserId={isImpersonating ? viewingUserId : undefined}
-      frozen={isReadOnly}
-      adminNamesByPseudonym={adminNamesByPseudonym}
-    >
-    <div
-      className="flex flex-col"
-      style={{ minHeight: '100svh', background: 'var(--bg)', color: 'var(--text)' }}
-    >
-      <div className="flex flex-col" style={{ height: '100svh' }}>
-        {headerSlot}
-
-        {/* First viewport: scenarios + moves */}
-        <div className="flex-1 min-h-0 p-4">{workspaceSlot}</div>
-      </div>
-
-      {/* Second viewport: catalog and user's books */}
-      <div className="p-4 pt-0" style={{ minHeight: 560 }} data-testid="matching-catalog-panel">
-        {catalogIntroSlot}
-
-        {/* Two-column grid aligned with top row — MatchingPersonalList renders a fragment with two sections */}
+    <MatchingBoardProvider stateVersion={currentSession.stateVersion}>
+      <BookDetailProvider
+        personalBooks={personalBooks}
+        viewingUserId={viewerUserId}
+        frozen={isReadOnly}
+      >
         <div
-          className="grid"
-          style={{
-            gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)',
-            gap: '1.1rem',
-            paddingBottom: '1.6rem',
-          }}
+          style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100svh', display: 'flex', flexDirection: 'column' }}
         >
-          <MatchingPersonalList
-            books={personalBooks}
-            bookParticipants={clientBookParticipants}
-            viewingUserId={clientViewingUserId}
-            frozen={isReadOnly}
-            mutationUserId={isImpersonating ? viewingUserId : undefined}
-            adminNamesByPseudonym={adminNamesByPseudonym}
-          />
-        </div>
-      </div>
+          {/* Board section: realtime client handles notices + locked circles + scenarios */}
+          <div style={{ padding: '1rem', flex: 1 }}>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--nd-serif)',
+                  fontSize: '1.3rem',
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                }}
+              >
+                {currentSession.name}
+              </h1>
+            </div>
+            <MatchingRealtimeClient
+              sessionId={currentSession.id}
+              initialState={publicState}
+              bookTitleById={bookTitleById}
+            />
+          </div>
 
-      <MatchingRealtimeWrapper sessionId={activeSession.id} />
-    </div>
-    </BookDetailProvider>
+          {/* Personal list / catalog section */}
+          <div style={{ padding: '1rem', borderTop: '1px solid var(--hair)' }}>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--nd-serif)',
+                  fontSize: '1.12rem',
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                }}
+              >
+                Каталог
+              </h2>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Слева — книги клуба, справа — ваш список и приоритеты
+              </p>
+            </div>
+            <MatchingSatisfactionFlow
+              phase="board"
+              sessionId={currentSession.id}
+              books={personalBooks}
+              bookParticipants={bookParticipants}
+              viewingUserId={viewerUserId}
+              frozen={isReadOnly}
+              mutationUserId={isImpersonating ? viewerUserId : undefined}
+            />
+          </div>
+        </div>
+      </BookDetailProvider>
     </MatchingBoardProvider>
   )
-}
-
-function canSwitchMatchingMode(
-  participantUserIds: string[],
-  bookParticipants: BookParticipant[],
-) {
-  if (participantUserIds.length === 0) return false
-
-  const activeByUser = new Map<string, BookParticipant[]>()
-  for (const participant of bookParticipants) {
-    if (participant.personalStatus !== null) continue
-    const current = activeByUser.get(participant.userId) ?? []
-    current.push(participant)
-    activeByUser.set(participant.userId, current)
-  }
-
-  return participantUserIds.every((userId) => {
-    const activeBooks = activeByUser.get(userId) ?? []
-    return activeBooks.length > 0 && activeBooks.every((book) => book.rank !== null)
-  })
-}
-
-async function fetchScenarioInput(
-  participants: { userId: string; pseudonym: string }[],
-  minGroupSize: number,
-  maxGroupSize: number,
-  mode: OptimizationMode,
-): Promise<GenerateScenariosInput> {
-  const participantUserIds = participants.map((p) => p.userId)
-  if (participantUserIds.length === 0) {
-    return { participants, books: [], signups: [], ranks: [], minGroupSize, maxGroupSize, mode, ...(mode === 'coverage' ? { maxResults: 10 } : {}) }
-  }
-  const [allSignups, allRanks, allBooks] = await Promise.all([
-    db
-      .select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
-      .from(signupBooks)
-      .where(inArray(signupBooks.userId, participantUserIds)),
-    db
-      .select({
-        userId: bookPriorities.userId,
-        bookId: bookPriorities.bookId,
-        rank: bookPriorities.rank,
-      })
-      .from(bookPriorities)
-      .where(inArray(bookPriorities.userId, participantUserIds)),
-    db
-      .select({ id: books.id })
-      .from(books)
-      .where(eq(books.visibility, 'published')),
-  ])
-
-  // Only include books signed up by at least one session participant
-  const signedUpBookIds = new Set(allSignups.map((s) => s.bookId))
-  const sessionBooks = allBooks
-    .filter((b) => signedUpBookIds.has(b.id))
-    .map((b) => ({ bookId: b.id }))
-
-  // Exclude signups where the user has set a personal status (reading/read) —
-  // they are no longer available as candidates for a new group on that book.
-  const activeSignups = allSignups.filter((s) => s.personalStatus === null)
-  const ranks = allRanks.map((r) => ({ userId: r.userId, bookId: r.bookId, rank: r.rank }))
-  const signups = filterSignupsByMode(
-    activeSignups.map((s) => ({ userId: s.userId, bookId: s.bookId })),
-    ranks,
-    mode,
-  )
-
-  return {
-    participants,
-    books: sessionBooks,
-    signups,
-    ranks,
-    minGroupSize,
-    maxGroupSize,
-    mode,
-    ...(mode === 'coverage' ? { maxResults: 10 } : {}),
-  }
-}
-
-function addMoveImpacts(
-  moves: MyMoveBook[],
-  scenarioInput: GenerateScenariosInput,
-  viewingUserId: string,
-  bookTitleById: Map<string, string>,
-  currentLeader: MatchingScenario | null,
-  mode: OptimizationMode,
-): MyMoveBook[] {
-  return sortMovesByImpact(moves.flatMap((move) => {
-    const hasSignup = scenarioInput.signups.some((signup) => (
-      signup.userId === viewingUserId && signup.bookId === move.bookId
-    ))
-    const hasBook = scenarioInput.books.some((book) => book.bookId === move.bookId)
-    const nextOverview = generateScenarioSets({
-      ...scenarioInput,
-      books: hasBook ? scenarioInput.books : [...scenarioInput.books, { bookId: move.bookId }],
-      signups: hasSignup
-        ? scenarioInput.signups
-        : [...scenarioInput.signups, { userId: viewingUserId, bookId: move.bookId }],
-      ranks: promoteBookToFirstRank(scenarioInput.ranks, viewingUserId, move.bookId),
-    })
-    const scenario = nextOverview.leader
-
-    if (!scenario || scenario.id === currentLeader?.id) return []
-    if (!scenarioIncludesMove(scenario, viewingUserId, move.bookId)) return []
-
-    const impact = buildMoveImpact({
-      move,
-      scenario,
-      currentLeader,
-      viewingUserId,
-      bookTitleById,
-      mode,
-    })
-    if (!impact) return []
-
-    return {
-      ...move,
-      impact,
-    }
-  }), mode)
-}
-
-function scenarioIncludesMove(
-  scenario: MatchingScenario,
-  viewingUserId: string,
-  bookId: string,
-): boolean {
-  return scenario.circles.some((circle) => (
-      circle.bookId === bookId && circle.members.some((member) => member.userId === viewingUserId)
-  ))
-}
-
-function promoteBookToFirstRank(
-  ranks: GenerateScenariosInput['ranks'],
-  userId: string,
-  bookId: string,
-): GenerateScenariosInput['ranks'] {
-  const existingUserRanks = ranks
-    .filter((rank) => rank.userId === userId && rank.bookId !== bookId)
-    .sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER))
-  const otherRanks = ranks.filter((rank) => rank.userId !== userId)
-
-  return [
-    ...otherRanks,
-    { userId, bookId, rank: 1 },
-    ...existingUserRanks.map((rank, index) => ({
-      ...rank,
-      rank: index + 2,
-    })),
-  ]
 }
