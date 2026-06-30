@@ -60,14 +60,27 @@ export interface MatchingNoticeDraft {
   payload?: Record<string, unknown>
 }
 
+export type MatchingActionResult = boolean | {
+  changed: boolean
+  events: Omit<MatchingEventDraft, 'stateVersion'>[]
+}
+
 export interface MatchingTransitionStore {
   lockSession(sessionId: string): Promise<{ status: string; stateVersion: number } | null>
   getParticipantRole(sessionId: string, userId: string): Promise<'missing' | 'active' | 'observer'>
   getRankedScenarios(sessionId: string): Promise<RankedReconciliationScenario[]>
   getConfirmations(sessionId: string): Promise<CircleConfirmation[]>
+  getDisplayNames(sessionId: string): Promise<ReadonlyMap<string, string>>
+  hasConfirmationOutcome(input: {
+    sessionId: string
+    userId: string
+    stateVersion: number
+    outcome: 'set' | 'cancel'
+    circleKey?: string
+  }): Promise<boolean>
   upsertConfirmation(sessionId: string, confirmation: CircleConfirmation): Promise<void>
   deleteConfirmation(sessionId: string, userId: string): Promise<boolean>
-  applyAction(sessionId: string, action: MatchingAction): Promise<boolean>
+  applyAction(sessionId: string, action: MatchingAction): Promise<MatchingActionResult>
   lockCircle(sessionId: string, circle: ReconciliationCircle, stateVersion: number): Promise<void>
   writeEvents(sessionId: string, events: MatchingEventDraft[]): Promise<void>
   writeNotices(sessionId: string, notices: MatchingNoticeDraft[]): Promise<void>
@@ -136,7 +149,7 @@ function actionEventDraft(
     case 'change_group_size':
       return { ...base, after: { minGroupSize: action.min, maxGroupSize: action.max } }
     case 'dissolve_circle':
-      return { ...base, metadata: { reason: action.reason, circleId: action.circleId } }
+      return { ...base, eventType: 'circle_dissolved', metadata: { reason: action.reason, circleId: action.circleId } }
     case 'self_join':
       return { ...base, after: action.name === undefined ? null : { name: action.name } }
     case 'admin_add':
@@ -169,6 +182,7 @@ async function reconcileUntilStable(input: {
   store: MatchingTransitionStore
   events: MatchingEventDraft[]
   notices: MatchingNoticeDraft[]
+  displayNames: ReadonlyMap<string, string>
 }): Promise<void> {
   for (let iteration = 0; iteration < 100; iteration++) {
     const [rankedScenarios, confirmations] = await Promise.all([
@@ -200,7 +214,11 @@ async function reconcileUntilStable(input: {
       input.notices.push({
         userId: transfer.userId,
         kind: 'confirmation_transferred',
-        payload: { ...transfer },
+        payload: {
+          ...transfer,
+          fromMemberDisplayNames: transfer.fromMemberUserIds.map((id) => input.displayNames.get(id) ?? 'Без имени'),
+          toMemberDisplayNames: transfer.toMemberUserIds.map((id) => input.displayNames.get(id) ?? 'Без имени'),
+        },
       })
     }
 
@@ -218,7 +236,10 @@ async function reconcileUntilStable(input: {
       input.notices.push({
         userId: invalidation.userId,
         kind: 'confirmation_invalidated',
-        payload: { ...invalidation },
+        payload: {
+          ...invalidation,
+          memberDisplayNames: invalidation.memberUserIds.map((id) => input.displayNames.get(id) ?? 'Без имени'),
+        },
       })
     }
 
@@ -257,14 +278,28 @@ export async function executeMatchingTransition(
   const session = await store.lockSession(input.sessionId)
   if (!session) throw new MatchingTransitionError('session_not_found')
   if (session.status !== 'active') throw new MatchingTransitionError('session_frozen')
+  const action = input.action
   if (
     input.expectedStateVersion !== undefined &&
     input.expectedStateVersion !== session.stateVersion
   ) {
+    if (
+      input.expectedStateVersion === session.stateVersion - 1 &&
+      (action.type === 'set_confirmation' || action.type === 'cancel_confirmation')
+    ) {
+      if (await store.hasConfirmationOutcome({
+        sessionId: input.sessionId,
+        userId: action.userId,
+        stateVersion: session.stateVersion,
+        outcome: action.type === 'set_confirmation' ? 'set' : 'cancel',
+        circleKey: action.type === 'set_confirmation' ? action.circleKey : undefined,
+      })) {
+        return { changed: false, stateVersion: session.stateVersion }
+      }
+    }
     throw new MatchingTransitionError('stale_state')
   }
 
-  const action = input.action
   const subjectUserId = participantUserId(action)
   if (subjectUserId && requiresActiveParticipant(action)) {
     const role = await store.getParticipantRole(input.sessionId, subjectUserId)
@@ -275,6 +310,7 @@ export async function executeMatchingTransition(
   const nextStateVersion = session.stateVersion + 1
   const events: MatchingEventDraft[] = []
   const notices: MatchingNoticeDraft[] = []
+  const displayNames = await store.getDisplayNames(input.sessionId)
   let changed = false
 
   if (action.type === 'set_confirmation') {
@@ -321,9 +357,14 @@ export async function executeMatchingTransition(
     })
     changed = true
   } else {
-    changed = await store.applyAction(input.sessionId, action)
+    const applied = await store.applyAction(input.sessionId, action)
+    changed = typeof applied === 'boolean' ? applied : applied.changed
     if (changed) {
-      events.push(actionEventDraft(action, nextStateVersion, input.actor.userId))
+      if (typeof applied !== 'boolean' && applied.events.length > 0) {
+        events.push(...applied.events.map((event) => ({ ...event, stateVersion: nextStateVersion })))
+      } else {
+        events.push(actionEventDraft(action, nextStateVersion, input.actor.userId))
+      }
     }
   }
 
@@ -335,6 +376,7 @@ export async function executeMatchingTransition(
     store,
     events,
     notices,
+    displayNames,
   })
   await store.writeEvents(input.sessionId, events)
   await store.writeNotices(input.sessionId, notices)

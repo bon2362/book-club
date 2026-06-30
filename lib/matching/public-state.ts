@@ -103,12 +103,18 @@ function publicNoticePayload(
   switch (notice.kind) {
     case 'confirmation_transferred':
       return {
-        fromMembers: namesForUserIds(notice.payload.fromMemberUserIds, participants),
-        toMembers: namesForUserIds(notice.payload.toMemberUserIds, participants),
+        fromMembers: Array.isArray(notice.payload.fromMemberDisplayNames)
+          ? notice.payload.fromMemberDisplayNames
+          : namesForUserIds(notice.payload.fromMemberUserIds, participants),
+        toMembers: Array.isArray(notice.payload.toMemberDisplayNames)
+          ? notice.payload.toMemberDisplayNames
+          : namesForUserIds(notice.payload.toMemberUserIds, participants),
       }
     case 'confirmation_invalidated':
       return {
-        members: namesForUserIds(notice.payload.memberUserIds, participants),
+        members: Array.isArray(notice.payload.memberDisplayNames)
+          ? notice.payload.memberDisplayNames
+          : namesForUserIds(notice.payload.memberUserIds, participants),
       }
     case 'circle_locked':
       return {

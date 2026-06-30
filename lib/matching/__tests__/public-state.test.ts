@@ -145,6 +145,32 @@ describe('assemblePublicSessionState', () => {
     expect(JSON.stringify(result)).not.toContain('uid-')
   })
 
+  it('uses durable name snapshots when a transferred member has left the session', () => {
+    const notices = [{
+      id: 'n1',
+      kind: 'confirmation_transferred',
+      payload: {
+        fromMemberDisplayNames: ['Анна', 'Иван', 'Иван (2)'],
+        toMemberDisplayNames: ['Анна', 'Борис'],
+      },
+      createdAt: new Date('2026-06-29T10:00:00Z'),
+    }]
+    const result = assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-1',
+      participants: [participants[0]],
+      scenarioOverview: { ...emptyScenarioOverview, totalCount: 1 },
+      confirmations: emptyConfirmations,
+      lockedCircles: [],
+      notices,
+    })
+
+    expect(result.notices[0].payload).toEqual({
+      fromMembers: ['Анна', 'Иван', 'Иван (2)'],
+      toMembers: ['Анна', 'Борис'],
+    })
+  })
+
   it('throws if the viewerUserId is not in participants', () => {
     expect(() => assemblePublicSessionState({
       session,
