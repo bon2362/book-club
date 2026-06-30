@@ -56,6 +56,13 @@ test('board phase renders header and workspace slots', () => {
   expect(screen.getByTestId('slot-workspace')).toBeInTheDocument()
 })
 
+test('gate phase does not mount board slots from the shared page composition', () => {
+  render(<MatchingSatisfactionFlow phase="gate" {...base} header={<div data-testid="slot-header" />} workspace={<div data-testid="slot-workspace" />} />)
+  expect(screen.queryByTestId('slot-header')).toBeNull()
+  expect(screen.queryByTestId('slot-workspace')).toBeNull()
+  expect(screen.getByTestId('ranking-gate')).toBeInTheDocument()
+})
+
 test('clicking enter on a ranked gate refreshes and shows the submitting state', () => {
   const ranked = [
     { bookId: 'b1', title: 'A', author: 'A', coverUrl: null, rank: 1, personalStatus: null, isInList: true, tags: [] },
