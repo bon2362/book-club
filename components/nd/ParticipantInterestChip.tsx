@@ -37,13 +37,13 @@ export default function ParticipantInterestChip({
         fontSize: '0.78rem',
         color: 'var(--text-secondary)',
         background: highlighted ? 'var(--accent-soft)' : 'transparent',
-        borderRadius: highlighted ? 6 : 0,
+        borderRadius: highlighted ? 'var(--radius)' : 0,
         padding: highlighted ? '0.04rem 0.34rem' : 0,
         margin: highlighted ? '0 -0.05rem' : 0,
         opacity: dimmed ? 0.4 : 1,
         transition: 'opacity 0.16s ease, background 0.16s ease',
       }}
-      title={`${displayName}: ${rankTooltip(rank)}`}
+      title={`${displayName}: ранг ${rank ?? '—'} · ${rankTooltip(rank)}`}
     >
       <b
         style={{

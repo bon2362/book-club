@@ -210,10 +210,10 @@ export default async function MatchingPage({
     }
   }
 
-  // Build bookTitleById for the scenarios display
-  const bookTitleById = showRankingGate
+  // Full published-book metadata powers covers and the shared book-detail popup.
+  const booksById = showRankingGate
     ? {}
-    : Object.fromEntries(personalBooks.map((b) => [b.bookId, b.title]))
+    : Object.fromEntries(personalBooks.map((book) => [book.bookId, book]))
 
   const isReadOnly = currentSession.status === 'frozen'
 
@@ -235,7 +235,7 @@ export default async function MatchingPage({
               workspace={showRankingGate ? undefined : <MatchingRealtimeClient
                 sessionId={currentSession.id}
                 initialState={publicState!}
-                bookTitleById={bookTitleById}
+                booksById={booksById}
                 isAdmin={isAdmin}
                 isImpersonating={isImpersonating}
               />}

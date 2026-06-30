@@ -152,6 +152,7 @@ test.describe('Home submit book CTA layout', () => {
 test.describe('Matching restored board shell', () => {
   test('header, full-width scenarios workspace and catalog form one compact column', async ({
     page,
+    browser,
     createMatchingSession,
     createTestBook,
     loginAsUser,
@@ -163,8 +164,17 @@ test.describe('Matching restored board shell', () => {
     expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
     expect((await page.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
 
-    await page.goto('/matching')
-    await page.waitForLoadState('networkidle')
+    const peerContext = await browser.newContext()
+    const peer = await peerContext.newPage()
+    const peerEmail = `e2e-ui-matching-peer-${Date.now()}@test.invalid`
+    expect((await peer.request.post('/api/test/session', { data: { email: peerEmail, name: 'Борис Layout', telegramUsername: 'boris_layout' } })).ok()).toBe(true)
+    expect((await peer.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Борис Layout' } })).ok()).toBe(true)
+    expect((await peer.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await peer.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    try {
+      await page.goto('/matching')
+      await page.waitForLoadState('networkidle')
 
     await expect(page.getByTestId('matching-header')).toBeVisible()
     await expect(page.getByRole('link', { name: /каталог/i })).toBeVisible()
@@ -182,12 +192,72 @@ test.describe('Matching restored board shell', () => {
     expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeGreaterThanOrEqual(0)
     expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeLessThan(48)
 
-    const scrollStyle = await page.getByTestId('matching-scenarios-scroll').evaluate((element) => ({
+      const scrollStyle = await page.getByTestId('matching-scenarios-scroll').evaluate((element) => ({
       overflowY: getComputedStyle(element).overflowY,
       clientHeight: element.clientHeight,
     }))
-    expect(scrollStyle.overflowY).toBe('auto')
-    expect(scrollStyle.clientHeight).toBeGreaterThan(0)
+      expect(scrollStyle.overflowY).toBe('auto')
+      expect(scrollStyle.clientHeight).toBeGreaterThan(0)
+
+      const circle = page.getByTestId('matching-circle').first()
+      const cta = circle.getByTestId('circle-confirm-button')
+      await expect(cta).toBeAttached()
+      expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('0')
+      await circle.hover()
+      await expect.poll(() => cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
+      await cta.focus()
+      await expect(cta).toBeFocused()
+      expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).pointerEvents)).toBe('auto')
+
+      const firstState = await (await page.request.get(`/api/matching/state?session=${session.id}`)).json() as {
+        session: { stateVersion: number }
+        scenarios: Array<{ circles: Array<{ circleKey: string; viewerIsMember: boolean }> }>
+      }
+      const firstCircle = firstState.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
+      expect((await page.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: firstCircle.circleKey, expectedStateVersion: firstState.session.stateVersion } })).ok()).toBe(true)
+      const peerState = await (await peer.request.get(`/api/matching/state?session=${session.id}`)).json() as typeof firstState
+      const peerCircle = peerState.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
+      expect((await peer.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: peerCircle.circleKey, expectedStateVersion: peerState.session.stateVersion } })).ok()).toBe(true)
+
+      await page.reload()
+      const observerWorkspace = await page.getByTestId('matching-scenarios-workspace').boundingBox()
+      const ownCircle = page.getByTestId('matching-own-locked-circle')
+      await expect(ownCircle).toBeVisible()
+      expect(observerWorkspace).not.toBeNull()
+      expect(Math.abs(observerWorkspace!.width - workspaceBox!.width)).toBeLessThanOrEqual(1)
+      const ownBox = await ownCircle.boundingBox()
+      const liveScenariosBox = await page.getByTestId('matching-scenarios-empty').boundingBox()
+      expect(ownBox).not.toBeNull()
+      expect(liveScenariosBox).not.toBeNull()
+      expect(ownBox!.y + ownBox!.height).toBeLessThanOrEqual(liveScenariosBox!.y)
+    } finally {
+      await peer.request.delete('/api/test/session', { data: { email: peerEmail } }).catch(() => {})
+      await peerContext.close()
+    }
+  })
+
+  test('touch keeps the circle CTA visible', async ({ browser, createMatchingSession, createTestBook }) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const book = await createTestBook({ title: `UI Touch ${test.info().testId}`, author: 'Touch Author' })
+    const contexts = await Promise.all([browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } }), browser.newContext()])
+    const pages = await Promise.all(contexts.map(context => context.newPage()))
+    const emails = [`e2e-touch-a-${Date.now()}@test.invalid`, `e2e-touch-b-${Date.now()}@test.invalid`]
+    try {
+      for (let index = 0; index < pages.length; index += 1) {
+        const actor = pages[index]
+        expect((await actor.request.post('/api/test/session', { data: { email: emails[index], name: `Touch ${index}`, telegramUsername: `touch_${index}` } })).ok()).toBe(true)
+        expect((await actor.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: `Touch ${index}` } })).ok()).toBe(true)
+        expect((await actor.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+        expect((await actor.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+      }
+      await pages[0].goto('/matching')
+      const cta = pages[0].getByTestId('circle-confirm-button').first()
+      await expect(cta).toBeVisible()
+      expect(await cta.evaluate(element => getComputedStyle(element.parentElement!).opacity)).toBe('1')
+    } finally {
+      for (let index = 0; index < pages.length; index += 1) await pages[index].request.delete('/api/test/session', { data: { email: emails[index] } }).catch(() => {})
+      await Promise.all(contexts.map(context => context.close()))
+    }
   })
 })
 

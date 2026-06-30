@@ -8,7 +8,7 @@ import MatchingLockedCircles from './MatchingLockedCircles'
 import MatchingScenarios from './MatchingScenarios'
 import type { MatchingNotice } from './MatchingNotices'
 import type { LockedCircle } from './MatchingLockedCircles'
-import type { PublicScenario } from './MatchingScenarios'
+import type { PublicScenario, ScenarioBookMeta } from './MatchingScenarios'
 import MatchingHeader, { type MatchingHeaderParticipant } from './MatchingHeader'
 import MatchingWorkspace from './MatchingWorkspace'
 import { useRouter } from 'next/navigation'
@@ -38,7 +38,9 @@ export interface MatchingPublicState {
 interface Props {
   sessionId: string
   initialState: MatchingPublicState
-  bookTitleById: Record<string, string>
+  booksById?: Record<string, ScenarioBookMeta>
+  /** Transitional test compatibility; production passes full metadata. */
+  bookTitleById?: Record<string, string>
   /** Optional fixed poll interval in ms — overrides adaptive logic. Used in tests. */
   pollIntervalMs?: number
   isAdmin?: boolean
@@ -57,12 +59,14 @@ function extractViewerConfirmedKey(
 export default function MatchingRealtimeClient({
   sessionId,
   initialState,
-  bookTitleById,
+  booksById,
+  bookTitleById = {},
   pollIntervalMs,
   isAdmin = false,
   isImpersonating = false,
 }: Props) {
   const router = useRouter()
+  const resolvedBooksById = booksById ?? Object.fromEntries(Object.entries(bookTitleById).map(([bookId, title]) => [bookId, { bookId, title, author: '', description: '', coverUrl: null, pages: null, publishedDate: '', textUrl: '', whyRead: null, recommendationLink: null, tags: [] }]))
   const [state, setState] = useState<MatchingPublicState>(initialState)
   const [healthy, setHealthy] = useState(true)
   const lastVersionRef = useRef<number | null>(null)
@@ -191,7 +195,7 @@ export default function MatchingRealtimeClient({
       <MatchingLockedCircles
         circles={state.lockedCircles}
         viewerLockedCircleKey={state.viewer.lockedCircleKey}
-        bookTitleById={bookTitleById}
+        booksById={resolvedBooksById}
       />
 
       {/* Scenarios board */}
@@ -203,7 +207,7 @@ export default function MatchingRealtimeClient({
           viewerConfirmedCircleKey={state.viewerConfirmedCircleKey}
           viewerRole={state.viewer.role}
           frozen={state.session.status === 'frozen'}
-          bookTitleById={bookTitleById}
+          booksById={resolvedBooksById}
           onConfirmationChange={fetchFullState}
         />
       </div>
