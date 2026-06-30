@@ -18,7 +18,7 @@ import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import { db as drizzle } from '@/lib/db'
 import { signupBooks, bookPriorities } from '@/lib/db/schema'
 import { inArray } from 'drizzle-orm'
-import { assignMatchingDisplayNames } from '@/lib/matching/display-names'
+import { buildPublicBookParticipants } from '@/lib/matching/book-participants'
 
 export default async function MatchingPage({
   searchParams,
@@ -135,10 +135,9 @@ export default async function MatchingPage({
     .where(eq(matchingSessionParticipants.sessionId, currentSession.id))
 
   const participantUserIds = participantRows.map((p) => p.userId)
-  const participantDisplayNames = assignMatchingDisplayNames(participantRows)
   const viewingParticipantRef = participantRows.find((p) => p.userId === viewerUserId)?.publicRef ?? 'viewer'
 
-  const bookParticipants: BookParticipant[] =
+  const bookParticipantRows =
     participantUserIds.length > 0
       ? await drizzle
           .select({
@@ -156,16 +155,12 @@ export default async function MatchingPage({
             ),
           )
           .where(inArray(signupBooks.userId, participantUserIds))
-          .then((rows) =>
-            rows.map((row) => ({
-              ref: participantRows.find((p) => p.userId === row.userId)!.publicRef,
-              bookId: row.bookId,
-              displayName: participantDisplayNames.get(row.userId) ?? 'Без имени',
-              rank: row.rank,
-              personalStatus: row.personalStatus ?? null,
-            })),
-          )
+          .then((rows) => rows.map((row) => ({ ...row, personalStatus: row.personalStatus ?? null })))
       : []
+  const bookParticipants: BookParticipant[] = buildPublicBookParticipants({
+    participants: participantRows,
+    signups: bookParticipantRows,
+  })
 
   if (showRankingGate) {
     return (
