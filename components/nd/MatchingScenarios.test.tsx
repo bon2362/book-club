@@ -213,4 +213,29 @@ describe('MatchingScenarios', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent('stale_version')
   })
+
+  it('keeps the choice visible and shows feedback when the network request rejects', async () => {
+    ;(global.fetch as jest.Mock).mockRejectedValue(new Error('offline'))
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Проверьте соединение'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('disables the dialog actions and prevents concurrent confirmation submits', async () => {
+    let resolve!: (value: unknown) => void
+    ;(global.fetch as jest.Mock).mockImplementation(() => new Promise((done) => { resolve = done }))
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    const confirm = screen.getByRole('button', { name: /подтверд/i })
+    fireEvent.click(confirm)
+    expect(screen.getByRole('button', { name: /подтверждаем/i })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /подтверждаем/i }))
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    resolve({ ok: true, json: async () => ({}) })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
 })

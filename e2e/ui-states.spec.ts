@@ -203,6 +203,29 @@ test.describe('Matching restored board shell', () => {
       const cta = circle.getByTestId('circle-confirm-button')
       await expect(cta).toBeAttached()
       expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('0')
+
+      // Keyboard-only path: tab into the initially hidden CTA, open it with Enter,
+      // prove the modal cycles focus, closes with Escape, and restores the opener.
+      await page.locator('body').click({ position: { x: 1, y: 1 } })
+      for (let index = 0; index < 30; index += 1) {
+        await page.keyboard.press('Tab')
+        if (await cta.evaluate(element => document.activeElement === element)) break
+      }
+      await expect(cta).toBeFocused()
+      await page.keyboard.press('Enter')
+      const confirmationDialog = page.getByRole('dialog', { name: 'Подтвердить круг?' })
+      await expect(confirmationDialog).toBeVisible()
+      await expect(confirmationDialog.getByRole('button', { name: 'Отмена' })).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(confirmationDialog.getByRole('button', { name: 'Подтвердить' })).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(confirmationDialog.getByRole('button', { name: 'Отмена' })).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect(confirmationDialog.getByRole('button', { name: 'Подтвердить' })).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(confirmationDialog).toHaveCount(0)
+      await expect(cta).toBeFocused()
+
       await circle.hover()
       await expect.poll(() => cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
       await cta.focus()

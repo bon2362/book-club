@@ -34,13 +34,20 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
   const currentCircle = viewerConfirmedCircleKey ? allCircles.find(c => c.circleKey === viewerConfirmedCircleKey) ?? null : null
 
   async function mutate(method: 'PUT' | 'DELETE', circleKey?: string) {
+    if (actionPending !== null) return
     setActionPending(circleKey ?? 'cancel'); setErrorMsg(null)
     try {
       const response = await fetch(`/api/matching/sessions/${sessionId}/confirmation`, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...(circleKey ? { circleKey } : {}), expectedStateVersion: stateVersion }) })
       const json = await response.json().catch(() => ({}))
       if (!response.ok) setErrorMsg(json.error ?? 'Не удалось изменить выбор')
-      else onConfirmationChange?.()
-    } finally { setActionPending(null); setDialogOpen(false); setPendingCircle(null) }
+      else {
+        onConfirmationChange?.()
+        setDialogOpen(false)
+        setPendingCircle(null)
+      }
+    } catch {
+      setErrorMsg('Не удалось изменить выбор. Проверьте соединение и попробуйте снова.')
+    } finally { setActionPending(null) }
   }
 
   function showBook(book: ScenarioBookMeta | undefined, circle: PublicScenarioCircle) { if (book) openBook(book, popupChips(circle)) }
@@ -77,6 +84,6 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
         </div>
       </li>)}
     </ul>
-    {pendingCircle && <MatchingConfirmationDialog open={dialogOpen} from={currentCircle ? { bookTitle: booksById[currentCircle.bookId]?.title ?? 'Книга', members: currentCircle.members.map(m => m.displayName) } : null} to={{ bookTitle: booksById[pendingCircle.bookId]?.title ?? 'Книга', members: pendingCircle.members.map(m => m.displayName) }} onConfirm={() => mutate('PUT', pendingCircle.circleKey)} onCancel={() => { setDialogOpen(false); setPendingCircle(null) }} />}
+    {pendingCircle && <MatchingConfirmationDialog open={dialogOpen} from={currentCircle ? { bookTitle: booksById[currentCircle.bookId]?.title ?? 'Книга', members: currentCircle.members.map(m => m.displayName) } : null} to={{ bookTitle: booksById[pendingCircle.bookId]?.title ?? 'Книга', members: pendingCircle.members.map(m => m.displayName) }} pending={actionPending !== null} onConfirm={() => mutate('PUT', pendingCircle.circleKey)} onCancel={() => { if (actionPending === null) { setDialogOpen(false); setPendingCircle(null) } }} />}
   </>
 }

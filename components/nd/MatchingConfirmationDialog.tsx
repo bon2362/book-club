@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useId, useRef } from 'react'
+
 export interface ConfirmationCircleSummary {
   bookTitle: string
   members: string[]
@@ -12,6 +14,7 @@ export interface MatchingConfirmationDialogProps {
   to: ConfirmationCircleSummary
   onConfirm: () => void
   onCancel: () => void
+  pending?: boolean
 }
 
 function CircleBlock({ label, circle }: { label: string; circle: ConfirmationCircleSummary }) {
@@ -47,13 +50,52 @@ export default function MatchingConfirmationDialog({
   to,
   onConfirm,
   onCancel,
+  pending = false,
 }: MatchingConfirmationDialogProps) {
+  const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    cancelRef.current?.focus()
+    return () => previousFocusRef.current?.focus()
+  }, [open])
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      if (!pending) onCancel()
+      return
+    }
+    if (event.key !== 'Tab') return
+    const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? [])
+    if (focusable.length === 0) {
+      event.preventDefault()
+      return
+    }
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   if (!open) return null
 
   return (
     <div
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
+      ref={dialogRef}
+      onKeyDown={handleKeyDown}
       style={{
         position: 'fixed',
         inset: 0,
@@ -78,7 +120,7 @@ export default function MatchingConfirmationDialog({
           gap: '1.1rem',
         }}
       >
-        <h2 style={{ margin: 0, fontFamily: 'var(--nd-serif), Georgia, serif', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>
+        <h2 id={titleId} style={{ margin: 0, fontFamily: 'var(--nd-serif), Georgia, serif', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>
           {from ? 'Сменить круг?' : 'Подтвердить круг?'}
         </h2>
         {from && (
@@ -93,7 +135,9 @@ export default function MatchingConfirmationDialog({
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', flexWrap: 'wrap' }}>
           <button
             type="button"
+            ref={cancelRef}
             onClick={onCancel}
+            disabled={pending}
             style={{
               border: '1px solid var(--border)',
               background: 'transparent',
@@ -113,6 +157,7 @@ export default function MatchingConfirmationDialog({
           <button
             type="button"
             onClick={onConfirm}
+            disabled={pending}
             style={{
               border: 'none',
               background: 'var(--accent)',
@@ -127,7 +172,7 @@ export default function MatchingConfirmationDialog({
               cursor: 'pointer',
             }}
           >
-            Подтвердить
+            {pending ? 'Подтверждаем…' : 'Подтвердить'}
           </button>
         </div>
       </div>
