@@ -739,8 +739,8 @@ Expected: `CLEAN` или `BLOCKED`; при `BEHIND` выполнить `gh pr up
 
 - Modify: `lib/db/schema.ts`
 - Modify: `lib/audit/audited-tables.ts`
-- Create: `drizzle/0049_drop_legacy_matching.sql`
-- Create: `drizzle/0049_drop_legacy_matching.test.ts`
+- Create: `drizzle/0050_drop_legacy_matching.sql`
+- Create: `drizzle/0050_drop_legacy_matching.test.ts`
 - Modify: `drizzle/0040_audit_triggers.test.ts`
 - Modify docs if Phase A smoke revealed operational details
 
@@ -760,7 +760,7 @@ Expected: `CLEAN` или `BLOCKED`; при `BEHIND` выполнить `gh pr up
 - [ ] Выполнить красный test:
 
 ```bash
-npm test -- drizzle/0049_drop_legacy_matching.test.ts drizzle/0040_audit_triggers.test.ts
+npm test -- drizzle/0050_drop_legacy_matching.test.ts drizzle/0040_audit_triggers.test.ts
 ```
 
 Expected: FAIL до migration/schema cleanup.

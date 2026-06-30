@@ -35,7 +35,7 @@ export const auditLog = pgTable('audit_log', {
 
 ## Триггерная функция `audit_capture`
 
-Одна plpgsql-функция (`drizzle/0040_audit_triggers.sql`) навешивается триггером AFTER INSERT/UPDATE/DELETE на каждую аудируемую таблицу.
+Одна plpgsql-функция (`audit_capture`) навешивается триггером AFTER INSERT/UPDATE/DELETE на каждую аудируемую таблицу. Базовая версия создана в `0040`, а актуальное определение всегда находится в последней миграции с `CREATE OR REPLACE FUNCTION` (сейчас `0049_restore_matching_presence_audit_filter.sql`).
 
 Что делает функция:
 1. Формирует `v_before = to_jsonb(OLD)`, `v_after = to_jsonb(NEW)` по `TG_OP`.
@@ -44,13 +44,14 @@ export const auditLog = pgTable('audit_log', {
    - `telegram_preauth_tokens` → вырезает `token_hash`.
    - `book_summary_helpful_reactions` → вырезает псевдонимный `visitor_hash` из `before` и `after`.
 3. Для UPDATE вычисляет `changedFields` — ключи, где `v_after -> key IS DISTINCT FROM v_before -> key`.
-4. Собирает `entity_id`: сначала пробует `id`; при композитных PK — конкатенирует `session_id:user_id:book_id` (актуально для `book_priorities`, `signup_books`, `matching_*`).
-5. Читает контекст из transaction-local настроек:
+4. Не пишет чисто технические heartbeat-апдейты: `user.last_activity_at`, `user_identities.last_seen_at` и `matching_session_participants.last_seen_at`. Любое обновление этих строк вместе с бизнес-полем продолжает аудироваться.
+5. Собирает `entity_id`: сначала пробует `id`; при композитных PK — конкатенирует `session_id:user_id:book_id` (актуально для `book_priorities`, `signup_books`, `matching_*`).
+6. Читает контекст из transaction-local настроек:
    - `current_setting('app.audit_actor', true)` → `actor_user_id`
    - `current_setting('app.audit_label', true)` → `actor_label`
    - `current_setting('app.audit_source', true)` → `source`; если пусто — подставляет `'trigger'`
    - `current_setting('app.audit_reason', true)` → `reason`
-6. Вставляет строку в `audit_log`.
+7. Вставляет строку в `audit_log`.
 
 ## Реестр `AUDITED_TABLES`
 
@@ -188,3 +189,4 @@ FK на `actor_user_id` снят намеренно: `ON DELETE set null` пот
 - `components/nd/AdminAuditLog.tsx` — UI вкладки «История изменений»
 - `drizzle/0040_audit_triggers.test.ts` — reconciliation-тест реестра и триггеров
 - `drizzle/0047_summary_helpful_reactions.sql` — trigger для реакций и masking `visitor_hash`
+- `drizzle/0049_restore_matching_presence_audit_filter.sql` — актуальная функция с masking и подавлением matching heartbeat-телеметрии
