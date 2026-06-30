@@ -23,11 +23,15 @@ function noticeMessage(notice: MatchingNotice): string {
   switch (notice.kind) {
     case 'confirmation_transferred': {
       const to = asNames(notice.payload.toMembers)
-      return `Твоё подтверждение перенесено в другой круг: ${to.join(', ')}.`
+      return to.length > 0
+        ? `Твоё подтверждение перенесено в другой круг: ${to.join(', ')}.`
+        : 'Твоё подтверждение перенесено в другой круг.'
     }
     case 'confirmation_invalidated': {
       const members = asNames(notice.payload.members)
-      return `Круг распался (${members.join(', ')}). Подтверждение снято — выбери круг заново.`
+      return members.length > 0
+        ? `Круг распался (${members.join(', ')}). Подтверждение снято — выбери круг заново.`
+        : 'Круг распался. Подтверждение снято — выбери круг заново.'
     }
     case 'circle_locked':
       return 'Круг закреплён — состав собрался полностью.'

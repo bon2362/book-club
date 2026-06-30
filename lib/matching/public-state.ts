@@ -83,38 +83,22 @@ interface PublicNoticeInput {
   createdAt: Date
 }
 
-function namesForUserIds(
-  value: unknown,
-  participants: ReadonlyMap<string, PublicSessionParticipantInput>,
-): string[] {
-  if (!Array.isArray(value)) return []
-  return value.map((userId) => {
-    if (typeof userId !== 'string') throw new Error('Invalid matching notice participant')
-    const participant = participants.get(userId)
-    if (!participant) throw new Error(`Unknown matching participant: ${userId}`)
-    return participant.displayName
-  })
+function snapshotNames(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((name): name is string => typeof name === 'string')
+    : []
 }
 
-function publicNoticePayload(
-  notice: PublicNoticeInput,
-  participants: ReadonlyMap<string, PublicSessionParticipantInput>,
-): Record<string, unknown> {
+function publicNoticePayload(notice: PublicNoticeInput): Record<string, unknown> {
   switch (notice.kind) {
     case 'confirmation_transferred':
       return {
-        fromMembers: Array.isArray(notice.payload.fromMemberDisplayNames)
-          ? notice.payload.fromMemberDisplayNames
-          : namesForUserIds(notice.payload.fromMemberUserIds, participants),
-        toMembers: Array.isArray(notice.payload.toMemberDisplayNames)
-          ? notice.payload.toMemberDisplayNames
-          : namesForUserIds(notice.payload.toMemberUserIds, participants),
+        fromMembers: snapshotNames(notice.payload.fromMemberDisplayNames),
+        toMembers: snapshotNames(notice.payload.toMemberDisplayNames),
       }
     case 'confirmation_invalidated':
       return {
-        members: Array.isArray(notice.payload.memberDisplayNames)
-          ? notice.payload.memberDisplayNames
-          : namesForUserIds(notice.payload.memberUserIds, participants),
+        members: snapshotNames(notice.payload.memberDisplayNames),
       }
     case 'circle_locked':
       return {
@@ -244,7 +228,7 @@ export function assemblePublicSessionState(input: {
     notices: input.notices.map((notice) => ({
       id: notice.id,
       kind: notice.kind,
-      payload: publicNoticePayload(notice, participantsByUserId),
+      payload: publicNoticePayload(notice),
       createdAt: notice.createdAt.toISOString(),
     })),
   }

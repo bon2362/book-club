@@ -43,8 +43,8 @@ describe('assemblePublicSessionState', () => {
         id: 'n1',
         kind: 'confirmation_transferred',
         payload: {
-          fromMemberUserIds: ['u1', 'u2'],
-          toMemberUserIds: ['u1', 'u3'],
+          fromMemberDisplayNames: ['Анна', 'Борис'],
+          toMemberDisplayNames: ['Анна', 'Вера'],
         },
         createdAt: new Date('2026-06-29T12:00:00Z'),
       }],

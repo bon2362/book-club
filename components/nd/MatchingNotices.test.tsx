@@ -40,6 +40,24 @@ test('renders human messages for each notice kind', () => {
   expect(screen.getByText(/закреплён/i)).toBeInTheDocument()
 })
 
+test('renders safe generic text for notices without name snapshots', () => {
+  render(
+    <MatchingNotices
+      sessionId="s1"
+      notices={[
+        notice({ id: 'n1', kind: 'confirmation_transferred', payload: { fromMembers: [], toMembers: [] } }),
+        notice({ id: 'n2', kind: 'confirmation_invalidated', payload: { members: [] } }),
+      ]}
+    />,
+  )
+
+  const statuses = screen.getAllByRole('status')
+  expect(statuses[0]).toHaveTextContent('Твоё подтверждение перенесено в другой круг.')
+  expect(statuses[0]).not.toHaveTextContent(': .')
+  expect(statuses[1]).toHaveTextContent('Круг распался. Подтверждение снято — выбери круг заново.')
+  expect(statuses[1]).not.toHaveTextContent('()')
+})
+
 test('acks a notice and removes it only after a successful response', async () => {
   ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true })
   render(<MatchingNotices sessionId="s1" notices={[notice({ id: 'n1' })]} />)

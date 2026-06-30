@@ -124,7 +124,7 @@ describe('assemblePublicSessionState', () => {
     expect(JSON.stringify(result)).not.toContain('uid-1')
   })
 
-  it('translates confirmation_transferred notice payload to display names', () => {
+  it('does not resolve legacy transfer member IDs through current participants', () => {
     const notices = [{
       id: 'n1',
       kind: 'confirmation_transferred',
@@ -140,9 +140,42 @@ describe('assemblePublicSessionState', () => {
       lockedCircles: [],
       notices,
     })
-    expect(result.notices[0].payload.fromMembers).toEqual(['Анна'])
-    expect(result.notices[0].payload.toMembers).toEqual(['Борис'])
+    expect(result.notices[0].payload.fromMembers).toEqual([])
+    expect(result.notices[0].payload.toMembers).toEqual([])
     expect(JSON.stringify(result)).not.toContain('uid-')
+    expect(JSON.stringify(result.notices[0])).not.toContain('Анна')
+    expect(JSON.stringify(result.notices[0])).not.toContain('Борис')
+  })
+
+  it('does not throw or resolve departed members in a legacy invalidation notice', () => {
+    const notices = [{
+      id: 'n2',
+      kind: 'confirmation_invalidated',
+      payload: { memberUserIds: ['uid-departed', 'uid-1'] },
+      createdAt: new Date('2026-06-29T10:00:00Z'),
+    }]
+
+    expect(() => assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-1',
+      participants: [participants[0]],
+      scenarioOverview: { ...emptyScenarioOverview, totalCount: 1 },
+      confirmations: emptyConfirmations,
+      lockedCircles: [],
+      notices,
+    })).not.toThrow()
+
+    const result = assemblePublicSessionState({
+      session,
+      viewerUserId: 'uid-1',
+      participants: [participants[0]],
+      scenarioOverview: { ...emptyScenarioOverview, totalCount: 1 },
+      confirmations: emptyConfirmations,
+      lockedCircles: [],
+      notices,
+    })
+    expect(result.notices[0].payload.members).toEqual([])
+    expect(JSON.stringify(result.notices[0])).not.toContain('Анна')
   })
 
   it('uses durable name snapshots when a transferred member has left the session', () => {
