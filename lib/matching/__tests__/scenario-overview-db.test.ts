@@ -1,4 +1,4 @@
-import { fetchMatchingScenarioOverview } from '../scenario-overview-db'
+import { buildScenarioInput, fetchMatchingScenarioInput } from '../scenario-input-db'
 
 jest.mock('@/lib/db', () => ({ db: {} }))
 
@@ -39,9 +39,30 @@ it('excludes unreleased locked observers before loading satisfaction inputs', as
     [{ id: 'book-1' }],
   ])
 
-  const overview = await fetchMatchingScenarioOverview('session-id', db as never)
+  const input = await fetchMatchingScenarioInput('session-id', db as never)
 
-  expect(overview.totalCount).toBe(2)
-  expect(overview.scenarios[0].score).toMatchObject({ coveredCount: 2, totalCount: 2, avgRank: 1.5, worstRank: 2 })
-  expect(JSON.stringify(overview)).not.toContain('observer-id')
+  expect(input?.participants).toHaveLength(2)
+  expect(JSON.stringify(input)).not.toContain('observer-id')
+})
+
+it('builds from one participant snapshot and ignores rows from a concurrent join', () => {
+  const input = buildScenarioInput({
+    session: { minGroupSize: 1, maxGroupSize: 3 },
+    participants: [{ userId: 'stable-user', publicRef: 'stable-ref', joinedAt: new Date('2026-01-01'), name: 'Анна' }],
+    lockedUserIds: [],
+    signups: [
+      { userId: 'stable-user', bookId: 'book-1', personalStatus: null },
+      { userId: 'concurrent-user', bookId: 'book-1', personalStatus: null },
+    ],
+    ranks: [
+      { userId: 'stable-user', bookId: 'book-1', rank: 1 },
+      { userId: 'concurrent-user', bookId: 'book-1', rank: 1 },
+    ],
+    books: [{ id: 'book-1' }],
+  })
+
+  expect(input.participants.map((participant) => participant.userId)).toEqual(['stable-user'])
+  expect(input.signups).toEqual([{ userId: 'stable-user', bookId: 'book-1' }])
+  expect(input.ranks).toEqual([{ userId: 'stable-user', bookId: 'book-1', rank: 1 }])
+  expect(JSON.stringify(input)).not.toContain('concurrent-user')
 })

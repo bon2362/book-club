@@ -67,8 +67,7 @@ export async function fetchMatchingPublicState(
     online: isOnline(participant.lastSeenAt),
   }))
 
-  const [scenarioOverview, confirmations, lockedCircleRows, notices] = await Promise.all([
-    fetchMatchingScenarioOverview(sessionId, dbClient),
+  const [confirmations, lockedCircleRows, notices] = await Promise.all([
     dbClient
       .select({
         userId: matchingCircleConfirmations.userId,
@@ -127,6 +126,11 @@ export async function fetchMatchingPublicState(
       .filter((member) => member.circleId === circle.id)
       .map(({ userId, displayNameSnapshot }) => ({ userId, displayNameSnapshot })),
   }))
+  const scenarioOverview = await fetchMatchingScenarioOverview(sessionId, dbClient, {
+    session,
+    participants: participantRows,
+    lockedUserIds: memberRows.map(({ userId }) => userId),
+  })
 
   return assemblePublicSessionState({
     session,

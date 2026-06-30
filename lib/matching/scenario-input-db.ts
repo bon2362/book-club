@@ -9,6 +9,61 @@ import { filterRankedSignups, type GenerateScenariosInput } from './scenarios'
 
 type DbClient = typeof db
 
+interface ScenarioInputRows {
+  session: { minGroupSize: number; maxGroupSize: number }
+  participants: Array<{ userId: string; publicRef: string; joinedAt: Date; name: string | null }>
+  lockedUserIds: string[]
+  signups: Array<{ userId: string; bookId: string; personalStatus: string | null }>
+  ranks: Array<{ userId: string; bookId: string; rank: number | null }>
+  books: Array<{ id: string }>
+}
+
+export function buildScenarioInput(rows: ScenarioInputRows): GenerateScenariosInput {
+  const lockedUserIds = new Set(rows.lockedUserIds)
+  const activeParticipants = rows.participants.filter(({ userId }) => !lockedUserIds.has(userId))
+  const activeUserIds = new Set(activeParticipants.map(({ userId }) => userId))
+  const displayNames = assignMatchingDisplayNames(activeParticipants)
+  const ranks = rows.ranks.filter(({ userId }) => activeUserIds.has(userId))
+  const signups = filterRankedSignups(
+    rows.signups
+      .filter(({ userId, personalStatus }) => activeUserIds.has(userId) && personalStatus === null)
+      .map(({ userId, bookId }) => ({ userId, bookId })),
+    ranks,
+  )
+  const signedUpBookIds = new Set(signups.map(({ bookId }) => bookId))
+  return {
+    participants: activeParticipants.map(({ userId }) => ({
+      userId,
+      displayName: displayNames.get(userId) ?? 'Без имени',
+    })),
+    books: rows.books.filter(({ id }) => signedUpBookIds.has(id)).map(({ id }) => ({ bookId: id })),
+    signups,
+    ranks,
+    minGroupSize: rows.session.minGroupSize,
+    maxGroupSize: rows.session.maxGroupSize,
+  }
+}
+
+export async function fetchMatchingScenarioInputForSnapshot(
+  snapshot: Pick<ScenarioInputRows, 'session' | 'participants' | 'lockedUserIds'>,
+  dbClient: DbClient = db,
+): Promise<GenerateScenariosInput> {
+  const activeUserIds = snapshot.participants
+    .filter(({ userId }) => !snapshot.lockedUserIds.includes(userId))
+    .map(({ userId }) => userId)
+  if (activeUserIds.length < snapshot.session.minGroupSize) {
+    return buildScenarioInput({ ...snapshot, signups: [], ranks: [], books: [] })
+  }
+  const [signups, ranks, allBooks] = await Promise.all([
+    dbClient.select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
+      .from(signupBooks).where(inArray(signupBooks.userId, activeUserIds)),
+    dbClient.select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+      .from(bookPriorities).where(inArray(bookPriorities.userId, activeUserIds)),
+    dbClient.select({ id: books.id }).from(books).where(eq(books.visibility, 'published')),
+  ])
+  return buildScenarioInput({ ...snapshot, signups, ranks, books: allBooks })
+}
+
 export async function fetchMatchingScenarioInput(
   sessionId: string,
   dbClient: DbClient = db,
@@ -35,37 +90,9 @@ export async function fetchMatchingScenarioInput(
         isNull(matchingLockedCircleMembers.releasedAt),
       )),
   ])
-  const lockedUserIds = new Set(lockedRows.map(({ userId }) => userId))
-  const activeParticipants = participantRows.filter(({ userId }) => !lockedUserIds.has(userId))
-  const activeUserIds = activeParticipants.map(({ userId }) => userId)
-  const displayNames = assignMatchingDisplayNames(activeParticipants)
-  const base = {
-    participants: activeParticipants.map(({ userId }) => ({
-      userId, displayName: displayNames.get(userId) ?? 'Без имени',
-    })),
-    minGroupSize: session.minGroupSize,
-    maxGroupSize: session.maxGroupSize,
-  }
-  if (activeUserIds.length < session.minGroupSize) {
-    return { ...base, books: [], signups: [], ranks: [] }
-  }
-
-  const [allSignups, ranks, allBooks] = await Promise.all([
-    dbClient.select({ userId: signupBooks.userId, bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus })
-      .from(signupBooks).where(inArray(signupBooks.userId, activeUserIds)),
-    dbClient.select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, rank: bookPriorities.rank })
-      .from(bookPriorities).where(inArray(bookPriorities.userId, activeUserIds)),
-    dbClient.select({ id: books.id }).from(books).where(eq(books.visibility, 'published')),
-  ])
-  const signups = filterRankedSignups(
-    allSignups.filter(({ personalStatus }) => personalStatus === null).map(({ userId, bookId }) => ({ userId, bookId })),
-    ranks,
-  )
-  const signedUpBookIds = new Set(signups.map(({ bookId }) => bookId))
-  return {
-    ...base,
-    books: allBooks.filter(({ id }) => signedUpBookIds.has(id)).map(({ id }) => ({ bookId: id })),
-    signups,
-    ranks,
-  }
+  return fetchMatchingScenarioInputForSnapshot({
+    session,
+    participants: participantRows,
+    lockedUserIds: lockedRows.map(({ userId }) => userId),
+  }, dbClient)
 }
