@@ -40,6 +40,9 @@ export default async function MatchingPage({
       name: matchingSessions.name,
       status: matchingSessions.status,
       stateVersion: matchingSessions.stateVersion,
+      minGroupSize: matchingSessions.minGroupSize,
+      maxGroupSize: matchingSessions.maxGroupSize,
+      deadlineAt: matchingSessions.deadlineAt,
     })
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'active'))
@@ -53,6 +56,9 @@ export default async function MatchingPage({
       name: matchingSessions.name,
       status: matchingSessions.status,
       stateVersion: matchingSessions.stateVersion,
+      minGroupSize: matchingSessions.minGroupSize,
+      maxGroupSize: matchingSessions.maxGroupSize,
+      deadlineAt: matchingSessions.deadlineAt,
     })
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'frozen'))
@@ -192,6 +198,7 @@ export default async function MatchingPage({
     publicState = {
       session: raw.session,
       viewer: raw.viewer,
+      participants: raw.participants,
       scenarios: raw.scenarios,
       lockedCircles: raw.lockedCircles,
       notices: raw.notices,
@@ -202,10 +209,15 @@ export default async function MatchingPage({
       // Participant was added by admin; state will populate after first join
       publicState = {
         session: {
+          name: currentSession.name,
           status: currentSession.status,
           stateVersion: currentSession.stateVersion,
+          minGroupSize: currentSession.minGroupSize,
+          maxGroupSize: currentSession.maxGroupSize,
+          deadlineAt: currentSession.deadlineAt?.toISOString() ?? null,
         },
         viewer: { role: 'active', ref: 'viewer', lockedCircleKey: null },
+        participants: [],
         scenarios: [],
         lockedCircles: [],
         notices: [],
@@ -230,50 +242,7 @@ export default async function MatchingPage({
         viewingUserId={viewingParticipantRef}
         frozen={isReadOnly}
       >
-        <div
-          style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100svh', display: 'flex', flexDirection: 'column' }}
-        >
-          {/* Board section: realtime client handles notices + locked circles + scenarios */}
-          <div style={{ padding: '1rem', flex: 1 }}>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontFamily: 'var(--nd-serif)',
-                  fontSize: '1.3rem',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                }}
-              >
-                {currentSession.name}
-              </h1>
-            </div>
-            <MatchingRealtimeClient
-              sessionId={currentSession.id}
-              initialState={publicState}
-              bookTitleById={bookTitleById}
-            />
-          </div>
-
-          {/* Personal list / catalog section */}
-          <div style={{ padding: '1rem', borderTop: '1px solid var(--hair)' }}>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontFamily: 'var(--nd-serif)',
-                  fontSize: '1.12rem',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                }}
-              >
-                Каталог
-              </h2>
-              <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Слева — книги клуба, справа — ваш список и приоритеты
-              </p>
-            </div>
-            <MatchingSatisfactionFlow
+        <MatchingSatisfactionFlow
               phase="board"
               sessionId={currentSession.id}
               books={personalBooks}
@@ -281,9 +250,15 @@ export default async function MatchingPage({
               viewingUserId={viewingParticipantRef}
               frozen={isReadOnly}
               mutationUserId={isImpersonating ? viewerUserId : undefined}
+              workspace={<MatchingRealtimeClient
+                sessionId={currentSession.id}
+                initialState={publicState}
+                bookTitleById={bookTitleById}
+                isAdmin={isAdmin}
+                isImpersonating={isImpersonating}
+              />}
+              catalogIntro={<div data-testid="matching-catalog-intro" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--hair)', paddingTop: '1rem' }}><h2 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.12rem' }}>Каталог</h2><p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Слева — книги клуба, справа — ваш список и приоритеты</p></div>}
             />
-          </div>
-        </div>
       </BookDetailProvider>
     </MatchingBoardProvider>
   )

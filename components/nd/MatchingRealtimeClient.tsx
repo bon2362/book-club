@@ -9,17 +9,24 @@ import MatchingScenarios from './MatchingScenarios'
 import type { MatchingNotice } from './MatchingNotices'
 import type { LockedCircle } from './MatchingLockedCircles'
 import type { PublicScenario } from './MatchingScenarios'
+import MatchingHeader, { type MatchingHeaderParticipant } from './MatchingHeader'
+import MatchingWorkspace from './MatchingWorkspace'
 
 export interface MatchingPublicState {
   session: {
+    name: string
     status: string
     stateVersion: number
+    minGroupSize: number
+    maxGroupSize: number
+    deadlineAt: string | null
   }
   viewer: {
     role: 'active' | 'observer'
     ref: string
     lockedCircleKey: string | null
   }
+  participants: MatchingHeaderParticipant[]
   scenarios: PublicScenario[]
   lockedCircles: LockedCircle[]
   notices: MatchingNotice[]
@@ -33,6 +40,8 @@ interface Props {
   bookTitleById: Record<string, string>
   /** Optional fixed poll interval in ms — overrides adaptive logic. Used in tests. */
   pollIntervalMs?: number
+  isAdmin?: boolean
+  isImpersonating?: boolean
 }
 
 /** Extract viewer's confirmedCircleKey from public state participants */
@@ -49,6 +58,8 @@ export default function MatchingRealtimeClient({
   initialState,
   bookTitleById,
   pollIntervalMs,
+  isAdmin = false,
+  isImpersonating = false,
 }: Props) {
   const [state, setState] = useState<MatchingPublicState>(initialState)
   const [healthy, setHealthy] = useState(true)
@@ -68,6 +79,7 @@ export default function MatchingRealtimeClient({
       setState({
         session: raw.session,
         viewer: raw.viewer,
+        participants: raw.participants,
         scenarios: raw.scenarios,
         lockedCircles: raw.lockedCircles,
         notices: raw.notices,
@@ -87,6 +99,15 @@ export default function MatchingRealtimeClient({
       }
       const data = (await res.json()) as { version: number; status?: string; online?: string[] }
       setHealthy(true)
+      if (data.online) {
+        setState((current) => ({
+          ...current,
+          participants: current.participants.map((participant) => ({
+            ...participant,
+            online: data.online!.includes(participant.ref),
+          })),
+        }))
+      }
 
       const versionChanged =
         lastVersionRef.current !== null && data.version !== lastVersionRef.current
@@ -119,7 +140,22 @@ export default function MatchingRealtimeClient({
   useVisibleInterval(poll, intervalMs, { enabled: !stopped })
 
   return (
-    <div data-testid="matching-realtime-client">
+    <div data-testid="matching-realtime-client" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <MatchingHeader
+        sessionId={sessionId}
+        sessionName={state.session.name}
+        sessionStatus={state.session.status}
+        minGroupSize={state.session.minGroupSize}
+        maxGroupSize={state.session.maxGroupSize}
+        deadlineAt={state.session.deadlineAt}
+        viewer={{
+          displayName: state.participants.find((participant) => participant.ref === state.viewer.ref)?.displayName ?? 'Участник',
+          role: state.viewer.role,
+        }}
+        participants={state.participants}
+        isAdmin={isAdmin}
+        isImpersonating={isImpersonating}
+      />
       {/* Health indicator */}
       <div
         data-testid="matching-realtime-indicator"
@@ -138,6 +174,7 @@ export default function MatchingRealtimeClient({
         {healthy ? '●' : '⟳ синхр.'}
       </div>
 
+      <MatchingWorkspace scenarioCount={state.scenarios.length}>
       {/* Notices at top */}
       {state.notices.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>
@@ -165,6 +202,7 @@ export default function MatchingRealtimeClient({
           onConfirmationChange={fetchFullState}
         />
       </div>
+      </MatchingWorkspace>
     </div>
   )
 }

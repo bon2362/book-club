@@ -41,14 +41,21 @@ describe('MatchingRealtimeClient', () => {
 
   function makeInitialState(stateVersion = 1): MatchingPublicState {
     return {
-      session: { status: 'active', stateVersion },
+      session: { name: 'Июль', status: 'active', stateVersion, minGroupSize: 3, maxGroupSize: 4, deadlineAt: null },
       viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
+      participants: [{ ref: 'r1', displayName: 'Анна', online: false }],
       scenarios: [],
       lockedCircles: [],
       notices: [],
       viewerConfirmedCircleKey: null,
     }
   }
+
+  it('applies heartbeat online refs to rendered participant state', async () => {
+    respondVersion(1, 'active', ['r1'])
+    render(<MatchingRealtimeClient sessionId="s1" initialState={makeInitialState()} bookTitleById={{}} pollIntervalMs={20} />)
+    await waitFor(() => expect(screen.getByLabelText('Анна — онлайн')).toBeInTheDocument())
+  })
 
   it('renders the board container', () => {
     respondVersion(1)

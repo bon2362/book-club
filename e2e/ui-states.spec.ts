@@ -149,6 +149,48 @@ test.describe('Home submit book CTA layout', () => {
   })
 })
 
+test.describe('Matching restored board shell', () => {
+  test('header, full-width scenarios workspace and catalog form one compact column', async ({
+    page,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 3 })
+    const book = await createTestBook({ title: `UI Matching ${test.info().testId}`, author: 'Layout Author' })
+    await loginAsUser({ name: 'Анна Layout' })
+    expect((await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Анна Layout' } })).ok()).toBe(true)
+    expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await page.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByTestId('matching-header')).toBeVisible()
+    await expect(page.getByRole('link', { name: /каталог/i })).toBeVisible()
+    await expect(page.getByText(/Вы —/)).toContainText('Анна Layout')
+    await expect(page.getByTestId('matching-scenarios-workspace')).toBeVisible()
+    await expect(page.getByText(/Мои ходы|Лента событий/)).toHaveCount(0)
+
+    const workspace = page.getByTestId('matching-scenarios-workspace')
+    const catalog = page.getByTestId('matching-catalog-intro')
+    const workspaceBox = await workspace.boundingBox()
+    const catalogBox = await catalog.boundingBox()
+    expect(workspaceBox).not.toBeNull()
+    expect(catalogBox).not.toBeNull()
+    expect(workspaceBox!.width).toBeGreaterThan(page.viewportSize()!.width * 0.9)
+    expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeGreaterThanOrEqual(0)
+    expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeLessThan(48)
+
+    const scrollStyle = await page.getByTestId('matching-scenarios-scroll').evaluate((element) => ({
+      overflowY: getComputedStyle(element).overflowY,
+      clientHeight: element.clientHeight,
+    }))
+    expect(scrollStyle.overflowY).toBe('auto')
+    expect(scrollStyle.clientHeight).toBeGreaterThan(0)
+  })
+})
+
 test.describe('Summary editor layout', () => {
   test('helpful footer stays below the summary body without hydration shift', async ({
     page,
