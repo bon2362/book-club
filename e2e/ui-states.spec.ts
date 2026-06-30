@@ -502,9 +502,9 @@ test.describe('Summary editor layout', () => {
   })
 })
 
-async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, bookIds: string[]) {
+async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, bookIds: string[], name = 'E2E Matching Reader') {
   const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`, {
-    data: { name: 'E2E Matching Reader' },
+    data: { name },
   })
   expect(joinRes.ok()).toBe(true)
   for (const bookId of bookIds) {
@@ -524,16 +524,22 @@ test.describe('Matching layout', () => {
     createTestBook,
     loginAsUser,
   }) => {
+    test.setTimeout(90_000)
     await page.setViewportSize({ width: 1440, height: 900 })
     const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
-    const circleBook = await createTestBook({ title: `UI Circle ${Date.now()}`, author: 'Layout Author' })
+    const bookIds: string[] = []
+    for (let index = 0; index < 7; index += 1) {
+      const book = await createTestBook({ title: `UI Circle ${index} ${Date.now()}`, author: 'Layout Author' })
+      bookIds.push(book.id)
+    }
 
     await loginAsUser({ name: 'UI Matching One' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
+    await joinMatchingSessionAndAddBooks(page, session.id, bookIds, 'UI Matching One')
     await loginAsUser({ name: 'UI Matching Two' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
+    await joinMatchingSessionAndAddBooks(page, session.id, bookIds, 'UI Matching Two')
 
     await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
     const board = page.getByTestId('matching-realtime-client')
     const card = page.getByTestId('matching-scenario-card').first()
     await expect(card).toBeVisible()
@@ -542,6 +548,24 @@ test.describe('Matching layout', () => {
     expect(boardBox).not.toBeNull()
     expect(cardBox).not.toBeNull()
     expect(cardBox!.width).toBeGreaterThanOrEqual(boardBox!.width * 0.95)
+    await expect(page.getByText('Группы по 2')).toBeVisible()
+    await expect(page.getByText('Дедлайн не задан')).toBeVisible()
+    await expect(page.getByText('● активна')).toBeVisible()
+    await page.getByRole('button', { name: /участники: 2/i }).click()
+    const participants = page.getByRole('dialog', { name: 'Участники' })
+    await expect(participants).toContainText('UI Matching One')
+    await expect(participants).toContainText('UI Matching Two')
+
+    const scroll = page.getByTestId('matching-scenarios-scroll')
+    const before = await scroll.evaluate((element) => ({ top: element.scrollTop, height: element.clientHeight, full: element.scrollHeight }))
+    expect(before.full).toBeGreaterThan(before.height)
+    const catalogBefore = await page.getByTestId('matching-catalog-intro').boundingBox()
+    const pageYBefore = await page.evaluate(() => window.scrollY)
+    await scroll.evaluate((element) => { element.scrollTop = 160 })
+    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+    const catalogAfter = await page.getByTestId('matching-catalog-intro').boundingBox()
+    expect(await page.evaluate(() => window.scrollY)).toBe(pageYBefore)
+    expect(catalogAfter!.y).toBeCloseTo(catalogBefore!.y, 0)
     await expect(page.getByText('Мои ходы', { exact: true })).toHaveCount(0)
     await expect(page.getByText('Лента событий', { exact: true })).toHaveCount(0)
   })

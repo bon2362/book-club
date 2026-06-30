@@ -155,6 +155,7 @@ export default function MatchingRealtimeClient({
         participants={state.participants}
         isAdmin={isAdmin}
         isImpersonating={isImpersonating}
+        onSessionRefresh={fetchFullState}
       />
       {/* Health indicator */}
       <div
