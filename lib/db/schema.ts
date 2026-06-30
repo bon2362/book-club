@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
-  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb, real, check,
+  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb, check,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -265,15 +265,9 @@ export const matchingSessions = pgTable('matching_sessions', {
   status:             text('status').notNull().default('active'), // 'active' | 'frozen'
   minGroupSize:       integer('min_group_size').notNull().default(3),
   maxGroupSize:       integer('max_group_size').notNull().default(3),
-  optimizationMode:   text('optimization_mode').notNull().default('coverage'), // 'coverage' | 'satisfaction'
   stateVersion:       integer('state_version').notNull().default(0),
   frozenAt:                        timestamp('frozen_at', { mode: 'date' }),
   frozenScenarioJson:              jsonb('frozen_scenario_json'),
-  metricGroupsCount:               integer('metric_groups_count'),
-  metricCoverage:                  integer('metric_coverage'),
-  metricTimeToFreezeSeconds:       integer('metric_time_to_freeze_seconds'),
-  metricTimeSinceLastMutationSeconds: integer('metric_time_since_last_mutation_seconds'),
-  metricTop3HitRate:               real('metric_top3_hit_rate'),
 }, (t) => ({
   // Enforces at most one active session at a time
   singleActiveIdx: uniqueIndex('matching_sessions_single_active_idx')
@@ -286,8 +280,6 @@ export const matchingSessionParticipants = pgTable('matching_session_participant
   userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   publicRef: text('public_ref').notNull().$defaultFn(() => crypto.randomUUID()),
   joinSource: text('join_source').notNull().default('self'), // 'self' | 'admin'
-  // Phase A compatibility only. The simplified runtime never reads or writes it.
-  pseudonym: text('pseudonym'),
   joinedAt:  timestamp('joined_at', { mode: 'date' }).notNull().defaultNow(),
   // Heartbeat присутствия (#338): обновляется при опросе /api/matching/version.
   // Телеметрия — audit_capture пропускает чисто last_seen_at-апдейты (миграция 0042).
@@ -380,38 +372,6 @@ export const matchingEvents = pgTable('matching_events', {
   sessionOccurredAtIdx: index('matching_events_session_occurred_at_idx').on(t.sessionId, t.occurredAt),
   subjectOccurredAtIdx: index('matching_events_subject_occurred_at_idx').on(t.subjectUserId, t.occurredAt),
   typeOccurredAtIdx: index('matching_events_type_occurred_at_idx').on(t.eventType, t.occurredAt),
-}))
-
-export const matchingPseudonymReservations = pgTable('matching_pseudonym_reservations', {
-  sessionId:  text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
-  userId:     text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  pseudonym:  text('pseudonym').notNull(),
-  reservedAt: timestamp('reserved_at', { mode: 'date' }).notNull().defaultNow(),
-  expiresAt:  timestamp('expires_at', { mode: 'date' }).notNull(),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.sessionId, t.userId] }),
-  sessionPseudoUniq: uniqueIndex('matching_pseudonym_reservations_session_pseudo_idx').on(t.sessionId, t.pseudonym),
-  expiresAtIdx: index('matching_pseudonym_reservations_expires_at_idx').on(t.expiresAt),
-}))
-
-export const matchingPreferenceEvents = pgTable('matching_preference_events', {
-  id:          text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  sessionId:   text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
-  userId:      text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  actorUserId: text('actor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  eventType:   text('event_type').notNull(),
-  source:      text('source').notNull(),
-  bookId:      text('book_id').references(() => books.id, { onDelete: 'set null' }),
-  before:      jsonb('before'),
-  after:       jsonb('after'),
-  metadata:    jsonb('metadata'),
-  occurredAt:  timestamp('occurred_at', { mode: 'date' }).notNull().defaultNow(),
-}, (t) => ({
-  sessionOccurredAtIdx: index('matching_preference_events_session_occurred_at_idx').on(t.sessionId, t.occurredAt),
-  userOccurredAtIdx:    index('matching_preference_events_user_occurred_at_idx').on(t.userId, t.occurredAt),
-  actorOccurredAtIdx:   index('matching_preference_events_actor_occurred_at_idx').on(t.actorUserId, t.occurredAt),
-  typeOccurredAtIdx:    index('matching_preference_events_type_occurred_at_idx').on(t.eventType, t.occurredAt),
-  bookIdIdx:            index('matching_preference_events_book_id_idx').on(t.bookId),
 }))
 
 export const userMergeEvents = pgTable('user_merge_events', {

@@ -64,7 +64,6 @@ export const AUDITED_TABLES = [
   'matching_sessions', 'matching_session_participants',
   'matching_circle_confirmations', 'matching_locked_circles',
   'matching_locked_circle_members', 'matching_notices', 'matching_events',
-  'matching_pseudonym_reservations', 'matching_preference_events', // Phase A legacy only
   'user_merge_events', 'user_identities',
   'verificationToken', 'telegram_preauth_tokens', 'notification_queue',
 ] as const
@@ -72,7 +71,7 @@ export const AUDITED_TABLES = [
 
 `matching_events` не заменяет глобальный аудит. Это смысловой продуктовый журнал: он хранит тип доменного действия, actor/subject, книгу, before/after, metadata, `state_version` и снимки имён для вкладки «Аналитика изменений предпочтений». `audit_log` параллельно фиксирует технические row-level изменения во всех пяти новых matching-таблицах. Оба журнала создаются внутри той же транзакции `runMatchingTransition`.
 
-`matching_pseudonym_reservations` и `matching_preference_events` временно остаются в реестре на Phase A, пока физические legacy-таблицы ещё существуют. Runtime их не читает и не пишет; после production smoke-check отдельная Phase B миграция удаляет таблицы и записи реестра.
+Legacy-таблицы `matching_pseudonym_reservations` и `matching_preference_events` удалены миграцией `0050_drop_legacy_matching.sql` после production smoke-check. Продуктовая matching-аналитика полностью читает `matching_events`.
 
 Реестр — единый источник правды для:
 - генерации триггер-миграций (`drizzle/0040_audit_triggers.sql`);
@@ -138,7 +137,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 Просмотрщик различает два случая `source='trigger'`:
 
-- **«система»** (цвет `var(--text-muted)`) — таблица входит в `SYSTEM_TRIGGER_TABLES` (`verificationToken`, `user`, `user_identities`, `notification_queue`, `matching_pseudonym_reservations`). Это ожидаемые строки от системной автоматики / NextAuth.
+- **«система»** (цвет `var(--text-muted)`) — таблица входит в `SYSTEM_TRIGGER_TABLES` (`verificationToken`, `user`, `user_identities`, `notification_queue`). Это ожидаемые строки от системной автоматики / NextAuth.
 - **«внесистемное»** (цвет `var(--accent)`) — таблица не входит в список. Это реальный сигнал «забыли обернуть роут».
 
 ## ESLint-правило
@@ -190,3 +189,4 @@ FK на `actor_user_id` снят намеренно: `ON DELETE set null` пот
 - `drizzle/0040_audit_triggers.test.ts` — reconciliation-тест реестра и триггеров
 - `drizzle/0047_summary_helpful_reactions.sql` — trigger для реакций и masking `visitor_hash`
 - `drizzle/0049_restore_matching_presence_audit_filter.sql` — актуальная функция с masking и подавлением matching heartbeat-телеметрии
+- `drizzle/0050_drop_legacy_matching.sql` — удаление legacy matching-таблиц и полей после smoke-check
