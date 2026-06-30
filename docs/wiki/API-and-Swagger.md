@@ -65,6 +65,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | PATCH | `/api/admin/books/{id}` | Обновить книгу. |
 | PUT | `/api/admin/books/reorder` | Обновить порядок книг. |
 | GET | `/api/admin/matching/preference-events` | Аналитика matching из смыслового журнала `matching_events`. |
+| GET | `/api/admin/matching/sessions/{id}/locked-circles` | Реестр закреплённых и распущенных кругов с сохранённым составом. |
 | POST | `/api/admin/matching/sessions/{id}/circles/{circleId}/dissolve` | Аварийно распустить закреплённый круг целиком; требуется причина. |
 | GET | `/api/admin/feedback` | Фидбек-сообщения. |
 | GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |

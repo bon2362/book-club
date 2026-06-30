@@ -77,6 +77,7 @@ Telegram-кнопок в matching нет: клуб уже общается в с
 | POST | `/api/matching/sessions/{id}/join` | Welcome: атомарно сохранить глобальное имя и вступить. |
 | PUT/DELETE | `/api/matching/sessions/{id}/confirmation` | Создать/переключить или отменить подтверждение. |
 | POST | `/api/matching/notices/{id}/ack` | Пометить персональное уведомление прочитанным. |
+| GET | `/api/admin/matching/sessions/{id}/locked-circles` | Прочитать историю закреплённых и распущенных кругов с snapshots состава. |
 | POST | `/api/admin/matching/sessions/{id}/circles/{circleId}/dissolve` | Аварийно распустить весь круг с причиной. |
 | GET | `/api/admin/matching/preference-events` | Админская аналитика из `matching_events` (URL сохранён для совместимости UI). |
 
