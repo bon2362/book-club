@@ -45,7 +45,7 @@ describe('GET /api/matching/state', () => {
   it('returns the safe public read model for the current participant', async () => {
     mockFetchState.mockResolvedValue({
       session: { name: 'Июль', status: 'active', stateVersion: 5, minGroupSize: 3, maxGroupSize: 5, deadlineAt: null, frozenSnapshot: null },
-      viewer: { role: 'active', ref: 'participant-ref', lockedCircleId: null },
+      viewer: { role: 'active', ref: 'participant-ref', lockedCircleKey: null },
       participants: [{ ref: 'participant-ref', displayName: 'Анна', online: true, confirmedCircleKey: null }],
       scenarios: [{ ref: 'scenario-1', score: { coveredCount: 1, totalCount: 1, avgRank: 1, worstRank: 1 }, leftOut: [], circles: [] }],
       lockedCircles: [], notices: [],

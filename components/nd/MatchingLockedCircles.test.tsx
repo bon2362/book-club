@@ -1,10 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import MatchingLockedCircles from './MatchingLockedCircles'
 
-function circle(over: Partial<{ id: string; bookId: string; members: { ref: string; displayName: string }[] }> = {}) {
+function circle(over: Partial<{ circleKey: string; bookId: string; members: { ref: string; displayName: string }[] }> = {}) {
   return {
-    id: over.id ?? 'c1',
-    circleKey: 'key-1',
+    circleKey: over.circleKey ?? 'key-1',
     bookId: over.bookId ?? 'b1',
     lockedAt: '2026-06-29T10:00:00.000Z',
     members: over.members ?? [
@@ -16,7 +15,7 @@ function circle(over: Partial<{ id: string; bookId: string; members: { ref: stri
 
 test('renders nothing without locked circles', () => {
   const { container } = render(
-    <MatchingLockedCircles circles={[]} viewerLockedCircleId={null} />,
+    <MatchingLockedCircles circles={[]} viewerLockedCircleKey={null} />,
   )
   expect(container).toBeEmptyDOMElement()
 })
@@ -25,7 +24,7 @@ test('lists each locked circle with member names and book title', () => {
   render(
     <MatchingLockedCircles
       circles={[circle()]}
-      viewerLockedCircleId={null}
+      viewerLockedCircleKey={null}
       bookTitleById={{ b1: 'Война и мир' }}
     />,
   )
@@ -38,8 +37,8 @@ test('lists each locked circle with member names and book title', () => {
 test('marks the viewer’s own circle with an observer badge', () => {
   render(
     <MatchingLockedCircles
-      circles={[circle({ id: 'c1' }), circle({ id: 'c2', bookId: 'b2' })]}
-      viewerLockedCircleId="c2"
+      circles={[circle({ circleKey: 'key-1' }), circle({ circleKey: 'key-2', bookId: 'b2' })]}
+      viewerLockedCircleKey="key-2"
       bookTitleById={{ b1: 'A', b2: 'B' }}
     />,
   )

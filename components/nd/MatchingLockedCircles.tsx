@@ -6,7 +6,6 @@ export interface LockedCircleMember {
 }
 
 export interface LockedCircle {
-  id: string
   circleKey: string
   bookId: string
   lockedAt: string
@@ -15,7 +14,7 @@ export interface LockedCircle {
 
 export interface MatchingLockedCirclesProps {
   circles: LockedCircle[]
-  viewerLockedCircleId: string | null
+  viewerLockedCircleKey: string | null
   bookTitleById?: Record<string, string>
 }
 
@@ -25,7 +24,7 @@ export interface MatchingLockedCirclesProps {
  */
 export default function MatchingLockedCircles({
   circles,
-  viewerLockedCircleId,
+  viewerLockedCircleKey,
   bookTitleById = {},
 }: MatchingLockedCirclesProps) {
   if (circles.length === 0) return null
@@ -45,10 +44,10 @@ export default function MatchingLockedCircles({
         Закреплённые круги
       </h2>
       {circles.map((circle) => {
-        const isViewer = circle.id === viewerLockedCircleId
+        const isViewer = circle.circleKey === viewerLockedCircleKey
         return (
           <article
-            key={circle.id}
+            key={circle.circleKey}
             style={{
               borderLeft: `3px solid ${isViewer ? 'var(--accent)' : 'var(--border)'}`,
               borderTop: '1px solid var(--hair)',

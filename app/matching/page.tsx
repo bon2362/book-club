@@ -18,6 +18,7 @@ import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import { db as drizzle } from '@/lib/db'
 import { signupBooks, bookPriorities } from '@/lib/db/schema'
 import { inArray } from 'drizzle-orm'
+import { assignMatchingDisplayNames } from '@/lib/matching/display-names'
 
 export default async function MatchingPage({
   searchParams,
@@ -126,6 +127,7 @@ export default async function MatchingPage({
     .select({
       userId: matchingSessionParticipants.userId,
       publicRef: matchingSessionParticipants.publicRef,
+      joinedAt: matchingSessionParticipants.joinedAt,
       name: users.name,
     })
     .from(matchingSessionParticipants)
@@ -133,6 +135,7 @@ export default async function MatchingPage({
     .where(eq(matchingSessionParticipants.sessionId, currentSession.id))
 
   const participantUserIds = participantRows.map((p) => p.userId)
+  const participantDisplayNames = assignMatchingDisplayNames(participantRows)
   const viewingParticipantRef = participantRows.find((p) => p.userId === viewerUserId)?.publicRef ?? 'viewer'
 
   const bookParticipants: BookParticipant[] =
@@ -157,7 +160,7 @@ export default async function MatchingPage({
             rows.map((row) => ({
               ref: participantRows.find((p) => p.userId === row.userId)!.publicRef,
               bookId: row.bookId,
-              displayName: participantRows.find((p) => p.userId === row.userId)?.name ?? row.userId,
+              displayName: participantDisplayNames.get(row.userId) ?? 'Без имени',
               rank: row.rank,
               personalStatus: row.personalStatus ?? null,
             })),
@@ -207,7 +210,7 @@ export default async function MatchingPage({
           status: currentSession.status,
           stateVersion: currentSession.stateVersion,
         },
-        viewer: { role: 'active', ref: 'viewer', lockedCircleId: null },
+        viewer: { role: 'active', ref: 'viewer', lockedCircleKey: null },
         scenarios: [],
         lockedCircles: [],
         notices: [],

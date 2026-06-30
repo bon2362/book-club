@@ -50,7 +50,7 @@ describe('assemblePublicSessionState', () => {
       }],
     })
 
-    expect(state.viewer).toEqual({ role: 'active', ref: 'p1', lockedCircleId: null })
+    expect(state.viewer).toEqual({ role: 'active', ref: 'p1', lockedCircleKey: null })
     expect(state.scenarios[0].circles[0]).toEqual({
       circleKey,
       bookId: 'book-1',
@@ -98,11 +98,13 @@ describe('assemblePublicSessionState', () => {
       notices: [],
     })
 
-    expect(state.viewer).toEqual({ role: 'observer', ref: 'p1', lockedCircleId: 'locked-1' })
+    expect(state.viewer).toEqual({ role: 'observer', ref: 'p1', lockedCircleKey: 'circle-a' })
+    expect(state.lockedCircles[0]).not.toHaveProperty('id')
     expect(state.lockedCircles[0].members).toEqual([{ ref: 'p1', displayName: 'Анна' }])
     expect(state.session.frozenSnapshot).toEqual({
       remainingLeader: { circles: [{ circleKey: 'opaque-key', bookId: 'book-1', memberRefs: ['p1'] }] },
     })
     expect(JSON.stringify(state.session.frozenSnapshot)).not.toContain('u1')
+    expect(JSON.stringify(state)).not.toContain('locked-1')
   })
 })

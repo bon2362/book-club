@@ -17,12 +17,8 @@ import {
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 import { upsertSignupByBookIds } from '@/lib/signup-books'
 import { assignMatchingDisplayNames } from './display-names'
-import { buildCircleKey } from './circle-key'
 import { buildMatchingEventRows } from './matching-events'
-import {
-  type MatchingScenario,
-} from './scenarios'
-import { fetchMatchingScenarioOverview } from './scenario-overview-db'
+import { fetchRankedMatchingScenarios } from './reconciliation-scenarios-db'
 import {
   executeMatchingTransition,
   type MatchingAction,
@@ -38,22 +34,6 @@ import type {
 } from './confirmation-reconciliation'
 
 type DbClient = typeof db
-
-export function toRankedReconciliationScenarios(
-  sessionId: string,
-  scenarios: MatchingScenario[],
-): RankedReconciliationScenario[] {
-  return scenarios.map((scenario) => ({
-    circles: scenario.circles.map((circle) => {
-      const memberUserIds = circle.members.map((member) => member.userId).sort()
-      return {
-        circleKey: buildCircleKey({ sessionId, bookId: circle.bookId, memberUserIds }),
-        bookId: circle.bookId,
-        memberUserIds,
-      }
-    }),
-  }))
-}
 
 function executeRows<T>(result: unknown): T[] {
   if (result && typeof result === 'object' && 'rows' in result) {
@@ -102,8 +82,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
   }
 
   async getRankedScenarios(sessionId: string): Promise<RankedReconciliationScenario[]> {
-    const overview = await fetchMatchingScenarioOverview(sessionId, this.tx)
-    return toRankedReconciliationScenarios(sessionId, overview.scenarios)
+    return fetchRankedMatchingScenarios(sessionId, this.tx)
   }
 
   async getConfirmations(sessionId: string): Promise<CircleConfirmation[]> {
@@ -524,12 +503,4 @@ export async function runMatchingTransition(input: {
   )
 }
 
-export async function fetchRankedMatchingScenarios(
-  sessionId: string,
-  dbClient: DbClient = db,
-): Promise<RankedReconciliationScenario[]> {
-  return new DrizzleMatchingTransitionStore(
-    dbClient,
-    { userId: null, label: null, source: 'system' },
-  ).getRankedScenarios(sessionId)
-}
+export { fetchRankedMatchingScenarios, toRankedReconciliationScenarios } from './reconciliation-scenarios-db'

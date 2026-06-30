@@ -69,7 +69,7 @@ describe('assemblePublicSessionState', () => {
       notices: [],
     })
     expect(result.viewer.role).toBe('active')
-    expect(result.viewer.lockedCircleId).toBeNull()
+    expect(result.viewer.lockedCircleKey).toBeNull()
   })
 
   it('returns viewer role=observer when the viewer is in a locked circle', () => {
@@ -93,7 +93,7 @@ describe('assemblePublicSessionState', () => {
       notices: [],
     })
     expect(result.viewer.role).toBe('observer')
-    expect(result.viewer.lockedCircleId).toBe('lc1')
+    expect(result.viewer.lockedCircleKey).toBe('ck1')
   })
 
   it('maps scenario circles with viewerIsMember and confirmed flags', () => {

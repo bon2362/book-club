@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import MatchingPersonalList from './MatchingPersonalList'
 import type { CatalogBook } from '@/lib/matching/personal-list'
 
@@ -102,4 +102,22 @@ test('unranked active books are shown first with a calculation warning', () => {
   expect(rows[1]).toHaveTextContent('Книга A')
   expect(rows[1]).toHaveTextContent('#1')
   expect(getByText('Книги без приоритета не участвуют в расчете')).toBeInTheDocument()
+})
+
+test('excludes the viewer by opaque ref and never sends a raw user id to the popup', () => {
+  render(
+    <MatchingPersonalList
+      books={[myBook]}
+      bookParticipants={[
+        { ref: 'viewer-ref', bookId: 'b1', displayName: 'Я', rank: 1, personalStatus: null },
+        { ref: 'other-ref', bookId: 'b1', displayName: 'Без имени', rank: 2, personalStatus: null },
+      ]}
+      viewingUserId="viewer-ref"
+    />,
+  )
+
+  fireEvent.click(screen.getByText('Книга A'))
+  expect(screen.queryByText('Я')).toBeNull()
+  expect(screen.getByText('Без имени')).toBeInTheDocument()
+  expect(document.body.textContent).not.toContain('internal-user-id')
 })

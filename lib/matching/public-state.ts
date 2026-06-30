@@ -180,7 +180,7 @@ export function assemblePublicSessionState(input: {
     viewer: {
       role: lockedCircle ? 'observer' as const : 'active' as const,
       ref: viewer.publicRef,
-      lockedCircleId: lockedCircle?.id ?? null,
+      lockedCircleKey: lockedCircle?.circleKey ?? null,
     },
     participants: input.participants.map((participant) => ({
       ref: participant.publicRef,
@@ -227,7 +227,6 @@ export function assemblePublicSessionState(input: {
       }),
     })),
     lockedCircles: input.lockedCircles.map((circle) => ({
-      id: circle.id,
       circleKey: circle.circleKey,
       bookId: circle.bookId,
       lockedAt: circle.lockedAt.toISOString(),

@@ -42,7 +42,7 @@ describe('MatchingRealtimeClient', () => {
   function makeInitialState(stateVersion = 1): MatchingPublicState {
     return {
       session: { status: 'active', stateVersion },
-      viewer: { role: 'active', ref: 'r1', lockedCircleId: null },
+      viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
       scenarios: [],
       lockedCircles: [],
       notices: [],
@@ -83,7 +83,7 @@ describe('MatchingRealtimeClient', () => {
       ok: true,
       json: async () => ({
         session: { status: 'active', stateVersion: 2 },
-        viewer: { role: 'active', ref: 'r1', lockedCircleId: null },
+        viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
         scenarios: [],
         lockedCircles: [],
         notices: [],
@@ -155,7 +155,7 @@ describe('MatchingRealtimeClient', () => {
       ok: true,
       json: async () => ({
         session: { status: 'frozen', stateVersion: 2 },
-        viewer: { role: 'active', ref: 'r1', lockedCircleId: null },
+        viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
         scenarios: [],
         lockedCircles: [],
         notices: [],
@@ -205,7 +205,6 @@ describe('MatchingRealtimeClient', () => {
     const stateWithLock = makeInitialState()
     stateWithLock.lockedCircles = [
       {
-        id: 'lc1',
         circleKey: 'key1',
         bookId: 'b1',
         lockedAt: '2026-06-29T10:00:00.000Z',

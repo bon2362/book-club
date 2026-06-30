@@ -18,7 +18,7 @@ export interface MatchingPublicState {
   viewer: {
     role: 'active' | 'observer'
     ref: string
-    lockedCircleId: string | null
+    lockedCircleKey: string | null
   }
   scenarios: PublicScenario[]
   lockedCircles: LockedCircle[]
@@ -148,7 +148,7 @@ export default function MatchingRealtimeClient({
       {/* Locked circles registry above live scenarios */}
       <MatchingLockedCircles
         circles={state.lockedCircles}
-        viewerLockedCircleId={state.viewer.lockedCircleId}
+        viewerLockedCircleKey={state.viewer.lockedCircleKey}
         bookTitleById={bookTitleById}
       />
 

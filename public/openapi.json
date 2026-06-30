@@ -769,7 +769,6 @@
       "MatchingLockedCircle": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
           "circleKey": { "type": "string" },
           "bookId": { "type": "string" },
           "lockedAt": { "$ref": "#/components/schemas/DateTime" },
@@ -782,7 +781,7 @@
             }
           }
         },
-        "required": ["id", "circleKey", "bookId", "lockedAt", "members"]
+        "required": ["circleKey", "bookId", "lockedAt", "members"]
       },
       "AdminMatchingLockedCircle": {
         "type": "object",
@@ -842,9 +841,9 @@
             "properties": {
               "role": { "type": "string", "enum": ["active", "observer"] },
               "ref": { "type": "string" },
-              "lockedCircleId": { "type": "string", "nullable": true }
+              "lockedCircleKey": { "type": "string", "nullable": true }
             },
-            "required": ["role", "ref", "lockedCircleId"]
+            "required": ["role", "ref", "lockedCircleKey"]
           },
           "participants": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingParticipant" } },
           "scenarios": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingScenario" } },
