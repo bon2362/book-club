@@ -182,7 +182,8 @@ async function reconcileUntilStable(input: {
   store: MatchingTransitionStore
   events: MatchingEventDraft[]
   notices: MatchingNoticeDraft[]
-  displayNames: ReadonlyMap<string, string>
+  preActionDisplayNames: ReadonlyMap<string, string>
+  postActionDisplayNames: ReadonlyMap<string, string>
 }): Promise<void> {
   for (let iteration = 0; iteration < 100; iteration++) {
     const [rankedScenarios, confirmations] = await Promise.all([
@@ -216,8 +217,8 @@ async function reconcileUntilStable(input: {
         kind: 'confirmation_transferred',
         payload: {
           ...transfer,
-          fromMemberDisplayNames: transfer.fromMemberUserIds.map((id) => input.displayNames.get(id) ?? 'Без имени'),
-          toMemberDisplayNames: transfer.toMemberUserIds.map((id) => input.displayNames.get(id) ?? 'Без имени'),
+          fromMemberDisplayNames: transfer.fromMemberUserIds.map((id) => input.preActionDisplayNames.get(id) ?? 'Без имени'),
+          toMemberDisplayNames: transfer.toMemberUserIds.map((id) => input.postActionDisplayNames.get(id) ?? 'Без имени'),
         },
       })
     }
@@ -238,7 +239,7 @@ async function reconcileUntilStable(input: {
         kind: 'confirmation_invalidated',
         payload: {
           ...invalidation,
-          memberDisplayNames: invalidation.memberUserIds.map((id) => input.displayNames.get(id) ?? 'Без имени'),
+          memberDisplayNames: invalidation.memberUserIds.map((id) => input.preActionDisplayNames.get(id) ?? 'Без имени'),
         },
       })
     }
@@ -310,7 +311,7 @@ export async function executeMatchingTransition(
   const nextStateVersion = session.stateVersion + 1
   const events: MatchingEventDraft[] = []
   const notices: MatchingNoticeDraft[] = []
-  const displayNames = await store.getDisplayNames(input.sessionId)
+  const preActionDisplayNames = await store.getDisplayNames(input.sessionId)
   let changed = false
 
   if (action.type === 'set_confirmation') {
@@ -369,6 +370,7 @@ export async function executeMatchingTransition(
   }
 
   if (!changed) return { changed: false, stateVersion: session.stateVersion }
+  const postActionDisplayNames = await store.getDisplayNames(input.sessionId)
 
   await reconcileUntilStable({
     sessionId: input.sessionId,
@@ -376,7 +378,8 @@ export async function executeMatchingTransition(
     store,
     events,
     notices,
-    displayNames,
+    preActionDisplayNames,
+    postActionDisplayNames,
   })
   await store.writeEvents(input.sessionId, events)
   await store.writeNotices(input.sessionId, notices)

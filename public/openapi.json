@@ -864,7 +864,7 @@
               "self_join", "welcome_name_changed", "admin_add", "leave", "admin_remove",
               "confirmation_created", "confirmation_switched", "confirmation_cancelled",
               "confirmation_transferred", "confirmation_invalidated", "circle_locked",
-              "circle_dissolved", "freeze", "change_book", "change_rank", "change_status",
+              "circle_dissolved", "dissolve_circle", "freeze", "change_book", "change_rank", "change_status",
               "replace_signup", "reorder_priorities", "change_group_size"
             ]
           },

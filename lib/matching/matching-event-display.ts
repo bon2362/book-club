@@ -27,7 +27,8 @@ export function matchingEventTypeLabel(eventType: string): string {
     case 'confirmation_transferred': return 'Перенос подтверждения'
     case 'confirmation_invalidated': return 'Аннулирование подтверждения'
     case 'circle_locked': return 'Круг закреплён'
-    case 'circle_dissolved': return 'Круг распущен'
+    case 'circle_dissolved':
+    case 'dissolve_circle': return 'Круг распущен'
     case 'freeze': return 'Сессия зафиксирована'
     case 'change_book': return 'Изменение книги'
     case 'change_rank': return 'Ранг изменён'
@@ -118,7 +119,8 @@ export function formatMatchingEvent(event: MatchingEventLike): string {
     case 'circle_locked': {
       return title ? `${title}${auto}` : `закреплено${auto}`
     }
-    case 'circle_dissolved': {
+    case 'circle_dissolved':
+    case 'dissolve_circle': {
       const reason = typeof event.metadata?.reason === 'string'
         ? event.metadata.reason
         : null

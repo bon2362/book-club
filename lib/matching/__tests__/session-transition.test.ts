@@ -41,6 +41,9 @@ class MemoryTransitionStore implements MatchingTransitionStore {
   failEvents = false
   confirmationOutcomes = new Set<string>()
   applyResult: Awaited<ReturnType<MatchingTransitionStore['applyAction']>> = true
+  actionApplied = false
+  beforeDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван'], ['u3', 'Иван (2)']])
+  afterDisplayNames = this.beforeDisplayNames
 
   async lockSession() {
     this.calls.push('lockSession')
@@ -63,7 +66,8 @@ class MemoryTransitionStore implements MatchingTransitionStore {
   }
 
   async getDisplayNames() {
-    return new Map([['u1', 'Анна'], ['u2', 'Иван'], ['u3', 'Иван (2)']])
+    this.calls.push(`getDisplayNames:${this.actionApplied ? 'post' : 'pre'}`)
+    return this.actionApplied ? this.afterDisplayNames : this.beforeDisplayNames
   }
 
   async hasConfirmationOutcome(input: { stateVersion: number; outcome: string; circleKey?: string }) {
@@ -85,6 +89,7 @@ class MemoryTransitionStore implements MatchingTransitionStore {
 
   async applyAction(_sessionId: string, action: MatchingAction) {
     this.calls.push(`applyAction:${action.type}`)
+    this.actionApplied = true
     return this.applyResult
   }
 
@@ -321,6 +326,50 @@ describe('executeMatchingTransition', () => {
         toMemberDisplayNames: ['Анна', 'Иван'],
       }),
     }))
+  })
+
+  it('uses post-join names for the destination while preserving pre-action source names', async () => {
+    const store = new MemoryTransitionStore()
+    store.beforeDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван']])
+    store.afterDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван'], ['u4', 'Вера']])
+    store.confirmations = [{
+      userId: 'u1', bookId: 'b1', circleKey: 'old', memberUserIds: ['u1', 'u2'],
+    }]
+    store.scenarios = [{ circles: [circle('new', ['u1', 'u4'])] }]
+
+    await executeMatchingTransition({
+      sessionId: 's1', actor,
+      action: { type: 'self_join', userId: 'u4', name: 'Вера' },
+    }, store)
+
+    expect(store.notices[0].payload).toEqual(expect.objectContaining({
+      fromMemberDisplayNames: ['Анна', 'Иван'],
+      toMemberDisplayNames: ['Анна', 'Вера'],
+    }))
+    expect(store.calls.indexOf('getDisplayNames:pre')).toBeLessThan(store.calls.indexOf('applyAction:self_join'))
+    expect(store.calls.indexOf('applyAction:self_join')).toBeLessThan(store.calls.indexOf('getDisplayNames:post'))
+  })
+
+  it('keeps pre-rename names for invalidated confirmation snapshots', async () => {
+    const store = new MemoryTransitionStore()
+    store.beforeDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван']])
+    store.afterDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Игорь']])
+    store.confirmations = [{
+      userId: 'u1', bookId: 'b1', circleKey: 'gone', memberUserIds: ['u1', 'u2'],
+    }]
+    store.scenarios = []
+
+    await executeMatchingTransition({
+      sessionId: 's1', actor,
+      action: { type: 'self_join', userId: 'u2', name: 'Игорь' },
+    }, store)
+
+    expect(store.notices[0].payload).toEqual(expect.objectContaining({
+      memberDisplayNames: ['Анна', 'Иван'],
+    }))
+    expect(store.calls).toEqual(expect.arrayContaining([
+      'getDisplayNames:pre', 'applyAction:self_join', 'getDisplayNames:post',
+    ]))
   })
 
   it('allows global profile preferences to change for an observer without returning them to calculations', async () => {

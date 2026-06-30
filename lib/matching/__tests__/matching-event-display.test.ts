@@ -46,6 +46,7 @@ describe('matchingEventTypeLabel', () => {
   it('переводит circle-события', () => {
     expect(matchingEventTypeLabel('circle_locked')).toBe('Круг закреплён')
     expect(matchingEventTypeLabel('circle_dissolved')).toBe('Круг распущен')
+    expect(matchingEventTypeLabel('dissolve_circle')).toBe('Круг распущен')
     expect(matchingEventTypeLabel('freeze')).toBe('Сессия зафиксирована')
   })
 
@@ -234,6 +235,14 @@ describe('formatMatchingEvent — detail', () => {
     expect(result).toContain('Конфликт в группе')
     expect(result).toContain('Анна, Иван')
     expect(result).toContain('circle-a')
+  })
+
+  it('dissolve_circle — formats historical analytics rows', () => {
+    const e = event('dissolve_circle', {
+      metadata: { reason: 'Историческая причина', bookTitle: 'Обломов' },
+    })
+    expect(formatMatchingEvent(e)).toContain('Историческая причина')
+    expect(formatMatchingEvent(e)).toContain('Обломов')
   })
 
   it('freeze — лаконичное описание', () => {
