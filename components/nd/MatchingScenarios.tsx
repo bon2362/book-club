@@ -7,6 +7,8 @@ import MatchingConfirmationDialog from './MatchingConfirmationDialog'
 export interface PublicScenarioMember {
   ref: string
   displayName: string
+  rank: number | null
+  interest: 'очень хочу' | 'хочу' | 'без ранга'
   confirmed: boolean
 }
 
@@ -14,6 +16,7 @@ export interface PublicScenarioCircle {
   circleKey: string
   bookId: string
   members: PublicScenarioMember[]
+  avgRank: number | null
   confirmedCount: number
   memberCount: number
   viewerIsMember: boolean
@@ -21,6 +24,8 @@ export interface PublicScenarioCircle {
 
 export interface PublicScenario {
   ref: string
+  score: { coveredCount: number; totalCount: number; avgRank: number | null; worstRank: number | null }
+  leftOut: Array<{ ref: string; displayName: string }>
   circles: PublicScenarioCircle[]
 }
 

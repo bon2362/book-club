@@ -18,14 +18,19 @@ function makeScenario(id: string, circles: Array<{
 }>): PublicScenario {
   return {
     ref: id,
+    score: { coveredCount: 0, totalCount: 0, avgRank: null, worstRank: null },
+    leftOut: [],
     circles: circles.map((c) => ({
       circleKey: c.key,
       bookId: c.bookId,
       members: c.memberRefs.map((ref) => ({
         ref,
         displayName: `Участник-${ref}`,
+        rank: null,
+        interest: 'без ранга' as const,
         confirmed: (c.confirmedRefs ?? []).includes(ref),
       })),
+      avgRank: null,
       confirmedCount: (c.confirmedRefs ?? []).length,
       memberCount: c.memberRefs.length,
       viewerIsMember: c.viewerIsMember ?? false,

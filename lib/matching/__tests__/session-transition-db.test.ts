@@ -1,7 +1,9 @@
-import { toRankedReconciliationScenarios } from '../session-transition-db'
+import { fetchRankedMatchingScenarios, toRankedReconciliationScenarios } from '../session-transition-db'
+import { fetchMatchingScenarioOverview } from '../scenario-overview-db'
 import type { MatchingScenario } from '../scenarios'
 
 jest.mock('@/lib/db', () => ({ db: {} }))
+jest.mock('../scenario-overview-db', () => ({ fetchMatchingScenarioOverview: jest.fn() }))
 
 function scenario(id: string, members: string[]): MatchingScenario {
   return {
@@ -49,4 +51,18 @@ describe('toRankedReconciliationScenarios', () => {
     expect(result[0].circles[0].circleKey).toBe(result[1].circles[0].circleKey)
     expect(result[0].circles[0].circleKey).not.toContain('u1')
   })
+})
+
+it('derives the minimal reconciliation model from the full overview read model', async () => {
+  const overview = { scenarios: [scenario('presentation-scenario', ['u1', 'u2', 'u3'])], leader: null, totalCount: 3, minGroupSize: 3, maxGroupSize: 3 }
+  ;(fetchMatchingScenarioOverview as jest.Mock).mockResolvedValue(overview)
+
+  const result = await fetchRankedMatchingScenarios('session-secret', {} as never)
+
+  expect(fetchMatchingScenarioOverview).toHaveBeenCalledWith('session-secret', {})
+  expect(result[0]).toEqual({ circles: [{
+    circleKey: expect.any(String), bookId: 'book-1', memberUserIds: ['u1', 'u2', 'u3'],
+  }] })
+  expect(result[0]).not.toHaveProperty('score')
+  expect(result[0]).not.toHaveProperty('leftOut')
 })

@@ -212,8 +212,8 @@ export default function MatchingBookDetailModal({
                 <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
                   {chips.map((p) => (
                     <ParticipantInterestChip
-                      key={p.userId}
-                      userId={p.userId}
+                      key={p.ref}
+                      userId={p.ref}
                       displayName={withAdminName(p.displayName, adminNamesByDisplayName)}
                       rank={p.rank}
                       personalStatus={p.personalStatus}

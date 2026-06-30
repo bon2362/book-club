@@ -128,11 +128,12 @@ export function assemblePublicSessionState(input: {
     stateVersion: number
     minGroupSize: number
     maxGroupSize: number
+    deadlineAt: Date | null
     frozenSnapshot: unknown
   }
   viewerUserId: string
   participants: PublicSessionParticipantInput[]
-  rankedScenarios: import('./confirmation-reconciliation').RankedReconciliationScenario[]
+  scenarioOverview: import('./scenarios').ScenarioSetOverview
   confirmations: import('./confirmation-reconciliation').CircleConfirmation[]
   lockedCircles: PublicLockedCircleInput[]
   notices: PublicNoticeInput[]
@@ -154,6 +155,18 @@ export function assemblePublicSessionState(input: {
   const viewer = participantsByUserId.get(input.viewerUserId)
   if (!viewer) throw new Error(`Unknown matching participant: ${input.viewerUserId}`)
 
+  const safeFrozenSnapshot = (() => {
+    const snapshot = input.session.frozenSnapshot
+    if (!snapshot || typeof snapshot !== 'object' || !('remainingLeader' in snapshot)) return null
+    const leader = (snapshot as { remainingLeader?: { circles?: Array<{ circleKey: string; bookId: string; memberUserIds: string[] }> } }).remainingLeader
+    if (!leader) return { remainingLeader: null }
+    return { remainingLeader: { circles: (leader.circles ?? []).map((circle) => ({
+      circleKey: circle.circleKey,
+      bookId: circle.bookId,
+      memberRefs: circle.memberUserIds.map(publicRef),
+    })) } }
+  })()
+
   return {
     session: {
       name: input.session.name,
@@ -161,7 +174,8 @@ export function assemblePublicSessionState(input: {
       stateVersion: input.session.stateVersion,
       minGroupSize: input.session.minGroupSize,
       maxGroupSize: input.session.maxGroupSize,
-      frozenSnapshot: input.session.frozenSnapshot,
+      deadlineAt: input.session.deadlineAt?.toISOString() ?? null,
+      frozenSnapshot: safeFrozenSnapshot,
     },
     viewer: {
       role: lockedCircle ? 'observer' as const : 'active' as const,
@@ -174,25 +188,41 @@ export function assemblePublicSessionState(input: {
       online: participant.online,
       confirmedCircleKey: confirmationsByUserId.get(participant.userId)?.circleKey ?? null,
     })),
-    scenarios: input.rankedScenarios.map((scenario, scenarioIndex) => ({
+    scenarios: input.scenarioOverview.scenarios.map((scenario, scenarioIndex) => ({
       ref: `scenario-${scenarioIndex + 1}`,
+      score: {
+        coveredCount: scenario.score.coveredCount,
+        totalCount: scenario.score.totalCount,
+        avgRank: scenario.score.avgRank,
+        worstRank: scenario.score.worstRank,
+      },
+      leftOut: scenario.leftOut.map((participant) => ({
+        ref: publicRef(participant.userId),
+        displayName: participant.displayName,
+      })),
       circles: scenario.circles.map((circle) => {
-        const members = circle.memberUserIds.map((userId) => {
+        const memberUserIds = circle.members.map((member) => member.userId).sort()
+        const circleKey = buildCircleKey({ sessionId: input.session.id, bookId: circle.bookId, memberUserIds })
+        const members = circle.members.map((member) => {
+          const userId = member.userId
           const participant = participantsByUserId.get(userId)
           if (!participant) throw new Error(`Unknown matching participant: ${userId}`)
           return {
             ref: participant.publicRef,
             displayName: participant.displayName,
-            confirmed: confirmationsByUserId.get(userId)?.circleKey === circle.circleKey,
+            rank: member.rank,
+            interest: member.interest,
+            confirmed: confirmationsByUserId.get(userId)?.circleKey === circleKey,
           }
         })
         return {
-          circleKey: circle.circleKey,
+          circleKey,
           bookId: circle.bookId,
           members,
+          avgRank: circle.avgRank,
           confirmedCount: members.filter((member) => member.confirmed).length,
           memberCount: members.length,
-          viewerIsMember: circle.memberUserIds.includes(input.viewerUserId),
+          viewerIsMember: memberUserIds.includes(input.viewerUserId),
         }
       }),
     })),
@@ -214,3 +244,4 @@ export function assemblePublicSessionState(input: {
     })),
   }
 }
+import { buildCircleKey } from './circle-key'

@@ -12,7 +12,7 @@ import {
 import { assignMatchingDisplayNames } from './display-names'
 import { isOnline } from './presence'
 import { assemblePublicSessionState } from './public-state'
-import { fetchRankedMatchingScenarios } from './session-transition-db'
+import { fetchMatchingScenarioOverview } from './scenario-overview-db'
 
 type DbClient = typeof db
 
@@ -36,6 +36,7 @@ export async function fetchMatchingPublicState(
       stateVersion: matchingSessions.stateVersion,
       minGroupSize: matchingSessions.minGroupSize,
       maxGroupSize: matchingSessions.maxGroupSize,
+      deadlineAt: matchingSessions.deadlineAt,
       frozenSnapshot: matchingSessions.frozenScenarioJson,
     })
     .from(matchingSessions)
@@ -66,8 +67,8 @@ export async function fetchMatchingPublicState(
     online: isOnline(participant.lastSeenAt),
   }))
 
-  const [rankedScenarios, confirmations, lockedCircleRows, notices] = await Promise.all([
-    fetchRankedMatchingScenarios(sessionId, dbClient),
+  const [scenarioOverview, confirmations, lockedCircleRows, notices] = await Promise.all([
+    fetchMatchingScenarioOverview(sessionId, dbClient),
     dbClient
       .select({
         userId: matchingCircleConfirmations.userId,
@@ -131,7 +132,7 @@ export async function fetchMatchingPublicState(
     session,
     viewerUserId,
     participants,
-    rankedScenarios,
+    scenarioOverview,
     confirmations,
     lockedCircles,
     notices,

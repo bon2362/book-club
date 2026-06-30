@@ -20,10 +20,9 @@ import { assignMatchingDisplayNames } from './display-names'
 import { buildCircleKey } from './circle-key'
 import { buildMatchingEventRows } from './matching-events'
 import {
-  filterRankedSignups,
-  generateSatisfactionScenarioSets,
   type MatchingScenario,
 } from './scenarios'
+import { fetchMatchingScenarioOverview } from './scenario-overview-db'
 import {
   executeMatchingTransition,
   type MatchingAction,
@@ -103,79 +102,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
   }
 
   async getRankedScenarios(sessionId: string): Promise<RankedReconciliationScenario[]> {
-    const [session] = await this.tx
-      .select({
-        minGroupSize: matchingSessions.minGroupSize,
-        maxGroupSize: matchingSessions.maxGroupSize,
-      })
-      .from(matchingSessions)
-      .where(eq(matchingSessions.id, sessionId))
-      .limit(1)
-    if (!session) return []
-
-    const [participantRows, lockedRows] = await Promise.all([
-      this.tx
-        .select({
-          userId: matchingSessionParticipants.userId,
-          publicRef: matchingSessionParticipants.publicRef,
-          joinedAt: matchingSessionParticipants.joinedAt,
-          name: users.name,
-        })
-        .from(matchingSessionParticipants)
-        .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
-        .where(eq(matchingSessionParticipants.sessionId, sessionId)),
-      this.tx
-        .select({ userId: matchingLockedCircleMembers.userId })
-        .from(matchingLockedCircleMembers)
-        .where(and(
-          eq(matchingLockedCircleMembers.sessionId, sessionId),
-          isNull(matchingLockedCircleMembers.releasedAt),
-        )),
-    ])
-    const lockedUserIds = new Set(lockedRows.map((row) => row.userId))
-    const activeParticipants = participantRows.filter((row) => !lockedUserIds.has(row.userId))
-    if (activeParticipants.length < session.minGroupSize) return []
-
-    const activeUserIds = activeParticipants.map((participant) => participant.userId)
-    const [allSignups, allRanks, allBooks] = await Promise.all([
-      this.tx
-        .select({
-          userId: signupBooks.userId,
-          bookId: signupBooks.bookId,
-          personalStatus: signupBooks.personalStatus,
-        })
-        .from(signupBooks)
-        .where(inArray(signupBooks.userId, activeUserIds)),
-      this.tx
-        .select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, rank: bookPriorities.rank })
-        .from(bookPriorities)
-        .where(inArray(bookPriorities.userId, activeUserIds)),
-      this.tx
-        .select({ id: books.id })
-        .from(books)
-        .where(eq(books.visibility, 'published')),
-    ])
-    const activeSignups = allSignups
-      .filter((signup) => signup.personalStatus === null)
-      .map(({ userId, bookId }) => ({ userId, bookId }))
-    const ranks = allRanks.map(({ userId, bookId, rank }) => ({ userId, bookId, rank }))
-    const signups = filterRankedSignups(activeSignups, ranks)
-    const signedUpBookIds = new Set(signups.map((signup) => signup.bookId))
-    const displayNames = assignMatchingDisplayNames(activeParticipants)
-    const overview = generateSatisfactionScenarioSets({
-      participants: activeParticipants.map((participant) => ({
-        userId: participant.userId,
-        displayName: displayNames.get(participant.userId) ?? 'Без имени',
-      })),
-      books: allBooks
-        .filter((book) => signedUpBookIds.has(book.id))
-        .map((book) => ({ bookId: book.id })),
-      signups,
-      ranks,
-      minGroupSize: session.minGroupSize,
-      maxGroupSize: session.maxGroupSize,
-    })
-
+    const overview = await fetchMatchingScenarioOverview(sessionId, this.tx)
     return toRankedReconciliationScenarios(sessionId, overview.scenarios)
   }
 

@@ -726,24 +726,45 @@
               "properties": {
                 "ref": { "type": "string" },
                 "displayName": { "type": "string" },
+                "rank": { "type": "integer", "nullable": true },
+                "interest": { "type": "string", "enum": ["очень хочу", "хочу", "без ранга"] },
                 "confirmed": { "type": "boolean" }
               },
-              "required": ["ref", "displayName", "confirmed"]
+              "required": ["ref", "displayName", "rank", "interest", "confirmed"]
             }
           },
+          "avgRank": { "type": "number", "nullable": true },
           "confirmedCount": { "type": "integer" },
           "memberCount": { "type": "integer" },
           "viewerIsMember": { "type": "boolean" }
         },
-        "required": ["circleKey", "bookId", "members", "confirmedCount", "memberCount", "viewerIsMember"]
+        "required": ["circleKey", "bookId", "members", "avgRank", "confirmedCount", "memberCount", "viewerIsMember"]
       },
       "MatchingScenario": {
         "type": "object",
         "properties": {
           "ref": { "type": "string" },
+          "score": {
+            "type": "object",
+            "properties": {
+              "coveredCount": { "type": "integer" },
+              "totalCount": { "type": "integer" },
+              "avgRank": { "type": "number", "nullable": true },
+              "worstRank": { "type": "integer", "nullable": true }
+            },
+            "required": ["coveredCount", "totalCount", "avgRank", "worstRank"]
+          },
+          "leftOut": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": { "ref": { "type": "string" }, "displayName": { "type": "string" } },
+              "required": ["ref", "displayName"]
+            }
+          },
           "circles": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingCircle" } }
         },
-        "required": ["ref", "circles"]
+        "required": ["ref", "score", "leftOut", "circles"]
       },
       "MatchingLockedCircle": {
         "type": "object",
@@ -811,9 +832,10 @@
               "stateVersion": { "type": "integer" },
               "minGroupSize": { "type": "integer" },
               "maxGroupSize": { "type": "integer" },
+              "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
               "frozenSnapshot": { "type": "object", "nullable": true }
             },
-            "required": ["name", "status", "stateVersion", "minGroupSize", "maxGroupSize"]
+            "required": ["name", "status", "stateVersion", "minGroupSize", "maxGroupSize", "deadlineAt", "frozenSnapshot"]
           },
           "viewer": {
             "type": "object",

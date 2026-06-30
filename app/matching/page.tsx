@@ -125,6 +125,7 @@ export default async function MatchingPage({
   const participantRows = await db
     .select({
       userId: matchingSessionParticipants.userId,
+      publicRef: matchingSessionParticipants.publicRef,
       name: users.name,
     })
     .from(matchingSessionParticipants)
@@ -132,6 +133,7 @@ export default async function MatchingPage({
     .where(eq(matchingSessionParticipants.sessionId, currentSession.id))
 
   const participantUserIds = participantRows.map((p) => p.userId)
+  const viewingParticipantRef = participantRows.find((p) => p.userId === viewerUserId)?.publicRef ?? 'viewer'
 
   const bookParticipants: BookParticipant[] =
     participantUserIds.length > 0
@@ -153,7 +155,7 @@ export default async function MatchingPage({
           .where(inArray(signupBooks.userId, participantUserIds))
           .then((rows) =>
             rows.map((row) => ({
-              userId: row.userId,
+              ref: participantRows.find((p) => p.userId === row.userId)!.publicRef,
               bookId: row.bookId,
               displayName: participantRows.find((p) => p.userId === row.userId)?.name ?? row.userId,
               rank: row.rank,
@@ -167,7 +169,7 @@ export default async function MatchingPage({
       <MatchingBoardProvider stateVersion={currentSession.stateVersion}>
         <BookDetailProvider
           personalBooks={personalBooks}
-          viewingUserId={viewerUserId}
+          viewingUserId={viewingParticipantRef}
           frozen={false}
         >
           <MatchingSatisfactionFlow
@@ -175,7 +177,7 @@ export default async function MatchingPage({
             sessionId={currentSession.id}
             books={personalBooks}
             bookParticipants={bookParticipants}
-            viewingUserId={viewerUserId}
+            viewingUserId={viewingParticipantRef}
           />
         </BookDetailProvider>
       </MatchingBoardProvider>
@@ -205,7 +207,7 @@ export default async function MatchingPage({
           status: currentSession.status,
           stateVersion: currentSession.stateVersion,
         },
-        viewer: { role: 'active', ref: viewerUserId, lockedCircleId: null },
+        viewer: { role: 'active', ref: 'viewer', lockedCircleId: null },
         scenarios: [],
         lockedCircles: [],
         notices: [],
@@ -227,7 +229,7 @@ export default async function MatchingPage({
     <MatchingBoardProvider stateVersion={currentSession.stateVersion}>
       <BookDetailProvider
         personalBooks={personalBooks}
-        viewingUserId={viewerUserId}
+        viewingUserId={viewingParticipantRef}
         frozen={isReadOnly}
       >
         <div
@@ -278,7 +280,7 @@ export default async function MatchingPage({
               sessionId={currentSession.id}
               books={personalBooks}
               bookParticipants={bookParticipants}
-              viewingUserId={viewerUserId}
+              viewingUserId={viewingParticipantRef}
               frozen={isReadOnly}
               mutationUserId={isImpersonating ? viewerUserId : undefined}
             />

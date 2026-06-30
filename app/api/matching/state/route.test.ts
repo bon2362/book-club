@@ -43,11 +43,20 @@ describe('GET /api/matching/state', () => {
   })
 
   it('returns the safe public read model for the current participant', async () => {
+    mockFetchState.mockResolvedValue({
+      session: { name: 'Июль', status: 'active', stateVersion: 5, minGroupSize: 3, maxGroupSize: 5, deadlineAt: null, frozenSnapshot: null },
+      viewer: { role: 'active', ref: 'participant-ref', lockedCircleId: null },
+      participants: [{ ref: 'participant-ref', displayName: 'Анна', online: true, confirmedCircleKey: null }],
+      scenarios: [{ ref: 'scenario-1', score: { coveredCount: 1, totalCount: 1, avgRank: 1, worstRank: 1 }, leftOut: [], circles: [] }],
+      lockedCircles: [], notices: [],
+    })
     const response = await GET(request())
 
     expect(response.status).toBe(200)
     expect(mockFetchState).toHaveBeenCalledWith('s1', 'u1')
-    expect(await response.json()).toEqual({ session: { stateVersion: 5 }, scenarios: [] })
+    const payload = await response.json()
+    expect(payload.scenarios[0].score.coveredCount).toBe(1)
+    expect(JSON.stringify(payload)).not.toContain('u1')
   })
 
   it('allows admin impersonation but ignores as for ordinary participants', async () => {
