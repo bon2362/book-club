@@ -763,6 +763,33 @@
         },
         "required": ["id", "circleKey", "bookId", "lockedAt", "members"]
       },
+      "AdminMatchingLockedCircle": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "circleKey": { "type": "string" },
+          "bookId": { "type": "string" },
+          "bookTitle": { "type": "string", "nullable": true },
+          "status": { "type": "string", "enum": ["locked", "dissolved"] },
+          "lockedAt": { "$ref": "#/components/schemas/DateTime" },
+          "dissolvedAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
+          "dissolveReason": { "type": "string", "nullable": true },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": { "type": "string" },
+                "displayNameSnapshot": { "type": "string" },
+                "releasedAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true }
+              },
+              "required": ["userId", "displayNameSnapshot", "releasedAt"]
+            }
+          }
+        },
+        "required": ["id", "sessionId", "circleKey", "bookId", "bookTitle", "status", "lockedAt", "dissolvedAt", "dissolveReason", "members"]
+      },
       "MatchingNotice": {
         "type": "object",
         "properties": {
@@ -2103,6 +2130,30 @@
         "responses": {
           "200": { "description": "Прочитано", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ok" } } } },
           "404": { "description": "Notice not found" }
+        }
+      }
+    },
+    "/api/admin/matching/sessions/{id}/locked-circles": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Получить реестр закреплённых и распущенных кругов",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "История кругов с названиями книг и снимками состава",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean" },
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingLockedCircle" } }
+              },
+              "required": ["success", "data"]
+            } } }
+          },
+          "403": { "description": "Forbidden" }
         }
       }
     },
