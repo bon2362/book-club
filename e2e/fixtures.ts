@@ -1,4 +1,4 @@
-import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test'
+import { test as base, expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test'
 import { Pool, neonConfig } from '@neondatabase/serverless'
 import ws from 'ws'
 import { readFileSync, existsSync } from 'fs'
@@ -101,6 +101,19 @@ interface AdminSession {
   userId: string
 }
 
+interface MatchingBoardParticipant extends AdminSession {
+  context: BrowserContext
+  page: Page
+}
+
+interface MatchingBoardFixture {
+  session: MatchingSession
+  books: [TestBook, TestBook]
+  participantA: MatchingBoardParticipant
+  participantB: MatchingBoardParticipant
+  addParticipant: (name: string, rankedBooks?: TestBook[]) => Promise<MatchingBoardParticipant>
+}
+
 interface DbExecHelper {
   /**
    * Execute a raw SQL statement against the e2e database (Node.js context,
@@ -165,6 +178,12 @@ interface E2EHelpers {
    * Create an active matching session through a test-only API and delete it in teardown.
    */
   createMatchingSession: (overrides?: MatchingSessionOverrides) => Promise<MatchingSession>
+
+  /**
+   * Complete two-person satisfaction board with two shared ranked books.
+   * Both browser contexts and user records are cleaned up by the fixture.
+   */
+  matchingBoardFixture: MatchingBoardFixture
 }
 
 async function patchIntroSection(
@@ -384,6 +403,55 @@ export const test = base.extend<E2EHelpers>({
         await request.delete('/api/test/matching-session', { data: { id } })
       } catch { /* best-effort — DB cleanup is the safety net */ }
     }
+  },
+
+  matchingBoardFixture: async ({ browser, createMatchingSession, createTestBook }, use, testInfo) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const books: [TestBook, TestBook] = [
+      await createTestBook({ title: `E2E Первый круг ${testInfo.testId}`, author: 'Автор первого круга' }),
+      await createTestBook({ title: `E2E Второй круг ${testInfo.testId}`, author: 'Автор второго круга' }),
+    ]
+    const contexts: BrowserContext[] = []
+    const participants: MatchingBoardParticipant[] = []
+
+    async function createParticipant(label: string, name: string, rankedBooks: TestBook[] = books): Promise<MatchingBoardParticipant> {
+      const context = await browser.newContext()
+      contexts.push(context)
+      for (const pattern of POSTHOG_PATTERNS) await context.route(pattern, (route) => route.abort())
+      const page = await context.newPage()
+      const email = `e2e-${testInfo.testId}-${label}-${Date.now()}@test.invalid`
+      const login = await page.request.post('/api/test/session', {
+        data: { email, name, isAdmin: false, telegramUsername: `matching_${label.toLowerCase()}_${Date.now()}` },
+      })
+      if (!login.ok()) throw new Error(`matchingBoardFixture login failed: ${login.status()} ${await login.text()}`)
+      const { userId } = await login.json() as { userId: string }
+      const join = await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name } })
+      if (!join.ok()) throw new Error(`matchingBoardFixture join failed: ${join.status()} ${await join.text()}`)
+      for (const book of rankedBooks) {
+        const add = await page.request.post('/api/matching/books', { data: { bookId: book.id } })
+        if (!add.ok()) throw new Error(`matchingBoardFixture add failed: ${add.status()} ${await add.text()}`)
+      }
+      const rank = await page.request.patch('/api/matching/priorities', { data: { bookIds: rankedBooks.map((book) => book.id) } })
+      if (!rank.ok()) throw new Error(`matchingBoardFixture rank failed: ${rank.status()} ${await rank.text()}`)
+      const participant = { email, name, userId, context, page }
+      participants.push(participant)
+      return participant
+    }
+
+    const participantA = await createParticipant('A', 'Анна E2E')
+    const participantB = await createParticipant('B', 'Борис E2E')
+
+    let extraParticipantIndex = 0
+    const addParticipant = (name: string, rankedBooks?: TestBook[]) => (
+      createParticipant(`extra-${extraParticipantIndex++}`, name, rankedBooks)
+    )
+
+    await use({ session, books, participantA, participantB, addParticipant })
+
+    for (const participant of participants.reverse()) {
+      try { await participant.page.request.delete('/api/test/session', { data: { email: participant.email } }) } catch { /* best effort */ }
+    }
+    for (const context of contexts.reverse()) await context.close().catch(() => {})
   },
 })
 

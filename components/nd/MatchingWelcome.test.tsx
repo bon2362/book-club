@@ -27,6 +27,7 @@ test('pre-fills the name input with initialName', () => {
 test('shows disclosure about real names', () => {
   render(<MatchingWelcome {...base} />)
   expect(screen.getByText(/реальные имена видны всем участникам/i)).toBeInTheDocument()
+  expect(screen.getByText(/формирования групп и общения в канале клуба/i)).toBeInTheDocument()
 })
 
 test('no Telegram CTA present', () => {

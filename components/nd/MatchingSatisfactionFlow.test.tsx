@@ -35,7 +35,7 @@ test('gate phase shows the ranking intro and CTA, no eyebrow', () => {
 
 test('gate footer uses the single hint for all states', () => {
   render(<MatchingSatisfactionFlow phase="gate" {...base} />)
-  expect(screen.getByText('Расставь приоритеты и сможешь войти в сессию.')).toBeInTheDocument()
+  expect(screen.getByText(/книга участвует в расчёте только после назначения ранга/i)).toBeInTheDocument()
 })
 
 test('gate CTA is disabled until an active book is ranked', () => {

@@ -180,7 +180,7 @@ export default function MatchingSatisfactionFlow({
           }}
         >
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: '46ch' }}>
-            Расставь приоритеты и сможешь войти в сессию.
+            Книга участвует в расчёте только после назначения ранга.
           </p>
           <button
             type="button"

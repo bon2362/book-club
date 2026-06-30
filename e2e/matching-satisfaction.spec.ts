@@ -1,4 +1,5 @@
 import { test, expect, type Page } from './fixtures'
+import type { Locator } from '@playwright/test'
 import { epic, feature } from 'allure-js-commons'
 
 async function joinWithRankedBook(page: Page, sessionId: string, bookId: string, name: string) {
@@ -13,6 +14,226 @@ async function joinWithRankedBook(page: Page, sessionId: string, bookId: string,
 test.beforeEach(async () => {
   await epic('Матчинг')
   await feature('Упрощённый satisfaction flow')
+})
+
+test('ранжированная доска показывает шапку, состав и общий книжный popup', async ({
+  matchingBoardFixture,
+  dbExec,
+}) => {
+  const { participantA, participantB, books, session } = matchingBoardFixture
+  const page = participantA.page
+
+  await dbExec(
+    `update matching_session_participants set last_seen_at = now() - interval '1 hour'
+     where session_id = $1 and user_id = $2`,
+    [session.id, participantB.userId],
+  )
+
+  await page.goto('/matching')
+  await expect(page.getByTestId('matching-header')).toContainText(participantA.name)
+  await expect(page.getByRole('link', { name: 'На каталог' })).toHaveAttribute('href', '/')
+  const participants = page.getByRole('button', { name: /Участники/ })
+  await expect(participants).toContainText('2')
+  await participants.click()
+  const participantDialog = page.getByRole('dialog', { name: 'Участники' })
+  await expect(participantDialog).toContainText('Борис E2E')
+  await expect(page.getByLabel('Борис E2E — не в сети')).toBeVisible()
+  expect((await participantB.page.request.get(`/api/matching/version?session=${session.id}`)).ok()).toBe(true)
+  await expect(page.getByLabel('Борис E2E — онлайн')).toBeVisible({ timeout: 15_000 })
+  await participantDialog.getByRole('button', { name: /закрыть/i }).click()
+
+  const circle = page.getByTestId('matching-circle').filter({ hasText: books[0].title }).first()
+  await expect(circle.getByLabel(`Обложка: ${books[0].title}`)).toBeVisible()
+  await circle.getByRole('button', { name: books[0].title, exact: true }).click()
+  const popup = page.getByRole('dialog')
+  await expect(popup).toContainText(books[0].author)
+  await popup.getByRole('button', { name: /закрыть/i }).click()
+  await page.getByRole('link', { name: 'На каталог' }).click()
+  await expect(page).toHaveURL('/')
+})
+
+test('confirm, cancel и атомарный switch видны обоим участникам и переживают reload', async ({
+  matchingBoardFixture,
+}) => {
+  test.setTimeout(90_000)
+  const { participantA, participantB, books } = matchingBoardFixture
+  const page = participantA.page
+  const peer = participantB.page
+
+  async function chooseCircle(bookTitle: string) {
+    const circle = page.getByTestId('matching-circle').filter({ hasText: bookTitle }).first()
+    await circle.hover()
+    await circle.getByTestId('circle-confirm-button').click()
+    return page.getByRole('dialog')
+  }
+  async function confirmDialog(dialog: Locator) {
+    const response = page.waitForResponse((candidate) => (
+      candidate.request().method() === 'PUT' && candidate.url().endsWith(`/api/matching/sessions/${matchingBoardFixture.session.id}/confirmation`)
+    ))
+    await dialog.getByRole('button', { name: 'Подтвердить' }).click()
+    expect((await response).ok()).toBe(true)
+  }
+
+  await page.goto('/matching')
+  let dialog = await chooseCircle(books[0].title)
+  await expect(dialog).toContainText('Подтвердить круг?')
+  await confirmDialog(dialog)
+  await page.reload()
+  await expect(page.getByTestId('circle-waiting')).toContainText('1 из 2 · временно')
+
+  await peer.goto('/matching')
+  const peerFirstCircle = peer.getByTestId('matching-circle').filter({ hasText: books[0].title }).first()
+  await expect(peerFirstCircle.getByLabel('Анна E2E: подтвердил')).toBeVisible()
+
+  const cancelResponse = page.waitForResponse((candidate) => (
+    candidate.request().method() === 'DELETE' && candidate.url().endsWith(`/api/matching/sessions/${matchingBoardFixture.session.id}/confirmation`)
+  ))
+  await page.getByTestId('circle-cancel-button').click()
+  expect((await cancelResponse).ok()).toBe(true)
+  await page.reload()
+  await expect(page.getByTestId('circle-waiting')).toHaveCount(0)
+  await peer.reload()
+  await expect(peerFirstCircle.getByLabel('Анна E2E: не подтвердил')).toBeVisible()
+
+  dialog = await chooseCircle(books[0].title)
+  await confirmDialog(dialog)
+  await page.reload()
+  dialog = await chooseCircle(books[1].title)
+  await expect(dialog).toHaveAccessibleName('Сменить круг?')
+  await expect(dialog).toContainText(books[0].title)
+  await expect(dialog).toContainText(books[1].title)
+  await expect(dialog).toContainText(/прежнее снимется/i)
+  await confirmDialog(dialog)
+  await page.reload()
+  await expect(page.getByTestId('circle-waiting')).toHaveCount(1)
+  await expect(page.getByTestId('matching-circle').filter({ hasText: books[1].title }).getByTestId('circle-waiting')).toBeVisible()
+  await expect(page.getByTestId('matching-circle').filter({ hasText: books[0].title }).getByTestId('circle-waiting')).toHaveCount(0)
+})
+
+test('первый concurrent confirm конфликтует, а retry победителя идемпотентен', async ({
+  matchingBoardFixture,
+  dbExec,
+}) => {
+  const { participantA, session } = matchingBoardFixture
+  const stateResponse = await participantA.page.request.get(`/api/matching/state?session=${session.id}`)
+  expect(stateResponse.ok()).toBe(true)
+  const state = await stateResponse.json() as {
+    session: { stateVersion: number }
+    scenarios: Array<{ circles: Array<{ circleKey: string; viewerIsMember: boolean }> }>
+  }
+  const choices = state.scenarios.flatMap((scenario) => scenario.circles)
+    .filter((circle) => circle.viewerIsMember)
+    .map((circle) => circle.circleKey)
+  expect(new Set(choices).size).toBeGreaterThanOrEqual(2)
+  const expectedStateVersion = state.session.stateVersion
+  const url = `/api/matching/sessions/${session.id}/confirmation`
+  const [first, second] = await Promise.all([
+    participantA.page.request.put(url, { data: { circleKey: choices[0], expectedStateVersion } }),
+    participantA.page.request.put(url, { data: { circleKey: choices[1], expectedStateVersion } }),
+  ])
+  expect([first.status(), second.status()].sort()).toEqual([200, 409])
+  const winnerIndex = first.status() === 200 ? 0 : 1
+
+  const retry = await participantA.page.request.put(url, {
+    data: { circleKey: choices[winnerIndex], expectedStateVersion },
+  })
+  expect(retry.status()).toBe(200)
+  await expect(retry.json()).resolves.toMatchObject({ changed: false })
+
+  const events = await dbExec(
+    `select event_type from matching_events
+     where session_id = $1 and event_type in ('confirmation_created', 'confirmation_switched')`,
+    [session.id],
+  )
+  expect(events).toHaveLength(1)
+})
+
+test('исчезнувший состав переносит выбор по книге, а отсутствие альтернативы сбрасывает его с durable notice', async ({
+  matchingBoardFixture,
+}) => {
+  test.setTimeout(90_000)
+  const { participantA, participantB, books, session, addParticipant } = matchingBoardFixture
+  const participantC = await addParticipant('Вера E2E', [books[0]])
+
+  type State = {
+    session: { stateVersion: number }
+    viewer: { ref: string }
+    participants: Array<{ ref: string; confirmedCircleKey: string | null }>
+    scenarios: Array<{ circles: Array<{
+      circleKey: string
+      bookId: string
+      members: Array<{ displayName: string }>
+      viewerIsMember: boolean
+    }> }>
+    notices: Array<{ id: string; kind: string; payload: { fromMembers?: string[]; toMembers?: string[]; members?: string[] } }>
+  }
+  async function state(): Promise<State> {
+    const response = await participantA.page.request.get(`/api/matching/state?session=${session.id}`)
+    expect(response.ok()).toBe(true)
+    return response.json() as Promise<State>
+  }
+  function ownConfirmation(current: State) {
+    return current.participants.find((participant) => participant.ref === current.viewer.ref)?.confirmedCircleKey ?? null
+  }
+
+  let current = await state()
+  const original = current.scenarios.flatMap((scenario) => scenario.circles).find((circle) => (
+    circle.bookId === books[0].id &&
+    circle.viewerIsMember &&
+    circle.members.some((member) => member.displayName === participantB.name) &&
+    !circle.members.some((member) => member.displayName === participantC.name)
+  ))
+  expect(original).toBeTruthy()
+  const firstConfirm = await participantA.page.request.put(`/api/matching/sessions/${session.id}/confirmation`, {
+    data: { circleKey: original!.circleKey, expectedStateVersion: current.session.stateVersion },
+  })
+  expect(firstConfirm.ok()).toBe(true)
+
+  const removeFirst = await participantB.page.request.delete(`/api/matching/books/${books[0].id}`)
+  expect(removeFirst.ok()).toBe(true)
+  current = await state()
+  const transferredKey = ownConfirmation(current)
+  expect(transferredKey).not.toBeNull()
+  expect(transferredKey).not.toBe(original!.circleKey)
+  const transferredCircle = current.scenarios.flatMap((scenario) => scenario.circles)
+    .find((circle) => circle.circleKey === transferredKey)
+  expect(transferredCircle?.bookId).toBe(books[0].id)
+  expect(transferredCircle?.members.map((member) => member.displayName).sort()).toEqual(['Анна E2E', 'Вера E2E'].sort())
+  const transferNotice = current.notices.find((notice) => notice.kind === 'confirmation_transferred')
+  expect(transferNotice?.payload.fromMembers?.sort()).toEqual(['Анна E2E', 'Борис E2E'].sort())
+  expect(transferNotice?.payload.toMembers?.sort()).toEqual(['Анна E2E', 'Вера E2E'].sort())
+
+  await participantA.page.goto('/matching')
+  await expect(participantA.page.getByTestId('matching-notices')).toContainText('Вера E2E')
+  await participantA.page.reload()
+  await expect(participantA.page.getByTestId('matching-notices')).toContainText('Вера E2E')
+  const ackResponse = participantA.page.waitForResponse((response) => (
+    response.request().method() === 'POST' && response.url().includes('/api/matching/notices/')
+  ))
+  await participantA.page.getByRole('button', { name: 'Понятно' }).click()
+  expect((await ackResponse).ok()).toBe(true)
+  await participantA.page.reload()
+  await expect(participantA.page.getByTestId('matching-notices')).toHaveCount(0)
+
+  current = await state()
+  const secondBookCircle = current.scenarios.flatMap((scenario) => scenario.circles).find((circle) => (
+    circle.bookId === books[1].id && circle.viewerIsMember
+  ))
+  expect(secondBookCircle).toBeTruthy()
+  const switchResponse = await participantA.page.request.put(`/api/matching/sessions/${session.id}/confirmation`, {
+    data: { circleKey: secondBookCircle!.circleKey, expectedStateVersion: current.session.stateVersion },
+  })
+  expect(switchResponse.ok()).toBe(true)
+  const removeSecond = await participantB.page.request.delete(`/api/matching/books/${books[1].id}`)
+  expect(removeSecond.ok()).toBe(true)
+
+  current = await state()
+  expect(ownConfirmation(current)).toBeNull()
+  const invalidation = current.notices.find((notice) => notice.kind === 'confirmation_invalidated')
+  expect(invalidation?.payload.members?.sort()).toEqual(['Анна E2E', 'Борис E2E'].sort())
+  await participantA.page.reload()
+  await expect(participantA.page.getByTestId('circle-waiting')).toHaveCount(0)
+  await expect(participantA.page.getByTestId('matching-notices')).toContainText(/подтверждение снято/i)
 })
 
 test('Welcome раскрывает реальные имена и сохраняет исправленное глобальное имя', async ({
@@ -31,6 +252,10 @@ test('Welcome раскрывает реальные имена и сохраня
   await page.getByTestId('welcome-name-input').fill('Новое имя')
   await page.getByTestId('welcome-join-button').click()
   await expect(page.getByTestId('matching-realtime-client')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
+  await expect(page.getByTestId('matching-header')).toBeVisible()
+  await expect(page.getByTestId('matching-scenarios-workspace')).toBeVisible()
+  await expect(page.getByTestId('matching-catalog-panel')).toBeVisible()
 
   await page.reload()
   await expect(page.getByTestId('welcome-name-input')).toHaveCount(0)
@@ -47,11 +272,20 @@ test('Ranking Gate появляется только для активной к�
 }) => {
   const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
   const book = await createTestBook({ title: `E2E Gate ${test.info().testId}`, author: 'Gate Author' })
-  await loginAsUser({ name: 'Читатель Gate' })
-  expect((await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Читатель Gate' } })).ok()).toBe(true)
-  expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+  const user = await loginAsUser({ name: 'Читатель Gate' })
+  expect((await page.request.post('/api/test/signup', {
+    data: {
+      userId: user.userId,
+      name: user.name,
+      email: user.email,
+      contacts: '',
+      selectedBookIds: [book.id],
+    },
+  })).ok()).toBe(true)
 
   await page.goto('/matching')
+  await expect(page.getByTestId('welcome-name-input')).toHaveValue('Читатель Gate')
+  await page.getByTestId('welcome-join-button').click()
   await expect(page.getByTestId('ranking-gate')).toBeVisible()
   await expect(page.getByTestId('matching-realtime-client')).toHaveCount(0)
 
@@ -59,6 +293,8 @@ test('Ranking Gate появляется только для активной к�
   await page.reload()
   await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
   await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
+  await page.reload()
+  await expect(page.getByTestId('matching-header')).toContainText('Читатель Gate')
 })
 
 test('выход из сессии делает hard navigation и остаётся Welcome после reload', async ({
