@@ -71,7 +71,12 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
       })
       if (!response.ok) {
         if (response.status === 409) {
-          setError('Сессия изменилась. Данные обновлены — попробуйте ещё раз.')
+          if (props.onSessionRefresh) {
+            await props.onSessionRefresh()
+            setError('Сессия изменилась. Данные обновлены — попробуйте ещё раз.')
+          } else {
+            setError('Сессия изменилась. Обновите страницу и попробуйте ещё раз.')
+          }
           router.refresh()
           return
         }

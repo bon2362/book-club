@@ -50,14 +50,29 @@ test('confirms leave with the current version and hard-navigates to matching', a
   expect(navigate).toHaveBeenCalledWith('/matching')
 })
 
-test('explains a stale leave conflict and refreshes without navigating', async () => {
-  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: 'stale_version' }) })
+test('refreshes local state after a leave conflict so an immediate retry uses the new version', async () => {
+  ;(global.fetch as jest.Mock)
+    .mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ error: 'stale_version' }) })
+    .mockResolvedValueOnce({ ok: true })
   const navigate = jest.fn()
-  render(<MatchingHeader {...base} navigate={navigate} />)
+  const view: { rerender?: ReturnType<typeof render>['rerender'] } = {}
+  const onSessionRefresh = jest.fn(async () => {
+    view.rerender!(<MatchingHeader {...base} stateVersion={8} navigate={navigate} onSessionRefresh={onSessionRefresh} />)
+  })
+  view.rerender = render(<MatchingHeader {...base} navigate={navigate} onSessionRefresh={onSessionRefresh} />).rerender
   fireEvent.click(screen.getByRole('button', { name: 'Покинуть' }))
-  expect(await screen.findByRole('alert')).toHaveTextContent(/сессия изменилась/i)
+  expect(await screen.findByRole('alert')).toHaveTextContent(/данные обновлены/i)
+  expect(onSessionRefresh).toHaveBeenCalledTimes(1)
   expect(refresh).toHaveBeenCalledTimes(1)
   expect(navigate).not.toHaveBeenCalled()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Покинуть' }))
+  await waitFor(() => expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/matching/sessions/session-safe/leave', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ expectedStateVersion: 8 }),
+  }))
+  expect(navigate).toHaveBeenCalledWith('/matching')
 })
 
 test('keeps leave errors visible', async () => {
