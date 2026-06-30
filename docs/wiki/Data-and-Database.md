@@ -211,8 +211,8 @@ erDiagram
 - `0047_summary_helpful_reactions.sql` — реакции, partial unique-индексы, audit trigger и masking `visitor_hash`.
 - `0048_matching_simplified.sql` — public refs, confirmations, locked circles, notices, matching events, ограничения и audit triggers нового flow.
 - `0049_restore_matching_presence_audit_filter.sql` — возвращает подавление чистых `last_seen_at` heartbeat-обновлений в глобальном audit log; старые шумовые записи сохраняются как история.
-- `0034_matching_pseudonym_reservations.sql` — временные резервы псевдонимов для welcome screen.
-- `0035_matching_preference_events.sql` — персистентная аналитика изменений предпочтений в matching.
+- `0050_drop_legacy_matching.sql` — удаляет режим coverage, псевдонимы, старые метрики и две legacy matching-таблицы после зелёного production smoke-check.
+- `0034_matching_pseudonym_reservations.sql` и `0035_matching_preference_events.sql` — исторические миграции; созданные ими legacy-таблицы удалены в `0050`.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).
 
 ## Практический вывод

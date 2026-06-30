@@ -3,8 +3,6 @@ import {
   bookPriorities,
   bookSubmissions,
   feedback,
-  matchingPreferenceEvents,
-  matchingPseudonymReservations,
   matchingSessionParticipants,
   matchingSessions,
   notificationQueue,
@@ -251,14 +249,9 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
 
   await tx.update(telegramPreauthTokens).set({ userId: targetUserId }).where(eq(telegramPreauthTokens.userId, sourceUserId))
   await tx.update(matchingSessions).set({ createdBy: targetUserId }).where(eq(matchingSessions.createdBy, sourceUserId))
-  await tx.update(matchingPreferenceEvents).set({ userId: targetUserId }).where(eq(matchingPreferenceEvents.userId, sourceUserId))
-  await tx.update(matchingPreferenceEvents).set({ actorUserId: targetUserId }).where(eq(matchingPreferenceEvents.actorUserId, sourceUserId))
-
-  const [sourceParticipants, targetParticipants, sourceReservations, targetReservations] = await Promise.all([
+  const [sourceParticipants, targetParticipants] = await Promise.all([
     tx.select().from(matchingSessionParticipants).where(eq(matchingSessionParticipants.userId, sourceUserId)),
     tx.select().from(matchingSessionParticipants).where(eq(matchingSessionParticipants.userId, targetUserId)),
-    tx.select().from(matchingPseudonymReservations).where(eq(matchingPseudonymReservations.userId, sourceUserId)),
-    tx.select().from(matchingPseudonymReservations).where(eq(matchingPseudonymReservations.userId, targetUserId)),
   ])
 
   const targetParticipantSessions = new Set(targetParticipants.map(row => row.sessionId))
@@ -272,21 +265,6 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
       await tx.update(matchingSessionParticipants).set({ userId: targetUserId }).where(and(
         eq(matchingSessionParticipants.sessionId, row.sessionId),
         eq(matchingSessionParticipants.userId, sourceUserId),
-      ))
-    }
-  }
-
-  const targetReservationSessions = new Set(targetReservations.map(row => row.sessionId))
-  for (const row of sourceReservations) {
-    if (targetReservationSessions.has(row.sessionId)) {
-      await tx.delete(matchingPseudonymReservations).where(and(
-        eq(matchingPseudonymReservations.sessionId, row.sessionId),
-        eq(matchingPseudonymReservations.userId, sourceUserId),
-      ))
-    } else {
-      await tx.update(matchingPseudonymReservations).set({ userId: targetUserId }).where(and(
-        eq(matchingPseudonymReservations.sessionId, row.sessionId),
-        eq(matchingPseudonymReservations.userId, sourceUserId),
       ))
     }
   }
@@ -313,7 +291,6 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
     bookPriorities: sourcePriorityRows.length,
     userActivityEvents: sourceActivityRows.length - duplicateActivityIds.length,
     matchingSessionParticipants: sourceParticipants.length,
-    matchingPseudonymReservations: sourceReservations.length,
   }
 
   await tx.insert(userMergeEvents).values({

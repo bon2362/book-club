@@ -23,8 +23,6 @@ export const AUDITED_TABLES = [
   'matching_locked_circle_members',
   'matching_notices',
   'matching_events',
-  'matching_pseudonym_reservations',
-  'matching_preference_events',
   'user_merge_events',
   'user_identities',
   'verificationToken',
@@ -43,5 +41,5 @@ export const AUTH_OOB_TABLES = ['verificationToken', 'user', 'user_identities'] 
 // Просмотрщик показывает для них «система», а не тревожное «внесистемное».
 export const SYSTEM_TRIGGER_TABLES = [
   'verificationToken', 'user', 'user_identities',
-  'notification_queue', 'matching_pseudonym_reservations',
+  'notification_queue',
 ] as const
