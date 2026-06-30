@@ -11,6 +11,7 @@ import type { LockedCircle } from './MatchingLockedCircles'
 import type { PublicScenario } from './MatchingScenarios'
 import MatchingHeader, { type MatchingHeaderParticipant } from './MatchingHeader'
 import MatchingWorkspace from './MatchingWorkspace'
+import { useRouter } from 'next/navigation'
 
 export interface MatchingPublicState {
   session: {
@@ -61,6 +62,7 @@ export default function MatchingRealtimeClient({
   isAdmin = false,
   isImpersonating = false,
 }: Props) {
+  const router = useRouter()
   const [state, setState] = useState<MatchingPublicState>(initialState)
   const [healthy, setHealthy] = useState(true)
   const lastVersionRef = useRef<number | null>(null)
@@ -115,6 +117,7 @@ export default function MatchingRealtimeClient({
         lastVersionRef.current = data.version
         if (versionChanged) {
           await fetchFullState()
+          router.refresh()
         }
       }
 
@@ -129,7 +132,7 @@ export default function MatchingRealtimeClient({
     } catch {
       setHealthy(false)
     }
-  }, [sessionId, adaptive, fetchFullState])
+  }, [sessionId, adaptive, fetchFullState, router])
 
   // On mount: initialise lastVersion from initialState so we don't trigger a
   // fetch on the first poll if nothing changed.
@@ -145,6 +148,7 @@ export default function MatchingRealtimeClient({
         sessionId={sessionId}
         sessionName={state.session.name}
         sessionStatus={state.session.status}
+        stateVersion={state.session.stateVersion}
         minGroupSize={state.session.minGroupSize}
         maxGroupSize={state.session.maxGroupSize}
         deadlineAt={state.session.deadlineAt}

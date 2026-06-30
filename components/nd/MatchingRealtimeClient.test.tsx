@@ -1,21 +1,22 @@
-import { render, waitFor, screen } from '@testing-library/react'
+import { act, render, waitFor, screen } from '@testing-library/react'
 import MatchingRealtimeClient, { type MatchingPublicState } from './MatchingRealtimeClient'
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
-}))
+const refresh = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 
 describe('MatchingRealtimeClient', () => {
   let fetchMock: jest.Mock
 
   beforeEach(() => {
+    setTabVisibility('visible')
     fetchMock = jest.fn()
     global.fetch = fetchMock as unknown as typeof fetch
+    refresh.mockClear()
   })
 
   afterEach(() => {
+    jest.useRealTimers()
     jest.restoreAllMocks()
-    setTabVisibility('visible')
   })
 
   function setTabVisibility(state: 'visible' | 'hidden') {
@@ -30,10 +31,10 @@ describe('MatchingRealtimeClient', () => {
     document.dispatchEvent(new Event('visibilitychange'))
   }
 
-  function respondVersion(version: number, status = 'active', online: string[] = ['u1']) {
+  function respondVersion(version: number, status = 'active', online?: string[]) {
     fetchMock.mockImplementationOnce((url: string) => {
       if (url.includes('/version')) {
-        return Promise.resolve({ ok: true, json: async () => ({ version, status, online }) })
+        return Promise.resolve({ ok: true, json: async () => ({ version, status, ...(online ? { online } : {}) }) })
       }
       return Promise.resolve({ ok: false })
     })
@@ -53,7 +54,7 @@ describe('MatchingRealtimeClient', () => {
 
   it('applies heartbeat online refs to rendered participant state', async () => {
     respondVersion(1, 'active', ['r1'])
-    render(<MatchingRealtimeClient sessionId="s1" initialState={makeInitialState()} bookTitleById={{}} pollIntervalMs={20} />)
+    render(<MatchingRealtimeClient sessionId="s1" initialState={makeInitialState()} bookTitleById={{}} pollIntervalMs={50_000} />)
     await waitFor(() => expect(screen.getByLabelText('Анна — онлайн')).toBeInTheDocument())
   })
 
@@ -85,7 +86,8 @@ describe('MatchingRealtimeClient', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('/version')
   })
 
-  it('fetches full state when version changes', async () => {
+  it('updates local full state and refreshes server props when version changes', async () => {
+    jest.useFakeTimers()
     const stateResponse = {
       ok: true,
       json: async () => ({
@@ -94,7 +96,7 @@ describe('MatchingRealtimeClient', () => {
         scenarios: [],
         lockedCircles: [],
         notices: [],
-        participants: [],
+        participants: [{ ref: 'r1', displayName: 'Анна новая', online: true }],
       }),
     }
 
@@ -114,10 +116,10 @@ describe('MatchingRealtimeClient', () => {
       />,
     )
 
-    // Wait for /state fetch to be called (after version change triggers it)
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/state'),
-    ), { timeout: 2000 })
+    await act(async () => { await jest.advanceTimersByTimeAsync(50) })
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/state'))
+    expect(screen.getByText('Анна новая')).toBeInTheDocument()
+    expect(refresh).toHaveBeenCalledTimes(1)
   })
 
   it('does not poll while the tab is hidden', async () => {
@@ -152,7 +154,8 @@ describe('MatchingRealtimeClient', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
   })
 
-  it('stops polling once the session is frozen', async () => {
+  it('refreshes server props before stopping once the session is frozen', async () => {
+    jest.useFakeTimers()
     // v1 baseline
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'active', online: ['u1'] }) })
     // v2 frozen
@@ -179,14 +182,12 @@ describe('MatchingRealtimeClient', () => {
       />,
     )
 
-    // Wait for baseline + frozen poll
-    await waitFor(() => {
-      const versionCalls = fetchMock.mock.calls.filter(([url]) => (url as string).includes('/version'))
-      expect(versionCalls.length).toBe(2)
-    })
+    await act(async () => { await jest.advanceTimersByTimeAsync(20) })
+    const versionCalls = fetchMock.mock.calls.filter(([url]) => (url as string).includes('/version'))
+    expect(versionCalls.length).toBe(2)
+    expect(refresh).toHaveBeenCalledTimes(1)
 
-    // Give it time to NOT poll more
-    await new Promise((r) => setTimeout(r, 80))
+    await act(async () => { await jest.advanceTimersByTimeAsync(80) })
     const versionCallsAfter = fetchMock.mock.calls.filter(([url]) => (url as string).includes('/version'))
     expect(versionCallsAfter.length).toBe(2)
   })

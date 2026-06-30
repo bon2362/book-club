@@ -1,8 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import MatchingHeader from './MatchingHeader'
 
+const refresh = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
+
 const base = {
-  sessionId: 'session-safe', sessionName: 'Июльский круг', sessionStatus: 'active',
+  sessionId: 'session-safe', sessionName: 'Июльский круг', sessionStatus: 'active', stateVersion: 7,
   minGroupSize: 3, maxGroupSize: 4, deadlineAt: null,
   viewer: { displayName: 'Анна', role: 'active' as const },
   participants: [
@@ -12,7 +15,7 @@ const base = {
   isAdmin: false, isImpersonating: false,
 }
 
-beforeEach(() => { global.fetch = jest.fn() as unknown as typeof fetch; window.confirm = jest.fn(() => true) })
+beforeEach(() => { global.fetch = jest.fn() as unknown as typeof fetch; window.confirm = jest.fn(() => true); refresh.mockClear() })
 
 test('renders safe session orientation and real-name participant popover', () => {
   render(<MatchingHeader {...base} />)
@@ -34,13 +37,27 @@ test('shows observer identity and hides leave while impersonating', () => {
   expect(screen.queryByRole('button', { name: 'Покинуть' })).toBeNull()
 })
 
-test('confirms leave, calls safe route and navigates to matching', async () => {
+test('confirms leave with the current version and hard-navigates to matching', async () => {
   ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true })
   const navigate = jest.fn()
   render(<MatchingHeader {...base} navigate={navigate} />)
   fireEvent.click(screen.getByRole('button', { name: 'Покинуть' }))
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/matching/sessions/session-safe/leave', { method: 'DELETE' }))
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/matching/sessions/session-safe/leave', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ expectedStateVersion: 7 }),
+  }))
   expect(navigate).toHaveBeenCalledWith('/matching')
+})
+
+test('explains a stale leave conflict and refreshes without navigating', async () => {
+  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: 'stale_version' }) })
+  const navigate = jest.fn()
+  render(<MatchingHeader {...base} navigate={navigate} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Покинуть' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(/сессия изменилась/i)
+  expect(refresh).toHaveBeenCalledTimes(1)
+  expect(navigate).not.toHaveBeenCalled()
 })
 
 test('keeps leave errors visible', async () => {
@@ -52,13 +69,50 @@ test('keeps leave errors visible', async () => {
   expect(navigate).not.toHaveBeenCalled()
 })
 
-test.each([
-  [null, 'Дедлайн не задан'],
-  ['2099-07-03T12:00:00.000Z', /Дедлайн через/],
-  ['2020-01-01T00:00:00.000Z', 'Дедлайн истёк'],
-])('always renders deadline metadata for %s', (deadlineAt, expected) => {
-  render(<MatchingHeader {...base} deadlineAt={deadlineAt} />)
-  expect(screen.getByText(expected)).toBeInTheDocument()
+test('renders robust Russian deadline plurals and expiry states', () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-07-01T00:00:00.000Z'))
+  const { rerender } = render(<MatchingHeader {...base} deadlineAt={null} />)
+  expect(screen.getByText('Дедлайн не задан')).toBeInTheDocument()
+  for (const [days, label] of [[1, '1 день'], [2, '2 дня'], [5, '5 дней'], [11, '11 дней'], [21, '21 день'], [22, '22 дня']] as const) {
+    rerender(<MatchingHeader {...base} deadlineAt={new Date(Date.now() + days * 86_400_000).toISOString()} />)
+    expect(screen.getByText(`Дедлайн через ${label}`)).toBeInTheDocument()
+  }
+  rerender(<MatchingHeader {...base} deadlineAt="2026-06-30T23:59:00.000Z" />)
+  expect(screen.getByText('Дедлайн истёк')).toBeInTheDocument()
+  jest.useRealTimers()
+})
+
+test('updates the deadline label when it expires while mounted', () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-07-01T00:00:30.000Z'))
+  render(<MatchingHeader {...base} deadlineAt="2026-07-01T00:00:45.000Z" />)
+  expect(screen.getByText('Дедлайн через 1 день')).toBeInTheDocument()
+  act(() => { jest.advanceTimersByTime(15_001) })
+  expect(screen.getByText('Дедлайн истёк')).toBeInTheDocument()
+  jest.useRealTimers()
+})
+
+test('participant popover is keyboard accessible and restores trigger focus', async () => {
+  render(<MatchingHeader {...base} />)
+  const trigger = screen.getByRole('button', { name: /участники/i })
+  trigger.focus()
+  fireEvent.keyDown(trigger, { key: 'Enter' })
+  fireEvent.click(trigger)
+  expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  expect(trigger).toHaveAttribute('aria-controls')
+  const dialog = screen.getByRole('dialog', { name: 'Участники' })
+  expect(dialog).toBeInTheDocument()
+  const close = screen.getByRole('button', { name: 'Закрыть список участников' })
+  await waitFor(() => expect(close).toHaveFocus())
+  fireEvent.keyDown(close, { key: 'Tab' })
+  fireEvent.keyDown(dialog, { key: 'Escape' })
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Участники' })).toBeNull())
+  await waitFor(() => expect(trigger).toHaveFocus())
+
+  fireEvent.click(trigger)
+  expect(screen.getByRole('dialog', { name: 'Участники' })).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Закрыть список участников' })).toHaveFocus())
+  fireEvent.pointerDown(document.body, { button: 0, pointerType: 'mouse' })
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Участники' })).toBeNull())
 })
 
 test('admin edits active group size and refreshes the public state', async () => {
