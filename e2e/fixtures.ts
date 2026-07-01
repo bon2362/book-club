@@ -132,6 +132,46 @@ interface AuditCleanupScope {
   trackUser: (userId: string) => void
 }
 
+export async function cleanupTrackedAuditRows(
+  execute: (sql: string, params?: unknown[]) => Promise<Record<string, unknown>[]>,
+  users: string[],
+  sessions: string[],
+): Promise<void> {
+  if (sessions.length === 0 && users.length === 0) return
+  if (users.length > 0) {
+    await execute('delete from "user" where id = any($1::text[])', [users])
+  }
+  await execute(
+    `delete from audit_log
+     where actor_user_id = any($1::text[])
+        or entity_id = any($1::text[])
+        or exists (
+          select 1 from unnest($1::text[]) user_id
+          where audit_log.entity_id like user_id || ':%'
+        )
+        or entity_id = any($2::text[])
+        or coalesce(before->>'session_id', '') = any($2::text[])
+        or coalesce(after->>'session_id', '') = any($2::text[])
+        or exists (
+          select 1 from unnest($2::text[]) session_id
+          where audit_log.entity_id like session_id || ':%'
+        )
+        or exists (
+          select 1
+          from jsonb_each_text(case when jsonb_typeof(before) = 'object' then before else '{}'::jsonb end) ownership(key, value)
+          where (ownership.key = 'user_id' or ownership.key like '%\\_user\\_id' escape '\\' or ownership.key like '%\\_by' escape '\\')
+            and ownership.value = any($1::text[])
+        )
+        or exists (
+          select 1
+          from jsonb_each_text(case when jsonb_typeof(after) = 'object' then after else '{}'::jsonb end) ownership(key, value)
+          where (ownership.key = 'user_id' or ownership.key like '%\\_user\\_id' escape '\\' or ownership.key like '%\\_by' escape '\\')
+            and ownership.value = any($1::text[])
+        )`,
+    [users, sessions],
+  )
+}
+
 interface E2EHelpers {
   /**
    * Raw-SQL helper against the e2e Neon branch (process.env.DATABASE_URL).
@@ -255,26 +295,10 @@ export const test = base.extend<E2EHelpers>({
 
     const sessions = Array.from(sessionIds)
     const users = Array.from(userIds)
-    if (sessions.length === 0 && users.length === 0) return
     // This fixture is a dependency of matching session/board fixtures, so their
-    // own teardown runs first. Remove any separately-created tracked users now;
-    // the trigger rows produced by this delete are then swept below as well.
-    if (users.length > 0) {
-      await dbExec('delete from "user" where id = any($1::text[])', [users])
-    }
-    await dbExec(
-      `delete from audit_log
-       where actor_user_id = any($1::text[])
-          or entity_id = any($1::text[])
-          or entity_id = any($2::text[])
-          or coalesce(before->>'session_id', '') = any($2::text[])
-          or coalesce(after->>'session_id', '') = any($2::text[])
-          or exists (
-            select 1 from unnest($2::text[]) session_id
-            where audit_log.entity_id like session_id || ':%'
-          )`,
-      [users, sessions],
-    )
+    // own teardown runs first. The helper also removes separately-created users
+    // before sweeping the trigger rows produced by those deletes.
+    await cleanupTrackedAuditRows(dbExec, users, sessions)
   },
 
   loginAsUser: async ({ page }, use, testInfo) => {

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, cleanupTrackedAuditRows } from './fixtures'
 import type { APIRequestContext } from '@playwright/test'
 import { epic, feature } from 'allure-js-commons'
 
@@ -31,6 +31,59 @@ async function choose(request: APIRequestContext, sessionId: string, circleKey: 
 test.beforeEach(async () => {
   await epic('Матчинг')
   await feature('Семантическая аналитика и глобальный аудит')
+})
+
+test('audit cleanup удаляет все ссылки на scope после нормального и оборванного setup', async ({ dbExec }) => {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const userId = `__e2e_cleanup_user_${suffix}__`
+  const sessionId = `__e2e_cleanup_session_${suffix}__`
+  const unrelatedId = `__e2e_cleanup_unrelated_${suffix}__`
+  dbExec.registerCleanup('delete from audit_log where id like $1', [`cleanup-${suffix}-%`])
+
+  const insertProbe = async (
+    id: string,
+    entityId: string | null,
+    actorUserId: string | null,
+    before: Record<string, unknown> | null,
+    after: Record<string, unknown> | null,
+  ) => dbExec(
+    `insert into audit_log (id, source, action, entity_type, entity_id, actor_user_id, before, after)
+     values ($1, 'trigger', 'update', 'cleanup_probe', $2, $3, $4::jsonb, $5::jsonb)`,
+    [id, entityId, actorUserId, JSON.stringify(before), JSON.stringify(after)],
+  )
+
+  await insertProbe(`cleanup-${suffix}-actor`, 'separate-entity', userId, null, null)
+  await insertProbe(`cleanup-${suffix}-entity`, userId, null, null, null)
+  await insertProbe(`cleanup-${suffix}-composite-user`, `${userId}:book-1`, null, null, null)
+  await insertProbe(`cleanup-${suffix}-before-user`, 'identity-1', null, { user_id: userId }, null)
+  await insertProbe(`cleanup-${suffix}-after-owner`, 'summary-1', null, null, { author_user_id: userId })
+  await insertProbe(`cleanup-${suffix}-after-by`, 'circle-1', null, null, { dissolved_by: userId })
+  await insertProbe(`cleanup-${suffix}-session`, sessionId, null, null, null)
+  await insertProbe(`cleanup-${suffix}-session-prefix`, `${sessionId}:other`, null, null, null)
+  await insertProbe(`cleanup-${suffix}-before-session`, 'participant-1', null, { session_id: sessionId }, null)
+  await insertProbe(`cleanup-${suffix}-after-session`, 'event-1', null, null, { session_id: sessionId })
+  await insertProbe(unrelatedId, 'unrelated-entity', null, { user_id: 'someone-else' }, null)
+
+  await cleanupTrackedAuditRows(dbExec, [userId], [sessionId])
+
+  const remainingTracked = await dbExec(
+    `select id from audit_log
+     where id like $1 and id <> $2`,
+    [`cleanup-${suffix}-%`, unrelatedId],
+  )
+  expect(remainingTracked).toHaveLength(0)
+  expect(await dbExec('select id from audit_log where id = $1', [unrelatedId])).toHaveLength(1)
+
+  const partialId = `cleanup-${suffix}-partial`
+  try {
+    await insertProbe(partialId, 'partial-identity', null, null, { user_id: userId })
+    throw new Error('simulated partial setup failure')
+  } catch (error) {
+    expect((error as Error).message).toBe('simulated partial setup failure')
+  } finally {
+    await cleanupTrackedAuditRows(dbExec, [userId], [sessionId])
+  }
+  expect(await dbExec('select id from audit_log where id = $1', [partialId])).toHaveLength(0)
 })
 
 test('matching events и audit фиксируют бизнес-изменения, но heartbeat не создаёт шум', async ({
