@@ -47,8 +47,16 @@ for (const key of FORWARDED_KEYS) {
   if (TEST_ENV[key]) forwardedEnv[key] = TEST_ENV[key]
 }
 
-// Sanity warning if someone forgot to set up the isolated DB. Doesn't block
-// the run — `lib/test-mode.ts` will block /api/test/* if markers detect prod.
+// The Playwright worker (fixtures/dbExec) performs raw SQL outside Next's
+// webServer process. Give it the exact same isolated DB contract as the server;
+// the raw-SQL guard still validates every value before constructing a Pool.
+Object.assign(process.env, forwardedEnv, {
+  NEXTAUTH_TEST_MODE: 'true',
+  ...(process.env.CI ? { E2E_ALLOW_PRODUCTION_SERVER: 'true' } : {}),
+})
+
+// Sanity warning if someone forgot to set up the isolated DB. Both the API
+// guard and raw-SQL fixture guard still fail closed before any mutation.
 if (!Object.keys(TEST_ENV).length && !process.env.CI) {
   // eslint-disable-next-line no-console
   console.warn(

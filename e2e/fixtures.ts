@@ -3,6 +3,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless'
 import ws from 'ws'
 import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
+import { createSafeE2EDatabaseClient } from '../lib/e2e-database-guard'
 
 /**
  * Load DATABASE_URL from .env.test.local for use in the Playwright Node.js
@@ -260,10 +261,10 @@ export const test = base.extend<E2EHelpers>({
       neonConfig.webSocketConstructor = ws
     }
     const connectionString = loadTestDatabaseUrl()
-    if (!connectionString) {
-      throw new Error('dbExec fixture: DATABASE_URL not found in process.env or .env.test.local')
-    }
-    const pool = new Pool({ connectionString })
+    const pool = createSafeE2EDatabaseClient(
+      (safeConnectionString) => new Pool({ connectionString: safeConnectionString }),
+      { ...process.env, DATABASE_URL: connectionString },
+    )
     const cleanups: Array<{ sql: string; params?: unknown[] }> = []
 
     const exec = async (sql: string, params?: unknown[]) => {
