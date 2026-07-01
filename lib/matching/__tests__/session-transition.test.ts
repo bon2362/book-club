@@ -74,6 +74,7 @@ class MemoryTransitionStore implements MatchingTransitionStore {
     userId: string
     afterStateVersion: number
     throughStateVersion: number
+    participantRole: 'active' | 'observer'
     outcome: string
     circleKey?: string
   }) {
@@ -87,8 +88,8 @@ class MemoryTransitionStore implements MatchingTransitionStore {
     if (!latest || latest.outcome !== input.outcome || latest.circleKey !== (input.circleKey ?? '')) return false
     const current = this.confirmations.find((item) => item.userId === input.userId)?.circleKey ?? null
     return input.outcome === 'cancel'
-      ? current === null
-      : current === null || current === input.circleKey
+      ? input.participantRole === 'active' && current === null
+      : current === input.circleKey || (current === null && input.participantRole === 'observer')
   }
 
   async upsertConfirmation(_sessionId: string, value: CircleConfirmation) {
@@ -199,6 +200,7 @@ describe('executeMatchingTransition', () => {
     const store = new MemoryTransitionStore()
     store.session.stateVersion = 5
     store.confirmationOutcomes.add('5:set:circle-a')
+    store.roles.set('u1', 'observer')
 
     await expect(executeMatchingTransition({
       sessionId: 's1', actor, expectedStateVersion: 4,
@@ -238,6 +240,30 @@ describe('executeMatchingTransition', () => {
       sessionId: 's1', actor, expectedStateVersion: 4,
       action: { type: 'cancel_confirmation', userId: 'u1' },
     }, store)).resolves.toEqual({ changed: false, stateVersion: 6 })
+  })
+
+  it('does not report a historical confirmation as idempotent after the participant left', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmationOutcomes.add('5:set:circle-a')
+    store.roles.set('u1', 'missing')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' },
+    }, store)).rejects.toMatchObject({ code: 'stale_state' })
+  })
+
+  it.each(['leave', 'admin_remove'])('does not report a historical cancellation as idempotent after %s', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmationOutcomes.add('5:cancel:')
+    store.roles.set('u1', 'missing')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'cancel_confirmation', userId: 'u1' },
+    }, store)).rejects.toMatchObject({ code: 'stale_state' })
   })
 
   it.each([

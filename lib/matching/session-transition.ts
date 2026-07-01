@@ -77,6 +77,7 @@ export interface MatchingTransitionStore {
     userId: string
     afterStateVersion: number
     throughStateVersion: number
+    participantRole: 'active' | 'observer'
     outcome: 'set' | 'cancel'
     circleKey?: string
   }): Promise<boolean>
@@ -289,11 +290,13 @@ export async function executeMatchingTransition(
     if (
       (action.type === 'set_confirmation' || action.type === 'cancel_confirmation')
     ) {
-      if (await store.hasLatestConfirmationOutcome({
+      const participantRole = await store.getParticipantRole(input.sessionId, action.userId)
+      if (participantRole !== 'missing' && await store.hasLatestConfirmationOutcome({
         sessionId: input.sessionId,
         userId: action.userId,
         afterStateVersion: input.expectedStateVersion,
         throughStateVersion: session.stateVersion,
+        participantRole,
         outcome: action.type === 'set_confirmation' ? 'set' : 'cancel',
         circleKey: action.type === 'set_confirmation' ? action.circleKey : undefined,
       })) {

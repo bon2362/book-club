@@ -179,11 +179,12 @@ await page.request.post('/api/test/session', {
 
 ### Изоляция от прод-БД (КРИТИЧНО)
 
-E2E **никогда не пишут в прод-БД**. Три слоя защиты:
+E2E **никогда не пишут в прод-БД**. Четыре слоя защиты:
 
 1. **Отдельная Neon-ветка `e2e`.** Параметры подключения — в `.env.test.local` (см. `.env.test.local.example`). `playwright.config.ts` грузит этот файл и пробрасывает `DATABASE_URL` в `webServer.env`, чтобы Next.js не взял прод-БД из `.env.local`.
 2. **Guard в `lib/test-mode.ts`:** `/api/test/*` возвращает 403, если `DATABASE_URL` содержит `PROD_DB_HOST_MARKER` или НЕ содержит `E2E_REQUIRE_DB_MARKER` (оба маркера — в `.env.test.local`).
-3. **Фикстуры в `e2e/fixtures.ts`:** любая мутация — через фикстуру (`createIntroSection`, `loginAsAdmin`), регистрирующую cleanup в teardown. Cleanup гарантирован даже при падении ассерта.
+3. **Guard прямого SQL в `lib/e2e-database-guard.ts`:** фикстуры с `dbExec` проверяют test mode, оба DB-маркера, PostgreSQL URL и production opt-in **до** создания `Pool`. Поэтому audit cleanup и другой прямой SQL не могут обойти защиту `/api/test/*`.
+4. **Фикстуры в `e2e/fixtures.ts`:** любая мутация — через фикстуру (`createIntroSection`, `loginAsAdmin`), регистрирующую cleanup в teardown. Cleanup гарантирован даже при падении ассерта.
 
 **Правило:** новый тест не редактирует существующие прод-данные — создаёт свои через фикстуру, проверяет, фикстура удаляет. Нужна новая сущность — добавь фикстуру в `e2e/fixtures.ts`, не пиши inline-cleanup в теле теста.
 

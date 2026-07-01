@@ -117,6 +117,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     userId: string
     afterStateVersion: number
     throughStateVersion: number
+    participantRole: 'active' | 'observer'
     outcome: 'set' | 'cancel'
     circleKey?: string
   }): Promise<boolean> {
@@ -160,7 +161,9 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     const currentCircleKey = current[0]?.circleKey ?? null
     if (!latest) return false
     if (input.outcome === 'cancel') {
-      return latest.eventType === 'confirmation_cancelled' && currentCircleKey === null
+      return input.participantRole === 'active' &&
+        latest.eventType === 'confirmation_cancelled' &&
+        currentCircleKey === null
     }
     const latestCircleKey = latest.after && typeof latest.after === 'object' && 'circleKey' in latest.after
       ? latest.after.circleKey
@@ -171,7 +174,9 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       'confirmation_transferred',
     ].includes(latest.eventType)
     return latestIsSet && latestCircleKey === input.circleKey && (
-      currentCircleKey === null || currentCircleKey === input.circleKey
+      currentCircleKey === input.circleKey || (
+        currentCircleKey === null && input.participantRole === 'observer'
+      )
     )
   }
 
