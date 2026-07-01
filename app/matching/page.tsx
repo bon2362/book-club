@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
-import { listNeedsRankingGate } from '@/lib/matching/ranking-readiness'
+import { listCanEnterSession } from '@/lib/matching/ranking-readiness'
 import { fetchMatchingPublicState, PublicMatchingStateError } from '@/lib/matching/public-state-db'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import MatchingAuthGate from '@/components/nd/MatchingAuthGate'
@@ -127,7 +127,7 @@ export default async function MatchingPage({
   const showRankingGate =
     !isImpersonating &&
     currentSession.status === 'active' &&
-    listNeedsRankingGate(personalBooks)
+    !listCanEnterSession(personalBooks)
 
   // Fetch book participants for personal list chips
   const participantRows = await db

@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { CatalogBook } from '@/lib/matching/personal-list'
-import { listHasCompleteActiveRanking } from '@/lib/matching/ranking-readiness'
+import { listHasActiveBook } from '@/lib/matching/ranking-readiness'
 import CoverImage from './CoverImage'
 import MatchingBookDetailModal from './MatchingBookDetailModal'
 import { useMatchingBoard } from './MatchingBoardProvider'
@@ -46,7 +46,9 @@ interface Props {
   mutationUserId?: string
   priorityMutationSource?: 'matching_priority_gate'
   suppressRefresh?: boolean
-  onChange?: (activeRankingComplete: boolean) => void
+  onChange?: (hasActiveBook: boolean) => void
+  onBusyChange?: (busy: boolean) => void
+  commitRef?: React.MutableRefObject<null | (() => Promise<void>)>
   size?: 'compact' | 'large'
   fill?: boolean
   /** Карта displayName → name; задаётся только для админа (#341). Чипы участников книг получают «(Имя)». */
@@ -412,6 +414,8 @@ export default function MatchingPersonalList({
   priorityMutationSource,
   suppressRefresh = false,
   onChange,
+  onBusyChange,
+  commitRef,
   size = 'compact',
   fill = false,
   adminNamesByDisplayName = null,
@@ -476,7 +480,7 @@ export default function MatchingPersonalList({
 
   const notifyOrRefresh = useCallback((list: CatalogBook[]) => {
     if (suppressRefresh) {
-      onChange?.(listHasCompleteActiveRanking(list))
+      onChange?.(listHasActiveBook(list))
       return
     }
     router.refresh()
@@ -486,15 +490,31 @@ export default function MatchingPersonalList({
     const reranked = rerank(newBooks)
     setBooks(reranked)
     signalBusy()
-    await patchPriorities(
-      reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId),
-      mutationUserId,
-      priorityMutationSource,
-    )
-    notifyOrRefresh(reranked)
+    onBusyChange?.(true)
+    try {
+      await patchPriorities(
+        reranked.filter((b) => b.isInList && b.personalStatus === null).map((b) => b.bookId),
+        mutationUserId,
+        priorityMutationSource,
+      )
+      notifyOrRefresh(reranked)
+    } finally {
+      onBusyChange?.(false)
+    }
     return reranked
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutationUserId, priorityMutationSource, notifyOrRefresh])
+  }, [mutationUserId, priorityMutationSource, notifyOrRefresh, onBusyChange])
+
+  // Commit-on-enter (gate phase): expose a way to persist the current in-memory
+  // order without waiting for a drag gesture — needed for the single-book case,
+  // where dnd-kit never fires (see handleDragEnd early return below).
+  if (commitRef) {
+    commitRef.current = async () => {
+      const currentActive = sortActiveBooks(books.filter((b) => b.isInList && b.personalStatus === null))
+      const rest = books.filter((b) => !(b.isInList && b.personalStatus === null))
+      await applyNewOrder([...currentActive, ...rest])
+    }
+  }
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {

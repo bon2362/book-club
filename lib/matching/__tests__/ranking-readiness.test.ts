@@ -1,5 +1,6 @@
 import {
   listCanEnterSession,
+  listHasActiveBook,
   listNeedsRankingGate,
   userNeedsRankingGate,
 } from '../ranking-readiness'
@@ -22,6 +23,44 @@ describe('listCanEnterSession', () => {
       { isInList: false, personalStatus: null, rank: null },
       { isInList: true, personalStatus: 'read', rank: null },
     ])).toBe(true)
+  })
+})
+
+describe('listHasActiveBook', () => {
+  it('is false for an empty list', () => {
+    expect(listHasActiveBook([])).toBe(false)
+  })
+
+  it('is false when books are only reading/read', () => {
+    expect(listHasActiveBook([
+      { isInList: true, personalStatus: 'reading' },
+      { isInList: true, personalStatus: 'read' },
+      { isInList: false, personalStatus: null },
+    ])).toBe(false)
+  })
+
+  it('is true with one active (unranked) book', () => {
+    expect(listHasActiveBook([
+      { isInList: true, personalStatus: null },
+    ])).toBe(true)
+  })
+})
+
+describe('!listCanEnterSession (gate visibility semantics)', () => {
+  it('shows the gate when there are zero active books', () => {
+    expect(!listCanEnterSession([])).toBe(true)
+  })
+
+  it('shows the gate when the single active book has no rank', () => {
+    expect(!listCanEnterSession([
+      { isInList: true, personalStatus: null, rank: null },
+    ])).toBe(true)
+  })
+
+  it('hides the gate once the single active book is ranked', () => {
+    expect(!listCanEnterSession([
+      { isInList: true, personalStatus: null, rank: 1 },
+    ])).toBe(false)
   })
 })
 
