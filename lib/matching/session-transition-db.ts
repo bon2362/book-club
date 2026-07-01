@@ -312,6 +312,15 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
               memberDisplayNames: members.map((member) => member.displayNameSnapshot),
             },
           }],
+          notices: members.map((member) => ({
+            userId: member.userId,
+            kind: 'circle_dissolved',
+            payload: {
+              bookId: circle.bookId,
+              memberDisplayNames: members.map((item) => item.displayNameSnapshot),
+              reason: action.reason,
+            },
+          })),
         }
       }
       case 'freeze': {

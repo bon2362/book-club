@@ -31,6 +31,7 @@ test('renders human messages for each notice kind', () => {
         notice({ id: 'n1', kind: 'confirmation_transferred', payload: { fromMembers: ['Анна', 'Борис'], toMembers: ['Анна', 'Вера'] } }),
         notice({ id: 'n2', kind: 'confirmation_invalidated', payload: { members: ['Анна', 'Глеб'] } }),
         notice({ id: 'n3', kind: 'circle_locked', payload: {} }),
+        notice({ id: 'n4', kind: 'circle_dissolved', payload: {} }),
       ]}
     />,
   )
@@ -38,6 +39,7 @@ test('renders human messages for each notice kind', () => {
   expect(screen.getByText(/Вера/)).toBeInTheDocument()
   expect(screen.getByText(/распал/i)).toBeInTheDocument()
   expect(screen.getByText(/закреплён/i)).toBeInTheDocument()
+  expect(screen.getByText(/администратор распустил круг/i)).toBeInTheDocument()
 })
 
 test('renders safe generic text for notices without name snapshots', () => {

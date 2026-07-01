@@ -33,7 +33,9 @@ test('shows observer identity and hides leave while impersonating', () => {
   const { rerender } = render(<MatchingHeader {...base} viewer={{ displayName: 'Анна', role: 'observer' }} />)
   expect(screen.getByText('Вы наблюдаете')).toBeInTheDocument()
   rerender(<MatchingHeader {...base} isAdmin isImpersonating viewer={{ displayName: 'Анна', role: 'active' }} />)
-  expect(screen.getByTestId('admin-impersonation-banner')).toBeInTheDocument()
+  const banner = screen.getByTestId('admin-impersonation-banner')
+  expect(banner).toBeInTheDocument()
+  expect(banner.getElementsByTagName('a')[0]).toHaveAttribute('href', '/admin?tab=matching')
   expect(screen.queryByRole('button', { name: 'Покинуть' })).toBeNull()
 })
 

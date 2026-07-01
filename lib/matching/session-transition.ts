@@ -63,6 +63,7 @@ export interface MatchingNoticeDraft {
 export type MatchingActionResult = boolean | {
   changed: boolean
   events: Omit<MatchingEventDraft, 'stateVersion'>[]
+  notices?: MatchingNoticeDraft[]
 }
 
 export interface MatchingTransitionStore {
@@ -365,6 +366,9 @@ export async function executeMatchingTransition(
         events.push(...applied.events.map((event) => ({ ...event, stateVersion: nextStateVersion })))
       } else {
         events.push(actionEventDraft(action, nextStateVersion, input.actor.userId))
+      }
+      if (typeof applied !== 'boolean' && applied.notices) {
+        notices.push(...applied.notices)
       }
     }
   }

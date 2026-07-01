@@ -293,6 +293,11 @@ describe('executeMatchingTransition', () => {
         after: { status: 'dissolved' },
         metadata: { circleKey: 'circle-a', reason: 'по просьбе', memberDisplayNames: ['Анна'] },
       }],
+      notices: [{
+        userId: 'u1',
+        kind: 'circle_dissolved',
+        payload: { bookId: 'b1', memberDisplayNames: ['Анна'], reason: 'по просьбе' },
+      }],
     }
 
     await executeMatchingTransition({
@@ -304,6 +309,10 @@ describe('executeMatchingTransition', () => {
       eventType: 'circle_dissolved', bookId: 'b1',
       before: { circleKey: 'circle-a', members: [{ userId: 'u1', displayNameSnapshot: 'Анна' }] },
       metadata: expect.objectContaining({ circleKey: 'circle-a', reason: 'по просьбе' }),
+    }))
+    expect(store.notices).toContainEqual(expect.objectContaining({
+      userId: 'u1', kind: 'circle_dissolved',
+      payload: expect.objectContaining({ reason: 'по просьбе', memberDisplayNames: ['Анна'] }),
     }))
   })
 

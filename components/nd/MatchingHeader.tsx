@@ -118,7 +118,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
 
   const groups = props.minGroupSize === props.maxGroupSize ? `Группы по ${props.minGroupSize}` : `Группы ${props.minGroupSize}–${props.maxGroupSize}`
   return <>
-    {props.isImpersonating && <div data-testid="admin-impersonation-banner" style={{ padding: '0.45rem 1.3rem', borderBottom: '1px solid var(--hair)', color: 'var(--status-warn)' }}>👁 Просмотр за {props.viewer.displayName}<a href="/matching" style={{ float: 'right', color: 'inherit' }}>← выйти из админ-режима</a></div>}
+    {props.isImpersonating && <div data-testid="admin-impersonation-banner" style={{ padding: '0.45rem 1.3rem', borderBottom: '1px solid var(--hair)', color: 'var(--status-warn)' }}>👁 Просмотр за {props.viewer.displayName}<a href="/admin?tab=matching" style={{ float: 'right', color: 'inherit' }}>← вернуться в админку</a></div>}
     <header data-testid="matching-header" style={{ padding: '0.7rem 1.3rem', borderBottom: '1px solid var(--hair)', background: 'var(--bg)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>

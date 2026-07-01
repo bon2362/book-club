@@ -35,6 +35,8 @@ function noticeMessage(notice: MatchingNotice): string {
     }
     case 'circle_locked':
       return 'Круг закреплён — состав собрался полностью.'
+    case 'circle_dissolved':
+      return 'Администратор распустил круг. Все участники снова участвуют в расчётах.'
     default:
       return 'Состояние матчинга обновилось.'
   }
