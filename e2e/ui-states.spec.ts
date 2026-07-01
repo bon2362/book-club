@@ -157,8 +157,9 @@ test.describe('Matching restored board shell', () => {
     createTestBook,
     loginAsUser,
   }) => {
-    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 3 })
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
     const book = await createTestBook({ title: `UI Matching ${test.info().testId}`, author: 'Layout Author' })
+    const registryBook = await createTestBook({ title: `UI Registry ${test.info().testId}`, author: 'Registry Author' })
     await loginAsUser({ name: 'Анна Layout' })
     expect((await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Анна Layout' } })).ok()).toBe(true)
     expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
@@ -171,6 +172,21 @@ test.describe('Matching restored board shell', () => {
     expect((await peer.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Борис Layout' } })).ok()).toBe(true)
     expect((await peer.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
     expect((await peer.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    const registryContexts = await Promise.all([browser.newContext(), browser.newContext()])
+    const registryPages = await Promise.all(registryContexts.map(context => context.newPage()))
+    const registryEmails = [
+      `e2e-ui-registry-a-${Date.now()}@test.invalid`,
+      `e2e-ui-registry-b-${Date.now()}@test.invalid`,
+    ]
+    for (let index = 0; index < registryPages.length; index += 1) {
+      const actor = registryPages[index]
+      const name = `Registry ${index + 1}`
+      expect((await actor.request.post('/api/test/session', { data: { email: registryEmails[index], name, telegramUsername: `registry_${index}` } })).ok()).toBe(true)
+      expect((await actor.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name } })).ok()).toBe(true)
+      expect((await actor.request.post('/api/matching/books', { data: { bookId: registryBook.id } })).ok()).toBe(true)
+      expect((await actor.request.patch('/api/matching/priorities', { data: { bookIds: [registryBook.id] } })).ok()).toBe(true)
+    }
 
     try {
       await page.goto('/matching')
@@ -192,12 +208,20 @@ test.describe('Matching restored board shell', () => {
       expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeGreaterThanOrEqual(0)
       expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeLessThan(48)
 
-      const scrollStyle = await page.getByTestId('matching-scenarios-scroll').evaluate((element) => ({
+      const scenarioScroll = page.getByTestId('matching-scenarios-scroll')
+      const scrollStyle = await scenarioScroll.evaluate((element) => ({
         overflowY: getComputedStyle(element).overflowY,
         clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
       }))
       expect(scrollStyle.overflowY).toBe('auto')
       expect(scrollStyle.clientHeight).toBeGreaterThan(0)
+      expect(scrollStyle.scrollHeight).toBeGreaterThan(scrollStyle.clientHeight)
+
+      const pageScrollBefore = await page.evaluate(() => window.scrollY)
+      await scenarioScroll.evaluate((element) => { element.scrollTop = 160 })
+      await expect.poll(() => scenarioScroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+      expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore)
 
       const fade = workspace.locator(':scope > div[aria-hidden="true"]')
       const fadeBox = await fade.boundingBox()
@@ -260,11 +284,11 @@ test.describe('Matching restored board shell', () => {
         const controls = [
           page.getByRole('link', { name: /каталог/i }),
           header.getByRole('heading', { name: session.name }),
-          header.getByText('Группы 2–3', { exact: true }),
+          header.getByText('Группы по 2', { exact: true }),
           header.getByText('Дедлайн не задан', { exact: true }),
           header.getByText('● активна', { exact: true }),
           header.getByText(/Вы —/),
-          header.getByRole('button', { name: /участники: 2/i }),
+          header.getByRole('button', { name: /участники: 4/i }),
           header.getByRole('button', { name: 'Покинуть' }),
         ]
         for (const control of controls) {
@@ -278,7 +302,7 @@ test.describe('Matching restored board shell', () => {
         const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
         expect(horizontalOverflow, `${viewport.label}: page has no accidental horizontal overflow`).toBeLessThanOrEqual(1)
 
-        await header.getByRole('button', { name: /участники: 2/i }).click()
+        await header.getByRole('button', { name: /участники: 4/i }).click()
         const popover = page.getByRole('dialog', { name: 'Участники' })
         await expect(popover).toBeVisible()
         const popoverBox = await popover.boundingBox()
@@ -315,6 +339,13 @@ test.describe('Matching restored board shell', () => {
       const peerCircle = peerState.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
       expect((await peer.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: peerCircle.circleKey, expectedStateVersion: peerState.session.stateVersion } })).ok()).toBe(true)
 
+      for (const actor of registryPages) {
+        const state = await (await actor.request.get(`/api/matching/state?session=${session.id}`)).json() as typeof firstState
+        const circle = state.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
+        expect(circle).toBeDefined()
+        expect((await actor.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: circle.circleKey, expectedStateVersion: state.session.stateVersion } })).ok()).toBe(true)
+      }
+
       await page.reload()
       const observerWorkspace = await page.getByTestId('matching-scenarios-workspace').boundingBox()
       const ownCircle = page.getByTestId('matching-own-locked-circle')
@@ -322,13 +353,22 @@ test.describe('Matching restored board shell', () => {
       expect(observerWorkspace).not.toBeNull()
       expect(Math.abs(observerWorkspace!.width - activeDesktopWorkspace!.width)).toBeLessThanOrEqual(1)
       const ownBox = await ownCircle.boundingBox()
+      const registry = page.getByTestId('matching-locked-registry')
+      await expect(registry).toBeVisible()
+      const registryBox = await registry.boundingBox()
       const liveScenariosBox = await page.getByTestId('matching-scenarios-empty').boundingBox()
       expect(ownBox).not.toBeNull()
+      expect(registryBox).not.toBeNull()
       expect(liveScenariosBox).not.toBeNull()
-      expect(ownBox!.y + ownBox!.height).toBeLessThanOrEqual(liveScenariosBox!.y)
+      expect(ownBox!.y + ownBox!.height).toBeLessThanOrEqual(registryBox!.y)
+      expect(registryBox!.y + registryBox!.height).toBeLessThanOrEqual(liveScenariosBox!.y)
     } finally {
       await peer.request.delete('/api/test/session', { data: { email: peerEmail } }).catch(() => {})
       await peerContext.close()
+      for (let index = 0; index < registryPages.length; index += 1) {
+        await registryPages[index].request.delete('/api/test/session', { data: { email: registryEmails[index] } }).catch(() => {})
+      }
+      await Promise.all(registryContexts.map(context => context.close()))
     }
   })
 
