@@ -406,52 +406,54 @@ export const test = base.extend<E2EHelpers>({
   },
 
   matchingBoardFixture: async ({ browser, createMatchingSession, createTestBook }, use, testInfo) => {
-    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
-    const books: [TestBook, TestBook] = [
-      await createTestBook({ title: `E2E Первый круг ${testInfo.testId}`, author: 'Автор первого круга' }),
-      await createTestBook({ title: `E2E Второй круг ${testInfo.testId}`, author: 'Автор второго круга' }),
-    ]
     const contexts: BrowserContext[] = []
-    const participants: MatchingBoardParticipant[] = []
+    const createdUsers: Array<{ page: Page; email: string }> = []
 
-    async function createParticipant(label: string, name: string, rankedBooks: TestBook[] = books): Promise<MatchingBoardParticipant> {
-      const context = await browser.newContext()
-      contexts.push(context)
-      for (const pattern of POSTHOG_PATTERNS) await context.route(pattern, (route) => route.abort())
-      const page = await context.newPage()
-      const email = `e2e-${testInfo.testId}-${label}-${Date.now()}@test.invalid`
-      const login = await page.request.post('/api/test/session', {
-        data: { email, name, isAdmin: false, telegramUsername: `matching_${label.toLowerCase()}_${Date.now()}` },
-      })
-      if (!login.ok()) throw new Error(`matchingBoardFixture login failed: ${login.status()} ${await login.text()}`)
-      const { userId } = await login.json() as { userId: string }
-      const join = await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name } })
-      if (!join.ok()) throw new Error(`matchingBoardFixture join failed: ${join.status()} ${await join.text()}`)
-      for (const book of rankedBooks) {
-        const add = await page.request.post('/api/matching/books', { data: { bookId: book.id } })
-        if (!add.ok()) throw new Error(`matchingBoardFixture add failed: ${add.status()} ${await add.text()}`)
+    try {
+      const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+      const books: [TestBook, TestBook] = [
+        await createTestBook({ title: `E2E Первый круг ${testInfo.testId}`, author: 'Автор первого круга' }),
+        await createTestBook({ title: `E2E Второй круг ${testInfo.testId}`, author: 'Автор второго круга' }),
+      ]
+
+      const createParticipant = async (label: string, name: string, rankedBooks: TestBook[] = books): Promise<MatchingBoardParticipant> => {
+        const context = await browser.newContext()
+        contexts.push(context)
+        for (const pattern of POSTHOG_PATTERNS) await context.route(pattern, (route) => route.abort())
+        const page = await context.newPage()
+        const email = `e2e-${testInfo.testId}-${label}-${Date.now()}@test.invalid`
+        const login = await page.request.post('/api/test/session', {
+          data: { email, name, isAdmin: false, telegramUsername: `matching_${label.toLowerCase()}_${Date.now()}` },
+        })
+        if (!login.ok()) throw new Error(`matchingBoardFixture login failed: ${login.status()} ${await login.text()}`)
+        // Register cleanup immediately after the user exists: join/add/rank may fail.
+        createdUsers.push({ page, email })
+        const { userId } = await login.json() as { userId: string }
+        const join = await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name } })
+        if (!join.ok()) throw new Error(`matchingBoardFixture join failed: ${join.status()} ${await join.text()}`)
+        for (const book of rankedBooks) {
+          const add = await page.request.post('/api/matching/books', { data: { bookId: book.id } })
+          if (!add.ok()) throw new Error(`matchingBoardFixture add failed: ${add.status()} ${await add.text()}`)
+        }
+        const rank = await page.request.patch('/api/matching/priorities', { data: { bookIds: rankedBooks.map((book) => book.id) } })
+        if (!rank.ok()) throw new Error(`matchingBoardFixture rank failed: ${rank.status()} ${await rank.text()}`)
+        return { email, name, userId, context, page }
       }
-      const rank = await page.request.patch('/api/matching/priorities', { data: { bookIds: rankedBooks.map((book) => book.id) } })
-      if (!rank.ok()) throw new Error(`matchingBoardFixture rank failed: ${rank.status()} ${await rank.text()}`)
-      const participant = { email, name, userId, context, page }
-      participants.push(participant)
-      return participant
+
+      const participantA = await createParticipant('A', 'Анна E2E')
+      const participantB = await createParticipant('B', 'Борис E2E')
+      let extraParticipantIndex = 0
+      const addParticipant = (name: string, rankedBooks?: TestBook[]) => (
+        createParticipant(`extra-${extraParticipantIndex++}`, name, rankedBooks)
+      )
+
+      await use({ session, books, participantA, participantB, addParticipant })
+    } finally {
+      for (const user of createdUsers.reverse()) {
+        try { await user.page.request.delete('/api/test/session', { data: { email: user.email } }) } catch { /* best effort */ }
+      }
+      for (const context of contexts.reverse()) await context.close().catch(() => {})
     }
-
-    const participantA = await createParticipant('A', 'Анна E2E')
-    const participantB = await createParticipant('B', 'Борис E2E')
-
-    let extraParticipantIndex = 0
-    const addParticipant = (name: string, rankedBooks?: TestBook[]) => (
-      createParticipant(`extra-${extraParticipantIndex++}`, name, rankedBooks)
-    )
-
-    await use({ session, books, participantA, participantB, addParticipant })
-
-    for (const participant of participants.reverse()) {
-      try { await participant.page.request.delete('/api/test/session', { data: { email: participant.email } }) } catch { /* best effort */ }
-    }
-    for (const context of contexts.reverse()) await context.close().catch(() => {})
   },
 })
 

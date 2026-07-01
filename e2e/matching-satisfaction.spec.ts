@@ -44,7 +44,7 @@ test('ранжированная доска показывает шапку, с�
 
   const circle = page.getByTestId('matching-circle').filter({ hasText: books[0].title }).first()
   await expect(circle.getByLabel(`Обложка: ${books[0].title}`)).toBeVisible()
-  await circle.getByRole('button', { name: books[0].title, exact: true }).click()
+  await circle.getByRole('button', { name: `Открыть книгу «${books[0].title}»` }).click()
   const popup = page.getByRole('dialog')
   await expect(popup).toContainText(books[0].author)
   await popup.getByRole('button', { name: /закрыть/i }).click()
@@ -246,8 +246,10 @@ test('Welcome раскрывает реальные имена и сохраня
 
   await page.goto('/matching')
   await expect(page.getByText(/реальные имена видны всем участникам/i)).toBeVisible()
+  await expect(page.getByText(/составить группы и общаться через Telegram/i)).toBeVisible()
   await expect(page.getByTestId('welcome-name-input')).toHaveValue('Старое имя')
-  await expect(page.getByText(/telegram/i)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /написать в Telegram/i })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /написать в Telegram/i })).toHaveCount(0)
 
   await page.getByTestId('welcome-name-input').fill('Новое имя')
   await page.getByTestId('welcome-join-button').click()
@@ -264,14 +266,16 @@ test('Welcome раскрывает реальные имена и сохраня
   expect(((await me.json()) as { user: { name: string } }).user.name).toBe('Новое имя')
 })
 
-test('Ranking Gate появляется только для активной книги без ранга и исчезает после reload', async ({
+test('Welcome → Ranking Gate → UI-ранжирование → доска сохраняют порядок после reload', async ({
   page,
   createMatchingSession,
   createTestBook,
   loginAsUser,
 }) => {
+  test.setTimeout(90_000)
   const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
-  const book = await createTestBook({ title: `E2E Gate ${test.info().testId}`, author: 'Gate Author' })
+  const bookA = await createTestBook({ title: `E2E Gate A ${test.info().testId}`, author: 'Gate Author' })
+  const bookB = await createTestBook({ title: `E2E Gate B ${test.info().testId}`, author: 'Gate Author' })
   const user = await loginAsUser({ name: 'Читатель Gate' })
   expect((await page.request.post('/api/test/signup', {
     data: {
@@ -279,22 +283,59 @@ test('Ranking Gate появляется только для активной к�
       name: user.name,
       email: user.email,
       contacts: '',
-      selectedBookIds: [book.id],
+      selectedBookIds: [bookA.id, bookB.id],
     },
   })).ok()).toBe(true)
 
   await page.goto('/matching')
+  await page.waitForLoadState('networkidle')
   await expect(page.getByTestId('welcome-name-input')).toHaveValue('Читатель Gate')
+  const joinResponse = page.waitForResponse((response) => (
+    response.request().method() === 'POST' && response.url().endsWith(`/api/matching/sessions/${session.id}/join`)
+  ))
   await page.getByTestId('welcome-join-button').click()
-  await expect(page.getByTestId('ranking-gate')).toBeVisible()
+  expect((await joinResponse).ok()).toBe(true)
+  await expect(page.getByTestId('ranking-gate')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByTestId('matching-realtime-client')).toHaveCount(0)
+  await page.waitForLoadState('networkidle')
+  const enter = page.getByTestId('ranking-gate-enter')
+  await expect(enter).toBeDisabled()
 
-  expect((await page.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
-  await page.reload()
+  const rankResponse = page.waitForResponse((response) => (
+    response.request().method() === 'PATCH' && response.url().includes('/api/matching/priorities')
+  ))
+  const firstHandle = page.getByLabel(`Перетащить книгу ${bookA.title}`)
+  const secondHandle = page.getByLabel(`Перетащить книгу ${bookB.title}`)
+  const source = await firstHandle.boundingBox()
+  const target = await secondHandle.boundingBox()
+  expect(source).not.toBeNull()
+  expect(target).not.toBeNull()
+  await page.mouse.move(source!.x + source!.width / 2, source!.y + source!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(source!.x + source!.width / 2 + 8, source!.y + source!.height / 2 + 8, { steps: 3 })
+  await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 12 })
+  await page.mouse.up()
+  expect((await rankResponse).ok()).toBe(true)
+  await expect(page.getByTestId('dnd-announcement')).toContainText(`${bookA.title} перемещена на позицию 2`)
+
+  const rankedRows = page.getByTestId('pl-books-ul').locator(':scope > li')
+  await expect(rankedRows).toHaveCount(2)
+  await expect(rankedRows.nth(0)).toContainText(bookB.title)
+  await expect(rankedRows.nth(0)).toContainText('#1')
+  await expect(rankedRows.nth(1)).toContainText(bookA.title)
+  await expect(rankedRows.nth(1)).toContainText('#2')
+  await expect(enter).toBeEnabled()
+
+  await enter.click()
   await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
   await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
   await page.reload()
   await expect(page.getByTestId('matching-header')).toContainText('Читатель Gate')
+  const persistedRows = page.getByTestId('pl-books-ul').locator(':scope > li')
+  await expect(persistedRows.nth(0)).toContainText(bookB.title)
+  await expect(persistedRows.nth(0)).toContainText('#1')
+  await expect(persistedRows.nth(1)).toContainText(bookA.title)
+  await expect(persistedRows.nth(1)).toContainText('#2')
 })
 
 test('выход из сессии делает hard navigation и остаётся Welcome после reload', async ({
