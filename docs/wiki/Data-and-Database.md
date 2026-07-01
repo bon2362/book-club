@@ -159,7 +159,7 @@ erDiagram
 | `telegram_preauth_tokens` | Короткоживущие токены Telegram-входа. | Нужны для безопасного Telegram redirect flow. |
 | `matching_sessions` | Matching-сессии: статус, размеры групп, `state_version`, freeze snapshot. | Координирует транзакционные пересчёты. |
 | `matching_session_participants` | Участники, непрозрачный public ref, presence и источник self/admin. | Сохраняет доступ и для observer после закрепления. |
-| `matching_circle_confirmations` | Одно временное подтверждение книги и точного состава на пользователя. | Позволяет собрать единогласие и безопасно перенести выбор. |
+| `matching_circle_confirmations` | Одно временное подтверждение книги и точного состава на пользователя. | Позволяет собрать единогласие, атомарно переключить и перенести выбор на круг той же книги. |
 | `matching_locked_circles` / `matching_locked_circle_members` | Закреплённые или распущенные круги и их состав. | Неизменяемый участниками результат; dissolve освобождает весь состав. |
 | `matching_notices` | Durable-сообщения о переносе, сбросе и закреплении. | Уведомление переживает закрытую страницу. |
 | `matching_events` | Смысловой журнал matching с actor/subject, before/after и снимками имён. | Источник админской аналитики изменений предпочтений. |
@@ -229,4 +229,4 @@ erDiagram
 
 `user.last_activity_at` и `user_activity_events`.
 
-Если нужно понять matching, смотреть связку `matching_session_participants` → `matching_circle_confirmations` → `matching_locked_circles`, а историю решения — в `matching_events`. Legacy matching-колонки и две прежние таблицы временно остаются nullable и не используются runtime; они удаляются отдельной Phase B миграцией после production smoke-check.
+Если нужно понять matching, смотреть связку `matching_session_participants` → `matching_circle_confirmations` → `matching_locked_circles`, а историю решения — в `matching_events`. Legacy matching-колонки и две прежние таблицы уже удалены миграцией `0050`; прежний runtime доступен только по git-тегу.

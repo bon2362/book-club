@@ -51,7 +51,10 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET | `/api/matching/state?session={id}` | Public state с реальными display names, сценариями, подтверждениями, закреплёнными кругами и notices; без raw `userId`. |
 | GET | `/api/matching/version?session={id}` | Лёгкий polling версии, статуса и online refs. |
 | POST | `/api/matching/sessions/{id}/join` | Сохранить глобальное имя и вступить в сессию после disclosure. |
+| DELETE | `/api/matching/sessions/{id}/leave` | Покинуть сессию до закрепления; требует актуальную версию. |
 | PUT/DELETE | `/api/matching/sessions/{id}/confirmation` | Подтвердить/переключить либо отменить выбранный круг. |
+| POST/DELETE | `/api/matching/books`, `/api/matching/books/{bookId}` | Изменить активные книги и транзакционно пересчитать matching. |
+| PATCH | `/api/matching/priorities` | Сохранить ранги книг и транзакционно пересчитать matching. |
 | POST | `/api/matching/notices/{id}/ack` | Пометить персональное matching-уведомление прочитанным. |
 
 ## Основные admin endpoints
@@ -67,6 +70,8 @@ API проекта описан в OpenAPI-файле и доступен чер
 | GET | `/api/admin/matching/preference-events` | Аналитика matching из смыслового журнала `matching_events`. |
 | GET | `/api/admin/matching/sessions/{id}/locked-circles` | Реестр закреплённых и распущенных кругов с сохранённым составом. |
 | POST | `/api/admin/matching/sessions/{id}/circles/{circleId}/dissolve` | Аварийно распустить закреплённый круг целиком; требуется причина. |
+| GET/POST | `/api/admin/matching/sessions/{id}/participants` | Получить роли/online или принудительно добавить участника. |
+| DELETE | `/api/admin/matching/sessions/{id}/participants/{userId}` | Удалить активного участника. |
 | GET | `/api/admin/feedback` | Фидбек-сообщения. |
 | GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |
 | GET/PATCH/POST | `/api/admin/summaries` | Модерация саммари участников: список, правка, публикация, отклонение. |

@@ -820,6 +820,32 @@
         },
         "required": ["id", "kind", "payload", "createdAt"]
       },
+      "MatchingFrozenSnapshot": {
+        "type": "object",
+        "description": "Безопасная participant-facing часть frozen snapshot; raw userId отсутствует.",
+        "properties": {
+          "remainingLeader": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "circles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "circleKey": { "type": "string" },
+                    "bookId": { "type": "string" },
+                    "memberRefs": { "type": "array", "items": { "type": "string" } }
+                  },
+                  "required": ["circleKey", "bookId", "memberRefs"]
+                }
+              }
+            },
+            "required": ["circles"]
+          }
+        },
+        "required": ["remainingLeader"]
+      },
       "MatchingPublicState": {
         "type": "object",
         "properties": {
@@ -832,7 +858,7 @@
               "minGroupSize": { "type": "integer" },
               "maxGroupSize": { "type": "integer" },
               "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
-              "frozenSnapshot": { "type": "object", "nullable": true }
+              "frozenSnapshot": { "allOf": [{ "$ref": "#/components/schemas/MatchingFrozenSnapshot" }], "nullable": true }
             },
             "required": ["name", "status", "stateVersion", "minGroupSize", "maxGroupSize", "deadlineAt", "frozenSnapshot"]
           },
@@ -896,6 +922,7 @@
           "stateVersion": { "type": "integer" },
           "changed": { "type": "boolean" }
         },
+        "required": ["stateVersion", "changed"],
         "additionalProperties": true
       },
       "BookSummary": {
@@ -2058,6 +2085,35 @@
         }
       }
     },
+    "/api/matching/sessions": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Получить matching-сессии",
+        "security": [{ "sessionCookie": [] }],
+        "responses": { "200": { "description": "Список сессий" }, "403": { "description": "Forbidden" } }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Создать active matching-сессию",
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "minGroupSize": { "type": "integer", "minimum": 2, "maximum": 10, "default": 3 },
+            "maxGroupSize": { "type": "integer", "minimum": 2, "maximum": 10 },
+            "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true }
+          },
+          "required": ["name"]
+        } } } },
+        "responses": {
+          "201": { "description": "Сессия создана" },
+          "400": { "description": "Invalid name, group size or deadline" },
+          "403": { "description": "Forbidden" },
+          "409": { "description": "An active session already exists" }
+        }
+      }
+    },
     "/api/matching/state": {
       "get": {
         "tags": ["Auth"],
@@ -2123,6 +2179,26 @@
         }
       }
     },
+    "/api/matching/sessions/{id}/leave": {
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Покинуть matching-сессию",
+        "description": "Доступно только active-участнику. Закреплённый observer не может покинуть круг самостоятельно.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": { "expectedStateVersion": { "type": "integer", "minimum": 0 } },
+          "required": ["expectedStateVersion"]
+        } } } },
+        "responses": {
+          "200": { "description": "Участник вышел; сценарии и подтверждения согласованы", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "400": { "description": "expectedStateVersion required" },
+          "401": { "description": "Unauthorized" },
+          "409": { "description": "Версия устарела или выход запрещён для observer" }
+        }
+      }
+    },
     "/api/matching/sessions/{id}/confirmation": {
       "put": {
         "tags": ["Auth"],
@@ -2151,6 +2227,81 @@
         }
       }
     },
+    "/api/matching/books": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Добавить книгу в matching",
+        "description": "Добавляет активную запись и запускает транзакционный пересчёт; admin может передать query-параметр as.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "as", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Только admin" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": {
+            "bookId": { "type": "string" }
+          },
+          "required": ["bookId"]
+        } } } },
+        "responses": {
+          "200": { "description": "Книга добавлена", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "400": { "description": "bookId required" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden impersonation" },
+          "404": { "description": "No active session" },
+          "409": { "description": "Matching transition conflict" }
+        }
+      }
+    },
+    "/api/matching/books/{bookId}": {
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Убрать книгу из matching",
+        "description": "Деактивирует запись и запускает перенос либо сброс временного подтверждения.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "bookId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "as", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Только admin" }
+        ],
+        "responses": {
+          "200": { "description": "Книга убрана", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden impersonation" },
+          "404": { "description": "No active session" },
+          "409": { "description": "Matching transition conflict" }
+        }
+      }
+    },
+    "/api/matching/priorities": {
+      "patch": {
+        "tags": ["Auth"],
+        "summary": "Сохранить порядок книг matching",
+        "description": "Присваивает канонические ранги и запускает reconciliation; admin может передать query-параметр as.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "as", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Только admin" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": {
+            "bookIds": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+          },
+          "required": ["bookIds"]
+        } } } },
+        "responses": {
+          "200": { "description": "Канонические ранги", "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": { "ranks": { "type": "array", "items": {
+              "type": "object",
+              "properties": { "bookId": { "type": "string" }, "rank": { "type": "integer" } },
+              "required": ["bookId", "rank"]
+            } } },
+            "required": ["ranks"]
+          } } } },
+          "400": { "description": "bookIds must be a non-empty string array" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden impersonation" },
+          "404": { "description": "No active session" },
+          "409": { "description": "Matching transition conflict" }
+        }
+      }
+    },
     "/api/matching/notices/{id}/ack": {
       "post": {
         "tags": ["Auth"],
@@ -2160,6 +2311,85 @@
         "responses": {
           "200": { "description": "Прочитано", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ok" } } } },
           "404": { "description": "Notice not found" }
+        }
+      }
+    },
+    "/api/matching/sessions/{id}/freeze": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Заморозить matching-сессию",
+        "description": "Сохраняет итоговый snapshot и запрещает последующие доменные изменения.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Сессия заморожена", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "403": { "description": "Forbidden" },
+          "409": { "description": "Session conflict" }
+        }
+      }
+    },
+    "/api/matching/sessions/{id}": {
+      "patch": {
+        "tags": ["Admin"],
+        "summary": "Изменить диапазон размера кругов",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": {
+            "minGroupSize": { "type": "integer", "minimum": 2, "maximum": 10 },
+            "maxGroupSize": { "type": "integer", "minimum": 2, "maximum": 10 }
+          },
+          "required": ["minGroupSize", "maxGroupSize"]
+        } } } },
+        "responses": {
+          "200": { "description": "Размеры сохранены и сценарии пересчитаны" },
+          "400": { "description": "Invalid group size range" },
+          "403": { "description": "Forbidden" },
+          "409": { "description": "Session conflict" }
+        }
+      }
+    },
+    "/api/admin/matching/sessions/{id}/participants": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Получить участников matching-сессии",
+        "description": "Возвращает реальные имена, joinSource, active/observer и отдельный список online public refs.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Участники и presence" }, "403": { "description": "Forbidden" } }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Принудительно добавить участника",
+        "description": "Тестовый/операционный путь, который обходит пользовательский Welcome disclosure и помечает joinSource=admin.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "properties": { "userId": { "type": "string" } }, "required": ["userId"]
+        } } } },
+        "responses": {
+          "201": { "description": "Участник добавлен" },
+          "400": { "description": "userId required" },
+          "403": { "description": "Forbidden" },
+          "409": { "description": "Session transition conflict" }
+        }
+      }
+    },
+    "/api/admin/matching/sessions/{id}/participants/{userId}": {
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Удалить активного участника",
+        "description": "Observer необратим для участника; закреплённый круг сначала распускают целиком отдельным аварийным действием.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Участник удалён" },
+          "403": { "description": "Forbidden" },
+          "409": { "description": "Session transition conflict" }
         }
       }
     },
