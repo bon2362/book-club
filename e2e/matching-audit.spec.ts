@@ -37,11 +37,13 @@ test('matching events и audit фиксируют бизнес-изменени�
   matchingBoardFixture,
   loginAsAdmin,
   dbExec,
+  auditCleanup,
   page,
 }) => {
   test.setTimeout(120_000)
   const { session, books, participantA, participantB, addParticipant } = matchingBoardFixture
   const admin = await loginAsAdmin({ name: 'Аудитор E2E' })
+  auditCleanup.trackUser(admin.userId)
   const participantC = await addParticipant('Вера E2E', [books[0]])
 
   const rename = await participantA.page.request.post(`/api/matching/sessions/${session.id}/join`, {
@@ -113,6 +115,42 @@ test('matching events и audit фиксируют бизнес-изменени�
     'confirmation_cancelled', 'confirmation_switched', 'confirmation_transferred',
     'circle_locked', 'circle_dissolved', 'freeze',
   ]))
+  const event = (eventType: string, actorUserId: string) => analytics.events.find((item) => (
+    item.eventType === eventType && item.actorUserId === actorUserId
+  ))
+  expect(event('self_join', participantA.userId)).toMatchObject({
+    source: 'matching', actorNameSnapshot: participantA.name,
+  })
+  expect(event('welcome_name_changed', participantA.userId)).toMatchObject({
+    source: 'matching',
+    before: { name: participantA.name },
+    after: { name: 'Анна Новая E2E' },
+  })
+  expect(event('confirmation_created', participantA.userId)).toMatchObject({
+    source: 'matching', before: null,
+    after: expect.objectContaining({ circleKey: expect.any(String), memberUserIds: expect.any(Array) }),
+  })
+  expect(event('confirmation_cancelled', participantA.userId)).toMatchObject({
+    source: 'matching',
+    before: expect.objectContaining({ circleKey: expect.any(String), memberUserIds: expect.any(Array) }),
+    after: null,
+  })
+  expect(event('confirmation_switched', participantA.userId)).toMatchObject({
+    source: 'matching',
+    before: expect.objectContaining({ circleKey: expect.any(String) }),
+    after: expect.objectContaining({ circleKey: expect.any(String) }),
+  })
+  expect(event('confirmation_transferred', participantB.userId)).toMatchObject({
+    source: 'matching',
+    before: expect.objectContaining({ circleKey: expect.any(String), memberUserIds: expect.any(Array) }),
+    after: expect.objectContaining({ circleKey: expect.any(String), memberUserIds: expect.any(Array) }),
+    metadata: expect.objectContaining({ automatic: true }),
+  })
+  expect(event('circle_locked', participantC.userId)).toMatchObject({
+    source: 'matching',
+    after: expect.objectContaining({ circleKey: expect.any(String), memberUserIds: expect.any(Array) }),
+    metadata: expect.objectContaining({ automatic: true }),
+  })
   const dissolvedEvent = analytics.events.find((event) => event.eventType === 'circle_dissolved')
   expect(dissolvedEvent).toMatchObject({
     source: 'admin',
@@ -126,6 +164,7 @@ test('matching events и audit фиксируют бизнес-изменени�
       expect.objectContaining({ displayNameSnapshot: participantC.name }),
     ]),
   }))
+  expect(event('freeze', admin.userId)).toMatchObject({ source: 'admin' })
 
   const userAuditResponse = await page.request.get(
     `/api/admin/audit-log?entityType=user&entityId=${participantA.userId}&pageSize=200`,
@@ -162,8 +201,46 @@ test('matching events и audit фиксируют бизнес-изменени�
     expect.objectContaining({ entityType: 'matching_sessions', source: 'admin', actorUserId: admin.userId }),
   ]))
 
-  const auditIds = [...userAudit.events, ...matchingAudit.events].map((event) => event.id)
-  if (auditIds.length > 0) dbExec.registerCleanup('delete from audit_log where id = any($1::text[])', [auditIds])
+  type AuditEvent = {
+    entityType: string
+    action: string
+    source: string
+    actorUserId: string | null
+    before: Record<string, unknown> | null
+    after: Record<string, unknown> | null
+    changedFields: string[]
+  }
+  async function actorAudit(actorUserId: string): Promise<AuditEvent[]> {
+    const response = await page.request.get(`/api/admin/audit-log?actorUserId=${actorUserId}&pageSize=200`)
+    expect(response.ok()).toBe(true)
+    return ((await response.json()) as { events: AuditEvent[] }).events
+      .filter((row) => row.entityType.startsWith('matching_'))
+  }
+
+  const participantAAudit = await actorAudit(participantA.userId)
+  const confirmationAudit = participantAAudit.filter((row) => row.entityType === 'matching_circle_confirmations')
+  expect(confirmationAudit).toEqual(expect.arrayContaining([
+    expect.objectContaining({ action: 'insert', source: 'matching', actorUserId: participantA.userId, before: null, after: expect.objectContaining({ user_id: participantA.userId }) }),
+    expect.objectContaining({ action: 'delete', source: 'matching', actorUserId: participantA.userId, before: expect.objectContaining({ user_id: participantA.userId }), after: null }),
+    expect.objectContaining({ action: 'update', source: 'matching', actorUserId: participantA.userId, before: expect.objectContaining({ circle_key: expect.any(String) }), after: expect.objectContaining({ circle_key: expect.any(String) }) }),
+  ]))
+
+  const participantBAudit = await actorAudit(participantB.userId)
+  const transferAudit = participantBAudit.find((row) => (
+    row.entityType === 'matching_circle_confirmations' && row.action === 'update' &&
+    row.before?.user_id === participantA.userId && row.before?.circle_key !== row.after?.circle_key
+  ))
+  expect(transferAudit).toMatchObject({ source: 'matching', actorUserId: participantB.userId })
+  expect(transferAudit?.before).toEqual(expect.objectContaining({ member_user_ids_json: expect.any(Array) }))
+  expect(transferAudit?.after).toEqual(expect.objectContaining({ member_user_ids_json: expect.any(Array) }))
+
+  const participantCAudit = await actorAudit(participantC.userId)
+  expect(participantCAudit).toEqual(expect.arrayContaining([
+    expect.objectContaining({ entityType: 'matching_locked_circles', action: 'insert', source: 'matching', actorUserId: participantC.userId, before: null, after: expect.objectContaining({ session_id: session.id, book_id: books[0].id }) }),
+    expect.objectContaining({ entityType: 'matching_locked_circle_members', action: 'insert', source: 'matching', actorUserId: participantC.userId, before: null, after: expect.objectContaining({ session_id: session.id }) }),
+    expect.objectContaining({ entityType: 'matching_circle_confirmations', action: 'delete', source: 'matching', actorUserId: participantC.userId, after: null }),
+  ]))
+  expect([...participantAAudit, ...participantBAudit, ...participantCAudit].some((row) => row.source === 'trigger')).toBe(false)
 
   const beforeHeartbeat = await dbExec(
     `select count(*)::int as count from audit_log

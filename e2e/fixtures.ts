@@ -127,6 +127,11 @@ interface DbExecHelper {
   registerCleanup: (cleanupSql: string, params?: unknown[]) => void
 }
 
+interface AuditCleanupScope {
+  trackSession: (sessionId: string) => void
+  trackUser: (userId: string) => void
+}
+
 interface E2EHelpers {
   /**
    * Raw-SQL helper against the e2e Neon branch (process.env.DATABASE_URL).
@@ -134,6 +139,8 @@ interface E2EHelpers {
    * `dbExec.registerCleanup(sql, params)`.
    */
   dbExec: DbExecHelper
+  /** Remove every audit row associated with tracked E2E sessions/users after dependent fixture teardown. */
+  auditCleanup: AuditCleanupScope
 
   /**
    * Log in as a regular user with a unique email derived from the test id.
@@ -236,6 +243,38 @@ export const test = base.extend<E2EHelpers>({
       } catch { /* best-effort */ }
     }
     await pool.end()
+  },
+
+  auditCleanup: async ({ dbExec }, use) => {
+    const sessionIds = new Set<string>()
+    const userIds = new Set<string>()
+    await use({
+      trackSession: (sessionId) => sessionIds.add(sessionId),
+      trackUser: (userId) => userIds.add(userId),
+    })
+
+    const sessions = Array.from(sessionIds)
+    const users = Array.from(userIds)
+    if (sessions.length === 0 && users.length === 0) return
+    // This fixture is a dependency of matching session/board fixtures, so their
+    // own teardown runs first. Remove any separately-created tracked users now;
+    // the trigger rows produced by this delete are then swept below as well.
+    if (users.length > 0) {
+      await dbExec('delete from "user" where id = any($1::text[])', [users])
+    }
+    await dbExec(
+      `delete from audit_log
+       where actor_user_id = any($1::text[])
+          or entity_id = any($1::text[])
+          or entity_id = any($2::text[])
+          or coalesce(before->>'session_id', '') = any($2::text[])
+          or coalesce(after->>'session_id', '') = any($2::text[])
+          or exists (
+            select 1 from unnest($2::text[]) session_id
+            where audit_log.entity_id like session_id || ':%'
+          )`,
+      [users, sessions],
+    )
   },
 
   loginAsUser: async ({ page }, use, testInfo) => {
@@ -377,7 +416,7 @@ export const test = base.extend<E2EHelpers>({
     await use(create)
   },
 
-  createMatchingSession: async ({ request }, use, testInfo) => {
+  createMatchingSession: async ({ request, auditCleanup }, use, testInfo) => {
     const created: string[] = []
 
     const create: E2EHelpers['createMatchingSession'] = async (overrides) => {
@@ -393,6 +432,7 @@ export const test = base.extend<E2EHelpers>({
       }
       const body = (await res.json()) as { session: MatchingSession }
       created.push(body.session.id)
+      auditCleanup.trackSession(body.session.id)
       return body.session
     }
 
@@ -405,7 +445,7 @@ export const test = base.extend<E2EHelpers>({
     }
   },
 
-  matchingBoardFixture: async ({ browser, createMatchingSession, createTestBook }, use, testInfo) => {
+  matchingBoardFixture: async ({ browser, createMatchingSession, createTestBook, auditCleanup }, use, testInfo) => {
     const contexts: BrowserContext[] = []
     const createdUsers: Array<{ page: Page; email: string }> = []
 
@@ -429,6 +469,7 @@ export const test = base.extend<E2EHelpers>({
         // Register cleanup immediately after the user exists: join/add/rank may fail.
         createdUsers.push({ page, email })
         const { userId } = await login.json() as { userId: string }
+        auditCleanup.trackUser(userId)
         const join = await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name } })
         if (!join.ok()) throw new Error(`matchingBoardFixture join failed: ${join.status()} ${await join.text()}`)
         for (const book of rankedBooks) {

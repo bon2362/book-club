@@ -34,6 +34,11 @@ const SESSION_FROZEN = {
   deadlineAt: null,
   createdAt: '2026-05-01T10:00:00Z',
   frozenAt: '2026-05-15T12:00:00Z',
+  frozenScenarioJson: {
+    remainingLeader: {
+      circles: [{ circleKey: 'snapshot-circle', bookId: 'book-snapshot', memberUserIds: ['user-1', 'user-2'] }],
+    },
+  },
 }
 
 const PARTICIPANTS = [
@@ -313,5 +318,10 @@ describe('AdminMatchingSession', () => {
 
     expect(screen.queryByTestId('admin-freeze-session')).not.toBeInTheDocument()
     expect(screen.queryByTestId('admin-add-disclosure-warning')).not.toBeInTheDocument()
+    const snapshot = screen.getByTestId('admin-frozen-snapshot')
+    expect(snapshot).toHaveTextContent('Снимок оставшегося сценария')
+    expect(snapshot).toHaveTextContent('book-snapshot')
+    expect(snapshot).toHaveTextContent('2 участника')
+    expect(snapshot).not.toHaveTextContent(/подтвержд[её]нн.*круг/i)
   })
 })

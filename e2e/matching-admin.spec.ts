@@ -27,7 +27,7 @@ async function confirm(request: APIRequestContext, sessionId: string, circleKey:
   expect(response.ok(), await response.text()).toBe(true)
 }
 
-async function loginAdmin(browser: Browser): Promise<{ context: BrowserContext; page: Page; email: string }> {
+async function loginAdmin(browser: Browser): Promise<{ context: BrowserContext; page: Page; email: string; userId: string }> {
   const context = await browser.newContext()
   const page = await context.newPage()
   const email = `e2e-matching-admin-${Date.now()}-${Math.random()}@test.invalid`
@@ -35,7 +35,8 @@ async function loginAdmin(browser: Browser): Promise<{ context: BrowserContext; 
     data: { email, name: 'Администратор E2E', isAdmin: true },
   })
   expect(response.ok()).toBe(true)
-  return { context, page, email }
+  const { userId } = await response.json() as { userId: string }
+  return { context, page, email, userId }
 }
 
 test.beforeEach(async () => {
@@ -46,6 +47,7 @@ test.beforeEach(async () => {
 test('полный круг становится read-only observer, исключается из расчёта и возвращается только целиком через admin dissolve', async ({
   matchingBoardFixture,
   browser,
+  auditCleanup,
 }) => {
   test.setTimeout(120_000)
   const { session, books, participantA, participantB, addParticipant } = matchingBoardFixture
@@ -58,6 +60,20 @@ test('полный круг становится read-only observer, исклю�
 
   await confirm(participantA.page.request, session.id, circle!.circleKey)
   await confirm(participantB.page.request, session.id, circle!.circleKey)
+
+  const admin = await loginAdmin(browser)
+  auditCleanup.trackUser(admin.userId)
+  let lockedBefore: { id: string; circleKey: string; bookId: string; status: string; members: Array<{ userId: string; displayNameSnapshot: string }> }
+  try {
+    const lockedBeforeResponse = await admin.page.request.get(`/api/admin/matching/sessions/${session.id}/locked-circles`)
+    const lockedBeforePayload = await lockedBeforeResponse.json() as { data: typeof lockedBefore[] }
+    lockedBefore = lockedBeforePayload.data.find((item) => item.status === 'locked')!
+    expect(lockedBefore).toBeTruthy()
+  } catch (error) {
+    await admin.page.request.delete('/api/test/session', { data: { email: admin.email } }).catch(() => {})
+    await admin.context.close()
+    throw error
+  }
 
   for (const participant of [participantA, participantB]) {
     await participant.page.goto('/matching')
@@ -81,8 +97,12 @@ test('полный круг становится read-only observer, исклю�
   expect(liveNames).toEqual(expect.arrayContaining([participantC.name, participantD.name]))
   expect(liveNames).not.toEqual(expect.arrayContaining([participantA.name, participantB.name]))
 
-  const admin = await loginAdmin(browser)
   try {
+    const lockedAfterResponse = await admin.page.request.get(`/api/admin/matching/sessions/${session.id}/locked-circles`)
+    const lockedAfterPayload = await lockedAfterResponse.json() as { data: typeof lockedBefore[] }
+    const lockedAfter = lockedAfterPayload.data.find((item) => item.id === lockedBefore.id)
+    expect(lockedAfter).toEqual(lockedBefore)
+
     const participantsBefore = await admin.page.request.get(`/api/admin/matching/sessions/${session.id}/participants`)
     const beforePayload = await participantsBefore.json() as { data: Array<{ userId: string; role: string; name: string }> }
     expect(beforePayload.data.filter((item) => [participantA.userId, participantB.userId].includes(item.userId)).map((item) => item.role))
@@ -97,6 +117,11 @@ test('полный круг становится read-only observer, исклю�
     const circles = await circlesResponse.json() as { data: Array<{ id: string; status: string }> }
     const locked = circles.data.find((item) => item.status === 'locked')
     expect(locked).toBeTruthy()
+    const participantDissolve = await participantA.page.request.post(
+      `/api/admin/matching/sessions/${session.id}/circles/${locked!.id}/dissolve`,
+      { data: { reason: 'Участник не должен уметь распускать круг' } },
+    )
+    expect(participantDissolve.status()).toBe(403)
     const missingReason = await admin.page.request.post(
       `/api/admin/matching/sessions/${session.id}/circles/${locked!.id}/dissolve`,
       { data: { reason: '   ' } },
@@ -141,6 +166,8 @@ test('полный круг становится read-only observer, исклю�
 test('admin force-add, remove, group size, impersonation и freeze сохраняются после reload', async ({
   matchingBoardFixture,
   browser,
+  dbExec,
+  auditCleanup,
 }) => {
   test.setTimeout(90_000)
   const { session, participantA } = matchingBoardFixture
@@ -151,7 +178,9 @@ test('admin force-add, remove, group size, impersonation и freeze сохран�
     data: { email: candidateEmail, name: 'Добавленный E2E', telegramUsername: 'forced_e2e' },
   })
   const { userId: candidateId } = await candidateLogin.json() as { userId: string }
+  auditCleanup.trackUser(candidateId)
   const admin = await loginAdmin(browser)
+  auditCleanup.trackUser(admin.userId)
   try {
     const add = await admin.page.request.post(`/api/admin/matching/sessions/${session.id}/participants`, {
       data: { userId: candidateId },
@@ -163,15 +192,30 @@ test('admin force-add, remove, group size, impersonation и freeze сохран�
       joinSource: 'admin', role: 'active',
     })
 
-    const resize = await admin.page.request.patch(`/api/matching/sessions/${session.id}`, {
-      data: { minGroupSize: 2, maxGroupSize: 3 },
-    })
-    expect(resize.ok()).toBe(true)
     await admin.page.goto(`/matching?as=${participantA.userId}`)
     await expect(admin.page.getByTestId('admin-impersonation-banner')).toBeVisible()
     await expect(admin.page.getByTestId('admin-impersonation-banner').getByRole('link')).toHaveAttribute('href', '/admin?tab=matching')
+    await admin.page.getByRole('button', { name: 'Изменить размер групп' }).click()
+    await admin.page.getByLabel('Минимум участников').fill('2')
+    await admin.page.getByLabel('Максимум участников').fill('3')
+    const resizeResponse = admin.page.waitForResponse((response) => (
+      response.request().method() === 'PATCH' && response.url().endsWith(`/api/matching/sessions/${session.id}`)
+    ))
+    await admin.page.getByRole('button', { name: 'Сохранить' }).click()
+    expect((await resizeResponse).ok()).toBe(true)
     await admin.page.reload()
     await expect(admin.page.getByTestId('matching-header')).toContainText('2–3')
+    const sizeEventsResponse = await admin.page.request.get(
+      `/api/admin/matching/preference-events?sessionId=${session.id}&eventType=change_group_size`,
+    )
+    const sizeEvents = await sizeEventsResponse.json() as { events: Array<{
+      source: string; actorUserId: string; after: { minGroupSize: number; maxGroupSize: number }
+    }> }
+    expect(sizeEvents.events).toContainEqual(expect.objectContaining({
+      source: 'admin',
+      actorUserId: admin.userId,
+      after: { minGroupSize: 2, maxGroupSize: 3 },
+    }))
 
     const remove = await admin.page.request.delete(`/api/admin/matching/sessions/${session.id}/participants/${candidateId}`)
     expect(remove.ok()).toBe(true)
@@ -182,13 +226,28 @@ test('admin force-add, remove, group size, impersonation и freeze сохран�
     const ownCircle = provisional.scenarios.flatMap((scenario) => scenario.circles).find((circle) => circle.viewerIsMember)
     expect(ownCircle).toBeTruthy()
     await confirm(participantA.page.request, session.id, ownCircle!.circleKey)
+    const provisionalRows = await dbExec(
+      'select user_id from matching_circle_confirmations where session_id = $1 and user_id = $2',
+      [session.id, participantA.userId],
+    )
+    expect(provisionalRows).toHaveLength(1)
     const freeze = await admin.page.request.post(`/api/matching/sessions/${session.id}/freeze`)
     expect(freeze.ok()).toBe(true)
+    const persistedAfterFreeze = await dbExec(
+      'select user_id from matching_circle_confirmations where session_id = $1 and user_id = $2',
+      [session.id, participantA.userId],
+    )
+    expect(persistedAfterFreeze).toHaveLength(0)
     await participantA.page.goto('/matching')
     await participantA.page.reload()
     await expect(participantA.page.getByText('● заморожена')).toBeVisible()
     await expect(participantA.page.getByTestId('circle-confirm-button')).toHaveCount(0)
     await expect(participantA.page.getByTestId('circle-cancel-button')).toHaveCount(0)
+    await admin.page.goto('/admin?tab=matching')
+    const frozenSnapshot = admin.page.getByTestId('admin-frozen-snapshot')
+    await expect(frozenSnapshot).toBeVisible()
+    await expect(frozenSnapshot).toContainText('Снимок оставшегося сценария')
+    await expect(frozenSnapshot).not.toContainText(/подтвержд[её]нн.*круг/i)
   } finally {
     await admin.page.request.delete('/api/test/session', { data: { email: admin.email } }).catch(() => {})
     await admin.context.close()

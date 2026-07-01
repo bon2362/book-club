@@ -117,6 +117,7 @@ export async function GET() {
       deadlineAt: matchingSessions.deadlineAt,
       createdAt: matchingSessions.createdAt,
       frozenAt: matchingSessions.frozenAt,
+      frozenScenarioJson: matchingSessions.frozenScenarioJson,
       stateVersion: matchingSessions.stateVersion,
     })
     .from(matchingSessions)
