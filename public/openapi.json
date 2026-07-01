@@ -906,12 +906,16 @@
           "stateVersion": { "type": "integer" },
           "occurredAt": { "$ref": "#/components/schemas/DateTime" }
         },
-        "required": ["id", "sessionId", "eventType", "source", "stateVersion", "occurredAt"]
+        "required": [
+          "id", "sessionId", "eventType", "source",
+          "actorUserId", "actorNameSnapshot", "subjectUserId", "subjectNameSnapshot",
+          "bookId", "before", "after", "metadata", "stateVersion", "occurredAt"
+        ]
       },
       "MatchingConfirmationRequest": {
         "type": "object",
         "properties": {
-          "circleKey": { "type": "string" },
+          "circleKey": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "Сервер trim-ит строку и отклоняет пустой ключ" },
           "expectedStateVersion": { "type": "integer", "minimum": 0 }
         },
         "required": ["circleKey", "expectedStateVersion"]
@@ -924,6 +928,64 @@
         },
         "required": ["stateVersion", "changed"],
         "additionalProperties": true
+      },
+      "MatchingTransitionSuccess": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "stateVersion": { "type": "integer" },
+          "changed": { "type": "boolean" }
+        },
+        "required": ["success", "stateVersion", "changed"]
+      },
+      "MatchingOkTransitionResult": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "enum": [true] },
+          "stateVersion": { "type": "integer" },
+          "changed": { "type": "boolean" }
+        },
+        "required": ["ok", "stateVersion", "changed"]
+      },
+      "AdminMatchingSession": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "frozen"] },
+          "minGroupSize": { "type": "integer" },
+          "maxGroupSize": { "type": "integer" },
+          "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
+          "createdAt": { "$ref": "#/components/schemas/DateTime" },
+          "frozenAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
+          "frozenScenarioJson": { "type": "object", "nullable": true },
+          "stateVersion": { "type": "integer" }
+        },
+        "required": [
+          "id", "name", "status", "minGroupSize", "maxGroupSize", "deadlineAt",
+          "createdAt", "frozenAt", "frozenScenarioJson", "stateVersion"
+        ]
+      },
+      "AdminMatchingParticipant": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string" },
+          "publicRef": { "type": "string" },
+          "joinSource": { "type": "string", "enum": ["self", "admin"] },
+          "joinedAt": { "$ref": "#/components/schemas/DateTime" },
+          "name": { "type": "string", "nullable": true },
+          "role": { "type": "string", "enum": ["active", "observer"] }
+        },
+        "required": ["userId", "publicRef", "joinSource", "joinedAt", "name", "role"]
+      },
+      "AdminMatchingParticipantsResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingParticipant" } },
+          "online": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["success", "data", "online"]
       },
       "BookSummary": {
         "type": "object",
@@ -2090,7 +2152,17 @@
         "tags": ["Admin"],
         "summary": "Получить matching-сессии",
         "security": [{ "sessionCookie": [] }],
-        "responses": { "200": { "description": "Список сессий" }, "403": { "description": "Forbidden" } }
+        "responses": {
+          "200": { "description": "Список сессий", "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "success": { "type": "boolean", "enum": [true] },
+              "data": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingSession" } }
+            },
+            "required": ["success", "data"]
+          } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
       },
       "post": {
         "tags": ["Admin"],
@@ -2099,7 +2171,7 @@
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
           "type": "object",
           "properties": {
-            "name": { "type": "string", "minLength": 1 },
+            "name": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "После trim должна остаться хотя бы одна непробельная буква" },
             "minGroupSize": { "type": "integer", "minimum": 2, "maximum": 10, "default": 3 },
             "maxGroupSize": { "type": "integer", "minimum": 2, "maximum": 10 },
             "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true }
@@ -2107,10 +2179,28 @@
           "required": ["name"]
         } } } },
         "responses": {
-          "201": { "description": "Сессия создана" },
-          "400": { "description": "Invalid name, group size or deadline" },
-          "403": { "description": "Forbidden" },
-          "409": { "description": "An active session already exists" }
+          "201": { "description": "Сессия создана", "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "success": { "type": "boolean", "enum": [true] },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" }, "name": { "type": "string" },
+                  "status": { "type": "string", "enum": ["active"] },
+                  "minGroupSize": { "type": "integer" }, "maxGroupSize": { "type": "integer" }
+                },
+                "required": ["id", "name", "status", "minGroupSize", "maxGroupSize"]
+              }
+            },
+            "required": ["success", "data"]
+          } } } },
+          "400": { "description": "Invalid JSON, trimmed name, group size or deadline", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "An active session already exists", "content": { "application/json": { "schema": {
+            "type": "object", "properties": { "error": { "type": "string" }, "activeSessionId": { "type": "string" } },
+            "required": ["error", "activeSessionId"]
+          } } } }
         }
       }
     },
@@ -2130,9 +2220,10 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingPublicState" } } }
           },
           "400": { "description": "session param required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Not a participant" },
-          "404": { "description": "Session not found" }
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Not a participant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Public state assembly failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2149,15 +2240,16 @@
               "type": "object",
               "properties": {
                 "version": { "type": "integer" },
-                "status": { "type": "string" },
+                "status": { "type": "string", "enum": ["active", "frozen"] },
                 "online": { "type": "array", "items": { "type": "string" } }
               },
               "required": ["version", "status", "online"]
             } } }
           },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Not a participant" },
-          "404": { "description": "Session not found" }
+          "400": { "description": "session param required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Not a participant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2169,13 +2261,16 @@
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
           "type": "object",
-          "properties": { "name": { "type": "string", "minLength": 1 } },
+          "properties": { "name": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "Сервер trim-ит строку и отклоняет пустое значение" } },
           "required": ["name"]
         } } } },
         "responses": {
           "200": { "description": "Участник добавлен", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "400": { "description": "Name required" },
-          "409": { "description": "Session state conflict" }
+          "400": { "description": "Trimmed nonblank name required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Любая иная доменная ошибка join", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2193,9 +2288,11 @@
         } } } },
         "responses": {
           "200": { "description": "Участник вышел; сценарии и подтверждения согласованы", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "400": { "description": "expectedStateVersion required" },
-          "401": { "description": "Unauthorized" },
-          "409": { "description": "Версия устарела или выход запрещён для observer" }
+          "400": { "description": "expectedStateVersion required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Любая иная доменная ошибка leave, включая stale/locked/missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2208,7 +2305,12 @@
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingConfirmationRequest" } } } },
         "responses": {
           "200": { "description": "Переход выполнен", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "409": { "description": "Версия устарела, круг недоступен или пользователь observer" }
+          "400": { "description": "circleKey and expectedStateVersion required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Stale state, frozen session or locked participant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       },
       "delete": {
@@ -2223,7 +2325,12 @@
         } } } },
         "responses": {
           "200": { "description": "Подтверждение отменено", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "409": { "description": "Session state conflict" }
+          "400": { "description": "expectedStateVersion required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Stale state, frozen session or locked participant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2237,17 +2344,18 @@
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
           "type": "object",
           "properties": {
-            "bookId": { "type": "string" }
+            "bookId": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "Сервер trim-ит строку и отклоняет пустое значение" }
           },
           "required": ["bookId"]
         } } } },
         "responses": {
           "200": { "description": "Книга добавлена", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "400": { "description": "bookId required" },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Forbidden impersonation" },
-          "404": { "description": "No active session" },
-          "409": { "description": "Matching transition conflict" }
+          "400": { "description": "Trimmed bookId required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden impersonation or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No active session, session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked transition conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2263,10 +2371,11 @@
         ],
         "responses": {
           "200": { "description": "Книга убрана", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Forbidden impersonation" },
-          "404": { "description": "No active session" },
-          "409": { "description": "Matching transition conflict" }
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden impersonation or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No active session, session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked transition conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2294,11 +2403,12 @@
             } } },
             "required": ["ranks"]
           } } } },
-          "400": { "description": "bookIds must be a non-empty string array" },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Forbidden impersonation" },
-          "404": { "description": "No active session" },
-          "409": { "description": "Matching transition conflict" }
+          "400": { "description": "bookIds must be a non-empty string array", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden impersonation or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No active session, session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked transition conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2310,7 +2420,8 @@
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
           "200": { "description": "Прочитано", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ok" } } } },
-          "404": { "description": "Notice not found" }
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Notice not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2322,9 +2433,11 @@
         "security": [{ "sessionCookie": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
-          "200": { "description": "Сессия заморожена", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "403": { "description": "Forbidden" },
-          "409": { "description": "Session conflict" }
+          "200": { "description": "Сессия заморожена", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingOkTransitionResult" } } } },
+          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2343,10 +2456,19 @@
           "required": ["minGroupSize", "maxGroupSize"]
         } } } },
         "responses": {
-          "200": { "description": "Размеры сохранены и сценарии пересчитаны" },
-          "400": { "description": "Invalid group size range" },
-          "403": { "description": "Forbidden" },
-          "409": { "description": "Session conflict" }
+          "200": { "description": "Размеры сохранены и сценарии пересчитаны", "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "ok": { "type": "boolean", "enum": [true] },
+              "minGroupSize": { "type": "integer" }, "maxGroupSize": { "type": "integer" }
+            },
+            "required": ["ok", "minGroupSize", "maxGroupSize"]
+          } } } },
+          "400": { "description": "Invalid group size range", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2357,7 +2479,10 @@
         "description": "Возвращает реальные имена, joinSource, active/observer и отдельный список online public refs.",
         "security": [{ "sessionCookie": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Участники и presence" }, "403": { "description": "Forbidden" } }
+        "responses": {
+          "200": { "description": "Участники и presence", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdminMatchingParticipantsResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
       },
       "post": {
         "tags": ["Admin"],
@@ -2366,13 +2491,15 @@
         "security": [{ "sessionCookie": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
-          "type": "object", "properties": { "userId": { "type": "string" } }, "required": ["userId"]
+          "type": "object", "properties": { "userId": { "type": "string", "minLength": 1 } }, "required": ["userId"]
         } } } },
         "responses": {
-          "201": { "description": "Участник добавлен" },
-          "400": { "description": "userId required" },
-          "403": { "description": "Forbidden" },
-          "409": { "description": "Session transition conflict" }
+          "201": { "description": "Участник добавлен", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionSuccess" } } } },
+          "400": { "description": "userId required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2387,9 +2514,11 @@
           { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
-          "200": { "description": "Участник удалён" },
-          "403": { "description": "Forbidden" },
-          "409": { "description": "Session transition conflict" }
+          "200": { "description": "Участник удалён", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionSuccess" } } } },
+          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2407,13 +2536,13 @@
             "content": { "application/json": { "schema": {
               "type": "object",
               "properties": {
-                "success": { "type": "boolean" },
+                "success": { "type": "boolean", "enum": [true] },
                 "data": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingLockedCircle" } }
               },
               "required": ["success", "data"]
             } } }
           },
-          "403": { "description": "Forbidden" }
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2428,14 +2557,16 @@
         ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
           "type": "object",
-          "properties": { "reason": { "type": "string", "minLength": 1 } },
+          "properties": { "reason": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "Сервер trim-ит строку и отклоняет пустую причину" } },
           "required": ["reason"]
         } } } },
         "responses": {
-          "200": { "description": "Весь состав возвращён в active" },
-          "400": { "description": "Reason required" },
-          "403": { "description": "Forbidden" },
-          "409": { "description": "Circle/session conflict" }
+          "200": { "description": "Весь состав возвращён в active", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionSuccess" } } } },
+          "400": { "description": "Trimmed nonblank reason required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session or circle not found; circle_not_found maps to 404", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
