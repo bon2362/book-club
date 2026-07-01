@@ -61,3 +61,15 @@ export function listCanEnterSession(
   const active = books.filter((book) => book.isInList && book.personalStatus === null)
   return active.length > 0 && active.every((book) => book.rank !== null)
 }
+
+/**
+ * Есть ли у пользователя хотя бы одна активная книга (в списке, не «читаю»/
+ * «прочитано»), независимо от того, назначен ли ей ранг. Используется для
+ * gate CTA: порядок фиксируется commit-on-enter, поэтому кнопка «Войти» не
+ * должна ждать, пока ранги уже сохранены на сервере.
+ */
+export function listHasActiveBook(
+  books: { isInList: boolean; personalStatus: string | null }[],
+) {
+  return books.some((b) => b.isInList && b.personalStatus === null)
+}

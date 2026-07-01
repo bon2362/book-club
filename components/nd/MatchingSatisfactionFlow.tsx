@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import MatchingPersonalList, { type BookParticipant } from './MatchingPersonalList'
 import type { CatalogBook } from '@/lib/matching/personal-list'
-import { listCanEnterSession } from '@/lib/matching/ranking-readiness'
+import { listHasActiveBook } from '@/lib/matching/ranking-readiness'
 
 /** Coupled height collapse/grow via the grid-rows 0fr↔1fr trick. The section
  *  grows from zero height together with its content (pushing the catalog down),
@@ -62,19 +62,24 @@ export default function MatchingSatisfactionFlow({
   const router = useRouter()
   const board = phase === 'board'
 
-  const initialCanEnter = useMemo(() => listCanEnterSession(books), [books])
+  const initialCanEnter = useMemo(() => listHasActiveBook(books), [books])
   const [canEnter, setCanEnter] = useState(initialCanEnter)
   const [submitting, setSubmitting] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const commitRef = useRef<null | (() => Promise<void>)>(null)
 
   useEffect(() => {
     if (board) window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [board])
 
-  const enter = useCallback(() => {
+  const enter = useCallback(async () => {
     if (!canEnter || board || submitting) return
-    // Ranks are committed silently by the list; refresh so the server returns the
-    // board phase. The morph plays when `board` flips true (content present).
     setSubmitting(true)
+    try {
+      await commitRef.current?.()
+    } catch {
+      // Commit failed — refresh will still show the server's actual state.
+    }
     router.refresh()
   }, [canEnter, board, submitting, router])
 
@@ -113,7 +118,7 @@ export default function MatchingSatisfactionFlow({
                 color: 'var(--text)',
               }}
             >
-              Расставь приоритеты
+              {canEnter ? 'Сначала — расставь приоритеты' : 'Выбери книги для клуба'}
             </h1>
             <p
               style={{
@@ -124,7 +129,9 @@ export default function MatchingSatisfactionFlow({
                 color: 'var(--text-body)',
               }}
             >
-              На пересечении интересов мы собираем читательские круги. Расставь свои книги по степени интереса.
+              {canEnter
+                ? 'Расставь книги по степени интереса — будем подбирать группы исходя из этого'
+                : 'Чтобы попасть в подбор, добавь хотя бы одну книгу из каталога слева — по ним соберём читательский круг. Потом расставишь приоритеты.'}
             </p>
           </section>
           </div>
@@ -160,6 +167,8 @@ export default function MatchingSatisfactionFlow({
             fill={!board}
             suppressRefresh={!board}
             onChange={!board ? setCanEnter : undefined}
+            onBusyChange={!board ? setBusy : undefined}
+            commitRef={!board ? commitRef : undefined}
             adminNamesByDisplayName={adminNamesByDisplayName}
           />
         </div>
@@ -180,7 +189,11 @@ export default function MatchingSatisfactionFlow({
           }}
         >
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: '46ch' }}>
-            Книга участвует в расчёте только после назначения ранга.
+            {busy
+              ? 'Сохраняем порядок…'
+              : canEnter
+                ? 'Перетащи книги по важности и входи в сессию.'
+                : 'Добавь хотя бы одну книгу, чтобы войти.'}
           </p>
           <button
             type="button"

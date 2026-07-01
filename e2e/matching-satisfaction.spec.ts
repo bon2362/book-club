@@ -296,10 +296,12 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
   await page.getByTestId('welcome-join-button').click()
   expect((await joinResponse).ok()).toBe(true)
   await expect(page.getByTestId('ranking-gate')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Сначала — расставь приоритеты' })).toBeVisible()
   await expect(page.getByTestId('matching-realtime-client')).toHaveCount(0)
   await page.waitForLoadState('networkidle')
   const enter = page.getByTestId('ranking-gate-enter')
-  await expect(enter).toBeDisabled()
+  // Two active books already have a default rank each from add-to-list — CTA is enabled.
+  await expect(enter).toBeEnabled()
 
   const rankResponse = page.waitForResponse((response) => (
     response.request().method() === 'PATCH' && response.url().includes('/api/matching/priorities')
@@ -336,6 +338,56 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
   await expect(persistedRows.nth(0)).toContainText('#1')
   await expect(persistedRows.nth(1)).toContainText(bookA.title)
   await expect(persistedRows.nth(1)).toContainText('#2')
+})
+
+test('Ranking Gate: одна книга без явного drag-реордера всё равно сохраняет ранг после входа (#4)', async ({
+  page,
+  createMatchingSession,
+  createTestBook,
+  loginAsUser,
+}) => {
+  const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+  const book = await createTestBook({ title: `E2E Gate Single ${test.info().testId}`, author: 'Gate Author' })
+  const user = await loginAsUser({ name: 'Читатель Одна Книга' })
+  expect((await page.request.post('/api/test/signup', {
+    data: {
+      userId: user.userId,
+      name: user.name,
+      email: user.email,
+      contacts: '',
+      selectedBookIds: [book.id],
+    },
+  })).ok()).toBe(true)
+
+  await page.goto('/matching')
+  await page.waitForLoadState('networkidle')
+  const joinResponse = page.waitForResponse((response) => (
+    response.request().method() === 'POST' && response.url().endsWith(`/api/matching/sessions/${session.id}/join`)
+  ))
+  await page.getByTestId('welcome-join-button').click()
+  expect((await joinResponse).ok()).toBe(true)
+  await expect(page.getByTestId('ranking-gate')).toBeVisible({ timeout: 15_000 })
+  await page.waitForLoadState('networkidle')
+
+  const enter = page.getByTestId('ranking-gate-enter')
+  // Single active book — dnd-kit never fires a reorder, but CTA is enabled anyway.
+  await expect(enter).toBeEnabled()
+
+  const rankResponse = page.waitForResponse((response) => (
+    response.request().method() === 'PATCH' && response.url().includes('/api/matching/priorities')
+  ))
+  await enter.click()
+  expect((await rankResponse).ok()).toBe(true)
+  await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
+  await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
+  await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
+  const persistedRows = page.getByTestId('pl-books-ul').locator(':scope > li')
+  await expect(persistedRows).toHaveCount(1)
+  await expect(persistedRows.nth(0)).toContainText(book.title)
+  await expect(persistedRows.nth(0)).toContainText('#1')
 })
 
 test('выход из сессии делает hard navigation и остаётся Welcome после reload', async ({
