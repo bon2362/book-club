@@ -2564,6 +2564,7 @@
           "200": { "description": "success=true: changed=true возвращает весь состав в active; changed=false означает идемпотентный no-op для отсутствующего, уже распущенного или принадлежащего другой сессии круга", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionSuccess" } } } },
           "400": { "description": "Trimmed nonblank reason required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Path session does not exist (session_not_found); отсутствие, другая сессия или уже распущенное состояние самого circle остаётся успешным changed=false", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
