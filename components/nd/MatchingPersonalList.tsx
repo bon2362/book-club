@@ -31,7 +31,7 @@ import { addToList, patchPriorities, patchStatus, removeFromList } from '@/lib/m
 
 // BookParticipant stays — used for chips in the popup
 export interface BookParticipant {
-  userId: string
+  ref: string
   bookId: string
   displayName: string
   rank: number | null
@@ -443,7 +443,7 @@ export default function MatchingPersonalList({
 
   const othersFor = useCallback(
     (bookId: string) =>
-      bookParticipants.filter((p) => p.bookId === bookId && p.userId !== viewingUserId),
+      bookParticipants.filter((p) => p.bookId === bookId && p.ref !== viewingUserId),
     [bookParticipants, viewingUserId],
   )
 

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -17,16 +17,12 @@ import {
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 import { upsertSignupByBookIds } from '@/lib/signup-books'
 import { assignMatchingDisplayNames } from './display-names'
-import { buildCircleKey } from './circle-key'
 import { buildMatchingEventRows } from './matching-events'
-import {
-  filterRankedSignups,
-  generateSatisfactionScenarioSets,
-  type MatchingScenario,
-} from './scenarios'
+import { fetchRankedMatchingScenarios } from './reconciliation-scenarios-db'
 import {
   executeMatchingTransition,
   type MatchingAction,
+  type MatchingActionResult,
   type MatchingEventDraft,
   type MatchingNoticeDraft,
   type MatchingTransitionActor,
@@ -39,22 +35,6 @@ import type {
 } from './confirmation-reconciliation'
 
 type DbClient = typeof db
-
-export function toRankedReconciliationScenarios(
-  sessionId: string,
-  scenarios: MatchingScenario[],
-): RankedReconciliationScenario[] {
-  return scenarios.map((scenario) => ({
-    circles: scenario.circles.map((circle) => {
-      const memberUserIds = circle.members.map((member) => member.userId).sort()
-      return {
-        circleKey: buildCircleKey({ sessionId, bookId: circle.bookId, memberUserIds }),
-        bookId: circle.bookId,
-        memberUserIds,
-      }
-    }),
-  }))
-}
 
 function executeRows<T>(result: unknown): T[] {
   if (result && typeof result === 'object' && 'rows' in result) {
@@ -103,80 +83,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
   }
 
   async getRankedScenarios(sessionId: string): Promise<RankedReconciliationScenario[]> {
-    const [session] = await this.tx
-      .select({
-        minGroupSize: matchingSessions.minGroupSize,
-        maxGroupSize: matchingSessions.maxGroupSize,
-      })
-      .from(matchingSessions)
-      .where(eq(matchingSessions.id, sessionId))
-      .limit(1)
-    if (!session) return []
-
-    const [participantRows, lockedRows] = await Promise.all([
-      this.tx
-        .select({
-          userId: matchingSessionParticipants.userId,
-          publicRef: matchingSessionParticipants.publicRef,
-          joinedAt: matchingSessionParticipants.joinedAt,
-          name: users.name,
-        })
-        .from(matchingSessionParticipants)
-        .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
-        .where(eq(matchingSessionParticipants.sessionId, sessionId)),
-      this.tx
-        .select({ userId: matchingLockedCircleMembers.userId })
-        .from(matchingLockedCircleMembers)
-        .where(and(
-          eq(matchingLockedCircleMembers.sessionId, sessionId),
-          isNull(matchingLockedCircleMembers.releasedAt),
-        )),
-    ])
-    const lockedUserIds = new Set(lockedRows.map((row) => row.userId))
-    const activeParticipants = participantRows.filter((row) => !lockedUserIds.has(row.userId))
-    if (activeParticipants.length < session.minGroupSize) return []
-
-    const activeUserIds = activeParticipants.map((participant) => participant.userId)
-    const [allSignups, allRanks, allBooks] = await Promise.all([
-      this.tx
-        .select({
-          userId: signupBooks.userId,
-          bookId: signupBooks.bookId,
-          personalStatus: signupBooks.personalStatus,
-        })
-        .from(signupBooks)
-        .where(inArray(signupBooks.userId, activeUserIds)),
-      this.tx
-        .select({ userId: bookPriorities.userId, bookId: bookPriorities.bookId, rank: bookPriorities.rank })
-        .from(bookPriorities)
-        .where(inArray(bookPriorities.userId, activeUserIds)),
-      this.tx
-        .select({ id: books.id })
-        .from(books)
-        .where(eq(books.visibility, 'published')),
-    ])
-    const activeSignups = allSignups
-      .filter((signup) => signup.personalStatus === null)
-      .map(({ userId, bookId }) => ({ userId, bookId }))
-    const ranks = allRanks.map(({ userId, bookId, rank }) => ({ userId, bookId, rank }))
-    const signups = filterRankedSignups(activeSignups, ranks)
-    const signedUpBookIds = new Set(signups.map((signup) => signup.bookId))
-    const displayNames = assignMatchingDisplayNames(activeParticipants)
-    const overview = generateSatisfactionScenarioSets({
-      participants: activeParticipants.map((participant) => ({
-        userId: participant.userId,
-        displayName: displayNames.get(participant.userId) ?? 'Без имени',
-      })),
-      books: allBooks
-        .filter((book) => signedUpBookIds.has(book.id))
-        .map((book) => ({ bookId: book.id })),
-      signups,
-      ranks,
-      minGroupSize: session.minGroupSize,
-      maxGroupSize: session.maxGroupSize,
-    })
-
-    return toRankedReconciliationScenarios(sessionId, overview.scenarios)
+    return fetchRankedMatchingScenarios(sessionId, this.tx)
   }
 
   async getConfirmations(sessionId: string): Promise<CircleConfirmation[]> {
@@ -189,6 +96,88 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       })
       .from(matchingCircleConfirmations)
       .where(eq(matchingCircleConfirmations.sessionId, sessionId))
+  }
+
+  async getDisplayNames(sessionId: string): Promise<ReadonlyMap<string, string>> {
+    const rows = await this.tx
+      .select({
+        userId: matchingSessionParticipants.userId,
+        publicRef: matchingSessionParticipants.publicRef,
+        joinedAt: matchingSessionParticipants.joinedAt,
+        name: users.name,
+      })
+      .from(matchingSessionParticipants)
+      .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
+      .where(eq(matchingSessionParticipants.sessionId, sessionId))
+    return assignMatchingDisplayNames(rows)
+  }
+
+  async hasLatestConfirmationOutcome(input: {
+    sessionId: string
+    userId: string
+    afterStateVersion: number
+    throughStateVersion: number
+    participantRole: 'active' | 'observer'
+    outcome: 'set' | 'cancel'
+    circleKey?: string
+  }): Promise<boolean> {
+    const semanticEventTypes = [
+      'confirmation_created',
+      'confirmation_switched',
+      'confirmation_cancelled',
+      'confirmation_transferred',
+      'confirmation_invalidated',
+    ]
+    const [events, current] = await Promise.all([
+      this.tx
+        .select({ eventType: matchingEvents.eventType, after: matchingEvents.after })
+        .from(matchingEvents)
+        .where(and(
+          eq(matchingEvents.sessionId, input.sessionId),
+          eq(matchingEvents.subjectUserId, input.userId),
+          gt(matchingEvents.stateVersion, input.afterStateVersion),
+          lte(matchingEvents.stateVersion, input.throughStateVersion),
+          inArray(matchingEvents.eventType, semanticEventTypes),
+        ))
+        .orderBy(
+          desc(matchingEvents.stateVersion),
+          desc(sql<number>`CASE
+            WHEN ${matchingEvents.eventType} = 'confirmation_invalidated' THEN 2
+            WHEN ${matchingEvents.eventType} = 'confirmation_transferred' THEN 2
+            ELSE 1
+          END`),
+        )
+        .limit(1),
+      this.tx
+        .select({ circleKey: matchingCircleConfirmations.circleKey })
+        .from(matchingCircleConfirmations)
+        .where(and(
+          eq(matchingCircleConfirmations.sessionId, input.sessionId),
+          eq(matchingCircleConfirmations.userId, input.userId),
+        ))
+        .limit(1),
+    ])
+    const latest = events[0]
+    const currentCircleKey = current[0]?.circleKey ?? null
+    if (!latest) return false
+    if (input.outcome === 'cancel') {
+      return input.participantRole === 'active' &&
+        latest.eventType === 'confirmation_cancelled' &&
+        currentCircleKey === null
+    }
+    const latestCircleKey = latest.after && typeof latest.after === 'object' && 'circleKey' in latest.after
+      ? latest.after.circleKey
+      : null
+    const latestIsSet = [
+      'confirmation_created',
+      'confirmation_switched',
+      'confirmation_transferred',
+    ].includes(latest.eventType)
+    return latestIsSet && latestCircleKey === input.circleKey && (
+      currentCircleKey === input.circleKey || (
+        currentCircleKey === null && input.participantRole === 'observer'
+      )
+    )
   }
 
   async upsertConfirmation(sessionId: string, confirmation: CircleConfirmation): Promise<void> {
@@ -223,11 +212,13 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     return deleted.length > 0
   }
 
-  async applyAction(sessionId: string, action: MatchingAction): Promise<boolean> {
+  async applyAction(sessionId: string, action: MatchingAction): Promise<MatchingActionResult> {
     switch (action.type) {
       case 'self_join':
       case 'admin_add': {
         let changed = false
+        let previousName: string | null = null
+        let nameChanged = false
         if (action.type === 'self_join' && action.name !== undefined) {
           const [current] = await this.tx
             .select({ name: users.name })
@@ -235,8 +226,10 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
             .where(eq(users.id, action.userId))
             .limit(1)
           if (current && current.name !== action.name) {
+            previousName = current.name
             await this.tx.update(users).set({ name: action.name }).where(eq(users.id, action.userId))
             changed = true
+            nameChanged = true
           }
         }
         const inserted = await this.tx
@@ -249,7 +242,23 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
           })
           .onConflictDoNothing()
           .returning({ userId: matchingSessionParticipants.userId })
-        return changed || inserted.length > 0
+        const joined = inserted.length > 0
+        if (action.type === 'self_join' && nameChanged) {
+          return {
+            changed: true,
+            events: [
+              ...(joined ? [{ eventType: 'self_join', actorUserId: this.actor.userId, subjectUserId: action.userId }] : []),
+              {
+                eventType: 'welcome_name_changed',
+                actorUserId: this.actor.userId,
+                subjectUserId: action.userId,
+                before: { name: previousName },
+                after: { name: action.name },
+              },
+            ],
+          }
+        }
+        return changed || joined
       }
       case 'leave':
       case 'admin_remove': {
@@ -282,6 +291,30 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       }
       case 'dissolve_circle': {
         const now = new Date()
+        const [circle] = await this.tx
+          .select({
+            id: matchingLockedCircles.id,
+            bookId: matchingLockedCircles.bookId,
+            circleKey: matchingLockedCircles.circleKey,
+          })
+          .from(matchingLockedCircles)
+          .where(and(
+            eq(matchingLockedCircles.id, action.circleId),
+            eq(matchingLockedCircles.sessionId, sessionId),
+            eq(matchingLockedCircles.status, 'locked'),
+          ))
+          .limit(1)
+        if (!circle) return false
+        const members = await this.tx
+          .select({
+            userId: matchingLockedCircleMembers.userId,
+            displayNameSnapshot: matchingLockedCircleMembers.displayNameSnapshot,
+          })
+          .from(matchingLockedCircleMembers)
+          .where(and(
+            eq(matchingLockedCircleMembers.circleId, action.circleId),
+            isNull(matchingLockedCircleMembers.releasedAt),
+          ))
         const dissolved = await this.tx
           .update(matchingLockedCircles)
           .set({
@@ -304,7 +337,34 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
             eq(matchingLockedCircleMembers.circleId, action.circleId),
             isNull(matchingLockedCircleMembers.releasedAt),
           ))
-        return true
+        return {
+          changed: true,
+          events: [{
+            eventType: 'circle_dissolved',
+            actorUserId: this.actor.userId,
+            bookId: circle.bookId,
+            before: {
+              circleKey: circle.circleKey,
+              members: members.map((member) => ({ ...member })),
+            },
+            after: { status: 'dissolved' },
+            metadata: {
+              reason: action.reason,
+              circleKey: circle.circleKey,
+              memberUserIds: members.map((member) => member.userId),
+              memberDisplayNames: members.map((member) => member.displayNameSnapshot),
+            },
+          }],
+          notices: members.map((member) => ({
+            userId: member.userId,
+            kind: 'circle_dissolved',
+            payload: {
+              bookId: circle.bookId,
+              memberDisplayNames: members.map((item) => item.displayNameSnapshot),
+              reason: action.reason,
+            },
+          })),
+        }
       }
       case 'freeze': {
         const rankedScenarios = await this.getRankedScenarios(sessionId)
@@ -597,12 +657,4 @@ export async function runMatchingTransition(input: {
   )
 }
 
-export async function fetchRankedMatchingScenarios(
-  sessionId: string,
-  dbClient: DbClient = db,
-): Promise<RankedReconciliationScenario[]> {
-  return new DrizzleMatchingTransitionStore(
-    dbClient,
-    { userId: null, label: null, source: 'system' },
-  ).getRankedScenarios(sessionId)
-}
+export { fetchRankedMatchingScenarios, toRankedReconciliationScenarios } from './reconciliation-scenarios-db'

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import MatchingPersonalList, { type BookParticipant } from './MatchingPersonalList'
-import MatchingRealtimeWrapper from './MatchingRealtimeWrapper'
 import type { CatalogBook } from '@/lib/matching/personal-list'
 import { listCanEnterSession } from '@/lib/matching/ranking-readiness'
 
@@ -50,7 +49,6 @@ export interface MatchingSatisfactionFlowProps {
  */
 export default function MatchingSatisfactionFlow({
   phase,
-  sessionId,
   books,
   bookParticipants,
   viewingUserId,
@@ -94,9 +92,9 @@ export default function MatchingSatisfactionFlow({
           stops with the catalog peeking at the bottom — a hint that it scrolls —
           instead of ballooning to the full height of many scenarios. */}
       <Collapsible open={board}>
-        <div className="nd-flow-slide-from-top flex flex-col" style={{ height: '90svh' }}>
-          {header}
-          <div className="flex-1 min-h-0 p-4">{workspace}</div>
+        <div className="nd-flow-slide-from-top flex flex-col">
+          {board && header}
+          {board && <div style={{ height: 'min(68svh, 760px)', minHeight: 420 }}>{workspace}</div>}
         </div>
       </Collapsible>
 
@@ -138,7 +136,7 @@ export default function MatchingSatisfactionFlow({
       <div
         className="p-4 pt-0"
         data-testid="matching-catalog-panel"
-        style={board ? { minHeight: 560 } : { flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
+        style={board ? { minHeight: 560, paddingTop: '1rem' } : { flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
         {board && catalogIntro}
         <div
@@ -182,7 +180,7 @@ export default function MatchingSatisfactionFlow({
           }}
         >
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: '46ch' }}>
-            Расставь приоритеты и сможешь войти в сессию.
+            Книга участвует в расчёте только после назначения ранга.
           </p>
           <button
             type="button"
@@ -211,7 +209,6 @@ export default function MatchingSatisfactionFlow({
         </Collapsible>
       )}
 
-      {board && <MatchingRealtimeWrapper sessionId={sessionId} />}
     </div>
   )
 }

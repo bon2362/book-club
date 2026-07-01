@@ -27,11 +27,13 @@ test('pre-fills the name input with initialName', () => {
 test('shows disclosure about real names', () => {
   render(<MatchingWelcome {...base} />)
   expect(screen.getByText(/реальные имена видны всем участникам/i)).toBeInTheDocument()
+  expect(screen.getByText(/составить группы и общаться через Telegram/i)).toBeInTheDocument()
 })
 
 test('no Telegram CTA present', () => {
   render(<MatchingWelcome {...base} />)
-  expect(screen.queryByText(/telegram/i)).toBeNull()
+  expect(screen.queryByRole('button', { name: /написать в Telegram/i })).toBeNull()
+  expect(screen.queryByRole('link', { name: /написать в Telegram/i })).toBeNull()
 })
 
 test('name can be edited inline', () => {

@@ -73,6 +73,16 @@ describe('/api/matching/sessions/[id]/confirmation', () => {
     }))
   })
 
+  it('returns the reached state for an idempotent lost-response retry', async () => {
+    mockRunTransition.mockResolvedValue({ changed: false, stateVersion: 5 })
+    const response = await PUT(request('PUT', {
+      circleKey: 'circle-a', expectedStateVersion: 4,
+    }), { params: { id: 's1' } })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ changed: false, stateVersion: 5 })
+  })
+
   it.each([
     ['stale_state', 409],
     ['session_frozen', 409],

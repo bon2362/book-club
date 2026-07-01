@@ -17,6 +17,7 @@ export interface MatchingEventLike {
 export function matchingEventTypeLabel(eventType: string): string {
   switch (eventType) {
     case 'self_join': return 'Вход в сессию'
+    case 'welcome_name_changed': return 'Имя изменено'
     case 'admin_add': return 'Добавлен:а админом'
     case 'leave': return 'Покинул:а сессию'
     case 'admin_remove': return 'Удалён:а админом'
@@ -26,6 +27,7 @@ export function matchingEventTypeLabel(eventType: string): string {
     case 'confirmation_transferred': return 'Перенос подтверждения'
     case 'confirmation_invalidated': return 'Аннулирование подтверждения'
     case 'circle_locked': return 'Круг закреплён'
+    case 'circle_dissolved':
     case 'dissolve_circle': return 'Круг распущен'
     case 'freeze': return 'Сессия зафиксирована'
     case 'change_book': return 'Изменение книги'
@@ -82,6 +84,11 @@ export function formatMatchingEvent(event: MatchingEventLike): string {
       const subject = event.subjectNameSnapshot ?? null
       return subject ? `${subject} вошёл:а` : 'вошёл:а в сессию'
     }
+    case 'welcome_name_changed': {
+      const before = event.before as { name?: unknown } | null
+      const after = event.after as { name?: unknown } | null
+      return `${typeof before?.name === 'string' ? before.name : '—'} → ${typeof after?.name === 'string' ? after.name : '—'}`
+    }
     case 'admin_add': {
       const subject = event.subjectNameSnapshot ?? null
       return subject ? `добавлен:а ${subject}` : 'добавлен:а участник'
@@ -112,11 +119,17 @@ export function formatMatchingEvent(event: MatchingEventLike): string {
     case 'circle_locked': {
       return title ? `${title}${auto}` : `закреплено${auto}`
     }
+    case 'circle_dissolved':
     case 'dissolve_circle': {
       const reason = typeof event.metadata?.reason === 'string'
         ? event.metadata.reason
         : null
-      if (title && reason) return `${title} — ${reason}`
+      const circleKey = typeof event.metadata?.circleKey === 'string' ? event.metadata.circleKey : null
+      const members = Array.isArray(event.metadata?.memberDisplayNames)
+        ? event.metadata.memberDisplayNames.filter((name): name is string => typeof name === 'string').join(', ')
+        : null
+      const detail = [title, circleKey, members, reason].filter(Boolean).join(' — ')
+      if (detail) return detail
       if (reason) return reason
       if (title) return title
       return 'распущено'

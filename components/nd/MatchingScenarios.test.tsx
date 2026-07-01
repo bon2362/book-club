@@ -1,6 +1,11 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import MatchingScenarios, { type PublicScenario } from './MatchingScenarios'
 
+const openBook = jest.fn()
+jest.mock('./BookDetailProvider', () => ({
+  useBookDetail: () => ({ openBook }),
+}))
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
 }))
@@ -18,14 +23,19 @@ function makeScenario(id: string, circles: Array<{
 }>): PublicScenario {
   return {
     ref: id,
+    score: { coveredCount: 0, totalCount: 0, avgRank: null, worstRank: null },
+    leftOut: [],
     circles: circles.map((c) => ({
       circleKey: c.key,
       bookId: c.bookId,
       members: c.memberRefs.map((ref) => ({
         ref,
         displayName: `Участник-${ref}`,
+        rank: null,
+        interest: 'без ранга' as const,
         confirmed: (c.confirmedRefs ?? []).includes(ref),
       })),
+      avgRank: null,
       confirmedCount: (c.confirmedRefs ?? []).length,
       memberCount: c.memberRefs.length,
       viewerIsMember: c.viewerIsMember ?? false,
@@ -39,7 +49,10 @@ const base = {
   viewerConfirmedCircleKey: null as string | null,
   viewerRole: 'active' as const,
   frozen: false,
-  bookTitleById: { 'book-1': 'Первая книга', 'book-2': 'Вторая книга' },
+  booksById: {
+    'book-1': { bookId: 'book-1', title: 'Первая книга', author: 'Автор один', coverUrl: '/one.jpg', description: 'Описание', pages: 120, publishedDate: '2025', textUrl: '', whyRead: null, recommendationLink: null, tags: [] },
+    'book-2': { bookId: 'book-2', title: 'Вторая книга', author: 'Автор два', coverUrl: null, description: '', pages: null, publishedDate: '', textUrl: '', whyRead: null, recommendationLink: null, tags: [] },
+  },
 }
 
 describe('MatchingScenarios', () => {
@@ -68,6 +81,30 @@ describe('MatchingScenarios', () => {
     expect(screen.getByText('Первая книга')).toBeInTheDocument()
   })
 
+  it('shows presentation metrics, cover, author, ranks and left-out participants', () => {
+    const scenario = makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1', 'r2'] }])
+    scenario.score = { coveredCount: 2, totalCount: 3, avgRank: 1.5, worstRank: 2 }
+    scenario.leftOut = [{ ref: 'r3', displayName: 'Вера' }]
+    scenario.circles[0].avgRank = 1.5
+    scenario.circles[0].members[0] = { ...scenario.circles[0].members[0], displayName: 'Анна', rank: 1, interest: 'очень хочу' }
+    render(<MatchingScenarios {...base} scenarios={[scenario]} />)
+    expect(screen.getByText('средний ранг 1.5')).toBeVisible()
+    expect(screen.getByText('охват 2 из 3')).toBeVisible()
+    expect(screen.getByText(/За бортом остаётся: Вера/)).toBeVisible()
+    expect(screen.getByAltText('Обложка: Первая книга')).toBeVisible()
+    expect(screen.getByText('Автор один')).toBeVisible()
+    expect(screen.getByText('Анна').closest('.nd-chip-text')).toHaveAttribute('title', expect.stringContaining('ранг 1'))
+    expect(screen.getByLabelText('Анна: не подтвердил')).toHaveTextContent('○')
+    expect(screen.queryByText(/лучший|оптимальный/i)).toBeNull()
+  })
+
+  it('opens the shared book popup from title and cover', () => {
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'] }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Первая книга' }))
+    expect(openBook).toHaveBeenCalledWith(expect.objectContaining({ bookId: 'book-1', author: 'Автор один' }), expect.any(Array))
+  })
+
   it('shows member display names', () => {
     const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1', 'r2'] }])]
     render(<MatchingScenarios {...base} scenarios={scenarios} />)
@@ -93,7 +130,7 @@ describe('MatchingScenarios', () => {
     render(<MatchingScenarios {...base} scenarios={scenarios} viewerConfirmedCircleKey="k1" />)
     expect(screen.getByTestId('circle-waiting')).toBeInTheDocument()
     expect(screen.getByTestId('circle-cancel-button')).toBeInTheDocument()
-    expect(screen.getByText(/Подтверждено/)).toBeInTheDocument()
+    expect(screen.getByText(/Вы выбрали этот круг/)).toBeInTheDocument()
     expect(screen.getByText(/временно/)).toBeInTheDocument()
     expect(screen.queryByTestId('circle-confirm-button')).toBeNull()
   })
@@ -175,5 +212,30 @@ describe('MatchingScenarios', () => {
     fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent('stale_version')
+  })
+
+  it('keeps the choice visible and shows feedback when the network request rejects', async () => {
+    ;(global.fetch as jest.Mock).mockRejectedValue(new Error('offline'))
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Проверьте соединение'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('disables the dialog actions and prevents concurrent confirmation submits', async () => {
+    let resolve!: (value: unknown) => void
+    ;(global.fetch as jest.Mock).mockImplementation(() => new Promise((done) => { resolve = done }))
+    const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
+    render(<MatchingScenarios {...base} scenarios={scenarios} />)
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
+    const confirm = screen.getByRole('button', { name: /подтверд/i })
+    fireEvent.click(confirm)
+    expect(screen.getByRole('button', { name: /подтверждаем/i })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /подтверждаем/i }))
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    resolve({ ok: true, json: async () => ({}) })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })

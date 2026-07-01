@@ -36,9 +36,14 @@ class MemoryTransitionStore implements MatchingTransitionStore {
     after?: unknown
     metadata?: Record<string, unknown>
   }> = []
-  notices: Array<{ userId: string; kind: string }> = []
+  notices: Array<{ userId: string; kind: string; payload?: Record<string, unknown> }> = []
   locked: ReconciliationCircle[] = []
   failEvents = false
+  confirmationOutcomes = new Set<string>()
+  applyResult: Awaited<ReturnType<MatchingTransitionStore['applyAction']>> = true
+  actionApplied = false
+  beforeDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван'], ['u3', 'Иван (2)']])
+  afterDisplayNames = this.beforeDisplayNames
 
   async lockSession() {
     this.calls.push('lockSession')
@@ -60,6 +65,33 @@ class MemoryTransitionStore implements MatchingTransitionStore {
     return [...this.confirmations]
   }
 
+  async getDisplayNames() {
+    this.calls.push(`getDisplayNames:${this.actionApplied ? 'post' : 'pre'}`)
+    return this.actionApplied ? this.afterDisplayNames : this.beforeDisplayNames
+  }
+
+  async hasLatestConfirmationOutcome(input: {
+    userId: string
+    afterStateVersion: number
+    throughStateVersion: number
+    participantRole: 'active' | 'observer'
+    outcome: string
+    circleKey?: string
+  }) {
+    const latest = Array.from(this.confirmationOutcomes)
+      .map((value) => {
+        const [version, outcome, circleKey] = value.split(':')
+        return { version: Number(version), outcome, circleKey }
+      })
+      .filter(({ version }) => version > input.afterStateVersion && version <= input.throughStateVersion)
+      .sort((a, b) => b.version - a.version)[0]
+    if (!latest || latest.outcome !== input.outcome || latest.circleKey !== (input.circleKey ?? '')) return false
+    const current = this.confirmations.find((item) => item.userId === input.userId)?.circleKey ?? null
+    return input.outcome === 'cancel'
+      ? input.participantRole === 'active' && current === null
+      : current === input.circleKey || (current === null && input.participantRole === 'observer')
+  }
+
   async upsertConfirmation(_sessionId: string, value: CircleConfirmation) {
     this.calls.push(`upsertConfirmation:${value.circleKey}`)
     this.confirmations = this.confirmations.filter((item) => item.userId !== value.userId)
@@ -75,7 +107,8 @@ class MemoryTransitionStore implements MatchingTransitionStore {
 
   async applyAction(_sessionId: string, action: MatchingAction) {
     this.calls.push(`applyAction:${action.type}`)
-    return true
+    this.actionApplied = true
+    return this.applyResult
   }
 
   async lockCircle(_sessionId: string, value: ReconciliationCircle) {
@@ -93,7 +126,7 @@ class MemoryTransitionStore implements MatchingTransitionStore {
     this.events.push(...events)
   }
 
-  async writeNotices(_sessionId: string, notices: Array<{ userId: string; kind: string }>) {
+  async writeNotices(_sessionId: string, notices: Array<{ userId: string; kind: string; payload?: Record<string, unknown> }>) {
     this.calls.push('writeNotices')
     this.notices.push(...notices)
   }
@@ -138,6 +171,129 @@ describe('executeMatchingTransition', () => {
     expect(result).toEqual({ changed: false, stateVersion: 4 })
     expect(store.events).toEqual([])
     expect(store.calls).not.toContain('bumpStateVersion')
+  })
+
+  it('treats a lost-response retry of the committed confirmation as idempotent', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 5
+    store.confirmations = [confirmation('u1', 'circle-a')]
+    store.confirmationOutcomes.add('5:set:circle-a')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' },
+    }, store)).resolves.toEqual({ changed: false, stateVersion: 5 })
+  })
+
+  it('keeps a stale confirmation retry for another circle rejected', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 5
+    store.confirmations = [confirmation('u1', 'circle-a')]
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-b' },
+    }, store)).rejects.toMatchObject({ code: 'stale_state' })
+  })
+
+  it('recognizes a committed confirmation retry after reconciliation locked its circle', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 5
+    store.confirmationOutcomes.add('5:set:circle-a')
+    store.roles.set('u1', 'observer')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' },
+    }, store)).resolves.toEqual({ changed: false, stateVersion: 5 })
+  })
+
+  it('treats a lost-response retry of a committed cancellation as idempotent', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 5
+    store.confirmationOutcomes.add('5:cancel:')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'cancel_confirmation', userId: 'u1' },
+    }, store)).resolves.toEqual({ changed: false, stateVersion: 5 })
+  })
+
+  it('recognizes a confirmation retry after unrelated actions advanced the session', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmations = [confirmation('u1', 'circle-a')]
+    store.confirmationOutcomes.add('5:set:circle-a')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' },
+    }, store)).resolves.toEqual({ changed: false, stateVersion: 6 })
+  })
+
+  it('recognizes a cancellation retry after unrelated actions advanced the session', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmationOutcomes.add('5:cancel:')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'cancel_confirmation', userId: 'u1' },
+    }, store)).resolves.toEqual({ changed: false, stateVersion: 6 })
+  })
+
+  it('does not report a historical confirmation as idempotent after the participant left', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmationOutcomes.add('5:set:circle-a')
+    store.roles.set('u1', 'missing')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' },
+    }, store)).rejects.toMatchObject({ code: 'stale_state' })
+  })
+
+  it.each(['leave', 'admin_remove'])('does not report a historical cancellation as idempotent after %s', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmationOutcomes.add('5:cancel:')
+    store.roles.set('u1', 'missing')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'cancel_confirmation', userId: 'u1' },
+    }, store)).rejects.toMatchObject({ code: 'stale_state' })
+  })
+
+  it.each([
+    {
+      name: 'a later cancellation superseded the original confirmation',
+      outcomes: ['5:set:circle-a', '6:cancel:'],
+      confirmations: [],
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' } as const,
+    },
+    {
+      name: 'a later different choice superseded the original confirmation',
+      outcomes: ['5:set:circle-a', '6:set:circle-b'],
+      confirmations: [confirmation('u1', 'circle-b')],
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' } as const,
+    },
+    {
+      name: 'a later confirmation superseded the original cancellation',
+      outcomes: ['5:cancel:', '6:set:circle-a'],
+      confirmations: [confirmation('u1', 'circle-a')],
+      action: { type: 'cancel_confirmation', userId: 'u1' } as const,
+    },
+  ])('rejects a stale retry when $name', async ({ outcomes, confirmations, action }) => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmations = confirmations
+    outcomes.forEach((outcome) => store.confirmationOutcomes.add(outcome))
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4, action,
+    }, store)).rejects.toMatchObject({ code: 'stale_state' })
   })
 
   it('locks a full quorum and continues reconciliation after removing its members', async () => {
@@ -194,6 +350,131 @@ describe('executeMatchingTransition', () => {
         after: { status: 'reading' },
       }),
     ])
+  })
+
+  it('keeps welcome name changes separate from self-join analytics', async () => {
+    const store = new MemoryTransitionStore()
+    store.applyResult = {
+      changed: true,
+      events: [
+        { eventType: 'self_join', subjectUserId: 'u1' },
+        {
+          eventType: 'welcome_name_changed', subjectUserId: 'u1',
+          before: { name: 'Анна' }, after: { name: 'Аня' },
+        },
+      ],
+    }
+
+    await executeMatchingTransition({
+      sessionId: 's1', actor,
+      action: { type: 'self_join', userId: 'u1', name: 'Аня' },
+    }, store)
+
+    expect(store.events).toEqual([
+      expect.objectContaining({ eventType: 'self_join' }),
+      expect.objectContaining({
+        eventType: 'welcome_name_changed',
+        before: { name: 'Анна' }, after: { name: 'Аня' },
+      }),
+    ])
+  })
+
+  it('preserves exact dissolved-circle snapshots in the semantic event', async () => {
+    const store = new MemoryTransitionStore()
+    store.applyResult = {
+      changed: true,
+      events: [{
+        eventType: 'circle_dissolved', bookId: 'b1',
+        before: { circleKey: 'circle-a', members: [{ userId: 'u1', displayNameSnapshot: 'Анна' }] },
+        after: { status: 'dissolved' },
+        metadata: { circleKey: 'circle-a', reason: 'по просьбе', memberDisplayNames: ['Анна'] },
+      }],
+      notices: [{
+        userId: 'u1',
+        kind: 'circle_dissolved',
+        payload: { bookId: 'b1', memberDisplayNames: ['Анна'], reason: 'по просьбе' },
+      }],
+    }
+
+    await executeMatchingTransition({
+      sessionId: 's1', actor,
+      action: { type: 'dissolve_circle', circleId: 'lc1', reason: 'по просьбе' },
+    }, store)
+
+    expect(store.events[0]).toEqual(expect.objectContaining({
+      eventType: 'circle_dissolved', bookId: 'b1',
+      before: { circleKey: 'circle-a', members: [{ userId: 'u1', displayNameSnapshot: 'Анна' }] },
+      metadata: expect.objectContaining({ circleKey: 'circle-a', reason: 'по просьбе' }),
+    }))
+    expect(store.notices).toContainEqual(expect.objectContaining({
+      userId: 'u1', kind: 'circle_dissolved',
+      payload: expect.objectContaining({ reason: 'по просьбе', memberDisplayNames: ['Анна'] }),
+    }))
+  })
+
+  it('stores stable duplicate-name snapshots in transfer notices', async () => {
+    const store = new MemoryTransitionStore()
+    store.confirmations = [{
+      userId: 'u1', bookId: 'b1', circleKey: 'old', memberUserIds: ['u1', 'u2', 'u3'],
+    }]
+    store.scenarios = [{ circles: [circle('new', ['u1', 'u2'])] }]
+
+    await executeMatchingTransition({
+      sessionId: 's1', actor,
+      action: { type: 'leave', userId: 'u3' },
+    }, store)
+
+    expect(store.notices).toContainEqual(expect.objectContaining({
+      kind: 'confirmation_transferred',
+      payload: expect.objectContaining({
+        fromMemberDisplayNames: ['Анна', 'Иван', 'Иван (2)'],
+        toMemberDisplayNames: ['Анна', 'Иван'],
+      }),
+    }))
+  })
+
+  it('uses post-join names for the destination while preserving pre-action source names', async () => {
+    const store = new MemoryTransitionStore()
+    store.beforeDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван']])
+    store.afterDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван'], ['u4', 'Вера']])
+    store.confirmations = [{
+      userId: 'u1', bookId: 'b1', circleKey: 'old', memberUserIds: ['u1', 'u2'],
+    }]
+    store.scenarios = [{ circles: [circle('new', ['u1', 'u4'])] }]
+
+    await executeMatchingTransition({
+      sessionId: 's1', actor,
+      action: { type: 'self_join', userId: 'u4', name: 'Вера' },
+    }, store)
+
+    expect(store.notices[0].payload).toEqual(expect.objectContaining({
+      fromMemberDisplayNames: ['Анна', 'Иван'],
+      toMemberDisplayNames: ['Анна', 'Вера'],
+    }))
+    expect(store.calls.indexOf('getDisplayNames:pre')).toBeLessThan(store.calls.indexOf('applyAction:self_join'))
+    expect(store.calls.indexOf('applyAction:self_join')).toBeLessThan(store.calls.indexOf('getDisplayNames:post'))
+  })
+
+  it('keeps pre-rename names for invalidated confirmation snapshots', async () => {
+    const store = new MemoryTransitionStore()
+    store.beforeDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Иван']])
+    store.afterDisplayNames = new Map([['u1', 'Анна'], ['u2', 'Игорь']])
+    store.confirmations = [{
+      userId: 'u1', bookId: 'b1', circleKey: 'gone', memberUserIds: ['u1', 'u2'],
+    }]
+    store.scenarios = []
+
+    await executeMatchingTransition({
+      sessionId: 's1', actor,
+      action: { type: 'self_join', userId: 'u2', name: 'Игорь' },
+    }, store)
+
+    expect(store.notices[0].payload).toEqual(expect.objectContaining({
+      memberDisplayNames: ['Анна', 'Иван'],
+    }))
+    expect(store.calls).toEqual(expect.arrayContaining([
+      'getDisplayNames:pre', 'applyAction:self_join', 'getDisplayNames:post',
+    ]))
   })
 
   it('allows global profile preferences to change for an observer without returning them to calculations', async () => {

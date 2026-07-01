@@ -149,6 +149,254 @@ test.describe('Home submit book CTA layout', () => {
   })
 })
 
+test.describe('Matching restored board shell', () => {
+  test('board preserves controls, popup and compact geometry from desktop to mobile', async ({
+    page,
+    browser,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const book = await createTestBook({ title: `UI Matching ${test.info().testId}`, author: 'Layout Author' })
+    const registryBook = await createTestBook({ title: `UI Registry ${test.info().testId}`, author: 'Registry Author' })
+    await loginAsUser({ name: 'Анна Layout' })
+    expect((await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Анна Layout' } })).ok()).toBe(true)
+    expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await page.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    const peerContext = await browser.newContext()
+    const peer = await peerContext.newPage()
+    const peerEmail = `e2e-ui-matching-peer-${Date.now()}@test.invalid`
+    expect((await peer.request.post('/api/test/session', { data: { email: peerEmail, name: 'Борис Layout', telegramUsername: 'boris_layout' } })).ok()).toBe(true)
+    expect((await peer.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Борис Layout' } })).ok()).toBe(true)
+    expect((await peer.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await peer.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    const registryContexts = await Promise.all([browser.newContext(), browser.newContext()])
+    const registryPages = await Promise.all(registryContexts.map(context => context.newPage()))
+    const registryEmails = [
+      `e2e-ui-registry-a-${Date.now()}@test.invalid`,
+      `e2e-ui-registry-b-${Date.now()}@test.invalid`,
+    ]
+    for (let index = 0; index < registryPages.length; index += 1) {
+      const actor = registryPages[index]
+      const name = `Registry ${index + 1}`
+      expect((await actor.request.post('/api/test/session', { data: { email: registryEmails[index], name, telegramUsername: `registry_${index}` } })).ok()).toBe(true)
+      expect((await actor.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name } })).ok()).toBe(true)
+      expect((await actor.request.post('/api/matching/books', { data: { bookId: registryBook.id } })).ok()).toBe(true)
+      expect((await actor.request.patch('/api/matching/priorities', { data: { bookIds: [registryBook.id] } })).ok()).toBe(true)
+    }
+
+    try {
+      await page.goto('/matching')
+      await page.waitForLoadState('networkidle')
+
+      await expect(page.getByTestId('matching-header')).toBeVisible()
+      await expect(page.getByRole('link', { name: /каталог/i })).toBeVisible()
+      await expect(page.getByText(/Вы —/)).toContainText('Анна Layout')
+      await expect(page.getByTestId('matching-scenarios-workspace')).toBeVisible()
+      await expect(page.getByText(/Мои ходы|Лента событий/)).toHaveCount(0)
+
+      const workspace = page.getByTestId('matching-scenarios-workspace')
+      const catalog = page.getByTestId('matching-catalog-intro')
+      const workspaceBox = await workspace.boundingBox()
+      const catalogBox = await catalog.boundingBox()
+      expect(workspaceBox).not.toBeNull()
+      expect(catalogBox).not.toBeNull()
+      expect(workspaceBox!.width).toBeGreaterThan(page.viewportSize()!.width * 0.9)
+      expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeGreaterThanOrEqual(0)
+      expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeLessThan(48)
+
+      const scenarioScroll = page.getByTestId('matching-scenarios-scroll')
+      const scrollStyle = await scenarioScroll.evaluate((element) => ({
+        overflowY: getComputedStyle(element).overflowY,
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      }))
+      expect(scrollStyle.overflowY).toBe('auto')
+      expect(scrollStyle.clientHeight).toBeGreaterThan(0)
+      expect(scrollStyle.scrollHeight).toBeGreaterThan(scrollStyle.clientHeight)
+
+      const pageScrollBefore = await page.evaluate(() => window.scrollY)
+      await scenarioScroll.evaluate((element) => { element.scrollTop = 160 })
+      await expect.poll(() => scenarioScroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+      expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore)
+
+      const fade = workspace.locator(':scope > div[aria-hidden="true"]')
+      const fadeBox = await fade.boundingBox()
+      const fadeBackground = await fade.evaluate((element) => getComputedStyle(element).backgroundImage)
+      expect(fadeBox).not.toBeNull()
+      expect(fadeBackground).toContain('linear-gradient')
+      // The fade belongs to the inner scenario viewport: its bottom edge must
+      // coincide with the workspace bottom instead of extending page height.
+      expect(Math.abs((fadeBox!.y + fadeBox!.height) - (workspaceBox!.y + workspaceBox!.height))).toBeLessThanOrEqual(1)
+
+      const circle = page.getByTestId('matching-circle').first()
+      const cta = circle.getByTestId('circle-confirm-button')
+      await expect(cta).toBeAttached()
+      expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('0')
+
+      // Keyboard-only path: tab into the initially hidden CTA, open it with Enter,
+      // prove the modal cycles focus, closes with Escape, and restores the opener.
+      await page.locator('body').click({ position: { x: 1, y: 1 } })
+      for (let index = 0; index < 30; index += 1) {
+        await page.keyboard.press('Tab')
+        if (await cta.evaluate(element => document.activeElement === element)) break
+      }
+      await expect(cta).toBeFocused()
+      await page.keyboard.press('Enter')
+      const confirmationDialog = page.getByRole('dialog', { name: 'Подтвердить круг?' })
+      await expect(confirmationDialog).toBeVisible()
+      await expect(confirmationDialog.getByRole('button', { name: 'Отмена' })).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(confirmationDialog.getByRole('button', { name: 'Подтвердить' })).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(confirmationDialog.getByRole('button', { name: 'Отмена' })).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect(confirmationDialog.getByRole('button', { name: 'Подтвердить' })).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(confirmationDialog).toHaveCount(0)
+      await expect(cta).toBeFocused()
+
+      await circle.hover()
+      await expect.poll(() => cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
+      await cta.focus()
+      await expect(cta).toBeFocused()
+      expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).pointerEvents)).toBe('auto')
+
+      const coverButton = circle.getByRole('button', { name: /открыть книгу/i })
+      await expect(coverButton).toBeVisible()
+      await coverButton.click()
+      const bookDialog = page.getByRole('dialog', { name: book.title })
+      await expect(bookDialog).toBeVisible()
+      await expect(bookDialog).toContainText(book.title)
+      await page.keyboard.press('Escape')
+      await expect(bookDialog).toHaveCount(0)
+
+      for (const viewport of [
+        { width: 820, height: 900, label: 'tablet' },
+        { width: 390, height: 844, label: 'mobile' },
+      ]) {
+        await page.setViewportSize(viewport)
+
+        const header = page.getByTestId('matching-header')
+        const controls = [
+          page.getByRole('link', { name: /каталог/i }),
+          header.getByRole('heading', { name: session.name }),
+          header.getByText('Группы по 2', { exact: true }),
+          header.getByText('Дедлайн не задан', { exact: true }),
+          header.getByText('● активна', { exact: true }),
+          header.getByText(/Вы —/),
+          header.getByRole('button', { name: /участники: 4/i }),
+          header.getByRole('button', { name: 'Покинуть' }),
+        ]
+        for (const control of controls) {
+          await expect(control, `${viewport.label}: header control stays visible`).toBeVisible()
+          const box = await control.boundingBox()
+          expect(box, `${viewport.label}: header control has geometry`).not.toBeNull()
+          expect(box!.x, `${viewport.label}: header control starts inside viewport`).toBeGreaterThanOrEqual(0)
+          expect(box!.x + box!.width, `${viewport.label}: header control ends inside viewport`).toBeLessThanOrEqual(viewport.width + 1)
+        }
+
+        const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+        expect(horizontalOverflow, `${viewport.label}: page has no accidental horizontal overflow`).toBeLessThanOrEqual(1)
+
+        await header.getByRole('button', { name: /участники: 4/i }).click()
+        const popover = page.getByRole('dialog', { name: 'Участники' })
+        await expect(popover).toBeVisible()
+        const popoverBox = await popover.boundingBox()
+        expect(popoverBox).not.toBeNull()
+        expect(popoverBox!.x).toBeGreaterThanOrEqual(0)
+        expect(popoverBox!.x + popoverBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+        await popover.getByRole('button', { name: /закрыть список/i }).click()
+
+        if (viewport.label === 'mobile') {
+          await coverButton.click()
+          const mobileBookDialog = page.getByRole('dialog', { name: book.title })
+          await expect(mobileBookDialog).toBeVisible()
+          const dialogBox = await mobileBookDialog.boundingBox()
+          expect(dialogBox).not.toBeNull()
+          expect(dialogBox!.x).toBeGreaterThanOrEqual(0)
+          expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+          expect(dialogBox!.y).toBeGreaterThanOrEqual(0)
+          expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(viewport.height + 1)
+          await page.keyboard.press('Escape')
+        }
+      }
+
+      await page.setViewportSize({ width: 1440, height: 900 })
+      const activeDesktopWorkspace = await page.getByTestId('matching-scenarios-workspace').boundingBox()
+      expect(activeDesktopWorkspace).not.toBeNull()
+
+      const firstState = await (await page.request.get(`/api/matching/state?session=${session.id}`)).json() as {
+        session: { stateVersion: number }
+        scenarios: Array<{ circles: Array<{ circleKey: string; viewerIsMember: boolean }> }>
+      }
+      const firstCircle = firstState.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
+      expect((await page.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: firstCircle.circleKey, expectedStateVersion: firstState.session.stateVersion } })).ok()).toBe(true)
+      const peerState = await (await peer.request.get(`/api/matching/state?session=${session.id}`)).json() as typeof firstState
+      const peerCircle = peerState.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
+      expect((await peer.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: peerCircle.circleKey, expectedStateVersion: peerState.session.stateVersion } })).ok()).toBe(true)
+
+      for (const actor of registryPages) {
+        const state = await (await actor.request.get(`/api/matching/state?session=${session.id}`)).json() as typeof firstState
+        const circle = state.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
+        expect(circle).toBeDefined()
+        expect((await actor.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: circle.circleKey, expectedStateVersion: state.session.stateVersion } })).ok()).toBe(true)
+      }
+
+      await page.reload()
+      const observerWorkspace = await page.getByTestId('matching-scenarios-workspace').boundingBox()
+      const ownCircle = page.getByTestId('matching-own-locked-circle')
+      await expect(ownCircle).toBeVisible()
+      expect(observerWorkspace).not.toBeNull()
+      expect(Math.abs(observerWorkspace!.width - activeDesktopWorkspace!.width)).toBeLessThanOrEqual(1)
+      const ownBox = await ownCircle.boundingBox()
+      const registry = page.getByTestId('matching-locked-registry')
+      await expect(registry).toBeVisible()
+      const registryBox = await registry.boundingBox()
+      const liveScenariosBox = await page.getByTestId('matching-scenarios-empty').boundingBox()
+      expect(ownBox).not.toBeNull()
+      expect(registryBox).not.toBeNull()
+      expect(liveScenariosBox).not.toBeNull()
+      expect(ownBox!.y + ownBox!.height).toBeLessThanOrEqual(registryBox!.y)
+      expect(registryBox!.y + registryBox!.height).toBeLessThanOrEqual(liveScenariosBox!.y)
+    } finally {
+      await peer.request.delete('/api/test/session', { data: { email: peerEmail } }).catch(() => {})
+      await peerContext.close()
+      for (let index = 0; index < registryPages.length; index += 1) {
+        await registryPages[index].request.delete('/api/test/session', { data: { email: registryEmails[index] } }).catch(() => {})
+      }
+      await Promise.all(registryContexts.map(context => context.close()))
+    }
+  })
+
+  test('touch keeps the circle CTA visible', async ({ browser, createMatchingSession, createTestBook }) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const book = await createTestBook({ title: `UI Touch ${test.info().testId}`, author: 'Touch Author' })
+    const contexts = await Promise.all([browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } }), browser.newContext()])
+    const pages = await Promise.all(contexts.map(context => context.newPage()))
+    const emails = [`e2e-touch-a-${Date.now()}@test.invalid`, `e2e-touch-b-${Date.now()}@test.invalid`]
+    try {
+      for (let index = 0; index < pages.length; index += 1) {
+        const actor = pages[index]
+        expect((await actor.request.post('/api/test/session', { data: { email: emails[index], name: `Touch ${index}`, telegramUsername: `touch_${index}` } })).ok()).toBe(true)
+        expect((await actor.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: `Touch ${index}` } })).ok()).toBe(true)
+        expect((await actor.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+        expect((await actor.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+      }
+      await pages[0].goto('/matching')
+      const cta = pages[0].getByTestId('circle-confirm-button').first()
+      await expect(cta).toBeVisible()
+      expect(await cta.evaluate(element => getComputedStyle(element.parentElement!).opacity)).toBe('1')
+    } finally {
+      for (let index = 0; index < pages.length; index += 1) await pages[index].request.delete('/api/test/session', { data: { email: emails[index] } }).catch(() => {})
+      await Promise.all(contexts.map(context => context.close()))
+    }
+  })
+})
+
 test.describe('Summary editor layout', () => {
   test('helpful footer stays below the summary body without hydration shift', async ({
     page,
@@ -460,9 +708,9 @@ test.describe('Summary editor layout', () => {
   })
 })
 
-async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, bookIds: string[]) {
+async function joinMatchingSessionAndAddBooks(page: Page, sessionId: string, bookIds: string[], name = 'E2E Matching Reader') {
   const joinRes = await page.request.post(`/api/matching/sessions/${sessionId}/join`, {
-    data: { name: 'E2E Matching Reader' },
+    data: { name },
   })
   expect(joinRes.ok()).toBe(true)
   for (const bookId of bookIds) {
@@ -482,16 +730,22 @@ test.describe('Matching layout', () => {
     createTestBook,
     loginAsUser,
   }) => {
+    test.setTimeout(90_000)
     await page.setViewportSize({ width: 1440, height: 900 })
     const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
-    const circleBook = await createTestBook({ title: `UI Circle ${Date.now()}`, author: 'Layout Author' })
+    const bookIds: string[] = []
+    for (let index = 0; index < 7; index += 1) {
+      const book = await createTestBook({ title: `UI Circle ${index} ${Date.now()}`, author: 'Layout Author' })
+      bookIds.push(book.id)
+    }
 
     await loginAsUser({ name: 'UI Matching One' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
+    await joinMatchingSessionAndAddBooks(page, session.id, bookIds, 'UI Matching One')
     await loginAsUser({ name: 'UI Matching Two' })
-    await joinMatchingSessionAndAddBooks(page, session.id, [circleBook.id])
+    await joinMatchingSessionAndAddBooks(page, session.id, bookIds, 'UI Matching Two')
 
     await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
     const board = page.getByTestId('matching-realtime-client')
     const card = page.getByTestId('matching-scenario-card').first()
     await expect(card).toBeVisible()
@@ -500,6 +754,24 @@ test.describe('Matching layout', () => {
     expect(boardBox).not.toBeNull()
     expect(cardBox).not.toBeNull()
     expect(cardBox!.width).toBeGreaterThanOrEqual(boardBox!.width * 0.95)
+    await expect(page.getByText('Группы по 2')).toBeVisible()
+    await expect(page.getByText('Дедлайн не задан')).toBeVisible()
+    await expect(page.getByText('● активна')).toBeVisible()
+    await page.getByRole('button', { name: /участники: 2/i }).click()
+    const participants = page.getByRole('dialog', { name: 'Участники' })
+    await expect(participants).toContainText('UI Matching One')
+    await expect(participants).toContainText('UI Matching Two')
+
+    const scroll = page.getByTestId('matching-scenarios-scroll')
+    const before = await scroll.evaluate((element) => ({ top: element.scrollTop, height: element.clientHeight, full: element.scrollHeight }))
+    expect(before.full).toBeGreaterThan(before.height)
+    const catalogBefore = await page.getByTestId('matching-catalog-intro').boundingBox()
+    const pageYBefore = await page.evaluate(() => window.scrollY)
+    await scroll.evaluate((element) => { element.scrollTop = 160 })
+    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+    const catalogAfter = await page.getByTestId('matching-catalog-intro').boundingBox()
+    expect(await page.evaluate(() => window.scrollY)).toBe(pageYBefore)
+    expect(catalogAfter!.y).toBeCloseTo(catalogBefore!.y, 0)
     await expect(page.getByText('Мои ходы', { exact: true })).toHaveCount(0)
     await expect(page.getByText('Лента событий', { exact: true })).toHaveCount(0)
   })

@@ -104,7 +104,7 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
         >
           <p style={{ margin: 0, fontSize: '0.84rem', lineHeight: 1.5, color: 'var(--text-body)' }}>
             <strong style={{ color: 'var(--text)' }}>Реальные имена видны всем участникам.</strong>{' '}
-            Твоё имя будет отображаться рядом с твоими книгами и кругами.
+            Это нужно, чтобы составить группы и общаться через Telegram. Твоё имя будет отображаться рядом с твоими книгами и кругами.
           </p>
         </div>
 

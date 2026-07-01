@@ -31,6 +31,7 @@ test('renders human messages for each notice kind', () => {
         notice({ id: 'n1', kind: 'confirmation_transferred', payload: { fromMembers: ['Анна', 'Борис'], toMembers: ['Анна', 'Вера'] } }),
         notice({ id: 'n2', kind: 'confirmation_invalidated', payload: { members: ['Анна', 'Глеб'] } }),
         notice({ id: 'n3', kind: 'circle_locked', payload: {} }),
+        notice({ id: 'n4', kind: 'circle_dissolved', payload: {} }),
       ]}
     />,
   )
@@ -38,6 +39,25 @@ test('renders human messages for each notice kind', () => {
   expect(screen.getByText(/Вера/)).toBeInTheDocument()
   expect(screen.getByText(/распал/i)).toBeInTheDocument()
   expect(screen.getByText(/закреплён/i)).toBeInTheDocument()
+  expect(screen.getByText(/администратор распустил круг/i)).toBeInTheDocument()
+})
+
+test('renders safe generic text for notices without name snapshots', () => {
+  render(
+    <MatchingNotices
+      sessionId="s1"
+      notices={[
+        notice({ id: 'n1', kind: 'confirmation_transferred', payload: { fromMembers: [], toMembers: [] } }),
+        notice({ id: 'n2', kind: 'confirmation_invalidated', payload: { members: [] } }),
+      ]}
+    />,
+  )
+
+  const statuses = screen.getAllByRole('status')
+  expect(statuses[0]).toHaveTextContent('Твоё подтверждение перенесено в другой круг.')
+  expect(statuses[0]).not.toHaveTextContent(': .')
+  expect(statuses[1]).toHaveTextContent('Круг распался. Подтверждение снято — выбери круг заново.')
+  expect(statuses[1]).not.toHaveTextContent('()')
 })
 
 test('acks a notice and removes it only after a successful response', async () => {

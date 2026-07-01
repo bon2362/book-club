@@ -18,6 +18,7 @@ import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import { db as drizzle } from '@/lib/db'
 import { signupBooks, bookPriorities } from '@/lib/db/schema'
 import { inArray } from 'drizzle-orm'
+import { buildPublicBookParticipants } from '@/lib/matching/book-participants'
 
 export default async function MatchingPage({
   searchParams,
@@ -39,6 +40,9 @@ export default async function MatchingPage({
       name: matchingSessions.name,
       status: matchingSessions.status,
       stateVersion: matchingSessions.stateVersion,
+      minGroupSize: matchingSessions.minGroupSize,
+      maxGroupSize: matchingSessions.maxGroupSize,
+      deadlineAt: matchingSessions.deadlineAt,
     })
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'active'))
@@ -52,6 +56,9 @@ export default async function MatchingPage({
       name: matchingSessions.name,
       status: matchingSessions.status,
       stateVersion: matchingSessions.stateVersion,
+      minGroupSize: matchingSessions.minGroupSize,
+      maxGroupSize: matchingSessions.maxGroupSize,
+      deadlineAt: matchingSessions.deadlineAt,
     })
     .from(matchingSessions)
     .where(eq(matchingSessions.status, 'frozen'))
@@ -125,6 +132,8 @@ export default async function MatchingPage({
   const participantRows = await db
     .select({
       userId: matchingSessionParticipants.userId,
+      publicRef: matchingSessionParticipants.publicRef,
+      joinedAt: matchingSessionParticipants.joinedAt,
       name: users.name,
     })
     .from(matchingSessionParticipants)
@@ -132,8 +141,9 @@ export default async function MatchingPage({
     .where(eq(matchingSessionParticipants.sessionId, currentSession.id))
 
   const participantUserIds = participantRows.map((p) => p.userId)
+  const viewingParticipantRef = participantRows.find((p) => p.userId === viewerUserId)?.publicRef ?? 'viewer'
 
-  const bookParticipants: BookParticipant[] =
+  const bookParticipantRows =
     participantUserIds.length > 0
       ? await drizzle
           .select({
@@ -151,75 +161,59 @@ export default async function MatchingPage({
             ),
           )
           .where(inArray(signupBooks.userId, participantUserIds))
-          .then((rows) =>
-            rows.map((row) => ({
-              userId: row.userId,
-              bookId: row.bookId,
-              displayName: participantRows.find((p) => p.userId === row.userId)?.name ?? row.userId,
-              rank: row.rank,
-              personalStatus: row.personalStatus ?? null,
-            })),
-          )
+          .then((rows) => rows.map((row) => ({ ...row, personalStatus: row.personalStatus ?? null })))
       : []
-
-  if (showRankingGate) {
-    return (
-      <MatchingBoardProvider stateVersion={currentSession.stateVersion}>
-        <BookDetailProvider
-          personalBooks={personalBooks}
-          viewingUserId={viewerUserId}
-          frozen={false}
-        >
-          <MatchingSatisfactionFlow
-            phase="gate"
-            sessionId={currentSession.id}
-            books={personalBooks}
-            bookParticipants={bookParticipants}
-            viewingUserId={viewerUserId}
-          />
-        </BookDetailProvider>
-      </MatchingBoardProvider>
-    )
-  }
+  const bookParticipants: BookParticipant[] = buildPublicBookParticipants({
+    participants: participantRows,
+    signups: bookParticipantRows,
+  })
 
   // Board phase: fetch the public state for the realtime client
   let publicState: MatchingPublicState | null = null
-  try {
-    const raw = await fetchMatchingPublicState(currentSession.id, viewerUserId)
-    // Derive viewerConfirmedCircleKey from participants
-    const viewerRef = raw.viewer.ref
-    const me = raw.participants.find((p: { ref: string; confirmedCircleKey: string | null }) => p.ref === viewerRef)
-    publicState = {
-      session: raw.session,
-      viewer: raw.viewer,
-      scenarios: raw.scenarios,
-      lockedCircles: raw.lockedCircles,
-      notices: raw.notices,
-      viewerConfirmedCircleKey: me?.confirmedCircleKey ?? null,
-    }
-  } catch (error) {
-    if (error instanceof PublicMatchingStateError && error.code === 'participant_missing') {
-      // Participant was added by admin; state will populate after first join
+  if (!showRankingGate) {
+    try {
+      const raw = await fetchMatchingPublicState(currentSession.id, viewerUserId)
+      // Derive viewerConfirmedCircleKey from participants
+      const viewerRef = raw.viewer.ref
+      const me = raw.participants.find((p: { ref: string; confirmedCircleKey: string | null }) => p.ref === viewerRef)
       publicState = {
-        session: {
-          status: currentSession.status,
-          stateVersion: currentSession.stateVersion,
-        },
-        viewer: { role: 'active', ref: viewerUserId, lockedCircleId: null },
-        scenarios: [],
-        lockedCircles: [],
-        notices: [],
-        viewerConfirmedCircleKey: null,
+        session: raw.session,
+        viewer: raw.viewer,
+        participants: raw.participants,
+        scenarios: raw.scenarios,
+        lockedCircles: raw.lockedCircles,
+        notices: raw.notices,
+        viewerConfirmedCircleKey: me?.confirmedCircleKey ?? null,
       }
-    } else {
-      throw error
+    } catch (error) {
+      if (error instanceof PublicMatchingStateError && error.code === 'participant_missing') {
+        // Participant was added by admin; state will populate after first join
+        publicState = {
+          session: {
+            name: currentSession.name,
+            status: currentSession.status,
+            stateVersion: currentSession.stateVersion,
+            minGroupSize: currentSession.minGroupSize,
+            maxGroupSize: currentSession.maxGroupSize,
+            deadlineAt: currentSession.deadlineAt?.toISOString() ?? null,
+          },
+          viewer: { role: 'active', ref: 'viewer', lockedCircleKey: null },
+          participants: [],
+          scenarios: [],
+          lockedCircles: [],
+          notices: [],
+          viewerConfirmedCircleKey: null,
+        }
+      } else {
+        throw error
+      }
     }
   }
 
-  // Build bookTitleById for the scenarios display
-  const bookTitleById = Object.fromEntries(
-    personalBooks.map((b) => [b.bookId, b.title]),
-  )
+  // Full published-book metadata powers covers and the shared book-detail popup.
+  const booksById = showRankingGate
+    ? {}
+    : Object.fromEntries(personalBooks.map((book) => [book.bookId, book]))
 
   const isReadOnly = currentSession.status === 'frozen'
 
@@ -227,63 +221,26 @@ export default async function MatchingPage({
     <MatchingBoardProvider stateVersion={currentSession.stateVersion}>
       <BookDetailProvider
         personalBooks={personalBooks}
-        viewingUserId={viewerUserId}
+        viewingUserId={viewingParticipantRef}
         frozen={isReadOnly}
       >
-        <div
-          style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100svh', display: 'flex', flexDirection: 'column' }}
-        >
-          {/* Board section: realtime client handles notices + locked circles + scenarios */}
-          <div style={{ padding: '1rem', flex: 1 }}>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontFamily: 'var(--nd-serif)',
-                  fontSize: '1.3rem',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                }}
-              >
-                {currentSession.name}
-              </h1>
-            </div>
-            <MatchingRealtimeClient
-              sessionId={currentSession.id}
-              initialState={publicState}
-              bookTitleById={bookTitleById}
-            />
-          </div>
-
-          {/* Personal list / catalog section */}
-          <div style={{ padding: '1rem', borderTop: '1px solid var(--hair)' }}>
-            <div style={{ marginBottom: '0.75rem' }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontFamily: 'var(--nd-serif)',
-                  fontSize: '1.12rem',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                }}
-              >
-                Каталог
-              </h2>
-              <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Слева — книги клуба, справа — ваш список и приоритеты
-              </p>
-            </div>
-            <MatchingSatisfactionFlow
-              phase="board"
+        <MatchingSatisfactionFlow
+              phase={showRankingGate ? 'gate' : 'board'}
               sessionId={currentSession.id}
               books={personalBooks}
               bookParticipants={bookParticipants}
-              viewingUserId={viewerUserId}
+              viewingUserId={viewingParticipantRef}
               frozen={isReadOnly}
               mutationUserId={isImpersonating ? viewerUserId : undefined}
+              workspace={showRankingGate ? undefined : <MatchingRealtimeClient
+                sessionId={currentSession.id}
+                initialState={publicState!}
+                booksById={booksById}
+                isAdmin={isAdmin}
+                isImpersonating={isImpersonating}
+              />}
+              catalogIntro={showRankingGate ? undefined : <div data-testid="matching-catalog-intro" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--hair)', paddingTop: '1rem' }}><h2 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.12rem' }}>Каталог</h2><p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Слева — книги клуба, справа — ваш список и приоритеты</p></div>}
             />
-          </div>
-        </div>
       </BookDetailProvider>
     </MatchingBoardProvider>
   )

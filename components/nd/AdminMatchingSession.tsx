@@ -19,6 +19,21 @@ interface MatchingSession {
   deadlineAt: string | null
   createdAt: string
   frozenAt: string | null
+  frozenScenarioJson: unknown
+}
+
+function frozenScenarioCircles(value: unknown): Array<{ circleKey: string; bookId: string; memberCount: number }> {
+  if (!value || typeof value !== 'object') return []
+  const leader = (value as { remainingLeader?: unknown }).remainingLeader
+  if (!leader || typeof leader !== 'object') return []
+  const circles = (leader as { circles?: unknown }).circles
+  if (!Array.isArray(circles)) return []
+  return circles.flatMap((circle) => {
+    if (!circle || typeof circle !== 'object') return []
+    const row = circle as { circleKey?: unknown; bookId?: unknown; memberUserIds?: unknown }
+    if (typeof row.circleKey !== 'string' || typeof row.bookId !== 'string' || !Array.isArray(row.memberUserIds)) return []
+    return [{ circleKey: row.circleKey, bookId: row.bookId, memberCount: row.memberUserIds.length }]
+  })
 }
 
 interface MatchingEvent extends MatchingEventLike {
@@ -383,6 +398,7 @@ export default function AdminMatchingSession() {
 
   const activeSession = sessions.find(s => s.status === 'active')
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null
+  const selectedFrozenCircles = selectedSession ? frozenScenarioCircles(selectedSession.frozenScenarioJson) : []
   const isSelectedActive = selectedSession?.status === 'active'
   const isSelectedFrozen = selectedSession?.status === 'frozen'
   const [freezing, setFreezing] = useState(false)
@@ -582,9 +598,25 @@ export default function AdminMatchingSession() {
             </div>
           )}
           {isSelectedFrozen && (
-            <p style={{ ...microLabel, marginTop: '0.7rem' }}>
-              Сессия зафиксирована — данные доступны только для просмотра
-            </p>
+            <>
+              <p style={{ ...microLabel, marginTop: '0.7rem' }}>
+                Сессия зафиксирована — данные доступны только для просмотра
+              </p>
+              <div data-testid="admin-frozen-snapshot" style={{ marginTop: '0.7rem', borderTop: '1px solid var(--border)', paddingTop: '0.6rem' }}>
+                <div style={microLabel}>Снимок оставшегося сценария</div>
+                {selectedFrozenCircles.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.35rem 0 0' }}>Кругов не осталось.</p>
+                ) : (
+                  <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.2rem', color: 'var(--text-body)', fontSize: '0.75rem' }}>
+                    {selectedFrozenCircles.map((circle) => (
+                      <li key={circle.circleKey}>
+                        Книга {circle.bookId} — {circle.memberCount} {circle.memberCount === 1 ? 'участник' : circle.memberCount < 5 ? 'участника' : 'участников'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
           )}
           {freezeError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem', marginTop: 4 }}>{freezeError}</p>}
         </div>

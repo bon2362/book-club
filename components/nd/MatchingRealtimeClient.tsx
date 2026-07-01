@@ -8,18 +8,26 @@ import MatchingLockedCircles from './MatchingLockedCircles'
 import MatchingScenarios from './MatchingScenarios'
 import type { MatchingNotice } from './MatchingNotices'
 import type { LockedCircle } from './MatchingLockedCircles'
-import type { PublicScenario } from './MatchingScenarios'
+import type { PublicScenario, ScenarioBookMeta } from './MatchingScenarios'
+import MatchingHeader, { type MatchingHeaderParticipant } from './MatchingHeader'
+import MatchingWorkspace from './MatchingWorkspace'
+import { useRouter } from 'next/navigation'
 
 export interface MatchingPublicState {
   session: {
+    name: string
     status: string
     stateVersion: number
+    minGroupSize: number
+    maxGroupSize: number
+    deadlineAt: string | null
   }
   viewer: {
     role: 'active' | 'observer'
     ref: string
-    lockedCircleId: string | null
+    lockedCircleKey: string | null
   }
+  participants: MatchingHeaderParticipant[]
   scenarios: PublicScenario[]
   lockedCircles: LockedCircle[]
   notices: MatchingNotice[]
@@ -30,9 +38,13 @@ export interface MatchingPublicState {
 interface Props {
   sessionId: string
   initialState: MatchingPublicState
-  bookTitleById: Record<string, string>
+  booksById?: Record<string, ScenarioBookMeta>
+  /** Transitional test compatibility; production passes full metadata. */
+  bookTitleById?: Record<string, string>
   /** Optional fixed poll interval in ms — overrides adaptive logic. Used in tests. */
   pollIntervalMs?: number
+  isAdmin?: boolean
+  isImpersonating?: boolean
 }
 
 /** Extract viewer's confirmedCircleKey from public state participants */
@@ -47,9 +59,14 @@ function extractViewerConfirmedKey(
 export default function MatchingRealtimeClient({
   sessionId,
   initialState,
-  bookTitleById,
+  booksById,
+  bookTitleById = {},
   pollIntervalMs,
+  isAdmin = false,
+  isImpersonating = false,
 }: Props) {
+  const router = useRouter()
+  const resolvedBooksById = booksById ?? Object.fromEntries(Object.entries(bookTitleById).map(([bookId, title]) => [bookId, { bookId, title, author: '', description: '', coverUrl: null, pages: null, publishedDate: '', textUrl: '', whyRead: null, recommendationLink: null, tags: [] }]))
   const [state, setState] = useState<MatchingPublicState>(initialState)
   const [healthy, setHealthy] = useState(true)
   const lastVersionRef = useRef<number | null>(null)
@@ -68,6 +85,7 @@ export default function MatchingRealtimeClient({
       setState({
         session: raw.session,
         viewer: raw.viewer,
+        participants: raw.participants,
         scenarios: raw.scenarios,
         lockedCircles: raw.lockedCircles,
         notices: raw.notices,
@@ -87,6 +105,15 @@ export default function MatchingRealtimeClient({
       }
       const data = (await res.json()) as { version: number; status?: string; online?: string[] }
       setHealthy(true)
+      if (data.online) {
+        setState((current) => ({
+          ...current,
+          participants: current.participants.map((participant) => ({
+            ...participant,
+            online: data.online!.includes(participant.ref),
+          })),
+        }))
+      }
 
       const versionChanged =
         lastVersionRef.current !== null && data.version !== lastVersionRef.current
@@ -94,6 +121,7 @@ export default function MatchingRealtimeClient({
         lastVersionRef.current = data.version
         if (versionChanged) {
           await fetchFullState()
+          router.refresh()
         }
       }
 
@@ -108,7 +136,7 @@ export default function MatchingRealtimeClient({
     } catch {
       setHealthy(false)
     }
-  }, [sessionId, adaptive, fetchFullState])
+  }, [sessionId, adaptive, fetchFullState, router])
 
   // On mount: initialise lastVersion from initialState so we don't trigger a
   // fetch on the first poll if nothing changed.
@@ -119,7 +147,24 @@ export default function MatchingRealtimeClient({
   useVisibleInterval(poll, intervalMs, { enabled: !stopped })
 
   return (
-    <div data-testid="matching-realtime-client">
+    <div data-testid="matching-realtime-client" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <MatchingHeader
+        sessionId={sessionId}
+        sessionName={state.session.name}
+        sessionStatus={state.session.status}
+        stateVersion={state.session.stateVersion}
+        minGroupSize={state.session.minGroupSize}
+        maxGroupSize={state.session.maxGroupSize}
+        deadlineAt={state.session.deadlineAt}
+        viewer={{
+          displayName: state.participants.find((participant) => participant.ref === state.viewer.ref)?.displayName ?? 'Участник',
+          role: state.viewer.role,
+        }}
+        participants={state.participants}
+        isAdmin={isAdmin}
+        isImpersonating={isImpersonating}
+        onSessionRefresh={fetchFullState}
+      />
       {/* Health indicator */}
       <div
         data-testid="matching-realtime-indicator"
@@ -138,6 +183,7 @@ export default function MatchingRealtimeClient({
         {healthy ? '●' : '⟳ синхр.'}
       </div>
 
+      <MatchingWorkspace scenarioCount={state.scenarios.length}>
       {/* Notices at top */}
       {state.notices.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>
@@ -148,8 +194,8 @@ export default function MatchingRealtimeClient({
       {/* Locked circles registry above live scenarios */}
       <MatchingLockedCircles
         circles={state.lockedCircles}
-        viewerLockedCircleId={state.viewer.lockedCircleId}
-        bookTitleById={bookTitleById}
+        viewerLockedCircleKey={state.viewer.lockedCircleKey}
+        booksById={resolvedBooksById}
       />
 
       {/* Scenarios board */}
@@ -161,10 +207,11 @@ export default function MatchingRealtimeClient({
           viewerConfirmedCircleKey={state.viewerConfirmedCircleKey}
           viewerRole={state.viewer.role}
           frozen={state.session.status === 'frozen'}
-          bookTitleById={bookTitleById}
+          booksById={resolvedBooksById}
           onConfirmationChange={fetchFullState}
         />
       </div>
+      </MatchingWorkspace>
     </div>
   )
 }

@@ -35,7 +35,7 @@ test('gate phase shows the ranking intro and CTA, no eyebrow', () => {
 
 test('gate footer uses the single hint for all states', () => {
   render(<MatchingSatisfactionFlow phase="gate" {...base} />)
-  expect(screen.getByText('Расставь приоритеты и сможешь войти в сессию.')).toBeInTheDocument()
+  expect(screen.getByText(/книга участвует в расчёте только после назначения ранга/i)).toBeInTheDocument()
 })
 
 test('gate CTA is disabled until an active book is ranked', () => {
@@ -54,6 +54,13 @@ test('board phase renders header and workspace slots', () => {
   )
   expect(screen.getByTestId('slot-header')).toBeInTheDocument()
   expect(screen.getByTestId('slot-workspace')).toBeInTheDocument()
+})
+
+test('gate phase does not mount board slots from the shared page composition', () => {
+  render(<MatchingSatisfactionFlow phase="gate" {...base} header={<div data-testid="slot-header" />} workspace={<div data-testid="slot-workspace" />} />)
+  expect(screen.queryByTestId('slot-header')).toBeNull()
+  expect(screen.queryByTestId('slot-workspace')).toBeNull()
+  expect(screen.getByTestId('ranking-gate')).toBeInTheDocument()
 })
 
 test('clicking enter on a ranked gate refreshes and shows the submitting state', () => {

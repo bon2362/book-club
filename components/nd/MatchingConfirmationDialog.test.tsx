@@ -39,3 +39,38 @@ test('fires confirm and cancel callbacks', () => {
   fireEvent.click(screen.getByRole('button', { name: /отмен/i }))
   expect(base.onCancel).toHaveBeenCalledTimes(1)
 })
+
+test('has an accessible name, focuses cancel initially and closes with Escape', () => {
+  render(<MatchingConfirmationDialog open {...base} />)
+  expect(screen.getByRole('dialog', { name: 'Сменить круг?' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /отмена/i })).toHaveFocus()
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+  expect(base.onCancel).toHaveBeenCalledTimes(1)
+})
+
+test('contains Tab focus within the dialog', () => {
+  render(<MatchingConfirmationDialog open {...base} />)
+  const cancel = screen.getByRole('button', { name: /отмена/i })
+  const confirm = screen.getByRole('button', { name: /подтвердить/i })
+  confirm.focus()
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Tab' })
+  expect(cancel).toHaveFocus()
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Tab', shiftKey: true })
+  expect(confirm).toHaveFocus()
+})
+
+test('disables both actions while pending', () => {
+  render(<MatchingConfirmationDialog open {...base} pending />)
+  expect(screen.getByRole('button', { name: /отмена/i })).toBeDisabled()
+  expect(screen.getByRole('button', { name: /подтверждаем/i })).toBeDisabled()
+})
+
+test('restores focus to the opener when the dialog closes', () => {
+  const { rerender } = render(<><button type="button">Открыть выбор</button><MatchingConfirmationDialog open={false} {...base} /></>)
+  const opener = screen.getByRole('button', { name: 'Открыть выбор' })
+  opener.focus()
+  rerender(<><button type="button">Открыть выбор</button><MatchingConfirmationDialog open {...base} /></>)
+  expect(screen.getByRole('button', { name: /отмена/i })).toHaveFocus()
+  rerender(<><button type="button">Открыть выбор</button><MatchingConfirmationDialog open={false} {...base} /></>)
+  expect(screen.getByRole('button', { name: 'Открыть выбор' })).toHaveFocus()
+})

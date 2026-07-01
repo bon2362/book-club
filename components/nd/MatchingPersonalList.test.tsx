@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import MatchingPersonalList from './MatchingPersonalList'
 import type { CatalogBook } from '@/lib/matching/personal-list'
 
@@ -102,4 +102,21 @@ test('unranked active books are shown first with a calculation warning', () => {
   expect(rows[1]).toHaveTextContent('Книга A')
   expect(rows[1]).toHaveTextContent('#1')
   expect(getByText('Книги без приоритета не участвуют в расчете')).toBeInTheDocument()
+})
+
+test('excludes the viewer from popup chips by opaque ref', () => {
+  render(
+    <MatchingPersonalList
+      books={[myBook]}
+      bookParticipants={[
+        { ref: 'viewer-ref', bookId: 'b1', displayName: 'Viewer Name', rank: 1, personalStatus: null },
+        { ref: 'participant-ref-opaque', bookId: 'b1', displayName: 'Other Name', rank: 2, personalStatus: null },
+      ]}
+      viewingUserId="viewer-ref"
+    />,
+  )
+
+  fireEvent.click(screen.getByText('Книга A'))
+  expect(screen.queryByText('Viewer Name')).toBeNull()
+  expect(screen.getByText('Other Name')).toBeInTheDocument()
 })

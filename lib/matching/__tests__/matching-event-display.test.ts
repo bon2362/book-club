@@ -29,6 +29,7 @@ function event(
 describe('matchingEventTypeLabel', () => {
   it('переводит join-события', () => {
     expect(matchingEventTypeLabel('self_join')).toBe('Вход в сессию')
+    expect(matchingEventTypeLabel('welcome_name_changed')).toBe('Имя изменено')
     expect(matchingEventTypeLabel('admin_add')).toBe('Добавлен:а админом')
     expect(matchingEventTypeLabel('leave')).toBe('Покинул:а сессию')
     expect(matchingEventTypeLabel('admin_remove')).toBe('Удалён:а админом')
@@ -44,6 +45,7 @@ describe('matchingEventTypeLabel', () => {
 
   it('переводит circle-события', () => {
     expect(matchingEventTypeLabel('circle_locked')).toBe('Круг закреплён')
+    expect(matchingEventTypeLabel('circle_dissolved')).toBe('Круг распущен')
     expect(matchingEventTypeLabel('dissolve_circle')).toBe('Круг распущен')
     expect(matchingEventTypeLabel('freeze')).toBe('Сессия зафиксирована')
   })
@@ -108,6 +110,14 @@ describe('formatMatchingEvent — detail', () => {
   it('join — упоминает участника если задан субъект', () => {
     const e = event('self_join', { subjectUserId: 'u-1', subjectNameSnapshot: 'Анна' })
     expect(formatMatchingEvent(e)).toContain('Анна')
+  })
+
+  it('welcome_name_changed — показывает старое и новое имя', () => {
+    const e = event('welcome_name_changed', {
+      before: { name: 'Анна' },
+      after: { name: 'Аня' },
+    })
+    expect(formatMatchingEvent(e)).toBe('Анна → Аня')
   })
 
   it('admin_add — отображает субъекта', () => {
@@ -214,12 +224,25 @@ describe('formatMatchingEvent — detail', () => {
     expect(result).toContain('Мастер и Маргарита')
   })
 
-  it('dissolve_circle — показывает причину', () => {
-    const e = event('dissolve_circle', {
-      metadata: { reason: 'Конфликт в группе', bookTitle: 'Обломов' },
+  it('circle_dissolved — показывает состав, ключ и причину', () => {
+    const e = event('circle_dissolved', {
+      metadata: {
+        reason: 'Конфликт в группе', bookTitle: 'Обломов', circleKey: 'circle-a',
+        memberDisplayNames: ['Анна', 'Иван'],
+      },
     })
     const result = formatMatchingEvent(e)
     expect(result).toContain('Конфликт в группе')
+    expect(result).toContain('Анна, Иван')
+    expect(result).toContain('circle-a')
+  })
+
+  it('dissolve_circle — formats historical analytics rows', () => {
+    const e = event('dissolve_circle', {
+      metadata: { reason: 'Историческая причина', bookTitle: 'Обломов' },
+    })
+    expect(formatMatchingEvent(e)).toContain('Историческая причина')
+    expect(formatMatchingEvent(e)).toContain('Обломов')
   })
 
   it('freeze — лаконичное описание', () => {

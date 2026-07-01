@@ -1,8 +1,9 @@
-import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test'
+import { test as base, expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test'
 import { Pool, neonConfig } from '@neondatabase/serverless'
 import ws from 'ws'
 import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
+import { createSafeE2EDatabaseClient } from '../lib/e2e-database-guard'
 
 /**
  * Load DATABASE_URL from .env.test.local for use in the Playwright Node.js
@@ -101,6 +102,19 @@ interface AdminSession {
   userId: string
 }
 
+interface MatchingBoardParticipant extends AdminSession {
+  context: BrowserContext
+  page: Page
+}
+
+interface MatchingBoardFixture {
+  session: MatchingSession
+  books: [TestBook, TestBook]
+  participantA: MatchingBoardParticipant
+  participantB: MatchingBoardParticipant
+  addParticipant: (name: string, rankedBooks?: TestBook[]) => Promise<MatchingBoardParticipant>
+}
+
 interface DbExecHelper {
   /**
    * Execute a raw SQL statement against the e2e database (Node.js context,
@@ -114,6 +128,51 @@ interface DbExecHelper {
   registerCleanup: (cleanupSql: string, params?: unknown[]) => void
 }
 
+interface AuditCleanupScope {
+  trackSession: (sessionId: string) => void
+  trackUser: (userId: string) => void
+}
+
+export async function cleanupTrackedAuditRows(
+  execute: (sql: string, params?: unknown[]) => Promise<Record<string, unknown>[]>,
+  users: string[],
+  sessions: string[],
+): Promise<void> {
+  if (sessions.length === 0 && users.length === 0) return
+  if (users.length > 0) {
+    await execute('delete from "user" where id = any($1::text[])', [users])
+  }
+  await execute(
+    `delete from audit_log
+     where actor_user_id = any($1::text[])
+        or entity_id = any($1::text[])
+        or exists (
+          select 1 from unnest($1::text[]) user_id
+          where audit_log.entity_id like user_id || ':%'
+        )
+        or entity_id = any($2::text[])
+        or coalesce(before->>'session_id', '') = any($2::text[])
+        or coalesce(after->>'session_id', '') = any($2::text[])
+        or exists (
+          select 1 from unnest($2::text[]) session_id
+          where audit_log.entity_id like session_id || ':%'
+        )
+        or exists (
+          select 1
+          from jsonb_each_text(case when jsonb_typeof(before) = 'object' then before else '{}'::jsonb end) ownership(key, value)
+          where (ownership.key = 'user_id' or ownership.key like '%\\_user\\_id' escape '\\' or ownership.key like '%\\_by' escape '\\')
+            and ownership.value = any($1::text[])
+        )
+        or exists (
+          select 1
+          from jsonb_each_text(case when jsonb_typeof(after) = 'object' then after else '{}'::jsonb end) ownership(key, value)
+          where (ownership.key = 'user_id' or ownership.key like '%\\_user\\_id' escape '\\' or ownership.key like '%\\_by' escape '\\')
+            and ownership.value = any($1::text[])
+        )`,
+    [users, sessions],
+  )
+}
+
 interface E2EHelpers {
   /**
    * Raw-SQL helper against the e2e Neon branch (process.env.DATABASE_URL).
@@ -121,6 +180,8 @@ interface E2EHelpers {
    * `dbExec.registerCleanup(sql, params)`.
    */
   dbExec: DbExecHelper
+  /** Remove every audit row associated with tracked E2E sessions/users after dependent fixture teardown. */
+  auditCleanup: AuditCleanupScope
 
   /**
    * Log in as a regular user with a unique email derived from the test id.
@@ -165,6 +226,12 @@ interface E2EHelpers {
    * Create an active matching session through a test-only API and delete it in teardown.
    */
   createMatchingSession: (overrides?: MatchingSessionOverrides) => Promise<MatchingSession>
+
+  /**
+   * Complete two-person satisfaction board with two shared ranked books.
+   * Both browser contexts and user records are cleaned up by the fixture.
+   */
+  matchingBoardFixture: MatchingBoardFixture
 }
 
 async function patchIntroSection(
@@ -194,10 +261,10 @@ export const test = base.extend<E2EHelpers>({
       neonConfig.webSocketConstructor = ws
     }
     const connectionString = loadTestDatabaseUrl()
-    if (!connectionString) {
-      throw new Error('dbExec fixture: DATABASE_URL not found in process.env or .env.test.local')
-    }
-    const pool = new Pool({ connectionString })
+    const pool = createSafeE2EDatabaseClient(
+      (safeConnectionString) => new Pool({ connectionString: safeConnectionString }),
+      { ...process.env, DATABASE_URL: connectionString },
+    )
     const cleanups: Array<{ sql: string; params?: unknown[] }> = []
 
     const exec = async (sql: string, params?: unknown[]) => {
@@ -217,6 +284,22 @@ export const test = base.extend<E2EHelpers>({
       } catch { /* best-effort */ }
     }
     await pool.end()
+  },
+
+  auditCleanup: async ({ dbExec }, use) => {
+    const sessionIds = new Set<string>()
+    const userIds = new Set<string>()
+    await use({
+      trackSession: (sessionId) => sessionIds.add(sessionId),
+      trackUser: (userId) => userIds.add(userId),
+    })
+
+    const sessions = Array.from(sessionIds)
+    const users = Array.from(userIds)
+    // This fixture is a dependency of matching session/board fixtures, so their
+    // own teardown runs first. The helper also removes separately-created users
+    // before sweeping the trigger rows produced by those deletes.
+    await cleanupTrackedAuditRows(dbExec, users, sessions)
   },
 
   loginAsUser: async ({ page }, use, testInfo) => {
@@ -358,7 +441,7 @@ export const test = base.extend<E2EHelpers>({
     await use(create)
   },
 
-  createMatchingSession: async ({ request }, use, testInfo) => {
+  createMatchingSession: async ({ request, auditCleanup }, use, testInfo) => {
     const created: string[] = []
 
     const create: E2EHelpers['createMatchingSession'] = async (overrides) => {
@@ -374,6 +457,7 @@ export const test = base.extend<E2EHelpers>({
       }
       const body = (await res.json()) as { session: MatchingSession }
       created.push(body.session.id)
+      auditCleanup.trackSession(body.session.id)
       return body.session
     }
 
@@ -383,6 +467,58 @@ export const test = base.extend<E2EHelpers>({
       try {
         await request.delete('/api/test/matching-session', { data: { id } })
       } catch { /* best-effort — DB cleanup is the safety net */ }
+    }
+  },
+
+  matchingBoardFixture: async ({ browser, createMatchingSession, createTestBook, auditCleanup }, use, testInfo) => {
+    const contexts: BrowserContext[] = []
+    const createdUsers: Array<{ page: Page; email: string }> = []
+
+    try {
+      const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+      const books: [TestBook, TestBook] = [
+        await createTestBook({ title: `E2E Первый круг ${testInfo.testId}`, author: 'Автор первого круга' }),
+        await createTestBook({ title: `E2E Второй круг ${testInfo.testId}`, author: 'Автор второго круга' }),
+      ]
+
+      const createParticipant = async (label: string, name: string, rankedBooks: TestBook[] = books): Promise<MatchingBoardParticipant> => {
+        const context = await browser.newContext()
+        contexts.push(context)
+        for (const pattern of POSTHOG_PATTERNS) await context.route(pattern, (route) => route.abort())
+        const page = await context.newPage()
+        const email = `e2e-${testInfo.testId}-${label}-${Date.now()}@test.invalid`
+        const login = await page.request.post('/api/test/session', {
+          data: { email, name, isAdmin: false, telegramUsername: `matching_${label.toLowerCase()}_${Date.now()}` },
+        })
+        if (!login.ok()) throw new Error(`matchingBoardFixture login failed: ${login.status()} ${await login.text()}`)
+        // Register cleanup immediately after the user exists: join/add/rank may fail.
+        createdUsers.push({ page, email })
+        const { userId } = await login.json() as { userId: string }
+        auditCleanup.trackUser(userId)
+        const join = await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name } })
+        if (!join.ok()) throw new Error(`matchingBoardFixture join failed: ${join.status()} ${await join.text()}`)
+        for (const book of rankedBooks) {
+          const add = await page.request.post('/api/matching/books', { data: { bookId: book.id } })
+          if (!add.ok()) throw new Error(`matchingBoardFixture add failed: ${add.status()} ${await add.text()}`)
+        }
+        const rank = await page.request.patch('/api/matching/priorities', { data: { bookIds: rankedBooks.map((book) => book.id) } })
+        if (!rank.ok()) throw new Error(`matchingBoardFixture rank failed: ${rank.status()} ${await rank.text()}`)
+        return { email, name, userId, context, page }
+      }
+
+      const participantA = await createParticipant('A', 'Анна E2E')
+      const participantB = await createParticipant('B', 'Борис E2E')
+      let extraParticipantIndex = 0
+      const addParticipant = (name: string, rankedBooks?: TestBook[]) => (
+        createParticipant(`extra-${extraParticipantIndex++}`, name, rankedBooks)
+      )
+
+      await use({ session, books, participantA, participantB, addParticipant })
+    } finally {
+      for (const user of createdUsers.reverse()) {
+        try { await user.page.request.delete('/api/test/session', { data: { email: user.email } }) } catch { /* best effort */ }
+      }
+      for (const context of contexts.reverse()) await context.close().catch(() => {})
     }
   },
 })
