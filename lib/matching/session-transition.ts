@@ -72,10 +72,11 @@ export interface MatchingTransitionStore {
   getRankedScenarios(sessionId: string): Promise<RankedReconciliationScenario[]>
   getConfirmations(sessionId: string): Promise<CircleConfirmation[]>
   getDisplayNames(sessionId: string): Promise<ReadonlyMap<string, string>>
-  hasConfirmationOutcome(input: {
+  hasLatestConfirmationOutcome(input: {
     sessionId: string
     userId: string
-    stateVersion: number
+    afterStateVersion: number
+    throughStateVersion: number
     outcome: 'set' | 'cancel'
     circleKey?: string
   }): Promise<boolean>
@@ -286,13 +287,13 @@ export async function executeMatchingTransition(
     input.expectedStateVersion !== session.stateVersion
   ) {
     if (
-      input.expectedStateVersion === session.stateVersion - 1 &&
       (action.type === 'set_confirmation' || action.type === 'cancel_confirmation')
     ) {
-      if (await store.hasConfirmationOutcome({
+      if (await store.hasLatestConfirmationOutcome({
         sessionId: input.sessionId,
         userId: action.userId,
-        stateVersion: session.stateVersion,
+        afterStateVersion: input.expectedStateVersion,
+        throughStateVersion: session.stateVersion,
         outcome: action.type === 'set_confirmation' ? 'set' : 'cancel',
         circleKey: action.type === 'set_confirmation' ? action.circleKey : undefined,
       })) {

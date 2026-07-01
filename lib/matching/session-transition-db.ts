@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -112,29 +112,67 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     return assignMatchingDisplayNames(rows)
   }
 
-  async hasConfirmationOutcome(input: {
+  async hasLatestConfirmationOutcome(input: {
     sessionId: string
     userId: string
-    stateVersion: number
+    afterStateVersion: number
+    throughStateVersion: number
     outcome: 'set' | 'cancel'
     circleKey?: string
   }): Promise<boolean> {
-    const eventTypes = input.outcome === 'cancel'
-      ? ['confirmation_cancelled']
-      : ['confirmation_created', 'confirmation_switched']
-    const rows = await this.tx
-      .select({ eventType: matchingEvents.eventType, after: matchingEvents.after })
-      .from(matchingEvents)
-      .where(and(
-        eq(matchingEvents.sessionId, input.sessionId),
-        eq(matchingEvents.subjectUserId, input.userId),
-        eq(matchingEvents.stateVersion, input.stateVersion),
-        inArray(matchingEvents.eventType, eventTypes),
-      ))
-    if (input.outcome === 'cancel') return rows.length > 0
-    return rows.some((row) => (
-      row.after && typeof row.after === 'object' && 'circleKey' in row.after && row.after.circleKey === input.circleKey
-    ))
+    const semanticEventTypes = [
+      'confirmation_created',
+      'confirmation_switched',
+      'confirmation_cancelled',
+      'confirmation_transferred',
+      'confirmation_invalidated',
+    ]
+    const [events, current] = await Promise.all([
+      this.tx
+        .select({ eventType: matchingEvents.eventType, after: matchingEvents.after })
+        .from(matchingEvents)
+        .where(and(
+          eq(matchingEvents.sessionId, input.sessionId),
+          eq(matchingEvents.subjectUserId, input.userId),
+          gt(matchingEvents.stateVersion, input.afterStateVersion),
+          lte(matchingEvents.stateVersion, input.throughStateVersion),
+          inArray(matchingEvents.eventType, semanticEventTypes),
+        ))
+        .orderBy(
+          desc(matchingEvents.stateVersion),
+          desc(sql<number>`CASE
+            WHEN ${matchingEvents.eventType} = 'confirmation_invalidated' THEN 2
+            WHEN ${matchingEvents.eventType} = 'confirmation_transferred' THEN 2
+            ELSE 1
+          END`),
+        )
+        .limit(1),
+      this.tx
+        .select({ circleKey: matchingCircleConfirmations.circleKey })
+        .from(matchingCircleConfirmations)
+        .where(and(
+          eq(matchingCircleConfirmations.sessionId, input.sessionId),
+          eq(matchingCircleConfirmations.userId, input.userId),
+        ))
+        .limit(1),
+    ])
+    const latest = events[0]
+    const currentCircleKey = current[0]?.circleKey ?? null
+    if (!latest) return false
+    if (input.outcome === 'cancel') {
+      return latest.eventType === 'confirmation_cancelled' && currentCircleKey === null
+    }
+    const latestCircleKey = latest.after && typeof latest.after === 'object' && 'circleKey' in latest.after
+      ? latest.after.circleKey
+      : null
+    const latestIsSet = [
+      'confirmation_created',
+      'confirmation_switched',
+      'confirmation_transferred',
+    ].includes(latest.eventType)
+    return latestIsSet && latestCircleKey === input.circleKey && (
+      currentCircleKey === null || currentCircleKey === input.circleKey
+    )
   }
 
   async upsertConfirmation(sessionId: string, confirmation: CircleConfirmation): Promise<void> {

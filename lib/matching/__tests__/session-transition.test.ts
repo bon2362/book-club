@@ -70,8 +70,25 @@ class MemoryTransitionStore implements MatchingTransitionStore {
     return this.actionApplied ? this.afterDisplayNames : this.beforeDisplayNames
   }
 
-  async hasConfirmationOutcome(input: { stateVersion: number; outcome: string; circleKey?: string }) {
-    return this.confirmationOutcomes.has(`${input.stateVersion}:${input.outcome}:${input.circleKey ?? ''}`)
+  async hasLatestConfirmationOutcome(input: {
+    userId: string
+    afterStateVersion: number
+    throughStateVersion: number
+    outcome: string
+    circleKey?: string
+  }) {
+    const latest = Array.from(this.confirmationOutcomes)
+      .map((value) => {
+        const [version, outcome, circleKey] = value.split(':')
+        return { version: Number(version), outcome, circleKey }
+      })
+      .filter(({ version }) => version > input.afterStateVersion && version <= input.throughStateVersion)
+      .sort((a, b) => b.version - a.version)[0]
+    if (!latest || latest.outcome !== input.outcome || latest.circleKey !== (input.circleKey ?? '')) return false
+    const current = this.confirmations.find((item) => item.userId === input.userId)?.circleKey ?? null
+    return input.outcome === 'cancel'
+      ? current === null
+      : current === null || current === input.circleKey
   }
 
   async upsertConfirmation(_sessionId: string, value: CircleConfirmation) {
@@ -198,6 +215,59 @@ describe('executeMatchingTransition', () => {
       sessionId: 's1', actor, expectedStateVersion: 4,
       action: { type: 'cancel_confirmation', userId: 'u1' },
     }, store)).resolves.toEqual({ changed: false, stateVersion: 5 })
+  })
+
+  it('recognizes a confirmation retry after unrelated actions advanced the session', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmations = [confirmation('u1', 'circle-a')]
+    store.confirmationOutcomes.add('5:set:circle-a')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' },
+    }, store)).resolves.toEqual({ changed: false, stateVersion: 6 })
+  })
+
+  it('recognizes a cancellation retry after unrelated actions advanced the session', async () => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmationOutcomes.add('5:cancel:')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'cancel_confirmation', userId: 'u1' },
+    }, store)).resolves.toEqual({ changed: false, stateVersion: 6 })
+  })
+
+  it.each([
+    {
+      name: 'a later cancellation superseded the original confirmation',
+      outcomes: ['5:set:circle-a', '6:cancel:'],
+      confirmations: [],
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' } as const,
+    },
+    {
+      name: 'a later different choice superseded the original confirmation',
+      outcomes: ['5:set:circle-a', '6:set:circle-b'],
+      confirmations: [confirmation('u1', 'circle-b')],
+      action: { type: 'set_confirmation', userId: 'u1', circleKey: 'circle-a' } as const,
+    },
+    {
+      name: 'a later confirmation superseded the original cancellation',
+      outcomes: ['5:cancel:', '6:set:circle-a'],
+      confirmations: [confirmation('u1', 'circle-a')],
+      action: { type: 'cancel_confirmation', userId: 'u1' } as const,
+    },
+  ])('rejects a stale retry when $name', async ({ outcomes, confirmations, action }) => {
+    const store = new MemoryTransitionStore()
+    store.session.stateVersion = 6
+    store.confirmations = confirmations
+    outcomes.forEach((outcome) => store.confirmationOutcomes.add(outcome))
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4, action,
+    }, store)).rejects.toMatchObject({ code: 'stale_state' })
   })
 
   it('locks a full quorum and continues reconciliation after removing its members', async () => {
