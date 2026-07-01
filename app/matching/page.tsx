@@ -9,6 +9,7 @@ import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { listNeedsRankingGate } from '@/lib/matching/ranking-readiness'
 import { fetchMatchingPublicState, PublicMatchingStateError } from '@/lib/matching/public-state-db'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
+import MatchingAuthGate from '@/components/nd/MatchingAuthGate'
 import MatchingSatisfactionFlow from '@/components/nd/MatchingSatisfactionFlow'
 import MatchingBoardProvider from '@/components/nd/MatchingBoardProvider'
 import BookDetailProvider from '@/components/nd/BookDetailProvider'
@@ -26,7 +27,7 @@ export default async function MatchingPage({
   searchParams: { as?: string }
 }) {
   const session = await auth()
-  if (!session?.user?.id) redirect('/')
+  if (!session?.user?.id) return <MatchingAuthGate />
 
   const isAdmin = session.user.isAdmin ?? false
   const asParam = isAdmin && searchParams.as ? searchParams.as : null

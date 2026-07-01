@@ -21,9 +21,10 @@ const REMEMBERED_PROVIDER_LABEL: Record<RememberedAuthProvider, string> = {
 interface Props {
   isOpen: boolean
   onClose: () => void
+  callbackUrl?: string
 }
 
-export default function AuthModal({ isOpen, onClose }: Props) {
+export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
@@ -69,7 +70,11 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     setMagicState('loading')
     track('auth_attempt', { provider: 'email' })
     try {
-      const res = await signIn('resend', { email: email.trim(), redirect: false })
+      const res = await signIn('resend', {
+        email: email.trim(),
+        redirect: false,
+        ...(callbackUrl ? { callbackUrl } : {}),
+      })
       if (res?.error) {
         setMagicState('error')
       } else {
@@ -321,7 +326,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
               <button
                 onClick={() => {
                   track('auth_attempt', { provider: 'google' })
-                  signIn('google')
+                  signIn('google', callbackUrl ? { callbackUrl } : undefined)
                 }}
                 style={{
                   display: 'flex',
