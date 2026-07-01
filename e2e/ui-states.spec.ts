@@ -150,7 +150,7 @@ test.describe('Home submit book CTA layout', () => {
 })
 
 test.describe('Matching restored board shell', () => {
-  test('header, full-width scenarios workspace and catalog form one compact column', async ({
+  test('board preserves controls, popup and compact geometry from desktop to mobile', async ({
     page,
     browser,
     createMatchingSession,
@@ -176,28 +176,37 @@ test.describe('Matching restored board shell', () => {
       await page.goto('/matching')
       await page.waitForLoadState('networkidle')
 
-    await expect(page.getByTestId('matching-header')).toBeVisible()
-    await expect(page.getByRole('link', { name: /каталог/i })).toBeVisible()
-    await expect(page.getByText(/Вы —/)).toContainText('Анна Layout')
-    await expect(page.getByTestId('matching-scenarios-workspace')).toBeVisible()
-    await expect(page.getByText(/Мои ходы|Лента событий/)).toHaveCount(0)
+      await expect(page.getByTestId('matching-header')).toBeVisible()
+      await expect(page.getByRole('link', { name: /каталог/i })).toBeVisible()
+      await expect(page.getByText(/Вы —/)).toContainText('Анна Layout')
+      await expect(page.getByTestId('matching-scenarios-workspace')).toBeVisible()
+      await expect(page.getByText(/Мои ходы|Лента событий/)).toHaveCount(0)
 
-    const workspace = page.getByTestId('matching-scenarios-workspace')
-    const catalog = page.getByTestId('matching-catalog-intro')
-    const workspaceBox = await workspace.boundingBox()
-    const catalogBox = await catalog.boundingBox()
-    expect(workspaceBox).not.toBeNull()
-    expect(catalogBox).not.toBeNull()
-    expect(workspaceBox!.width).toBeGreaterThan(page.viewportSize()!.width * 0.9)
-    expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeGreaterThanOrEqual(0)
-    expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeLessThan(48)
+      const workspace = page.getByTestId('matching-scenarios-workspace')
+      const catalog = page.getByTestId('matching-catalog-intro')
+      const workspaceBox = await workspace.boundingBox()
+      const catalogBox = await catalog.boundingBox()
+      expect(workspaceBox).not.toBeNull()
+      expect(catalogBox).not.toBeNull()
+      expect(workspaceBox!.width).toBeGreaterThan(page.viewportSize()!.width * 0.9)
+      expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeGreaterThanOrEqual(0)
+      expect(catalogBox!.y - (workspaceBox!.y + workspaceBox!.height)).toBeLessThan(48)
 
       const scrollStyle = await page.getByTestId('matching-scenarios-scroll').evaluate((element) => ({
-      overflowY: getComputedStyle(element).overflowY,
-      clientHeight: element.clientHeight,
-    }))
+        overflowY: getComputedStyle(element).overflowY,
+        clientHeight: element.clientHeight,
+      }))
       expect(scrollStyle.overflowY).toBe('auto')
       expect(scrollStyle.clientHeight).toBeGreaterThan(0)
+
+      const fade = workspace.locator(':scope > div[aria-hidden="true"]')
+      const fadeBox = await fade.boundingBox()
+      const fadeBackground = await fade.evaluate((element) => getComputedStyle(element).backgroundImage)
+      expect(fadeBox).not.toBeNull()
+      expect(fadeBackground).toContain('linear-gradient')
+      // The fade belongs to the inner scenario viewport: its bottom edge must
+      // coincide with the workspace bottom instead of extending page height.
+      expect(Math.abs((fadeBox!.y + fadeBox!.height) - (workspaceBox!.y + workspaceBox!.height))).toBeLessThanOrEqual(1)
 
       const circle = page.getByTestId('matching-circle').first()
       const cta = circle.getByTestId('circle-confirm-button')
@@ -232,6 +241,70 @@ test.describe('Matching restored board shell', () => {
       await expect(cta).toBeFocused()
       expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).pointerEvents)).toBe('auto')
 
+      const coverButton = circle.getByRole('button', { name: /открыть книгу/i })
+      await expect(coverButton).toBeVisible()
+      await coverButton.click()
+      const bookDialog = page.getByRole('dialog', { name: book.title })
+      await expect(bookDialog).toBeVisible()
+      await expect(bookDialog).toContainText(book.title)
+      await page.keyboard.press('Escape')
+      await expect(bookDialog).toHaveCount(0)
+
+      for (const viewport of [
+        { width: 820, height: 900, label: 'tablet' },
+        { width: 390, height: 844, label: 'mobile' },
+      ]) {
+        await page.setViewportSize(viewport)
+
+        const header = page.getByTestId('matching-header')
+        const controls = [
+          page.getByRole('link', { name: /каталог/i }),
+          header.getByRole('heading', { name: session.name }),
+          header.getByText('Группы 2–3', { exact: true }),
+          header.getByText('Дедлайн не задан', { exact: true }),
+          header.getByText('● активна', { exact: true }),
+          header.getByText(/Вы —/),
+          header.getByRole('button', { name: /участники: 2/i }),
+          header.getByRole('button', { name: 'Покинуть' }),
+        ]
+        for (const control of controls) {
+          await expect(control, `${viewport.label}: header control stays visible`).toBeVisible()
+          const box = await control.boundingBox()
+          expect(box, `${viewport.label}: header control has geometry`).not.toBeNull()
+          expect(box!.x, `${viewport.label}: header control starts inside viewport`).toBeGreaterThanOrEqual(0)
+          expect(box!.x + box!.width, `${viewport.label}: header control ends inside viewport`).toBeLessThanOrEqual(viewport.width + 1)
+        }
+
+        const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+        expect(horizontalOverflow, `${viewport.label}: page has no accidental horizontal overflow`).toBeLessThanOrEqual(1)
+
+        await header.getByRole('button', { name: /участники: 2/i }).click()
+        const popover = page.getByRole('dialog', { name: 'Участники' })
+        await expect(popover).toBeVisible()
+        const popoverBox = await popover.boundingBox()
+        expect(popoverBox).not.toBeNull()
+        expect(popoverBox!.x).toBeGreaterThanOrEqual(0)
+        expect(popoverBox!.x + popoverBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+        await popover.getByRole('button', { name: /закрыть список/i }).click()
+
+        if (viewport.label === 'mobile') {
+          await coverButton.click()
+          const mobileBookDialog = page.getByRole('dialog', { name: book.title })
+          await expect(mobileBookDialog).toBeVisible()
+          const dialogBox = await mobileBookDialog.boundingBox()
+          expect(dialogBox).not.toBeNull()
+          expect(dialogBox!.x).toBeGreaterThanOrEqual(0)
+          expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+          expect(dialogBox!.y).toBeGreaterThanOrEqual(0)
+          expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(viewport.height + 1)
+          await page.keyboard.press('Escape')
+        }
+      }
+
+      await page.setViewportSize({ width: 1440, height: 900 })
+      const activeDesktopWorkspace = await page.getByTestId('matching-scenarios-workspace').boundingBox()
+      expect(activeDesktopWorkspace).not.toBeNull()
+
       const firstState = await (await page.request.get(`/api/matching/state?session=${session.id}`)).json() as {
         session: { stateVersion: number }
         scenarios: Array<{ circles: Array<{ circleKey: string; viewerIsMember: boolean }> }>
@@ -247,7 +320,7 @@ test.describe('Matching restored board shell', () => {
       const ownCircle = page.getByTestId('matching-own-locked-circle')
       await expect(ownCircle).toBeVisible()
       expect(observerWorkspace).not.toBeNull()
-      expect(Math.abs(observerWorkspace!.width - workspaceBox!.width)).toBeLessThanOrEqual(1)
+      expect(Math.abs(observerWorkspace!.width - activeDesktopWorkspace!.width)).toBeLessThanOrEqual(1)
       const ownBox = await ownCircle.boundingBox()
       const liveScenariosBox = await page.getByTestId('matching-scenarios-empty').boundingBox()
       expect(ownBox).not.toBeNull()
