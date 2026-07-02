@@ -235,9 +235,10 @@ test.describe('Matching restored board shell', () => {
       const circle = page.getByTestId('matching-circle').first()
       const cta = circle.getByTestId('circle-confirm-button')
       await expect(cta).toBeAttached()
-      expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('0')
+      // CTA is always visible (not hover-gated)
+      expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
 
-      // Keyboard-only path: tab into the initially hidden CTA, open it with Enter,
+      // Keyboard-only path: tab into the always-visible CTA, open it with Enter,
       // prove the modal cycles focus, closes with Escape, and restores the opener.
       await page.locator('body').click({ position: { x: 1, y: 1 } })
       for (let index = 0; index < 30; index += 1) {
@@ -416,8 +417,7 @@ test.describe('Matching restored board shell', () => {
     const cta = circle.getByTestId('circle-confirm-button')
     await expect(cta).toBeAttached()
 
-    // Force the hover-only CTA visible (desktop default is opacity:0 until hover/focus)
-    await circle.hover()
+    // CTA is always visible (not hover-gated)
     await expect.poll(() => cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
     const ctaBox = await cta.boundingBox()
     expect(ctaBox).not.toBeNull()
