@@ -71,9 +71,9 @@ function getListStyles(size: 'compact' | 'large'): ListStyles {
       cover: {
         width: 52,
         height: 74,
-        borderRadius: 'var(--radius)',
+        borderRadius: 4,
         flexShrink: 0,
-        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-cover)',
         position: 'relative',
         overflow: 'hidden',
       },
@@ -113,9 +113,9 @@ function getListStyles(size: 'compact' | 'large'): ListStyles {
     cover: {
       width: 40,
       height: 57,
-      borderRadius: 'var(--radius)',
+      borderRadius: 4,
       flexShrink: 0,
-      border: '1px solid var(--border)',
+      boxShadow: 'var(--shadow-cover)',
       position: 'relative',
       overflow: 'hidden',
     },
@@ -154,8 +154,8 @@ function getListStyles(size: 'compact' | 'large'): ListStyles {
 // ── Panel wrapper ─────────────────────────────────────────────────────────────
 const panelStyle: React.CSSProperties = {
   background: 'var(--bg-input)',
-  borderRadius: 'var(--radius)',
-  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-card)',
+  boxShadow: 'var(--shadow-card)',
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
@@ -224,7 +224,7 @@ function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles:
         ...s.row,
         transform: CSS.Transform.toString(transform),
         transition,
-        boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--border-subtle)',
+        boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)',
         opacity: isDragging ? 0.5 : 1,
         background: isDragging ? 'var(--bg)' : undefined,
       }}
@@ -310,7 +310,7 @@ function StatusRow({ book, isFirst, others, onClick, styles: s, adminNamesByDisp
   return (
     <li
       className="nd-catalog-row"
-      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--border-subtle)', opacity: 0.7 }}
+      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)', opacity: 0.7 }}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center">
@@ -346,7 +346,7 @@ function CatalogRow({ book, isFirst, onClick, onAdd, frozen, styles: s }: Catalo
   return (
     <li
       className="nd-catalog-row"
-      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--border-subtle)' }}
+      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)' }}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center">
@@ -681,7 +681,7 @@ export default function MatchingPersonalList({
           {statusBooks.length > 0 && (
             <>
               {/* «В процессе / Прочитано» subheading — тёплый стиль */}
-              <div style={{ padding: '0.65rem 0.75rem 0.4rem', borderTop: `1px solid var(--border)${activeBooks.length > 0 ? '' : '; border-top:none'}` }}>
+              <div style={{ padding: '0.65rem 0.75rem 0.4rem', borderTop: `1px solid var(--hair-soft)${activeBooks.length > 0 ? '' : '; border-top:none'}` }}>
                 <span style={{ fontFamily: 'var(--nd-serif)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
                   В процессе / Прочитано
                 </span>

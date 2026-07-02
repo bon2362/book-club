@@ -406,10 +406,11 @@ test.describe('Matching restored board shell', () => {
     expect(ctaBox!.width).toBeGreaterThan(0)
     expect(ctaBox!.height).toBeGreaterThan(0)
     const ctaBackground = await cta.evaluate((element) => getComputedStyle(element).backgroundColor)
-    // .p-btn.success fills with var(--success), never transparent
+    // Warm success button: var(--success) fill, never transparent
     expect(ctaBackground).not.toBe('rgba(0, 0, 0, 0)')
     const ctaRadius = await cta.evaluate((element) => getComputedStyle(element).borderRadius)
-    expect(ctaRadius).toBe('0px')
+    // Warm dashboard: soft control radius (var(--radius-control) = 8px), not sharp
+    expect(parseFloat(ctaRadius)).toBeGreaterThan(0)
 
     // Clicking the CTA confirms immediately (no confirmation dialog)
     await cta.click()
