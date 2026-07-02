@@ -81,22 +81,25 @@ describe('MatchingScenarios', () => {
     expect(screen.getByText('Первая книга')).toBeInTheDocument()
   })
 
-  it('renders cover, author and ranks without presentation metrics (canon: metrics hidden)', () => {
+  it('surfaces scenario metrics and left-out in a tooltip, and content without inline clutter', () => {
     const scenario = makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1', 'r2'] }])
     scenario.score = { coveredCount: 2, totalCount: 3, avgRank: 1.5, worstRank: 2 }
     scenario.leftOut = [{ ref: 'r3', displayName: 'Вера' }]
     scenario.circles[0].avgRank = 1.5
     scenario.circles[0].members[0] = { ...scenario.circles[0].members[0], displayName: 'Анна', rank: 1, interest: 'очень хочу' }
     render(<MatchingScenarios {...base} scenarios={[scenario]} />)
-    // metrics are intentionally hidden from the layout (white-canon restyle)
-    expect(screen.queryByText(/средний ранг/)).toBeNull()
-    expect(screen.queryByText(/охват/)).toBeNull()
-    expect(screen.queryByText(/За бортом/)).toBeNull()
-    expect(screen.queryByText(/участников/)).toBeNull()
+    // metrics + left-out live in the tooltip on «Сценарий N», not inline
+    const tip = screen.getByRole('tooltip')
+    expect(tip).toHaveTextContent('средний ранг 1.5')
+    expect(tip).toHaveTextContent('охват 2 из 3')
+    expect(tip).toHaveTextContent('за бортом: Вера')
     // content still present
     expect(screen.getByAltText('Обложка: Первая книга')).toBeVisible()
     expect(screen.getByText('Автор один')).toBeVisible()
-    expect(screen.getByText('Анна').closest('.nd-chip-text')).toHaveAttribute('title', expect.stringContaining('ранг 1'))
+    // participant tooltip: place only, no duplicated «ранг» wording
+    const chipTitle = screen.getByText('Анна').closest('.nd-chip-text')?.getAttribute('title') ?? ''
+    expect(chipTitle).toContain('на 1 месте')
+    expect(chipTitle).not.toContain('ранг')
     // no empty ○ glyph for unconfirmed members — only ✓ for confirmed
     expect(screen.queryByLabelText('Анна: не подтвердил')).toBeNull()
     expect(screen.queryByText('○')).toBeNull()

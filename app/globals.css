@@ -843,7 +843,18 @@ body {
   cursor: pointer;
 }
 .nd-book-link { position: relative; display: block; width: 54px; height: 76px; overflow: hidden; border-radius: 4px; box-shadow: var(--shadow-cover); }
-.nd-book-title-button { font-family: var(--nd-serif); font-size: 1rem; font-weight: 700; line-height: 1.15; }
+.nd-book-title-button { font-family: var(--nd-serif); font-size: 1rem; font-weight: 700; line-height: 1.15; transition: color 0.12s ease; }
+/* Clickable-book affordance in scenarios */
+.nd-book-link { transition: box-shadow 0.12s ease; }
+.nd-book-link:hover { box-shadow: var(--shadow-cover), 0 0 0 2px var(--accent); }
+.nd-book-title-button:hover { color: var(--accent); text-decoration: underline; }
+/* Scenario metrics tooltip (hover/focus on «Сценарий N») */
+.nd-scenario-label { position: relative; display: inline-block; cursor: help; }
+.nd-scenario-label-text { font-family: var(--nd-sans); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); border-bottom: 1px dotted var(--text-muted); padding-bottom: 2px; }
+.nd-scenario-label:hover .nd-scenario-label-text, .nd-scenario-label:focus-visible .nd-scenario-label-text { color: var(--text-secondary); border-bottom-color: var(--text-secondary); }
+.nd-scenario-tip { position: absolute; top: calc(100% + 6px); left: 0; z-index: 6; opacity: 0; pointer-events: none; transition: opacity 0.12s ease; max-width: 280px; white-space: normal; background: var(--text); color: var(--bg-input); font-family: var(--nd-sans); font-size: 0.68rem; line-height: 1.35; letter-spacing: normal; text-transform: none; font-weight: 400; padding: 0.4rem 0.6rem; border-radius: 6px; box-shadow: var(--shadow-pop); }
+.nd-scenario-label:hover .nd-scenario-tip, .nd-scenario-label:focus-visible .nd-scenario-tip { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .nd-scenario-tip { transition: none; } }
 .nd-text-action { margin-top: 0.35rem; color: var(--accent); text-decoration: underline; }
 .nd-primary-action {
   border: 0;

@@ -412,6 +412,14 @@ test.describe('Matching restored board shell', () => {
     // Warm dashboard: soft control radius (var(--radius-control) = 8px), not sharp
     expect(parseFloat(ctaRadius)).toBeGreaterThan(0)
 
+    // Scenario metrics live in a tooltip on «Сценарий N» — hidden until hover/focus
+    const scnLabel = page.locator('.nd-scenario-label').first()
+    const scnTip = scnLabel.locator('.nd-scenario-tip')
+    expect(await scnTip.evaluate((element) => getComputedStyle(element).opacity)).toBe('0')
+    await scnLabel.hover()
+    await expect.poll(() => scnTip.evaluate((element) => getComputedStyle(element).opacity)).toBe('1')
+    await expect(scnTip).toContainText('средний ранг')
+
     // Clicking the CTA confirms immediately (no confirmation dialog)
     await cta.click()
 
