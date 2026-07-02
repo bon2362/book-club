@@ -16,6 +16,7 @@
   /* ── Surfaces ──────────────────────────────────────────────────────────── */
   --bg:              #F9F5EE;   /* фон страницы — тёплый пергамент */
   --bg-elevated:     #EDE5D8;   /* приподнятый фон: разделители секций, шапки */
+  --bg-elevated-soft:#F4EFE7;   /* мягкая заливка блоков (сценарии) — тише, чем --bg-elevated */
   --bg-input:        #FFFFFF;   /* поля ввода, карточки — белые на тёплом фоне */
   --bg-input-focus:  #FFFFFF;
   --bg-tag:          #EDE5D8;   /* нейтральный фон тега/чипа */
@@ -804,13 +805,10 @@ body {
   transition: opacity 0.26s ease, filter 0.26s ease;
 }
 
-/* Matching scenario actions: quiet until intent on precise pointers; always
-   available on touch. Transform is decoration only and disabled for reduced motion. */
+/* Matching scenario action: circle CTA is always visible (not hover-gated). */
 .nd-circle-cta {
-  opacity: 0;
-  transform: translateY(4px);
-  pointer-events: none;
-  transition: opacity 160ms ease, transform 160ms ease;
+  opacity: 1;
+  pointer-events: auto;
 }
 .nd-scenario-circles {
   display: grid;

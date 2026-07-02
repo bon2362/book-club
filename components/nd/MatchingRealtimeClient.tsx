@@ -183,7 +183,7 @@ export default function MatchingRealtimeClient({
         {healthy ? '●' : '⟳ синхр.'}
       </div>
 
-      <MatchingWorkspace scenarioCount={state.scenarios.length}>
+      <MatchingWorkspace>
       {/* Notices at top */}
       {state.notices.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>
