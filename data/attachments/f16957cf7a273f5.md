@@ -1,0 +1,1431 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e7]:
+      - banner [ref=e8]:
+        - generic [ref=e9]:
+          - generic [ref=e10]:
+            - link "На каталог" [ref=e11] [cursor=pointer]:
+              - /url: /
+              - text: ← Каталог
+            - heading "E2E Matching 79251f24774a879fe953-135bd14194000fad1aa6" [level=1] [ref=e13]
+            - generic [ref=e14]: Группы по 2
+            - generic [ref=e15]: Дедлайн не задан
+            - generic [ref=e16]: ● активна
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - text: Вы —
+              - strong [ref=e19]: Анна Waiting
+            - 'button "Участники: 1" [ref=e20] [cursor=pointer]':
+              - generic "Анна Waiting — онлайн" [ref=e21]: А
+              - generic [ref=e22]: "1"
+            - button "Покинуть" [ref=e23] [cursor=pointer]
+      - generic [ref=e24]: ●
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - heading "Сценарии · 0 сценария" [level=2] [ref=e27]
+          - paragraph [ref=e28]: Расклады по близости интересов. Меняйте книги и приоритеты в каталоге — состав кругов пересчитывается.
+        - generic [ref=e31]: Пока недостаточно участников для формирования кругов.
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - heading "Каталог" [level=2] [ref=e34]
+        - paragraph [ref=e35]: Слева — книги клуба, справа — ваш список и приоритеты
+      - generic [ref=e36]:
+        - status [ref=e37]
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - heading "Остальной каталог" [level=3] [ref=e40]
+            - paragraph [ref=e41]: Наведите на книгу и добавьте её в список
+          - list [ref=e43]:
+            - listitem [ref=e44] [cursor=pointer]:
+              - generic [ref=e46]: +
+              - 'generic "Обложка: AAA Book sort-low" [ref=e48]':
+                - generic [ref=e49]: EA
+              - generic [ref=e50]:
+                - generic [ref=e51]: AAA Book sort-low
+                - generic [ref=e52]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e53] [cursor=pointer]:
+              - generic [ref=e55]: +
+              - 'generic "Обложка: AAA Book sort-low" [ref=e57]':
+                - generic [ref=e58]: EA
+              - generic [ref=e59]:
+                - generic [ref=e60]: AAA Book sort-low
+                - generic [ref=e61]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e62] [cursor=pointer]:
+              - generic [ref=e64]: +
+              - 'generic "Обложка: AAA Book sort-low" [ref=e66]':
+                - generic [ref=e67]: EA
+              - generic [ref=e68]:
+                - generic [ref=e69]: AAA Book sort-low
+                - generic [ref=e70]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e71] [cursor=pointer]:
+              - generic [ref=e73]: +
+              - 'generic "Обложка: E2E Admin Users Book A 0-0-1779991072799" [ref=e75]':
+                - generic [ref=e76]: EA
+              - generic [ref=e77]:
+                - generic [ref=e78]: E2E Admin Users Book A 0-0-1779991072799
+                - generic [ref=e79]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e80] [cursor=pointer]:
+              - generic [ref=e82]: +
+              - 'generic "Обложка: E2E Admin Users Book B 0-0-1779991072799" [ref=e84]':
+                - generic [ref=e85]: EA
+              - generic [ref=e86]:
+                - generic [ref=e87]: E2E Admin Users Book B 0-0-1779991072799
+                - generic [ref=e88]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e89] [cursor=pointer]:
+              - generic [ref=e91]: +
+              - 'generic "Обложка: E2E Book be99490zvcau #0" [ref=e93]':
+                - generic [ref=e94]: EA
+              - generic [ref=e95]:
+                - generic [ref=e96]: "E2E Book be99490zvcau #0"
+                - generic [ref=e97]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e98] [cursor=pointer]:
+              - generic [ref=e100]: +
+              - 'generic "Обложка: E2E Book be994998p02p #0" [ref=e102]':
+                - generic [ref=e103]: EA
+              - generic [ref=e104]:
+                - generic [ref=e105]: "E2E Book be994998p02p #0"
+                - generic [ref=e106]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e107] [cursor=pointer]:
+              - generic [ref=e109]: +
+              - 'generic "Обложка: E2E Book be9949n7dfi8 #0" [ref=e111]':
+                - generic [ref=e112]: EA
+              - generic [ref=e113]:
+                - generic [ref=e114]: "E2E Book be9949n7dfi8 #0"
+                - generic [ref=e115]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e116] [cursor=pointer]:
+              - generic [ref=e118]: +
+              - 'generic "Обложка: E2E Book be9949tafu7p #0" [ref=e120]':
+                - generic [ref=e121]: EA
+              - generic [ref=e122]:
+                - generic [ref=e123]: "E2E Book be9949tafu7p #0"
+                - generic [ref=e124]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e125] [cursor=pointer]:
+              - generic [ref=e127]: +
+              - 'generic "Обложка: E2E Circle cdd26653112562560bf6-99d5c065fb7fd4788e1c" [ref=e129]':
+                - generic [ref=e130]: CA
+              - generic [ref=e131]:
+                - generic [ref=e132]: E2E Circle cdd26653112562560bf6-99d5c065fb7fd4788e1c
+                - generic [ref=e133]: Circle Author
+              - button "Хочу читать"
+            - listitem [ref=e134] [cursor=pointer]:
+              - generic [ref=e136]: +
+              - 'generic "Обложка: E2E Filler B bda32326707131a1f0cd-506c54e2c09c661d680b" [ref=e138]':
+                - generic [ref=e139]: FA
+              - generic [ref=e140]:
+                - generic [ref=e141]: E2E Filler B bda32326707131a1f0cd-506c54e2c09c661d680b
+                - generic [ref=e142]: Filler Author
+              - button "Хочу читать"
+            - listitem [ref=e143] [cursor=pointer]:
+              - generic [ref=e145]: +
+              - 'generic "Обложка: E2E Summary Book" [ref=e147]':
+                - generic [ref=e148]: ES
+              - generic [ref=e149]:
+                - generic [ref=e150]: E2E Summary Book
+                - generic [ref=e151]: E2E Summary Author
+              - button "Хочу читать"
+            - listitem [ref=e152] [cursor=pointer]:
+              - generic [ref=e154]: +
+              - 'generic "Обложка: E2E Victim Book 1779992008528" [ref=e156]':
+                - generic [ref=e157]: EA
+              - generic [ref=e158]:
+                - generic [ref=e159]: E2E Victim Book 1779992008528
+                - generic [ref=e160]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e161] [cursor=pointer]:
+              - generic [ref=e163]: +
+              - 'generic "Обложка: UI Circle 1780237583417" [ref=e165]':
+                - generic [ref=e166]: LA
+              - generic [ref=e167]:
+                - generic [ref=e168]: UI Circle 1780237583417
+                - generic [ref=e169]: Layout Author
+              - button "Хочу читать"
+            - listitem [ref=e170] [cursor=pointer]:
+              - generic [ref=e172]: +
+              - 'generic "Обложка: UI Move 1780237583509" [ref=e174]':
+                - generic [ref=e175]: LA
+              - generic [ref=e176]:
+                - generic [ref=e177]: UI Move 1780237583509
+                - generic [ref=e178]: Layout Author
+              - button "Хочу читать"
+            - listitem [ref=e179] [cursor=pointer]:
+              - generic [ref=e181]: +
+              - 'generic "Обложка: UI Registry 79251f24774a879fe953-3fcf3001408420f8ec1a" [ref=e183]':
+                - generic [ref=e184]: RA
+              - generic [ref=e185]:
+                - generic [ref=e186]: UI Registry 79251f24774a879fe953-3fcf3001408420f8ec1a
+                - generic [ref=e187]: Registry Author
+              - button "Хочу читать"
+            - listitem [ref=e188] [cursor=pointer]:
+              - generic [ref=e190]: +
+              - 'generic "Обложка: ZZZ Book sort-high" [ref=e192]':
+                - generic [ref=e193]: EA
+              - generic [ref=e194]:
+                - generic [ref=e195]: ZZZ Book sort-high
+                - generic [ref=e196]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e197] [cursor=pointer]:
+              - generic [ref=e199]: +
+              - 'generic "Обложка: ZZZ Book sort-high" [ref=e201]':
+                - generic [ref=e202]: EA
+              - generic [ref=e203]:
+                - generic [ref=e204]: ZZZ Book sort-high
+                - generic [ref=e205]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e206] [cursor=pointer]:
+              - generic [ref=e208]: +
+              - 'generic "Обложка: ZZZ Book sort-high" [ref=e210]':
+                - generic [ref=e211]: EA
+              - generic [ref=e212]:
+                - generic [ref=e213]: ZZZ Book sort-high
+                - generic [ref=e214]: E2E Author
+              - button "Хочу читать"
+            - listitem [ref=e215] [cursor=pointer]:
+              - generic [ref=e217]: +
+              - 'generic "Обложка: E2E Auto Signup 1779947244856" [ref=e219]':
+                - generic [ref=e220]: EА
+              - generic [ref=e221]:
+                - generic [ref=e222]: E2E Auto Signup 1779947244856
+                - generic [ref=e223]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e224] [cursor=pointer]:
+              - generic [ref=e226]: +
+              - 'generic "Обложка: E2E Auto Signup 1779947795463" [ref=e228]':
+                - generic [ref=e229]: EА
+              - generic [ref=e230]:
+                - generic [ref=e231]: E2E Auto Signup 1779947795463
+                - generic [ref=e232]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e233] [cursor=pointer]:
+              - generic [ref=e235]: +
+              - 'generic "Обложка: E2E Auto Signup 1779948174499" [ref=e237]':
+                - generic [ref=e238]: EА
+              - generic [ref=e239]:
+                - generic [ref=e240]: E2E Auto Signup 1779948174499
+                - generic [ref=e241]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e242] [cursor=pointer]:
+              - generic [ref=e244]: +
+              - 'generic "Обложка: E2E Auto Signup 1779963481910" [ref=e246]':
+                - generic [ref=e247]: EА
+              - generic [ref=e248]:
+                - generic [ref=e249]: E2E Auto Signup 1779963481910
+                - generic [ref=e250]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e251] [cursor=pointer]:
+              - generic [ref=e253]: +
+              - 'generic "Обложка: E2E Auto Signup 1779963660414" [ref=e255]':
+                - generic [ref=e256]: EА
+              - generic [ref=e257]:
+                - generic [ref=e258]: E2E Auto Signup 1779963660414
+                - generic [ref=e259]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e260] [cursor=pointer]:
+              - generic [ref=e262]: +
+              - 'generic "Обложка: E2E Auto Signup 1779964049064" [ref=e264]':
+                - generic [ref=e265]: EА
+              - generic [ref=e266]:
+                - generic [ref=e267]: E2E Auto Signup 1779964049064
+                - generic [ref=e268]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e269] [cursor=pointer]:
+              - generic [ref=e271]: +
+              - 'generic "Обложка: E2E Auto Signup 1779964107106" [ref=e273]':
+                - generic [ref=e274]: EА
+              - generic [ref=e275]:
+                - generic [ref=e276]: E2E Auto Signup 1779964107106
+                - generic [ref=e277]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e278] [cursor=pointer]:
+              - generic [ref=e280]: +
+              - 'generic "Обложка: E2E Auto Signup 1779964199094" [ref=e282]':
+                - generic [ref=e283]: EА
+              - generic [ref=e284]:
+                - generic [ref=e285]: E2E Auto Signup 1779964199094
+                - generic [ref=e286]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e287] [cursor=pointer]:
+              - generic [ref=e289]: +
+              - 'generic "Обложка: E2E Auto Signup 1779964735382" [ref=e291]':
+                - generic [ref=e292]: EА
+              - generic [ref=e293]:
+                - generic [ref=e294]: E2E Auto Signup 1779964735382
+                - generic [ref=e295]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e296] [cursor=pointer]:
+              - generic [ref=e298]: +
+              - 'generic "Обложка: E2E Auto Signup 1779965173747" [ref=e300]':
+                - generic [ref=e301]: EА
+              - generic [ref=e302]:
+                - generic [ref=e303]: E2E Auto Signup 1779965173747
+                - generic [ref=e304]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e305] [cursor=pointer]:
+              - generic [ref=e307]: +
+              - 'generic "Обложка: E2E Auto Signup 1779966815175" [ref=e309]':
+                - generic [ref=e310]: EА
+              - generic [ref=e311]:
+                - generic [ref=e312]: E2E Auto Signup 1779966815175
+                - generic [ref=e313]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e314] [cursor=pointer]:
+              - generic [ref=e316]: +
+              - 'generic "Обложка: E2E Auto Signup 1779967253345" [ref=e318]':
+                - generic [ref=e319]: EА
+              - generic [ref=e320]:
+                - generic [ref=e321]: E2E Auto Signup 1779967253345
+                - generic [ref=e322]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e323] [cursor=pointer]:
+              - generic [ref=e325]: +
+              - 'generic "Обложка: E2E Auto Signup 1779967846403" [ref=e327]':
+                - generic [ref=e328]: EА
+              - generic [ref=e329]:
+                - generic [ref=e330]: E2E Auto Signup 1779967846403
+                - generic [ref=e331]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e332] [cursor=pointer]:
+              - generic [ref=e334]: +
+              - 'generic "Обложка: E2E Auto Signup 1779968100835" [ref=e336]':
+                - generic [ref=e337]: EА
+              - generic [ref=e338]:
+                - generic [ref=e339]: E2E Auto Signup 1779968100835
+                - generic [ref=e340]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e341] [cursor=pointer]:
+              - generic [ref=e343]: +
+              - 'generic "Обложка: E2E Auto Signup 1779968990922" [ref=e345]':
+                - generic [ref=e346]: EА
+              - generic [ref=e347]:
+                - generic [ref=e348]: E2E Auto Signup 1779968990922
+                - generic [ref=e349]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e350] [cursor=pointer]:
+              - generic [ref=e352]: +
+              - 'generic "Обложка: E2E Auto Signup 1779969037047" [ref=e354]':
+                - generic [ref=e355]: EА
+              - generic [ref=e356]:
+                - generic [ref=e357]: E2E Auto Signup 1779969037047
+                - generic [ref=e358]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e359] [cursor=pointer]:
+              - generic [ref=e361]: +
+              - 'generic "Обложка: E2E Auto Signup 1779969471814" [ref=e363]':
+                - generic [ref=e364]: EА
+              - generic [ref=e365]:
+                - generic [ref=e366]: E2E Auto Signup 1779969471814
+                - generic [ref=e367]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e368] [cursor=pointer]:
+              - generic [ref=e370]: +
+              - 'generic "Обложка: E2E Auto Signup 1779970016346" [ref=e372]':
+                - generic [ref=e373]: EА
+              - generic [ref=e374]:
+                - generic [ref=e375]: E2E Auto Signup 1779970016346
+                - generic [ref=e376]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e377] [cursor=pointer]:
+              - generic [ref=e379]: +
+              - 'generic "Обложка: E2E Auto Signup 1779970584847" [ref=e381]':
+                - generic [ref=e382]: EА
+              - generic [ref=e383]:
+                - generic [ref=e384]: E2E Auto Signup 1779970584847
+                - generic [ref=e385]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e386] [cursor=pointer]:
+              - generic [ref=e388]: +
+              - 'generic "Обложка: E2E Auto Signup 1779989819895" [ref=e390]':
+                - generic [ref=e391]: EА
+              - generic [ref=e392]:
+                - generic [ref=e393]: E2E Auto Signup 1779989819895
+                - generic [ref=e394]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e395] [cursor=pointer]:
+              - generic [ref=e397]: +
+              - 'generic "Обложка: E2E Auto Signup 1779989887244" [ref=e399]':
+                - generic [ref=e400]: EА
+              - generic [ref=e401]:
+                - generic [ref=e402]: E2E Auto Signup 1779989887244
+                - generic [ref=e403]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e404] [cursor=pointer]:
+              - generic [ref=e406]: +
+              - 'generic "Обложка: E2E Auto Signup 1779990306491" [ref=e408]':
+                - generic [ref=e409]: EА
+              - generic [ref=e410]:
+                - generic [ref=e411]: E2E Auto Signup 1779990306491
+                - generic [ref=e412]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e413] [cursor=pointer]:
+              - generic [ref=e415]: +
+              - 'generic "Обложка: E2E Auto Signup 1779990374800" [ref=e417]':
+                - generic [ref=e418]: EА
+              - generic [ref=e419]:
+                - generic [ref=e420]: E2E Auto Signup 1779990374800
+                - generic [ref=e421]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e422] [cursor=pointer]:
+              - generic [ref=e424]: +
+              - 'generic "Обложка: E2E Auto Signup 1779990387022" [ref=e426]':
+                - generic [ref=e427]: EА
+              - generic [ref=e428]:
+                - generic [ref=e429]: E2E Auto Signup 1779990387022
+                - generic [ref=e430]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e431] [cursor=pointer]:
+              - generic [ref=e433]: +
+              - 'generic "Обложка: E2E Auto Signup 1779990451810" [ref=e435]':
+                - generic [ref=e436]: EА
+              - generic [ref=e437]:
+                - generic [ref=e438]: E2E Auto Signup 1779990451810
+                - generic [ref=e439]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e440] [cursor=pointer]:
+              - generic [ref=e442]: +
+              - 'generic "Обложка: E2E Auto Signup 1779992460023" [ref=e444]':
+                - generic [ref=e445]: EА
+              - generic [ref=e446]:
+                - generic [ref=e447]: E2E Auto Signup 1779992460023
+                - generic [ref=e448]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e449] [cursor=pointer]:
+              - generic [ref=e451]: +
+              - 'generic "Обложка: E2E Auto Signup 1779993423456" [ref=e453]':
+                - generic [ref=e454]: EА
+              - generic [ref=e455]:
+                - generic [ref=e456]: E2E Auto Signup 1779993423456
+                - generic [ref=e457]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e458] [cursor=pointer]:
+              - generic [ref=e460]: +
+              - 'generic "Обложка: E2E Auto Signup 1779993538685" [ref=e462]':
+                - generic [ref=e463]: EА
+              - generic [ref=e464]:
+                - generic [ref=e465]: E2E Auto Signup 1779993538685
+                - generic [ref=e466]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e467] [cursor=pointer]:
+              - generic [ref=e469]: +
+              - 'generic "Обложка: E2E Auto Signup 1779995759889" [ref=e471]':
+                - generic [ref=e472]: EА
+              - generic [ref=e473]:
+                - generic [ref=e474]: E2E Auto Signup 1779995759889
+                - generic [ref=e475]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e476] [cursor=pointer]:
+              - generic [ref=e478]: +
+              - 'generic "Обложка: E2E Auto Signup 1779996306714" [ref=e480]':
+                - generic [ref=e481]: EА
+              - generic [ref=e482]:
+                - generic [ref=e483]: E2E Auto Signup 1779996306714
+                - generic [ref=e484]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e485] [cursor=pointer]:
+              - generic [ref=e487]: +
+              - 'generic "Обложка: E2E Auto Signup 1779996390658" [ref=e489]':
+                - generic [ref=e490]: EА
+              - generic [ref=e491]:
+                - generic [ref=e492]: E2E Auto Signup 1779996390658
+                - generic [ref=e493]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e494] [cursor=pointer]:
+              - generic [ref=e496]: +
+              - 'generic "Обложка: E2E Auto Signup 1779997569167" [ref=e498]':
+                - generic [ref=e499]: EА
+              - generic [ref=e500]:
+                - generic [ref=e501]: E2E Auto Signup 1779997569167
+                - generic [ref=e502]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e503] [cursor=pointer]:
+              - generic [ref=e505]: +
+              - 'generic "Обложка: E2E Auto Signup 1779997661584" [ref=e507]':
+                - generic [ref=e508]: EА
+              - generic [ref=e509]:
+                - generic [ref=e510]: E2E Auto Signup 1779997661584
+                - generic [ref=e511]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e512] [cursor=pointer]:
+              - generic [ref=e514]: +
+              - 'generic "Обложка: E2E Auto Signup 1779998350682" [ref=e516]':
+                - generic [ref=e517]: EА
+              - generic [ref=e518]:
+                - generic [ref=e519]: E2E Auto Signup 1779998350682
+                - generic [ref=e520]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e521] [cursor=pointer]:
+              - generic [ref=e523]: +
+              - 'generic "Обложка: E2E Auto Signup 1779998807256" [ref=e525]':
+                - generic [ref=e526]: EА
+              - generic [ref=e527]:
+                - generic [ref=e528]: E2E Auto Signup 1779998807256
+                - generic [ref=e529]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e530] [cursor=pointer]:
+              - generic [ref=e532]: +
+              - 'generic "Обложка: E2E Auto Signup 1780003954799" [ref=e534]':
+                - generic [ref=e535]: EА
+              - generic [ref=e536]:
+                - generic [ref=e537]: E2E Auto Signup 1780003954799
+                - generic [ref=e538]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e539] [cursor=pointer]:
+              - generic [ref=e541]: +
+              - 'generic "Обложка: E2E Auto Signup 1780004622261" [ref=e543]':
+                - generic [ref=e544]: EА
+              - generic [ref=e545]:
+                - generic [ref=e546]: E2E Auto Signup 1780004622261
+                - generic [ref=e547]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e548] [cursor=pointer]:
+              - generic [ref=e550]: +
+              - 'generic "Обложка: E2E Auto Signup 1780041384770" [ref=e552]':
+                - generic [ref=e553]: EА
+              - generic [ref=e554]:
+                - generic [ref=e555]: E2E Auto Signup 1780041384770
+                - generic [ref=e556]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e557] [cursor=pointer]:
+              - generic [ref=e559]: +
+              - 'generic "Обложка: E2E Auto Signup 1780042969979" [ref=e561]':
+                - generic [ref=e562]: EА
+              - generic [ref=e563]:
+                - generic [ref=e564]: E2E Auto Signup 1780042969979
+                - generic [ref=e565]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e566] [cursor=pointer]:
+              - generic [ref=e568]: +
+              - 'generic "Обложка: E2E Auto Signup 1780043192002" [ref=e570]':
+                - generic [ref=e571]: EА
+              - generic [ref=e572]:
+                - generic [ref=e573]: E2E Auto Signup 1780043192002
+                - generic [ref=e574]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e575] [cursor=pointer]:
+              - generic [ref=e577]: +
+              - 'generic "Обложка: E2E Auto Signup 1780043502410" [ref=e579]':
+                - generic [ref=e580]: EА
+              - generic [ref=e581]:
+                - generic [ref=e582]: E2E Auto Signup 1780043502410
+                - generic [ref=e583]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e584] [cursor=pointer]:
+              - generic [ref=e586]: +
+              - 'generic "Обложка: E2E Auto Signup 1780066671162" [ref=e588]':
+                - generic [ref=e589]: EА
+              - generic [ref=e590]:
+                - generic [ref=e591]: E2E Auto Signup 1780066671162
+                - generic [ref=e592]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e593] [cursor=pointer]:
+              - generic [ref=e595]: +
+              - 'generic "Обложка: E2E Auto Signup 1780067131186" [ref=e597]':
+                - generic [ref=e598]: EА
+              - generic [ref=e599]:
+                - generic [ref=e600]: E2E Auto Signup 1780067131186
+                - generic [ref=e601]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e602] [cursor=pointer]:
+              - generic [ref=e604]: +
+              - 'generic "Обложка: E2E Auto Signup 1780092010621" [ref=e606]':
+                - generic [ref=e607]: EА
+              - generic [ref=e608]:
+                - generic [ref=e609]: E2E Auto Signup 1780092010621
+                - generic [ref=e610]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e611] [cursor=pointer]:
+              - generic [ref=e613]: +
+              - 'generic "Обложка: E2E Auto Signup 1780095304103" [ref=e615]':
+                - generic [ref=e616]: EА
+              - generic [ref=e617]:
+                - generic [ref=e618]: E2E Auto Signup 1780095304103
+                - generic [ref=e619]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e620] [cursor=pointer]:
+              - generic [ref=e622]: +
+              - 'generic "Обложка: E2E Auto Signup 1780095329673" [ref=e624]':
+                - generic [ref=e625]: EА
+              - generic [ref=e626]:
+                - generic [ref=e627]: E2E Auto Signup 1780095329673
+                - generic [ref=e628]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e629] [cursor=pointer]:
+              - generic [ref=e631]: +
+              - 'generic "Обложка: E2E Auto Signup 1780096759431" [ref=e633]':
+                - generic [ref=e634]: EА
+              - generic [ref=e635]:
+                - generic [ref=e636]: E2E Auto Signup 1780096759431
+                - generic [ref=e637]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e638] [cursor=pointer]:
+              - generic [ref=e640]: +
+              - 'generic "Обложка: E2E Auto Signup 1780097518100" [ref=e642]':
+                - generic [ref=e643]: EА
+              - generic [ref=e644]:
+                - generic [ref=e645]: E2E Auto Signup 1780097518100
+                - generic [ref=e646]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e647] [cursor=pointer]:
+              - generic [ref=e649]: +
+              - 'generic "Обложка: E2E Auto Signup 1780098472032" [ref=e651]':
+                - generic [ref=e652]: EА
+              - generic [ref=e653]:
+                - generic [ref=e654]: E2E Auto Signup 1780098472032
+                - generic [ref=e655]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e656] [cursor=pointer]:
+              - generic [ref=e658]: +
+              - 'generic "Обложка: E2E Auto Signup 1780129275223" [ref=e660]':
+                - generic [ref=e661]: EА
+              - generic [ref=e662]:
+                - generic [ref=e663]: E2E Auto Signup 1780129275223
+                - generic [ref=e664]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e665] [cursor=pointer]:
+              - generic [ref=e667]: +
+              - 'generic "Обложка: E2E Auto Signup 1780129391690" [ref=e669]':
+                - generic [ref=e670]: EА
+              - generic [ref=e671]:
+                - generic [ref=e672]: E2E Auto Signup 1780129391690
+                - generic [ref=e673]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e674] [cursor=pointer]:
+              - generic [ref=e676]: +
+              - 'generic "Обложка: E2E Auto Signup 1780129825367" [ref=e678]':
+                - generic [ref=e679]: EА
+              - generic [ref=e680]:
+                - generic [ref=e681]: E2E Auto Signup 1780129825367
+                - generic [ref=e682]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e683] [cursor=pointer]:
+              - generic [ref=e685]: +
+              - 'generic "Обложка: E2E Auto Signup 1780130308313" [ref=e687]':
+                - generic [ref=e688]: EА
+              - generic [ref=e689]:
+                - generic [ref=e690]: E2E Auto Signup 1780130308313
+                - generic [ref=e691]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e692] [cursor=pointer]:
+              - generic [ref=e694]: +
+              - 'generic "Обложка: E2E Auto Signup 1780132690342" [ref=e696]':
+                - generic [ref=e697]: EА
+              - generic [ref=e698]:
+                - generic [ref=e699]: E2E Auto Signup 1780132690342
+                - generic [ref=e700]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e701] [cursor=pointer]:
+              - generic [ref=e703]: +
+              - 'generic "Обложка: E2E Auto Signup 1780132707417" [ref=e705]':
+                - generic [ref=e706]: EА
+              - generic [ref=e707]:
+                - generic [ref=e708]: E2E Auto Signup 1780132707417
+                - generic [ref=e709]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e710] [cursor=pointer]:
+              - generic [ref=e712]: +
+              - 'generic "Обложка: E2E Auto Signup 1780132808352" [ref=e714]':
+                - generic [ref=e715]: EА
+              - generic [ref=e716]:
+                - generic [ref=e717]: E2E Auto Signup 1780132808352
+                - generic [ref=e718]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e719] [cursor=pointer]:
+              - generic [ref=e721]: +
+              - 'generic "Обложка: E2E Auto Signup 1780132982677" [ref=e723]':
+                - generic [ref=e724]: EА
+              - generic [ref=e725]:
+                - generic [ref=e726]: E2E Auto Signup 1780132982677
+                - generic [ref=e727]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e728] [cursor=pointer]:
+              - generic [ref=e730]: +
+              - 'generic "Обложка: E2E Auto Signup 1780133108544" [ref=e732]':
+                - generic [ref=e733]: EА
+              - generic [ref=e734]:
+                - generic [ref=e735]: E2E Auto Signup 1780133108544
+                - generic [ref=e736]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e737] [cursor=pointer]:
+              - generic [ref=e739]: +
+              - 'generic "Обложка: E2E Auto Signup 1780133901432" [ref=e741]':
+                - generic [ref=e742]: EА
+              - generic [ref=e743]:
+                - generic [ref=e744]: E2E Auto Signup 1780133901432
+                - generic [ref=e745]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e746] [cursor=pointer]:
+              - generic [ref=e748]: +
+              - 'generic "Обложка: E2E Auto Signup 1780135479759" [ref=e750]':
+                - generic [ref=e751]: EА
+              - generic [ref=e752]:
+                - generic [ref=e753]: E2E Auto Signup 1780135479759
+                - generic [ref=e754]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e755] [cursor=pointer]:
+              - generic [ref=e757]: +
+              - 'generic "Обложка: E2E Auto Signup 1780160239123" [ref=e759]':
+                - generic [ref=e760]: EА
+              - generic [ref=e761]:
+                - generic [ref=e762]: E2E Auto Signup 1780160239123
+                - generic [ref=e763]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e764] [cursor=pointer]:
+              - generic [ref=e766]: +
+              - 'generic "Обложка: E2E Auto Signup 1780199734039" [ref=e768]':
+                - generic [ref=e769]: EА
+              - generic [ref=e770]:
+                - generic [ref=e771]: E2E Auto Signup 1780199734039
+                - generic [ref=e772]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e773] [cursor=pointer]:
+              - generic [ref=e775]: +
+              - 'generic "Обложка: E2E Auto Signup 1780286801316" [ref=e777]':
+                - generic [ref=e778]: EА
+              - generic [ref=e779]:
+                - generic [ref=e780]: E2E Auto Signup 1780286801316
+                - generic [ref=e781]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e782] [cursor=pointer]:
+              - generic [ref=e784]: +
+              - 'generic "Обложка: E2E Auto Signup 1780372859023" [ref=e786]':
+                - generic [ref=e787]: EА
+              - generic [ref=e788]:
+                - generic [ref=e789]: E2E Auto Signup 1780372859023
+                - generic [ref=e790]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e791] [cursor=pointer]:
+              - generic [ref=e793]: +
+              - 'generic "Обложка: E2E Auto Signup 1780459777335" [ref=e795]':
+                - generic [ref=e796]: EА
+              - generic [ref=e797]:
+                - generic [ref=e798]: E2E Auto Signup 1780459777335
+                - generic [ref=e799]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e800] [cursor=pointer]:
+              - generic [ref=e802]: +
+              - 'generic "Обложка: E2E Auto Signup 1780546005016" [ref=e804]':
+                - generic [ref=e805]: EА
+              - generic [ref=e806]:
+                - generic [ref=e807]: E2E Auto Signup 1780546005016
+                - generic [ref=e808]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e809] [cursor=pointer]:
+              - generic [ref=e811]: +
+              - 'generic "Обложка: E2E Auto Signup 1780631285802" [ref=e813]':
+                - generic [ref=e814]: EА
+              - generic [ref=e815]:
+                - generic [ref=e816]: E2E Auto Signup 1780631285802
+                - generic [ref=e817]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e818] [cursor=pointer]:
+              - generic [ref=e820]: +
+              - 'generic "Обложка: E2E Auto Signup 1780652896816" [ref=e822]':
+                - generic [ref=e823]: EА
+              - generic [ref=e824]:
+                - generic [ref=e825]: E2E Auto Signup 1780652896816
+                - generic [ref=e826]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e827] [cursor=pointer]:
+              - generic [ref=e829]: +
+              - 'generic "Обложка: E2E Auto Signup 1780716898514" [ref=e831]':
+                - generic [ref=e832]: EА
+              - generic [ref=e833]:
+                - generic [ref=e834]: E2E Auto Signup 1780716898514
+                - generic [ref=e835]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e836] [cursor=pointer]:
+              - generic [ref=e838]: +
+              - 'generic "Обложка: E2E Auto Signup 1780758643258" [ref=e840]':
+                - generic [ref=e841]: EА
+              - generic [ref=e842]:
+                - generic [ref=e843]: E2E Auto Signup 1780758643258
+                - generic [ref=e844]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e845] [cursor=pointer]:
+              - generic [ref=e847]: +
+              - 'generic "Обложка: E2E Auto Signup 1780760014544" [ref=e849]':
+                - generic [ref=e850]: EА
+              - generic [ref=e851]:
+                - generic [ref=e852]: E2E Auto Signup 1780760014544
+                - generic [ref=e853]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e854] [cursor=pointer]:
+              - generic [ref=e856]: +
+              - 'generic "Обложка: E2E Auto Signup 1780766038155" [ref=e858]':
+                - generic [ref=e859]: EА
+              - generic [ref=e860]:
+                - generic [ref=e861]: E2E Auto Signup 1780766038155
+                - generic [ref=e862]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e863] [cursor=pointer]:
+              - generic [ref=e865]: +
+              - 'generic "Обложка: E2E Auto Signup 1780805003182" [ref=e867]':
+                - generic [ref=e868]: EА
+              - generic [ref=e869]:
+                - generic [ref=e870]: E2E Auto Signup 1780805003182
+                - generic [ref=e871]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e872] [cursor=pointer]:
+              - generic [ref=e874]: +
+              - 'generic "Обложка: E2E Auto Signup 1780891864126" [ref=e876]':
+                - generic [ref=e877]: EА
+              - generic [ref=e878]:
+                - generic [ref=e879]: E2E Auto Signup 1780891864126
+                - generic [ref=e880]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e881] [cursor=pointer]:
+              - generic [ref=e883]: +
+              - 'generic "Обложка: E2E Auto Signup 1780903579281" [ref=e885]':
+                - generic [ref=e886]: EА
+              - generic [ref=e887]:
+                - generic [ref=e888]: E2E Auto Signup 1780903579281
+                - generic [ref=e889]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e890] [cursor=pointer]:
+              - generic [ref=e892]: +
+              - 'generic "Обложка: E2E Auto Signup 1780904490186" [ref=e894]':
+                - generic [ref=e895]: EА
+              - generic [ref=e896]:
+                - generic [ref=e897]: E2E Auto Signup 1780904490186
+                - generic [ref=e898]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e899] [cursor=pointer]:
+              - generic [ref=e901]: +
+              - 'generic "Обложка: E2E Auto Signup 1780905369045" [ref=e903]':
+                - generic [ref=e904]: EА
+              - generic [ref=e905]:
+                - generic [ref=e906]: E2E Auto Signup 1780905369045
+                - generic [ref=e907]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e908] [cursor=pointer]:
+              - generic [ref=e910]: +
+              - 'generic "Обложка: E2E Auto Signup 1780907401660" [ref=e912]':
+                - generic [ref=e913]: EА
+              - generic [ref=e914]:
+                - generic [ref=e915]: E2E Auto Signup 1780907401660
+                - generic [ref=e916]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e917] [cursor=pointer]:
+              - generic [ref=e919]: +
+              - 'generic "Обложка: E2E Auto Signup 1780976376901" [ref=e921]':
+                - generic [ref=e922]: EА
+              - generic [ref=e923]:
+                - generic [ref=e924]: E2E Auto Signup 1780976376901
+                - generic [ref=e925]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e926] [cursor=pointer]:
+              - generic [ref=e928]: +
+              - 'generic "Обложка: E2E Auto Signup 1781063528449" [ref=e930]':
+                - generic [ref=e931]: EА
+              - generic [ref=e932]:
+                - generic [ref=e933]: E2E Auto Signup 1781063528449
+                - generic [ref=e934]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e935] [cursor=pointer]:
+              - generic [ref=e937]: +
+              - 'generic "Обложка: E2E Auto Signup 1781150920647" [ref=e939]':
+                - generic [ref=e940]: EА
+              - generic [ref=e941]:
+                - generic [ref=e942]: E2E Auto Signup 1781150920647
+                - generic [ref=e943]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e944] [cursor=pointer]:
+              - generic [ref=e946]: +
+              - 'generic "Обложка: E2E Auto Signup 1781237377249" [ref=e948]':
+                - generic [ref=e949]: EА
+              - generic [ref=e950]:
+                - generic [ref=e951]: E2E Auto Signup 1781237377249
+                - generic [ref=e952]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e953] [cursor=pointer]:
+              - generic [ref=e955]: +
+              - 'generic "Обложка: E2E Auto Signup 1781245231024" [ref=e957]':
+                - generic [ref=e958]: EА
+              - generic [ref=e959]:
+                - generic [ref=e960]: E2E Auto Signup 1781245231024
+                - generic [ref=e961]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e962] [cursor=pointer]:
+              - generic [ref=e964]: +
+              - 'generic "Обложка: E2E Auto Signup 1781248221388" [ref=e966]':
+                - generic [ref=e967]: EА
+              - generic [ref=e968]:
+                - generic [ref=e969]: E2E Auto Signup 1781248221388
+                - generic [ref=e970]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e971] [cursor=pointer]:
+              - generic [ref=e973]: +
+              - 'generic "Обложка: E2E Auto Signup 1781249935439" [ref=e975]':
+                - generic [ref=e976]: EА
+              - generic [ref=e977]:
+                - generic [ref=e978]: E2E Auto Signup 1781249935439
+                - generic [ref=e979]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e980] [cursor=pointer]:
+              - generic [ref=e982]: +
+              - 'generic "Обложка: E2E Auto Signup 1781252256268" [ref=e984]':
+                - generic [ref=e985]: EА
+              - generic [ref=e986]:
+                - generic [ref=e987]: E2E Auto Signup 1781252256268
+                - generic [ref=e988]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e989] [cursor=pointer]:
+              - generic [ref=e991]: +
+              - 'generic "Обложка: E2E Auto Signup 1781253383621" [ref=e993]':
+                - generic [ref=e994]: EА
+              - generic [ref=e995]:
+                - generic [ref=e996]: E2E Auto Signup 1781253383621
+                - generic [ref=e997]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e998] [cursor=pointer]:
+              - generic [ref=e1000]: +
+              - 'generic "Обложка: E2E Auto Signup 1781254570899" [ref=e1002]':
+                - generic [ref=e1003]: EА
+              - generic [ref=e1004]:
+                - generic [ref=e1005]: E2E Auto Signup 1781254570899
+                - generic [ref=e1006]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1007] [cursor=pointer]:
+              - generic [ref=e1009]: +
+              - 'generic "Обложка: E2E Auto Signup 1781255779327" [ref=e1011]':
+                - generic [ref=e1012]: EА
+              - generic [ref=e1013]:
+                - generic [ref=e1014]: E2E Auto Signup 1781255779327
+                - generic [ref=e1015]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1016] [cursor=pointer]:
+              - generic [ref=e1018]: +
+              - 'generic "Обложка: E2E Auto Signup 1781256999490" [ref=e1020]':
+                - generic [ref=e1021]: EА
+              - generic [ref=e1022]:
+                - generic [ref=e1023]: E2E Auto Signup 1781256999490
+                - generic [ref=e1024]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1025] [cursor=pointer]:
+              - generic [ref=e1027]: +
+              - 'generic "Обложка: E2E Auto Signup 1781258082878" [ref=e1029]':
+                - generic [ref=e1030]: EА
+              - generic [ref=e1031]:
+                - generic [ref=e1032]: E2E Auto Signup 1781258082878
+                - generic [ref=e1033]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1034] [cursor=pointer]:
+              - generic [ref=e1036]: +
+              - 'generic "Обложка: E2E Auto Signup 1781322904554" [ref=e1038]':
+                - generic [ref=e1039]: EА
+              - generic [ref=e1040]:
+                - generic [ref=e1041]: E2E Auto Signup 1781322904554
+                - generic [ref=e1042]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1043] [cursor=pointer]:
+              - generic [ref=e1045]: +
+              - 'generic "Обложка: E2E Auto Signup 1781410359695" [ref=e1047]':
+                - generic [ref=e1048]: EА
+              - generic [ref=e1049]:
+                - generic [ref=e1050]: E2E Auto Signup 1781410359695
+                - generic [ref=e1051]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1052] [cursor=pointer]:
+              - generic [ref=e1054]: +
+              - 'generic "Обложка: E2E Auto Signup 1781460382024" [ref=e1056]':
+                - generic [ref=e1057]: EА
+              - generic [ref=e1058]:
+                - generic [ref=e1059]: E2E Auto Signup 1781460382024
+                - generic [ref=e1060]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1061] [cursor=pointer]:
+              - generic [ref=e1063]: +
+              - 'generic "Обложка: E2E Auto Signup 1781462958147" [ref=e1065]':
+                - generic [ref=e1066]: EА
+              - generic [ref=e1067]:
+                - generic [ref=e1068]: E2E Auto Signup 1781462958147
+                - generic [ref=e1069]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1070] [cursor=pointer]:
+              - generic [ref=e1072]: +
+              - 'generic "Обложка: E2E Auto Signup 1781497719296" [ref=e1074]':
+                - generic [ref=e1075]: EА
+              - generic [ref=e1076]:
+                - generic [ref=e1077]: E2E Auto Signup 1781497719296
+                - generic [ref=e1078]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1079] [cursor=pointer]:
+              - generic [ref=e1081]: +
+              - 'generic "Обложка: E2E Auto Signup 1781583497500" [ref=e1083]':
+                - generic [ref=e1084]: EА
+              - generic [ref=e1085]:
+                - generic [ref=e1086]: E2E Auto Signup 1781583497500
+                - generic [ref=e1087]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1088] [cursor=pointer]:
+              - generic [ref=e1090]: +
+              - 'generic "Обложка: E2E Auto Signup 1781612943631" [ref=e1092]':
+                - generic [ref=e1093]: EА
+              - generic [ref=e1094]:
+                - generic [ref=e1095]: E2E Auto Signup 1781612943631
+                - generic [ref=e1096]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1097] [cursor=pointer]:
+              - generic [ref=e1099]: +
+              - 'generic "Обложка: E2E Auto Signup 1781614850168" [ref=e1101]':
+                - generic [ref=e1102]: EА
+              - generic [ref=e1103]:
+                - generic [ref=e1104]: E2E Auto Signup 1781614850168
+                - generic [ref=e1105]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1106] [cursor=pointer]:
+              - generic [ref=e1108]: +
+              - 'generic "Обложка: E2E Auto Signup 1781670059734" [ref=e1110]':
+                - generic [ref=e1111]: EА
+              - generic [ref=e1112]:
+                - generic [ref=e1113]: E2E Auto Signup 1781670059734
+                - generic [ref=e1114]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1115] [cursor=pointer]:
+              - generic [ref=e1117]: +
+              - 'generic "Обложка: E2E Auto Signup 1781755695421" [ref=e1119]':
+                - generic [ref=e1120]: EА
+              - generic [ref=e1121]:
+                - generic [ref=e1122]: E2E Auto Signup 1781755695421
+                - generic [ref=e1123]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1124] [cursor=pointer]:
+              - generic [ref=e1126]: +
+              - 'generic "Обложка: E2E Auto Signup 1781843223795" [ref=e1128]':
+                - generic [ref=e1129]: EА
+              - generic [ref=e1130]:
+                - generic [ref=e1131]: E2E Auto Signup 1781843223795
+                - generic [ref=e1132]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1133] [cursor=pointer]:
+              - generic [ref=e1135]: +
+              - 'generic "Обложка: E2E Auto Signup 1781927480126" [ref=e1137]':
+                - generic [ref=e1138]: EА
+              - generic [ref=e1139]:
+                - generic [ref=e1140]: E2E Auto Signup 1781927480126
+                - generic [ref=e1141]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1142] [cursor=pointer]:
+              - generic [ref=e1144]: +
+              - 'generic "Обложка: E2E Auto Signup 1782272878476" [ref=e1146]':
+                - generic [ref=e1147]: EА
+              - generic [ref=e1148]:
+                - generic [ref=e1149]: E2E Auto Signup 1782272878476
+                - generic [ref=e1150]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1151] [cursor=pointer]:
+              - generic [ref=e1153]: +
+              - 'generic "Обложка: E2E Auto Signup 1782359268060" [ref=e1155]':
+                - generic [ref=e1156]: EА
+              - generic [ref=e1157]:
+                - generic [ref=e1158]: E2E Auto Signup 1782359268060
+                - generic [ref=e1159]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1160] [cursor=pointer]:
+              - generic [ref=e1162]: +
+              - 'generic "Обложка: E2E Auto Signup 1782445920315" [ref=e1164]':
+                - generic [ref=e1165]: EА
+              - generic [ref=e1166]:
+                - generic [ref=e1167]: E2E Auto Signup 1782445920315
+                - generic [ref=e1168]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1169] [cursor=pointer]:
+              - generic [ref=e1171]: +
+              - 'generic "Обложка: E2E Auto Signup 1782531383124" [ref=e1173]':
+                - generic [ref=e1174]: EА
+              - generic [ref=e1175]:
+                - generic [ref=e1176]: E2E Auto Signup 1782531383124
+                - generic [ref=e1177]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1178] [cursor=pointer]:
+              - generic [ref=e1180]: +
+              - 'generic "Обложка: E2E Auto Signup 1782619230888" [ref=e1182]':
+                - generic [ref=e1183]: EА
+              - generic [ref=e1184]:
+                - generic [ref=e1185]: E2E Auto Signup 1782619230888
+                - generic [ref=e1186]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1187] [cursor=pointer]:
+              - generic [ref=e1189]: +
+              - 'generic "Обложка: E2E Auto Signup 1782705924173" [ref=e1191]':
+                - generic [ref=e1192]: EА
+              - generic [ref=e1193]:
+                - generic [ref=e1194]: E2E Auto Signup 1782705924173
+                - generic [ref=e1195]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1196] [cursor=pointer]:
+              - generic [ref=e1198]: +
+              - 'generic "Обложка: E2E Auto Signup 1782791222539" [ref=e1200]':
+                - generic [ref=e1201]: EА
+              - generic [ref=e1202]:
+                - generic [ref=e1203]: E2E Auto Signup 1782791222539
+                - generic [ref=e1204]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1205] [cursor=pointer]:
+              - generic [ref=e1207]: +
+              - 'generic "Обложка: E2E Auto Signup 1782878508521" [ref=e1209]':
+                - generic [ref=e1210]: EА
+              - generic [ref=e1211]:
+                - generic [ref=e1212]: E2E Auto Signup 1782878508521
+                - generic [ref=e1213]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1214] [cursor=pointer]:
+              - generic [ref=e1216]: +
+              - 'generic "Обложка: E2E Auto Signup 1782964399347" [ref=e1218]':
+                - generic [ref=e1219]: EА
+              - generic [ref=e1220]:
+                - generic [ref=e1221]: E2E Auto Signup 1782964399347
+                - generic [ref=e1222]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1223] [cursor=pointer]:
+              - generic [ref=e1225]: +
+              - 'generic "Обложка: E2E Auto Signup 1782980929067" [ref=e1227]':
+                - generic [ref=e1228]: EА
+              - generic [ref=e1229]:
+                - generic [ref=e1230]: E2E Auto Signup 1782980929067
+                - generic [ref=e1231]: E2E Автор
+              - button "Хочу читать"
+            - listitem [ref=e1232] [cursor=pointer]:
+              - generic [ref=e1234]: +
+              - 'img "Обложка: Моя любимая страна" [ref=e1236]'
+              - generic [ref=e1237]:
+                - generic [ref=e1238]: Моя любимая страна
+                - generic [ref=e1239]: Елена Костюченко
+              - button "Хочу читать"
+            - listitem [ref=e1240] [cursor=pointer]:
+              - generic [ref=e1242]: +
+              - 'img "Обложка: Патриот" [ref=e1244]'
+              - generic [ref=e1245]:
+                - generic [ref=e1246]: Патриот
+                - generic [ref=e1247]: Алексей Навальный
+              - button "Хочу читать"
+            - listitem [ref=e1248] [cursor=pointer]:
+              - generic [ref=e1250]: +
+              - 'img "Обложка: Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [ref=e1252]'
+              - generic [ref=e1253]:
+                - generic [ref=e1254]: "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты"
+                - generic [ref=e1255]: Daron Acemoglu, James A. Robinson
+              - button "Хочу читать"
+            - listitem [ref=e1256] [cursor=pointer]:
+              - generic [ref=e1258]: +
+              - 'img "Обложка: Диктаторы обмана. Новое лицо тирании в XXI веке" [ref=e1260]'
+              - generic [ref=e1261]:
+                - generic [ref=e1262]: Диктаторы обмана. Новое лицо тирании в XXI веке
+                - generic [ref=e1263]: Сергей Гуриев, Daniel Treisman
+              - button "Хочу читать"
+            - listitem [ref=e1264] [cursor=pointer]:
+              - generic [ref=e1266]: +
+              - 'img "Обложка: Contentious Politics" [ref=e1268]'
+              - generic [ref=e1269]:
+                - generic [ref=e1270]: Contentious Politics
+                - generic [ref=e1271]: Charles Tilly, Sidney Tarrow
+              - button "Хочу читать"
+            - listitem [ref=e1272] [cursor=pointer]:
+              - generic [ref=e1274]: +
+              - 'img "Обложка: Возвращение государства. Россия в нулевые (2000-2012)" [ref=e1276]'
+              - generic [ref=e1277]:
+                - generic [ref=e1278]: Возвращение государства. Россия в нулевые (2000-2012)
+                - generic [ref=e1279]: Екатерина Шульман
+              - button "Хочу читать"
+            - listitem [ref=e1280] [cursor=pointer]:
+              - generic [ref=e1282]: +
+              - 'img "Обложка: Оружие слабых. Повседневные формы крестьянского сопротивления" [ref=e1284]'
+              - generic [ref=e1285]:
+                - generic [ref=e1286]: Оружие слабых. Повседневные формы крестьянского сопротивления
+                - generic [ref=e1287]: James Scott
+              - button "Хочу читать"
+            - listitem [ref=e1288] [cursor=pointer]:
+              - generic [ref=e1290]: +
+              - 'img "Обложка: Работа: Капитализм. Экономика. Сопротивление." [ref=e1292]'
+              - generic [ref=e1293]:
+                - generic [ref=e1294]: "Работа: Капитализм. Экономика. Сопротивление."
+                - generic [ref=e1295]: CrimethInc
+              - button "Хочу читать"
+            - listitem [ref=e1296] [cursor=pointer]:
+              - generic [ref=e1298]: +
+              - 'img "Обложка: Консенсус: Принятие решений в свободном обществе" [ref=e1300]'
+              - generic [ref=e1301]:
+                - generic [ref=e1302]: "Консенсус: Принятие решений в свободном обществе"
+                - generic [ref=e1303]: Peter Gelderloos
+              - button "Хочу читать"
+            - listitem [ref=e1304] [cursor=pointer]:
+              - generic [ref=e1306]: +
+              - 'img "Обложка: Авторитарная Россия" [ref=e1308]'
+              - generic [ref=e1309]:
+                - generic [ref=e1310]: Авторитарная Россия
+                - generic [ref=e1311]: Владимир Гельман
+              - button "Хочу читать"
+            - listitem [ref=e1312] [cursor=pointer]:
+              - generic [ref=e1314]: +
+              - 'img "Обложка: Жизнь и времена либеральной" [ref=e1316]'
+              - generic [ref=e1317]:
+                - generic [ref=e1318]: Жизнь и времена либеральной
+                - generic [ref=e1319]: C. B. Macpherson
+              - button "Хочу читать"
+            - listitem [ref=e1320] [cursor=pointer]:
+              - generic [ref=e1322]: +
+              - 'img "Обложка: Принципы представительного правления" [ref=e1324]'
+              - generic [ref=e1325]:
+                - generic [ref=e1326]: Принципы представительного правления
+                - generic [ref=e1327]: Bernard Manin
+              - button "Хочу читать"
+            - listitem [ref=e1328] [cursor=pointer]:
+              - generic [ref=e1330]: +
+              - 'img "Обложка: Народная история США" [ref=e1332]'
+              - generic [ref=e1333]:
+                - generic [ref=e1334]: Народная история США
+                - generic [ref=e1335]: Howard Zinn
+              - button "Хочу читать"
+            - listitem [ref=e1336] [cursor=pointer]:
+              - generic [ref=e1338]: +
+              - 'img "Обложка: Великая трансформация" [ref=e1340]'
+              - generic [ref=e1341]:
+                - generic [ref=e1342]: Великая трансформация
+                - generic [ref=e1343]: Karl Polanyi
+              - button "Хочу читать"
+            - listitem [ref=e1344] [cursor=pointer]:
+              - generic [ref=e1346]: +
+              - 'img "Обложка: Делать мнение: новая политическая игра" [ref=e1348]'
+              - generic [ref=e1349]:
+                - generic [ref=e1350]: "Делать мнение: новая политическая игра"
+                - generic [ref=e1351]: Patrick Champagne
+              - button "Хочу читать"
+            - listitem [ref=e1352] [cursor=pointer]:
+              - generic [ref=e1354]: +
+              - 'img "Обложка: Долгий двадцатый век" [ref=e1356]'
+              - generic [ref=e1357]:
+                - generic [ref=e1358]: Долгий двадцатый век
+                - generic [ref=e1359]: Giovanni Arrighi
+              - button "Хочу читать"
+            - listitem [ref=e1360] [cursor=pointer]:
+              - generic [ref=e1362]: +
+              - 'img "Обложка: Миросистемный анализ" [ref=e1364]'
+              - generic [ref=e1365]:
+                - generic [ref=e1366]: Миросистемный анализ
+                - generic [ref=e1367]: Immanuel Wallerstein
+              - button "Хочу читать"
+            - listitem [ref=e1368] [cursor=pointer]:
+              - generic [ref=e1370]: +
+              - 'img "Обложка: Капитал и идеология" [ref=e1372]'
+              - generic [ref=e1373]:
+                - generic [ref=e1374]: Капитал и идеология
+                - generic [ref=e1375]: Thomas Piketty
+              - button "Хочу читать"
+            - listitem [ref=e1376] [cursor=pointer]:
+              - generic [ref=e1378]: +
+              - 'img "Обложка: Размышления о представительном правлении" [ref=e1380]'
+              - generic [ref=e1381]:
+                - generic [ref=e1382]: Размышления о представительном правлении
+                - generic [ref=e1383]: John Stuart Mill
+              - button "Хочу читать"
+            - listitem [ref=e1384] [cursor=pointer]:
+              - generic [ref=e1386]: +
+              - 'img "Обложка: Arguing with Zombies: Economics, Politics, and the Fight for a Better Future" [ref=e1388]'
+              - generic [ref=e1389]:
+                - generic [ref=e1390]: "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future"
+                - generic [ref=e1391]: Paul Krugman
+              - button "Хочу читать"
+            - listitem [ref=e1392] [cursor=pointer]:
+              - generic [ref=e1394]: +
+              - 'img "Обложка: Социологическое воображение" [ref=e1396]'
+              - generic [ref=e1397]:
+                - generic [ref=e1398]: Социологическое воображение
+                - generic [ref=e1399]: Charles Mills
+              - button "Хочу читать"
+            - listitem [ref=e1400] [cursor=pointer]:
+              - generic [ref=e1402]: +
+              - 'img "Обложка: Освобождение человека" [ref=e1404]'
+              - generic [ref=e1405]:
+                - generic [ref=e1406]: Освобождение человека
+                - generic [ref=e1407]: Роман Тиса
+              - button "Хочу читать"
+            - listitem [ref=e1408] [cursor=pointer]:
+              - generic [ref=e1410]: +
+              - 'img "Обложка: Войны в Заливе не было" [ref=e1412]'
+              - generic [ref=e1413]:
+                - generic [ref=e1414]: Войны в Заливе не было
+                - generic [ref=e1415]: Jean Baudrillard
+              - button "Хочу читать"
+            - listitem [ref=e1416] [cursor=pointer]:
+              - generic [ref=e1418]: +
+              - 'img "Обложка: Истоки современной политической мысли" [ref=e1420]'
+              - generic [ref=e1421]:
+                - generic [ref=e1422]: Истоки современной политической мысли
+                - generic [ref=e1423]: Quentin Skinner
+              - button "Хочу читать"
+            - listitem [ref=e1424] [cursor=pointer]:
+              - generic [ref=e1426]: +
+              - 'img "Обложка: The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton" [ref=e1428]'
+              - generic [ref=e1429]:
+                - generic [ref=e1430]: "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton"
+                - generic [ref=e1431]: Benjamin R. Barber
+              - button "Хочу читать"
+            - listitem [ref=e1432] [cursor=pointer]:
+              - generic [ref=e1434]: +
+              - 'img "Обложка: Государство или Цена порядка" [ref=e1436]'
+              - generic [ref=e1437]:
+                - generic [ref=e1438]: Государство или Цена порядка
+                - generic [ref=e1439]: Вадим Волков
+              - button "Хочу читать"
+            - listitem [ref=e1440] [cursor=pointer]:
+              - generic [ref=e1442]: +
+              - 'img "Обложка: Управляя пустотой. Размывание западной демократии" [ref=e1444]'
+              - generic [ref=e1445]:
+                - generic [ref=e1446]: Управляя пустотой. Размывание западной демократии
+                - generic [ref=e1447]: Peter Mair
+              - button "Хочу читать"
+            - listitem [ref=e1448] [cursor=pointer]:
+              - generic [ref=e1450]: +
+              - 'img "Обложка: Краткая история равенства" [ref=e1452]'
+              - generic [ref=e1453]:
+                - generic [ref=e1454]: Краткая история равенства
+                - generic [ref=e1455]: Thomas Piketty
+              - button "Хочу читать"
+            - listitem [ref=e1456] [cursor=pointer]:
+              - generic [ref=e1458]: +
+              - 'img "Обложка: Революция как момент истины" [ref=e1460]'
+              - generic [ref=e1461]:
+                - generic [ref=e1462]: Революция как момент истины
+                - generic [ref=e1463]: Теодор Шанин
+              - button "Хочу читать"
+            - listitem [ref=e1464] [cursor=pointer]:
+              - generic [ref=e1466]: +
+              - 'img "Обложка: Принуждение, капитал и европейские государства" [ref=e1468]'
+              - generic [ref=e1469]:
+                - generic [ref=e1470]: Принуждение, капитал и европейские государства
+                - generic [ref=e1471]: Charles Tilly
+              - button "Хочу читать"
+            - listitem [ref=e1472] [cursor=pointer]:
+              - generic [ref=e1474]: +
+              - 'img "Обложка: Общественное мнение не существует" [ref=e1476]'
+              - generic [ref=e1477]:
+                - generic [ref=e1478]: Общественное мнение не существует
+                - generic [ref=e1479]: Pierre Bourdieu
+              - button "Хочу читать"
+            - listitem [ref=e1480] [cursor=pointer]:
+              - generic [ref=e1482]: +
+              - 'img "Обложка: Предпринимательское государство" [ref=e1484]'
+              - generic [ref=e1485]:
+                - generic [ref=e1486]: Предпринимательское государство
+                - generic [ref=e1487]: Marijana Macukato
+              - button "Хочу читать"
+            - listitem [ref=e1488] [cursor=pointer]:
+              - generic [ref=e1490]: +
+              - 'img "Обложка: Политика в эпоху жесткой экономии" [ref=e1492]'
+              - generic [ref=e1493]:
+                - generic [ref=e1494]: Политика в эпоху жесткой экономии
+                - generic [ref=e1495]: Wolfgang Streeck, Armin Schäfer
+              - button "Хочу читать"
+            - listitem [ref=e1496] [cursor=pointer]:
+              - generic [ref=e1498]: +
+              - 'img "Обложка: Недостойное правление" [ref=e1500]'
+              - generic [ref=e1501]:
+                - generic [ref=e1502]: Недостойное правление
+                - generic [ref=e1503]: Владимир Гельман
+              - button "Хочу читать"
+            - listitem [ref=e1504] [cursor=pointer]:
+              - generic [ref=e1506]: +
+              - 'img "Обложка: Свобода до либерализма" [ref=e1508]'
+              - generic [ref=e1509]:
+                - generic [ref=e1510]: Свобода до либерализма
+                - generic [ref=e1511]: Quentin Skinner
+              - button "Хочу читать"
+            - listitem [ref=e1512] [cursor=pointer]:
+              - generic [ref=e1514]: +
+              - 'img "Обложка: Долг: первые 5000 лет истории" [ref=e1516]'
+              - generic [ref=e1517]:
+                - generic [ref=e1518]: "Долг: первые 5000 лет истории"
+                - generic [ref=e1519]: David Graeber
+              - button "Хочу читать"
+            - listitem [ref=e1520] [cursor=pointer]:
+              - generic [ref=e1522]: +
+              - 'img "Обложка: Долгое отступление" [ref=e1524]'
+              - generic [ref=e1525]:
+                - generic [ref=e1526]: Долгое отступление
+                - generic [ref=e1527]: Борис Кагарлицкий
+              - button "Хочу читать"
+            - listitem [ref=e1528] [cursor=pointer]:
+              - generic [ref=e1530]: +
+              - 'img "Обложка: Купленное время. Отсроченный кризис демократического капитализма" [ref=e1532]'
+              - generic [ref=e1533]:
+                - generic [ref=e1534]: Купленное время. Отсроченный кризис демократического капитализма
+                - generic [ref=e1535]: Wolfgang Streeck
+              - button "Хочу читать"
+            - listitem [ref=e1536] [cursor=pointer]:
+              - generic [ref=e1538]: +
+              - 'img "Обложка: Будущая революция" [ref=e1540]'
+              - generic [ref=e1541]:
+                - generic [ref=e1542]: Будущая революция
+                - generic [ref=e1543]: Murray Bookchin
+              - button "Хочу читать"
+            - listitem [ref=e1544] [cursor=pointer]:
+              - generic [ref=e1546]: +
+              - 'img "Обложка: Доктирна шока" [ref=e1548]'
+              - generic [ref=e1549]:
+                - generic [ref=e1550]: Доктирна шока
+                - generic [ref=e1551]: Naomi Klein
+              - button "Хочу читать"
+            - listitem [ref=e1552] [cursor=pointer]:
+              - generic [ref=e1554]: +
+              - 'img "Обложка: Краткая история неолиберализма" [ref=e1556]'
+              - generic [ref=e1557]:
+                - generic [ref=e1558]: Краткая история неолиберализма
+                - generic [ref=e1559]: David Harvey
+              - button "Хочу читать"
+            - listitem [ref=e1560] [cursor=pointer]:
+              - generic [ref=e1562]: +
+              - 'img "Обложка: The semisovereign people" [ref=e1564]'
+              - generic [ref=e1565]:
+                - generic [ref=e1566]: The semisovereign people
+                - generic [ref=e1567]: Schattschneider
+              - button "Хочу читать"
+            - listitem [ref=e1568] [cursor=pointer]:
+              - generic [ref=e1570]: +
+              - 'img "Обложка: Демократия, или Демон и Гегемон" [ref=e1572]'
+              - generic [ref=e1573]:
+                - generic [ref=e1574]: Демократия, или Демон и Гегемон
+                - generic [ref=e1575]: Артемий Магун
+              - button "Хочу читать"
+            - listitem [ref=e1576] [cursor=pointer]:
+              - generic [ref=e1578]: +
+              - 'img "Обложка: Заря всего" [ref=e1580]'
+              - generic [ref=e1581]:
+                - generic [ref=e1582]: Заря всего
+                - generic [ref=e1583]: David Wengrow, David Graeber
+              - button "Хочу читать"
+            - listitem [ref=e1584] [cursor=pointer]:
+              - generic [ref=e1586]: +
+              - 'img "Обложка: Революционный темперамент. Париж в 1748–1789 годах" [ref=e1588]'
+              - generic [ref=e1589]:
+                - generic [ref=e1590]: Революционный темперамент. Париж в 1748–1789 годах
+                - generic [ref=e1591]: Robert Darnton
+              - button "Хочу читать"
+        - generic [ref=e1592]:
+          - generic [ref=e1593]:
+            - heading "Мои книги" [level=3] [ref=e1594]
+            - paragraph [ref=e1595]: Перетащите, чтобы задать приоритет
+          - generic [ref=e1596]:
+            - list [ref=e1597]:
+              - listitem [ref=e1598] [cursor=pointer]:
+                - button "Перетащить книгу UI Waiting Line 79251f24774a879fe953-135bd14194000fad1aa6" [ref=e1599]:
+                  - generic [ref=e1600]: "#1"
+                  - generic [ref=e1601]: ⠿
+                - 'generic "Обложка: UI Waiting Line 79251f24774a879fe953-135bd14194000fad1aa6" [ref=e1603]':
+                  - generic [ref=e1604]: LA
+                - generic [ref=e1605]:
+                  - generic [ref=e1606]: UI Waiting Line 79251f24774a879fe953-135bd14194000fad1aa6
+                  - generic [ref=e1607]: Layout Author
+                - button "Убрать из списка"
+            - status [ref=e1608]
+  - alert [ref=e1609]
+```
