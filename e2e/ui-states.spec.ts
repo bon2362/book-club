@@ -395,6 +395,66 @@ test.describe('Matching restored board shell', () => {
       await Promise.all(contexts.map(context => context.close()))
     }
   })
+
+  test('confirm CTA is a flat success button and waiting state renders as a left line, not a filled box', async ({
+    page,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const book = await createTestBook({ title: `UI Waiting Line ${test.info().testId}`, author: 'Layout Author' })
+    await loginAsUser({ name: 'Анна Waiting' })
+    expect((await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Анна Waiting' } })).ok()).toBe(true)
+    expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await page.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
+
+    const circle = page.getByTestId('matching-circle').first()
+    const cta = circle.getByTestId('circle-confirm-button')
+    await expect(cta).toBeAttached()
+
+    // Force the hover-only CTA visible (desktop default is opacity:0 until hover/focus)
+    await circle.hover()
+    await expect.poll(() => cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
+    const ctaBox = await cta.boundingBox()
+    expect(ctaBox).not.toBeNull()
+    expect(ctaBox!.width).toBeGreaterThan(0)
+    expect(ctaBox!.height).toBeGreaterThan(0)
+    const ctaBackground = await cta.evaluate((element) => getComputedStyle(element).backgroundColor)
+    // .p-btn.success fills with var(--success), never transparent
+    expect(ctaBackground).not.toBe('rgba(0, 0, 0, 0)')
+    const ctaRadius = await cta.evaluate((element) => getComputedStyle(element).borderRadius)
+    expect(ctaRadius).toBe('0px')
+
+    await cta.click()
+    const dialog = page.getByRole('dialog', { name: 'Подтвердить круг?' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Подтвердить' }).click()
+
+    const waiting = circle.getByTestId('circle-waiting')
+    await expect(waiting).toBeVisible()
+    const waitingBox = await waiting.boundingBox()
+    expect(waitingBox).not.toBeNull()
+    expect(waitingBox!.width).toBeGreaterThan(0)
+
+    // Left-line treatment: a visible border on the left edge, no filled background box.
+    const waitingStyle = await waiting.evaluate((element) => {
+      const computed = getComputedStyle(element)
+      return {
+        borderLeftWidth: computed.borderLeftWidth,
+        borderLeftStyle: computed.borderLeftStyle,
+        backgroundColor: computed.backgroundColor,
+      }
+    })
+    expect(waitingStyle.borderLeftStyle).toBe('solid')
+    expect(parseFloat(waitingStyle.borderLeftWidth)).toBeGreaterThan(0)
+    expect(waitingStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)')
+
+    await expect(circle.getByTestId('circle-cancel-button')).toBeVisible()
+  })
 })
 
 test.describe('Summary editor layout', () => {

@@ -36,8 +36,8 @@ export default function ParticipantInterestChip({
         gap: '0.25rem',
         fontSize: '0.78rem',
         color: 'var(--text-secondary)',
-        background: highlighted ? 'var(--accent-soft)' : 'transparent',
-        borderRadius: highlighted ? 'var(--radius)' : 0,
+        background: 'transparent',
+        borderRadius: 'var(--radius)',
         padding: highlighted ? '0.04rem 0.34rem' : 0,
         margin: highlighted ? '0 -0.05rem' : 0,
         opacity: dimmed ? 0.4 : 1,
@@ -48,7 +48,7 @@ export default function ParticipantInterestChip({
       <b
         style={{
           fontWeight: isMe ? 700 : 500,
-          color: highlighted || strong ? 'var(--accent)' : 'inherit',
+          color: 'var(--text)',
         }}
       >
         {displayName}
@@ -57,8 +57,7 @@ export default function ParticipantInterestChip({
         <span
           style={{
             fontSize: '0.72rem',
-            color: highlighted || strong ? 'var(--accent)' : 'var(--text-muted)',
-            opacity: highlighted || strong ? 0.85 : 1,
+            color: strong ? 'var(--text-secondary)' : 'var(--text-muted)',
           }}
         >
           {label}

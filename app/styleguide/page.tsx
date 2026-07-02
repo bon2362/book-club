@@ -163,6 +163,64 @@ export default function StyleguidePage() {
           </div>
         </section>
 
+        {/* CANON PRIMITIVES */}
+        <section style={{ padding: '3rem 0 0' }}>
+          <SecHead num="04" title="Canon primitives (.p-*)" note="классы из globals.css" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '1.4rem' }}>
+
+            <div style={{ border: '1px solid var(--border)', padding: '1.2rem' }}>
+              <Eyebrow style={{ marginBottom: '0.9rem' }}>.p-btn</Eyebrow>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                <button className="p-btn">Активная</button>
+                <button className="p-btn accent">Акцент</button>
+                <button className="p-btn success">Хочу читать</button>
+                <button className="p-btn ghost">Отменить</button>
+                <button className="p-btn sm">Мелкая</button>
+                <button className="p-btn" disabled>Недоступна</button>
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid var(--border)', padding: '1.2rem' }}>
+              <Eyebrow style={{ marginBottom: '0.9rem' }}>.p-link</Eyebrow>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+                <button className="p-link">Подробнее</button>
+                <button className="p-link muted">Отменить</button>
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid var(--border)', padding: '1.2rem' }}>
+              <Eyebrow style={{ marginBottom: '0.9rem' }}>.p-status</Eyebrow>
+              <span className="p-status">Круг собран</span>
+            </div>
+
+            <div style={{ border: '1px solid var(--border)', padding: '1.2rem' }}>
+              <Eyebrow style={{ marginBottom: '0.9rem' }}>.p-avatar</Eyebrow>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <span className="p-avatar">МК</span>
+                <span className="p-avatar">ЗЯ</span>
+                <span className="p-avatar">СБ</span>
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid var(--border)', padding: '1.2rem' }}>
+              <Eyebrow style={{ marginBottom: '0.9rem' }}>.p-input</Eyebrow>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                <input className="p-input" placeholder="Твоё имя" />
+                <input className="p-input is-changed" defaultValue="Изменено" />
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid var(--border)', padding: '1.2rem' }}>
+              <Eyebrow style={{ marginBottom: '0.9rem' }}>.t-eyebrow / .p-panelhead</Eyebrow>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <span className="t-eyebrow">Читательские круги</span>
+                <p className="p-panelhead">Остальной каталог</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
       </div>
     </div>
   )
