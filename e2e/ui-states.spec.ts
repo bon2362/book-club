@@ -238,31 +238,13 @@ test.describe('Matching restored board shell', () => {
       // CTA is always visible (not hover-gated)
       expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
 
-      // Keyboard-only path: tab into the always-visible CTA, open it with Enter,
-      // prove the modal cycles focus, closes with Escape, and restores the opener.
+      // Keyboard-only path: the always-visible CTA is reachable and interactive
+      // (activating it confirms directly — there is no confirmation dialog).
       await page.locator('body').click({ position: { x: 1, y: 1 } })
       for (let index = 0; index < 30; index += 1) {
         await page.keyboard.press('Tab')
         if (await cta.evaluate(element => document.activeElement === element)) break
       }
-      await expect(cta).toBeFocused()
-      await page.keyboard.press('Enter')
-      const confirmationDialog = page.getByRole('dialog', { name: 'Подтвердить круг?' })
-      await expect(confirmationDialog).toBeVisible()
-      await expect(confirmationDialog.getByRole('button', { name: 'Отмена' })).toBeFocused()
-      await page.keyboard.press('Tab')
-      await expect(confirmationDialog.getByRole('button', { name: 'Подтвердить' })).toBeFocused()
-      await page.keyboard.press('Tab')
-      await expect(confirmationDialog.getByRole('button', { name: 'Отмена' })).toBeFocused()
-      await page.keyboard.press('Shift+Tab')
-      await expect(confirmationDialog.getByRole('button', { name: 'Подтвердить' })).toBeFocused()
-      await page.keyboard.press('Escape')
-      await expect(confirmationDialog).toHaveCount(0)
-      await expect(cta).toBeFocused()
-
-      await circle.hover()
-      await expect.poll(() => cta.evaluate((element) => getComputedStyle(element.parentElement!).opacity)).toBe('1')
-      await cta.focus()
       await expect(cta).toBeFocused()
       expect(await cta.evaluate((element) => getComputedStyle(element.parentElement!).pointerEvents)).toBe('auto')
 
@@ -429,10 +411,8 @@ test.describe('Matching restored board shell', () => {
     const ctaRadius = await cta.evaluate((element) => getComputedStyle(element).borderRadius)
     expect(ctaRadius).toBe('0px')
 
+    // Clicking the CTA confirms immediately (no confirmation dialog)
     await cta.click()
-    const dialog = page.getByRole('dialog', { name: 'Подтвердить круг?' })
-    await expect(dialog).toBeVisible()
-    await dialog.getByRole('button', { name: 'Подтвердить' }).click()
 
     const waiting = circle.getByTestId('circle-waiting')
     await expect(waiting).toBeVisible()

@@ -1,5 +1,4 @@
 import { test, expect, type Page } from './fixtures'
-import type { Locator } from '@playwright/test'
 import { epic, feature } from 'allure-js-commons'
 
 async function joinWithRankedBook(page: Page, sessionId: string, bookId: string, name: string) {
@@ -62,22 +61,22 @@ test('confirm, cancel и атомарный switch видны обоим уча�
 
   async function chooseCircle(bookTitle: string) {
     const circle = page.getByTestId('matching-circle').filter({ hasText: bookTitle }).first()
-    await circle.hover()
-    await circle.getByTestId('circle-confirm-button').click()
-    return page.getByRole('dialog')
-  }
-  async function confirmDialog(dialog: Locator) {
     const response = page.waitForResponse((candidate) => (
       candidate.request().method() === 'PUT' && candidate.url().endsWith(`/api/matching/sessions/${matchingBoardFixture.session.id}/confirmation`)
     ))
-    await dialog.getByRole('button', { name: 'Подтвердить' }).click()
+    await circle.getByTestId('circle-confirm-button').click()
+    expect((await response).ok()).toBe(true)
+  }
+  async function cancelChoice() {
+    const response = page.waitForResponse((candidate) => (
+      candidate.request().method() === 'DELETE' && candidate.url().endsWith(`/api/matching/sessions/${matchingBoardFixture.session.id}/confirmation`)
+    ))
+    await page.getByTestId('circle-cancel-button').click()
     expect((await response).ok()).toBe(true)
   }
 
   await page.goto('/matching')
-  let dialog = await chooseCircle(books[0].title)
-  await expect(dialog).toContainText('Подтвердить круг?')
-  await confirmDialog(dialog)
+  await chooseCircle(books[0].title)
   await page.reload()
   await expect(page.getByTestId('circle-waiting')).toContainText('1 из 2 · временно')
 
@@ -95,15 +94,14 @@ test('confirm, cancel и атомарный switch видны обоим уча�
   await peer.reload()
   await expect(peerFirstCircle.getByLabel('Анна E2E: не подтвердил')).toBeVisible()
 
-  dialog = await chooseCircle(books[0].title)
-  await confirmDialog(dialog)
+  await chooseCircle(books[0].title)
   await page.reload()
-  dialog = await chooseCircle(books[1].title)
-  await expect(dialog).toHaveAccessibleName('Сменить круг?')
-  await expect(dialog).toContainText(books[0].title)
-  await expect(dialog).toContainText(books[1].title)
-  await expect(dialog).toContainText(/прежнее снимется/i)
-  await confirmDialog(dialog)
+  // To change circle there is no in-place switch and no double-join: cancel first,
+  // then the other circle's join CTA becomes available again.
+  await cancelChoice()
+  await page.reload()
+  await expect(page.getByTestId('matching-circle').filter({ hasText: books[1].title }).getByTestId('circle-confirm-button')).toBeVisible()
+  await chooseCircle(books[1].title)
   await page.reload()
   await expect(page.getByTestId('circle-waiting')).toHaveCount(1)
   await expect(page.getByTestId('matching-circle').filter({ hasText: books[1].title }).getByTestId('circle-waiting')).toBeVisible()
@@ -473,15 +471,11 @@ test('подтверждение переживает reload, видно дру�
 
     await page.goto('/matching')
     await expect(page.getByTestId('matching-scenario-card').first()).toBeVisible()
-    await page.getByTestId('matching-circle').first().hover()
-    await page.getByTestId('circle-confirm-button').first().click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog.getByText('Подтвердить круг?')).toBeVisible()
     const confirmationResponse = page.waitForResponse((response) => (
       response.request().method() === 'PUT' &&
       response.url().endsWith(`/api/matching/sessions/${session.id}/confirmation`)
     ))
-    await dialog.getByRole('button', { name: 'Подтвердить' }).click()
+    await page.getByTestId('circle-confirm-button').first().click()
     expect((await confirmationResponse).ok()).toBe(true)
     await page.reload()
     await expect(page.getByTestId('circle-waiting').first()).toContainText('1 из 2 · временно')

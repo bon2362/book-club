@@ -140,27 +140,29 @@ describe('MatchingScenarios', () => {
     expect(screen.queryByTestId('circle-confirm-button')).toBeNull()
   })
 
-  it('opens dialog when clicking confirm CTA', () => {
+  it('confirms immediately (no dialog) when clicking confirm CTA', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({}) })
     const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
     render(<MatchingScenarios {...base} scenarios={scenarios} />)
     fireEvent.click(screen.getByTestId('circle-confirm-button'))
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/matching/sessions/s1/confirmation',
+      expect.objectContaining({ method: 'PUT' }),
+    ))
   })
 
-  it('shows switch dialog with from/to when viewer has a different confirmation', () => {
+  it('hides the confirm CTA on other circles once the viewer has confirmed one (no double-join)', () => {
     const scenarios = [
       makeScenario('s1', [
-        { key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: false, confirmedRefs: ['r1'] },
-        { key: 'k2', bookId: 'book-2', memberRefs: ['r2'], viewerIsMember: true },
+        { key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true, confirmedRefs: ['r1'] },
+        { key: 'k2', bookId: 'book-2', memberRefs: ['r1'], viewerIsMember: true },
       ]),
     ]
     render(<MatchingScenarios {...base} scenarios={scenarios} viewerConfirmedCircleKey="k1" />)
-    fireEvent.click(screen.getByTestId('circle-confirm-button'))
-    const dialog = screen.getByRole('dialog')
-    expect(dialog).toBeInTheDocument()
-    // "from" book and "to" book shown (may appear in card + dialog)
-    expect(screen.getAllByText('Первая книга').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Вторая книга').length).toBeGreaterThanOrEqual(1)
+    // the confirmed circle shows waiting/cancel; the other member-circle offers no "join" CTA
+    expect(screen.getByTestId('circle-waiting')).toBeInTheDocument()
+    expect(screen.queryByTestId('circle-confirm-button')).toBeNull()
   })
 
   it('PUTs confirmation and calls onConfirmationChange on success', async () => {
@@ -169,7 +171,6 @@ describe('MatchingScenarios', () => {
     const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
     render(<MatchingScenarios {...base} scenarios={scenarios} onConfirmationChange={onChange} />)
     fireEvent.click(screen.getByTestId('circle-confirm-button'))
-    fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
       '/api/matching/sessions/s1/confirmation',
       expect.objectContaining({ method: 'PUT' }),
@@ -214,33 +215,29 @@ describe('MatchingScenarios', () => {
     const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
     render(<MatchingScenarios {...base} scenarios={scenarios} />)
     fireEvent.click(screen.getByTestId('circle-confirm-button'))
-    fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent('stale_version')
   })
 
-  it('keeps the choice visible and shows feedback when the network request rejects', async () => {
+  it('keeps the CTA visible and shows feedback when the network request rejects', async () => {
     ;(global.fetch as jest.Mock).mockRejectedValue(new Error('offline'))
     const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
     render(<MatchingScenarios {...base} scenarios={scenarios} />)
     fireEvent.click(screen.getByTestId('circle-confirm-button'))
-    fireEvent.click(screen.getByRole('button', { name: /подтверд/i }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Проверьте соединение'))
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('circle-confirm-button')).toBeInTheDocument()
   })
 
-  it('disables the dialog actions and prevents concurrent confirmation submits', async () => {
+  it('disables the confirm CTA in flight and prevents concurrent submits', async () => {
     let resolve!: (value: unknown) => void
     ;(global.fetch as jest.Mock).mockImplementation(() => new Promise((done) => { resolve = done }))
     const scenarios = [makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1'], viewerIsMember: true }])]
     render(<MatchingScenarios {...base} scenarios={scenarios} />)
     fireEvent.click(screen.getByTestId('circle-confirm-button'))
-    const confirm = screen.getByRole('button', { name: /подтверд/i })
-    fireEvent.click(confirm)
-    expect(screen.getByRole('button', { name: /подтверждаем/i })).toBeDisabled()
-    fireEvent.click(screen.getByRole('button', { name: /подтверждаем/i }))
+    expect(screen.getByTestId('circle-confirm-button')).toBeDisabled()
+    fireEvent.click(screen.getByTestId('circle-confirm-button'))
     expect(global.fetch).toHaveBeenCalledTimes(1)
     resolve({ ok: true, json: async () => ({}) })
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
   })
 })
