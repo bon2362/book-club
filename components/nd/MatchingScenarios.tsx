@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import MatchingConfirmationDialog from './MatchingConfirmationDialog'
 import CoverImage from './CoverImage'
 import ParticipantInterestChip from './ParticipantInterestChip'
 import { useBookDetail } from './BookDetailProvider'
@@ -23,13 +22,9 @@ function popupChips(circle: PublicScenarioCircle): BookParticipant[] { return ci
 
 export default function MatchingScenarios({ sessionId, stateVersion, scenarios, viewerConfirmedCircleKey, viewerRole, frozen, booksById = {}, onConfirmationChange }: Props) {
   const { openBook } = useBookDetail()
-  const [pendingCircle, setPendingCircle] = useState<PublicScenarioCircle | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [actionPending, setActionPending] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const readOnly = frozen || viewerRole === 'observer'
-  const allCircles = scenarios.flatMap(s => s.circles)
-  const currentCircle = viewerConfirmedCircleKey ? allCircles.find(c => c.circleKey === viewerConfirmedCircleKey) ?? null : null
 
   async function mutate(method: 'PUT' | 'DELETE', circleKey?: string) {
     if (actionPending !== null) return
@@ -40,8 +35,6 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
       if (!response.ok) setErrorMsg(json.error ?? 'Не удалось изменить выбор')
       else {
         onConfirmationChange?.()
-        setDialogOpen(false)
-        setPendingCircle(null)
       }
     } catch {
       setErrorMsg('Не удалось изменить выбор. Проверьте соединение и попробуйте снова.')
@@ -71,13 +64,12 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>{circle.members.map(member => <li key={member.ref} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}><ParticipantInterestChip userId={member.ref} displayName={member.displayName} rank={member.rank} />{member.confirmed && <span aria-label={`${member.displayName}: подтвердил`} style={{ color: 'var(--success)' }}>✓</span>}</li>)}</ul>
               <div style={{ marginTop: 'auto', paddingTop: '0.7rem' }}>
                 {waiting && <div data-testid="circle-waiting" style={{ borderLeft: '2px solid var(--success)', paddingLeft: '0.6rem', color: 'var(--success)', fontSize: '0.76rem' }}><strong>Вы выбрали этот круг</strong><div>Подтверждено · {circle.confirmedCount} из {circle.memberCount} · временно</div>{!readOnly && <button type="button" data-testid="circle-cancel-button" className="p-btn ghost sm" disabled={actionPending === 'cancel'} onClick={() => mutate('DELETE')} style={{ marginTop: '0.5rem' }}>Отменить</button>}</div>}
-                {circle.viewerIsMember && !waiting && !readOnly && <div className="nd-circle-cta"><button type="button" data-testid="circle-confirm-button" className="p-btn success" disabled={actionPending === circle.circleKey} onClick={() => { setPendingCircle(circle); setDialogOpen(true) }}>Хочу в этот круг</button></div>}
+                {circle.viewerIsMember && !waiting && !readOnly && viewerConfirmedCircleKey === null && <div className="nd-circle-cta"><button type="button" data-testid="circle-confirm-button" className="p-btn success" disabled={actionPending === circle.circleKey} onClick={() => mutate('PUT', circle.circleKey)}>{actionPending === circle.circleKey ? 'Записываем…' : 'Хочу в этот круг'}</button></div>}
               </div>
             </article>
           })}
         </div>
       </li>)}
     </ul>
-    {pendingCircle && <MatchingConfirmationDialog open={dialogOpen} from={currentCircle ? { bookTitle: booksById[currentCircle.bookId]?.title ?? 'Книга', members: currentCircle.members.map(m => m.displayName) } : null} to={{ bookTitle: booksById[pendingCircle.bookId]?.title ?? 'Книга', members: pendingCircle.members.map(m => m.displayName) }} pending={actionPending !== null} onConfirm={() => mutate('PUT', pendingCircle.circleKey)} onCancel={() => { if (actionPending === null) { setDialogOpen(false); setPendingCircle(null) } }} />}
   </>
 }
