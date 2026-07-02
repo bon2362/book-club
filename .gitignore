@@ -62,6 +62,7 @@ next-env.d.ts
 
 # Local generated artifacts
 /output/
+/outputs/
 
 # Локальная галерея фото видов (генерируется scripts/build-species-gallery.ts)
 species-gallery.html
