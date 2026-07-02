@@ -131,7 +131,7 @@ export default function MatchingBookDetailModal({
     <div
       role="presentation"
       onClick={onClose}
-      className="fixed inset-0 flex items-center justify-center z-50 p-6"
+      className="fixed inset-0 flex items-center justify-center z-50 p-6 nd-mx-sheet-overlay"
       style={{ background: 'rgba(33, 28, 23, 0.34)', backdropFilter: 'blur(2px)' }}
     >
       <div
@@ -139,7 +139,7 @@ export default function MatchingBookDetailModal({
         aria-modal="true"
         aria-label={book.title}
         onClick={(e) => e.stopPropagation()}
-        className="relative max-w-[640px] w-full"
+        className="relative max-w-[640px] w-full nd-mx-sheet"
         style={{
           background: 'var(--bg-input)',
           borderRadius: 'var(--radius-card)',
@@ -148,12 +148,15 @@ export default function MatchingBookDetailModal({
           overflowY: 'auto',
         }}
       >
+        {/* Bottom-sheet grabber affordance: hidden on desktop, shown ≤540px. */}
+        <div className="nd-mx-sheet-grabber" aria-hidden="true" />
+
         {/* Close button: soft round */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Закрыть"
-          className="absolute top-4 right-4 flex items-center justify-center"
+          className="absolute top-4 right-4 flex items-center justify-center nd-mx-sheet-close"
           style={{
             width: 30,
             height: 30,
@@ -174,11 +177,11 @@ export default function MatchingBookDetailModal({
 
         {/* Top: cover + title/author/tags — no separate header with border */}
         <div
-          className="grid gap-6"
+          className="grid gap-6 nd-mx-sheet-grid"
           style={{ gridTemplateColumns: '132px minmax(0,1fr)', padding: '1.9rem 1.9rem 0' }}
         >
           <div
-            className="relative overflow-hidden shrink-0"
+            className="relative overflow-hidden shrink-0 nd-mx-sheet-cover"
             style={{ width: 132, height: 198, borderRadius: 6, boxShadow: '0 4px 16px rgba(40,30,20,0.18)' }}
           >
             <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />

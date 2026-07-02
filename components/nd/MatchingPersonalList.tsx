@@ -6,7 +6,7 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -412,8 +412,10 @@ export default function MatchingPersonalList({
   }, [initialBooks])
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor),
+    // Desktop mouse: immediate drag (unchanged). Touch: long-press (200ms) so
+    // vertical page scroll still works on mobile instead of starting a drag.
+    useSensor(MouseSensor),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -603,7 +605,7 @@ export default function MatchingPersonalList({
       <section
         data-testid="matching-catalog-available"
         style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }), opacity: pending ? 0.6 : 1, transition: 'opacity 0.2s ease' }}
-        className="flex flex-col"
+        className="flex flex-col nd-mx-panel-cat nd-mx-panel"
       >
         <div style={panelHeadStyle}>
           <h3 className="p-panelhead">
@@ -638,7 +640,7 @@ export default function MatchingPersonalList({
       <section
         data-testid="matching-catalog-mine"
         style={{ ...panelStyle, overflow: 'hidden', ...(fill ? { minHeight: 0 } : { maxHeight: '80vh' }), opacity: pending ? 0.6 : 1, transition: 'opacity 0.2s ease' }}
-        className="flex flex-col"
+        className="flex flex-col nd-mx-panel-mine nd-mx-panel"
       >
         <div style={panelHeadStyle}>
           <h3 className="p-panelhead">

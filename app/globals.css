@@ -1043,4 +1043,126 @@ body {
   .nd-flow-fade-collapse { transition: none !important; }
   .nd-flow-gate-intro { animation: none !important; }
   .nd-board-spinner { animation-duration: 1.6s; }
+  .nd-mx-sheet { animation: none !important; }
+}
+
+/* §5 Book popup sheet: grabber affordance, hidden on desktop by default. */
+.nd-mx-sheet-grabber { display: none; }
+
+/* §5 Book popup sheet: slide-up entrance (mobile only, see media block below). */
+@keyframes nd-mx-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* ── Matching mobile (≤540px) — foundation: board, gate, scenario cards,
+   header, book sheet. Component tasks only add the classNames below;
+   all rules live in this single consolidated block. ── */
+@media (max-width: 540px) {
+  /* §1 Board: drop the height cap, let the page scroll naturally. */
+  .nd-mx-board-cap { height: auto !important; min-height: 0 !important; }
+
+  /* §1 Board: disable MatchingWorkspace's internal scroll/fade. */
+  .nd-mx-workspace { overflow: visible !important; height: auto !important; border-top: none !important; }
+  .nd-mx-scroll { overflow: visible !important; padding: 0.5rem 0.9rem 1rem !important; }
+  .nd-mx-fade { display: none !important; }
+
+  /* §1 Board: hide the catalog panel (board only — applied conditionally in JSX). */
+  .nd-mx-hide { display: none !important; }
+
+  /* §2 Scenario cards: tighter padding + list gap. */
+  .nd-mx-scn-card { padding: 0.85rem 0.9rem 1rem !important; }
+  .nd-mx-scn-list { gap: 0.8rem !important; }
+
+  /* §2 Scenario tooltip must not overflow the viewport on narrow screens. */
+  .nd-scenario-tip { white-space: normal; max-width: calc(100vw - 2rem); }
+
+  /* §3 Compact header. */
+  .nd-mx-hdr { padding: 0.5rem 0.9rem !important; column-gap: 0.6rem !important; }
+  .nd-mx-hdr-title { font-size: 1rem !important; flex: 1 1 auto !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+  .nd-mx-hdr-groups,
+  .nd-mx-hdr-you,
+  .nd-mx-hdr-deadline,
+  .nd-mx-hdr-div,
+  .nd-mx-hdr-back-text { display: none !important; }
+
+  /* §4 Gate: drop the 100svh lock, let the page scroll naturally. */
+  .nd-mx-gate-root { height: auto !important; overflow: visible !important; }
+
+  /* §4 Gate: heading shrinks. */
+  .nd-mx-gate-h { font-size: 1.4rem !important; padding: 1rem 0.9rem 0.3rem !important; }
+
+  /* §4 Gate: catalog grid collapses to one column. Panel order («Мои книги»
+     first) is set inside MatchingPersonalList (task C) via `order` on its
+     own panel elements — this class only handles the outer grid geometry. */
+  .nd-mx-cat-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto !important;
+    flex: none !important;
+  }
+
+  /* §4 Gate: panel order — «Мои книги» (ranking, the primary action) above
+     «Остальной каталог» (adding). */
+  .nd-mx-panel-mine { order: -1; }
+  .nd-mx-panel-cat { order: 0; }
+
+  /* §4 Gate: panels use fill mode (minHeight:0) on the gate screen, which
+     would otherwise collapse to zero height once the grid becomes a single,
+     auto-sized column. Give them a bounded, self-scrolling height instead of
+     natural/page scroll, to avoid the whole gate ballooning with a long
+     catalog while still showing content. */
+  .nd-mx-panel {
+    min-height: 45vh !important;
+    max-height: 60vh !important;
+  }
+
+  /* §4 Gate: sticky footer with safe-area padding. */
+  .nd-mx-gate-foot {
+    position: sticky !important;
+    bottom: 0 !important;
+    background: var(--bg) !important;
+    border-top: 1px solid var(--hair) !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+  .nd-mx-gate-foot button { width: 100% !important; }
+
+  /* §5 Book popup: bottom-sheet overlay + dialog. */
+  .nd-mx-sheet-overlay { padding: 0 !important; align-items: flex-end !important; }
+  .nd-mx-sheet {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: var(--radius-card) var(--radius-card) 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    animation: nd-mx-sheet-in 0.24s ease-out;
+  }
+
+  /* §5 Book popup: drag grabber affordance, centered at the top of the sheet. */
+  .nd-mx-sheet-grabber {
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 0.6rem auto 0;
+    background: var(--hair);
+    border-radius: var(--radius-pill);
+  }
+
+  /* §5 Book popup: cover + title/meta collapse into a row, like BookCardMobile. */
+  .nd-mx-sheet-grid {
+    grid-template-columns: 64px minmax(0,1fr) !important;
+    gap: 0.9rem !important;
+    padding: 0.6rem 1.1rem 0 !important;
+  }
+  .nd-mx-sheet-cover {
+    width: 64px !important;
+    height: 96px !important;
+  }
+
+  /* §5 Book popup: close button tap target ≥44px on mobile. */
+  .nd-mx-sheet-close {
+    width: 44px !important;
+    height: 44px !important;
+    top: 0.3rem !important;
+    right: 0.3rem !important;
+  }
 }

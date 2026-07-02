@@ -85,7 +85,7 @@ export default function MatchingSatisfactionFlow({
 
   return (
     <div
-      className={'nd-flow flex flex-col' + (board ? ' is-board' : '')}
+      className={'nd-flow flex flex-col' + (board ? ' is-board' : ' nd-mx-gate-root')}
       style={{
         background: 'var(--bg)',
         color: 'var(--text)',
@@ -99,7 +99,7 @@ export default function MatchingSatisfactionFlow({
       <Collapsible open={board}>
         <div className="nd-flow-slide-from-top flex flex-col">
           {board && header}
-          {board && <div style={{ height: 'min(82svh, 920px)', minHeight: 420 }}>{workspace}</div>}
+          {board && <div className="nd-mx-board-cap" style={{ height: 'min(82svh, 920px)', minHeight: 420 }}>{workspace}</div>}
         </div>
       </Collapsible>
 
@@ -109,6 +109,7 @@ export default function MatchingSatisfactionFlow({
           <div className="nd-flow-fade-collapse nd-flow-gate-intro" data-testid="ranking-gate" style={{ padding: '1.6rem 1rem 0.4rem' }}>
           <section style={{ maxWidth: 640 }}>
             <h1
+              className="nd-mx-gate-h"
               style={{
                 margin: 0,
                 fontFamily: 'var(--nd-serif), Georgia, serif',
@@ -141,13 +142,13 @@ export default function MatchingSatisfactionFlow({
       {/* Persistent personal list — always mounted; board: catalog viewport,
           gate: fills the remaining screen. Never inside a Collapsible. */}
       <div
-        className="p-4 pt-0"
+        className={'p-4 pt-0' + (board ? ' nd-mx-hide' : '')}
         data-testid="matching-catalog-panel"
         style={board ? { minHeight: 560, paddingTop: '1rem' } : { flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
         {board && catalogIntro}
         <div
-          className="grid"
+          className={'grid' + (!board ? ' nd-mx-cat-grid' : '')}
           style={{
             gridTemplateColumns: 'minmax(0, 1.18fr) minmax(0, 0.82fr)',
             gap: '1.1rem',
@@ -178,7 +179,7 @@ export default function MatchingSatisfactionFlow({
       {!board && (
         <Collapsible open>
           <div
-          className="nd-flow-fade-collapse p-4"
+          className="nd-flow-fade-collapse p-4 nd-mx-gate-foot"
           style={{
             borderTop: '1px solid var(--hair)',
             display: 'flex',
