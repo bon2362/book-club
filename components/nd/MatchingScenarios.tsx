@@ -60,8 +60,8 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
 
   return <>
     {errorMsg && <div role="alert" style={{ borderLeft: '3px solid var(--accent)', padding: '0.6rem 0.9rem', color: 'var(--accent)', marginBottom: '0.7rem' }}>{errorMsg}</div>}
-    <ul data-testid="matching-scenarios-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {scenarios.map((scenario, index) => <li key={scenario.ref} data-testid="matching-scenario-card" style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '1rem 1.2rem 1.15rem' }}>
+    <ul className="nd-mx-scn-list" data-testid="matching-scenarios-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {scenarios.map((scenario, index) => <li key={scenario.ref} className="nd-mx-scn-card" data-testid="matching-scenario-card" style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '1rem 1.2rem 1.15rem' }}>
         <header style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.7rem', marginBottom: '0.9rem' }}>
           <h3 style={{ margin: 0 }}>
             <span className="nd-scenario-label" tabIndex={0}>

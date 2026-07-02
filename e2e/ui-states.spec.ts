@@ -264,13 +264,12 @@ test.describe('Matching restored board shell', () => {
         await page.setViewportSize(viewport)
 
         const header = page.getByTestId('matching-header')
+        const isMobile = viewport.width <= 540
+        // Controls that stay visible on both the full and the compact mobile header
         const controls = [
           page.getByRole('link', { name: /каталог/i }),
           header.getByRole('heading', { name: session.name }),
-          header.getByText('Группы по 2', { exact: true }),
-          header.getByText('Дедлайн не задан', { exact: true }),
           header.getByText('● активна', { exact: true }),
-          header.getByText(/Вы —/),
           header.getByRole('button', { name: /участники: 4/i }),
           header.getByRole('button', { name: 'Покинуть' }),
         ]
@@ -280,6 +279,16 @@ test.describe('Matching restored board shell', () => {
           expect(box, `${viewport.label}: header control has geometry`).not.toBeNull()
           expect(box!.x, `${viewport.label}: header control starts inside viewport`).toBeGreaterThanOrEqual(0)
           expect(box!.x + box!.width, `${viewport.label}: header control ends inside viewport`).toBeLessThanOrEqual(viewport.width + 1)
+        }
+        // Verbose meta collapses on the compact mobile header (≤540px), stays on wider screens
+        const collapsibleMeta = [
+          header.getByText('Группы по 2', { exact: true }),
+          header.getByText('Дедлайн не задан', { exact: true }),
+          header.getByText(/Вы —/),
+        ]
+        for (const meta of collapsibleMeta) {
+          if (isMobile) await expect(meta, `${viewport.label}: verbose meta hidden`).toBeHidden()
+          else await expect(meta, `${viewport.label}: verbose meta visible`).toBeVisible()
         }
 
         const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
@@ -295,15 +304,26 @@ test.describe('Matching restored board shell', () => {
         await popover.getByRole('button', { name: /закрыть список/i }).click()
 
         if (viewport.label === 'mobile') {
+          // Catalog is hidden on the mobile board; scenarios flow in the page (no inner-scroll cap)
+          await expect(page.getByTestId('matching-catalog-panel')).toBeHidden()
+          const scrollOverflow = await page.getByTestId('matching-scenarios-scroll').evaluate((element) => getComputedStyle(element).overflowY)
+          expect(scrollOverflow, 'mobile: scenarios flow in the page, not an inner scroll').toBe('visible')
+
+          // Book popup becomes a full-width bottom sheet (desktop modal caps at 640px centered)
           await coverButton.click()
           const mobileBookDialog = page.getByRole('dialog', { name: book.title })
           await expect(mobileBookDialog).toBeVisible()
+          // wait for the slide-up to settle at the bottom before measuring
+          await expect.poll(async () => {
+            const box = await mobileBookDialog.boundingBox()
+            return box ? Math.round(box.y + box.height) : 99999
+          }, { message: 'sheet settles on-screen at the bottom' }).toBeLessThanOrEqual(viewport.height + 1)
           const dialogBox = await mobileBookDialog.boundingBox()
           expect(dialogBox).not.toBeNull()
           expect(dialogBox!.x).toBeGreaterThanOrEqual(0)
           expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+          expect(dialogBox!.width, 'mobile popup is a full-width sheet').toBeGreaterThan(viewport.width * 0.9)
           expect(dialogBox!.y).toBeGreaterThanOrEqual(0)
-          expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(viewport.height + 1)
           await page.keyboard.press('Escape')
         }
       }
