@@ -19,6 +19,19 @@ interface Props {
 }
 
 function popupChips(circle: PublicScenarioCircle): BookParticipant[] { return circle.members.map(member => ({ ref: member.ref, bookId: circle.bookId, displayName: member.displayName, rank: member.rank, personalStatus: null })) }
+function formatRank(value: number | null) { return value === null ? '—' : Number.isInteger(value) ? String(value) : value.toFixed(1) }
+function circleWord(n: number) { const m10 = n % 10; const m100 = n % 100; return m10 === 1 && m100 !== 11 ? 'круг' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'круга' : 'кругов' }
+// Why this scenario is ranked where it is — metrics + who is left out (data already
+// computed server-side; surfaced in a tooltip on the «Сценарий N» label).
+function scenarioTip(scenario: PublicScenario): string {
+  const parts = [
+    `средний ранг ${formatRank(scenario.score.avgRank)}`,
+    `${scenario.circles.length} ${circleWord(scenario.circles.length)}`,
+    `охват ${scenario.score.coveredCount} из ${scenario.score.totalCount}`,
+  ]
+  if (scenario.leftOut.length > 0) parts.push(`за бортом: ${scenario.leftOut.map(p => p.displayName).join(', ')}`)
+  return parts.join(' · ')
+}
 
 export default function MatchingScenarios({ sessionId, stateVersion, scenarios, viewerConfirmedCircleKey, viewerRole, frozen, booksById = {}, onConfirmationChange }: Props) {
   const { openBook } = useBookDetail()
@@ -50,7 +63,12 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
     <ul data-testid="matching-scenarios-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {scenarios.map((scenario, index) => <li key={scenario.ref} data-testid="matching-scenario-card" style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-card)', padding: '1rem 1.2rem 1.15rem' }}>
         <header style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.7rem', marginBottom: '0.9rem' }}>
-          <h3 style={{ margin: 0, fontFamily: 'var(--nd-sans)', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Сценарий {index + 1}</h3>
+          <h3 style={{ margin: 0 }}>
+            <span className="nd-scenario-label" tabIndex={0}>
+              <span className="nd-scenario-label-text">Сценарий {index + 1}</span>
+              <span className="nd-scenario-tip" role="tooltip">{scenarioTip(scenario)}</span>
+            </span>
+          </h3>
         </header>
         <div className="nd-scenario-circles">
           {scenario.circles.map(circle => {

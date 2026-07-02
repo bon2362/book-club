@@ -43,7 +43,7 @@ export default function ParticipantInterestChip({
         opacity: dimmed ? 0.4 : 1,
         transition: 'opacity 0.16s ease, background 0.16s ease',
       }}
-      title={`${displayName}: ранг ${rank ?? '—'} · ${rankTooltip(rank)}`}
+      title={`${displayName}: ${rankTooltip(rank)}`}
     >
       <b
         style={{

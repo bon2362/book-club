@@ -99,7 +99,7 @@ export default function MatchingSatisfactionFlow({
       <Collapsible open={board}>
         <div className="nd-flow-slide-from-top flex flex-col">
           {board && header}
-          {board && <div style={{ height: 'min(68svh, 760px)', minHeight: 420 }}>{workspace}</div>}
+          {board && <div style={{ height: 'min(82svh, 920px)', minHeight: 420 }}>{workspace}</div>}
         </div>
       </Collapsible>
 
