@@ -240,7 +240,7 @@ export default async function MatchingPage({
                 isAdmin={isAdmin}
                 isImpersonating={isImpersonating}
               />}
-              catalogIntro={showRankingGate ? undefined : <div data-testid="matching-catalog-intro" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--hair)', paddingTop: '1rem' }}><h2 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.12rem' }}>Каталог</h2><p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Слева — книги клуба, справа — ваш список и приоритеты</p></div>}
+              catalogIntro={showRankingGate ? undefined : <div data-testid="matching-catalog-intro" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}><h2 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.12rem' }}>Каталог</h2><p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Слева — книги клуба, справа — ваш список и приоритеты</p></div>}
             />
       </BookDetailProvider>
     </MatchingBoardProvider>

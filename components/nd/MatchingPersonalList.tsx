@@ -73,7 +73,7 @@ function getListStyles(size: 'compact' | 'large'): ListStyles {
         height: 74,
         borderRadius: 'var(--radius)',
         flexShrink: 0,
-        boxShadow: 'var(--shadow-card)',
+        border: '1px solid var(--border)',
         position: 'relative',
         overflow: 'hidden',
       },
@@ -115,7 +115,7 @@ function getListStyles(size: 'compact' | 'large'): ListStyles {
       height: 57,
       borderRadius: 'var(--radius)',
       flexShrink: 0,
-      boxShadow: 'var(--shadow-card)',
+      border: '1px solid var(--border)',
       position: 'relative',
       overflow: 'hidden',
     },
@@ -154,8 +154,8 @@ function getListStyles(size: 'compact' | 'large'): ListStyles {
 // ── Panel wrapper ─────────────────────────────────────────────────────────────
 const panelStyle: React.CSSProperties = {
   background: 'var(--bg-input)',
-  borderRadius: 'var(--radius-card)',
-  boxShadow: 'var(--shadow-card)',
+  borderRadius: 'var(--radius)',
+  border: '1px solid var(--border)',
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
@@ -224,7 +224,7 @@ function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles:
         ...s.row,
         transform: CSS.Transform.toString(transform),
         transition,
-        boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)',
+        boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--border-subtle)',
         opacity: isDragging ? 0.5 : 1,
         background: isDragging ? 'var(--bg)' : undefined,
       }}
@@ -285,20 +285,8 @@ function SortableRow({ book, frozen, isFirst, others, onClick, onRemove, styles:
       {!frozen && (
         <button
           type="button"
-          className="nd-catalog-act"
+          className="nd-catalog-act p-btn ghost sm"
           onClick={(e) => { e.stopPropagation(); onRemove(book.bookId) }}
-          style={{
-            background: 'var(--chip-bg)',
-            color: 'var(--text-secondary)',
-            border: 'none',
-            borderRadius: 'var(--radius-control)',
-            fontSize: '0.74rem',
-            fontWeight: 600,
-            padding: '0.4rem 0.8rem',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--hair)'; (e.target as HTMLElement).style.color = 'var(--accent)' }}
-          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--chip-bg)'; (e.target as HTMLElement).style.color = 'var(--text-secondary)' }}
         >
           Убрать из списка
         </button>
@@ -322,7 +310,7 @@ function StatusRow({ book, isFirst, others, onClick, styles: s, adminNamesByDisp
   return (
     <li
       className="nd-catalog-row"
-      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)', opacity: 0.7 }}
+      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--border-subtle)', opacity: 0.7 }}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center">
@@ -358,7 +346,7 @@ function CatalogRow({ book, isFirst, onClick, onAdd, frozen, styles: s }: Catalo
   return (
     <li
       className="nd-catalog-row"
-      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--hair-soft)' }}
+      style={{ ...s.row, boxShadow: isFirst ? 'none' : 'inset 0 1px 0 var(--border-subtle)' }}
       onClick={() => onClick(book)}
     >
       <div className="flex justify-center">
@@ -380,20 +368,8 @@ function CatalogRow({ book, isFirst, onClick, onAdd, frozen, styles: s }: Catalo
       {!frozen && (
         <button
           type="button"
-          className="nd-catalog-act"
+          className="nd-catalog-act p-btn accent sm"
           onClick={(e) => { e.stopPropagation(); onAdd(book.bookId) }}
-          style={{
-            background: 'var(--accent)',
-            color: 'var(--bg-input)',
-            border: 'none',
-            borderRadius: 'var(--radius-control)',
-            fontSize: '0.74rem',
-            fontWeight: 600,
-            padding: '0.4rem 0.8rem',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--accent-hover)' }}
-          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--accent)' }}
         >
           Хочу читать
         </button>
@@ -630,7 +606,7 @@ export default function MatchingPersonalList({
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
-          <h3 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text)' }}>
+          <h3 className="p-panelhead">
             Остальной каталог
           </h3>
           <p style={{ margin: '0.15rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
@@ -665,7 +641,7 @@ export default function MatchingPersonalList({
         className="flex flex-col"
       >
         <div style={panelHeadStyle}>
-          <h3 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text)' }}>
+          <h3 className="p-panelhead">
             Мои книги
           </h3>
           <p style={{ margin: '0.15rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
@@ -705,7 +681,7 @@ export default function MatchingPersonalList({
           {statusBooks.length > 0 && (
             <>
               {/* «В процессе / Прочитано» subheading — тёплый стиль */}
-              <div style={{ padding: '0.65rem 0.75rem 0.4rem', borderTop: `1px solid var(--hair)${activeBooks.length > 0 ? '' : '; border-top:none'}` }}>
+              <div style={{ padding: '0.65rem 0.75rem 0.4rem', borderTop: `1px solid var(--border)${activeBooks.length > 0 ? '' : '; border-top:none'}` }}>
                 <span style={{ fontFamily: 'var(--nd-serif)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
                   В процессе / Прочитано
                 </span>

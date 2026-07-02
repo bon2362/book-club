@@ -19,8 +19,6 @@ interface Props {
   booksById?: Record<string, ScenarioBookMeta>; onConfirmationChange?: () => void
 }
 
-function circleWord(n: number) { const m10 = n % 10; const m100 = n % 100; return m10 === 1 && m100 !== 11 ? 'круг' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'круга' : 'кругов' }
-function formatRank(value: number | null) { return value === null ? '—' : Number.isInteger(value) ? String(value) : value.toFixed(1) }
 function popupChips(circle: PublicScenarioCircle): BookParticipant[] { return circle.members.map(member => ({ ref: member.ref, bookId: circle.bookId, displayName: member.displayName, rank: member.rank, personalStatus: null })) }
 
 export default function MatchingScenarios({ sessionId, stateVersion, scenarios, viewerConfirmedCircleKey, viewerRole, frozen, booksById = {}, onConfirmationChange }: Props) {
@@ -57,27 +55,23 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
   return <>
     {errorMsg && <div role="alert" style={{ borderLeft: '3px solid var(--accent)', padding: '0.6rem 0.9rem', color: 'var(--accent)', marginBottom: '0.7rem' }}>{errorMsg}</div>}
     <ul data-testid="matching-scenarios-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {scenarios.map((scenario, index) => <li key={scenario.ref} data-testid="matching-scenario-card" style={{ border: '1px solid var(--hair)', padding: '1rem' }}>
-        <header style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--hair-soft)', paddingBottom: '0.7rem', marginBottom: '0.9rem' }}>
+      {scenarios.map((scenario, index) => <li key={scenario.ref} data-testid="matching-scenario-card" style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius)', padding: '1rem' }}>
+        <header style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.7rem', marginBottom: '0.9rem' }}>
           <h3 style={{ margin: 0, fontFamily: 'var(--nd-sans)', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Сценарий {index + 1}</h3>
-          <div style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-            <span>средний ранг {formatRank(scenario.score.avgRank)}</span><span>{scenario.circles.length} {circleWord(scenario.circles.length)}</span><span>охват {scenario.score.coveredCount} из {scenario.score.totalCount}</span>
-          </div>
         </header>
-        {scenario.leftOut.length > 0 && <p style={{ margin: '0 0 0.8rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>За бортом остаётся: {scenario.leftOut.map(p => p.displayName).join(', ')}</p>}
         <div className="nd-scenario-circles">
           {scenario.circles.map(circle => {
             const book = booksById[circle.bookId]
             const waiting = circle.viewerIsMember && viewerConfirmedCircleKey === circle.circleKey
-            return <article key={circle.circleKey} data-testid="matching-circle" className="nd-scenario-circle" style={{ borderTop: `3px solid ${waiting ? 'var(--accent)' : 'var(--hair)'}`, borderRight: '1px solid var(--hair)', borderBottom: '1px solid var(--hair)', borderLeft: '1px solid var(--hair)', padding: '0.75rem', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            return <article key={circle.circleKey} data-testid="matching-circle" className="nd-scenario-circle" style={{ borderTop: `3px solid ${waiting ? 'var(--success)' : 'var(--border)'}`, borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', padding: '0.75rem', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '54px minmax(0, 1fr)', gap: '0.7rem', marginBottom: '0.7rem' }}>
                 <button type="button" className="nd-book-link" aria-label={`Открыть книгу «${book?.title ?? 'Книга'}»`} onClick={() => showBook(book, circle)}><CoverImage coverUrl={book?.coverUrl ?? null} title={book?.title ?? 'Книга'} author={book?.author ?? ''} /></button>
-                <div style={{ minWidth: 0 }}><button type="button" className="nd-book-title-button" onClick={() => showBook(book, circle)}>{book?.title ?? 'Книга'}</button><div style={{ marginTop: '0.2rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>{book?.author ?? ''}</div><div style={{ marginTop: '0.35rem', fontSize: '0.68rem', color: 'var(--text-muted)' }}>{circle.memberCount} участников · ср. ранг {formatRank(circle.avgRank)}</div></div>
+                <div style={{ minWidth: 0 }}><button type="button" className="nd-book-title-button" onClick={() => showBook(book, circle)}>{book?.title ?? 'Книга'}</button><div style={{ marginTop: '0.2rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>{book?.author ?? ''}</div></div>
               </div>
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>{circle.members.map(member => <li key={member.ref} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}><ParticipantInterestChip userId={member.ref} displayName={member.displayName} rank={member.rank} /><span aria-label={`${member.displayName}: ${member.confirmed ? 'подтвердил' : 'не подтвердил'}`} style={{ color: member.confirmed ? 'var(--success)' : 'var(--text-muted)' }}>{member.confirmed ? '✓' : '○'}</span></li>)}</ul>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>{circle.members.map(member => <li key={member.ref} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}><ParticipantInterestChip userId={member.ref} displayName={member.displayName} rank={member.rank} />{member.confirmed && <span aria-label={`${member.displayName}: подтвердил`} style={{ color: 'var(--success)' }}>✓</span>}</li>)}</ul>
               <div style={{ marginTop: 'auto', paddingTop: '0.7rem' }}>
-                {waiting && <div data-testid="circle-waiting" style={{ borderLeft: '3px solid var(--accent)', paddingLeft: '0.6rem', color: 'var(--accent)', fontSize: '0.76rem' }}><strong>Вы выбрали этот круг</strong><div>{circle.confirmedCount} из {circle.memberCount} · временно, ждём остальных</div>{!readOnly && <button type="button" data-testid="circle-cancel-button" className="nd-text-action" disabled={actionPending === 'cancel'} onClick={() => mutate('DELETE')}>Отменить</button>}</div>}
-                {circle.viewerIsMember && !waiting && !readOnly && <div className="nd-circle-cta"><button type="button" data-testid="circle-confirm-button" className="nd-primary-action" disabled={actionPending === circle.circleKey} onClick={() => { setPendingCircle(circle); setDialogOpen(true) }}>Хочу в этот круг</button></div>}
+                {waiting && <div data-testid="circle-waiting" style={{ borderLeft: '2px solid var(--success)', paddingLeft: '0.6rem', color: 'var(--success)', fontSize: '0.76rem' }}><strong>Вы выбрали этот круг</strong><div>Подтверждено · {circle.confirmedCount} из {circle.memberCount} · временно</div>{!readOnly && <button type="button" data-testid="circle-cancel-button" className="p-btn ghost sm" disabled={actionPending === 'cancel'} onClick={() => mutate('DELETE')} style={{ marginTop: '0.5rem' }}>Отменить</button>}</div>}
+                {circle.viewerIsMember && !waiting && !readOnly && <div className="nd-circle-cta"><button type="button" data-testid="circle-confirm-button" className="p-btn success" disabled={actionPending === circle.circleKey} onClick={() => { setPendingCircle(circle); setDialogOpen(true) }}>Хочу в этот круг</button></div>}
               </div>
             </article>
           })}

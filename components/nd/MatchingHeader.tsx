@@ -118,12 +118,12 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
 
   const groups = props.minGroupSize === props.maxGroupSize ? `Группы по ${props.minGroupSize}` : `Группы ${props.minGroupSize}–${props.maxGroupSize}`
   return <>
-    {props.isImpersonating && <div data-testid="admin-impersonation-banner" style={{ padding: '0.45rem 1.3rem', borderBottom: '1px solid var(--hair)', color: 'var(--status-warn)' }}>👁 Просмотр за {props.viewer.displayName}<a href="/admin?tab=matching" style={{ float: 'right', color: 'inherit' }}>← вернуться в админку</a></div>}
-    <header data-testid="matching-header" style={{ padding: '0.7rem 1.3rem', borderBottom: '1px solid var(--hair)', background: 'var(--bg)' }}>
+    {props.isImpersonating && <div data-testid="admin-impersonation-banner" style={{ padding: '0.45rem 1.3rem', borderBottom: '1px solid var(--border)', color: 'var(--status-warn)' }}>👁 Просмотр за {props.viewer.displayName}<a href="/admin?tab=matching" style={{ float: 'right', color: 'inherit' }}>← вернуться в админку</a></div>}
+    <header data-testid="matching-header" style={{ padding: '0.7rem 1.3rem', borderBottom: '1px solid var(--border-strong)', background: 'var(--bg)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-          <a href="/" aria-label="На каталог" className="nd-back-to-catalog">← Каталог</a><span style={{ width: 1, height: 22, background: 'var(--hair)' }} />
-          <h1 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.45rem' }}>{props.sessionName}</h1>
+          <a href="/" aria-label="На каталог" className="nd-back-to-catalog">← Каталог</a><span style={{ width: 1, height: 22, background: 'var(--border)' }} />
+          <h1 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.1, color: 'var(--text)' }}>{props.sessionName}</h1>
           {editingSize ? <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <label style={{ fontSize: '0.7rem' }}>Мин. <input className="nd-inline-number" aria-label="Минимум участников" type="number" value={minSize} onChange={(e) => setMinSize(e.target.value)} style={{ width: 46, border: '1px solid var(--border)', background: 'var(--bg-input)' }} /></label>
             <label style={{ fontSize: '0.7rem' }}>Макс. <input className="nd-inline-number" aria-label="Максимум участников" type="number" value={maxSize} onChange={(e) => setMaxSize(e.target.value)} style={{ width: 46, border: '1px solid var(--border)', background: 'var(--bg-input)' }} /></label>
@@ -136,7 +136,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
           {props.viewer.role === 'observer' ? <span style={{ color: 'var(--success)', borderBottom: '1px solid var(--success)' }}>Вы наблюдаете</span> : <span>Вы — <strong>{props.viewer.displayName}</strong></span>}
           <Popover.Root open={participantsOpen} onOpenChange={setParticipantsOpen}>
             <Popover.Trigger asChild>
-              <button type="button" aria-label={`Участники: ${props.participants.length}`} style={{ display: 'flex', alignItems: 'center', border: 0, background: 'transparent' }}>{props.participants.slice(0, 5).map((participant, index) => <span key={participant.ref} aria-label={`${participant.displayName} — ${participant.online ? 'онлайн' : 'не в сети'}`} style={{ marginLeft: index ? -7 : 0, width: 28, height: 28, borderRadius: '50%', border: '2px solid var(--bg)', background: 'var(--chip-bg)', display: 'grid', placeItems: 'center', color: participant.online ? 'var(--success)' : 'var(--text-secondary)' }}>{participant.displayName[0]}</span>)}<span style={{ marginLeft: 6 }}>{props.participants.length}</span></button>
+              <button type="button" aria-label={`Участники: ${props.participants.length}`} style={{ display: 'flex', alignItems: 'center', border: 0, background: 'transparent' }}>{props.participants.slice(0, 5).map((participant, index) => <span key={participant.ref} aria-label={`${participant.displayName} — ${participant.online ? 'онлайн' : 'не в сети'}`} style={{ marginLeft: index ? -7 : 0, width: 28, height: 28, borderRadius: '50%', border: participant.online ? '2px solid var(--success)' : '2px solid var(--bg)', background: 'var(--text)', display: 'grid', placeItems: 'center', color: 'var(--bg-input)', fontWeight: 700, fontSize: '0.66rem' }}>{participant.displayName[0]}</span>)}<span style={{ marginLeft: 6 }}>{props.participants.length}</span></button>
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content role="dialog" aria-label="Участники" sideOffset={8} align="end" style={{ zIndex: 5, minWidth: 220, padding: '0.75rem', background: 'var(--bg-input)', border: '1px solid var(--border-strong)' }}>

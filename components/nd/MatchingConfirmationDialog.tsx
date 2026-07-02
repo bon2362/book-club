@@ -136,41 +136,17 @@ export default function MatchingConfirmationDialog({
           <button
             type="button"
             ref={cancelRef}
+            className="p-btn ghost"
             onClick={onCancel}
             disabled={pending}
-            style={{
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              color: 'var(--text)',
-              padding: '0.6rem 1.1rem',
-              borderRadius: 'var(--radius)',
-              fontFamily: 'var(--nd-sans)',
-              fontSize: '0.68rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
           >
             Отмена
           </button>
           <button
             type="button"
+            className="p-btn accent"
             onClick={onConfirm}
             disabled={pending}
-            style={{
-              border: 'none',
-              background: 'var(--accent)',
-              color: 'var(--bg)',
-              padding: '0.6rem 1.3rem',
-              borderRadius: 'var(--radius)',
-              fontFamily: 'var(--nd-sans)',
-              fontSize: '0.68rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
           >
             {pending ? 'Подтверждаем…' : 'Подтвердить'}
           </button>

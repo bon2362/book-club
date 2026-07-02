@@ -93,23 +93,10 @@ export default function MatchingNotices({ sessionId, notices }: MatchingNoticesP
           </span>
           <button
             type="button"
+            className="p-btn ghost sm"
             onClick={() => ack(notice.id)}
             disabled={pending.has(notice.id)}
-            style={{
-              flexShrink: 0,
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              color: 'var(--text)',
-              padding: '0.45rem 0.9rem',
-              borderRadius: 'var(--radius)',
-              fontFamily: 'var(--nd-sans)',
-              fontSize: '0.66rem',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              fontWeight: 700,
-              cursor: pending.has(notice.id) ? 'default' : 'pointer',
-              opacity: pending.has(notice.id) ? 0.6 : 1,
-            }}
+            style={{ flexShrink: 0, opacity: pending.has(notice.id) ? 0.6 : 1 }}
           >
             Понятно
           </button>

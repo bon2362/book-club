@@ -81,20 +81,25 @@ describe('MatchingScenarios', () => {
     expect(screen.getByText('Первая книга')).toBeInTheDocument()
   })
 
-  it('shows presentation metrics, cover, author, ranks and left-out participants', () => {
+  it('renders cover, author and ranks without presentation metrics (canon: metrics hidden)', () => {
     const scenario = makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1', 'r2'] }])
     scenario.score = { coveredCount: 2, totalCount: 3, avgRank: 1.5, worstRank: 2 }
     scenario.leftOut = [{ ref: 'r3', displayName: 'Вера' }]
     scenario.circles[0].avgRank = 1.5
     scenario.circles[0].members[0] = { ...scenario.circles[0].members[0], displayName: 'Анна', rank: 1, interest: 'очень хочу' }
     render(<MatchingScenarios {...base} scenarios={[scenario]} />)
-    expect(screen.getByText('средний ранг 1.5')).toBeVisible()
-    expect(screen.getByText('охват 2 из 3')).toBeVisible()
-    expect(screen.getByText(/За бортом остаётся: Вера/)).toBeVisible()
+    // metrics are intentionally hidden from the layout (white-canon restyle)
+    expect(screen.queryByText(/средний ранг/)).toBeNull()
+    expect(screen.queryByText(/охват/)).toBeNull()
+    expect(screen.queryByText(/За бортом/)).toBeNull()
+    expect(screen.queryByText(/участников/)).toBeNull()
+    // content still present
     expect(screen.getByAltText('Обложка: Первая книга')).toBeVisible()
     expect(screen.getByText('Автор один')).toBeVisible()
     expect(screen.getByText('Анна').closest('.nd-chip-text')).toHaveAttribute('title', expect.stringContaining('ранг 1'))
-    expect(screen.getByLabelText('Анна: не подтвердил')).toHaveTextContent('○')
+    // no empty ○ glyph for unconfirmed members — only ✓ for confirmed
+    expect(screen.queryByLabelText('Анна: не подтвердил')).toBeNull()
+    expect(screen.queryByText('○')).toBeNull()
     expect(screen.queryByText(/лучший|оптимальный/i)).toBeNull()
   })
 

@@ -30,15 +30,6 @@ const cardStyle: React.CSSProperties = {
   padding: 'clamp(1.6rem, 5vw, 2.4rem)',
 }
 
-const microStyle: React.CSSProperties = {
-  fontFamily: 'var(--nd-sans)',
-  fontSize: '0.62rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.15em',
-  fontWeight: 600,
-  color: 'var(--text-muted)',
-}
-
 export default function MatchingWelcome({ sessionId, sessionName, initialName }: Props) {
   const router = useRouter()
   const [name, setName] = useState(initialName)
@@ -72,7 +63,7 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
   return (
     <main style={pageStyle}>
       <section style={{ ...cardStyle, position: 'relative' }} aria-labelledby="matching-welcome-title">
-        <div style={{ ...microStyle, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="t-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
           Долгое наступление · читательский клуб
         </div>
@@ -112,7 +103,7 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
         <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           <label
             htmlFor="welcome-name"
-            style={microStyle}
+            className="t-eyebrow"
           >
             Твоё имя
           </label>
@@ -120,22 +111,12 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
             id="welcome-name"
             data-testid="welcome-name-input"
             type="text"
+            className="p-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={joining}
             placeholder="Имя"
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              border: '1px solid var(--border)',
-              background: 'var(--bg)',
-              color: 'var(--text)',
-              fontFamily: 'var(--nd-sans)',
-              fontSize: '1rem',
-              padding: '0.65rem 0.8rem',
-              borderRadius: 'var(--radius)',
-              outline: 'none',
-            }}
+            style={{ boxSizing: 'border-box' }}
           />
           <p style={{ margin: 0, fontSize: '0.72rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
             Сессия: {sessionName}
@@ -153,22 +134,8 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
           data-testid="welcome-join-button"
           onClick={handleJoin}
           disabled={joining}
-          style={{
-            width: '100%',
-            marginTop: '1rem',
-            padding: '0.85rem 1rem',
-            border: 'none',
-            borderRadius: 'var(--radius)',
-            background: 'var(--accent)',
-            color: 'var(--bg-input)',
-            fontFamily: 'var(--nd-sans)',
-            fontSize: '0.95rem',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            cursor: joining ? 'default' : 'pointer',
-            opacity: joining ? 0.7 : 1,
-          }}
+          className="p-btn block"
+          style={{ marginTop: '1rem' }}
         >
           {joining ? 'Входим…' : 'Войти'}
         </button>
