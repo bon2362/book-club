@@ -189,6 +189,10 @@ test.describe('Matching restored board shell', () => {
     }
 
     try {
+      // Shorter desktop height so the capped scenarios workspace (min(82svh,920px),
+      // floored at minHeight 420) stays below the scenario content — the internal
+      // scroll is exercised even after the board was made taller.
+      await page.setViewportSize({ width: 1280, height: 500 })
       await page.goto('/matching')
       await page.waitForLoadState('networkidle')
 
@@ -401,6 +405,7 @@ test.describe('Matching restored board shell', () => {
 
   test('confirm CTA is a flat success button and waiting state renders as a left line, not a filled box', async ({
     page,
+    browser,
     createMatchingSession,
     createTestBook,
     loginAsUser,
@@ -411,6 +416,15 @@ test.describe('Matching restored board shell', () => {
     expect((await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Анна Waiting' } })).ok()).toBe(true)
     expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
     expect((await page.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    // A circle needs ≥2 members (minGroupSize 2) — add a peer who wants the same book.
+    const peerContext = await browser.newContext()
+    const peer = await peerContext.newPage()
+    const peerEmail = `e2e-ui-waiting-peer-${Date.now()}@test.invalid`
+    expect((await peer.request.post('/api/test/session', { data: { email: peerEmail, name: 'Борис Waiting', telegramUsername: 'boris_waiting' } })).ok()).toBe(true)
+    expect((await peer.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Борис Waiting' } })).ok()).toBe(true)
+    expect((await peer.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await peer.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
 
     await page.goto('/matching')
     await page.waitForLoadState('networkidle')
@@ -463,6 +477,8 @@ test.describe('Matching restored board shell', () => {
     expect(waitingStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)')
 
     await expect(circle.getByTestId('circle-cancel-button')).toBeVisible()
+
+    await peerContext.close()
   })
 })
 
