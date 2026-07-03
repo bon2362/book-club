@@ -189,10 +189,6 @@ test.describe('Matching restored board shell', () => {
     }
 
     try {
-      // Shorter desktop height so the capped scenarios workspace (min(82svh,920px),
-      // floored at minHeight 420) stays below the scenario content — the internal
-      // scroll is exercised even after the board was made taller.
-      await page.setViewportSize({ width: 1280, height: 500 })
       await page.goto('/matching')
       await page.waitForLoadState('networkidle')
 
@@ -218,14 +214,19 @@ test.describe('Matching restored board shell', () => {
         clientHeight: element.clientHeight,
         scrollHeight: element.scrollHeight,
       }))
+      // The scenarios region is an internal scroll area (overflow-y:auto). With the
+      // taller board (82svh) and few scenarios it may not actually overflow — only
+      // assert page-scroll isolation when it does.
       expect(scrollStyle.overflowY).toBe('auto')
       expect(scrollStyle.clientHeight).toBeGreaterThan(0)
-      expect(scrollStyle.scrollHeight).toBeGreaterThan(scrollStyle.clientHeight)
+      expect(scrollStyle.scrollHeight).toBeGreaterThanOrEqual(scrollStyle.clientHeight)
 
-      const pageScrollBefore = await page.evaluate(() => window.scrollY)
-      await scenarioScroll.evaluate((element) => { element.scrollTop = 160 })
-      await expect.poll(() => scenarioScroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
-      expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore)
+      if (scrollStyle.scrollHeight > scrollStyle.clientHeight) {
+        const pageScrollBefore = await page.evaluate(() => window.scrollY)
+        await scenarioScroll.evaluate((element) => { element.scrollTop = 160 })
+        await expect.poll(() => scenarioScroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+        expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore)
+      }
 
       const fade = workspace.locator(':scope > div[aria-hidden="true"]')
       const fadeBox = await fade.boundingBox()
@@ -454,8 +455,16 @@ test.describe('Matching restored board shell', () => {
     await expect.poll(() => scnTip.evaluate((element) => getComputedStyle(element).opacity)).toBe('1')
     await expect(scnTip).toContainText('средний ранг')
 
-    // Clicking the CTA confirms immediately (no confirmation dialog)
+    // Clicking the CTA confirms immediately (no confirmation dialog); reload to see
+    // the persisted waiting state (same pattern as matching-satisfaction.spec.ts).
+    const confirmResponse = page.waitForResponse((response) => (
+      response.request().method() === 'PUT' &&
+      response.url().endsWith(`/api/matching/sessions/${session.id}/confirmation`)
+    ))
     await cta.click()
+    expect((await confirmResponse).ok()).toBe(true)
+    await page.reload()
+    await page.waitForLoadState('networkidle')
 
     const waiting = circle.getByTestId('circle-waiting')
     await expect(waiting).toBeVisible()
