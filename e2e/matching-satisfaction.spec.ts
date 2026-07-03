@@ -92,7 +92,8 @@ test('confirm, cancel и атомарный switch видны обоим уча�
   await page.reload()
   await expect(page.getByTestId('circle-waiting')).toHaveCount(0)
   await peer.reload()
-  await expect(peerFirstCircle.getByLabel('Анна E2E: не подтвердил')).toBeVisible()
+  // After cancel the confirmed ✓ (and its "подтвердил" label) disappears for the peer.
+  await expect(peerFirstCircle.getByLabel('Анна E2E: подтвердил')).toHaveCount(0)
 
   await chooseCircle(books[0].title)
   await page.reload()
