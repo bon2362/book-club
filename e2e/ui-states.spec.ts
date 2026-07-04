@@ -1085,6 +1085,62 @@ test.describe('Satisfaction ranking gate layout', () => {
     expect(box).not.toBeNull()
     expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1)
   })
+
+  test('на мобильном (375×812) кнопка «Войти в сессию» видна и находится в пределах вьюпорта', async ({
+    page,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    const session = await createMatchingSession({
+      minGroupSize: 3,
+      maxGroupSize: 3,
+    })
+    const bookA = await createTestBook({ title: `UI Gate Mobile Book A ${Date.now()}`, author: 'Gate Author' })
+    const bookB = await createTestBook({ title: `UI Gate Mobile Book B ${Date.now()}`, author: 'Gate Author' })
+
+    // Two participants with complete rankings so the gate is reachable
+    await loginAsUser({ name: 'UI Gate Mobile Peer One' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [bookA.id, bookB.id])
+    await loginAsUser({ name: 'UI Gate Mobile Peer Two' })
+    await joinMatchingSessionAndAddBooks(page, session.id, [bookA.id, bookB.id])
+
+    // Third participant joins but has NOT submitted a ranking — should see the gate
+    await loginAsUser({ name: 'UI Gate Mobile Viewer' })
+    const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`, {
+      data: { name: 'UI Gate Mobile Viewer' },
+    })
+    expect(joinRes.ok()).toBe(true)
+    const addRes = await page.request.post('/api/matching/books', { data: { bookId: bookA.id } })
+    expect(addRes.ok()).toBe(true)
+
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
+
+    const gate = page.getByTestId('ranking-gate')
+    await expect(gate).toBeVisible()
+
+    const enter = page.getByTestId('ranking-gate-enter')
+    const viewport = page.viewportSize()!
+
+    // На мобиле гейт скроллится как обычная страница, а CTA — sticky-бар. Кнопка
+    // обязана быть в пределах вьюпорта БЕЗ доскролла до самого низа (иначе она
+    // тонет под панелями — это и был баг: sticky ломался overflow:hidden предком).
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await expect(enter).toBeVisible()
+    let box = await enter.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.y).toBeGreaterThanOrEqual(0)
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1)
+
+    // И остаётся приклеенной после прокрутки страницы вниз.
+    await page.mouse.wheel(0, 400)
+    box = await enter.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1)
+  })
 })
 
 test.describe('BookCardMobile: responsive layout', () => {
