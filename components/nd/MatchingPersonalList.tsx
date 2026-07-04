@@ -550,10 +550,19 @@ export default function MatchingPersonalList({
       setBooks(nextBooks)
       setModalBook((prev) => (prev?.bookId === bookId ? { ...prev, isInList: true, rank: 1 } : prev))
       signalBusy()
-      await addToList(bookId, mutationUserId)
-      notifyOrRefresh(nextBooks)
+      onBusyChange?.(true)
+      try {
+        await addToList(bookId, mutationUserId)
+        const activeIds = nextBooks
+          .filter((b) => b.isInList && b.personalStatus === null)
+          .map((b) => b.bookId)
+        await patchPriorities(activeIds, mutationUserId, priorityMutationSource)
+        notifyOrRefresh(nextBooks)
+      } finally {
+        onBusyChange?.(false)
+      }
     },
-    [books, mutationUserId, notifyOrRefresh, signalBusy, pending],
+    [books, mutationUserId, priorityMutationSource, notifyOrRefresh, signalBusy, onBusyChange, pending],
   )
 
   const handleRemoveFromList = useCallback(
