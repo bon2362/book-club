@@ -389,6 +389,45 @@ test('Ranking Gate: одна книга без явного drag-реордер�
   await expect(persistedRows.nth(0)).toContainText('#1')
 })
 
+test('добавление книги из каталога на доске не выбрасывает на Ranking Gate и сохраняет ранг #1 после reload', async ({
+  page,
+  createMatchingSession,
+  createTestBook,
+}) => {
+  const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+  const rankedBook = await createTestBook({ title: `E2E Board Ranked ${test.info().testId}`, author: 'Board Author' })
+  const catalogBook = await createTestBook({ title: `E2E Board Catalog ${test.info().testId}`, author: 'Board Author' })
+  await joinWithRankedBook(page, session.id, rankedBook.id, 'Читатель Board')
+
+  await page.goto('/matching')
+  await page.waitForLoadState('networkidle')
+  // Уже на доске: активная проранжированная книга, гейта нет.
+  await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
+  await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
+
+  const priorityResponse = page.waitForResponse((response) => (
+    response.request().method() === 'PATCH' && response.url().includes('/api/matching/priorities')
+  ))
+  const catalogRow = page.getByTestId('matching-catalog-available').getByRole('listitem').filter({ hasText: catalogBook.title })
+  await catalogRow.hover()
+  await catalogRow.getByRole('button', { name: 'Хочу читать' }).click()
+  expect((await priorityResponse).ok()).toBe(true)
+
+  // Остаёмся на доске — гейт не появляется.
+  await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
+  await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
+  await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
+  const persistedRows = page.getByTestId('pl-books-ul').locator(':scope > li')
+  await expect(persistedRows).toHaveCount(2)
+  await expect(persistedRows.nth(0)).toContainText(catalogBook.title)
+  await expect(persistedRows.nth(0)).toContainText('#1')
+  await expect(persistedRows.nth(1)).toContainText(rankedBook.title)
+  await expect(persistedRows.nth(1)).toContainText('#2')
+})
+
 test('выход из сессии делает hard navigation и остаётся Welcome после reload', async ({
   page,
   createMatchingSession,

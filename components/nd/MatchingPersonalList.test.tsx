@@ -1,8 +1,18 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import MatchingPersonalList from './MatchingPersonalList'
 import type { CatalogBook } from '@/lib/matching/personal-list'
 
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }) }))
+const refresh = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), refresh: () => refresh() }) }))
+
+const addToList = jest.fn().mockResolvedValue(undefined)
+const patchPriorities = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/lib/matching/personal-list-mutations', () => ({
+  addToList: (...args: unknown[]) => addToList(...args),
+  patchPriorities: (...args: unknown[]) => patchPriorities(...args),
+  patchStatus: jest.fn().mockResolvedValue(undefined),
+  removeFromList: jest.fn().mockResolvedValue(undefined),
+}))
 
 const myBook = {
   bookId: 'b1',
@@ -102,6 +112,28 @@ test('unranked active books are shown first with a calculation warning', () => {
   expect(rows[1]).toHaveTextContent('Книга A')
   expect(rows[1]).toHaveTextContent('#1')
   expect(getByText('Книги без приоритета не участвуют в расчете')).toBeInTheDocument()
+})
+
+test('adding a book from the catalog on the board saves it to the server as rank #1 (no ranking-gate bounce)', async () => {
+  refresh.mockClear()
+  addToList.mockClear()
+  patchPriorities.mockClear()
+
+  render(
+    <MatchingPersonalList
+      books={[myBook, catalogBook]}
+      bookParticipants={[]}
+      viewingUserId="u1"
+    />,
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: 'Хочу читать' }))
+
+  await waitFor(() => expect(addToList).toHaveBeenCalledWith('b2', undefined))
+  await waitFor(() => expect(patchPriorities).toHaveBeenCalledWith(['b2', 'b1'], undefined, undefined))
+  // addToList must resolve before patchPriorities fires (FK signup_books → book_priorities).
+  expect(addToList.mock.invocationCallOrder[0]).toBeLessThan(patchPriorities.mock.invocationCallOrder[0])
+  await waitFor(() => expect(refresh).toHaveBeenCalled())
 })
 
 test('excludes the viewer from popup chips by opaque ref', () => {
