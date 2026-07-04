@@ -151,3 +151,24 @@ describe('SummaryMarkdown', () => {
     })
   })
 })
+
+describe('SummaryMarkdown — id для оглавления', () => {
+  it('проставляет id на h2 из пропа headings в порядке документа', () => {
+    render(
+      <SummaryMarkdown
+        markdown={'## Первый\n\nтекст\n\n## Второй'}
+        headings={[
+          { id: 'первый', text: 'Первый' },
+          { id: 'второй', text: 'Второй' },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('heading', { level: 2, name: 'Первый' })).toHaveAttribute('id', 'первый')
+    expect(screen.getByRole('heading', { level: 2, name: 'Второй' })).toHaveAttribute('id', 'второй')
+  })
+
+  it('не падает и не проставляет id без пропа headings', () => {
+    render(<SummaryMarkdown markdown={'## Без id'} />)
+    expect(screen.getByRole('heading', { level: 2, name: 'Без id' })).not.toHaveAttribute('id')
+  })
+})
