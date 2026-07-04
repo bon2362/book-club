@@ -4,6 +4,8 @@ import { fetchBookById, fetchBookBySlug } from '@/lib/books'
 import { getPublishedSummariesForBook } from '@/lib/book-summaries'
 import SummaryAuthorSwitcher from '@/components/nd/SummaryAuthorSwitcher'
 import SummaryArticle from '@/components/nd/SummaryArticle'
+import SummaryToc from '@/components/nd/SummaryToc'
+import { extractH2Headings } from '@/lib/summary-toc'
 import { buildAuthorSlugs, estimateReadingMinutes, selectSummaryIndex } from '@/lib/summary-view'
 import { getSummaryHelpfulCount } from '@/lib/summary-helpful'
 import { auth } from '@/lib/auth'
@@ -45,6 +47,7 @@ export default async function BookSummariesPage({
   const slugs = buildAuthorSlugs(summaries)
   const activeIndex = selectSummaryIndex(slugs, searchParams.author)
   const active = summaries[activeIndex]
+  const toc = extractH2Headings(active.bodyMarkdown)
   const [helpfulCount, session] = await Promise.all([
     getSummaryHelpfulCount(active.id),
     auth(),
@@ -55,30 +58,34 @@ export default async function BookSummariesPage({
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '2.5rem 1.5rem 4rem' }}>
-        <a href="/" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.78rem', color: 'var(--text-muted)', textDecoration: 'none' }}>← Каталог</a>
-        <header style={{ margin: '1.2rem 0 2rem', borderBottom: '2px solid var(--border-strong)', paddingBottom: '1.2rem' }}>
-          <div style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: '0.5rem' }}>Саммари книги</div>
-          <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '2.25rem', lineHeight: 1.12, margin: 0 }}>{book.name}</h1>
-          <p style={{ fontFamily: 'var(--nd-serif)', fontStyle: 'italic', color: 'var(--text-muted)', margin: '0.6rem 0 0' }}>
-            {book.author}{book.date ? ` · ${book.date}` : ''}{book.pages ? ` · ${book.pages} стр.` : ''}
-          </p>
-        </header>
+      <div className="summary-page">
+        {toc.length >= 2 && <SummaryToc headings={toc} />}
+        <div className="summary-page__col">
+          <a href="/" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.78rem', color: 'var(--text-muted)', textDecoration: 'none' }}>← Каталог</a>
+          <header style={{ margin: '1.2rem 0 2rem', borderBottom: '2px solid var(--border-strong)', paddingBottom: '1.2rem' }}>
+            <div style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: '0.5rem' }}>Саммари книги</div>
+            <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '2.25rem', lineHeight: 1.12, margin: 0 }}>{book.name}</h1>
+            <p style={{ fontFamily: 'var(--nd-serif)', fontStyle: 'italic', color: 'var(--text-muted)', margin: '0.6rem 0 0' }}>
+              {book.author}{book.date ? ` · ${book.date}` : ''}{book.pages ? ` · ${book.pages} стр.` : ''}
+            </p>
+          </header>
 
-        <SummaryAuthorSwitcher authors={authors} activeSlug={slugs[activeIndex]} basePath={basePath} writeHref={writeHref} />
+          <SummaryAuthorSwitcher authors={authors} activeSlug={slugs[activeIndex]} basePath={basePath} writeHref={writeHref} />
 
-        <SummaryArticle
-          key={active.id}
-          displayName={active.displayName}
-          title={active.title}
-          tldr={active.tldr}
-          bodyMarkdown={active.bodyMarkdown}
-          publishedAt={active.publishedAt}
-          readingMinutes={estimateReadingMinutes(active.bodyMarkdown)}
-          summaryId={active.id}
-          initialHelpfulCount={helpfulCount}
-          hasSession={Boolean(session?.user?.id)}
-        />
+          <SummaryArticle
+            key={active.id}
+            displayName={active.displayName}
+            title={active.title}
+            tldr={active.tldr}
+            bodyMarkdown={active.bodyMarkdown}
+            publishedAt={active.publishedAt}
+            readingMinutes={estimateReadingMinutes(active.bodyMarkdown)}
+            summaryId={active.id}
+            initialHelpfulCount={helpfulCount}
+            hasSession={Boolean(session?.user?.id)}
+            headings={toc}
+          />
+        </div>
       </div>
     </main>
   )
