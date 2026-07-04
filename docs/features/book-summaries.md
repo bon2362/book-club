@@ -135,6 +135,38 @@ stateDiagram-v2
 
 **Ключевые новые файлы.** `lib/wikipedia/{types,url,markdown,transform,fetch}.ts`, `app/api/wikipedia/article/route.ts`, `components/nd/{WikipediaEmbed,WikipediaArticle,WikipediaInsertDialog}.tsx`.
 
+## Оглавление статьи (TOC)
+
+На странице опубликованного саммари автоматически генерируется оглавление по разделам статьи, если заголовков второго уровня (`##`) минимум два.
+
+### Как это работает
+
+**Извлечение заголовков.** `lib/summary-toc.ts` экспортирует `extractH2Headings(markdown): TocHeading[]` — функция парсит Markdown, выделяет все `##` в порядке документа, удаляет fenced-code блоки (чтобы не путать код с реальными заголовками) и очищает инлайн-форматирование (ссылки, `**bold**`, `` `код` `` и т.п.). На выходе массив `{ id: string, text: string }`, где `id` — стабильный slug (кириллица сохраняется, дубли получают суффиксы `-2`, `-3` и т.д.).
+
+**Консистентность DOM ↔ TOC.** Якоря (идентификаторы заголовков) должны совпадать в обоих местах. Это гарантируется так: `SummaryMarkdown` при рендере Markdown вызывает `extractH2Headings` один раз (в `SummaryArticle` в `app/books/[bookSlug]/summaries/page.tsx`), получает массив, и затем при встрече каждого `##` в Markdown проставляет `id` ровно из этого массива по счётчику (не пересчитывая slug независимо). Таким образом DOM-id и id в TOC совпадают поэлементно.
+
+**Инъекция id на заголовки.** `SummaryMarkdown` — компонент, который рендерит Markdown через `react-markdown` с кастомным `h2` компонентом. Для каждого `<h2>` он присваивает из TOC-массива `id={headings[counter].id}` и добавляет `scroll-margin-top: calc(var(--header-height, 0px) + 1rem)`, чтобы при скролле к якорю заголовок не застревал под липким хедером.
+
+**Клиентский scroll-spy.** `SummaryToc` — client component в `components/nd/SummaryToc.tsx` получает `headings?: TocHeading[]` и реализует:
+- **IntersectionObserver** на все `<h2>` — отслеживает, какой заголовок в данный момент виден в viewport, с `rootMargin: '-15% 0px -70% 0px'` (привилегия верхней части экрана для активного маркера).
+- **Дксктоп (≥1100px)**: sticky-рукав слева (`.summary-toc__rail`) с заголовком "Содержание" и списком ссылок. Активный пункт подсвечивается слева акцентной линией (`border-left-color: var(--accent)`).
+- **Мобиль (<1100px)**: sticky-бар вверху (`.summary-toc__bar`) с кнопкой, которая показывает текущий раздел и переключает нижний лист; нижний лист (`.summary-toc__sheet`) — фиксированный элемент в низу экрана с overlay-фоном.
+- Ссылки на якоря работают через `scroll-behavior: smooth`.
+
+**Порог видимости.** TOC появляется только в компоненте `SummaryArticle`, если `headings.length >= 2`. Если заголовков меньше двух, TOC не рендерится.
+
+### Стили и дизайн
+
+Все классы `.summary-toc*` и `.summary-page` находятся в `app/globals.css` (section **Оглавление статьи**). Они используют только CSS-переменные (токены) и соответствуют дизайн-системе: острые углы, нет теней, акцент через левую линию, фоны из паллитры (`--bg`, `--bg-input`), шрифты из переменных (`--nd-sans`).
+
+### Ключевые файлы
+
+- `lib/summary-toc.ts` — `extractH2Headings()` (парсинг и дедупликация id), `slugify()` (генерация slug с сохранением кириллицы), интерфейс `TocHeading`.
+- `components/nd/SummaryMarkdown.tsx` — инъекция id в `<h2>` из TOC-массива, добавление `scroll-margin-top`.
+- `components/nd/SummaryToc.tsx` — client component с IntersectionObserver scroll-spy, sticky-рукав (десктоп) и bottom sheet (мобиль).
+- `app/books/[bookSlug]/summaries/page.tsx` — компонент `SummaryArticle`, вызывает `extractH2Headings`, прокидывает `headings` в `SummaryToc` при `headings.length >= 2`.
+- `app/globals.css` — стили `.summary-toc*`, `.summary-page`.
+
 ## Ключевые файлы
 - `lib/wikipedia/` — URL-allowlist, remark-распознавание, transform MediaWiki HTML → typed AST, fetch-пайплайн.
 - `app/api/wikipedia/article/route.ts` — публичный кэширующий API статьи.
