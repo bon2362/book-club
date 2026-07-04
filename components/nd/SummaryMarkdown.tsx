@@ -2,19 +2,30 @@ import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import { remarkWikipediaEmbeds } from '@/lib/wikipedia/markdown'
-import type { TocHeading } from '@/lib/summary-toc'
+import { createSlugger } from '@/lib/summary-toc'
 import WikipediaEmbed from './WikipediaEmbed'
 
 interface Props {
   markdown: string
-  headings?: TocHeading[]
 }
 
-export default function SummaryMarkdown({ markdown, headings }: Props) {
-  // Счётчик эмита h2, общий на весь рендер (включая вложенные <details>-блоки).
-  // id берём из headings по порядку — совпадение с extractH2Headings гарантировано.
-  const h2Counter = { current: 0 }
-  const components = buildComponents(headings, h2Counter)
+/** Рекурсивно склеивает текстовое содержимое узла (в т.ч. вложенных элементов вроде <strong>). */
+function flattenText(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(flattenText).join('')
+  if (React.isValidElement(node)) {
+    const children = (node.props as { children?: React.ReactNode }).children
+    return flattenText(children)
+  }
+  return ''
+}
+
+export default function SummaryMarkdown({ markdown }: Props) {
+  // Один слаггер на весь рендер (включая вложенные <details>-блоки) —
+  // id самодостаточен: выводится из текста самого заголовка, а не из
+  // индекса эмита, поэтому лишние/вложенные <h2> не сбивают нумерацию.
+  const slugger = createSlugger()
+  const components = buildComponents(slugger)
   return (
     <div
       style={{
@@ -77,7 +88,7 @@ function MarkdownBlock({ markdown, components }: { markdown: string; components:
 
 type ComponentProps = { children: React.ReactNode; [key: string]: unknown }
 
-function buildComponents(headings: TocHeading[] | undefined, h2Counter: { current: number }): Record<string, React.ComponentType<ComponentProps>> {
+function buildComponents(slugger: (text: string) => string): Record<string, React.ComponentType<ComponentProps>> {
   const createAsideComponent = (props: ComponentProps) => {
     const attrs = props as Record<string, unknown>
     const source = attrs['data-wikipedia-source']
@@ -98,8 +109,7 @@ function buildComponents(headings: TocHeading[] | undefined, h2Counter: { curren
     React.createElement('h1', { style: { fontFamily: 'var(--nd-serif)', fontSize: '1.8rem', lineHeight: 1.15, margin: '1.5rem 0 0.75rem' } }, children)
 
   const createH2Component = ({ children }: ComponentProps) => {
-    const id = headings?.[h2Counter.current]?.id
-    h2Counter.current += 1
+    const id = slugger(flattenText(children))
     return React.createElement('h2', {
       id,
       style: {

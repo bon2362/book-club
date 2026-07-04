@@ -153,22 +153,21 @@ describe('SummaryMarkdown', () => {
 })
 
 describe('SummaryMarkdown — id для оглавления', () => {
-  it('проставляет id на h2 из пропа headings в порядке документа', () => {
-    render(
-      <SummaryMarkdown
-        markdown={'## Первый\n\nтекст\n\n## Второй'}
-        headings={[
-          { id: 'первый', text: 'Первый' },
-          { id: 'второй', text: 'Второй' },
-        ]}
-      />,
-    )
+  it('проставляет id на h2, выводя его из текста самого заголовка', () => {
+    render(<SummaryMarkdown markdown={'## Первый\n\nтекст\n\n## Второй'} />)
     expect(screen.getByRole('heading', { level: 2, name: 'Первый' })).toHaveAttribute('id', 'первый')
     expect(screen.getByRole('heading', { level: 2, name: 'Второй' })).toHaveAttribute('id', 'второй')
   })
 
-  it('не падает и не проставляет id без пропа headings', () => {
-    render(<SummaryMarkdown markdown={'## Без id'} />)
-    expect(screen.getByRole('heading', { level: 2, name: 'Без id' })).not.toHaveAttribute('id')
+  it('дедуп-суффикс для повторяющихся заголовков совпадает с extractH2Headings', () => {
+    render(<SummaryMarkdown markdown={'## Итог\n\nтекст\n\n## Итог'} />)
+    const headings = screen.getAllByRole('heading', { level: 2, name: 'Итог' })
+    expect(headings[0]).toHaveAttribute('id', 'итог')
+    expect(headings[1]).toHaveAttribute('id', 'итог-2')
+  })
+
+  it('не падает без заголовков ##', () => {
+    render(<SummaryMarkdown markdown={'обычный текст'} />)
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument()
   })
 })

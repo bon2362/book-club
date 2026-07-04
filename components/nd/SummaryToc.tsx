@@ -9,6 +9,7 @@ export default function SummaryToc({ headings }: { headings: TocHeading[] }) {
   const visibleRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    visibleRef.current.clear()
     const els = headings
       .map(h => document.getElementById(h.id))
       .filter((el): el is HTMLElement => el !== null)

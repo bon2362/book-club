@@ -1,4 +1,3 @@
-import type { TocHeading } from '@/lib/summary-toc'
 import AuthorAvatar from './AuthorAvatar'
 import SummaryMarkdown from './SummaryMarkdown'
 import SummaryHelpfulButton from './SummaryHelpfulButton'
@@ -13,7 +12,6 @@ interface Props {
   summaryId: string
   initialHelpfulCount: number
   hasSession: boolean
-  headings?: TocHeading[]
 }
 
 function formatDate(date: Date | null): string {
@@ -31,7 +29,6 @@ export default function SummaryArticle({
   summaryId,
   initialHelpfulCount,
   hasSession,
-  headings,
 }: Props) {
   const dateLabel = formatDate(publishedAt)
   return (
@@ -51,7 +48,7 @@ export default function SummaryArticle({
         <p style={{ margin: 0, fontFamily: 'var(--nd-serif)', lineHeight: 1.6 }}>{tldr}</p>
       </section>
       <div data-testid="summary-article-body">
-        <SummaryMarkdown markdown={bodyMarkdown} headings={headings} />
+        <SummaryMarkdown markdown={bodyMarkdown} />
       </div>
       <footer
         data-testid="summary-helpful-footer"

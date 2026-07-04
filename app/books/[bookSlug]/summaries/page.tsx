@@ -83,7 +83,6 @@ export default async function BookSummariesPage({
             summaryId={active.id}
             initialHelpfulCount={helpfulCount}
             hasSession={Boolean(session?.user?.id)}
-            headings={toc}
           />
         </div>
       </div>

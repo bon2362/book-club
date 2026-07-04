@@ -1397,10 +1397,23 @@ test.describe('Оглавление саммари (TOC)', () => {
       return box ? box.y : 9999
     }, { timeout: 2000 }).toBeLessThan(400)
 
-    // Рукав остаётся во вьюпорте после скролла (position: sticky, top: ...)
-    const box = await rail.boundingBox()
-    expect(box!.y).toBeGreaterThanOrEqual(0)
-    expect(box!.y).toBeLessThan(page.viewportSize()!.height)
+    // Рукав остаётся во вьюпорте и НЕ уезжает вместе со страницей (sticky):
+    // фиксируем его y после первого скролла, скроллим ещё дальше и проверяем,
+    // что y практически не изменился — иначе это не sticky, а обычный поток
+    // (регрессия, которую ловит FIX 2: align-items: start схлопывал containing block).
+    const boxAfterFirstScroll = await rail.boundingBox()
+    expect(boxAfterFirstScroll!.y).toBeGreaterThanOrEqual(0)
+    expect(boxAfterFirstScroll!.y).toBeLessThan(page.viewportSize()!.height)
+
+    await page.mouse.wheel(0, 600)
+    await expect.poll(async () => {
+      const box = await rail.boundingBox()
+      return box ? Math.abs(box.y - boxAfterFirstScroll!.y) : 9999
+    }, { timeout: 2000 }).toBeLessThanOrEqual(3)
+
+    const boxAfterSecondScroll = await rail.boundingBox()
+    expect(boxAfterSecondScroll!.y).toBeGreaterThanOrEqual(0)
+    expect(boxAfterSecondScroll!.y).toBeLessThan(page.viewportSize()!.height)
 
     // aria-current="true" проставляется через IntersectionObserver
     // (rootMargin: '-15% 0px -70% 0px' в SummaryToc.tsx) — после scrollIntoView

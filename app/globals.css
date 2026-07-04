@@ -1257,6 +1257,8 @@ body {
     display: grid;
     grid-template-columns: 240px minmax(0, 760px);
     gap: 3rem;
-    align-items: start;
+    /* Без align-items: start — sticky-рукаву (.summary-toc__rail) нужен
+       высокий containing block (растянутый на всю строку grid-item), иначе
+       он схлопывается по контенту и sticky не может «путешествовать». */
   }
 }

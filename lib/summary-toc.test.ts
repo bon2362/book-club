@@ -1,4 +1,4 @@
-import { slugify, extractH2Headings } from './summary-toc'
+import { slugify, extractH2Headings, createSlugger } from './summary-toc'
 
 describe('slugify', () => {
   it('lowercases, trims, replaces non-word runs with single dash', () => {
@@ -38,5 +38,32 @@ describe('extractH2Headings', () => {
 
   it('returns [] when there are no level-2 headings', () => {
     expect(extractH2Headings('# Только H1\n\nтекст')).toEqual([])
+  })
+
+  it('excludes ## headings nested inside a blockquote', () => {
+    const md = '> ## В цитате\n\n## Настоящий\n'
+    expect(extractH2Headings(md)).toEqual([{ id: 'настоящий', text: 'Настоящий' }])
+  })
+
+  it('excludes ## headings nested inside a <details> block', () => {
+    const md = [
+      '<details>',
+      '<summary>Спойлер</summary>',
+      '',
+      '## Внутри деталей',
+      '</details>',
+      '',
+      '## Настоящий',
+    ].join('\n')
+    expect(extractH2Headings(md)).toEqual([{ id: 'настоящий', text: 'Настоящий' }])
+  })
+})
+
+describe('createSlugger', () => {
+  it('produces stable ids matching extractH2Headings for the same sequence of texts', () => {
+    const slug = createSlugger()
+    expect(slug('Итог')).toBe('итог')
+    expect(slug('Итог')).toBe('итог-2')
+    expect(slug('Итог')).toBe('итог-3')
   })
 })
