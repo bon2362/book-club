@@ -1126,6 +1126,18 @@ body {
   }
   .nd-mx-gate-foot button { width: 100% !important; }
 
+  /* §4 Gate: the sticky footer lives inside a .nd-flow-collapsible whose inner
+     clips overflow (for the grid-rows grow/collapse animation). Any ancestor
+     with overflow != visible breaks `position: sticky`, so without this the CTA
+     never pins to the viewport bottom — it ends up buried below the two panels
+     at the very end of the scrolled page (the reported bug). Un-clip only the
+     footer's own collapsible so the sticky CTA works; other collapsibles (board
+     chrome, gate intro) keep their clipping. */
+  .nd-mx-foot-collapsible,
+  .nd-mx-foot-collapsible > .nd-flow-collapsible-inner {
+    overflow: visible !important;
+  }
+
   /* §5 Book popup: bottom-sheet overlay + dialog. */
   .nd-mx-sheet-overlay { padding: 0 !important; align-items: flex-end !important; }
   .nd-mx-sheet {

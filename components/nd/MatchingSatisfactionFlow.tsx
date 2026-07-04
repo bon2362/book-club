@@ -10,9 +10,9 @@ import { listHasActiveBook } from '@/lib/matching/ranking-readiness'
  *  grows from zero height together with its content (pushing the catalog down),
  *  rather than expanding a fixed 100svh viewport — gentle, coupled motion.
  *  Timing + reduced-motion live in globals.css (.nd-flow-collapsible). */
-function Collapsible({ open, children }: { open: boolean; children: React.ReactNode }) {
+function Collapsible({ open, className, children }: { open: boolean; className?: string; children: React.ReactNode }) {
   return (
-    <div className={'nd-flow-collapsible' + (open ? ' is-open' : '')}>
+    <div className={'nd-flow-collapsible' + (open ? ' is-open' : '') + (className ? ' ' + className : '')}>
       <div className="nd-flow-collapsible-inner">{children}</div>
     </div>
   )
@@ -177,7 +177,7 @@ export default function MatchingSatisfactionFlow({
 
       {/* Gate footer (collapses on enter) */}
       {!board && (
-        <Collapsible open>
+        <Collapsible open className="nd-mx-foot-collapsible">
           <div
           className="nd-flow-fade-collapse p-4 nd-mx-gate-foot"
           style={{
