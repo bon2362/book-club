@@ -1362,3 +1362,80 @@ test.describe('Wikipedia summary widget layout', () => {
     await expect(reader).toBeVisible()
   })
 })
+
+test.describe('Оглавление саммари (TOC)', () => {
+  // ≥2 заголовков ## нужно, т.к. страница саммари рендерит <SummaryToc>
+  // только при toc.length >= 2 (app/books/[bookSlug]/summaries/page.tsx).
+  // Слуги проверены напрямую через lib/summary-toc.ts slugify(): кириллица
+  // лишь лоуеркейзится, а всё вне [a-zа-яё0-9] схлопывается в дефис —
+  // «Ключевые идеи» → «ключевые-идеи», «Выводы» → «выводы» (проверено node -e).
+  const body = [
+    '## Контекст', ...Array(20).fill('Текст раздела контекста.'),
+    '## Ключевые идеи', ...Array(20).fill('Текст раздела идей.'),
+    '## Выводы', ...Array(20).fill('Текст раздела выводов.'),
+  ].join('\n\n')
+
+  test('десктоп: sticky-рукав держится во вьюпорте и подсвечивает секцию', async ({ page, createPublishedSummary }) => {
+    const summary = await createPublishedSummary({ bodyMarkdown: body })
+    // .summary-toc__rail переключается чистым CSS media query
+    // (min-width: 1100px, app/globals.css) — не JS-брейкпоинтом, поэтому
+    // порядок setViewportSize относительно goto не влияет на рендер рукава.
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto(summary.url)
+    await page.waitForLoadState('networkidle')
+
+    const rail = page.locator('.summary-toc__rail')
+    await expect(rail).toBeVisible()
+
+    // Доступное имя ссылки — это h.text напрямую: SummaryToc.tsx рендерит
+    // {h.text} без обёртки/иконок внутри <a>, поэтому точное имя совпадает
+    // с текстом заголовка markdown.
+    await rail.getByRole('link', { name: 'Выводы' }).click()
+    const heading = page.locator('h2#выводы')
+    await expect.poll(async () => {
+      const box = await heading.boundingBox()
+      return box ? box.y : 9999
+    }, { timeout: 2000 }).toBeLessThan(400)
+
+    // Рукав остаётся во вьюпорте после скролла (position: sticky, top: ...)
+    const box = await rail.boundingBox()
+    expect(box!.y).toBeGreaterThanOrEqual(0)
+    expect(box!.y).toBeLessThan(page.viewportSize()!.height)
+
+    // aria-current="true" проставляется через IntersectionObserver
+    // (rootMargin: '-15% 0px -70% 0px' в SummaryToc.tsx) — после scrollIntoView
+    // секция «Выводы» попадает в видимую полосу и становится activeId.
+    await expect.poll(
+      () => rail.getByRole('link', { name: 'Выводы' }).getAttribute('aria-current'),
+      { timeout: 2000 },
+    ).toBe('true')
+  })
+
+  test('мобилка: sticky-бар открывает лист и скроллит', async ({ page, createPublishedSummary }) => {
+    const summary = await createPublishedSummary({ bodyMarkdown: body })
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto(summary.url)
+    await page.waitForLoadState('networkidle')
+
+    // Рукав скрыт, бар виден
+    await expect(page.locator('.summary-toc__rail')).toBeHidden()
+    const bar = page.locator('.summary-toc__bar-button')
+    await expect(bar).toBeVisible()
+
+    // Тап открывает нижний лист. role="dialog" + aria-label="Разделы статьи" —
+    // прямо из SummaryToc.tsx (.summary-toc__sheet); правило testing.md требует
+    // role="dialog" на модалках, иначе getByRole не найдёт элемент.
+    await bar.click()
+    const sheet = page.getByRole('dialog', { name: 'Разделы статьи' })
+    await expect(sheet).toBeVisible()
+
+    // Тап по пункту скроллит и закрывает лист — go(id) в SummaryToc.tsx
+    // синхронно вызывает setOpen(false) в том же обработчике клика.
+    await sheet.getByRole('link', { name: 'Ключевые идеи' }).click()
+    await expect(sheet).toBeHidden()
+    await expect.poll(async () => {
+      const box = await page.locator('h2#ключевые-идеи').boundingBox()
+      return box ? box.y : 9999
+    }, { timeout: 2000 }).toBeLessThan(400)
+  })
+})
