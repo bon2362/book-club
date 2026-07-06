@@ -90,9 +90,10 @@ describe('MatchingScenarios', () => {
     render(<MatchingScenarios {...base} scenarios={[scenario]} />)
     // metrics + left-out live in the tooltip on «Сценарий N», not inline
     const tip = screen.getByRole('tooltip')
-    expect(tip).toHaveTextContent('средний ранг 1.5')
     expect(tip).toHaveTextContent('охват 2 из 3')
     expect(tip).toHaveTextContent('за бортом: Вера')
+    expect(tip).toHaveTextContent('круги: «Первая книга» 2 чел. (ранг 1.5)')
+    expect(tip).toHaveTextContent('средний ранг 1.5 (справочно)')
     // content still present
     expect(screen.getByAltText('Обложка: Первая книга')).toBeVisible()
     expect(screen.getByText('Автор один')).toBeVisible()
@@ -104,6 +105,18 @@ describe('MatchingScenarios', () => {
     expect(screen.queryByLabelText('Анна: не подтвердил')).toBeNull()
     expect(screen.queryByText('○')).toBeNull()
     expect(screen.queryByText(/лучший|оптимальный/i)).toBeNull()
+  })
+
+  it('shows full-coverage wording in the tooltip and no left-out line when nobody is left out', () => {
+    const scenario = makeScenario('s1', [{ key: 'k1', bookId: 'book-1', memberRefs: ['r1', 'r2'] }])
+    scenario.score = { coveredCount: 3, totalCount: 3, avgRank: 2, worstRank: 2 }
+    scenario.circles[0].avgRank = 2
+    render(<MatchingScenarios {...base} scenarios={[scenario]} />)
+    const tip = screen.getByRole('tooltip')
+    expect(tip).toHaveTextContent('полный охват (3 из 3)')
+    expect(tip).not.toHaveTextContent('за бортом')
+    expect(tip).toHaveTextContent('круги: «Первая книга» 2 чел. (ранг 2)')
+    expect(tip).toHaveTextContent('средний ранг 2 (справочно)')
   })
 
   it('opens the shared book popup from title and cover', () => {

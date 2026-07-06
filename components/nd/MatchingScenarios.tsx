@@ -20,16 +20,28 @@ interface Props {
 
 function popupChips(circle: PublicScenarioCircle): BookParticipant[] { return circle.members.map(member => ({ ref: member.ref, bookId: circle.bookId, displayName: member.displayName, rank: member.rank, personalStatus: null })) }
 function formatRank(value: number | null) { return value === null ? '—' : Number.isInteger(value) ? String(value) : value.toFixed(1) }
-function circleWord(n: number) { const m10 = n % 10; const m100 = n % 100; return m10 === 1 && m100 !== 11 ? 'круг' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'круга' : 'кругов' }
-// Why this scenario is ranked where it is — metrics + who is left out (data already
-// computed server-side; surfaced in a tooltip on the «Сценарий N» label).
-function scenarioTip(scenario: PublicScenario): string {
+const TITLE_MAX = 22
+function truncateTitle(title: string): string {
+  return title.length > TITLE_MAX ? `${title.slice(0, TITLE_MAX).trimEnd()}…` : title
+}
+
+// Почему сценарий стоит на своём месте: сортировка идёт круг-к-кругу (сильнейший
+// круг первым), а не по среднему рангу. Тултип ведёт охватом и разбивкой по кругам
+// (размер + средний ранг внутри круга — это и есть ключ сортировки), а общий
+// средний ранг помечен справочным, т.к. это лишь финальный тай-брейкер.
+function scenarioTip(scenario: PublicScenario, booksById: Record<string, ScenarioBookMeta>): string {
+  const { coveredCount, totalCount } = scenario.score
   const parts = [
-    `средний ранг ${formatRank(scenario.score.avgRank)}`,
-    `${scenario.circles.length} ${circleWord(scenario.circles.length)}`,
-    `охват ${scenario.score.coveredCount} из ${scenario.score.totalCount}`,
+    coveredCount >= totalCount
+      ? `полный охват (${coveredCount} из ${totalCount})`
+      : `охват ${coveredCount} из ${totalCount}`,
   ]
   if (scenario.leftOut.length > 0) parts.push(`за бортом: ${scenario.leftOut.map(p => p.displayName).join(', ')}`)
+  const circles = scenario.circles
+    .map(circle => `«${truncateTitle(booksById[circle.bookId]?.title ?? 'Книга')}» ${circle.memberCount} чел. (ранг ${formatRank(circle.avgRank)})`)
+    .join(' · ')
+  parts.push(`круги: ${circles}`)
+  parts.push(`средний ранг ${formatRank(scenario.score.avgRank)} (справочно)`)
   return parts.join(' · ')
 }
 
@@ -66,7 +78,7 @@ export default function MatchingScenarios({ sessionId, stateVersion, scenarios, 
           <h3 style={{ margin: 0 }}>
             <span className="nd-scenario-label" tabIndex={0}>
               <span className="nd-scenario-label-text">Сценарий {index + 1}</span>
-              <span className="nd-scenario-tip" role="tooltip">{scenarioTip(scenario)}</span>
+              <span className="nd-scenario-tip" role="tooltip">{scenarioTip(scenario, booksById)}</span>
             </span>
           </h3>
         </header>
