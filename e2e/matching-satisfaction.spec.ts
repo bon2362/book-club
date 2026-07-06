@@ -252,10 +252,11 @@ test('Welcome раскрывает реальные имена и сохраня
 
   await page.getByTestId('welcome-name-input').fill('Новое имя')
   await page.getByTestId('welcome-join-button').click()
-  await expect(page.getByTestId('matching-realtime-client')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
-  await expect(page.getByTestId('matching-header')).toBeVisible()
-  await expect(page.getByTestId('matching-scenarios-workspace')).toBeVisible()
+  // Session has no ranked books yet, so joining lands on the ranking gate (per the
+  // gate readiness rule, #439). What this test verifies is that we leave the welcome
+  // and the edited name persists — not the board vs gate distinction.
+  await expect(page.getByTestId('ranking-gate')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('welcome-name-input')).toHaveCount(0)
   await expect(page.getByTestId('matching-catalog-panel')).toBeVisible()
 
   await page.reload()
