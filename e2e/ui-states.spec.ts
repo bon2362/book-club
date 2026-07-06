@@ -337,21 +337,26 @@ test.describe('Matching restored board shell', () => {
       const activeDesktopWorkspace = await page.getByTestId('matching-scenarios-workspace').boundingBox()
       expect(activeDesktopWorkspace).not.toBeNull()
 
-      const firstState = await (await page.request.get(`/api/matching/state?session=${session.id}`)).json() as {
-        session: { stateVersion: number }
-        scenarios: Array<{ circles: Array<{ circleKey: string; viewerIsMember: boolean }> }>
+      // Каждый актёр закрепляет свой круг. expectedStateVersion, взятый до PUT,
+      // может устареть, пока предыдущий актёр коммитит подтверждение (гонка версий),
+      // из-за чего в CI (быстрый prod-сервер) PUT иногда возвращает 409. Поэтому
+      // перечитываем свежий stateVersion прямо перед каждой попыткой и ретраим на конфликте.
+      const confirmOwnCircle = async (requestCtx: typeof page.request) => {
+        await expect.poll(async () => {
+          const state = await (await requestCtx.get(`/api/matching/state?session=${session.id}`)).json() as {
+            session: { stateVersion: number }
+            scenarios: Array<{ circles: Array<{ circleKey: string; viewerIsMember: boolean }> }>
+          }
+          const circle = state.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)
+          if (!circle) return false
+          return (await requestCtx.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: circle.circleKey, expectedStateVersion: state.session.stateVersion } })).ok()
+        }, { message: 'actor confirms its own circle (retries on stale stateVersion)' }).toBe(true)
       }
-      const firstCircle = firstState.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
-      expect((await page.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: firstCircle.circleKey, expectedStateVersion: firstState.session.stateVersion } })).ok()).toBe(true)
-      const peerState = await (await peer.request.get(`/api/matching/state?session=${session.id}`)).json() as typeof firstState
-      const peerCircle = peerState.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
-      expect((await peer.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: peerCircle.circleKey, expectedStateVersion: peerState.session.stateVersion } })).ok()).toBe(true)
 
+      await confirmOwnCircle(page.request)
+      await confirmOwnCircle(peer.request)
       for (const actor of registryPages) {
-        const state = await (await actor.request.get(`/api/matching/state?session=${session.id}`)).json() as typeof firstState
-        const circle = state.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)!
-        expect(circle).toBeDefined()
-        expect((await actor.request.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: circle.circleKey, expectedStateVersion: state.session.stateVersion } })).ok()).toBe(true)
+        await confirmOwnCircle(actor.request)
       }
 
       await page.reload()
