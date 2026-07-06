@@ -1079,6 +1079,9 @@ body {
 
   /* §3 Compact header. */
   .nd-mx-hdr { padding: 0.5rem 0.9rem !important; column-gap: 0.6rem !important; }
+  /* Left group must be able to shrink below its content so the title actually
+     ellipsis-clips (a nowrap title otherwise keeps the group at full text width). */
+  .nd-mx-hdr-l { flex: 1 1 auto !important; min-width: 0 !important; }
   .nd-mx-hdr-title { font-size: 1rem !important; flex: 1 1 auto !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
   /* Hide the participant avatar stack on mobile — only the count remains (tap opens
      the popover). Frees ~100px so the compact header fits a 390px viewport. */
@@ -1119,15 +1122,23 @@ body {
     max-height: 60vh !important;
   }
 
-  /* §4 Gate: sticky footer with safe-area padding. */
+  /* §4 Gate: pin the «Войти» CTA to the viewport bottom. position:sticky doesn't
+     work here — the footer sits in its own collapsible whose grid cell is exactly
+     footer-height, so sticky has no range to pin. position:fixed pins to the
+     viewport reliably (no transform ancestors in the gate chain). Content gets a
+     matching bottom pad so the last book isn't hidden behind it. */
   .nd-mx-gate-foot {
-    position: sticky !important;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
     bottom: 0 !important;
+    z-index: 20 !important;
     background: var(--bg) !important;
     border-top: 1px solid var(--hair) !important;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
   }
   .nd-mx-gate-foot button { width: 100% !important; }
+  .nd-mx-gate-root { padding-bottom: 5.5rem !important; }
 
   /* §4 Gate: the sticky footer lives inside a .nd-flow-collapsible whose inner
      clips overflow (for the grid-rows grow/collapse animation). Any ancestor
