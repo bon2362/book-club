@@ -394,10 +394,12 @@ test('добавление книги из каталога на доске не
   page,
   createMatchingSession,
   createTestBook,
+  loginAsUser,
 }) => {
   const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
   const rankedBook = await createTestBook({ title: `E2E Board Ranked ${test.info().testId}`, author: 'Board Author' })
   const catalogBook = await createTestBook({ title: `E2E Board Catalog ${test.info().testId}`, author: 'Board Author' })
+  await loginAsUser({ name: 'Читатель Board' })
   await joinWithRankedBook(page, session.id, rankedBook.id, 'Читатель Board')
 
   await page.goto('/matching')
