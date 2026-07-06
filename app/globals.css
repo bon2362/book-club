@@ -1079,7 +1079,7 @@ body {
 
   /* §3 Compact header. */
   .nd-mx-hdr { padding: 0.5rem 0.9rem !important; column-gap: 0.6rem !important; }
-  .nd-mx-hdr-title { font-size: 1rem !important; flex: 1 1 auto !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+  .nd-mx-hdr-title { font-size: 1rem !important; flex: 1 1 auto !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
   .nd-mx-hdr-groups,
   .nd-mx-hdr-you,
   .nd-mx-hdr-deadline,
