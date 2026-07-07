@@ -460,6 +460,14 @@ test.describe('Matching restored board shell', () => {
 
       const closeButton = dialog.getByRole('button', { name: 'Закрыть' })
 
+      // Крестик виден СРАЗУ на открытии, без единого скролла: шит меряется в svh,
+      // поэтому не открывается выше вьюпорта (иначе верх с крестиком уезжал за кадр
+      // и появлялся только после ручной прокрутки — репорт пользователя).
+      const openBox = await closeButton.boundingBox()
+      expect(openBox, 'close button has geometry on open').not.toBeNull()
+      expect(openBox!.y, 'close button top edge on-screen on open').toBeGreaterThanOrEqual(0)
+      expect(openBox!.y + openBox!.height, 'close button bottom edge on-screen on open').toBeLessThanOrEqual(viewport.height + 1)
+
       // Скроллится только внутренний .nd-mx-sheet-scroll (сам диалог — overflow:hidden,
       // крестик прибит к нему). Прокручиваем тело вниз до упора: на длинном описании
       // это уводило крестик, пока он жил внутри прокрутки.
