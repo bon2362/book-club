@@ -124,7 +124,7 @@ describe('assemblePublicSessionState', () => {
     expect(JSON.stringify(result)).not.toContain('uid-1')
   })
 
-  it('does not resolve legacy transfer member IDs through current participants', () => {
+  it('filters out confirmation_transferred notices (not shown to participants)', () => {
     const notices = [{
       id: 'n1',
       kind: 'confirmation_transferred',
@@ -140,11 +140,8 @@ describe('assemblePublicSessionState', () => {
       lockedCircles: [],
       notices,
     })
-    expect(result.notices[0].payload.fromMembers).toEqual([])
-    expect(result.notices[0].payload.toMembers).toEqual([])
+    expect(result.notices).toEqual([])
     expect(JSON.stringify(result)).not.toContain('uid-')
-    expect(JSON.stringify(result.notices[0])).not.toContain('Анна')
-    expect(JSON.stringify(result.notices[0])).not.toContain('Борис')
   })
 
   it('does not throw or resolve departed members in a legacy invalidation notice', () => {
@@ -176,32 +173,6 @@ describe('assemblePublicSessionState', () => {
     })
     expect(result.notices[0].payload.members).toEqual([])
     expect(JSON.stringify(result.notices[0])).not.toContain('Анна')
-  })
-
-  it('uses durable name snapshots when a transferred member has left the session', () => {
-    const notices = [{
-      id: 'n1',
-      kind: 'confirmation_transferred',
-      payload: {
-        fromMemberDisplayNames: ['Анна', 'Иван', 'Иван (2)'],
-        toMemberDisplayNames: ['Анна', 'Борис'],
-      },
-      createdAt: new Date('2026-06-29T10:00:00Z'),
-    }]
-    const result = assemblePublicSessionState({
-      session,
-      viewerUserId: 'uid-1',
-      participants: [participants[0]],
-      scenarioOverview: { ...emptyScenarioOverview, totalCount: 1 },
-      confirmations: emptyConfirmations,
-      lockedCircles: [],
-      notices,
-    })
-
-    expect(result.notices[0].payload).toEqual({
-      fromMembers: ['Анна', 'Иван', 'Иван (2)'],
-      toMembers: ['Анна', 'Борис'],
-    })
   })
 
   it('throws if the viewerUserId is not in participants', () => {

@@ -91,11 +91,6 @@ function snapshotNames(value: unknown): string[] {
 
 function publicNoticePayload(notice: PublicNoticeInput): Record<string, unknown> {
   switch (notice.kind) {
-    case 'confirmation_transferred':
-      return {
-        fromMembers: snapshotNames(notice.payload.fromMemberDisplayNames),
-        toMembers: snapshotNames(notice.payload.toMemberDisplayNames),
-      }
     case 'confirmation_invalidated':
       return {
         members: snapshotNames(notice.payload.memberDisplayNames),
@@ -225,12 +220,17 @@ export function assemblePublicSessionState(input: {
         displayName: member.displayNameSnapshot,
       })),
     })),
-    notices: input.notices.map((notice) => ({
-      id: notice.id,
-      kind: notice.kind,
-      payload: publicNoticePayload(notice),
-      createdAt: notice.createdAt.toISOString(),
-    })),
+    // 'confirmation_transferred' намеренно не показываем участникам: перенос
+    // подтверждения в другой круг — техническая деталь реконсиляции, шумная и
+    // неинформативная. Событие остаётся в matching_events для аналитики.
+    notices: input.notices
+      .filter((notice) => notice.kind !== 'confirmation_transferred')
+      .map((notice) => ({
+        id: notice.id,
+        kind: notice.kind,
+        payload: publicNoticePayload(notice),
+        createdAt: notice.createdAt.toISOString(),
+      })),
   }
 }
 import { buildCircleKey } from './circle-key'

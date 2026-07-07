@@ -61,7 +61,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
   }, [props.deadlineAt])
 
   async function leave() {
-    if (!window.confirm('Покинуть сессию?')) return
+    if (!window.confirm('Покинуть сессию? Ты выйдешь из расчёта, а твоё подтверждение круга будет снято — при повторном входе круг нужно будет подтвердить заново.')) return
     setPending(true); setError(null)
     try {
       const response = await fetch(`/api/matching/sessions/${props.sessionId}/leave`, {

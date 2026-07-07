@@ -814,7 +814,7 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
-          "kind": { "type": "string", "enum": ["confirmation_transferred", "confirmation_invalidated", "circle_locked"] },
+          "kind": { "type": "string", "enum": ["confirmation_invalidated", "circle_locked", "circle_dissolved"] },
           "payload": { "type": "object", "additionalProperties": true },
           "createdAt": { "$ref": "#/components/schemas/DateTime" }
         },
