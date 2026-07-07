@@ -39,15 +39,23 @@ describe('assemblePublicSessionState', () => {
         { userId: 'u1', bookId: 'book-1', circleKey, memberUserIds: ['u1', 'u2', 'u3'] },
       ],
       lockedCircles: [],
-      notices: [{
-        id: 'n1',
-        kind: 'confirmation_transferred',
-        payload: {
-          fromMemberDisplayNames: ['Анна', 'Борис'],
-          toMemberDisplayNames: ['Анна', 'Вера'],
+      notices: [
+        {
+          id: 'n1',
+          kind: 'confirmation_transferred',
+          payload: {
+            fromMemberDisplayNames: ['Анна', 'Борис'],
+            toMemberDisplayNames: ['Анна', 'Вера'],
+          },
+          createdAt: new Date('2026-06-29T12:00:00Z'),
         },
-        createdAt: new Date('2026-06-29T12:00:00Z'),
-      }],
+        {
+          id: 'n2',
+          kind: 'confirmation_invalidated',
+          payload: { memberDisplayNames: ['Анна', 'Вера'] },
+          createdAt: new Date('2026-06-29T12:05:00Z'),
+        },
+      ],
     })
 
     expect(state.viewer).toEqual({ role: 'active', ref: 'p1', lockedCircleKey: null })
@@ -67,10 +75,11 @@ describe('assemblePublicSessionState', () => {
     expect(state.session.deadlineAt).toBe('2026-07-10T18:00:00.000Z')
     expect(state.scenarios[0].score).toEqual({ coveredCount: 3, totalCount: 3, avgRank: 2, worstRank: 3 })
     expect(state.scenarios[0].leftOut).toEqual([])
-    expect(state.notices[0].payload).toEqual({
-      fromMembers: ['Анна', 'Борис'],
-      toMembers: ['Анна', 'Вера'],
-    })
+    // 'confirmation_transferred' отфильтровано — участнику показываем только
+    // информативные уведомления.
+    expect(state.notices).toHaveLength(1)
+    expect(state.notices[0].kind).toBe('confirmation_invalidated')
+    expect(state.notices[0].payload).toEqual({ members: ['Анна', 'Вера'] })
     expect(JSON.stringify(state)).not.toContain('"u1"')
     expect(JSON.stringify(state)).not.toContain('session-internal')
     expect(JSON.stringify(state)).not.toContain('internal-scenario')
