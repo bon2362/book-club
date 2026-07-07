@@ -460,9 +460,12 @@ test.describe('Matching restored board shell', () => {
 
       const closeButton = dialog.getByRole('button', { name: 'Закрыть' })
 
-      // Прокручиваем контент шита вниз — на длинном описании это уводило absolute-крестик.
-      await dialog.evaluate((element) => { element.scrollTop = element.scrollHeight })
-      await expect.poll(() => dialog.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+      // Скроллится только внутренний .nd-mx-sheet-scroll (сам диалог — overflow:hidden,
+      // крестик прибит к нему). Прокручиваем тело вниз до упора: на длинном описании
+      // это уводило крестик, пока он жил внутри прокрутки.
+      const scrollBody = dialog.locator('.nd-mx-sheet-scroll')
+      await scrollBody.evaluate((element) => { element.scrollTop = element.scrollHeight })
+      await expect.poll(() => scrollBody.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
 
       // Крестик обязан остаться полностью в пределах вьюпорта после прокрутки.
       const closeBox = await closeButton.boundingBox()

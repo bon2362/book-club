@@ -145,39 +145,43 @@ export default function MatchingBookDetailModal({
           borderRadius: 'var(--radius-card)',
           boxShadow: '0 24px 70px rgba(33,28,23,0.25)',
           maxHeight: '88vh',
-          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
-        {/* Close button: soft round. Обёрнута в sticky-контейнер нулевой высоты, чтобы
-            крестик оставался в поле зрения при прокрутке длинного описания — иначе
-            absolute-кнопка уезжала вместе с контентом (на мобилке шит занимает 92vh,
-            и закрыть его становилось нечем). */}
-        <div style={{ position: 'sticky', top: 0, height: 0, zIndex: 2 }}>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрыть"
-            className="absolute top-4 right-4 flex items-center justify-center nd-mx-sheet-close"
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: '50%',
-              border: 'none',
-              background: 'var(--chip-bg)',
-              color: 'var(--text-secondary)',
-              fontSize: '1.05rem',
-              cursor: 'pointer',
-              lineHeight: 1,
-            }}
-            onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--hair)' }}
-            onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--chip-bg)' }}
-          >
-            ×
-          </button>
-        </div>
-
         {/* Bottom-sheet grabber affordance: hidden on desktop, shown ≤540px. */}
         <div className="nd-mx-sheet-grabber" aria-hidden="true" />
+
+        {/* Close button: soft round. Прибит к самому диалогу (он не скроллится),
+            а не к прокручиваемому контенту — иначе на iOS крестик уезжал вместе с
+            длинным описанием (position:sticky внутри overflow-контейнера на iOS
+            ненадёжен). Скроллится только внутренний .nd-mx-sheet-scroll ниже. */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Закрыть"
+          className="absolute top-4 right-4 flex items-center justify-center nd-mx-sheet-close"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: '50%',
+            border: 'none',
+            background: 'var(--chip-bg)',
+            color: 'var(--text-secondary)',
+            fontSize: '1.05rem',
+            cursor: 'pointer',
+            lineHeight: 1,
+            zIndex: 2,
+          }}
+          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--hair)' }}
+          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--chip-bg)' }}
+        >
+          ×
+        </button>
+
+        {/* Единственная прокручиваемая область шита. */}
+        <div className="nd-mx-sheet-scroll" style={{ overflowY: 'auto', flex: '1 1 auto', minHeight: 0 }}>
 
         {/* Top: cover + title/author/tags — no separate header with border */}
         <div
@@ -426,6 +430,7 @@ export default function MatchingBookDetailModal({
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>
