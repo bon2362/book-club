@@ -409,6 +409,77 @@ test.describe('Matching restored board shell', () => {
     }
   })
 
+  // Регресс на «попап нельзя закрыть»: на мобилке шит занимает 92vh, крестик был
+  // absolute внутри скролл-контейнера и уезжал вместе с длинным описанием — закрыть
+  // становилось нечем. Крестик теперь в sticky-обёртке и обязан оставаться в кадре
+  // после прокрутки контента вниз, и клик по нему должен реально закрывать шит.
+  test('close button stays in the viewport after scrolling a long mobile sheet', async ({
+    browser,
+    createMatchingSession,
+    createTestBook,
+  }) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    // Длинное описание гарантирует, что контент шита переполняет 92vh и скроллится.
+    const longDescription = Array.from({ length: 40 }, (_, index) =>
+      `Абзац ${index + 1}: длинное описание книги, чтобы шит гарантированно переполнялся и появлялась внутренняя прокрутка.`
+    ).join('\n\n')
+    const book = await createTestBook({
+      title: `UI Sheet Close ${test.info().testId}`,
+      author: 'Sheet Author',
+      description: longDescription,
+    })
+    const viewport = { width: 390, height: 844 }
+    const contexts = await Promise.all([
+      browser.newContext({ hasTouch: true, isMobile: true, viewport }),
+      browser.newContext(),
+    ])
+    const pages = await Promise.all(contexts.map(context => context.newPage()))
+    const emails = [`e2e-sheet-close-a-${Date.now()}@test.invalid`, `e2e-sheet-close-b-${Date.now()}@test.invalid`]
+    try {
+      for (let index = 0; index < pages.length; index += 1) {
+        const actor = pages[index]
+        expect((await actor.request.post('/api/test/session', { data: { email: emails[index], name: `Sheet ${index}`, telegramUsername: `sheet_${index}` } })).ok()).toBe(true)
+        expect((await actor.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: `Sheet ${index}` } })).ok()).toBe(true)
+        expect((await actor.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+        expect((await actor.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+      }
+
+      const page = pages[0]
+      await page.goto('/matching')
+      await page.waitForLoadState('networkidle')
+
+      const coverButton = page.getByTestId('matching-circle').first().getByRole('button', { name: /открыть книгу/i })
+      await coverButton.click()
+      const dialog = page.getByRole('dialog', { name: book.title })
+      await expect(dialog).toBeVisible()
+      // Дать слайд-ап шита осесть у нижнего края.
+      await expect.poll(async () => {
+        const box = await dialog.boundingBox()
+        return box ? Math.round(box.y + box.height) : 99999
+      }).toBeLessThanOrEqual(viewport.height + 1)
+
+      const closeButton = dialog.getByRole('button', { name: 'Закрыть' })
+
+      // Прокручиваем контент шита вниз — на длинном описании это уводило absolute-крестик.
+      await dialog.evaluate((element) => { element.scrollTop = element.scrollHeight })
+      await expect.poll(() => dialog.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+
+      // Крестик обязан остаться полностью в пределах вьюпорта после прокрутки.
+      const closeBox = await closeButton.boundingBox()
+      expect(closeBox).not.toBeNull()
+      expect(closeBox!.y, 'close button top edge is on-screen').toBeGreaterThanOrEqual(0)
+      expect(closeBox!.y + closeBox!.height, 'close button bottom edge is on-screen').toBeLessThanOrEqual(viewport.height + 1)
+      expect(closeBox!.x + closeBox!.width, 'close button right edge is inside viewport').toBeLessThanOrEqual(viewport.width + 1)
+
+      // И он действительно закрывает шит.
+      await closeButton.click()
+      await expect(dialog).toHaveCount(0)
+    } finally {
+      for (let index = 0; index < pages.length; index += 1) await pages[index].request.delete('/api/test/session', { data: { email: emails[index] } }).catch(() => {})
+      await Promise.all(contexts.map(context => context.close()))
+    }
+  })
+
   test('confirm CTA is a flat success button and waiting state renders as a left line, not a filled box', async ({
     page,
     browser,
