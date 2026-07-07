@@ -1157,7 +1157,14 @@ body {
   .nd-mx-sheet {
     max-width: 100% !important;
     width: 100% !important;
+    /* svh, а не vh: на iOS `vh` считается от «большого» вьюпорта (адресная строка
+       спрятана), поэтому при показанной адресной строке шит открывался выше экрана
+       и его верх с крестиком уезжал за кадр (виден только после ручного скролла,
+       когда iOS пересчитывает вьюпорт). `svh` = высота при показанном UI браузера —
+       худший случай, так что шит всегда помещается сразу. `vh` оставлен фолбэком
+       для браузеров без поддержки svh. */
     max-height: 92vh !important;
+    max-height: 92svh !important;
     border-radius: var(--radius-card) var(--radius-card) 0 0 !important;
     padding-bottom: env(safe-area-inset-bottom) !important;
     animation: nd-mx-sheet-in 0.24s ease-out;
