@@ -494,6 +494,76 @@ test.describe('Matching restored board shell', () => {
 
     await peerContext.close()
   })
+
+  test('confirmed checkmark hugs its participant, never floats at the column right edge', async ({
+    page,
+    browser,
+    createMatchingSession,
+    createTestBook,
+    loginAsUser,
+  }) => {
+    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const book = await createTestBook({ title: `UI Tick ${test.info().testId}`, author: 'Tick Author' })
+    await loginAsUser({ name: 'Анна Tick' })
+    expect((await page.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Анна Tick' } })).ok()).toBe(true)
+    expect((await page.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await page.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    // A circle needs ≥2 members — add a peer who wants the same book.
+    const peerContext = await browser.newContext()
+    const peer = await peerContext.newPage()
+    const peerEmail = `e2e-ui-tick-peer-${Date.now()}@test.invalid`
+    expect((await peer.request.post('/api/test/session', { data: { email: peerEmail, name: 'Борис Tick', telegramUsername: 'boris_tick' } })).ok()).toBe(true)
+    expect((await peer.request.post(`/api/matching/sessions/${session.id}/join`, { data: { name: 'Борис Tick' } })).ok()).toBe(true)
+    expect((await peer.request.post('/api/matching/books', { data: { bookId: book.id } })).ok()).toBe(true)
+    expect((await peer.request.patch('/api/matching/priorities', { data: { bookIds: [book.id] } })).ok()).toBe(true)
+
+    await page.goto('/matching')
+    await page.waitForLoadState('networkidle')
+
+    const circle = page.getByTestId('matching-circle').first()
+    const cta = circle.getByTestId('circle-confirm-button')
+    await expect(cta).toBeAttached()
+
+    // Confirm, then reload to render the persisted state where the confirming
+    // member's row carries a ✓ (same reload pattern as the waiting-state test).
+    const confirmResponse = page.waitForResponse((response) => (
+      response.request().method() === 'PUT' &&
+      response.url().endsWith(`/api/matching/sessions/${session.id}/confirmation`)
+    ))
+    await cta.click()
+    expect((await confirmResponse).ok()).toBe(true)
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+
+    // The ✓ must read as belonging to its participant: sit immediately after the
+    // chip, not float at the far right of the column (the old space-between bug).
+    const mark = circle.getByLabel(/: подтвердил$/).first()
+    await expect(mark).toBeVisible()
+    const row = mark.locator('xpath=..')
+    const chip = row.locator('.nd-chip-text')
+
+    const chipBox = await chip.boundingBox()
+    const markBox = await mark.boundingBox()
+    const rowBox = await row.boundingBox()
+    expect(chipBox).not.toBeNull()
+    expect(markBox).not.toBeNull()
+    expect(rowBox).not.toBeNull()
+
+    // Adjacency: gap between chip's right edge and ✓ left edge is the flex gap
+    // (0.4rem ≈ 6.4px). The old space-between put a whole column-width gulf here
+    // (~150px+), so this bound mathematically separates fixed from broken.
+    const gap = markBox!.x - (chipBox!.x + chipBox!.width)
+    expect(gap).toBeGreaterThan(-2)
+    expect(gap, 'checkmark hugs its participant chip').toBeLessThan(16)
+
+    // Corroboration: the ✓ is nowhere near the row's right edge — the free space
+    // the old layout consumed now sits to the ✓'s right instead.
+    const slackToRowEnd = (rowBox!.x + rowBox!.width) - (markBox!.x + markBox!.width)
+    expect(slackToRowEnd, 'checkmark is not shoved to the far right').toBeGreaterThan(30)
+
+    await peerContext.close()
+  })
 })
 
 test.describe('Summary editor layout', () => {
