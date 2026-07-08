@@ -24,6 +24,24 @@ Matching использует санкционированный тёплый **
 
 Подтверждение круга — **мгновенное**: «Хочу в этот круг» сразу пишет выбор (`PUT …/confirmation`), без промежуточного диалога. Одновременно можно быть только в одном выбранном круге — на прочих кругах CTA скрыт, пока есть активное подтверждение; чтобы выбрать другой, сначала «Отменить». Серверный upsert по-прежнему поддерживает прямую смену (защита на уровне API), но UI её не предлагает.
 
+## Обязательные ранги (`rank_source`)
+
+Инвариант: каждая строка `signup_books` с `personal_status IS NULL` всегда имеет соответствующую строку `book_priorities` — записанная и не отложенная книга всегда участвует в матчинге как кандидат, даже если пользователь ни разу не сортировал. До этой инварианты книга без явного ранга не попадала в сценарии; теперь ранг присваивается автоматически в конце списка (`rank = max+1`).
+
+Чистая логика вынесена в `lib/matching/rank-assignment.ts`: `nextRank` (следующий ранг в конец), `compactRanks` (переиндексация 1..N после удаления), `manualOrder` (явный порядок → `rank_source='manual'`), `planBackfill` (для миграции 0052). Колонка `book_priorities.rank_source` (`'auto' | 'manual'`, default `'auto'`) различает:
+- **`auto`** — ранг присвоен системой: новая книга добавлена в конец (`nextRank`), либо книга вернулась в null-статус из «Читаю»/«Прочитал:а» и получила ранг в конец заново;
+- **`manual`** — пользователь явно перетащил/переупорядочил книги (`POST /api/priorities`), либо executor записал manual-порядок при явном reorder в matching.
+
+Choke-points, где выставляется ранг:
+- `lib/signup-books.ts` (`upsertResolvedSignup`) — единая точка входа записи на книги (каталог). При добавлении новых `bookId` без строки в `book_priorities` дописывает `auto`-ранг в конец через `nextRank`; при отписке — `compactRanks` по оставшимся.
+- `app/api/signup-books/[bookId]/status/route.ts` (`PATCH`) — смена personal status. При возврате книги в `null` из `reading`/`read` (ранее — известный баг: книга оставалась без ранга и выпадала из матчинга) дописывает `auto`-ранг в конец, если строки ещё нет.
+- `app/api/priorities/route.ts` (`POST`) — явная ручная пересортировка всего списка, всегда `rank_source='manual'`.
+- `lib/matching/session-transition-db.ts` — доменный executor `runMatchingTransition`: при добавлении книги в matching-доске или возврате статуса в null тем же образом дописывает `auto`-ранг (`nextRank`); явный reorder внутри matching пишет `manual` (upsert `rank_source: 'manual'`). Блокировка строк `book_priorities` идёт в детерминированном порядке (`FOR UPDATE ... ORDER BY book_id`) для защиты от deadlock при параллельных мутациях одного пользователя (см. `e167daa1`).
+
+Разовый бэкфилл — `drizzle/0051_book_priorities_rank_source.sql` (добавляет колонку, default `'auto'`) и `drizzle/0052_backfill_book_ranks.sql` (помечает все существующие ранги `manual`, дописывает `auto`-ранги в конец для строк `signup_books` без `book_priorities`, упорядочивая по `signed_at`; аудит-триггер помечен `source='system'` через `SET LOCAL app.audit_source`). Обе миграции **не самоприменяющиеся** для прод-БД — их обязан прогнать оператор вручную после деплоя, строго в порядке 0051 → 0052 (0052 читает уже добавленную колонку). После однократного прогона миграции больше не нужно повторно запускать: дальше инвариант поддерживается на всех choke-points выше.
+
+Admin-панель (`components/nd/AdminUserDrawer.tsx`) показывает лейбл «авто»/«вручную» рядом с рангом каждой книги пользователя (`rankSource === 'manual' ? 'вручную' : 'авто'`), беря значение из `GET`-ответа приоритетов пользователя.
+
 ## Доменный переход
 
 Все действия, способные изменить сценарии, проходят через `runMatchingTransition` в `lib/matching/session-transition-db.ts`. Сервис блокирует строку сессии, проверяет роль и статус, применяет действие, пересчитывает сценарии, вызывает reconciliation подтверждений, закрепляет готовые круги каскадом, пишет `matching_events`/`matching_notices` и увеличивает `state_version`.
@@ -63,3 +81,4 @@ Presence heartbeat — operational telemetry, а не пользовательс
 - E2E: `e2e/matching-satisfaction.spec.ts`, `e2e/matching-admin.spec.ts`, `e2e/matching-audit.spec.ts`, `e2e/matching-realtime.spec.ts`.
 - Layout/условный UI: matching-сценарии в `e2e/ui-states.spec.ts`.
 - Guard от возврата legacy runtime: `lib/matching/__tests__/no-legacy-runtime.test.ts`.
+- Обязательные ранги: `lib/matching/rank-assignment.ts` — pure-логика полностью покрыта unit-тестами; SQL-мутации executor'а/`runInTx` unit-харнессом БД не покрыты (в репо его нет для DB-слоя), верифицируются E2E `e2e/ui-states.spec.ts` (`book ranks persist across reload on signup and status-return`) + ручной проверкой на e2e-ветке Neon.
