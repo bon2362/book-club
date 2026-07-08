@@ -136,6 +136,10 @@ describe('signup-books', () => {
     expect(insertChain.values).toHaveBeenCalledWith([
       { userId: 'user-1', bookId: 'book-b' }, // только реально новая книга
     ])
+    // авто-ранг для новой книги: существующий максимум (book-a, rank 1) + 1
+    expect(insertChain.values).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', bookId: 'book-b', rank: 2, rankSource: 'auto' })
+    )
     expect(result).toEqual({
       isNew: false,
       addedBooks: ['Книга A', 'Книга B'],
