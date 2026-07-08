@@ -4,9 +4,12 @@
 import {
   MergeValidationError,
   mergePriorityRows,
+  reconcilePrioritiesWithSignups,
   resolveSignupMerge,
   sourceActivityIdsToDrop,
   validateMergeRequest,
+  type PriorityMergeRow,
+  type SignupMergeRow,
 } from './user-merge'
 
 describe('admin user merge rules', () => {
@@ -128,5 +131,47 @@ describe('admin user merge rules', () => {
       { id: 'source-2', dedupeKey: 'signup:book-1' },
       { id: 'source-3', dedupeKey: null },
     ])).toEqual(['source-1'])
+  })
+
+  it('reconciles book_priorities with signup statuses after a mixed merge', () => {
+    const signup = (bookId: string, personalStatus: SignupMergeRow['personalStatus'], signedAt: string): SignupMergeRow => ({
+      userId: 'target',
+      bookId,
+      signedAt: new Date(signedAt),
+      personalStatus,
+      personalStatusUpdatedAt: null,
+    })
+    const priority = (bookId: string, rank: number, rankSource: 'auto' | 'manual'): Required<PriorityMergeRow> => ({
+      userId: 'target',
+      bookId,
+      rank,
+      rankSource,
+      updatedAt: new Date('2026-06-01T10:00:00Z'),
+    })
+
+    // Смешанный кейс:
+    //  - null-book-a: статус null, ранг есть → сохранить (manual)
+    //  - reading-book-b: статус reading, но ранг выжил из другого аккаунта → удалить
+    //  - null-book-c: статус null, ранга нет (инвариант нарушен) → дописать auto
+    const reconciled = reconcilePrioritiesWithSignups(
+      [
+        signup('null-book-a', null, '2026-06-01T10:00:00Z'),
+        signup('reading-book-b', 'reading', '2026-06-02T10:00:00Z'),
+        signup('null-book-c', null, '2026-06-03T10:00:00Z'),
+      ],
+      [
+        priority('null-book-a', 1, 'manual'),
+        priority('reading-book-b', 2, 'manual'),
+      ],
+      'target',
+    )
+
+    expect(reconciled.map(row => ({ bookId: row.bookId, rank: row.rank, rankSource: row.rankSource }))).toEqual([
+      { bookId: 'null-book-a', rank: 1, rankSource: 'manual' },
+      { bookId: 'null-book-c', rank: 2, rankSource: 'auto' },
+    ])
+    // Инвариант: строка ранга есть ровно у книг со статусом null.
+    expect(reconciled.every(row => row.userId === 'target')).toBe(true)
+    expect(reconciled.some(row => row.bookId === 'reading-book-b')).toBe(false)
   })
 })

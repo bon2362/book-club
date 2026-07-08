@@ -51,6 +51,7 @@ export interface PriorityMergeRow {
   userId?: string
   bookId: string
   rank: number
+  rankSource?: 'auto' | 'manual'
   updatedAt?: Date
 }
 
@@ -140,6 +141,50 @@ export function mergePriorityRows(
     userId: targetUserId,
     bookId: row.bookId,
     rank: index + 1,
+    rankSource: row.rankSource ?? 'auto',
+    updatedAt: row.updatedAt ?? now,
+  }))
+}
+
+/**
+ * Согласует book_priorities со статусами signup_books после слияния аккаунтов.
+ *
+ * Инвариант обязательных рангов (PR #466): у записи signup_books с
+ * personal_status=null — ровно одна строка book_priorities; у reading/read — ни одной.
+ * mergeUsers считает mergedSignups и mergedPriorities независимо (union по bookId),
+ * поэтому после слияния книга может оказаться reading/read с рангом (ранг выжил из
+ * одного аккаунта, статус усилился из другого) или null без ранга. Приводим к инварианту:
+ *  - выкидываем ранги у книг со статусом reading/read (и у осиротевших без signup);
+ *  - дописываем auto-ранги книгам с personal_status=null без ранга (порядок — по signedAt);
+ *  - компактизируем ранги в 1..N, сохраняя rankSource уже существующих строк.
+ */
+export function reconcilePrioritiesWithSignups(
+  signups: SignupMergeRow[],
+  priorities: Required<PriorityMergeRow>[],
+  targetUserId: string,
+): Required<PriorityMergeRow>[] {
+  const priorityByBook = new Map(priorities.map(row => [row.bookId, row]))
+  const now = new Date()
+
+  const rankableBooks = signups
+    .filter(row => row.personalStatus === null)
+    .sort((a, b) => a.signedAt.getTime() - b.signedAt.getTime())
+
+  const kept = rankableBooks
+    .map(row => priorityByBook.get(row.bookId))
+    .filter((row): row is Required<PriorityMergeRow> => Boolean(row))
+    .sort((a, b) => a.rank - b.rank)
+
+  const keptBooks = new Set(kept.map(row => row.bookId))
+  const appended = rankableBooks
+    .filter(row => !keptBooks.has(row.bookId))
+    .map(row => ({ bookId: row.bookId, rankSource: 'auto' as const, updatedAt: now }))
+
+  return [...kept, ...appended].map((row, index) => ({
+    userId: targetUserId,
+    bookId: row.bookId,
+    rank: index + 1,
+    rankSource: row.rankSource ?? 'auto',
     updatedAt: row.updatedAt ?? now,
   }))
 }
@@ -225,13 +270,17 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
   )
 
   const mergedPriorities = mergePriorityRows(
-    targetPriorityRows.map(row => ({ userId: targetUserId, bookId: row.bookId, rank: row.rank, updatedAt: row.updatedAt })),
-    sourcePriorityRows.map(row => ({ userId: sourceUserId, bookId: row.bookId, rank: row.rank, updatedAt: row.updatedAt })),
+    targetPriorityRows.map(row => ({ userId: targetUserId, bookId: row.bookId, rank: row.rank, rankSource: row.rankSource, updatedAt: row.updatedAt })),
+    sourcePriorityRows.map(row => ({ userId: sourceUserId, bookId: row.bookId, rank: row.rank, rankSource: row.rankSource, updatedAt: row.updatedAt })),
     targetUserId,
   )
 
+  // mergedSignups и mergedPriorities посчитаны независимо — приводим ранги к
+  // инварианту обязательных рангов (см. reconcilePrioritiesWithSignups).
+  const reconciledPriorities = reconcilePrioritiesWithSignups(mergedSignups, mergedPriorities, targetUserId)
+
   await replaceRows(tx, signupBooks, signupBooks.userId, [sourceUserId, targetUserId], mergedSignups)
-  await replaceRows(tx, bookPriorities, bookPriorities.userId, [sourceUserId, targetUserId], mergedPriorities)
+  await replaceRows(tx, bookPriorities, bookPriorities.userId, [sourceUserId, targetUserId], reconciledPriorities)
 
   await tx.update(userIdentities).set({ userId: targetUserId }).where(eq(userIdentities.userId, sourceUserId))
   await tx.update(bookSubmissions).set({ userId: targetUserId }).where(eq(bookSubmissions.userId, sourceUserId))
@@ -281,7 +330,7 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
   }
 
   await tx.update(users).set({
-    prioritiesSet: targetUser.prioritiesSet || mergedPriorities.length > 0,
+    prioritiesSet: targetUser.prioritiesSet || reconciledPriorities.length > 0,
     lastActivityAt: newestDate(targetUser.lastActivityAt, sourceUser.lastActivityAt),
   }).where(eq(users.id, targetUserId))
 
