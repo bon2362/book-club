@@ -32,7 +32,7 @@ export interface AdminUserSummary {
 export interface AdminUserDetails {
   user: AdminUserSummary & { prioritiesSet: boolean }
   signupBooks: { bookId: string; bookName: string; signedAt: string; personalStatus: PersonalBookStatus }[]
-  priorities: { bookId: string; bookName: string; rank: number }[]
+  priorities: { bookId: string; bookName: string; rank: number; rankSource?: 'auto' | 'manual' }[]
   submissions: {
     id: string
     title: string
@@ -192,7 +192,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
       .where(eq(signupBooks.userId, userId))
       .orderBy(asc(signupBooks.signedAt), asc(books.title)),
     db
-      .select({ bookId: bookPriorities.bookId, bookName: books.title, rank: bookPriorities.rank, updatedAt: bookPriorities.updatedAt })
+      .select({ bookId: bookPriorities.bookId, bookName: books.title, rank: bookPriorities.rank, rankSource: bookPriorities.rankSource, updatedAt: bookPriorities.updatedAt })
       .from(bookPriorities)
       .innerJoin(books, eq(bookPriorities.bookId, books.id))
       .where(eq(bookPriorities.userId, userId))
@@ -248,7 +248,7 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
   return {
     user: { ...summary, prioritiesSet },
     signupBooks: signupRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, signedAt: row.signedAt.toISOString(), personalStatus: (row.personalStatus ?? null) as PersonalBookStatus })),
-    priorities: priorityRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, rank: row.rank })),
+    priorities: priorityRows.map(row => ({ bookId: row.bookId, bookName: row.bookName, rank: row.rank, rankSource: row.rankSource })),
     submissions: submissionRows.map(row => ({
       id: row.id,
       title: row.title,
