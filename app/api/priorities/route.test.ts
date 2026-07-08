@@ -121,14 +121,24 @@ describe('PUT /api/priorities', () => {
 
   it('сохраняет приоритеты и устанавливает prioritiesSet=true', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    ;(db.select as jest.Mock).mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([
-          { id: 'book-a', title: 'Книга А' },
-          { id: 'book-b', title: 'Книга Б' },
-        ]),
-      }),
-    })
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([
+            { id: 'book-a', title: 'Книга А' },
+            { id: 'book-b', title: 'Книга Б' },
+          ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            orderBy: jest.fn().mockReturnValue({
+              for: jest.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      })
 
     const mockInsert = {
       values: jest.fn().mockResolvedValue(undefined),
@@ -154,6 +164,12 @@ describe('PUT /api/priorities', () => {
       expect.objectContaining({ bookId: 'book-a', rank: 1 }),
       expect.objectContaining({ bookId: 'book-b', rank: 2 }),
     ])
+    expect(mockInsert.values).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ bookId: 'book-a', rank: 1, rankSource: 'manual' }),
+        expect.objectContaining({ bookId: 'book-b', rank: 2, rankSource: 'manual' }),
+      ]),
+    )
     expect(db.update).toHaveBeenCalled()
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'priorities_updated', expect.objectContaining({
       source: 'api',

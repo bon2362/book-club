@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { previewSignupByBookIds, upsertSignupByBookIds } from '@/lib/signup-books'
-import { bookPriorities, notificationQueue, users } from '@/lib/db/schema'
-import { and, eq, notInArray } from 'drizzle-orm'
+import { notificationQueue, users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
 import { getUserContactEmail } from '@/lib/user-email'
 import {
@@ -57,24 +57,11 @@ export async function POST(req: NextRequest) {
     } else {
       result = await withAuditContext(auditCtx, async (tx) => {
         const upsert = await upsertSignupByBookIds(pgUserId, selectedBookIds as string[], tx)
-
         await tx.update(users).set({
           name: name.trim(),
           contacts: contacts.trim(),
           ...(upsert.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
         }).where(eq(users.id, pgUserId))
-
-        if (upsert.addedBookIds.length > 0) {
-          await tx.delete(bookPriorities).where(
-            and(
-              eq(bookPriorities.userId, pgUserId),
-              notInArray(bookPriorities.bookId, upsert.addedBookIds),
-            )
-          )
-        } else {
-          await tx.delete(bookPriorities).where(eq(bookPriorities.userId, pgUserId))
-        }
-
         return upsert
       })
     }

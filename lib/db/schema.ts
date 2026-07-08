@@ -176,10 +176,11 @@ export const bookSummaryHelpfulReactions = pgTable('book_summary_helpful_reactio
 }))
 
 export const bookPriorities = pgTable('book_priorities', {
-  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  bookId:    text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
-  rank:      integer('rank').notNull(),
-  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+  userId:     text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookId:     text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  rank:       integer('rank').notNull(),
+  rankSource: text('rank_source').$type<'auto' | 'manual'>().notNull().default('auto'),
+  updatedAt:  timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.userId, t.bookId] }),
 }))

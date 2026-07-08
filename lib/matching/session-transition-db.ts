@@ -18,6 +18,7 @@ import { withAuditContext } from '@/lib/audit/with-audit-context'
 import { upsertSignupByBookIds } from '@/lib/signup-books'
 import { assignMatchingDisplayNames } from './display-names'
 import { buildMatchingEventRows } from './matching-events'
+import { nextRank } from './rank-assignment'
 import { fetchRankedMatchingScenarios } from './reconciliation-scenarios-db'
 import {
   executeMatchingTransition,
@@ -399,6 +400,16 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         .values({ userId, bookId })
         .onConflictDoNothing()
         .returning({ bookId: signupBooks.bookId })
+      if (inserted.length > 0) {
+        const ranked = await this.tx
+          .select({ rank: bookPriorities.rank })
+          .from(bookPriorities)
+          .where(eq(bookPriorities.userId, userId))
+        await this.tx
+          .insert(bookPriorities)
+          .values({ userId, bookId, rank: nextRank(ranked.map(r => ({ bookId, rank: r.rank }))), rankSource: 'auto' })
+          .onConflictDoNothing()
+      }
       return inserted.length > 0
     }
 
@@ -430,10 +441,10 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     for (let index = 0; index < bookIds.length; index++) {
       await this.tx
         .insert(bookPriorities)
-        .values({ userId, bookId: bookIds[index], rank: index + 1 })
+        .values({ userId, bookId: bookIds[index], rank: index + 1, rankSource: 'manual' })
         .onConflictDoUpdate({
           target: [bookPriorities.userId, bookPriorities.bookId],
-          set: { rank: index + 1, updatedAt: new Date() },
+          set: { rank: index + 1, rankSource: 'manual', updatedAt: new Date() },
         })
     }
     await this.tx.update(users).set({ prioritiesSet: true }).where(eq(users.id, userId))
@@ -467,27 +478,6 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
           ...(result.addedBookIds.length === 0 ? { prioritiesSet: false } : {}),
         })
         .where(eq(users.id, userId))
-    }
-
-    if (result.addedBookIds.length > 0) {
-      const retainedPriorities = await this.tx
-        .select({ bookId: bookPriorities.bookId })
-        .from(bookPriorities)
-        .where(eq(bookPriorities.userId, userId))
-      const selected = new Set(result.addedBookIds)
-      const removedPriorityIds = retainedPriorities
-        .map((row) => row.bookId)
-        .filter((bookId) => !selected.has(bookId))
-      if (removedPriorityIds.length > 0) {
-        await this.tx
-          .delete(bookPriorities)
-          .where(and(
-            eq(bookPriorities.userId, userId),
-            inArray(bookPriorities.bookId, removedPriorityIds),
-          ))
-      }
-    } else {
-      await this.tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
     }
 
     return profileChanged || result.newlyAddedBookIds.length > 0 || result.removedBookIds.length > 0
@@ -528,6 +518,16 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
             eq(bookPriorities.bookId, remaining[index].bookId),
           ))
       }
+    } else {
+      // Возврат книги в матчинг: дописать auto-ранг в конец, если его нет.
+      const ranked = await this.tx
+        .select({ rank: bookPriorities.rank })
+        .from(bookPriorities)
+        .where(eq(bookPriorities.userId, userId))
+      await this.tx
+        .insert(bookPriorities)
+        .values({ userId, bookId, rank: nextRank(ranked.map(r => ({ bookId, rank: r.rank }))), rankSource: 'auto' })
+        .onConflictDoNothing()
     }
 
     return true

@@ -88,6 +88,7 @@ type MergeTargetLookup =
 function BookStatusChip({
   bookName,
   rankLabel,
+  rankSource,
   isRanked,
   isMenuOpen,
   onToggleMenu,
@@ -97,6 +98,7 @@ function BookStatusChip({
   bookId: string
   bookName: string
   rankLabel?: string | number
+  rankSource?: 'auto' | 'manual'
   isRanked?: boolean
   isMenuOpen: boolean
   onToggleMenu: () => void
@@ -108,6 +110,14 @@ function BookStatusChip({
       {rankLabel !== undefined && (
         <span style={{ background: isRanked ? 'var(--text)' : 'var(--border)', color: isRanked ? 'var(--bg)' : 'var(--text-muted)', padding: '0.22rem 0.45rem', fontWeight: 700, borderRadius: '2px 0 0 2px' }}>
           {rankLabel}
+        </span>
+      )}
+      {rankLabel !== undefined && isRanked && (
+        <span style={{
+          fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase',
+          color: 'var(--text-muted)', marginLeft: 6,
+        }}>
+          {rankSource === 'manual' ? 'вручную' : 'авто'}
         </span>
       )}
       <button
@@ -190,6 +200,7 @@ export default function AdminUserDrawer({
 
   // Для nullBooks — сортировка по приоритету (как раньше):
   const priorityMap = new Map((data?.priorities ?? []).map(row => [row.bookId, row.rank]))
+  const rankSourceMap = new Map((data?.priorities ?? []).map(row => [row.bookId, row.rankSource]))
   const rankedNull = nullBooks
     .filter(b => priorityMap.has(b.bookId))
     .sort((a, b2) => priorityMap.get(a.bookId)! - priorityMap.get(b2.bookId)!)
@@ -418,6 +429,7 @@ export default function AdminUserDrawer({
                             bookId={row.bookId}
                             bookName={row.bookName}
                             rankLabel={rankLabel}
+                            rankSource={rankSourceMap.get(row.bookId)}
                             isRanked={isRanked}
                             isMenuOpen={openMenuBookId === row.bookId}
                             onToggleMenu={() => setOpenMenuBookId(prev => prev === row.bookId ? null : row.bookId)}

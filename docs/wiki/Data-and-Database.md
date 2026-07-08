@@ -74,6 +74,7 @@ erDiagram
       text user_id
       text book_id
       integer rank
+      text rank_source
     }
 
     matching_sessions {
@@ -148,7 +149,7 @@ erDiagram
 | `user_activity_events` | События активности: вход, профиль, записи, приоритеты, фидбек. | Помогает видеть, когда пользователь реально был активен. |
 | `books` | Каталог книг, статусы публикации и уникальный nullable `slug` для красивых URL саммари. | Главный источник публичного каталога и стабильных книжных адресов. |
 | `signup_books` | Связь пользователя с выбранными книгами. | Показывает, кто на что записался. |
-| `book_priorities` | Порядок книг у пользователя. | Помогает понять, что человек хочет сильнее всего. |
+| `book_priorities` | Порядок книг у пользователя, `rank_source` (`auto`/`manual`) отмечает, назначен ли ранг системой или пользователем вручную. | Помогает понять, что человек хочет сильнее всего; инвариант — у каждой не отложенной записи на книгу всегда есть ранг (см. `docs/wiki/Submissions-Signups-and-Priorities.md`). |
 | `book_submissions` | Предложенные пользователями книги. | Материал для модерации и пополнения каталога. |
 | `book_summaries` | Markdown-саммари участников по прочитанным книгам. | Публичный клубный слой поверх каталога после админской модерации. |
 | `book_summary_revisions` | Одна активная ревизия опубликованного саммари. | Позволяет повторно модерировать правки, не скрывая текущую публикацию. |
@@ -212,6 +213,7 @@ erDiagram
 - `0048_matching_simplified.sql` — public refs, confirmations, locked circles, notices, matching events, ограничения и audit triggers нового flow.
 - `0049_restore_matching_presence_audit_filter.sql` — возвращает подавление чистых `last_seen_at` heartbeat-обновлений в глобальном audit log; старые шумовые записи сохраняются как история.
 - `0050_drop_legacy_matching.sql` — удаляет режим coverage, псевдонимы, старые метрики и две legacy matching-таблицы после зелёного production smoke-check.
+- `0051_book_priorities_rank_source.sql` и `0052_backfill_book_ranks.sql` — обязательные ранги книг: добавляют колонку `book_priorities.rank_source` и разово бэкфиллят её (существующие ранги → `manual`, недостающие ранги для активных записей на книги → `auto` в конец по `signed_at`). **Обе требуют ручного прогона оператором на production после деплоя, строго в порядке 0051 → 0052** — не входят в автодеплой Vercel/CI. После однократного прогона повторный запуск не нужен: дальше инвариант поддерживается кодом на лету.
 - `0034_matching_pseudonym_reservations.sql` и `0035_matching_preference_events.sql` — исторические миграции; созданные ими legacy-таблицы удалены в `0050`.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).
 

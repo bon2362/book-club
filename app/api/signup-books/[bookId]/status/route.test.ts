@@ -14,9 +14,14 @@ jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/audit/with-audit-context', () => ({
   withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
 }))
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), update: jest.fn() } }))
+jest.mock('@/lib/db', () => ({ db: { select: jest.fn(), update: jest.fn(), delete: jest.fn(), insert: jest.fn() } }))
 jest.mock('@/lib/db/schema', () => ({
   signupBooks: {},
+  bookPriorities: {},
+}))
+jest.mock('@/lib/matching/rank-assignment', () => ({
+  nextRank: jest.fn().mockReturnValue(1),
+  compactRanks: jest.fn().mockReturnValue([]),
 }))
 jest.mock('@/lib/matching/realtime/state-change', () => ({
   broadcastActiveMatchingStateChangeForParticipant: jest.fn(),
@@ -77,14 +82,20 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
     }
-    mockDb.select = jest.fn().mockReturnValueOnce(signupChain)
+    const remainingPrioritiesChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ orderBy: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(signupChain)
+      .mockReturnValueOnce(remainingPrioritiesChain)
     const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
     mockDb.update = jest.fn().mockReturnValue(updateChain)
+    const deleteChain = { where: jest.fn().mockResolvedValue([]) }
+    mockDb.delete = jest.fn().mockReturnValue(deleteChain)
 
     const res = await PATCH(makeReq({ status: 'reading' }), params)
 
     expect(res.status).toBe(200)
     expect(mockDb.update).toHaveBeenCalled()
+    expect(mockDb.delete).toHaveBeenCalled()
     expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user1')
   })
 
@@ -95,14 +106,42 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
     }
-    mockDb.select = jest.fn().mockReturnValueOnce(signupChain)
+    const remainingPrioritiesChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ orderBy: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(signupChain)
+      .mockReturnValueOnce(remainingPrioritiesChain)
     const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
     mockDb.update = jest.fn().mockReturnValue(updateChain)
+    const deleteChain = { where: jest.fn().mockResolvedValue([]) }
+    mockDb.delete = jest.fn().mockReturnValue(deleteChain)
 
     const res = await PATCH(makeReq({ status: 'read' }, 'participant1'), params)
 
     expect(res.status).toBe(200)
     expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('participant1')
+  })
+
+  it('restores an auto rank when status returns to null outside an active session', async () => {
+    mockAuth.mockResolvedValue(userSession)
+    const signupChain = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
+    }
+    const rankedChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ orderBy: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }) }
+    mockDb.select = jest.fn()
+      .mockReturnValueOnce(signupChain)
+      .mockReturnValueOnce(rankedChain)
+    const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue([]) }
+    mockDb.update = jest.fn().mockReturnValue(updateChain)
+    const insertChain = { values: jest.fn().mockReturnThis(), onConflictDoNothing: jest.fn().mockResolvedValue([]) }
+    mockDb.insert = jest.fn().mockReturnValue(insertChain)
+
+    const res = await PATCH(makeReq({ status: null }), params)
+
+    expect(res.status).toBe(200)
+    expect(mockDb.insert).toHaveBeenCalled()
+    expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user1', bookId: 'book-1', rankSource: 'auto' }))
   })
 
   it('runs an active participant status change inside the matching transaction', async () => {

@@ -1175,11 +1175,11 @@ export default function ProfileDrawer({
               {/* Banner — shown until user has sorted at least once and there are signup books */}
               {prioritiesLoaded && !prioritiesSet && priorityOrder.length > 0 && (
                 <div style={{
-                  padding: '10px 16px', background: '#fff7ed',
-                  borderBottom: '1px solid #fed7aa',
-                  fontSize: 12, color: '#9a3412', lineHeight: 1.5,
+                  padding: '10px 16px', background: 'var(--accent-soft)',
+                  borderBottom: '1px solid var(--accent-line)',
+                  fontSize: 12, color: 'var(--accent)', lineHeight: 1.5,
                 }}>
-                  <strong>Расставь книги по интересу:</strong> перетащи их так, чтобы сверху оказались те, которые хочется прочитать сильнее всего. Это поможет подобрать тебе подходящую группу.
+                  <strong>Порядок = твой приоритет:</strong> книги идут в порядке добавления. Перетащи их так, чтобы сверху были те, что хочется прочитать сильнее — если хочешь уточнить.
                 </div>
               )}
 
