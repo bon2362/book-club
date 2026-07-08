@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
-import { books, signupBooks, users } from '@/lib/db/schema'
+import { books, bookPriorities, signupBooks, users } from '@/lib/db/schema'
 import { asc, eq, and, inArray } from 'drizzle-orm'
+import { nextRank, compactRanks } from '@/lib/matching/rank-assignment'
 
 export type PersonalBookStatus = 'reading' | 'read' | null
 
@@ -128,7 +129,6 @@ async function upsertResolvedSignup(
   let removedBookIds: string[] = []
 
   const runInTx = async (tx: typeof db) => {
-    // Fetch current signups to determine what changed
     const existing = await tx
       .select({ bookId: signupBooks.bookId })
       .from(signupBooks)
@@ -140,19 +140,50 @@ async function upsertResolvedSignup(
     newlyAddedBookIds = toAdd
     removedBookIds = toDelete
 
-    // Delete only removed books (preserves personal_status on remaining rows)
     if (toDelete.length > 0) {
       await tx
         .delete(signupBooks)
         .where(and(eq(signupBooks.userId, userId), inArray(signupBooks.bookId, toDelete)))
+      // Инвариант: удалённая запись не оставляет висящий ранг.
+      await tx
+        .delete(bookPriorities)
+        .where(and(eq(bookPriorities.userId, userId), inArray(bookPriorities.bookId, toDelete)))
     }
 
-    // Insert only newly-added books
     if (toAdd.length > 0) {
       await tx
         .insert(signupBooks)
         .values(toAdd.map(bookId => ({ userId, bookId })))
         .onConflictDoNothing()
+    }
+
+    // Дописать auto-ранги новым книгам в конец списка приоритетов.
+    const ranked = await tx
+      .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+      .from(bookPriorities)
+      .where(eq(bookPriorities.userId, userId))
+    let rankCursor = nextRank(ranked)
+    const missingRank = toAdd.filter(id => !ranked.some(r => r.bookId === id))
+    for (const bookId of missingRank) {
+      await tx
+        .insert(bookPriorities)
+        .values({ userId, bookId, rank: rankCursor, rankSource: 'auto' })
+        .onConflictDoNothing()
+      rankCursor += 1
+    }
+
+    // Компактизация после удалений, чтобы ранги оставались 1..N.
+    if (toDelete.length > 0) {
+      const remaining = await tx
+        .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+        .from(bookPriorities)
+        .where(eq(bookPriorities.userId, userId))
+      for (const row of compactRanks(remaining)) {
+        await tx
+          .update(bookPriorities)
+          .set({ rank: row.rank, updatedAt: new Date() })
+          .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, row.bookId)))
+      }
     }
   }
 

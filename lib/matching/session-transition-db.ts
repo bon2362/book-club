@@ -469,27 +469,6 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         .where(eq(users.id, userId))
     }
 
-    if (result.addedBookIds.length > 0) {
-      const retainedPriorities = await this.tx
-        .select({ bookId: bookPriorities.bookId })
-        .from(bookPriorities)
-        .where(eq(bookPriorities.userId, userId))
-      const selected = new Set(result.addedBookIds)
-      const removedPriorityIds = retainedPriorities
-        .map((row) => row.bookId)
-        .filter((bookId) => !selected.has(bookId))
-      if (removedPriorityIds.length > 0) {
-        await this.tx
-          .delete(bookPriorities)
-          .where(and(
-            eq(bookPriorities.userId, userId),
-            inArray(bookPriorities.bookId, removedPriorityIds),
-          ))
-      }
-    } else {
-      await this.tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
-    }
-
     return profileChanged || result.newlyAddedBookIds.length > 0 || result.removedBookIds.length > 0
   }
 

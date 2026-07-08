@@ -234,16 +234,6 @@ describe('POST /api/signup', () => {
     }))
   })
 
-  it('удаляет приоритеты для книг, которых нет в новом списке', async () => {
-    const { db } = await import('@/lib/db')
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult(['Книга А'], ['book-a']))
-
-    await POST(makeRequest({ name: 'Test', contacts: '@t', selectedBookIds: ['book-a'] }))
-
-    expect(db.delete).toHaveBeenCalled()
-  })
-
   it('добавляет в очередь уведомлений при добавлении новых книг', async () => {
     const mockValues = jest.fn().mockReturnValue({ catch: jest.fn() })
     mockInsert.mockReturnValue({ values: mockValues })

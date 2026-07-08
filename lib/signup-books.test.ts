@@ -13,6 +13,7 @@ jest.mock('@/lib/db', () => ({
   db: {
     select: jest.fn(),
     insert: jest.fn(),
+    update: jest.fn(),
     delete: jest.fn(),
     transaction: jest.fn(),
   },
@@ -106,6 +107,15 @@ describe('signup-books', () => {
         { bookId: 'book-a' },
         { bookId: 'book-x' },
       ]))
+      // текущие приоритеты — для вычисления следующего auto-ранга
+      .mockReturnValueOnce(selectChain([
+        { bookId: 'book-a', rank: 1 },
+      ]))
+      // приоритеты после auto-ранга — для компактизации после удаления book-x
+      .mockReturnValueOnce(selectChain([
+        { bookId: 'book-a', rank: 1 },
+        { bookId: 'book-b', rank: 2 },
+      ]))
     ;(db.delete as jest.Mock).mockReturnValue({
       where: jest.fn().mockResolvedValue(undefined),
     })
@@ -114,11 +124,15 @@ describe('signup-books', () => {
       onConflictDoNothing: jest.fn().mockResolvedValue(undefined),
     }
     ;(db.insert as jest.Mock).mockReturnValue(insertChain)
+    ;(db.update as jest.Mock).mockReturnValue({
+      set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }),
+    })
 
     const result = await upsertSignupByBookIds('user-1', ['book-a', 'book-a', 'book-b'])
 
     expect(db.transaction).toHaveBeenCalled()
-    expect(db.delete).toHaveBeenCalledTimes(1) // book-x ушёл из набора
+    // book-x ушёл из набора (signupBooks) + осиротевший приоритет book-x
+    expect(db.delete).toHaveBeenCalledTimes(2)
     expect(insertChain.values).toHaveBeenCalledWith([
       { userId: 'user-1', bookId: 'book-b' }, // только реально новая книга
     ])
@@ -158,11 +172,16 @@ describe('signup-books', () => {
 
   it('upsertSignupByBookIds с пустым списком удаляет все записи пользователя', async () => {
     // resolveBooksByIds([]) уходит в early-return без select, поэтому первый
-    // и единственный select — это выборка существующих записей в транзакции.
-    ;(db.select as jest.Mock).mockReturnValueOnce(selectChain([
-      { bookId: 'book-a' },
-      { bookId: 'book-b' },
-    ]))
+    // select — это выборка существующих записей в транзакции.
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce(selectChain([
+        { bookId: 'book-a' },
+        { bookId: 'book-b' },
+      ]))
+      // текущие приоритеты — для вычисления следующего auto-ранга (нет toAdd, но select выполняется всегда)
+      .mockReturnValueOnce(selectChain([]))
+      // приоритеты после удаления — для компактизации (пусто, всё убрано)
+      .mockReturnValueOnce(selectChain([]))
     ;(db.delete as jest.Mock).mockReturnValue({
       where: jest.fn().mockResolvedValue(undefined),
     })
@@ -170,7 +189,8 @@ describe('signup-books', () => {
     const result = await upsertSignupByBookIds('user-1', [])
 
     expect(db.transaction).toHaveBeenCalled()
-    expect(db.delete).toHaveBeenCalledTimes(1)
+    // signupBooks delete + осиротевшие приоритеты delete
+    expect(db.delete).toHaveBeenCalledTimes(2)
     expect(db.insert).not.toHaveBeenCalled()
     expect(result.addedBooks).toEqual([])
     expect(result.addedBookIds).toEqual([])
