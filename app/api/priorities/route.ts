@@ -87,6 +87,7 @@ export async function PUT(req: NextRequest) {
           userId,
           bookId,
           rank: index + 1,
+          rankSource: 'manual' as const,
           updatedAt: now,
         })))
         await tx.update(users).set({ prioritiesSet: true }).where(eq(users.id, userId))
