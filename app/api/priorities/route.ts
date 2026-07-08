@@ -90,6 +90,7 @@ export async function PUT(req: NextRequest) {
           .select({ bookId: bookPriorities.bookId })
           .from(bookPriorities)
           .where(eq(bookPriorities.userId, userId))
+          .orderBy(bookPriorities.bookId)
           .for('update')
         await tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
         await tx.insert(bookPriorities).values(validBookIds.map((bookId, index) => ({

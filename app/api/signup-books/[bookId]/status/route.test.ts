@@ -82,7 +82,7 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
     }
-    const remainingPrioritiesChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }
+    const remainingPrioritiesChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ orderBy: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(signupChain)
       .mockReturnValueOnce(remainingPrioritiesChain)
@@ -106,7 +106,7 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
     }
-    const remainingPrioritiesChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }
+    const remainingPrioritiesChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ orderBy: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(signupChain)
       .mockReturnValueOnce(remainingPrioritiesChain)
@@ -128,7 +128,7 @@ describe('PATCH /api/signup-books/[bookId]/status', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'book-1' }]),
     }
-    const rankedChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }
+    const rankedChain = { from: jest.fn().mockReturnThis(), where: jest.fn().mockReturnValue({ orderBy: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }) }) }
     mockDb.select = jest.fn()
       .mockReturnValueOnce(signupChain)
       .mockReturnValueOnce(rankedChain)

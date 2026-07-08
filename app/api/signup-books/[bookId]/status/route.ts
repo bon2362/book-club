@@ -81,15 +81,19 @@ export async function PATCH(
         // `.for('update')` locks this user's book_priorities rows for the rest
         // of the transaction so a concurrent request touching the same rows
         // (e.g. an overlapping PUT /api/priorities, or a duplicate PATCH) waits
-        // instead of racing the read-then-write below — read-then-write without
-        // this lock produced both a Postgres deadlock (40P01, two per-row
-        // UPDATE loops crossing lock order) and a duplicate-key insert race
-        // under e2e-test concurrency.
+        // instead of racing the read-then-write below. `.for('update')` alone
+        // on an unordered row set is not a rigorous deadlock guarantee — it's
+        // the deterministic `ORDER BY bookId ... FOR UPDATE` here combined
+        // with the bulk delete+insert below (replacing a per-row UPDATE loop)
+        // that together prevent two transactions from locking the same rows
+        // in different orders. Without both, this produced a Postgres deadlock
+        // (40P01) and a duplicate-key insert race under e2e-test concurrency.
         if (status !== null) {
           const existing = await tx
             .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank, rankSource: bookPriorities.rankSource })
             .from(bookPriorities)
             .where(eq(bookPriorities.userId, userId))
+            .orderBy(bookPriorities.bookId)
             .for('update')
           const remaining = existing.filter((row) => row.bookId !== bookId)
           await tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
@@ -110,6 +114,7 @@ export async function PATCH(
             .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank })
             .from(bookPriorities)
             .where(eq(bookPriorities.userId, userId))
+            .orderBy(bookPriorities.bookId)
             .for('update')
           await tx.insert(bookPriorities)
             .values({ userId, bookId, rank: nextRank(ranked), rankSource: 'auto' })

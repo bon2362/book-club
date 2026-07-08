@@ -133,7 +133,9 @@ describe('PUT /api/priorities', () => {
       .mockReturnValueOnce({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
-            for: jest.fn().mockResolvedValue([]),
+            orderBy: jest.fn().mockReturnValue({
+              for: jest.fn().mockResolvedValue([]),
+            }),
           }),
         }),
       })
