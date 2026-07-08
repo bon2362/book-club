@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { auth } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { signupBooks } from '@/lib/db/schema'
+import { signupBooks, bookPriorities } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import {
   broadcastActiveMatchingStateChangeForParticipant,
@@ -12,6 +12,7 @@ import {
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { transitionError } from '@/lib/matching/transition-http'
+import { nextRank, compactRanks } from '@/lib/matching/rank-assignment'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -71,6 +72,49 @@ export async function PATCH(
         await tx.update(signupBooks)
           .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
           .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+
+        // Keep book_priorities in sync with the mandatory-rank invariant:
+        // every signup_books row with personal_status=null has exactly one
+        // book_priorities row. Mirrors MatchingTransitionExecutor.changeStatus
+        // (lib/matching/session-transition-db.ts) for the no-active-session path.
+        //
+        // `.for('update')` locks this user's book_priorities rows for the rest
+        // of the transaction so a concurrent request touching the same rows
+        // (e.g. an overlapping PUT /api/priorities, or a duplicate PATCH) waits
+        // instead of racing the read-then-write below — read-then-write without
+        // this lock produced both a Postgres deadlock (40P01, two per-row
+        // UPDATE loops crossing lock order) and a duplicate-key insert race
+        // under e2e-test concurrency.
+        if (status !== null) {
+          const existing = await tx
+            .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank, rankSource: bookPriorities.rankSource })
+            .from(bookPriorities)
+            .where(eq(bookPriorities.userId, userId))
+            .for('update')
+          const remaining = existing.filter((row) => row.bookId !== bookId)
+          await tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
+          if (remaining.length > 0) {
+            const sourceByBookId = new Map(remaining.map((row) => [row.bookId, row.rankSource]))
+            await tx.insert(bookPriorities).values(
+              compactRanks(remaining).map(({ bookId: id, rank }) => ({
+                userId,
+                bookId: id,
+                rank,
+                rankSource: sourceByBookId.get(id) ?? 'auto',
+                updatedAt: new Date(),
+              })),
+            )
+          }
+        } else {
+          const ranked = await tx
+            .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+            .from(bookPriorities)
+            .where(eq(bookPriorities.userId, userId))
+            .for('update')
+          await tx.insert(bookPriorities)
+            .values({ userId, bookId, rank: nextRank(ranked), rankSource: 'auto' })
+            .onConflictDoNothing()
+        }
       },
     )
     await broadcastActiveMatchingStateChangeForParticipant(userId)

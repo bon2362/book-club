@@ -121,14 +121,22 @@ describe('PUT /api/priorities', () => {
 
   it('сохраняет приоритеты и устанавливает prioritiesSet=true', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    ;(db.select as jest.Mock).mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([
-          { id: 'book-a', title: 'Книга А' },
-          { id: 'book-b', title: 'Книга Б' },
-        ]),
-      }),
-    })
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([
+            { id: 'book-a', title: 'Книга А' },
+            { id: 'book-b', title: 'Книга Б' },
+          ]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            for: jest.fn().mockResolvedValue([]),
+          }),
+        }),
+      })
 
     const mockInsert = {
       values: jest.fn().mockResolvedValue(undefined),

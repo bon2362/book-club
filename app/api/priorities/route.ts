@@ -82,6 +82,15 @@ export async function PUT(req: NextRequest) {
     await withAuditContext(
       { actorUserId: userId, actorLabel: session!.user.name ?? session!.user.contactEmail ?? null, source: 'priorities' },
       async (tx) => {
+        // Lock this user's book_priorities rows before delete+insert — same
+        // lock-first convention as PATCH /api/signup-books/[bookId]/status,
+        // so the two routes can't cross lock order and deadlock when a status
+        // change and a reorder land concurrently for the same user.
+        await tx
+          .select({ bookId: bookPriorities.bookId })
+          .from(bookPriorities)
+          .where(eq(bookPriorities.userId, userId))
+          .for('update')
         await tx.delete(bookPriorities).where(eq(bookPriorities.userId, userId))
         await tx.insert(bookPriorities).values(validBookIds.map((bookId, index) => ({
           userId,
