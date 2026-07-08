@@ -154,6 +154,12 @@ describe('PUT /api/priorities', () => {
       expect.objectContaining({ bookId: 'book-a', rank: 1 }),
       expect.objectContaining({ bookId: 'book-b', rank: 2 }),
     ])
+    expect(mockInsert.values).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ bookId: 'book-a', rank: 1, rankSource: 'manual' }),
+        expect.objectContaining({ bookId: 'book-b', rank: 2, rankSource: 'manual' }),
+      ]),
+    )
     expect(db.update).toHaveBeenCalled()
     expect(mockRecordUserActivity).toHaveBeenCalledWith('user-1', 'priorities_updated', expect.objectContaining({
       source: 'api',
