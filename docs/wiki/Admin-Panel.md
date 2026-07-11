@@ -46,9 +46,12 @@ flowchart TD
 - статус CI и Vercel;
 - состояние очереди digest-писем;
 - Allure-виджет;
-- месячное использование PostHog.
+- месячное использование PostHog;
+- **расход Neon** (CU-часы и оценка $ за текущий биллинг-период, полоской «использовано / лимит») + ссылка на Vercel Usage.
 
 Эти виджеты нужны, чтобы быстро понять: “сайт сейчас живой, свежий и проверенный?”.
+
+**Виджет расхода Neon** (`NeonUsageWidget`) ходит в Neon Consumption API (внешний management-API, **не** в наш Postgres — поэтому сам ничего не жжёт) и требует env `NEON_API_KEY`. Порог полоски задаётся `NEON_SPEND_LIMIT_USD` (по умолчанию $10). Vercel Fluid-метрики на Hobby через API недоступны, поэтому по Vercel — только ссылка на дашборд. Опрашивает раз в 5 минут и только при активной вкладке (данные Neon и так отстают на ~час).
 
 ## Контроль доступа
 
@@ -79,5 +82,6 @@ flowchart TD
 | `/admin` редиректит на главную | Флаг `isAdmin`, session, `ADMIN_EMAIL`. |
 | Виджет CI пустой | `GH_TOKEN` в окружении. |
 | Виджет Vercel пустой | `VERCEL_TOKEN` и project id. |
+| Виджет расхода Neon пустой | `NEON_API_KEY` (в `.env.local` и Vercel env), валидность ключа, доступ к орг. |
 | PostHog widget говорит not configured | `POSTHOG_PERSONAL_API_KEY`, `POSTHOG_PROJECT_ID`. |
 | Очередь писем не уходит | `CRON_SECRET`, GitHub Actions digest workflow, Resend. |

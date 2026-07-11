@@ -6,6 +6,7 @@ import AdminStatusBar from './AdminStatusBar'
 import DigestStatusWidget from './DigestStatusWidget'
 import AllureWidget from './AllureWidget'
 import PostHogUsageWidget from './PostHogUsageWidget'
+import NeonUsageWidget from './NeonUsageWidget'
 
 interface AdminFooterProps {
   buildTime: string | null
@@ -95,6 +96,7 @@ export default function AdminFooter({
       <DigestStatusWidget refreshSignal={refreshSignal} />
       <AllureWidget refreshSignal={refreshSignal} />
       <PostHogUsageWidget refreshSignal={refreshSignal} />
+      <NeonUsageWidget refreshSignal={refreshSignal} />
     </footer>
   )
 }
