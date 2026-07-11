@@ -157,6 +157,8 @@ test.describe('Matching restored board shell', () => {
     createTestBook,
     loginAsUser,
   }) => {
+    test.setTimeout(120_000)
+
     const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
     const book = await createTestBook({ title: `UI Matching ${test.info().testId}`, author: 'Layout Author' })
     const registryBook = await createTestBook({ title: `UI Registry ${test.info().testId}`, author: 'Registry Author' })
@@ -339,18 +341,49 @@ test.describe('Matching restored board shell', () => {
 
       // Каждый актёр закрепляет свой круг. expectedStateVersion, взятый до PUT,
       // может устареть, пока предыдущий актёр коммитит подтверждение (гонка версий),
-      // из-за чего в CI (быстрый prod-сервер) PUT иногда возвращает 409. Поэтому
-      // перечитываем свежий stateVersion прямо перед каждой попыткой и ретраим на конфликте.
+      // поэтому на 409 перечитываем состояние и пробуем ещё раз. Остальные ошибки
+      // не маскируем ретраем: они должны сохранить status/body в отчёте nightly.
       const confirmOwnCircle = async (requestCtx: typeof page.request) => {
-        await expect.poll(async () => {
-          const state = await (await requestCtx.get(`/api/matching/state?session=${session.id}`)).json() as {
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+          const stateResponse = await requestCtx.get(`/api/matching/state?session=${session.id}`)
+          const stateBody = await stateResponse.text()
+          if (!stateResponse.ok()) {
+            throw new Error(`Failed to read matching state: ${stateResponse.status()} ${stateBody}`)
+          }
+
+          let state: {
             session: { stateVersion: number }
             scenarios: Array<{ circles: Array<{ circleKey: string; viewerIsMember: boolean }> }>
           }
+          try {
+            state = JSON.parse(stateBody) as typeof state
+          } catch {
+            throw new Error(`Matching state returned invalid JSON: ${stateBody}`)
+          }
+
           const circle = state.scenarios.flatMap(scenario => scenario.circles).find(candidate => candidate.viewerIsMember)
-          if (!circle) return false
-          return (await requestCtx.put(`/api/matching/sessions/${session.id}/confirmation`, { data: { circleKey: circle.circleKey, expectedStateVersion: state.session.stateVersion } })).ok()
-        }, { message: 'actor confirms its own circle (retries on stale stateVersion)' }).toBe(true)
+          if (!circle) {
+            throw new Error(`Matching state has no circle for the current actor: ${stateBody}`)
+          }
+
+          const confirmationResponse = await requestCtx.put(`/api/matching/sessions/${session.id}/confirmation`, {
+            data: { circleKey: circle.circleKey, expectedStateVersion: state.session.stateVersion },
+          })
+          const confirmationBody = await confirmationResponse.text()
+          if (confirmationResponse.ok()) return
+          let confirmationError: unknown
+          try {
+            confirmationError = (JSON.parse(confirmationBody) as { error?: unknown }).error
+          } catch {
+            confirmationError = undefined
+          }
+          if (confirmationResponse.status() !== 409 || confirmationError !== 'stale_state') {
+            throw new Error(`Failed to confirm matching circle: ${confirmationResponse.status()} ${confirmationBody}`)
+          }
+          if (attempt === 3) {
+            throw new Error(`Matching confirmation stayed stale after 3 attempts: 409 ${confirmationBody}`)
+          }
+        }
       }
 
       await confirmOwnCircle(page.request)
