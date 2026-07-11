@@ -1205,6 +1205,8 @@ test.describe('Satisfaction ranking gate layout', () => {
     createMatchingSession,
     createTestBook,
     loginAsUser,
+    dbExec,
+    auditCleanup,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
 
@@ -1221,14 +1223,19 @@ test.describe('Satisfaction ranking gate layout', () => {
     await loginAsUser({ name: 'UI Gate Peer Two' })
     await joinMatchingSessionAndAddBooks(page, session.id, [bookA.id, bookB.id])
 
-    // Third participant joins but has NOT submitted a ranking — should see the gate
-    await loginAsUser({ name: 'UI Gate Viewer' })
+    // Reproduce a legacy viewer whose signup survived without a priority row.
+    const viewer = await loginAsUser({ name: 'UI Gate Viewer' })
     const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`, {
       data: { name: 'UI Gate Viewer' },
     })
     expect(joinRes.ok()).toBe(true)
     const addRes = await page.request.post('/api/matching/books', { data: { bookId: bookA.id } })
     expect(addRes.ok()).toBe(true)
+    auditCleanup.trackUser(viewer.userId)
+    await dbExec(
+      'delete from book_priorities where user_id = $1 and book_id = $2',
+      [viewer.userId, bookA.id],
+    )
 
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/matching')
@@ -1248,6 +1255,8 @@ test.describe('Satisfaction ranking gate layout', () => {
     createMatchingSession,
     createTestBook,
     loginAsUser,
+    dbExec,
+    auditCleanup,
   }) => {
     const session = await createMatchingSession({
       minGroupSize: 3,
@@ -1262,14 +1271,19 @@ test.describe('Satisfaction ranking gate layout', () => {
     await loginAsUser({ name: 'UI Gate Mobile Peer Two' })
     await joinMatchingSessionAndAddBooks(page, session.id, [bookA.id, bookB.id])
 
-    // Third participant joins but has NOT submitted a ranking — should see the gate
-    await loginAsUser({ name: 'UI Gate Mobile Viewer' })
+    // Reproduce a legacy viewer whose signup survived without a priority row.
+    const viewer = await loginAsUser({ name: 'UI Gate Mobile Viewer' })
     const joinRes = await page.request.post(`/api/matching/sessions/${session.id}/join`, {
       data: { name: 'UI Gate Mobile Viewer' },
     })
     expect(joinRes.ok()).toBe(true)
     const addRes = await page.request.post('/api/matching/books', { data: { bookId: bookA.id } })
     expect(addRes.ok()).toBe(true)
+    auditCleanup.trackUser(viewer.userId)
+    await dbExec(
+      'delete from book_priorities where user_id = $1 and book_id = $2',
+      [viewer.userId, bookA.id],
+    )
 
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.setViewportSize({ width: 375, height: 812 })
