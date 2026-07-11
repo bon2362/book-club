@@ -11,7 +11,7 @@ jest.mock('@/lib/db', () => ({
       from: jest.fn().mockReturnValue({
         leftJoin: jest.fn().mockReturnValue({
           orderBy: jest.fn().mockResolvedValue([
-            { id: 'sub-1', title: 'Сапиенс', author: 'Харари', status: 'pending', userEmail: 'user@test.com' },
+            { id: 'sub-1', title: 'Сапиенс', author: 'Харари', status: 'pending', userEmail: 'user@test.com', userName: 'Иван', userContacts: '@ivan' },
           ]),
         }),
       }),
@@ -50,5 +50,7 @@ describe('GET /api/admin/submissions', () => {
     expect(Array.isArray(data.data)).toBe(true)
     expect(data.data[0].title).toBe('Сапиенс')
     expect(data.data[0].userEmail).toBe('user@test.com')
+    expect(data.data[0].userName).toBe('Иван')
+    expect(data.data[0].userContacts).toBe('@ivan')
   })
 })

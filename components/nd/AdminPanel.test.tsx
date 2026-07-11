@@ -39,6 +39,8 @@ const mockSubmissions = [
     id: 'sub-1',
     userId: 'user-1',
     userEmail: 'alice@test.com',
+    userName: 'Алиса',
+    userContacts: '@alice',
     title: 'Сапиенс',
     author: 'Харари',
     topic: 'История',
@@ -56,6 +58,8 @@ const mockSubmissions = [
     id: 'sub-2',
     userId: 'user-2',
     userEmail: 'bob@test.com',
+    userName: 'Боб',
+    userContacts: '@bob',
     title: 'Война и мир',
     author: 'Толстой',
     topic: null,
@@ -338,7 +342,8 @@ describe('AdminPanel — Заявки таб', () => {
 
     fireEvent.click(screen.getByText('Сапиенс'))
     expect(screen.getByText('Почему предлагаю прочитать?', { exact: false })).toBeInTheDocument()
-    expect(screen.getAllByText('alice@test.com').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Алиса', { exact: false }).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('@alice', { exact: false }).length).toBeGreaterThan(0)
     expect(screen.getByText('Одобрить')).toBeInTheDocument()
     expect(screen.getByText('Отклонить')).toBeInTheDocument()
   })
