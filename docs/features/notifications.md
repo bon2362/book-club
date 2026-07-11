@@ -9,7 +9,7 @@
 - **Cron trigger** — GitHub Actions `digest.yml` вызывает `GET /api/cron/digest` с заголовком `Authorization: Bearer $CRON_SECRET` раз в сутки в **03:00 UTC**. Время намеренно совмещено с Vercel-кроном `telegram-preauth-cleanup` (тоже `0 3 * * *`): оба бьют в production-ветку Neon, поэтому compute просыпается один раз и обслуживает оба джоба. ⚠️ **Не учащать без нужды:** прежний `*/10` будил Neon-compute ~50% суток вхолостую (каждый вызов делает write даже на пустой очереди) и выжигал ~90 CU-час/мес — это вызвало паузу БД на Free-плане (июнь 2026). Сам digest всё равно дебаунсит отправку (cooling 30 мин / forced-flush 2 ч), так что частить смысла нет.
 - **Обработка** — `/api/cron/digest` атомарно захватывает строки с `sentAt IS NULL` и `processingAt IS NULL`, выдерживает debounce, отправляет один digest на `ADMIN_EMAIL` через Resend и заполняет `sentAt`
 - **Email** — HTML-шаблон в `lib/email-templates/`; содержит список новых участников и их контакты
-- **DigestStatusWidget** — компонент только для админов, показывает размер очереди и время последней отправки
+- **DigestStatusWidget** — компонент только для админов, показывает размер очереди и время последней отправки. Опрашивает `/api/admin/digest-status` раз в 60с через `useVisibleInterval` — **только пока вкладка активна**. ⚠️ Это важно для расходов: endpoint читает `notificationQueue` в Neon, а раньше на голом `setInterval` фоновая `/admin`-вкладка держала Neon-compute бодрым 24/7 (scale-to-zero = 5 мин) и выжигала CU-часы (июль 2026, упёрлись в spend-лимит Launch). Пауза на скрытой вкладке даёт БД заснуть. Тем же хуком поправлены `AdminStatusBar` и `AllureWidget`.
 
 ## Ключевые файлы
 - `lib/db/schema.ts` — таблица `notificationQueue`

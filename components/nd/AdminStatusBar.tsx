@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useVisibleInterval } from './use-visible-interval'
 
 interface CiStatus {
   status: string
@@ -85,11 +86,13 @@ export default function AdminStatusBar({ refreshSignal = 0 }: AdminStatusBarProp
     }
   }, [])
 
+  // Опрос только при активной вкладке (не крутить Vercel-функции из фоновой вкладки).
+  useVisibleInterval(fetchStatus, 60_000)
+
+  // Ручной рефреш по кнопке в AdminFooter.
   useEffect(() => {
-    fetchStatus()
-    const id = setInterval(fetchStatus, 60_000)
-    return () => clearInterval(id)
-  }, [fetchStatus, refreshSignal])
+    if (refreshSignal > 0) fetchStatus()
+  }, [refreshSignal, fetchStatus])
 
   if (loading) {
     return <div style={BASE_STYLE}><span style={{ color: 'var(--text-muted)' }}>загрузка статусов…</span></div>

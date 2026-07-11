@@ -12,6 +12,7 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.useRealTimers()
+  setTabVisibility('visible')
 })
 
 function respondWith(data: object) {
@@ -19,6 +20,12 @@ function respondWith(data: object) {
     ok: true,
     json: async () => data,
   })
+}
+
+function setTabVisibility(state: 'visible' | 'hidden') {
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => state === 'hidden' })
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state })
+  document.dispatchEvent(new Event('visibilitychange'))
 }
 
 describe('DigestStatusWidget', () => {
@@ -59,6 +66,22 @@ describe('DigestStatusWidget', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1)
     await act(async () => { jest.advanceTimersByTime(60_000) })
     expect(mockFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('не опрашивает, пока вкладка скрыта, и делает запрос при возврате', async () => {
+    setTabVisibility('hidden')
+    respondWith({ status: 'empty' })
+    render(<DigestStatusWidget />)
+    await act(async () => {})
+    expect(mockFetch).not.toHaveBeenCalled()
+
+    // даже спустя два интервала — ни одного запроса из фоновой вкладки
+    await act(async () => { jest.advanceTimersByTime(120_000) })
+    expect(mockFetch).not.toHaveBeenCalled()
+
+    // возврат на вкладку → немедленный догоняющий запрос
+    await act(async () => { setTabVisibility('visible') })
+    expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 
   it('остаётся невидимым при ошибке fetch (non-ok ответ)', async () => {
