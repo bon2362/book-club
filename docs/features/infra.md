@@ -21,6 +21,8 @@
 - `CRON_SECRET` — защита cron-эндпоинтов
 - `GH_TOKEN` — виджет CI в админке
 - `VERCEL_TOKEN` — виджет деплоев в админке
+- `NEON_API_KEY` — виджет расхода Neon (CU-часы/spend) в подвале админки. Ключ `napi_…` из Neon Console → Account settings → API keys. Читается сервером в `lib/neon-usage.ts` (Consumption API), клиенту не отдаётся.
+- `NEON_SPEND_LIMIT_USD` — порог для прогресс-бара расхода Neon (по умолчанию 10). Ставь равным своему spend-лимиту в Neon.
 - `NEXTAUTH_TEST_MODE` — E2E-тесты
 
 ### Клиентские переменные
