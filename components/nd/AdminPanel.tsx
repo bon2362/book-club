@@ -8,6 +8,7 @@ import type { BookWithCover } from '@/lib/books-with-covers'
 import type { AdminFeedbackItem, AdminUserDetails, AdminUserSummary } from '@/lib/admin-users'
 import type { PersonalBookStatus } from '@/lib/signup-books'
 import { getUserActivityDisplay } from '@/lib/user-activity-display'
+import { formatTelegramDisplay } from '@/lib/telegram-display'
 import Header from './Header'
 import IntroEditor from './IntroEditor'
 import AdminUserDrawer from './AdminUserDrawer'
@@ -19,6 +20,8 @@ interface Submission {
   id: string
   userId: string
   userEmail: string | null
+  userName: string | null
+  userContacts: string | null
   title: string
   author: string
   topic: string | null
@@ -580,7 +583,7 @@ export default function AdminPanel({
       })
       if (res.ok) {
         const d = await res.json()
-        setSubmissions(prev => prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s))
+        setSubmissions(prev => prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail, userName: s.userName, userContacts: s.userContacts } : s))
         setSubmissionEdits(prev => { const next = { ...prev }; delete next[id]; return next })
       }
     } catch { /* silently ignore */ }
@@ -619,7 +622,7 @@ export default function AdminPanel({
         const d = await res.json()
         markSubmissionRead(id)
         setSubmissions(prev => {
-          const next = prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail } : s)
+          const next = prev.map(s => s.id === id ? { ...d.data, userEmail: s.userEmail, userName: s.userName, userContacts: s.userContacts } : s)
           if (!next.some(s => s.status === 'pending')) setSubmissionFilter('all')
           return next
         })
@@ -1149,7 +1152,7 @@ export default function AdminPanel({
                   <tr>
                     <th style={headCell}>Книга</th>
                     <th style={headCell}>Автор</th>
-                    <th style={headCell}>Email</th>
+                    <th style={headCell}>Участник</th>
                     <th style={headCell}>Статус</th>
                     <th style={headCell}>Дата</th>
                     <th style={headCell}></th>
@@ -1176,7 +1179,14 @@ export default function AdminPanel({
                         >
                           <td style={cell}>{sub.title}</td>
                           <td style={{ ...cell, fontStyle: 'italic', color: 'var(--text-secondary)' }}>{sub.author}</td>
-                          <td style={{ ...cell, color: 'var(--text-secondary)' }}>{sub.userEmail ?? '—'}</td>
+                          <td style={{ ...cell, color: 'var(--text-secondary)' }}>
+                            <div>{sub.userName ?? '—'}</div>
+                            {formatTelegramDisplay({ contacts: sub.userContacts }) && (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                {formatTelegramDisplay({ contacts: sub.userContacts })}
+                              </div>
+                            )}
+                          </td>
                           <td style={cell}>
                             <span style={{ color: statusColor, fontWeight: sub.status === 'pending' ? 700 : 400 }}>
                               {statusLabel}
@@ -1194,9 +1204,13 @@ export default function AdminPanel({
                             <td colSpan={6} style={{ padding: '1rem 0.75rem 1.25rem', background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border-strong)' }}>
                               <div style={{ display: 'grid', gap: '0.75rem', maxWidth: '720px' }}>
                                 <div>
-                                  <div style={fieldLabel}>Email автора</div>
+                                  <div style={fieldLabel}>Участник</div>
                                   <div style={{ fontFamily: 'var(--nd-sans), system-ui, sans-serif', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                    {sub.userEmail ?? '—'}
+                                    {sub.userName ?? '—'}
+                                    {formatTelegramDisplay({ contacts: sub.userContacts }) && (
+                                      <> · {formatTelegramDisplay({ contacts: sub.userContacts })}</>
+                                    )}
+                                    {sub.userEmail && <> · {sub.userEmail}</>}
                                   </div>
                                 </div>
                                 <div>

@@ -17,6 +17,8 @@ export async function GET() {
       id: bookSubmissions.id,
       userId: bookSubmissions.userId,
       userEmail: users.contactEmail,
+      userName: users.name,
+      userContacts: users.contacts,
       title: bookSubmissions.title,
       topic: bookSubmissions.topic,
       author: bookSubmissions.author,
