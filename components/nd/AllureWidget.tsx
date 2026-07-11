@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useVisibleInterval } from './use-visible-interval'
 
 interface AllureSummary {
   statistic: {
@@ -74,11 +75,14 @@ export default function AllureWidget({ refreshSignal = 0 }: AllureWidgetProps) {
     }
   }, [])
 
+  // Опрос только при активной вкладке (единообразие с остальными виджетами;
+  // источник внешний — GitHub Pages, но лишние фоновые таймеры ни к чему).
+  useVisibleInterval(fetchData, 60_000)
+
+  // Ручной рефреш по кнопке в AdminFooter.
   useEffect(() => {
-    fetchData()
-    const id = setInterval(fetchData, 60_000)
-    return () => clearInterval(id)
-  }, [fetchData, refreshSignal])
+    if (refreshSignal > 0) fetchData()
+  }, [refreshSignal, fetchData])
 
   if (error) return null
   if (!data) return null

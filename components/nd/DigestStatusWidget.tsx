@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useVisibleInterval } from './use-visible-interval'
 
 type DigestStatusData =
   | { status: 'empty' }
@@ -36,11 +37,15 @@ export default function DigestStatusWidget({ refreshSignal = 0 }: DigestStatusWi
     }
   }, [])
 
+  // Опрос только при активной вкладке: этот виджет читает БД (`notificationQueue`),
+  // а фоновая /admin-вкладка раз в 60с не давала Neon-compute заснуть (scale-to-zero
+  // = 5 мин) и жгла CU-часы. Хук ставит опрос на паузу, пока вкладка скрыта.
+  useVisibleInterval(fetchStatus, 60_000)
+
+  // Ручной рефреш по кнопке в AdminFooter.
   useEffect(() => {
-    fetchStatus()
-    const id = setInterval(fetchStatus, 60_000)
-    return () => clearInterval(id)
-  }, [fetchStatus, refreshSignal])
+    if (refreshSignal > 0) fetchStatus()
+  }, [refreshSignal, fetchStatus])
 
   if (!data) return null
 
