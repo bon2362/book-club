@@ -199,18 +199,10 @@ test('исчезнувший состав переносит выбор по к�
   expect(transferredCircle?.bookId).toBe(books[0].id)
   expect(transferredCircle?.members.map((member) => member.displayName).sort()).toEqual(['Анна E2E', 'Вера E2E'].sort())
   const transferNotice = current.notices.find((notice) => notice.kind === 'confirmation_transferred')
-  expect(transferNotice?.payload.fromMembers?.sort()).toEqual(['Анна E2E', 'Борис E2E'].sort())
-  expect(transferNotice?.payload.toMembers?.sort()).toEqual(['Анна E2E', 'Вера E2E'].sort())
+  expect(transferNotice).toBeUndefined()
 
   await participantA.page.goto('/matching')
-  await expect(participantA.page.getByTestId('matching-notices')).toContainText('Вера E2E')
-  await participantA.page.reload()
-  await expect(participantA.page.getByTestId('matching-notices')).toContainText('Вера E2E')
-  const ackResponse = participantA.page.waitForResponse((response) => (
-    response.request().method() === 'POST' && response.url().includes('/api/matching/notices/')
-  ))
-  await participantA.page.getByRole('button', { name: 'Понятно' }).click()
-  expect((await ackResponse).ok()).toBe(true)
+  await expect(participantA.page.getByTestId('matching-notices')).toHaveCount(0)
   await participantA.page.reload()
   await expect(participantA.page.getByTestId('matching-notices')).toHaveCount(0)
 
@@ -231,8 +223,16 @@ test('исчезнувший состав переносит выбор по к�
   const invalidation = current.notices.find((notice) => notice.kind === 'confirmation_invalidated')
   expect(invalidation?.payload.members?.sort()).toEqual(['Анна E2E', 'Борис E2E'].sort())
   await participantA.page.reload()
+  await participantA.page.waitForLoadState('networkidle')
   await expect(participantA.page.getByTestId('circle-waiting')).toHaveCount(0)
   await expect(participantA.page.getByTestId('matching-notices')).toContainText(/подтверждение снято/i)
+  const ackResponse = participantA.page.waitForResponse((response) => (
+    response.request().method() === 'POST' && response.url().includes('/api/matching/notices/')
+  ))
+  await participantA.page.getByRole('button', { name: 'Понятно' }).click()
+  expect((await ackResponse).ok()).toBe(true)
+  await participantA.page.reload()
+  await expect(participantA.page.getByTestId('matching-notices')).toHaveCount(0)
 })
 
 test('Welcome раскрывает реальные имена и сохраняет исправленное глобальное имя', async ({
@@ -271,6 +271,8 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
   createMatchingSession,
   createTestBook,
   loginAsUser,
+  dbExec,
+  auditCleanup,
 }) => {
   test.setTimeout(90_000)
   const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
@@ -286,6 +288,12 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
       selectedBookIds: [bookA.id, bookB.id],
     },
   })).ok()).toBe(true)
+  // Reproduce a legacy signup that predates automatic priority assignment.
+  auditCleanup.trackUser(user.userId)
+  await dbExec(
+    'delete from book_priorities where user_id = $1 and book_id = any($2::text[])',
+    [user.userId, [bookA.id, bookB.id]],
+  )
 
   await page.goto('/matching')
   await page.waitForLoadState('networkidle')
@@ -345,6 +353,8 @@ test('Ranking Gate: одна книга без явного drag-реордер�
   createMatchingSession,
   createTestBook,
   loginAsUser,
+  dbExec,
+  auditCleanup,
 }) => {
   const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
   const book = await createTestBook({ title: `E2E Gate Single ${test.info().testId}`, author: 'Gate Author' })
@@ -358,6 +368,12 @@ test('Ranking Gate: одна книга без явного drag-реордер�
       selectedBookIds: [book.id],
     },
   })).ok()).toBe(true)
+  // Reproduce a legacy signup that predates automatic priority assignment.
+  auditCleanup.trackUser(user.userId)
+  await dbExec(
+    'delete from book_priorities where user_id = $1 and book_id = $2',
+    [user.userId, book.id],
+  )
 
   await page.goto('/matching')
   await page.waitForLoadState('networkidle')
