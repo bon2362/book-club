@@ -51,8 +51,8 @@ _Решения для нового книжно-центричного режи
 - **Live shortlist:** каталог должен уважать hard/assignment bindings даже в закрытой сессии.
 - **Lifecycle:** close/reopen меняет права, но не удаляет сигналы и назначения.
 - **Admin override:** ручное состояние имеет приоритет, но последующее пользовательское изменение в открытой сессии может снова пересобрать круги.
-- **Legacy coexistence:** независимые CTA двух вкладок могут создать противоречивые решения одного пользователя.
-- **Migration:** преобразование живых confirmations/locked circles семантически неоднозначно; безопасный rollout предпочтителен между сессиями.
+- **Legacy coexistence:** после инициализации книжного режима сценарная вкладка становится read-only, поэтому независимые CTA не создают противоречивые решения.
+- **Live migration:** текущие locked circles проецируются в assignments/circles, а незаблокированные confirmations — в hard intents; точный сценарный состав подтверждения не переносится.
 - **Observability:** state version, semantic events и audit snapshots должны объяснять автоматическое назначение и ручные переносы.
 
 ## Starter Template Evaluation
@@ -86,7 +86,7 @@ Brownfield full-stack web application на Next.js App Router.
 
 ### Decision Priority Analysis
 
-**Critical decisions:** canonical tables for intent/assignment/circle; one session-level transition executor; `open|closed` lifecycle; interaction contract between scenario and book tabs; additive rollout between sessions.
+**Critical decisions:** canonical tables for intent/assignment/circle; one session-level transition executor; `open|closed` lifecycle; interaction contract between scenario and book tabs; additive rollout with one-time initialization of a live session.
 
 **Important decisions:** unified versioned DTO; command-oriented routes; deterministic grouping; public identity boundary; audit event taxonomy; close/reopen polling behavior.
 
@@ -118,13 +118,13 @@ Base interest is the intersection of session membership and the current `signup_
 **`matching_book_assignments`**
 
 - `(session_id, user_id)` primary key, enforcing one slot.
-- `book_id`, `source: hard|conditional|admin`, `assigned_at`, `assigned_by`, nullable `circle_id`.
+- `book_id`, `source: hard|conditional|admin|legacy`, `assigned_at`, `assigned_by`, nullable `circle_id`.
 - Index `(session_id, book_id, assigned_at, user_id)`.
 - Assignment persists independently of circle viability.
 
 **`matching_circles`**
 
-- UUID `id`, `session_id`, `book_id`, `position`, timestamps.
+- UUID `id`, `session_id`, `book_id`, `position`, timestamps, nullable unique `legacy_locked_circle_id` for migration provenance and idempotency.
 - Unique `(id, session_id, book_id)` supports a composite FK from assignment, preventing placement into a circle of another book.
 - Group size is derived and has no DB constraint; admin may create any size.
 
@@ -133,6 +133,20 @@ All four tables have stable IDs or composite entity identities suitable for audi
 #### Legacy coexistence
 
 `matching_circle_confirmations` and `matching_locked_circles` remain legacy storage for the read-only scenario tab during the experiment. The tab may render them but exposes no mutation CTA. They are not read as canonical book intents or assignments. Destructive removal is deferred until the experiment chooses a primary model.
+
+#### Live-session initialization
+
+`matching_sessions.book_mode_initialized_at` is the cutover marker. It is null for a legacy session and set in the same transaction that projects its live state. New sessions created after launch are initialized immediately. Legacy mutation routes reject writes once the marker is set; the public state then exposes the book tab and renders the scenario tab read-only.
+
+Initialization runs once under the normal session-row lock:
+
+1. Lock the session and return idempotent success when `book_mode_initialized_at` is already set.
+2. For every active locked circle, upsert each member's book into the global shortlist, create a formed marker, create a new circle linked by `legacy_locked_circle_id`, and create `source='legacy'` assignments preserving the exact active membership.
+3. For every remaining confirmation whose user is not assigned, upsert its book into the global shortlist and create a hard intent for that book. The old `circleKey` and member snapshot remain legacy history and do not constrain the new book intent.
+4. Evaluate normal formation rules for books affected by imported hard intents, then perform all resulting assignments and circle reconciliation.
+5. Set `book_mode_initialized_at`, record migration semantic events and increment `state_version` exactly once.
+
+The current unique active-member constraint guarantees no participant belongs to two active locked circles. A migration preflight still verifies this invariant, missing participants/books and shortlist consistency before writing. Any violation rolls back the entire initialization and keeps the session in legacy mode.
 
 ### Transaction Architecture
 
@@ -232,14 +246,14 @@ Closed clients continue low-frequency version checks so reopening is discoverabl
 - No new service, queue, cache or realtime transport.
 - Keep current polling/state-version mechanism for the initial release.
 - Additive migration first; legacy tables remain.
-- Rollout only when no matching session is open unless an explicit live-data migration is approved.
-- Deploy code behind an inaccessible feature gate, then enable the complete book mode in one user-visible release.
+- Deploy the complete code with the book tab hidden while `book_mode_initialized_at` is null.
+- Initialize the current live session atomically; after commit the same canonical state makes the book tab visible and all legacy scenario mutations read-only.
 
 ### Alternatives Rejected
 
 - **Derive book mode from scenarios:** loses zero-overlap books and durable signals.
-- **Reuse exact-circle confirmations:** wrong aggregate and lifecycle.
-- **Reuse locked circles as assignments:** conflates book commitment and group placement.
+- **Use exact-circle confirmations directly as canonical state:** wrong aggregate and lifecycle; only a one-time lossy projection to hard book intent is allowed.
+- **Use locked-circle tables directly as assignments:** conflates book commitment and group placement; a one-time projection preserving membership is allowed, after which new tables are canonical.
 - **Second mutation executor:** risks divergent concurrency/audit rules.
 - **Global optimization:** conflicts with event-order and human-override product model.
 - **Protected manual grouping mode:** rejected as unnecessary complexity.
@@ -256,9 +270,9 @@ Closed clients continue low-frequency version checks so reopening is discoverabl
 
 **Database:** Drizzle variables camelCase, SQL tables/columns snake_case. New names use `matchingBookIntents` → `matching_book_intents`, `sessionId` → `session_id`. Indexes use `table_columns_purpose_idx`; partial uniques end `_uniq`.
 
-**Domain commands:** discriminated union with camelCase command types: `setConditional`, `unsetConditional`, `setHard`, `cancelHard`, `adminTransferBook`, `closeSession`, `reopenSession`.
+**Domain commands:** discriminated union with camelCase command types: `initializeBookMode`, `setConditional`, `unsetConditional`, `setHard`, `cancelHard`, `adminTransferBook`, `closeSession`, `reopenSession`.
 
-**Semantic events:** past-tense snake_case: `conditional_set`, `hard_switched`, `book_formed`, `participant_auto_assigned`, `admin_book_transferred`, `circles_rebalanced`, `session_closed`, `session_reopened`.
+**Semantic events:** past-tense snake_case: `book_mode_initialized`, `legacy_confirmation_imported`, `legacy_circle_imported`, `conditional_set`, `hard_switched`, `book_formed`, `participant_auto_assigned`, `admin_book_transferred`, `circles_rebalanced`, `session_closed`, `session_reopened`.
 
 **Components:** PascalCase files under `components/nd/`: `MatchingBooksView.tsx`, `MatchingBookCard.tsx`, `MatchingBookParticipants.tsx`, `MatchingBookAdminControls.tsx`.
 
@@ -269,6 +283,7 @@ Closed clients continue low-frequency version checks so reopening is discoverabl
 - Public read-model assembly lives beside existing `public-state*` modules and exposes one canonical type.
 - Route tests remain co-located as `route.test.ts`; pure utility tests remain beside source.
 - New E2E flows use shared fixtures and teardown in `e2e/fixtures.ts`.
+- Initialization tests cover an empty legacy session, confirmations only, active and dissolved circles, assigned-user confirmation overlap, idempotent retry, failed preflight rollback and a concurrent legacy mutation at the cutover boundary.
 
 ### API and Data Formats
 
@@ -443,8 +458,8 @@ No new external integration. Neon stores state, NextAuth provides actor/role, Ve
 
 ### Development and Deployment Boundaries
 
-- Feature implementation may land internally behind a closed gate, but user enablement is atomic.
-- Migration application follows `db-migrate` and occurs before feature enablement.
+- Feature implementation may land internally behind a closed gate, but user enablement is atomic per session.
+- Schema migration follows `db-migrate`; live-state initialization is a separate audited matching transition performed after deploy and before that session exposes the book tab.
 - Legacy schema is removed only after the experiment and a separate destructive migration.
 - Merge requires existing CI plus local matching E2E/UI layout runs because nightly E2E is not a merge gate.
 
@@ -482,13 +497,7 @@ No new external integration. Neon stores state, NextAuth provides actor/role, Ve
 4. Admin assignment to a book outside the user's shortlist atomically adds that book to the global shortlist. Matching never contains a session-only book absent from that shortlist.
 5. Participants see every preliminary circle for books in their personal Matching catalog; admin sees all circles.
 
-**Open rollout decision:**
-
-6. Migration policy for a legacy session that is still open when the new book mode is ready to enable.
-
-### Provisional Rollout Assumption
-
-- Production enablement occurs between sessions; live legacy confirmations and locked circles are not auto-converted. Schema and gated code may be deployed earlier.
+6. Book mode is enabled inside the current legacy session through an atomic one-time initialization: active locked circles become formed books, assignments and preserved circle memberships; remaining confirmations become hard book intents; participants and global shortlists remain live canonical data.
 
 ### Architecture Completeness Checklist
 
@@ -500,16 +509,16 @@ No new external integration. Neon stores state, NextAuth provides actor/role, Ve
 - [x] Audit, migration, testing and rollout requirements defined.
 - [x] Legacy coexistence risks identified.
 - [x] Product owner confirms decisions 1–5 above.
-- [ ] Product owner confirms the rollout decision.
+- [x] Product owner confirms live-session rollout.
 
 ### Architecture Readiness Assessment
 
-**Overall Status:** CONDITIONALLY READY FOR IMPLEMENTATION
+**Overall Status:** READY FOR IMPLEMENTATION
 
-**Confidence:** high for storage, transactional design and coexistence behavior; rollout timing remains to be confirmed.
+**Confidence:** high for storage, transactional design, coexistence behavior and live-session rollout.
 
 **Key strengths:** reuses proven transaction/audit choke-point; DB-enforced single assignment; additive rollout; explicit separation between commitment and grouping; deterministic automatic behavior with unrestricted admin override.
 
 ### Implementation Handoff
 
-First implementation priority is the additive schema plus migration contract and pure state-transition/partition tests. User-visible work should remain gated until rollout timing is confirmed and the entire vertical slice passes E2E.
+First implementation priority is the additive schema plus live-initialization contract and pure state-transition/partition tests. User-visible work remains gated per session until initialization commits and the entire vertical slice passes E2E.

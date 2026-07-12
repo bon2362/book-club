@@ -95,11 +95,11 @@ PK `(session_id,book_id)`, `formed_at`, `formed_state_version`. Маркер о�
 
 ### `matching_book_assignments`
 
-PK `(session_id,user_id)` обеспечивает один слот. Поля `book_id`, `source`, `assigned_at`, `assigned_by`, nullable `circle_id`. Индекс чтения `(session_id,book_id,assigned_at,user_id)`.
+PK `(session_id,user_id)` обеспечивает один слот. Поля `book_id`, `source: hard|conditional|admin|legacy`, `assigned_at`, `assigned_by`, nullable `circle_id`. Индекс чтения `(session_id,book_id,assigned_at,user_id)`.
 
 ### `matching_circles`
 
-UUID `id`, `session_id`, `book_id`, `position`, timestamps. Размер вычисляется по assignments; DB не ограничивает 3–5. Composite FK assignment → circle гарантирует совпадение session/book.
+UUID `id`, `session_id`, `book_id`, `position`, timestamps, nullable unique `legacy_locked_circle_id`. Размер вычисляется по assignments; DB не ограничивает 3–5. Composite FK assignment → circle гарантирует совпадение session/book, а legacy ID делает live migration идемпотентной и прослеживаемой.
 
 ### Derived interest
 
@@ -167,6 +167,7 @@ Close/reopen проходят через тот же executor. Participant mutat
 - Persistence E2E: every user/admin action verified after reload.
 - UI layout: tabs, pinned card, disappearing actions, 375–390 px, admin controls.
 - Migration contract: tables, FK, partial uniques, indexes, lifecycle values, audit triggers, legacy rollout.
+- Live initialization: empty session, confirmations only, active/dissolved circles, assignment-confirmation overlap, missing shortlist row, idempotent retry, preflight rollback and concurrent legacy mutation.
 - Docs: `docs/features/matching.md`, testing docs, OpenAPI and matching/database/admin/privacy/audit Wiki pages.
 
 ## Rollout
@@ -174,9 +175,11 @@ Close/reopen проходят через тот же executor. Participant mutat
 1. Add tables, constraints, triggers and read paths without enabling UI.
 2. Add commands/DTO/components behind a closed gate.
 3. Apply migration through `db-migrate` and verify production schema.
-4. Enable only between sessions; do not auto-convert live confirmations/locked circles.
-5. Run full local matching E2E/layout suite because nightly E2E does not gate merge.
-6. Preserve legacy tables until the real-session experiment resolves scenario coexistence.
+4. Initialize the current session in one audited transition under the session lock: active locked circles → formed books + legacy assignments + preserved circles; remaining confirmations → hard intents; affected books then pass through normal formation rules.
+5. Upsert imported books into each affected user's global shortlist, set `book_mode_initialized_at` and bump `state_version` once. Any failed preflight or write rolls back the whole cutover.
+6. Make the book tab visible from the committed initialization marker and simultaneously reject legacy scenario mutations; no interval with two writable models is allowed.
+7. Run full local matching E2E/layout suite because nightly E2E does not gate merge.
+8. Preserve legacy tables as read-only history until the real-session experiment resolves scenario coexistence.
 
 ## Product decisions
 
@@ -188,6 +191,4 @@ Close/reopen проходят через тот же executor. Participant mutat
 4. Admin assignment вне текущего шорт-листа атомарно добавляет книгу в глобальный шорт-лист. В Matching у пользователя нет книг вне этого списка.
 5. Участник видит все предварительные круги книг своего шорт-листа; admin видит все круги.
 
-Открыт один вопрос:
-
-6. Включать ли книжный режим только между сессиями, не конвертируя живые legacy confirmations/locked circles? Схему и закрытый feature gate при этом можно доставить заранее.
+6. Книжный режим включается посреди текущей legacy-сессии через атомарную инициализацию. Активные locked circles сохраняются как formed/assignment/circle, а остальные confirmations становятся hard intent соответствующей книги; старые таблицы после этого остаются read-only историей.
