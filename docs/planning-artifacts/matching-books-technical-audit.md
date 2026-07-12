@@ -134,11 +134,11 @@ Interest не дублируется: session participant + актуальный
 
 ### Admin transfer
 
-Одна команда обновляет source assignment, destination assignment/circle, очищает несовместимые intents и пересчитывает затронутые read models. Размеры кругов не валидируются.
+Одна команда при необходимости добавляет destination book в глобальный шорт-лист участника, обновляет source assignment, destination assignment/circle, очищает несовместимые intents и пересчитывает затронутые read models. Всё происходит атомарно; session-only назначение вне глобального шорт-листа недопустимо. Размеры кругов не валидируются.
 
 ### Close/reopen
 
-Close/reopen проходят через тот же executor. Participant mutations разрешены только в open; admin mutations — в open и closed. Partial unique index остаётся последней защитой от двух одновременно открытых сессий; `23505` преобразуется в `409`.
+Close/reopen проходят через тот же executor. Participant mutations разрешены только в open; admin mutations — в open и closed. Последняя закрытая сессия остаётся current до создания следующей и продолжает защищать связанные hard/assigned книги от удаления из глобального шорт-листа; более старые сессии остаются историей без таких ограничений. Partial unique index остаётся последней защитой от двух одновременно открытых сессий; `23505` преобразуется в `409`.
 
 ## Автоматическая раскладка
 
@@ -153,11 +153,11 @@ Close/reopen проходят через тот же executor. Participant mutat
 - participant cards только для viewer shortlist;
 - admin cards для union всех session books;
 - interest/conditional/hard/assigned participant statuses;
-- formed/current viability, text status и preliminary circles;
+- исторический formed/current viability, text status и все preliminary circles книг viewer shortlist;
 - allowed actions, вычисленные сервером;
 - `publicRef`/displayName без raw user ID.
 
-Сценарный и книжный state возвращаются в одной версии, но строятся независимыми read-model функциями.
+Сценарный и книжный state возвращаются в одной версии, но строятся независимыми read-model функциями. Сценарная вкладка во время эксперимента read-only; admin видит все preliminary circles сессии.
 
 ## Test and operational obligations
 
@@ -178,11 +178,16 @@ Close/reopen проходят через тот же executor. Participant mutat
 5. Run full local matching E2E/layout suite because nightly E2E does not gate merge.
 6. Preserve legacy tables until the real-session experiment resolves scenario coexistence.
 
-## Product decisions required
+## Product decisions
 
-1. Должна ли сценарная вкладка быть read-only во время эксперимента или её CTA нужно переписать на те же hard intents?
-2. Сохраняет ли книга состояние formed после того, как admin удалил всех или оставил меньше трёх assignments?
-3. Какая закрытая сессия считается current до создания следующей и должна ли она блокировать изменение глобального шорт-листа?
-4. Должен ли admin assignment вне шорт-листа добавлять книгу в глобальный шорт-лист или только принудительно показывать её в session view?
-5. Видит ли участник все предварительные круги своих книг или только собственный круг и агрегированный статус остальных?
-6. Подтверждается ли rollout только между сессиями без автоматической миграции живых legacy confirmations/locked circles?
+Подтверждено:
+
+1. Сценарная вкладка read-only во время эксперимента.
+2. Книга сохраняет исторический formed после admin override; текущая жизнеспособность показывается отдельно.
+3. Последняя закрытая сессия остаётся current до создания следующей и до этого защищает связанные hard/assigned книги. После появления новой current-сессии старые назначения становятся только историей и не блокируют глобальный шорт-лист.
+4. Admin assignment вне текущего шорт-листа атомарно добавляет книгу в глобальный шорт-лист. В Matching у пользователя нет книг вне этого списка.
+5. Участник видит все предварительные круги книг своего шорт-листа; admin видит все круги.
+
+Открыт один вопрос:
+
+6. Включать ли книжный режим только между сессиями, не конвертируя живые legacy confirmations/locked circles? Схему и закрытый feature gate при этом можно доставить заранее.

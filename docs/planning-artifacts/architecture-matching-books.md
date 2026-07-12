@@ -132,7 +132,7 @@ All four tables have stable IDs or composite entity identities suitable for audi
 
 #### Legacy coexistence
 
-`matching_circle_confirmations` and `matching_locked_circles` remain legacy storage for the scenario tab during the experiment. They are not read as canonical book intents or assignments. Destructive removal is deferred until the experiment chooses a primary model.
+`matching_circle_confirmations` and `matching_locked_circles` remain legacy storage for the read-only scenario tab during the experiment. The tab may render them but exposes no mutation CTA. They are not read as canonical book intents or assignments. Destructive removal is deferred until the experiment chooses a primary model.
 
 ### Transaction Architecture
 
@@ -158,6 +158,7 @@ The session lock intentionally serializes all mutations within one small club se
 - **Cancel hard:** allowed only without assignment.
 - **Leave:** allowed only without assignment; deletes membership and intents atomically.
 - **Shortlist mutation:** conditional is cleared; hard requires explicit cancellation; assignment blocks user mutation.
+- **Admin assignment outside shortlist:** insert the book into the participant's global shortlist and create the assignment in the same transaction; a session-only assignment outside the global shortlist is invalid.
 
 #### Formation transaction
 
@@ -188,6 +189,8 @@ Replace user-facing semantics `active|frozen` with `open|closed`.
 - Close preserves participants, intents, assignments, circles and event history.
 - Closed session rejects participant commands but accepts admin commands.
 - Reopen preserves state and re-enables participant commands/automation.
+- The last closed session remains current until another session is created; while it is current, its hard choices and assignments still protect the global shortlist.
+- Once a new session becomes current, assignments in older closed sessions remain historical and no longer constrain global shortlist edits.
 - Concurrent reopening of two sessions maps partial-index violation to `409`.
 - `frozen_scenario_json` may remain as a legacy scenario snapshot during migration but is not canonical for book mode.
 
@@ -205,8 +208,8 @@ Use command-oriented HTTP routes backed by one domain executor:
 
 - `GET /api/matching/state` returns shared session metadata, legacy scenario state and `bookMode` read model at one version.
 - `POST /api/matching/sessions/[id]/book-actions` accepts a discriminated participant command union: conditional set/unset, hard set/cancel, leave.
-- Existing catalog endpoints delegate active binding checks to the same executor whenever the user participates in a current open/closed session.
-- `POST /api/matching/sessions/[id]/book-admin-actions` accepts admin assign/unassign/transfer/place/remove-participant commands.
+- Existing catalog endpoints delegate binding checks to the same executor whenever the user participates in the current open or last-current closed session.
+- `POST /api/matching/sessions/[id]/book-admin-actions` accepts admin assign/unassign/transfer/place/remove-participant commands. Assign/transfer atomically upserts the destination book into the target user's global shortlist when needed.
 - Session close/reopen remain explicit admin commands in the existing transition route family.
 
 All successful responses return canonical state/version or a version pointer. `409` returns enough canonical state for client reconciliation. No-op and idempotent retry return success without new events/version.
@@ -215,12 +218,12 @@ All successful responses return canonical state/version or a version pointer. `4
 
 Create one book-centric read model per viewer:
 
-- Participant mode: every current shortlist book, intersection members, status counts, own actions, pinned hard/assignment, preliminary circles visible by policy.
+- Participant mode: every current shortlist book, intersection members, status counts, own actions, pinned hard/assignment, and all preliminary circles for those books.
 - Admin mode: union of all session shortlist/intent/assignment books and all privileged controls.
 - Participant records use explicit `interest|conditional|hard|assigned` status and stable public refs.
 - Sorting: own pinned book first, then intersection count with stable book tie-break.
 
-`MatchingRealtimeClient` remains the session shell. It renders a tab switch with legacy `MatchingScenarios` and new `MatchingBooksView`. Initial SSR data and polling refresh use the same DTO; the separate SSR-only `bookParticipants` projection is removed from the new path.
+`MatchingRealtimeClient` remains the session shell. It renders a tab switch with read-only legacy `MatchingScenarios` and new `MatchingBooksView`. Initial SSR data and polling refresh use the same DTO; the separate SSR-only `bookParticipants` projection is removed from the new path.
 
 Closed clients continue low-frequency version checks so reopening is discoverable. Pending commands preserve stable card keys and restore focus after reorder.
 
@@ -471,26 +474,21 @@ No new external integration. Neon stores state, NextAuth provides actor/role, Ve
 
 ### Gap Analysis Results
 
-**Blocking product decisions:**
+**Confirmed product decisions:**
 
-1. Scenario tab interaction policy while book mode is active.
-2. Whether a book remains historically formed after admin removes assignments below three.
-3. Which closed session is considered current and how old assignments interact with the global shortlist after a new session opens.
+1. Scenario tab is read-only during the experiment.
+2. `formed_at` persists after admin destruction; current viability is displayed separately. Resetting formation is outside MVP.
+3. The last closed session remains current until the next session is created. Historical closed assignments remain visible but stop constraining the global shortlist after a new session becomes current.
+4. Admin assignment to a book outside the user's shortlist atomically adds that book to the global shortlist. Matching never contains a session-only book absent from that shortlist.
+5. Participants see every preliminary circle for books in their personal Matching catalog; admin sees all circles.
 
-**Important decisions:**
+**Open rollout decision:**
 
-4. Whether admin may assign outside shortlist without altering that shortlist.
-5. Whether every participant sees all preliminary circles for their books or only their own circle plus aggregate status.
-6. Migration policy for any session active at rollout.
+6. Migration policy for a legacy session that is still open when the new book mode is ready to enable.
 
-### Provisional Assumptions Used for Design
+### Provisional Rollout Assumption
 
-- Scenario tab is read-only during the experiment unless its CTA is rewritten to emit the same hard book intent.
-- `formed_at` persists after admin destruction; current viability is displayed separately. Resetting formation is outside MVP.
-- Only the current session constrains live shortlist mutation; historical closed assignments remain visible from session history but do not lock future catalog editing after a new session becomes current.
-- Admin assignment outside shortlist does not mutate the global shortlist; assigned book is injected and pinned in the participant's session view.
-- Participants see preliminary circles for books in their personal Matching catalog; admin sees all circles.
-- Production rollout occurs between sessions; live legacy state is not auto-converted.
+- Production enablement occurs between sessions; live legacy confirmations and locked circles are not auto-converted. Schema and gated code may be deployed earlier.
 
 ### Architecture Completeness Checklist
 
@@ -501,16 +499,17 @@ No new external integration. Neon stores state, NextAuth provides actor/role, Ve
 - [x] Participant/admin API and UI boundaries defined.
 - [x] Audit, migration, testing and rollout requirements defined.
 - [x] Legacy coexistence risks identified.
-- [ ] Product owner confirms the six decisions above.
+- [x] Product owner confirms decisions 1–5 above.
+- [ ] Product owner confirms the rollout decision.
 
 ### Architecture Readiness Assessment
 
 **Overall Status:** CONDITIONALLY READY FOR IMPLEMENTATION
 
-**Confidence:** high for storage and transactional design; medium for coexistence/lifecycle behavior until product questions are answered.
+**Confidence:** high for storage, transactional design and coexistence behavior; rollout timing remains to be confirmed.
 
 **Key strengths:** reuses proven transaction/audit choke-point; DB-enforced single assignment; additive rollout; explicit separation between commitment and grouping; deterministic automatic behavior with unrestricted admin override.
 
 ### Implementation Handoff
 
-First implementation priority is the additive schema plus migration contract and pure state-transition/partition tests. User-visible work should remain gated until product decisions are resolved and the entire vertical slice passes E2E.
+First implementation priority is the additive schema plus migration contract and pure state-transition/partition tests. User-visible work should remain gated until rollout timing is confirmed and the entire vertical slice passes E2E.
