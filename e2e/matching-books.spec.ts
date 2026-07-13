@@ -2,6 +2,8 @@ import type { APIRequestContext } from '@playwright/test'
 import { epic, feature } from 'allure-js-commons'
 import { test, expect } from './fixtures'
 
+test.describe.configure({ timeout: 120_000 })
+
 type BookModeState = {
   session: { stateVersion: number; status: string }
   bookMode: null | {

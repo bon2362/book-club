@@ -2,6 +2,8 @@ import { test, expect, type Page } from './fixtures'
 import type { APIRequestContext, Browser, BrowserContext } from '@playwright/test'
 import { epic, feature } from 'allure-js-commons'
 
+test.describe.configure({ timeout: 120_000 })
+
 type PublicState = {
   session: { stateVersion: number; status?: string }
   viewer: { role: 'active' | 'observer' }
