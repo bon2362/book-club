@@ -5,6 +5,8 @@ import {
   bookPriorities,
   books,
   matchingCircleConfirmations,
+  matchingBookAssignments,
+  matchingBookIntents,
   matchingEvents,
   matchingLockedCircleMembers,
   matchingLockedCircles,
@@ -19,9 +21,12 @@ import { upsertSignupByBookIds } from '@/lib/signup-books'
 import { assignMatchingDisplayNames } from './display-names'
 import { buildMatchingEventRows } from './matching-events'
 import { nextRank } from './rank-assignment'
+import { applyBookMatchingAction } from './book-transition-db'
 import { fetchRankedMatchingScenarios } from './reconciliation-scenarios-db'
 import {
   executeMatchingTransition,
+  MatchingTransitionError,
+  resolveParticipantRole,
   type MatchingAction,
   type MatchingActionResult,
   type MatchingEventDraft,
@@ -52,12 +57,17 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
 
   async lockSession(sessionId: string) {
     const result = await this.tx.execute(sql`
-      SELECT status, state_version AS "stateVersion"
+      SELECT status, state_version AS "stateVersion",
+             book_mode_initialized_at AS "bookModeInitializedAt"
       FROM matching_sessions
       WHERE id = ${sessionId}
       FOR UPDATE
     `)
-    return executeRows<{ status: string; stateVersion: number }>(result)[0] ?? null
+    return executeRows<{
+      status: string
+      stateVersion: number
+      bookModeInitializedAt: Date | null
+    }>(result)[0] ?? null
   }
 
   async getParticipantRole(sessionId: string, userId: string) {
@@ -71,16 +81,26 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       .limit(1)
     if (!participant) return 'missing' as const
 
-    const [locked] = await this.tx
-      .select({ userId: matchingLockedCircleMembers.userId })
-      .from(matchingLockedCircleMembers)
-      .where(and(
-        eq(matchingLockedCircleMembers.sessionId, sessionId),
-        eq(matchingLockedCircleMembers.userId, userId),
-        isNull(matchingLockedCircleMembers.releasedAt),
-      ))
-      .limit(1)
-    return locked ? 'observer' as const : 'active' as const
+    const [assignmentRows, lockedRows, sessionRows] = await Promise.all([
+      this.tx.select({ userId: matchingBookAssignments.userId })
+        .from(matchingBookAssignments)
+        .where(and(eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, userId)))
+        .limit(1),
+      this.tx.select({ userId: matchingLockedCircleMembers.userId })
+        .from(matchingLockedCircleMembers)
+        .where(and(
+          eq(matchingLockedCircleMembers.sessionId, sessionId),
+          eq(matchingLockedCircleMembers.userId, userId),
+          isNull(matchingLockedCircleMembers.releasedAt),
+        )).limit(1),
+      this.tx.select({ initializedAt: matchingSessions.bookModeInitializedAt })
+        .from(matchingSessions).where(eq(matchingSessions.id, sessionId)).limit(1),
+    ])
+    return resolveParticipantRole({
+      bookModeInitialized: Boolean(sessionRows[0]?.initializedAt),
+      hasBookAssignment: assignmentRows.length > 0,
+      hasLegacyLock: lockedRows.length > 0,
+    })
   }
 
   async getRankedScenarios(sessionId: string): Promise<RankedReconciliationScenario[]> {
@@ -213,7 +233,25 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     return deleted.length > 0
   }
 
-  async applyAction(sessionId: string, action: MatchingAction): Promise<MatchingActionResult> {
+  async applyAction(
+    sessionId: string,
+    action: MatchingAction,
+    nextStateVersion: number,
+  ): Promise<MatchingActionResult> {
+    if ([
+      'initialize_book_mode', 'set_conditional', 'unset_conditional', 'set_hard',
+      'cancel_hard', 'admin_assign_book', 'admin_unassign_book',
+      'admin_create_book_circle', 'admin_delete_book_circle',
+      'admin_place_book_assignment', 'close_session', 'reopen_session',
+    ].includes(action.type)) {
+      return applyBookMatchingAction({
+        tx: this.tx,
+        sessionId,
+        action: action as Parameters<typeof applyBookMatchingAction>[0]['action'],
+        actor: this.actor,
+        nextStateVersion,
+      })
+    }
     switch (action.type) {
       case 'self_join':
       case 'admin_add': {
@@ -263,6 +301,12 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       }
       case 'leave':
       case 'admin_remove': {
+        if (action.type === 'admin_remove') {
+          await this.tx.delete(matchingBookAssignments).where(and(
+            eq(matchingBookAssignments.sessionId, sessionId),
+            eq(matchingBookAssignments.userId, action.userId),
+          ))
+        }
         const deleted = await this.tx
           .delete(matchingSessionParticipants)
           .where(and(
@@ -273,13 +317,13 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         return deleted.length > 0
       }
       case 'change_book':
-        return this.changeBook(action.userId, action.bookId, action.operation)
+        return this.changeBook(sessionId, action.userId, action.bookId, action.operation)
       case 'change_rank':
         return this.changeRank(action.userId, action.bookId, action.rank)
       case 'change_status':
-        return this.changeStatus(action.userId, action.bookId, action.status)
+        return this.changeStatus(sessionId, action.userId, action.bookId, action.status)
       case 'replace_signup':
-        return this.replaceSignup(action.userId, action.name, action.contacts, action.bookIds)
+        return this.replaceSignup(sessionId, action.userId, action.name, action.contacts, action.bookIds)
       case 'reorder_priorities':
         return this.reorderPriorities(action.userId, action.bookIds)
       case 'change_group_size': {
@@ -385,11 +429,24 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       }
       case 'set_confirmation':
       case 'cancel_confirmation':
+      case 'initialize_book_mode':
+      case 'set_conditional':
+      case 'unset_conditional':
+      case 'set_hard':
+      case 'cancel_hard':
+      case 'admin_assign_book':
+      case 'admin_unassign_book':
+      case 'admin_create_book_circle':
+      case 'admin_delete_book_circle':
+      case 'admin_place_book_assignment':
+      case 'close_session':
+      case 'reopen_session':
         return false
     }
   }
 
   private async changeBook(
+    sessionId: string,
     userId: string,
     bookId: string,
     operation: 'add' | 'remove',
@@ -411,6 +468,28 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
           .onConflictDoNothing()
       }
       return inserted.length > 0
+    }
+
+    const [assignment] = await this.tx.select({ userId: matchingBookAssignments.userId })
+      .from(matchingBookAssignments).where(and(
+        eq(matchingBookAssignments.sessionId, sessionId),
+        eq(matchingBookAssignments.userId, userId),
+        eq(matchingBookAssignments.bookId, bookId),
+      )).limit(1)
+    if (assignment) throw new MatchingTransitionError('participant_locked')
+    const [intent] = await this.tx.select({ kind: matchingBookIntents.kind })
+      .from(matchingBookIntents).where(and(
+        eq(matchingBookIntents.sessionId, sessionId),
+        eq(matchingBookIntents.userId, userId),
+        eq(matchingBookIntents.bookId, bookId),
+      )).limit(1)
+    if (intent?.kind === 'hard') throw new MatchingTransitionError('book_action_forbidden')
+    if (intent?.kind === 'conditional') {
+      await this.tx.delete(matchingBookIntents).where(and(
+        eq(matchingBookIntents.sessionId, sessionId),
+        eq(matchingBookIntents.userId, userId),
+        eq(matchingBookIntents.bookId, bookId),
+      ))
     }
 
     const deleted = await this.tx
@@ -452,11 +531,42 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
   }
 
   private async replaceSignup(
+    sessionId: string,
     userId: string,
     name: string,
     contacts: string,
     bookIds: string[],
   ): Promise<boolean> {
+    const desiredBookIds = new Set(bookIds)
+    const currentMatchingBooks = await this.tx.select({ bookId: signupBooks.bookId })
+      .from(signupBooks)
+      .where(and(eq(signupBooks.userId, userId), isNull(signupBooks.personalStatus)))
+    const removedBookIds = currentMatchingBooks
+      .map(item => item.bookId)
+      .filter(bookId => !desiredBookIds.has(bookId))
+    if (removedBookIds.length > 0) {
+      const [assignment, hard] = await Promise.all([
+        this.tx.select({ bookId: matchingBookAssignments.bookId }).from(matchingBookAssignments).where(and(
+          eq(matchingBookAssignments.sessionId, sessionId),
+          eq(matchingBookAssignments.userId, userId),
+          inArray(matchingBookAssignments.bookId, removedBookIds),
+        )).limit(1),
+        this.tx.select({ bookId: matchingBookIntents.bookId }).from(matchingBookIntents).where(and(
+          eq(matchingBookIntents.sessionId, sessionId),
+          eq(matchingBookIntents.userId, userId),
+          eq(matchingBookIntents.kind, 'hard'),
+          inArray(matchingBookIntents.bookId, removedBookIds),
+        )).limit(1),
+      ])
+      if (assignment.length) throw new MatchingTransitionError('participant_locked')
+      if (hard.length) throw new MatchingTransitionError('book_action_forbidden')
+      await this.tx.delete(matchingBookIntents).where(and(
+        eq(matchingBookIntents.sessionId, sessionId),
+        eq(matchingBookIntents.userId, userId),
+        eq(matchingBookIntents.kind, 'conditional'),
+        inArray(matchingBookIntents.bookId, removedBookIds),
+      ))
+    }
     const [currentUser] = await this.tx
       .select({ name: users.name, contacts: users.contacts })
       .from(users)
@@ -484,6 +594,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
   }
 
   private async changeStatus(
+    sessionId: string,
     userId: string,
     bookId: string,
     status: 'reading' | 'read' | null,
@@ -494,6 +605,30 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
       .limit(1)
     if (!signup || signup.personalStatus === status) return false
+
+    if (status !== null) {
+      const [assignment] = await this.tx.select({ userId: matchingBookAssignments.userId })
+        .from(matchingBookAssignments).where(and(
+          eq(matchingBookAssignments.sessionId, sessionId),
+          eq(matchingBookAssignments.userId, userId),
+          eq(matchingBookAssignments.bookId, bookId),
+        )).limit(1)
+      if (assignment) throw new MatchingTransitionError('participant_locked')
+      const [intent] = await this.tx.select({ kind: matchingBookIntents.kind })
+        .from(matchingBookIntents).where(and(
+          eq(matchingBookIntents.sessionId, sessionId),
+          eq(matchingBookIntents.userId, userId),
+          eq(matchingBookIntents.bookId, bookId),
+        )).limit(1)
+      if (intent?.kind === 'hard') throw new MatchingTransitionError('book_action_forbidden')
+      if (intent?.kind === 'conditional') {
+        await this.tx.delete(matchingBookIntents).where(and(
+          eq(matchingBookIntents.sessionId, sessionId),
+          eq(matchingBookIntents.userId, userId),
+          eq(matchingBookIntents.bookId, bookId),
+        ))
+      }
+    }
 
     await this.tx
       .update(signupBooks)

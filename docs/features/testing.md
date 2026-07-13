@@ -8,8 +8,8 @@
 |---------|-----------|-------------|-------|
 | Статический анализ | ESLint + tsc | Pre-commit (Husky) + CI | ~10 сек |
 | Unit-тесты + Coverage | Jest + Codecov | Pre-commit (Husky) + CI | ~45 сек |
-| E2E-тесты | Playwright | CI (после пуша) | ~5–10 мин |
-| Отчётность | Allure + GitHub Pages | CI (после e2e) | авто |
+| E2E-тесты | Playwright | Nightly + вручную (`workflow_dispatch`) | ~5–10 мин |
+| Отчётность | Allure + GitHub Pages | После отдельного E2E workflow | авто |
 | Coverage tracking | Codecov | CI (после unit-тестов) | авто |
 
 ---
@@ -84,7 +84,7 @@ Coverage автоматически загружается в **Codecov** в к�
 
 Сценарии, проверяющие cookie с обязательным префиксом `__Secure-`, локально запускаются через HTTPS: `PLAYWRIGHT_HTTPS=true npm run test:e2e <spec>`. Конфиг добавляет `next dev --experimental-https` и разрешает только локальный self-signed certificate; CI и production-настройки не ослабляются.
 
-**14 спеков, браузер: Chromium headless.**
+**Браузер: Chromium headless.** E2E не входят в merge-gate: красный nightly чинится форвардом и не отменяет уже выполненный merge.
 
 ### Запуск локально
 
@@ -122,6 +122,7 @@ Global setup/teardown удаляет E2E users и E2E matching sessions чере
 Для matching используются две составные fixture:
 
 - `matchingBoardFixture` создаёт отдельную active session, две книги и двух участников в независимых browser contexts, вступает ими в сессию и выставляет ранги; дополнительные участники добавляются через `addParticipant`;
+- `matchingBooksFixture` создаёт legacy-сессию с тремя участниками и администратором в независимых browser contexts, задаёт им общий глобальный шорт-лист и только затем включает книжный режим. Она проверяет live-инициализацию и использует размер групп 3–5;
 - `auditCleanup` отслеживает ID тестовых sessions/users и после зависимых teardown удаляет связанные `audit_log`-строки. Она нужна потому, что глобальный audit намеренно не удаляется каскадом вместе с доменными таблицами.
 
 Все matching-мутации выполняются только в изолированной Neon-ветке `e2e`. Fixture сначала удаляют session/books и пользовательские данные по обычным FK/cleanup-маршрутам, затем `auditCleanup` убирает оставшиеся audit snapshots; production-строки не переиспользуются и не редактируются.
@@ -150,8 +151,12 @@ Global setup/teardown удаляет E2E users и E2E matching sessions чере
 | `matching-realtime.spec.ts` | Матчинг | Polling public state по `state_version` и реальные display names без raw user ids |
 | `matching-admin.spec.ts` | Матчинг / администрирование | Force-add, роли active/observer, изменение размеров, freeze, реестр и роспуск целого круга |
 | `matching-audit.spec.ts` | Матчинг / аудит | Смысловые `matching_events`, глобальный audit, actor/source и отсутствие heartbeat-шума |
+| `matching-books.spec.ts` | Матчинг | Условный/твёрдый выбор с reload, атомарная смена книги, очистка условных согласий и формирование при двух hard |
+| `matching-books-cutover.spec.ts` | Матчинг | Live cutover legacy → books: exact import, overlap precedence, rollback preflight и однократный marker/version |
 
 Matching E2E покрывают законченные пользовательские истории: Welcome → Ranking Gate → board, шапку/участников/книжный popup, confirm/cancel/atomic switch, перенос или сброс выбора после изменения книги/ранга, lock → observer и исключение из дальнейшего расчёта, а также admin и оба журнала. Они создают минимум двух пользователей и собственную active session. Проверки персистентности обязательно делают `page.reload()`. Удаление тестовой книги сначала очищает связанные locked circles, поскольку production FK намеренно запрещает удалить книгу из закреплённого результата.
+
+Книжные спеки запускаются только когда к изолированной Neon-ветке `e2e` один раз применена `0053_matching_books.sql`: помимо схемы она создаёт audit/guard triggers, которые `drizzle-kit push` не генерирует. Nightly workflow затем поддерживает Drizzle-схему шагом `drizzle-kit push --force` до сборки и Playwright; сами fixtures миграции не применяют. При локальном запуске явно заданный `DATABASE_URL` имеет приоритет над `.env.test.local`; оба варианта всё равно проходят E2E DB guards. Никогда не переключайте тесты на production URL.
 
 ### Правила написания E2E-тестов
 
@@ -245,19 +250,24 @@ test.beforeEach(async () => {
 
 ## CI/CD
 
-Описан в `.github/workflows/ci.yml`. Запускается после каждого пуша в `main`.
+Merge-gate описан в `.github/workflows/ci.yml`; E2E вынесены в `.github/workflows/e2e-nightly.yml` (cron 00:00 UTC и ручной `workflow_dispatch`).
 
 ```
 git push → GitHub Actions
   1. npm ci
   2. lint
-  3. typecheck
-  4. unit-тесты + coverage (DATABASE_URL=dummy)
-  5. upload coverage → Codecov
-  6. install playwright chromium
-  7. e2e-тесты (изолированная Neon-ветка `e2e`, книги создаются per-test через `createTestBook` фикстуру)
-  8. allure generate → publish gh-pages
-  9. build
+  3. secret scan
+  4. typecheck
+  5. unit-тесты + coverage (DATABASE_URL=dummy)
+  6. upload coverage → Codecov
+  7. build
+
+nightly/manual E2E → отдельный GitHub Actions workflow
+  1. install playwright chromium
+  2. drizzle-kit push в изолированную Neon-ветку `e2e`
+  3. production build на e2e-конфигурации
+  4. e2e-тесты (книги создаются per-test через fixtures)
+  5. allure generate → publish gh-pages
 ```
 
 **Секреты для E2E:**

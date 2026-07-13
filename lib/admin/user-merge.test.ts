@@ -5,6 +5,7 @@ import {
   MergeValidationError,
   mergePriorityRows,
   reconcilePrioritiesWithSignups,
+  resolveCanonicalMatchingMerge,
   resolveSignupMerge,
   sourceActivityIdsToDrop,
   validateMergeRequest,
@@ -13,6 +14,52 @@ import {
 } from './user-merge'
 
 describe('admin user merge rules', () => {
+  const assignment = (userId: string, bookId: string) => ({
+    sessionId: 'session-1', userId, bookId, source: 'admin' as const,
+    assignedAt: new Date('2026-07-01T00:00:00Z'), assignedBy: null, circleId: null,
+  })
+  const intent = (userId: string, bookId: string, kind: 'hard' | 'conditional') => ({
+    sessionId: 'session-1', userId, bookId, kind,
+    createdAt: new Date('2026-07-01T00:00:00Z'), updatedAt: new Date('2026-07-01T00:00:00Z'),
+  })
+
+  it('keeps target canonical assignment and drops all intents in that session', () => {
+    const merged = resolveCanonicalMatchingMerge({
+      targetUserId: 'target',
+      targetAssignments: [assignment('target', 'target-book')],
+      sourceAssignments: [assignment('source', 'source-book')],
+      targetIntents: [intent('target', 'conditional-book', 'conditional')],
+      sourceIntents: [intent('source', 'hard-book', 'hard')],
+    })
+    expect(merged.assignments.map(row => [row.userId, row.bookId])).toEqual([['target', 'target-book']])
+    expect(merged.intents).toEqual([])
+  })
+
+  it('moves source canonical assignment when target has none', () => {
+    const merged = resolveCanonicalMatchingMerge({
+      targetUserId: 'target', targetAssignments: [],
+      sourceAssignments: [assignment('source', 'source-book')], targetIntents: [], sourceIntents: [],
+    })
+    expect(merged.assignments[0]).toEqual(expect.objectContaining({ userId: 'target', bookId: 'source-book' }))
+  })
+
+  it('prefers target hard intent and otherwise moves source hard while clearing conditionals', () => {
+    const targetWins = resolveCanonicalMatchingMerge({
+      targetUserId: 'target', targetAssignments: [], sourceAssignments: [],
+      targetIntents: [intent('target', 'target-hard', 'hard')],
+      sourceIntents: [intent('source', 'source-hard', 'hard')],
+    })
+    expect(targetWins.intents.map(row => row.bookId)).toEqual(['target-hard'])
+
+    const sourceWins = resolveCanonicalMatchingMerge({
+      targetUserId: 'target', targetAssignments: [], sourceAssignments: [],
+      targetIntents: [intent('target', 'conditional', 'conditional')],
+      sourceIntents: [intent('source', 'source-hard', 'hard')],
+    })
+    expect(sourceWins.intents.map(row => [row.userId, row.bookId, row.kind])).toEqual([
+      ['target', 'source-hard', 'hard'],
+    ])
+  })
   it('validates and trims merge requests', () => {
     expect(validateMergeRequest({
       sourceUserId: ' source ',

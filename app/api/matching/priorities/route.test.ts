@@ -6,23 +6,17 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { MatchingTransitionError } from '@/lib/matching/session-transition'
+import { getActiveMatchingSessionIdForParticipant } from '@/lib/matching/realtime/state-change'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: { select: jest.fn() } }))
 jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
+jest.mock('@/lib/matching/realtime/state-change', () => ({ getActiveMatchingSessionIdForParticipant: jest.fn() }))
 
 const mockAuth = auth as jest.Mock
 const mockDb = db as unknown as { select: jest.Mock }
 const mockRunTransition = runMatchingTransition as jest.Mock
-
-function activeSessionSelect(rows: unknown[] = [{ id: 'session-1' }]) {
-  const chain: Record<string, unknown> = {
-    from: () => chain,
-    where: () => chain,
-    limit: () => Promise.resolve(rows),
-  }
-  return chain
-}
+const mockCurrentSession = getActiveMatchingSessionIdForParticipant as jest.Mock
 
 function canonicalSelect(rows: unknown[]) {
   const chain: Record<string, unknown> = {
@@ -45,9 +39,8 @@ describe('PATCH /api/matching/priorities', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockAuth.mockResolvedValue({ user: { id: 'u1', name: 'Анна', contactEmail: null, isAdmin: false } })
-    mockDb.select
-      .mockReturnValueOnce(activeSessionSelect())
-      .mockReturnValueOnce(canonicalSelect([{ bookId: 'b1', rank: 1 }, { bookId: 'b2', rank: 2 }]))
+    mockCurrentSession.mockResolvedValue('session-1')
+    mockDb.select.mockReturnValue(canonicalSelect([{ bookId: 'b1', rank: 1 }, { bookId: 'b2', rank: 2 }]))
     mockRunTransition.mockResolvedValue({ changed: true, stateVersion: 2 })
   })
 
@@ -57,7 +50,6 @@ describe('PATCH /api/matching/priorities', () => {
   })
 
   it('validates that bookIds is a non-empty string array', async () => {
-    mockDb.select.mockReset().mockReturnValue(activeSessionSelect())
     const res = await PATCH(makeReq({ bookIds: [] }))
     expect(res.status).toBe(400)
     expect(mockRunTransition).not.toHaveBeenCalled()

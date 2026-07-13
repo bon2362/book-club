@@ -846,6 +846,60 @@
         },
         "required": ["remainingLeader"]
       },
+      "MatchingBookModeState": {
+        "type": "object",
+        "properties": {
+          "initializedAt": { "$ref": "#/components/schemas/DateTime" },
+          "viewerAssignmentBookId": { "type": "string", "nullable": true },
+          "books": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "bookId": { "type": "string" },
+                "title": { "type": "string" },
+                "author": { "type": "string" },
+                "coverUrl": { "type": "string", "nullable": true },
+                "intersectionCount": { "type": "integer", "minimum": 0 },
+                "formedAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
+                "currentViability": { "type": "string", "enum": ["unformed", "viable", "needs_attention"] },
+                "viewerStatus": { "type": "string", "enum": ["interest", "conditional", "hard", "assigned"] },
+                "participants": { "type": "array", "items": {
+                  "type": "object",
+                  "properties": {
+                    "ref": { "type": "string" },
+                    "displayName": { "type": "string" },
+                    "status": { "type": "string", "enum": ["interest", "conditional", "hard", "assigned"] },
+                    "adminUserId": { "type": "string", "description": "Только privileged admin read model" }
+                  },
+                  "required": ["ref", "displayName", "status"]
+                } },
+                "circles": { "type": "array", "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "position": { "type": "integer", "minimum": 1 },
+                    "memberRefs": { "type": "array", "items": { "type": "string" } }
+                  },
+                  "required": ["id", "position", "memberRefs"]
+                } },
+                "unplacedParticipantRefs": { "type": "array", "items": { "type": "string" } },
+                "allowedActions": {
+                  "type": "object",
+                  "properties": {
+                    "conditional": { "type": "boolean" },
+                    "hard": { "type": "boolean" },
+                    "cancelHard": { "type": "boolean" }
+                  },
+                  "required": ["conditional", "hard", "cancelHard"]
+                }
+              },
+              "required": ["bookId", "title", "author", "coverUrl", "intersectionCount", "formedAt", "currentViability", "viewerStatus", "participants", "circles", "unplacedParticipantRefs", "allowedActions"]
+            }
+          }
+        },
+        "required": ["initializedAt", "viewerAssignmentBookId", "books"]
+      },
       "MatchingPublicState": {
         "type": "object",
         "properties": {
@@ -853,7 +907,7 @@
             "type": "object",
             "properties": {
               "name": { "type": "string" },
-              "status": { "type": "string", "enum": ["active", "frozen"] },
+              "status": { "type": "string", "enum": ["active", "frozen", "open", "closed"] },
               "stateVersion": { "type": "integer" },
               "minGroupSize": { "type": "integer" },
               "maxGroupSize": { "type": "integer" },
@@ -874,9 +928,10 @@
           "participants": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingParticipant" } },
           "scenarios": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingScenario" } },
           "lockedCircles": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingLockedCircle" } },
-          "notices": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingNotice" } }
+          "notices": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingNotice" } },
+          "bookMode": { "allOf": [{ "$ref": "#/components/schemas/MatchingBookModeState" }], "nullable": true }
         },
-        "required": ["session", "viewer", "participants", "scenarios", "lockedCircles", "notices"]
+        "required": ["session", "viewer", "participants", "scenarios", "lockedCircles", "notices", "bookMode"]
       },
       "MatchingEvent": {
         "type": "object",
@@ -891,7 +946,12 @@
               "confirmation_created", "confirmation_switched", "confirmation_cancelled",
               "confirmation_transferred", "confirmation_invalidated", "circle_locked",
               "circle_dissolved", "dissolve_circle", "freeze", "change_book", "change_rank", "change_status",
-              "replace_signup", "reorder_priorities", "change_group_size"
+              "replace_signup", "reorder_priorities", "change_group_size",
+              "book_mode_initialized", "conditional_set", "conditional_unset",
+              "hard_set", "hard_switched", "hard_cancelled", "book_formed",
+              "participant_directly_assigned", "admin_book_assigned", "admin_book_transferred",
+              "admin_book_unassigned", "admin_circle_created", "admin_circle_deleted",
+              "admin_assignment_placed", "session_open", "session_closed"
             ]
           },
           "source": { "type": "string" },
@@ -2422,6 +2482,58 @@
           "200": { "description": "Прочитано", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ok" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "404": { "description": "Notice not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/matching/sessions/{id}/book-actions": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Изменить выбор книги в книжном режиме",
+        "description": "Условный выбор, окончательный выбор, его смена или отмена. setHard атомарно удаляет все conditional намерения пользователя.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["setConditional", "unsetConditional", "setHard", "cancelHard"] },
+            "bookId": { "type": "string", "description": "Обязательно кроме cancelHard" },
+            "expectedStateVersion": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["action", "expectedStateVersion"]
+        } } } },
+        "responses": {
+          "200": { "description": "Выбор сохранён; ответ содержит персонализированный state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "400": { "description": "Invalid action or expectedStateVersion", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Stale/closed/assigned or otherwise forbidden book action; stale response includes current state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "422": { "description": "Book is not in the current global shortlist", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/admin/matching/sessions/{id}/book-admin-actions": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Управлять книжным режимом matching-сессии",
+        "description": "Необратимо включает книжный режим, меняет назначения и круги либо закрывает/повторно открывает сессию.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["initializeBookMode", "assign", "unassign", "removeParticipant", "createCircle", "deleteCircle", "place", "closeSession", "reopenSession"] },
+            "bookId": { "type": "string" },
+            "userId": { "type": "string" },
+            "circleId": { "type": "string", "nullable": true },
+            "expectedStateVersion": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["action", "expectedStateVersion"]
+        } } } },
+        "responses": {
+          "200": { "description": "Действие применено; ответ содержит admin state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
+          "400": { "description": "Invalid admin action or expectedStateVersion", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Stale state or lifecycle conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },

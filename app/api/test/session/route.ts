@@ -3,11 +3,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { notificationQueue, userIdentities, users } from '@/lib/db/schema'
+import { matchingBookAssignments, matchingBookIntents, notificationQueue, userIdentities, users } from '@/lib/db/schema'
 import { and, eq, or } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { normalizeIdentityProvider, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 import { issueServerSession } from '@/lib/auth-session'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -81,11 +83,16 @@ export async function DELETE(req: NextRequest) {
     .limit(1)
   const userId = userRows[0]?.id ?? identityRows[0]?.userId ?? null
 
-  if (email) await db.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
-  if (userId) {
-    await db.delete(userIdentities).where(eq(userIdentities.userId, userId))
-    await db.delete(users).where(eq(users.id, userId))
-  }
+  await withAuditContext({ actorUserId: null, actorLabel: 'E2E cleanup', source: 'system' }, async (tx) => {
+    await enableMatchingLegacyCleanup(tx)
+    if (email) await tx.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
+    if (userId) {
+      await tx.delete(matchingBookAssignments).where(eq(matchingBookAssignments.userId, userId))
+      await tx.delete(matchingBookIntents).where(eq(matchingBookIntents.userId, userId))
+      await tx.delete(userIdentities).where(eq(userIdentities.userId, userId))
+      await tx.delete(users).where(eq(users.id, userId))
+    }
+  })
 
   const res = NextResponse.json({ ok: true })
   res.cookies.delete('authjs.session-token')

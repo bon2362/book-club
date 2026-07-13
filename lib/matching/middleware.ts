@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 
 export interface MatchingContext {
   userId: string
@@ -40,15 +40,15 @@ export function withMatchingGuards(handler: Handler, options: Options = {}): Han
         if (!matchSession) {
           return NextResponse.json({ error: 'Session not found' }, { status: 404 })
         }
-        if (matchSession.status === 'frozen') {
-          return NextResponse.json({ error: 'Session is frozen' }, { status: 409 })
+        if (matchSession.status === 'frozen' || matchSession.status === 'closed') {
+          return NextResponse.json({ error: 'Session is closed' }, { status: 409 })
         }
       } else {
         // No sessionId provided — look for active session
         const [activeSession] = await db
           .select({ status: matchingSessions.status })
           .from(matchingSessions)
-          .where(eq(matchingSessions.status, 'active'))
+          .where(inArray(matchingSessions.status, ['active', 'open']))
           .limit(1)
 
         if (!activeSession) {

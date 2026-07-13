@@ -23,16 +23,22 @@ const statements = rawSql
   .filter(Boolean)
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+let client
 
 try {
+  client = await pool.connect()
+  await client.query('BEGIN')
   for (const stmt of statements) {
     console.log('Executing:', stmt.slice(0, 80).replace(/\s+/g, ' '), '...')
-    await pool.query(stmt)
+    await client.query(stmt)
   }
+  await client.query('COMMIT')
   console.log(`\n✅ Migration applied: ${sqlFile}`)
 } catch (err) {
+  if (client) await client.query('ROLLBACK').catch(() => undefined)
   console.error('\n❌ Migration failed:', err.message)
   process.exit(1)
 } finally {
+  client?.release()
   await pool.end()
 }

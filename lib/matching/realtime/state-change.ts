@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { bumpSessionState } from './version'
@@ -22,7 +22,11 @@ export async function getActiveMatchingSessionIdForParticipant(userId: string): 
   const [activeSession] = await db
     .select({ id: matchingSessions.id })
     .from(matchingSessions)
-    .where(eq(matchingSessions.status, 'active'))
+    .where(inArray(matchingSessions.status, ['open', 'active', 'closed', 'frozen']))
+    .orderBy(
+      sql`CASE WHEN ${matchingSessions.status} IN ('open', 'active') THEN 0 ELSE 1 END`,
+      desc(matchingSessions.createdAt),
+    )
     .limit(1)
 
   if (!activeSession) return null

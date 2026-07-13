@@ -10,9 +10,18 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { books, matchingLockedCircles } from '@/lib/db/schema'
+import {
+  books,
+  matchingBookAssignments,
+  matchingBookIntents,
+  matchingCircles,
+  matchingLockedCircles,
+  matchingSessionBookStates,
+} from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -78,11 +87,15 @@ export async function DELETE(req: NextRequest) {
   const { id } = (await req.json().catch(() => ({}))) as { id?: string }
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
-  // A locked circle intentionally protects its book with ON DELETE RESTRICT.
-  // Test teardown removes that disposable matching state first; its members
-  // cascade, then the usual book cascades clear signups and priorities.
-  // eslint-disable-next-line no-restricted-syntax -- isolated test-only cleanup transaction
-  await db.transaction(async (tx) => {
+  // Matching results intentionally protect their book with ON DELETE RESTRICT.
+  // Test teardown removes disposable canonical and legacy state in FK order;
+  // the usual book cascades then clear signups and priorities.
+  await withAuditContext({ actorUserId: null, actorLabel: 'E2E cleanup', source: 'system' }, async (tx) => {
+    await enableMatchingLegacyCleanup(tx)
+    await tx.delete(matchingBookAssignments).where(eq(matchingBookAssignments.bookId, id))
+    await tx.delete(matchingBookIntents).where(eq(matchingBookIntents.bookId, id))
+    await tx.delete(matchingCircles).where(eq(matchingCircles.bookId, id))
+    await tx.delete(matchingSessionBookStates).where(eq(matchingSessionBookStates.bookId, id))
     await tx.delete(matchingLockedCircles).where(eq(matchingLockedCircles.bookId, id))
     await tx.delete(books).where(eq(books.id, id))
   })

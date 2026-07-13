@@ -17,6 +17,7 @@ jest.mock('@/lib/db', () => ({
   },
 }))
 jest.mock('@/lib/posthog-server', () => ({ deletePostHogPerson: jest.fn().mockResolvedValue(undefined) }))
+jest.mock('@/lib/matching/legacy-cleanup', () => ({ enableMatchingLegacyCleanup: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const { deletePostHogPerson: mockDeletePostHogPerson } = jest.requireMock('@/lib/posthog-server')
@@ -62,7 +63,7 @@ describe('DELETE /api/user', () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', email: 'user@test.com' } })
     await DELETE()
     expect(db.select).toHaveBeenCalled()
-    expect(db.delete).toHaveBeenCalledTimes(2)
+    expect(db.delete).toHaveBeenCalledTimes(4)
   })
 
   it('удаляет профиль из PostHog по тому же id (ZZPL right-to-be-forgotten)', async () => {

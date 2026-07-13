@@ -24,7 +24,13 @@ export async function GET(req: NextRequest) {
     : session.user.id
 
   try {
-    return NextResponse.json(await fetchMatchingPublicState(sessionId, viewerUserId))
+    const state = session.user.isAdmin && !requestedUserId
+      ? await fetchMatchingPublicState(sessionId, viewerUserId, undefined, { admin: true })
+      : await fetchMatchingPublicState(sessionId, viewerUserId)
+    const response = NextResponse.json(state)
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+    return response
   } catch (error) {
     if (error instanceof PublicMatchingStateError) {
       return NextResponse.json(

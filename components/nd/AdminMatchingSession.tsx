@@ -20,6 +20,8 @@ interface MatchingSession {
   createdAt: string
   frozenAt: string | null
   frozenScenarioJson: unknown
+  stateVersion: number
+  bookModeInitializedAt: string | null
 }
 
 function frozenScenarioCircles(value: unknown): Array<{ circleKey: string; bookId: string; memberCount: number }> {
@@ -108,6 +110,8 @@ const microLabel: React.CSSProperties = {
 function statusRu(status: string): string {
   if (status === 'active') return 'Активная'
   if (status === 'frozen') return 'Зафиксирована'
+  if (status === 'open') return 'Открыта'
+  if (status === 'closed') return 'Закрыта'
   return status
 }
 
@@ -340,16 +344,16 @@ export default function AdminMatchingSession() {
     if (res.ok) setAllUsers(json.data ?? [])
   }, [])
 
-  // Default selection: active session, otherwise the most recent one.
+  // Default selection: current writable session, otherwise the most recent one.
   useEffect(() => {
     if (sessions.length === 0) return
     setSelectedSessionId(prev => {
       if (prev && sessions.some(s => s.id === prev)) return prev
-      return (sessions.find(s => s.status === 'active') ?? sessions[0]).id
+      return (sessions.find(s => s.status === 'open' || s.status === 'active') ?? sessions[0]).id
     })
   }, [sessions])
 
-  // Load data for whichever session is selected (active or frozen).
+  // Load data for whichever legacy or book-mode session is selected.
   useEffect(() => {
     if (!selectedSessionId) return
     loadEvents(selectedSessionId)
@@ -396,16 +400,21 @@ export default function AdminMatchingSession() {
     setVisibleEventsCount(EVENTS_PAGE_SIZE)
   }, [])
 
-  const activeSession = sessions.find(s => s.status === 'active')
+  const openSession = sessions.find(s => s.status === 'open' || s.status === 'active')
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null
   const selectedFrozenCircles = selectedSession ? frozenScenarioCircles(selectedSession.frozenScenarioJson) : []
-  const isSelectedActive = selectedSession?.status === 'active'
+  const isSelectedOpen = selectedSession?.status === 'active' || selectedSession?.status === 'open'
   const isSelectedFrozen = selectedSession?.status === 'frozen'
+  const isSelectedClosed = selectedSession?.status === 'closed'
+  const isSelectedBookMode = Boolean(selectedSession?.bookModeInitializedAt)
+  const canAdminMutateParticipants = Boolean(selectedSession && (
+    isSelectedOpen || (isSelectedClosed && isSelectedBookMode)
+  ))
   const [freezing, setFreezing] = useState(false)
   const [freezeError, setFreezeError] = useState<string | null>(null)
 
   async function handleAddParticipant() {
-    if (!selectedSession || selectedSession.status !== 'active' || !selectedUserId) return
+    if (!selectedSession || !canAdminMutateParticipants || !selectedUserId) return
     setAddingParticipant(true)
     try {
       const res = await fetch(`/api/admin/matching/sessions/${selectedSession.id}/participants`, {
@@ -423,9 +432,9 @@ export default function AdminMatchingSession() {
   }
 
   async function handleRemoveParticipant(userId: string) {
-    if (!selectedSession || selectedSession.status !== 'active') return
+    if (!selectedSession || !canAdminMutateParticipants) return
     const participant = participants.find(p => p.userId === userId)
-    if (participant?.role === 'observer') return // disabled — must dissolve circle first
+    if (participant?.role === 'observer' && !isSelectedBookMode) return // legacy circle must be dissolved first
     setRemovingUserId(userId)
     try {
       const res = await fetch(
@@ -441,14 +450,36 @@ export default function AdminMatchingSession() {
   }
 
   async function handleFreeze() {
-    if (!activeSession) return
-    if (!window.confirm(`Зафиксировать сессию «${activeSession.name}»? Это действие необратимо.`)) return
+    if (!openSession || openSession.status !== 'active') return
+    if (!window.confirm(`Зафиксировать сессию «${openSession.name}»? Это действие необратимо.`)) return
     setFreezing(true)
     setFreezeError(null)
     try {
-      const res = await fetch(`/api/matching/sessions/${activeSession.id}/freeze`, { method: 'POST' })
+      const res = await fetch(`/api/matching/sessions/${openSession.id}/freeze`, { method: 'POST' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Ошибка заморозки')
+      await load()
+    } catch (e) {
+      setFreezeError(e instanceof Error ? e.message : 'Неизвестная ошибка')
+    } finally {
+      setFreezing(false)
+    }
+  }
+
+  async function handleBookModeLifecycle(action: 'closeSession' | 'reopenSession') {
+    if (!selectedSession?.bookModeInitializedAt) return
+    const label = action === 'closeSession' ? 'Закрыть' : 'Снова открыть'
+    if (!window.confirm(`${label} сессию «${selectedSession.name}»?`)) return
+    setFreezing(true)
+    setFreezeError(null)
+    try {
+      const res = await fetch(`/api/admin/matching/sessions/${selectedSession.id}/book-admin-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, expectedStateVersion: selectedSession.stateVersion }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Не удалось изменить состояние сессии')
       await load()
     } catch (e) {
       setFreezeError(e instanceof Error ? e.message : 'Неизвестная ошибка')
@@ -516,7 +547,7 @@ export default function AdminMatchingSession() {
                     borderRadius: 'var(--radius)',
                     background: active ? 'var(--text)' : 'var(--bg-input)',
                     color: active ? 'var(--bg-input)' : 'var(--text-body)',
-                    borderBottom: s.status === 'active'
+                    borderBottom: s.status === 'active' || s.status === 'open'
                       ? '2px solid var(--success)'
                       : '2px solid var(--border-strong)',
                     display: 'flex',
@@ -547,7 +578,7 @@ export default function AdminMatchingSession() {
             marginBottom: '1.5rem',
             padding: '0.9rem',
             border: '1px solid var(--border-strong)',
-            borderLeft: isSelectedActive ? '2px solid var(--success)' : '2px solid var(--accent)',
+            borderLeft: isSelectedOpen ? '2px solid var(--success)' : '2px solid var(--accent)',
             borderRadius: 'var(--radius)',
           }}
         >
@@ -557,7 +588,7 @@ export default function AdminMatchingSession() {
             </div>
             <span style={{
               ...microLabel,
-              color: isSelectedActive ? 'var(--success)' : 'var(--accent)',
+              color: isSelectedOpen ? 'var(--success)' : 'var(--accent)',
               borderBottom: '1px solid currentColor',
             }}>
               {statusRu(selectedSession.status)}
@@ -579,7 +610,7 @@ export default function AdminMatchingSession() {
             )}
           </div>
 
-          {isSelectedActive && (
+          {isSelectedOpen && (
             <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <a
                 href="/matching"
@@ -587,13 +618,34 @@ export default function AdminMatchingSession() {
               >
                 Открыть страницу матчинга →
               </a>
+              {selectedSession.status === 'active' && !isSelectedBookMode && <button
+                  onClick={handleFreeze}
+                  disabled={freezing}
+                  style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                  data-testid="admin-freeze-session"
+                >
+                  {freezing ? 'Фиксирую…' : 'Зафиксировать'}
+                </button>}
+              {selectedSession.status === 'open' && isSelectedBookMode && <button
+                  onClick={() => handleBookModeLifecycle('closeSession')}
+                  disabled={freezing}
+                  style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+                  data-testid="admin-close-session"
+                >
+                  {freezing ? 'Закрываю…' : 'Закрыть сессию'}
+                </button>}
+            </div>
+          )}
+          {isSelectedClosed && isSelectedBookMode && (
+            <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Участники не могут менять выбор; административная корректировка остаётся доступной.</span>
               <button
-                onClick={handleFreeze}
+                onClick={() => handleBookModeLifecycle('reopenSession')}
                 disabled={freezing}
-                style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
-                data-testid="admin-freeze-session"
+                style={{ ...btn, borderColor: 'var(--success)', color: 'var(--success)' }}
+                data-testid="admin-reopen-session"
               >
-                {freezing ? 'Фиксирую…' : 'Зафиксировать'}
+                {freezing ? 'Открываю…' : 'Открыть снова'}
               </button>
             </div>
           )}
@@ -671,7 +723,7 @@ export default function AdminMatchingSession() {
                       Причина роспуска: {circle.dissolveReason}
                     </div>
                   )}
-                  {circle.status === 'locked' && isSelectedActive && (
+                  {circle.status === 'locked' && selectedSession.status === 'active' && !isSelectedBookMode && (
                     <button
                       onClick={() => setDissolveTarget(circle)}
                       style={{ ...btn, marginTop: '0.4rem', fontSize: '0.7rem', padding: '2px 7px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
@@ -714,12 +766,13 @@ export default function AdminMatchingSession() {
                   <th style={{ padding: '3px 8px' }}>Источник</th>
                   <th style={{ padding: '3px 8px' }}>Роль</th>
                   <th style={{ padding: '3px 8px' }}>Вступил</th>
-                  {isSelectedActive && <th style={{ padding: '3px 8px' }}></th>}
+                  {canAdminMutateParticipants && <th style={{ padding: '3px 8px' }}></th>}
                 </tr>
               </thead>
               <tbody>
                 {participants.map(p => {
                   const isObserver = p.role === 'observer'
+                  const removalBlocked = isObserver && !isSelectedBookMode
                   const isOnline = onlinePublicRefs.has(p.publicRef)
                   return (
                     <tr key={p.userId} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -758,9 +811,9 @@ export default function AdminMatchingSession() {
                       <td style={{ padding: '3px 8px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {new Date(p.joinedAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      {isSelectedActive && (
+                      {canAdminMutateParticipants && (
                         <td style={{ padding: '3px 8px' }}>
-                          {isObserver ? (
+                          {removalBlocked ? (
                             <span
                               title="Сначала распустите закреплённый круг, чтобы убрать наблюдателя"
                               style={{ color: 'var(--text-muted)', fontSize: '0.7rem', cursor: 'not-allowed' }}
@@ -787,7 +840,7 @@ export default function AdminMatchingSession() {
           )}
 
           {/* Admin add control */}
-          {isSelectedActive && (
+          {canAdminMutateParticipants && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <p
                 data-testid="admin-add-disclosure-warning"
@@ -829,11 +882,11 @@ export default function AdminMatchingSession() {
 
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ fontWeight: 600, marginBottom: '0.6rem' }}>
-          {activeSession ? 'Создать новую сессию (заменит активную после её заморозки)' : 'Создать новую сессию'}
+          Создать новую сессию
         </div>
-        {activeSession && (
+        {openSession && (
           <p style={{ color: 'var(--status-warn)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
-            ⚠ Уже есть активная сессия. Сначала заморозьте её, затем создайте новую.
+            ⚠ Уже есть открытая сессия. Сначала закройте её, затем создайте новую.
           </p>
         )}
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: 400 }}>
@@ -846,7 +899,7 @@ export default function AdminMatchingSession() {
               onChange={e => setName(e.target.value)}
               placeholder="Например: Июньская встреча"
               required
-              disabled={creating || !!activeSession}
+              disabled={creating || !!openSession}
               style={fieldInput}
               data-testid="matching-session-name"
             />
@@ -867,7 +920,7 @@ export default function AdminMatchingSession() {
                   setMinGroupSize(value)
                   if (maxGroupSize < value) setMaxGroupSize(value)
                 }}
-                disabled={creating || !!activeSession}
+                disabled={creating || !!openSession}
                 style={{ ...fieldInput, width: 60 }}
                 data-testid="matching-session-min-group-size"
               />
@@ -878,7 +931,7 @@ export default function AdminMatchingSession() {
                 max={10}
                 value={maxGroupSize}
                 onChange={e => setMaxGroupSize(Number(e.target.value))}
-                disabled={creating || !!activeSession}
+                disabled={creating || !!openSession}
                 style={{ ...fieldInput, width: 60 }}
                 data-testid="matching-session-max-group-size"
               />
@@ -892,7 +945,7 @@ export default function AdminMatchingSession() {
               type="datetime-local"
               value={deadlineAt}
               onChange={e => setDeadlineAt(e.target.value)}
-              disabled={creating || !!activeSession}
+              disabled={creating || !!openSession}
               style={fieldInput}
               data-testid="matching-session-deadline"
             />
@@ -900,7 +953,7 @@ export default function AdminMatchingSession() {
           {createError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{createError}</p>}
           <button
             type="submit"
-            disabled={creating || !name.trim() || !!activeSession || maxGroupSize < minGroupSize}
+            disabled={creating || !name.trim() || !!openSession || maxGroupSize < minGroupSize}
             style={{ ...btn, alignSelf: 'flex-start' }}
             data-testid="matching-session-submit"
           >
@@ -921,7 +974,7 @@ export default function AdminMatchingSession() {
           {eventsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Загрузка…</p>}
           {!eventsLoading && matchingEventsList.length === 0 && (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-              {isSelectedActive
+              {isSelectedOpen
                 ? 'После входа в сессию участники ещё не меняли предпочтения.'
                 : 'В этой сессии не было изменений предпочтений.'}
             </p>

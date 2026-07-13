@@ -17,6 +17,12 @@ export function transitionStatus(code: MatchingTransitionErrorCode): number {
       return 409
     case 'cascade_limit':
       return 500
+    case 'book_mode_unavailable':
+    case 'book_action_forbidden':
+    case 'invalid_book_action':
+      return 409
+    case 'book_not_in_shortlist':
+      return 422
   }
 }
 
