@@ -38,6 +38,12 @@ test.describe('Matching books: mobile layout and focus', () => {
     expect(cardBox).not.toBeNull()
     expect(cardBox!.x, 'card left edge is inside the 390px viewport').toBeGreaterThanOrEqual(0)
     expect(cardBox!.x + cardBox!.width, 'card right edge is inside the 390px viewport').toBeLessThanOrEqual(391)
+    const cover = card.getByRole('button', { name: `Открыть книгу «${books[0].title}»` })
+    const coverBox = await cover.boundingBox()
+    expect(coverBox).not.toBeNull()
+    expect(coverBox!.width, 'book cover keeps the 54px prototype width').toBeCloseTo(54, 0)
+    expect(coverBox!.height, 'book cover keeps the 76px prototype height').toBeCloseTo(76, 0)
+    expect(await cover.evaluate((element) => getComputedStyle(element).position), 'Next Image fill is anchored to the cover, not the whole card').toBe('relative')
     const cta = card.getByRole('button', { name: 'Записать', exact: true })
     await expect(cta).toBeVisible()
     const ctaBox = await cta.boundingBox()
@@ -54,7 +60,7 @@ test.describe('Matching books: mobile layout and focus', () => {
     await booksTab.click()
     await expect(booksTab).toHaveAttribute('aria-selected', 'true')
 
-    const trigger = card.getByRole('button', { name: `Открыть книгу «${books[0].title}»` })
+    const trigger = cover
     await trigger.focus()
     await trigger.click()
     const dialog = participantA.page.getByRole('dialog', { name: books[0].title })
