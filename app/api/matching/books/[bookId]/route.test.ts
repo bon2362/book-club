@@ -3,26 +3,17 @@
  */
 import { DELETE } from './route'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { MatchingTransitionError } from '@/lib/matching/session-transition'
+import { getActiveMatchingSessionIdForParticipant } from '@/lib/matching/realtime/state-change'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
-jest.mock('@/lib/db', () => ({ db: { select: jest.fn() } }))
 jest.mock('@/lib/matching/session-transition-db', () => ({ runMatchingTransition: jest.fn() }))
+jest.mock('@/lib/matching/realtime/state-change', () => ({ getActiveMatchingSessionIdForParticipant: jest.fn() }))
 
 const mockAuth = auth as jest.Mock
-const mockDb = db as unknown as { select: jest.Mock }
 const mockRunTransition = runMatchingTransition as jest.Mock
-
-function activeSessionSelect(rows: unknown[] = [{ id: 'session-1' }]) {
-  const chain: Record<string, unknown> = {
-    from: () => chain,
-    where: () => chain,
-    limit: () => Promise.resolve(rows),
-  }
-  return chain
-}
+const mockCurrentSession = getActiveMatchingSessionIdForParticipant as jest.Mock
 
 function makeReq(asUserId?: string) {
   const suffix = asUserId ? `?as=${asUserId}` : ''
@@ -35,7 +26,7 @@ describe('DELETE /api/matching/books/[bookId]', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockAuth.mockResolvedValue({ user: { id: 'u1', name: 'Анна', contactEmail: null, isAdmin: false } })
-    mockDb.select.mockReturnValue(activeSessionSelect())
+    mockCurrentSession.mockResolvedValue('session-1')
     mockRunTransition.mockResolvedValue({ changed: true, stateVersion: 2 })
   })
 

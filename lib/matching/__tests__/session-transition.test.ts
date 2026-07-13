@@ -1,6 +1,7 @@
 import {
   MatchingTransitionError,
   executeMatchingTransition,
+  resolveParticipantRole,
   type MatchingAction,
   type MatchingTransitionStore,
 } from '../session-transition'
@@ -19,7 +20,9 @@ function confirmation(userId: string, key: string): CircleConfirmation {
 }
 
 class MemoryTransitionStore implements MatchingTransitionStore {
-  session = { status: 'active', stateVersion: 4 }
+  session: { status: string; stateVersion: number; bookModeInitializedAt?: Date | null } = {
+    status: 'active', stateVersion: 4,
+  }
   roles = new Map<string, 'missing' | 'active' | 'observer'>([
     ['u1', 'active'],
     ['u2', 'active'],
@@ -538,5 +541,119 @@ describe('executeMatchingTransition', () => {
 
   it('returns typed transition errors', () => {
     expect(new MatchingTransitionError('circle_not_found').code).toBe('circle_not_found')
+  })
+
+  it('runs canonical book actions without legacy scenario reconciliation', async () => {
+    const store = new MemoryTransitionStore()
+    store.session = { status: 'open', stateVersion: 4, bookModeInitializedAt: new Date() }
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_conditional', userId: 'u1', bookId: 'b1' },
+    }, store)).resolves.toEqual({ changed: true, stateVersion: 5 })
+
+    expect(store.calls).toContain('applyAction:set_conditional')
+    expect(store.calls).not.toContain('getRankedScenarios')
+    expect(store.calls).toContain('bumpStateVersion')
+  })
+
+  it('allows common membership actions after cutover but blocks participant actions when closed', async () => {
+    const openStore = new MemoryTransitionStore()
+    openStore.session = { status: 'open', stateVersion: 4, bookModeInitializedAt: new Date() }
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'self_join', userId: 'u1' },
+    }, openStore)).resolves.toEqual({ changed: true, stateVersion: 5 })
+    expect(openStore.calls).not.toContain('getRankedScenarios')
+
+    const closedStore = new MemoryTransitionStore()
+    closedStore.session = { status: 'closed', stateVersion: 4, bookModeInitializedAt: new Date() }
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'set_hard', userId: 'u1', bookId: 'b1' },
+    }, closedStore)).rejects.toMatchObject({ code: 'session_frozen' })
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'change_book', userId: 'u1', bookId: 'b1', operation: 'remove' },
+    }, closedStore)).resolves.toEqual({ changed: true, stateVersion: 5 })
+  })
+
+  it('allows book choices and leaving after a legacy-imported participant is canonically unassigned', async () => {
+    for (const action of [
+      { type: 'set_conditional', userId: 'u1', bookId: 'b1' } as const,
+      { type: 'set_hard', userId: 'u1', bookId: 'b1' } as const,
+      { type: 'leave', userId: 'u1' } as const,
+    ]) {
+      const store = new MemoryTransitionStore()
+      store.session = { status: 'open', stateVersion: 4, bookModeInitializedAt: new Date() }
+      store.roles.set('u1', resolveParticipantRole({
+        bookModeInitialized: true, hasBookAssignment: false, hasLegacyLock: true,
+      }))
+      await expect(executeMatchingTransition({
+        sessionId: 's1', actor, expectedStateVersion: 4, action,
+      }, store)).resolves.toEqual({ changed: true, stateVersion: 5 })
+    }
+  })
+
+  it('initializes once and keeps no-op admin commands from bumping version', async () => {
+    const store = new MemoryTransitionStore()
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'initialize_book_mode' },
+    }, store)).resolves.toEqual({ changed: true, stateVersion: 5 })
+    expect(store.calls).not.toContain('getRankedScenarios')
+
+    const initialized = new MemoryTransitionStore()
+    initialized.session = { status: 'open', stateVersion: 4, bookModeInitializedAt: new Date() }
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'initialize_book_mode' },
+    }, initialized)).resolves.toEqual({ changed: false, stateVersion: 4 })
+    expect(initialized.calls).not.toContain('bumpStateVersion')
+
+    initialized.applyResult = false
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'admin_place_book_assignment', userId: 'u1', circleId: null },
+    }, initialized)).resolves.toEqual({ changed: false, stateVersion: 4 })
+    expect(initialized.calls).not.toContain('bumpStateVersion')
+  })
+
+  it('persists formation and auto-assignment outcomes emitted during legacy initialization', async () => {
+    const store = new MemoryTransitionStore()
+    store.applyResult = {
+      changed: true,
+      events: [
+        { eventType: 'legacy_circle_imported', bookId: 'b1' },
+        { eventType: 'legacy_confirmation_imported', subjectUserId: 'u4', bookId: 'b2' },
+        { eventType: 'book_formed', bookId: 'b2', after: { assignedUserIds: ['u4', 'u5', 'u6'] } },
+        { eventType: 'participant_auto_assigned', subjectUserId: 'u4', bookId: 'b2' },
+        { eventType: 'book_mode_initialized' },
+      ],
+    }
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4, action: { type: 'initialize_book_mode' },
+    }, store)).resolves.toEqual({ changed: true, stateVersion: 5 })
+    expect(store.events.map(event => event.eventType)).toEqual([
+      'legacy_circle_imported', 'legacy_confirmation_imported', 'book_formed',
+      'participant_auto_assigned', 'book_mode_initialized',
+    ])
+    expect(store.events.every(event => event.stateVersion === 5)).toBe(true)
+  })
+})
+
+describe('resolveParticipantRole', () => {
+  it('ignores a legacy lock after cutover once canonical assignment is removed', () => {
+    expect(resolveParticipantRole({
+      bookModeInitialized: true,
+      hasBookAssignment: false,
+      hasLegacyLock: true,
+    })).toBe('active')
+  })
+
+  it('uses canonical assignment after cutover and legacy lock before it', () => {
+    expect(resolveParticipantRole({ bookModeInitialized: true, hasBookAssignment: true, hasLegacyLock: false })).toBe('observer')
+    expect(resolveParticipantRole({ bookModeInitialized: false, hasBookAssignment: false, hasLegacyLock: true })).toBe('observer')
   })
 })

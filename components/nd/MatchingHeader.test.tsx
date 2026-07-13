@@ -146,6 +146,18 @@ test('admin edits active group size and refreshes the public state', async () =>
   expect(onSessionRefresh).toHaveBeenCalledTimes(1)
 })
 
+test('book mode fixes group size at 3–5 and hides the legacy editor', () => {
+  render(<MatchingHeader {...base} isAdmin bookMode minGroupSize={2} maxGroupSize={9} sessionStatus="open" />)
+  expect(screen.getByText('Группы 3–5')).toBeInTheDocument()
+  expect(screen.getByText('● открыта')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /изменить размер групп/i })).toBeNull()
+})
+
+test('preserves the legacy active status label', () => {
+  render(<MatchingHeader {...base} />)
+  expect(screen.getByText('● активна')).toBeInTheDocument()
+})
+
 test('validates group size locally and allows cancel', () => {
   render(<MatchingHeader {...base} isAdmin />)
   fireEvent.click(screen.getByRole('button', { name: /изменить размер групп/i }))

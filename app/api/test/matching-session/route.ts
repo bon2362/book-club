@@ -8,6 +8,8 @@ import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
 import { and, eq, lt } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -100,6 +102,9 @@ export async function DELETE(req: NextRequest) {
   const { id } = (await req.json().catch(() => ({}))) as { id?: string }
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
-  await db.delete(matchingSessions).where(eq(matchingSessions.id, id))
+  await withAuditContext({ actorUserId: null, actorLabel: 'E2E cleanup', source: 'system' }, async (tx) => {
+    await enableMatchingLegacyCleanup(tx)
+    await tx.delete(matchingSessions).where(eq(matchingSessions.id, id))
+  })
   return NextResponse.json({ ok: true })
 }

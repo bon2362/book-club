@@ -21,6 +21,7 @@ function selectLimitRows(rows: unknown[]) {
   return {
     from: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
     limit: jest.fn().mockResolvedValue(rows),
   }
 }

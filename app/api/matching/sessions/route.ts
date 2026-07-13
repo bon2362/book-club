@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { inArray } from 'drizzle-orm'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 
 interface CreateSessionBody {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   const existing = await db
     .select({ id: matchingSessions.id })
     .from(matchingSessions)
-    .where(eq(matchingSessions.status, 'active'))
+    .where(inArray(matchingSessions.status, ['active', 'open']))
     .limit(1)
 
   if (existing.length > 0) {
@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
         .values({
           name,
           createdBy: actorId,
-          status: 'active',
+          status: 'open',
+          bookModeInitializedAt: new Date(),
           minGroupSize: groupSizeRange.minGroupSize,
           maxGroupSize: groupSizeRange.maxGroupSize,
           deadlineAt,
@@ -119,6 +120,7 @@ export async function GET() {
       frozenAt: matchingSessions.frozenAt,
       frozenScenarioJson: matchingSessions.frozenScenarioJson,
       stateVersion: matchingSessions.stateVersion,
+      bookModeInitializedAt: matchingSessions.bookModeInitializedAt,
     })
     .from(matchingSessions)
     .orderBy(matchingSessions.createdAt)

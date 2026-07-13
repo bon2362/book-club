@@ -137,6 +137,7 @@ describe('GET /api/matching/sessions', () => {
     const json = await res.json()
     expect(json.data).toHaveLength(1)
     expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).toContain('frozenScenarioJson')
+    expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).toContain('bookModeInitializedAt')
     expect(mockDb.select).toHaveBeenCalledWith(expect.not.objectContaining({
       optimizationMode: expect.anything(),
       metricCoverage: expect.anything(),

@@ -23,6 +23,8 @@ const SESSION_ACTIVE = {
   deadlineAt: null,
   createdAt: '2026-06-01T10:00:00Z',
   frozenAt: null,
+  stateVersion: 1,
+  bookModeInitializedAt: null,
 }
 
 const SESSION_FROZEN = {
@@ -39,6 +41,25 @@ const SESSION_FROZEN = {
       circles: [{ circleKey: 'snapshot-circle', bookId: 'book-snapshot', memberUserIds: ['user-1', 'user-2'] }],
     },
   },
+  stateVersion: 9,
+  bookModeInitializedAt: null,
+}
+
+const SESSION_OPEN = {
+  ...SESSION_ACTIVE,
+  id: 'sess-open',
+  name: 'Книжная сессия',
+  status: 'open',
+  stateVersion: 4,
+  bookModeInitializedAt: '2026-07-13T10:00:00Z',
+}
+
+const SESSION_CLOSED = {
+  ...SESSION_OPEN,
+  id: 'sess-closed',
+  name: 'Закрытая книжная сессия',
+  status: 'closed',
+  stateVersion: 5,
 }
 
 const PARTICIPANTS = [
@@ -323,5 +344,60 @@ describe('AdminMatchingSession', () => {
     expect(snapshot).toHaveTextContent('book-snapshot')
     expect(snapshot).toHaveTextContent('2 участника')
     expect(snapshot).not.toHaveTextContent(/подтвержд[её]нн.*круг/i)
+  })
+
+  it('treats open book-mode session as current and blocks creation of another session', async () => {
+    mockFetch({
+      '/api/matching/sessions': { data: [SESSION_CLOSED, SESSION_OPEN] },
+      '/api/admin/matching/sessions/sess-open/participants': { data: [], online: [] },
+      '/api/admin/matching/sessions/sess-open/locked-circles': { data: [] },
+      '/api/admin/matching/preference-events': { events: [] },
+      '/api/admin/users': { data: [] },
+    })
+    render(<AdminMatchingSession />)
+    await waitFor(() => expect(screen.getByTestId('admin-close-session')).toBeInTheDocument())
+    expect(screen.getAllByText('Открыта').length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('admin-freeze-session')).not.toBeInTheDocument()
+    expect(screen.getByTestId('admin-add-disclosure-warning')).toBeInTheDocument()
+    expect(screen.getByTestId('matching-session-submit')).toBeDisabled()
+    expect(screen.getByText(/Уже есть открытая сессия/)).toBeInTheDocument()
+  })
+
+  it('keeps closed book-mode session administratively editable and can reopen it', async () => {
+    jest.spyOn(window, 'confirm').mockReturnValue(true)
+    mockFetch({
+      '/api/matching/sessions': { data: [SESSION_CLOSED] },
+      '/api/admin/matching/sessions/sess-closed/participants': { data: [], online: [] },
+      '/api/admin/matching/sessions/sess-closed/locked-circles': { data: [] },
+      '/api/admin/matching/preference-events': { events: [] },
+      '/api/admin/users': { data: [] },
+      '/api/admin/matching/sessions/sess-closed/book-admin-actions': { stateVersion: 6 },
+    })
+    render(<AdminMatchingSession />)
+    await waitFor(() => expect(screen.getByTestId('admin-reopen-session')).toBeInTheDocument())
+    expect(screen.getAllByText('Закрыта').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('admin-add-disclosure-warning')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('admin-reopen-session'))
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/admin/matching/sessions/sess-closed/book-admin-actions',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ action: 'reopenSession', expectedStateVersion: 5 }),
+      }),
+    ))
+  })
+
+  it('allows admin removal of legacy-observer rows after book-mode cutover', async () => {
+    mockFetch({
+      '/api/matching/sessions': { data: [SESSION_OPEN] },
+      '/api/admin/matching/sessions/sess-open/participants': { data: PARTICIPANTS, online: [] },
+      '/api/admin/matching/sessions/sess-open/locked-circles': { data: [] },
+      '/api/admin/matching/preference-events': { events: [] },
+      '/api/admin/users': { data: [] },
+    })
+    render(<AdminMatchingSession />)
+    await waitFor(() => expect(screen.getByText('Мария Иванова')).toBeInTheDocument())
+    expect(screen.queryByTestId('remove-observer-disabled')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Убрать' })).toHaveLength(2)
   })
 })

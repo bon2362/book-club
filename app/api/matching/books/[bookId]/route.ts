@@ -2,11 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
-import { matchingSessions } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { transitionError } from '@/lib/matching/transition-http'
+import { getActiveMatchingSessionIdForParticipant } from '@/lib/matching/realtime/state-change'
 
 type Params = { params: { bookId: string } }
 
@@ -17,16 +15,12 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (asUserId && !session.user.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const userId = asUserId ?? session.user.id
 
-  const [activeSession] = await db
-    .select({ id: matchingSessions.id })
-    .from(matchingSessions)
-    .where(eq(matchingSessions.status, 'active'))
-    .limit(1)
-  if (!activeSession) return NextResponse.json({ error: 'No active session' }, { status: 404 })
+  const currentSessionId = await getActiveMatchingSessionIdForParticipant(userId)
+  if (!currentSessionId) return NextResponse.json({ error: 'No current session' }, { status: 404 })
 
   try {
     const result = await runMatchingTransition({
-      sessionId: activeSession.id,
+      sessionId: currentSessionId,
       actor: {
         userId: session.user.id,
         label: session.user.name ?? session.user.contactEmail ?? null,

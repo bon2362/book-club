@@ -3,9 +3,10 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { notificationQueue, users } from '@/lib/db/schema'
+import { matchingBookAssignments, matchingBookIntents, notificationQueue, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function isValidUserId(value: string) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= 255
@@ -35,11 +36,14 @@ export async function DELETE(req: NextRequest) {
       source: 'admin',
     },
     async (tx) => {
+      await enableMatchingLegacyCleanup(tx)
       if (targetUser?.contactEmail) {
         await tx
           .delete(notificationQueue)
           .where(eq(notificationQueue.userEmail, targetUser.contactEmail))
       }
+      await tx.delete(matchingBookAssignments).where(eq(matchingBookAssignments.userId, userId))
+      await tx.delete(matchingBookIntents).where(eq(matchingBookIntents.userId, userId))
       await tx.delete(users).where(eq(users.id, userId))
     },
   )

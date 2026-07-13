@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
-  pgTable, text, timestamp, integer, boolean, primaryKey, index, uniqueIndex, jsonb, check,
+  pgTable, text, timestamp, integer, boolean, primaryKey, foreignKey, index, uniqueIndex, jsonb, check,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -267,13 +267,23 @@ export const matchingSessions = pgTable('matching_sessions', {
   minGroupSize:       integer('min_group_size').notNull().default(3),
   maxGroupSize:       integer('max_group_size').notNull().default(3),
   stateVersion:       integer('state_version').notNull().default(0),
+  bookModeInitializedAt:           timestamp('book_mode_initialized_at', { mode: 'date' }),
   frozenAt:                        timestamp('frozen_at', { mode: 'date' }),
   frozenScenarioJson:              jsonb('frozen_scenario_json'),
 }, (t) => ({
-  // Enforces at most one active session at a time
+  // During the lifecycle rollout both the legacy `active` and canonical `open`
+  // values mean writable/current. The shared index prevents one of each.
   singleActiveIdx: uniqueIndex('matching_sessions_single_active_idx')
-    .on(t.status)
-    .where(sql`${t.status} = 'active'`),
+    .on(sql`(true)`)
+    .where(sql`${t.status} IN ('active', 'open')`),
+  statusCheck: check(
+    'matching_sessions_status_check',
+    sql`${t.status} IN ('active', 'frozen', 'open', 'closed')`,
+  ),
+  bookModeLifecycleCheck: check(
+    'matching_sessions_book_mode_lifecycle_check',
+    sql`${t.bookModeInitializedAt} IS NULL OR ${t.status} IN ('open', 'closed')`,
+  ),
 }))
 
 export const matchingSessionParticipants = pgTable('matching_session_participants', {
@@ -340,6 +350,101 @@ export const matchingLockedCircleMembers = pgTable('matching_locked_circle_membe
   activeUserUniq: uniqueIndex('matching_locked_circle_members_active_user_idx')
     .on(t.sessionId, t.userId)
     .where(sql`${t.releasedAt} IS NULL`),
+}))
+
+export const matchingBookIntents = pgTable('matching_book_intents', {
+  sessionId: text('session_id').notNull(),
+  userId: text('user_id').notNull(),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
+  kind: text('kind').$type<'conditional' | 'hard'>().notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({
+    name: 'matching_book_intents_session_user_book_pk',
+    columns: [t.sessionId, t.userId, t.bookId],
+  }),
+  participantFk: foreignKey({
+    name: 'matching_book_intents_session_user_fk',
+    columns: [t.sessionId, t.userId],
+    foreignColumns: [matchingSessionParticipants.sessionId, matchingSessionParticipants.userId],
+  }).onDelete('cascade'),
+  hardUserUniq: uniqueIndex('matching_book_intents_session_user_hard_uniq')
+    .on(t.sessionId, t.userId)
+    .where(sql`${t.kind} = 'hard'`),
+  sessionBookKindCreatedIdx: index('matching_book_intents_session_book_kind_created_idx')
+    .on(t.sessionId, t.bookId, t.kind, t.createdAt),
+  kindCheck: check('matching_book_intents_kind_check', sql`${t.kind} IN ('conditional', 'hard')`),
+}))
+
+export const matchingSessionBookStates = pgTable('matching_session_book_states', {
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
+  formedAt: timestamp('formed_at', { mode: 'date' }).notNull().defaultNow(),
+  formedStateVersion: integer('formed_state_version').notNull(),
+}, (t) => ({
+  pk: primaryKey({
+    name: 'matching_session_book_states_session_book_pk',
+    columns: [t.sessionId, t.bookId],
+  }),
+  formedStateVersionCheck: check(
+    'matching_session_book_states_formed_state_version_check',
+    sql`${t.formedStateVersion} >= 0`,
+  ),
+}))
+
+export const matchingCircles = pgTable('matching_circles', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
+  position: integer('position').notNull(),
+  legacyLockedCircleId: text('legacy_locked_circle_id')
+    .references(() => matchingLockedCircles.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  identityUniq: uniqueIndex('matching_circles_id_session_book_uniq').on(t.id, t.sessionId, t.bookId),
+  sessionBookPositionUniq: uniqueIndex('matching_circles_session_book_position_uniq')
+    .on(t.sessionId, t.bookId, t.position),
+  legacyLockedCircleUniq: uniqueIndex('matching_circles_legacy_locked_circle_uniq')
+    .on(t.legacyLockedCircleId),
+  positionCheck: check('matching_circles_position_check', sql`${t.position} >= 1`),
+}))
+
+export const matchingBookAssignments = pgTable('matching_book_assignments', {
+  sessionId: text('session_id').notNull(),
+  userId: text('user_id').notNull(),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
+  source: text('source').$type<'hard' | 'conditional' | 'admin' | 'legacy'>().notNull(),
+  assignedAt: timestamp('assigned_at', { mode: 'date' }).notNull().defaultNow(),
+  assignedBy: text('assigned_by').references(() => users.id, { onDelete: 'set null' }),
+  circleId: text('circle_id'),
+}, (t) => ({
+  pk: primaryKey({
+    name: 'matching_book_assignments_session_user_pk',
+    columns: [t.sessionId, t.userId],
+  }),
+  participantFk: foreignKey({
+    name: 'matching_book_assignments_session_user_fk',
+    columns: [t.sessionId, t.userId],
+    foreignColumns: [matchingSessionParticipants.sessionId, matchingSessionParticipants.userId],
+  }),
+  sessionFk: foreignKey({
+    name: 'matching_book_assignments_session_id_fk',
+    columns: [t.sessionId],
+    foreignColumns: [matchingSessions.id],
+  }).onDelete('cascade'),
+  circleFk: foreignKey({
+    name: 'matching_book_assignments_circle_session_book_fk',
+    columns: [t.circleId, t.sessionId, t.bookId],
+    foreignColumns: [matchingCircles.id, matchingCircles.sessionId, matchingCircles.bookId],
+  }),
+  sessionBookAssignedIdx: index('matching_book_assignments_session_book_assigned_idx')
+    .on(t.sessionId, t.bookId, t.assignedAt, t.userId),
+  sourceCheck: check(
+    'matching_book_assignments_source_check',
+    sql`${t.source} IN ('hard', 'conditional', 'admin', 'legacy')`,
+  ),
 }))
 
 export const matchingNotices = pgTable('matching_notices', {

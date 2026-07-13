@@ -8,4 +8,5 @@ test('matching page owns one shared satisfaction flow for gate and board phases'
   expect(source).toContain('if (!showRankingGate)')
   expect(source).toContain('const booksById = showRankingGate')
   expect(source).toContain('workspace={showRankingGate ? undefined :')
+  expect(source).toContain('!currentSession.bookModeInitializedAt')
 })

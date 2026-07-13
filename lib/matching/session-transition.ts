@@ -19,6 +19,18 @@ export type MatchingAction =
   | { type: 'reorder_priorities'; userId: string; bookIds: string[] }
   | { type: 'change_group_size'; min: number; max: number }
   | { type: 'dissolve_circle'; circleId: string; reason: string }
+  | { type: 'initialize_book_mode' }
+  | { type: 'set_conditional'; userId: string; bookId: string }
+  | { type: 'unset_conditional'; userId: string; bookId: string }
+  | { type: 'set_hard'; userId: string; bookId: string }
+  | { type: 'cancel_hard'; userId: string }
+  | { type: 'admin_assign_book'; userId: string; bookId: string }
+  | { type: 'admin_unassign_book'; userId: string }
+  | { type: 'admin_create_book_circle'; bookId: string }
+  | { type: 'admin_delete_book_circle'; circleId: string }
+  | { type: 'admin_place_book_assignment'; userId: string; circleId: string | null }
+  | { type: 'close_session' }
+  | { type: 'reopen_session' }
   | { type: 'freeze' }
 
 export type MatchingTransitionErrorCode =
@@ -29,12 +41,26 @@ export type MatchingTransitionErrorCode =
   | 'participant_locked'
   | 'circle_not_found'
   | 'cascade_limit'
+  | 'book_mode_unavailable'
+  | 'book_not_in_shortlist'
+  | 'book_action_forbidden'
+  | 'invalid_book_action'
 
 export class MatchingTransitionError extends Error {
   constructor(public readonly code: MatchingTransitionErrorCode) {
     super(code)
     this.name = 'MatchingTransitionError'
   }
+}
+
+export function resolveParticipantRole(input: {
+  bookModeInitialized: boolean
+  hasBookAssignment: boolean
+  hasLegacyLock: boolean
+}): 'active' | 'observer' {
+  return input.bookModeInitialized
+    ? input.hasBookAssignment ? 'observer' : 'active'
+    : input.hasLegacyLock ? 'observer' : 'active'
 }
 
 export interface MatchingTransitionActor {
@@ -67,7 +93,11 @@ export type MatchingActionResult = boolean | {
 }
 
 export interface MatchingTransitionStore {
-  lockSession(sessionId: string): Promise<{ status: string; stateVersion: number } | null>
+  lockSession(sessionId: string): Promise<{
+    status: string
+    stateVersion: number
+    bookModeInitializedAt?: Date | null
+  } | null>
   getParticipantRole(sessionId: string, userId: string): Promise<'missing' | 'active' | 'observer'>
   getRankedScenarios(sessionId: string): Promise<RankedReconciliationScenario[]>
   getConfirmations(sessionId: string): Promise<CircleConfirmation[]>
@@ -83,7 +113,7 @@ export interface MatchingTransitionStore {
   }): Promise<boolean>
   upsertConfirmation(sessionId: string, confirmation: CircleConfirmation): Promise<void>
   deleteConfirmation(sessionId: string, userId: string): Promise<boolean>
-  applyAction(sessionId: string, action: MatchingAction): Promise<MatchingActionResult>
+  applyAction(sessionId: string, action: MatchingAction, nextStateVersion: number): Promise<MatchingActionResult>
   lockCircle(sessionId: string, circle: ReconciliationCircle, stateVersion: number): Promise<void>
   writeEvents(sessionId: string, events: MatchingEventDraft[]): Promise<void>
   writeNotices(sessionId: string, notices: MatchingNoticeDraft[]): Promise<void>
@@ -103,9 +133,21 @@ function participantUserId(action: MatchingAction): string | null {
     case 'change_status':
     case 'replace_signup':
     case 'reorder_priorities':
+    case 'set_conditional':
+    case 'unset_conditional':
+    case 'set_hard':
+    case 'cancel_hard':
+    case 'admin_assign_book':
+    case 'admin_unassign_book':
+    case 'admin_place_book_assignment':
       return action.userId
     case 'change_group_size':
     case 'dissolve_circle':
+    case 'initialize_book_mode':
+    case 'admin_create_book_circle':
+    case 'admin_delete_book_circle':
+    case 'close_session':
+    case 'reopen_session':
     case 'freeze':
       return null
   }
@@ -122,6 +164,14 @@ function requiresActiveParticipant(action: MatchingAction): boolean {
     'reorder_priorities',
     'change_group_size',
     'dissolve_circle',
+    'initialize_book_mode',
+    'admin_assign_book',
+    'admin_unassign_book',
+    'admin_create_book_circle',
+    'admin_delete_book_circle',
+    'admin_place_book_assignment',
+    'close_session',
+    'reopen_session',
     'freeze',
   ].includes(action.type)
 }
@@ -153,6 +203,18 @@ function actionEventDraft(
       return { ...base, after: { minGroupSize: action.min, maxGroupSize: action.max } }
     case 'dissolve_circle':
       return { ...base, eventType: 'circle_dissolved', metadata: { reason: action.reason, circleId: action.circleId } }
+    case 'set_conditional':
+    case 'unset_conditional':
+    case 'set_hard':
+      return { ...base, bookId: action.bookId }
+    case 'admin_assign_book':
+      return { ...base, bookId: action.bookId }
+    case 'admin_create_book_circle':
+      return { ...base, bookId: action.bookId }
+    case 'admin_delete_book_circle':
+      return { ...base, metadata: { circleId: action.circleId } }
+    case 'admin_place_book_assignment':
+      return { ...base, metadata: { circleId: action.circleId } }
     case 'self_join':
       return { ...base, after: action.name === undefined ? null : { name: action.name } }
     case 'admin_add':
@@ -161,6 +223,11 @@ function actionEventDraft(
     case 'freeze':
     case 'set_confirmation':
     case 'cancel_confirmation':
+    case 'cancel_hard':
+    case 'admin_unassign_book':
+    case 'initialize_book_mode':
+    case 'close_session':
+    case 'reopen_session':
       return base
   }
 }
@@ -281,8 +348,34 @@ export async function executeMatchingTransition(
 ): Promise<{ changed: boolean; stateVersion: number }> {
   const session = await store.lockSession(input.sessionId)
   if (!session) throw new MatchingTransitionError('session_not_found')
-  if (session.status !== 'active') throw new MatchingTransitionError('session_frozen')
   const action = input.action
+  const canonicalBookAction = [
+    'set_conditional', 'unset_conditional', 'set_hard', 'cancel_hard',
+    'admin_assign_book', 'admin_unassign_book', 'admin_create_book_circle',
+    'admin_delete_book_circle', 'admin_place_book_assignment',
+  ].includes(action.type)
+  const sharedBookAction = Boolean(session.bookModeInitializedAt) && [
+    'self_join', 'admin_add', 'leave', 'admin_remove', 'change_book',
+    'change_rank', 'change_status', 'replace_signup', 'reorder_priorities',
+  ].includes(action.type)
+  const catalogBookAction = [
+    'change_book', 'change_rank', 'change_status', 'replace_signup', 'reorder_priorities',
+  ].includes(action.type)
+  const bookAction = canonicalBookAction || sharedBookAction
+  const adminBookAction = action.type.startsWith('admin_') || (input.actor.source === 'admin' && sharedBookAction)
+  const lifecycleAction = ['close_session', 'reopen_session'].includes(action.type)
+  if (action.type === 'initialize_book_mode') {
+    if (session.bookModeInitializedAt) return { changed: false, stateVersion: session.stateVersion }
+  } else if (bookAction || lifecycleAction) {
+    if (!session.bookModeInitializedAt) throw new MatchingTransitionError('book_mode_unavailable')
+    const closedCatalogMutation = session.status === 'closed' && catalogBookAction
+    if (!adminBookAction && !lifecycleAction && session.status !== 'open' && !closedCatalogMutation) {
+      throw new MatchingTransitionError('session_frozen')
+    }
+  } else {
+    if (session.bookModeInitializedAt) throw new MatchingTransitionError('book_action_forbidden')
+    if (session.status !== 'active') throw new MatchingTransitionError('session_frozen')
+  }
   if (
     input.expectedStateVersion !== undefined &&
     input.expectedStateVersion !== session.stateVersion
@@ -363,7 +456,7 @@ export async function executeMatchingTransition(
     })
     changed = true
   } else {
-    const applied = await store.applyAction(input.sessionId, action)
+    const applied = await store.applyAction(input.sessionId, action, nextStateVersion)
     changed = typeof applied === 'boolean' ? applied : applied.changed
     if (changed) {
       if (typeof applied !== 'boolean' && applied.events.length > 0) {
@@ -380,15 +473,17 @@ export async function executeMatchingTransition(
   if (!changed) return { changed: false, stateVersion: session.stateVersion }
   const postActionDisplayNames = await store.getDisplayNames(input.sessionId)
 
-  await reconcileUntilStable({
-    sessionId: input.sessionId,
-    nextStateVersion,
-    store,
-    events,
-    notices,
-    preActionDisplayNames,
-    postActionDisplayNames,
-  })
+  if (!bookAction && !lifecycleAction && action.type !== 'initialize_book_mode') {
+    await reconcileUntilStable({
+      sessionId: input.sessionId,
+      nextStateVersion,
+      store,
+      events,
+      notices,
+      preActionDisplayNames,
+      postActionDisplayNames,
+    })
+  }
   await store.writeEvents(input.sessionId, events)
   await store.writeNotices(input.sessionId, notices)
   await store.bumpStateVersion(input.sessionId)

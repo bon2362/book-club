@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server'
 import { DELETE } from './route'
 import * as authModule from '@/lib/auth'
 import * as dbModule from '@/lib/db'
+import { matchingBookAssignments, matchingBookIntents, notificationQueue, users } from '@/lib/db/schema'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/db', () => ({
@@ -19,6 +20,7 @@ jest.mock('@/lib/audit/with-audit-context', () => ({
   withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) =>
     fn((jest.requireMock('@/lib/db') as { db: unknown }).db),
 }))
+jest.mock('@/lib/matching/legacy-cleanup', () => ({ enableMatchingLegacyCleanup: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const mockSelect = dbModule.db.select as jest.Mock
@@ -128,6 +130,11 @@ describe('DELETE /api/admin/delete-user', () => {
 
     expect(res.status).toBe(200)
     expect(mockSelect).toHaveBeenCalled()
-    expect(mockDelete).toHaveBeenCalledTimes(2)
+    expect(mockDelete.mock.calls.map(call => call[0])).toEqual([
+      notificationQueue,
+      matchingBookAssignments,
+      matchingBookIntents,
+      users,
+    ])
   })
 })

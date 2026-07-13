@@ -3,6 +3,8 @@ import {
   bookPriorities,
   bookSubmissions,
   feedback,
+  matchingBookAssignments,
+  matchingBookIntents,
   matchingSessionParticipants,
   matchingSessions,
   notificationQueue,
@@ -15,6 +17,7 @@ import {
 } from '@/lib/db/schema'
 import type { db as defaultDb } from '@/lib/db'
 import type { PersonalBookStatus } from '@/lib/signup-books'
+import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 type Tx = typeof defaultDb
 
@@ -58,6 +61,65 @@ export interface PriorityMergeRow {
 export interface ActivityMergeRow {
   id: string
   dedupeKey: string | null
+}
+
+export interface MatchingAssignmentMergeRow {
+  sessionId: string
+  userId: string
+  bookId: string
+  source: 'hard' | 'conditional' | 'admin' | 'legacy'
+  assignedAt: Date
+  assignedBy: string | null
+  circleId: string | null
+}
+
+export interface MatchingIntentMergeRow {
+  sessionId: string
+  userId: string
+  bookId: string
+  kind: 'conditional' | 'hard'
+  createdAt: Date
+  updatedAt: Date
+}
+
+export function resolveCanonicalMatchingMerge(input: {
+  targetUserId: string
+  targetAssignments: MatchingAssignmentMergeRow[]
+  sourceAssignments: MatchingAssignmentMergeRow[]
+  targetIntents: MatchingIntentMergeRow[]
+  sourceIntents: MatchingIntentMergeRow[]
+}) {
+  const sessionIds = new Set([
+    ...input.targetAssignments.map(row => row.sessionId),
+    ...input.sourceAssignments.map(row => row.sessionId),
+    ...input.targetIntents.map(row => row.sessionId),
+    ...input.sourceIntents.map(row => row.sessionId),
+  ])
+  const assignments: MatchingAssignmentMergeRow[] = []
+  const intents: MatchingIntentMergeRow[] = []
+
+  for (const sessionId of Array.from(sessionIds)) {
+    const assignment = input.targetAssignments.find(row => row.sessionId === sessionId) ??
+      input.sourceAssignments.find(row => row.sessionId === sessionId)
+    if (assignment) {
+      assignments.push({ ...assignment, userId: input.targetUserId })
+      continue
+    }
+
+    const target = input.targetIntents.filter(row => row.sessionId === sessionId)
+    const source = input.sourceIntents.filter(row => row.sessionId === sessionId)
+    const hard = target.find(row => row.kind === 'hard') ?? source.find(row => row.kind === 'hard')
+    if (hard) {
+      intents.push({ ...hard, userId: input.targetUserId })
+      continue
+    }
+    const byBook = new Map<string, MatchingIntentMergeRow>()
+    for (const row of [...target, ...source]) {
+      if (!byBook.has(row.bookId)) byBook.set(row.bookId, { ...row, userId: input.targetUserId })
+    }
+    intents.push(...Array.from(byBook.values()))
+  }
+  return { assignments, intents }
 }
 
 const statusStrength: Record<Exclude<PersonalBookStatus, null>, number> = {
@@ -228,13 +290,20 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
   if (!sourceUser) throw new MissingMergeUserError('source user not found')
   if (!targetUser) throw new MissingMergeUserError('target user not found')
 
-  const [sourceIdentityRows, targetIdentityRows, sourceSignupRows, targetSignupRows, sourcePriorityRows, targetPriorityRows] = await Promise.all([
+  await enableMatchingLegacyCleanup(tx)
+
+  const [sourceIdentityRows, targetIdentityRows, sourceSignupRows, targetSignupRows, sourcePriorityRows, targetPriorityRows,
+    sourceAssignmentRows, targetAssignmentRows, sourceIntentRows, targetIntentRows] = await Promise.all([
     tx.select().from(userIdentities).where(eq(userIdentities.userId, sourceUserId)),
     tx.select().from(userIdentities).where(eq(userIdentities.userId, targetUserId)),
     tx.select().from(signupBooks).where(eq(signupBooks.userId, sourceUserId)),
     tx.select().from(signupBooks).where(eq(signupBooks.userId, targetUserId)),
     tx.select().from(bookPriorities).where(eq(bookPriorities.userId, sourceUserId)),
     tx.select().from(bookPriorities).where(eq(bookPriorities.userId, targetUserId)),
+    tx.select().from(matchingBookAssignments).where(eq(matchingBookAssignments.userId, sourceUserId)),
+    tx.select().from(matchingBookAssignments).where(eq(matchingBookAssignments.userId, targetUserId)),
+    tx.select().from(matchingBookIntents).where(eq(matchingBookIntents.userId, sourceUserId)),
+    tx.select().from(matchingBookIntents).where(eq(matchingBookIntents.userId, targetUserId)),
   ])
 
   const targetIdentityKeys = new Set(targetIdentityRows.map(row => `${row.provider}\u0000${row.providerAccountId}`))
@@ -251,7 +320,7 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
     throw new IdentityConflictError(`identity ${conflictingIdentity.provider} belongs to another user`)
   }
 
-  const mergedSignups = resolveSignupMerge(
+  let mergedSignups = resolveSignupMerge(
     targetSignupRows.map(row => ({
       userId: targetUserId,
       bookId: row.bookId,
@@ -269,6 +338,21 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
     targetUserId,
   )
 
+  const mergedCanonical = resolveCanonicalMatchingMerge({
+    targetUserId,
+    targetAssignments: targetAssignmentRows,
+    sourceAssignments: sourceAssignmentRows,
+    targetIntents: targetIntentRows,
+    sourceIntents: sourceIntentRows,
+  })
+  const canonicallyBoundBooks = new Set([
+    ...mergedCanonical.assignments.map(row => row.bookId),
+    ...mergedCanonical.intents.map(row => row.bookId),
+  ])
+  mergedSignups = mergedSignups.map(row => canonicallyBoundBooks.has(row.bookId)
+    ? { ...row, personalStatus: null, personalStatusUpdatedAt: null }
+    : row)
+
   const mergedPriorities = mergePriorityRows(
     targetPriorityRows.map(row => ({ userId: targetUserId, bookId: row.bookId, rank: row.rank, rankSource: row.rankSource, updatedAt: row.updatedAt })),
     sourcePriorityRows.map(row => ({ userId: sourceUserId, bookId: row.bookId, rank: row.rank, rankSource: row.rankSource, updatedAt: row.updatedAt })),
@@ -279,6 +363,8 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
   // инварианту обязательных рангов (см. reconcilePrioritiesWithSignups).
   const reconciledPriorities = reconcilePrioritiesWithSignups(mergedSignups, mergedPriorities, targetUserId)
 
+  await tx.delete(matchingBookAssignments).where(inArray(matchingBookAssignments.userId, [sourceUserId, targetUserId]))
+  await tx.delete(matchingBookIntents).where(inArray(matchingBookIntents.userId, [sourceUserId, targetUserId]))
   await replaceRows(tx, signupBooks, signupBooks.userId, [sourceUserId, targetUserId], mergedSignups)
   await replaceRows(tx, bookPriorities, bookPriorities.userId, [sourceUserId, targetUserId], reconciledPriorities)
 
@@ -318,6 +404,13 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
     }
   }
 
+  if (mergedCanonical.assignments.length > 0) {
+    await tx.insert(matchingBookAssignments).values(mergedCanonical.assignments)
+  }
+  if (mergedCanonical.intents.length > 0) {
+    await tx.insert(matchingBookIntents).values(mergedCanonical.intents)
+  }
+
   if (sourceUser.contactEmail && targetUser.contactEmail) {
     await tx
       .update(notificationQueue)
@@ -340,6 +433,8 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
     bookPriorities: sourcePriorityRows.length,
     userActivityEvents: sourceActivityRows.length - duplicateActivityIds.length,
     matchingSessionParticipants: sourceParticipants.length,
+    matchingBookAssignments: sourceAssignmentRows.length,
+    matchingBookIntents: sourceIntentRows.length,
   }
 
   await tx.insert(userMergeEvents).values({

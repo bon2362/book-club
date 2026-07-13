@@ -3,10 +3,11 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { notificationQueue, users } from '@/lib/db/schema'
+import { matchingBookAssignments, matchingBookIntents, notificationQueue, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { deletePostHogPerson } from '@/lib/posthog-server'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 export async function DELETE() {
   const session = await auth()
@@ -28,11 +29,14 @@ export async function DELETE() {
       source: 'profile',
     },
     async (tx) => {
+      await enableMatchingLegacyCleanup(tx)
       if (targetUser?.contactEmail) {
         await tx
           .delete(notificationQueue)
           .where(eq(notificationQueue.userEmail, targetUser.contactEmail))
       }
+      await tx.delete(matchingBookAssignments).where(eq(matchingBookAssignments.userId, userId))
+      await tx.delete(matchingBookIntents).where(eq(matchingBookIntents.userId, userId))
       await tx.delete(users).where(eq(users.id, userId))
     },
   )

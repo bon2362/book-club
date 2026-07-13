@@ -6,10 +6,11 @@ import type { CatalogBook } from '@/lib/matching/personal-list'
 import { addToList, patchPriorities, patchStatus, removeFromList } from '@/lib/matching/personal-list-mutations'
 import MatchingBookDetailModal, { type MatchingBookDetail } from './MatchingBookDetailModal'
 import type { BookParticipant } from './MatchingPersonalList'
+import type { MatchingBookParticipantView } from './matching-book-types'
 import { useMatchingBoard } from './MatchingBoardProvider'
 
 interface BookDetailContextValue {
-  openBook: (book: MatchingBookDetail, chips: BookParticipant[]) => void
+  openBook: (book: MatchingBookDetail, chips: BookParticipant[], matchingParticipants?: MatchingBookParticipantView[]) => void
 }
 
 const defaultValue: BookDetailContextValue = { openBook: () => {} }
@@ -48,10 +49,10 @@ export default function BookDetailProvider({
 }: Props) {
   const router = useRouter()
   const { beginPending } = useMatchingBoard()
-  const [open, setOpen] = useState<{ book: MatchingBookDetail; chips: BookParticipant[] } | null>(null)
+  const [open, setOpen] = useState<{ book: MatchingBookDetail; chips: BookParticipant[]; matchingParticipants?: MatchingBookParticipantView[] } | null>(null)
 
-  const openBook = useCallback((book: MatchingBookDetail, chips: BookParticipant[]) => {
-    setOpen({ book, chips })
+  const openBook = useCallback((book: MatchingBookDetail, chips: BookParticipant[], matchingParticipants?: MatchingBookParticipantView[]) => {
+    setOpen({ book, chips, matchingParticipants })
   }, [])
 
   const closeBook = useCallback(() => setOpen(null), [])
@@ -97,6 +98,7 @@ export default function BookDetailProvider({
         <MatchingBookDetailModal
           book={enrichedBook}
           chips={open.chips}
+          matchingParticipants={open.matchingParticipants}
           viewingUserId={viewingUserId}
           frozen={frozen}
           onClose={closeBook}

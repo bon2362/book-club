@@ -71,6 +71,25 @@ describe('MatchingRealtimeClient', () => {
     expect(screen.getByTestId('matching-realtime-client')).toBeInTheDocument()
   })
 
+  it('opens initialized sessions on the book tab and keeps scenarios read-only', () => {
+    const state = makeInitialState()
+    state.bookMode = {
+      initializedAt: '2026-07-13T10:00:00.000Z',
+      viewerAssignmentBookId: null,
+      books: [{
+        bookId: 'b1', title: 'Книга режима', author: 'Автор', coverUrl: null,
+        intersectionCount: 0, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',
+        participants: [], circles: [], unplacedParticipantRefs: [],
+        allowedActions: { conditional: true, hard: true, cancelHard: false },
+      }],
+    }
+    respondVersion(1)
+    render(<MatchingRealtimeClient sessionId="s1" initialState={state} bookTitleById={{}} pollIntervalMs={50_000} />)
+    expect(screen.getByRole('tab', { name: 'Книги' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByTestId('matching-books-view')).toHaveTextContent('Книга режима')
+    expect(screen.queryByTestId('matching-scenarios-empty')).not.toBeInTheDocument()
+  })
+
   it('does not fire a state fetch on the first poll when version is unchanged', async () => {
     respondVersion(1) // same as initialState stateVersion=1
     render(

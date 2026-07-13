@@ -2,17 +2,24 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   matchingCircleConfirmations,
+  matchingBookAssignments,
+  matchingBookIntents,
+  matchingCircles,
   matchingLockedCircleMembers,
   matchingLockedCircles,
   matchingNotices,
   matchingSessionParticipants,
   matchingSessions,
+  matchingSessionBookStates,
+  signupBooks,
+  books,
   users,
 } from '@/lib/db/schema'
 import { assignMatchingDisplayNames } from './display-names'
 import { isOnline } from './presence'
 import { assemblePublicSessionState } from './public-state'
 import { fetchMatchingScenarioOverview } from './scenario-overview-db'
+import { buildPublicBookModeState } from './book-public-state'
 
 type DbClient = typeof db
 
@@ -27,6 +34,7 @@ export async function fetchMatchingPublicState(
   sessionId: string,
   viewerUserId: string,
   dbClient: DbClient = db,
+  options: { admin?: boolean } = {},
 ) {
   const [session] = await dbClient
     .select({
@@ -38,6 +46,7 @@ export async function fetchMatchingPublicState(
       maxGroupSize: matchingSessions.maxGroupSize,
       deadlineAt: matchingSessions.deadlineAt,
       frozenSnapshot: matchingSessions.frozenScenarioJson,
+      bookModeInitializedAt: matchingSessions.bookModeInitializedAt,
     })
     .from(matchingSessions)
     .where(eq(matchingSessions.id, sessionId))
@@ -55,7 +64,8 @@ export async function fetchMatchingPublicState(
     .from(matchingSessionParticipants)
     .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
-  if (!participantRows.some((participant) => participant.userId === viewerUserId)) {
+  const viewerIsParticipant = participantRows.some((participant) => participant.userId === viewerUserId)
+  if (!viewerIsParticipant && !options.admin) {
     throw new PublicMatchingStateError('participant_missing')
   }
 
@@ -132,13 +142,115 @@ export async function fetchMatchingPublicState(
     lockedUserIds: memberRows.map(({ userId }) => userId),
   })
 
-  return assemblePublicSessionState({
-    session,
+  const effectiveViewerUserId = viewerIsParticipant ? viewerUserId : participantRows[0]?.userId
+  const assembledLegacyState = effectiveViewerUserId
+    ? assemblePublicSessionState({
+      session,
+      viewerUserId: effectiveViewerUserId,
+      participants,
+      scenarioOverview,
+      confirmations,
+      lockedCircles,
+      notices,
+    })
+    : {
+      session: {
+        name: session.name,
+        status: session.status,
+        stateVersion: session.stateVersion,
+        minGroupSize: session.minGroupSize,
+        maxGroupSize: session.maxGroupSize,
+        deadlineAt: session.deadlineAt?.toISOString() ?? null,
+        frozenSnapshot: null,
+      },
+      viewer: { role: 'active' as const, ref: 'admin', lockedCircleKey: null },
+      participants: [],
+      scenarios: [],
+      lockedCircles: [],
+      notices: [],
+    }
+  const legacyState = options.admin && !viewerIsParticipant
+    ? { ...assembledLegacyState, viewer: { role: 'active' as const, ref: 'admin-viewer', lockedCircleKey: null } }
+    : assembledLegacyState
+
+  if (!session.bookModeInitializedAt) return { ...legacyState, bookMode: null }
+
+  const [interests, intents, assignments, formedRows, circleRows] = await Promise.all([
+    dbClient.select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+      .from(signupBooks)
+      .innerJoin(matchingSessionParticipants, and(
+        eq(matchingSessionParticipants.sessionId, sessionId),
+        eq(matchingSessionParticipants.userId, signupBooks.userId),
+      ))
+      .where(isNull(signupBooks.personalStatus)),
+    dbClient.select({
+      userId: matchingBookIntents.userId,
+      bookId: matchingBookIntents.bookId,
+      kind: matchingBookIntents.kind,
+    }).from(matchingBookIntents).where(eq(matchingBookIntents.sessionId, sessionId)),
+    dbClient.select({
+      userId: matchingBookAssignments.userId,
+      bookId: matchingBookAssignments.bookId,
+      circleId: matchingBookAssignments.circleId,
+    }).from(matchingBookAssignments).where(eq(matchingBookAssignments.sessionId, sessionId)),
+    dbClient.select({
+      bookId: matchingSessionBookStates.bookId,
+      formedAt: matchingSessionBookStates.formedAt,
+    }).from(matchingSessionBookStates).where(eq(matchingSessionBookStates.sessionId, sessionId)),
+    dbClient.select({
+      id: matchingCircles.id,
+      bookId: matchingCircles.bookId,
+      position: matchingCircles.position,
+    }).from(matchingCircles).where(eq(matchingCircles.sessionId, sessionId)),
+  ])
+  const bookIds = Array.from(new Set([
+    ...interests.map(item => item.bookId),
+    ...intents.map(item => item.bookId),
+    ...assignments.map(item => item.bookId),
+    ...formedRows.map(item => item.bookId),
+    ...circleRows.map(item => item.bookId),
+  ]))
+  const bookRows = bookIds.length > 0
+    ? await dbClient.select({
+      bookId: books.id,
+      bookSlug: books.slug,
+      title: books.title,
+      author: books.author,
+      coverUrl: books.coverUrl,
+      sortOrder: books.sortOrder,
+      description: books.description,
+      pages: books.pages,
+      publishedDate: books.publishedDate,
+      textUrl: books.textUrl,
+      whyRead: books.whyRead,
+      recommendationLink: books.recommendationLink,
+      tags: books.tags,
+    }).from(books).where(inArray(books.id, bookIds))
+    : []
+  const bookMode = buildPublicBookModeState({
+    initializedAt: session.bookModeInitializedAt,
+    sessionStatus: session.status,
     viewerUserId,
-    participants,
-    scenarioOverview,
-    confirmations,
-    lockedCircles,
-    notices,
+    admin: options.admin ?? false,
+    books: bookRows,
+    participants: participants.map(participant => ({
+      userId: participant.userId,
+      publicRef: participant.publicRef,
+      displayName: participant.displayName,
+    })),
+    interests,
+    intents,
+    assignments,
+    formedAtByBookId: new Map(formedRows.map(item => [item.bookId, item.formedAt])),
+    circles: circleRows,
   })
+  return {
+    ...legacyState,
+    viewer: {
+      ...legacyState.viewer,
+      role: bookMode.viewerAssignmentBookId ? 'observer' as const : 'active' as const,
+      lockedCircleKey: null,
+    },
+    bookMode,
+  }
 }

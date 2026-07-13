@@ -3,14 +3,38 @@ import type { APIRequestContext, Browser, BrowserContext } from '@playwright/tes
 import { epic, feature } from 'allure-js-commons'
 
 type PublicState = {
-  session: { stateVersion: number }
+  session: { stateVersion: number; status?: string }
   viewer: { role: 'active' | 'observer' }
+  bookMode?: null | {
+    viewerAssignmentBookId: string | null
+    books: Array<{
+      bookId: string
+      circles: Array<{ id: string; memberRefs: string[] }>
+      unplacedParticipantRefs: string[]
+    }>
+  }
   scenarios: Array<{ circles: Array<{
     circleKey: string
     bookId: string
     viewerIsMember: boolean
     members: Array<{ displayName: string }>
   }> }>
+}
+
+async function adminBookAction(
+  request: APIRequestContext,
+  sessionId: string,
+  viewerUserId: string,
+  data: Record<string, unknown>,
+) {
+  const currentResponse = await request.get(`/api/matching/state?session=${sessionId}&as=${viewerUserId}`)
+  expect(currentResponse.ok(), await currentResponse.text()).toBe(true)
+  const current = await currentResponse.json() as PublicState
+  const response = await request.post(`/api/admin/matching/sessions/${sessionId}/book-admin-actions`, {
+    data: { ...data, expectedStateVersion: current.session.stateVersion },
+  })
+  expect(response.ok(), await response.text()).toBe(true)
+  return response
 }
 
 async function getState(request: APIRequestContext, sessionId: string): Promise<PublicState> {
@@ -254,4 +278,90 @@ test('admin force-add, remove, group size, impersonation и freeze сохран�
     await candidate.request.delete('/api/test/session', { data: { email: candidateEmail } }).catch(() => {})
     await candidateContext.close()
   }
+})
+
+test('администратор закрывает, снова открывает и вручную разрушает состав книжного режима', async ({
+  matchingBooksFixture,
+}) => {
+  const { session, books, participantA, participantB, participantC, admin } = matchingBooksFixture
+
+  const participantAction = async (
+    participant: typeof participantA,
+    action: 'setConditional' | 'setHard',
+  ) => {
+    const current = await getState(participant.page.request, session.id)
+    const response = await participant.page.request.post(`/api/matching/sessions/${session.id}/book-actions`, {
+      data: { action, bookId: books[0].id, expectedStateVersion: current.session.stateVersion },
+    })
+    expect(response.ok(), await response.text()).toBe(true)
+  }
+
+  await participantAction(participantB, 'setConditional')
+  await participantAction(participantA, 'setHard')
+  await participantAction(participantC, 'setHard')
+
+  const formed = await getState(admin.page.request, session.id)
+  const originalCircle = formed.bookMode?.books.find((book) => book.bookId === books[0].id)?.circles[0]
+  expect(originalCircle).toBeTruthy()
+  await adminBookAction(admin.page.request, session.id, participantA.userId, {
+    action: 'deleteCircle',
+    circleId: originalCircle!.id,
+  })
+  await participantA.page.goto('/matching')
+  await participantA.page.reload()
+  await expect(participantA.page.getByTestId(`matching-book-card-${books[0].id}`)).toContainText('Без круга')
+
+  await adminBookAction(admin.page.request, session.id, participantA.userId, {
+    action: 'createCircle',
+    bookId: books[0].id,
+  })
+  const recreated = await getState(admin.page.request, session.id)
+  const replacementCircle = recreated.bookMode?.books.find((book) => book.bookId === books[0].id)?.circles[0]
+  expect(replacementCircle).toBeTruthy()
+  await adminBookAction(admin.page.request, session.id, participantA.userId, {
+    action: 'place',
+    userId: participantA.userId,
+    circleId: replacementCircle!.id,
+  })
+  await participantA.page.reload()
+  const participantCircle = participantA.page
+    .getByTestId(`matching-book-card-${books[0].id}`)
+    .getByRole('region', { name: 'Круг 1' })
+  await expect(participantCircle).toBeVisible()
+  await expect(participantCircle).toContainText('Вы')
+
+  await adminBookAction(admin.page.request, session.id, participantA.userId, {
+    action: 'assign',
+    userId: participantC.userId,
+    bookId: books[1].id,
+  })
+  await participantC.page.goto('/matching')
+  await participantC.page.reload()
+  await expect(participantC.page.getByTestId(`matching-book-card-${books[1].id}`)).toContainText('Вы назначены на эту книгу')
+
+  await adminBookAction(admin.page.request, session.id, participantA.userId, {
+    action: 'unassign',
+    userId: participantB.userId,
+  })
+  await participantB.page.goto('/matching')
+  await participantB.page.reload()
+  await expect(participantB.page.getByTestId(`matching-book-card-${books[0].id}`)).not.toContainText('Вы назначены на эту книгу')
+
+  await adminBookAction(admin.page.request, session.id, participantA.userId, { action: 'closeSession' })
+  await participantA.page.goto('/matching')
+  await participantA.page.reload()
+  await expect(participantA.page.getByText('● закрыта')).toBeVisible()
+  await expect(participantA.page.getByTestId('matching-books-view')).toContainText('только для просмотра')
+
+  const closed = await getState(participantB.page.request, session.id)
+  const forbidden = await participantB.page.request.post(`/api/matching/sessions/${session.id}/book-actions`, {
+    data: { action: 'setHard', bookId: books[1].id, expectedStateVersion: closed.session.stateVersion },
+  })
+  expect(forbidden.status()).toBe(409)
+
+  await adminBookAction(admin.page.request, session.id, participantA.userId, { action: 'reopenSession' })
+  await participantB.page.reload()
+  await participantB.page.waitForLoadState('networkidle')
+  await expect(participantB.page.getByText('● открыта')).toBeVisible()
+  await expect(participantB.page.getByTestId(`matching-book-card-${books[1].id}`).getByRole('button', { name: 'Записать', exact: true })).toBeVisible()
 })

@@ -59,3 +59,24 @@ describe('MatchingBookDetailModal summary action', () => {
     expect(screen.getByRole('link', { name: 'Редактировать' })).toHaveAttribute('href', '/books/kniga/my-summary/edit')
   })
 })
+
+describe('MatchingBookDetailModal matching participants', () => {
+  it('shows the complete named list including simple interest', () => {
+    render(
+      <MatchingBookDetailModal
+        book={{ ...book, personalStatus: null }}
+        frozen
+        onClose={() => {}}
+        matchingParticipants={[
+          { ref: 'p1', displayName: 'Анна', status: 'hard' },
+          { ref: 'p2', displayName: 'Борис', status: 'interest' },
+        ]}
+      />,
+    )
+    const list = screen.getByTestId('matching-book-participant-list')
+    expect(list).toHaveTextContent('Анна')
+    expect(list).toHaveTextContent('Окончательный выбор')
+    expect(list).toHaveTextContent('Борис')
+    expect(list).toHaveTextContent('В списке')
+  })
+})

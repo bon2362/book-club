@@ -44,7 +44,8 @@ const FORWARDED_KEYS = [
 
 const forwardedEnv: Record<string, string> = {}
 for (const key of FORWARDED_KEYS) {
-  if (TEST_ENV[key]) forwardedEnv[key] = TEST_ENV[key]
+  const value = process.env[key] ?? TEST_ENV[key]
+  if (value) forwardedEnv[key] = value
 }
 
 // The Playwright worker (fixtures/dbExec) performs raw SQL outside Next's

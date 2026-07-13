@@ -10,6 +10,8 @@ export interface MatchingHeaderProps {
   minGroupSize: number; maxGroupSize: number; deadlineAt: string | null
   viewer: { displayName: string; role: 'active' | 'observer' }
   participants: MatchingHeaderParticipant[]; isAdmin: boolean; isImpersonating: boolean
+  viewerAssigned?: boolean
+  bookMode?: boolean
   navigate?: (url: string) => void
   onSessionRefresh?: () => void | Promise<void>
 }
@@ -61,6 +63,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
   }, [props.deadlineAt])
 
   async function leave() {
+    if (props.viewerAssigned) return
     if (!window.confirm('Покинуть сессию? Ты выйдешь из расчёта, а твоё подтверждение круга будет снято — при повторном входе круг нужно будет подтвердить заново.')) return
     setPending(true); setError(null)
     try {
@@ -116,7 +119,12 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
     } finally { setPending(false) }
   }
 
-  const groups = props.minGroupSize === props.maxGroupSize ? `Группы по ${props.minGroupSize}` : `Группы ${props.minGroupSize}–${props.maxGroupSize}`
+  const groups = props.bookMode
+    ? 'Группы 3–5'
+    : props.minGroupSize === props.maxGroupSize ? `Группы по ${props.minGroupSize}` : `Группы ${props.minGroupSize}–${props.maxGroupSize}`
+  const statusLabel = props.sessionStatus === 'active'
+    ? 'активна'
+    : props.sessionStatus === 'open' ? 'открыта' : props.sessionStatus === 'closed' ? 'закрыта' : 'заморожена'
   return <>
     {props.isImpersonating && <div data-testid="admin-impersonation-banner" style={{ padding: '0.45rem 1.3rem', borderBottom: '1px solid var(--border)', color: 'var(--status-warn)' }}>👁 Просмотр за {props.viewer.displayName}<a href="/admin?tab=matching" style={{ float: 'right', color: 'inherit' }}>← вернуться в админку</a></div>}
     <header data-testid="matching-header" className="nd-mx-hdr" style={{ padding: '0.7rem 1.3rem', borderBottom: '1px solid var(--border-strong)', background: 'var(--bg)' }}>
@@ -129,8 +137,8 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
             <label style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Макс. <input className="nd-inline-number" aria-label="Максимум участников" type="number" value={maxSize} onChange={(e) => setMaxSize(e.target.value)} style={{ width: 46, border: '1px solid var(--border)', background: 'var(--bg-input)' }} /></label>
             <button type="button" onClick={saveSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: '1px solid var(--text)', background: 'var(--text)', color: 'var(--bg-input)' }}>Сохранить</button>
             <button type="button" onClick={cancelSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)' }}>Отмена</button>
-          </div> : <span className="nd-mx-hdr-groups" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{groups} {props.isAdmin && props.sessionStatus === 'active' && <button type="button" aria-label="Изменить размер групп" onClick={() => setEditingSize(true)} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>✎</button>}</span>}
-          <span className="nd-mx-hdr-deadline" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{deadlineText(props.deadlineAt, now)}</span><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: props.sessionStatus === 'active' ? 'var(--success)' : 'var(--text-muted)' }}>● {props.sessionStatus === 'active' ? 'активна' : 'заморожена'}</span>
+          </div> : <span className="nd-mx-hdr-groups" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{groups} {props.isAdmin && !props.bookMode && (props.sessionStatus === 'active' || props.sessionStatus === 'open') && <button type="button" aria-label="Изменить размер групп" onClick={() => setEditingSize(true)} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>✎</button>}</span>}
+          <span className="nd-mx-hdr-deadline" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{deadlineText(props.deadlineAt, now)}</span><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: props.sessionStatus === 'active' || props.sessionStatus === 'open' ? 'var(--success)' : 'var(--text-muted)' }}>● {statusLabel}</span>
         </div>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {props.viewer.role === 'observer' ? <span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--success)', borderBottom: '1px solid var(--success)' }}>Вы наблюдаете</span> : <span className="nd-mx-hdr-you" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Вы — <strong style={{ color: 'var(--text)' }}>{props.viewer.displayName}</strong></span>}
@@ -146,7 +154,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          {!props.isImpersonating && props.viewer.role === 'active' && <button type="button" onClick={leave} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)' }}>{pending ? 'Подождите…' : 'Покинуть'}</button>}
+          {!props.isAdmin && !props.isImpersonating && props.viewer.role === 'active' && <button type="button" onClick={leave} disabled={pending || props.viewerAssigned} title={props.viewerAssigned ? 'Назначенный участник не может выйти самостоятельно' : undefined} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', textDecoration: props.viewerAssigned ? 'line-through' : undefined }}>{pending ? 'Подождите…' : 'Покинуть'}</button>}
         </div>
       </div>{error && <p role="alert" style={{ margin: '0.45rem 0 0', fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--accent)' }}>{error}</p>}
     </header>

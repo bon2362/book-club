@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import CoverImage from './CoverImage'
 import { parseRecommendationLink, withAdminName } from './matching-shared'
 import type { BookParticipant } from './MatchingPersonalList'
 import ParticipantInterestChip from './ParticipantInterestChip'
+import { participantStatusLabel } from './MatchingBookParticipants'
+import type { MatchingBookParticipantView } from './matching-book-types'
 
 export interface MatchingBookDetail {
   bookId: string
@@ -32,6 +34,7 @@ type SummaryState = {
 interface Props {
   book: MatchingBookDetail
   chips?: BookParticipant[]
+  matchingParticipants?: MatchingBookParticipantView[]
   viewingUserId?: string
   frozen?: boolean
   onClose: () => void
@@ -45,6 +48,7 @@ interface Props {
 export default function MatchingBookDetailModal({
   book,
   chips = [],
+  matchingParticipants = [],
   viewingUserId,
   frozen = true,
   onClose,
@@ -53,6 +57,8 @@ export default function MatchingBookDetailModal({
   onRemoveFromList,
   adminNamesByDisplayName = null,
 }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
   const [busy, setBusy] = useState(false)
   const [summary, setSummary] = useState<SummaryState>(null)
   const [summaryLoaded, setSummaryLoaded] = useState(false)
@@ -63,9 +69,26 @@ export default function MatchingBookDetailModal({
     : summary ? `/summaries/${summary.id}/edit` : ''
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus())
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Tab' || !dialogRef.current) return
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previousOverflow
+      previousFocusRef.current?.focus()
+    }
   }, [onClose])
 
   useEffect(() => {
@@ -132,9 +155,10 @@ export default function MatchingBookDetailModal({
       role="presentation"
       onClick={onClose}
       className="fixed inset-0 flex items-center justify-center z-50 p-6 nd-mx-sheet-overlay"
-      style={{ background: 'rgba(33, 28, 23, 0.34)', backdropFilter: 'blur(2px)' }}
+      style={{ background: 'var(--overlay)', backdropFilter: 'blur(2px)' }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={book.title}
@@ -143,7 +167,7 @@ export default function MatchingBookDetailModal({
         style={{
           background: 'var(--bg-input)',
           borderRadius: 'var(--radius-card)',
-          boxShadow: '0 24px 70px rgba(33,28,23,0.25)',
+          boxShadow: 'var(--shadow-pop)',
           maxHeight: '88vh',
           display: 'flex',
           flexDirection: 'column',
@@ -190,7 +214,7 @@ export default function MatchingBookDetailModal({
         >
           <div
             className="relative overflow-hidden shrink-0 nd-mx-sheet-cover"
-            style={{ width: 132, height: 198, borderRadius: 6, boxShadow: '0 4px 16px rgba(40,30,20,0.18)' }}
+            style={{ width: 132, height: 198, borderRadius: 'var(--radius-control)', boxShadow: 'var(--shadow-cover)' }}
           >
             <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
           </div>
@@ -232,6 +256,22 @@ export default function MatchingBookDetailModal({
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {matchingParticipants.length > 0 && (
+              <div style={{ marginBottom: '0.85rem' }} data-testid="matching-book-participant-list">
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                  Участники:
+                </div>
+                <ul className="nd-mb-modal-participants">
+                  {matchingParticipants.map((participant) => (
+                    <li key={participant.ref}>
+                      <span>{participant.displayName}</span>
+                      <span>{participantStatusLabel(participant.status)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 

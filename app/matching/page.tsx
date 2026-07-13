@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants, users } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, desc, inArray } from 'drizzle-orm'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { listCanEnterSession } from '@/lib/matching/ranking-readiness'
 import { fetchMatchingPublicState, PublicMatchingStateError } from '@/lib/matching/public-state-db'
@@ -18,7 +18,6 @@ import type { MatchingPublicState } from '@/components/nd/MatchingRealtimeClient
 import type { BookParticipant } from '@/components/nd/MatchingPersonalList'
 import { db as drizzle } from '@/lib/db'
 import { signupBooks, bookPriorities } from '@/lib/db/schema'
-import { inArray } from 'drizzle-orm'
 import { buildPublicBookParticipants } from '@/lib/matching/book-participants'
 
 export default async function MatchingPage({
@@ -34,8 +33,9 @@ export default async function MatchingPage({
   const isImpersonating = asParam !== null
   const viewerUserId = isImpersonating ? asParam : session.user.id!
 
-  // Find the active session
-  const [activeSession] = await db
+  // Prefer the canonical open session while keeping legacy active sessions readable
+  // during the additive rollout.
+  const [openSession] = await db
     .select({
       id: matchingSessions.id,
       name: matchingSessions.name,
@@ -44,14 +44,16 @@ export default async function MatchingPage({
       minGroupSize: matchingSessions.minGroupSize,
       maxGroupSize: matchingSessions.maxGroupSize,
       deadlineAt: matchingSessions.deadlineAt,
+      bookModeInitializedAt: matchingSessions.bookModeInitializedAt,
     })
     .from(matchingSessions)
-    .where(eq(matchingSessions.status, 'active'))
+    .where(inArray(matchingSessions.status, ['open', 'active']))
+    .orderBy(desc(matchingSessions.createdAt))
     .limit(1)
     .catch(() => [])
 
-  // Also check frozen sessions if no active one
-  const [anySession] = activeSession ? [activeSession] : await db
+  // The newest closed session remains current until another session is opened.
+  const [anySession] = openSession ? [openSession] : await db
     .select({
       id: matchingSessions.id,
       name: matchingSessions.name,
@@ -60,9 +62,11 @@ export default async function MatchingPage({
       minGroupSize: matchingSessions.minGroupSize,
       maxGroupSize: matchingSessions.maxGroupSize,
       deadlineAt: matchingSessions.deadlineAt,
+      bookModeInitializedAt: matchingSessions.bookModeInitializedAt,
     })
     .from(matchingSessions)
-    .where(eq(matchingSessions.status, 'frozen'))
+    .where(inArray(matchingSessions.status, ['closed', 'frozen']))
+    .orderBy(desc(matchingSessions.createdAt))
     .limit(1)
     .catch(() => [])
 
@@ -86,7 +90,8 @@ export default async function MatchingPage({
     )
   }
 
-  const currentSession = activeSession ?? anySession
+  const currentSession = openSession ?? anySession
+  const sessionIsOpen = currentSession.status === 'open' || currentSession.status === 'active'
 
   // Check if the viewer is already a participant
   const [currentParticipant] = !isImpersonating
@@ -103,7 +108,7 @@ export default async function MatchingPage({
     : [null]
 
   // Not joined + active session → Welcome
-  if (!isImpersonating && currentSession.status === 'active' && !currentParticipant) {
+  if (!isAdmin && !isImpersonating && sessionIsOpen && !currentParticipant) {
     // Fetch user's current global name
     const [userRow] = await db
       .select({ name: users.name })
@@ -125,8 +130,10 @@ export default async function MatchingPage({
 
   // Ranking Gate: joined + active session + has unranked active books
   const showRankingGate =
+    !isAdmin &&
     !isImpersonating &&
-    currentSession.status === 'active' &&
+    sessionIsOpen &&
+    !currentSession.bookModeInitializedAt &&
     !listCanEnterSession(personalBooks)
 
   // Fetch book participants for personal list chips
@@ -173,7 +180,9 @@ export default async function MatchingPage({
   let publicState: MatchingPublicState | null = null
   if (!showRankingGate) {
     try {
-      const raw = await fetchMatchingPublicState(currentSession.id, viewerUserId)
+      const raw = await fetchMatchingPublicState(currentSession.id, viewerUserId, undefined, {
+        admin: isAdmin && !isImpersonating,
+      })
       // Derive viewerConfirmedCircleKey from participants
       const viewerRef = raw.viewer.ref
       const me = raw.participants.find((p: { ref: string; confirmedCircleKey: string | null }) => p.ref === viewerRef)
@@ -185,6 +194,7 @@ export default async function MatchingPage({
         lockedCircles: raw.lockedCircles,
         notices: raw.notices,
         viewerConfirmedCircleKey: me?.confirmedCircleKey ?? null,
+        bookMode: raw.bookMode,
       }
     } catch (error) {
       if (error instanceof PublicMatchingStateError && error.code === 'participant_missing') {
@@ -204,6 +214,7 @@ export default async function MatchingPage({
           lockedCircles: [],
           notices: [],
           viewerConfirmedCircleKey: null,
+          bookMode: null,
         }
       } else {
         throw error
@@ -216,14 +227,14 @@ export default async function MatchingPage({
     ? {}
     : Object.fromEntries(personalBooks.map((book) => [book.bookId, book]))
 
-  const isReadOnly = currentSession.status === 'frozen'
+  const isReadOnly = currentSession.status === 'frozen' || currentSession.status === 'closed'
 
   return (
     <MatchingBoardProvider stateVersion={currentSession.stateVersion}>
       <BookDetailProvider
         personalBooks={personalBooks}
         viewingUserId={viewingParticipantRef}
-        frozen={isReadOnly}
+        frozen={isReadOnly || (isAdmin && !isImpersonating)}
       >
         <MatchingSatisfactionFlow
               phase={showRankingGate ? 'gate' : 'board'}
@@ -239,6 +250,7 @@ export default async function MatchingPage({
                 booksById={booksById}
                 isAdmin={isAdmin}
                 isImpersonating={isImpersonating}
+                viewerDisplayName={isAdmin && !isImpersonating ? session.user.name ?? 'Организатор' : undefined}
               />}
               catalogIntro={showRankingGate ? undefined : <div data-testid="matching-catalog-intro" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}><h2 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.12rem' }}>Каталог</h2><p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Слева — книги клуба, справа — ваш список и приоритеты</p></div>}
             />

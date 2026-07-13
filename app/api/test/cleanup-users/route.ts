@@ -3,8 +3,9 @@
 
 import { NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
-import { db } from '@/lib/db'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
+import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -34,7 +35,9 @@ function firstRow(result: unknown): CleanupCounts | null {
 export async function DELETE() {
   if (!isTestEndpointAllowed()) return notAllowed()
 
-  const result = await db.execute(sql`
+  const result = await withAuditContext({ actorUserId: null, actorLabel: 'E2E bulk cleanup', source: 'system' }, async (tx) => {
+    await enableMatchingLegacyCleanup(tx)
+    return tx.execute(sql`
     WITH target_users AS (
       SELECT u."id", u."contact_email"
       FROM "user" u
@@ -59,6 +62,16 @@ export async function DELETE() {
       FROM "matching_sessions"
       WHERE "name" ILIKE 'E2E Matching %'
         OR "name" ILIKE 'E2E Admin Satisfaction %'
+    ),
+    deleted_matching_book_assignments AS (
+      DELETE FROM "matching_book_assignments"
+      WHERE "user_id" IN (SELECT "id" FROM target_users)
+      RETURNING "user_id"
+    ),
+    deleted_matching_book_intents AS (
+      DELETE FROM "matching_book_intents"
+      WHERE "user_id" IN (SELECT "id" FROM target_users)
+      RETURNING "user_id"
     ),
     deleted_matching_sessions AS (
       DELETE FROM "matching_sessions"
@@ -94,7 +107,8 @@ export async function DELETE() {
       (SELECT count(*)::int FROM deleted_feedback) AS "feedback",
       (SELECT count(*)::int FROM deleted_notifications) AS "notifications",
       (SELECT count(*)::int FROM deleted_matching_sessions) AS "matchingSessions"
-  `)
+    `)
+  })
 
   return NextResponse.json({ ok: true, deleted: firstRow(result) })
 }

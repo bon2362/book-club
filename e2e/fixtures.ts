@@ -115,6 +115,16 @@ interface MatchingBoardFixture {
   addParticipant: (name: string, rankedBooks?: TestBook[]) => Promise<MatchingBoardParticipant>
 }
 
+interface MatchingBooksFixture {
+  session: MatchingSession
+  books: [TestBook, TestBook]
+  participantA: MatchingBoardParticipant
+  participantB: MatchingBoardParticipant
+  participantC: MatchingBoardParticipant
+  admin: MatchingBoardParticipant
+  addParticipant: (name: string, shortlistedBooks?: TestBook[]) => Promise<MatchingBoardParticipant>
+}
+
 interface DbExecHelper {
   /**
    * Execute a raw SQL statement against the e2e database (Node.js context,
@@ -232,6 +242,12 @@ interface E2EHelpers {
    * Both browser contexts and user records are cleaned up by the fixture.
    */
   matchingBoardFixture: MatchingBoardFixture
+  /**
+   * Book-centric matching board initialized in the middle of an already active
+   * legacy session. Three participants and the administrator use independent
+   * browser contexts; all users, books and the session are removed in teardown.
+   */
+  matchingBooksFixture: MatchingBooksFixture
 }
 
 async function patchIntroSection(
@@ -514,6 +530,91 @@ export const test = base.extend<E2EHelpers>({
       )
 
       await use({ session, books, participantA, participantB, addParticipant })
+    } finally {
+      for (const user of createdUsers.reverse()) {
+        try { await user.page.request.delete('/api/test/session', { data: { email: user.email } }) } catch { /* best effort */ }
+      }
+      for (const context of contexts.reverse()) await context.close().catch(() => {})
+    }
+  },
+
+  matchingBooksFixture: async ({ browser, createMatchingSession, createTestBook, auditCleanup }, use, testInfo) => {
+    const contexts: BrowserContext[] = []
+    const createdUsers: Array<{ page: Page; email: string }> = []
+
+    const createIdentity = async (
+      label: string,
+      name: string,
+      isAdmin: boolean,
+    ): Promise<MatchingBoardParticipant> => {
+      const context = await browser.newContext()
+      contexts.push(context)
+      for (const pattern of POSTHOG_PATTERNS) await context.route(pattern, (route) => route.abort())
+      const page = await context.newPage()
+      const email = `e2e-books-${testInfo.testId}-${label}-${Date.now()}@test.invalid`
+      const login = await page.request.post('/api/test/session', {
+        data: {
+          email,
+          name,
+          isAdmin,
+          telegramUsername: `matching_books_${label.toLowerCase()}_${Date.now()}`,
+        },
+      })
+      if (!login.ok()) throw new Error(`matchingBooksFixture login failed: ${login.status()} ${await login.text()}`)
+      createdUsers.push({ page, email })
+      const { userId } = await login.json() as { userId: string }
+      auditCleanup.trackUser(userId)
+      return { email, name, userId, context, page }
+    }
+
+    try {
+      const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 5 })
+      const books: [TestBook, TestBook] = [
+        await createTestBook({ title: `E2E Книжный круг A ${testInfo.testId}`, author: 'Автор A' }),
+        await createTestBook({ title: `E2E Книжный круг B ${testInfo.testId}`, author: 'Автор B' }),
+      ]
+      const participantA = await createIdentity('A', 'Анна Книги E2E', false)
+      const participantB = await createIdentity('B', 'Борис Книги E2E', false)
+      const participantC = await createIdentity('C', 'Вера Книги E2E', false)
+      const admin = await createIdentity('admin', 'Администратор Книги E2E', true)
+
+      // Participants first join the ordinary satisfaction session and set a
+      // global shortlist. Only after that does the admin enable book mode.
+      const joinParticipant = async (participant: MatchingBoardParticipant, shortlistedBooks: TestBook[] = books) => {
+        const join = await participant.page.request.post(`/api/matching/sessions/${session.id}/join`, {
+          data: { name: participant.name },
+        })
+        if (!join.ok()) throw new Error(`matchingBooksFixture join failed: ${join.status()} ${await join.text()}`)
+        for (const book of shortlistedBooks) {
+          const add = await participant.page.request.post('/api/matching/books', { data: { bookId: book.id } })
+          if (!add.ok()) throw new Error(`matchingBooksFixture add failed: ${add.status()} ${await add.text()}`)
+        }
+        const rank = await participant.page.request.patch('/api/matching/priorities', {
+          data: { bookIds: shortlistedBooks.map((book) => book.id) },
+        })
+        if (!rank.ok()) throw new Error(`matchingBooksFixture rank failed: ${rank.status()} ${await rank.text()}`)
+      }
+      for (const participant of [participantA, participantB, participantC]) await joinParticipant(participant)
+
+      const before = await admin.page.request.get(`/api/matching/state?session=${session.id}&as=${participantA.userId}`)
+      if (!before.ok()) throw new Error(`matchingBooksFixture state failed: ${before.status()} ${await before.text()}`)
+      const { session: stateSession } = await before.json() as { session: { stateVersion: number } }
+      const initialize = await admin.page.request.post(
+        `/api/admin/matching/sessions/${session.id}/book-admin-actions`,
+        { data: { action: 'initializeBookMode', expectedStateVersion: stateSession.stateVersion } },
+      )
+      if (!initialize.ok()) {
+        throw new Error(`matchingBooksFixture initialize failed: ${initialize.status()} ${await initialize.text()}`)
+      }
+
+      let extraIndex = 0
+      const addParticipant = async (name: string, shortlistedBooks: TestBook[] = books) => {
+        const participant = await createIdentity(`extra-${extraIndex++}`, name, false)
+        await joinParticipant(participant, shortlistedBooks)
+        return participant
+      }
+
+      await use({ session, books, participantA, participantB, participantC, admin, addParticipant })
     } finally {
       for (const user of createdUsers.reverse()) {
         try { await user.page.request.delete('/api/test/session', { data: { email: user.email } }) } catch { /* best effort */ }

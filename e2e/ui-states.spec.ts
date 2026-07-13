@@ -24,6 +24,58 @@ test.beforeEach(async () => {
   await feature('Состояния интерфейса')
 })
 
+test.describe('Matching books: mobile layout and focus', () => {
+  test('390px keeps cards and CTA in viewport, and book dialog traps/restores focus', async ({
+    matchingBooksFixture,
+  }) => {
+    const { books, participantA, participantB, participantC } = matchingBooksFixture
+    await participantA.page.setViewportSize({ width: 390, height: 844 })
+    await participantA.page.goto('/matching')
+    await participantA.page.waitForLoadState('networkidle')
+
+    const card = participantA.page.getByTestId(`matching-book-card-${books[0].id}`)
+    const cardBox = await card.boundingBox()
+    expect(cardBox).not.toBeNull()
+    expect(cardBox!.x, 'card left edge is inside the 390px viewport').toBeGreaterThanOrEqual(0)
+    expect(cardBox!.x + cardBox!.width, 'card right edge is inside the 390px viewport').toBeLessThanOrEqual(391)
+    const cta = card.getByRole('button', { name: 'Записать', exact: true })
+    await expect(cta).toBeVisible()
+    const ctaBox = await cta.boundingBox()
+    expect(ctaBox).not.toBeNull()
+    expect(ctaBox!.x + ctaBox!.width).toBeLessThanOrEqual(391)
+    expect(await participantA.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    const booksTab = participantA.page.getByRole('tab', { name: 'Книги' })
+    const scenariosTab = participantA.page.getByRole('tab', { name: 'Сценарии' })
+    await expect(booksTab).toHaveAttribute('aria-selected', 'true')
+    await scenariosTab.click()
+    await expect(scenariosTab).toHaveAttribute('aria-selected', 'true')
+    await expect(participantA.page.getByTestId('matching-books-view')).toHaveCount(0)
+    await booksTab.click()
+    await expect(booksTab).toHaveAttribute('aria-selected', 'true')
+
+    const trigger = card.getByRole('button', { name: `Открыть книгу «${books[0].title}»` })
+    await trigger.focus()
+    await trigger.click()
+    const dialog = participantA.page.getByRole('dialog', { name: books[0].title })
+    await expect(dialog).toBeVisible()
+    const dialogBox = await dialog.boundingBox()
+    expect(dialogBox).not.toBeNull()
+    expect(dialogBox!.x).toBeGreaterThanOrEqual(0)
+    expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(391)
+    await expect(dialog.getByRole('button', { name: 'Закрыть' })).toBeFocused()
+    await expect(dialog).toContainText(participantA.name)
+    await expect(dialog).toContainText(participantB.name)
+    await expect(dialog).toContainText(participantC.name)
+
+    await participantA.page.keyboard.press('Shift+Tab')
+    await expect(dialog.locator(':focus')).toHaveCount(1)
+    await participantA.page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+  })
+})
+
 test.describe('Header: hide on scroll', () => {
   // Объединяет прежние 4 теста (виден вверху, прячется при скролле вниз,
   // фильтр-бар прячется вместе с хедером) в один сценарий «вниз».

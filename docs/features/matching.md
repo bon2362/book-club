@@ -1,6 +1,31 @@
 # Matching: техническая реализация
 
-Актуальный matching — единый satisfaction flow с реальными именами, временными подтверждениями и закреплением единогласных кругов. Исторический runtime сохранён только git-тегом `matching-legacy-before-simplification-2026-06-29`; его таблицы и колонки физически удалены миграцией `0050_drop_legacy_matching.sql`.
+Актуальный matching поддерживает два представления одной активной сессии: прежние satisfaction-сценарии и основной книжный режим. После однократной инициализации книжного режима сценарии остаются read-only вкладкой для сравнения, а все новые решения и административные корректировки проходят через книжную модель. Исторический runtime до simplification сохранён только git-тегом `matching-legacy-before-simplification-2026-06-29`.
+
+## Книжный режим
+
+Администратор может включить его посреди уже идущей legacy-сессии действием `initializeBookMode`. Инициализация атомарно переводит статус `active` в `open`, переносит уже закреплённые legacy-круги в `matching_circles`/`matching_book_assignments`, фиксирует `book_mode_initialized_at` и делает legacy-таблицы с кругами read-only на уровне DB trigger. Откат в legacy-write режим не поддерживается.
+
+Участник видит все книги своего актуального глобального шорт-листа; снимок списка на момент вступления не создаётся. Сортировка: назначение viewer, сформированная книга, число твёрдых выборов, число условных согласий, пересечения, затем порядок каталога. Карточка показывает компактные статусы определившихся участников; полный список, включая простое пересечение интересов, доступен в книжном popup.
+
+Два пользовательских намерения хранятся в `matching_book_intents`:
+
+- `conditional` — «Готов читать»: может стоять на нескольких книгах, но не рядом с твёрдым выбором;
+- `hard` — «Записать» / при смене «Записаться сюда»: максимум одно на пользователя, а установка атомарно очищает все его условные согласия.
+
+Книга формируется только при двух добровольных `hard` и общем числе доступных `hard + conditional` не меньше `min_group_size`. При достижении порога создаются назначения и круги. Размеры кругов лежат в диапазоне `min_group_size..max_group_size`; детерминированный partition предпочитает наиболее ровные группы. При дальнейшем наборе состав переразбивается автоматически, но администратор может вручную снять, назначить и разместить участника, создать или разрушить круг.
+
+`matching_session_book_states` хранит исторический факт формирования отдельно от текущей жизнеспособности. Поэтому карточка может показывать одновременно «группа собиралась» и «состав требует корректировки». Один участник имеет не более одного назначения во всей сессии (`matching_book_assignments`), и обычный интерфейс не позволяет выйти после назначения.
+
+Книжная сессия использует lifecycle `open → closed → open`. В `closed` public state и обе вкладки читаются, но пользовательские действия запрещены. Закрытие и повторное открытие не удаляют намерения, назначения и круги. Legacy `freeze` после инициализации книжного режима не используется.
+
+### HTTP и конкурентность книжного режима
+
+- `POST /api/matching/sessions/{id}/book-actions` — `setConditional`, `unsetConditional`, `setHard`, `cancelHard`;
+- `POST /api/admin/matching/sessions/{id}/book-admin-actions` — инициализация, назначения, круги и lifecycle;
+- `GET /api/matching/state` возвращает дополнительный `bookMode`, но до инициализации сохраняет прежний ответ с `bookMode: null`.
+
+Каждая мутация требует `expectedStateVersion`. При stale version сервер возвращает `409` вместе с актуальным персонализированным state. Все операции выполняются через `runMatchingTransition` и `withAuditContext`; клиент никогда не рассчитывает итоговый состав самостоятельно.
 
 ## Поток страницы
 
@@ -81,5 +106,7 @@ Presence heartbeat — operational telemetry, а не пользовательс
 - Unit: `lib/matching/__tests__/` и route tests.
 - E2E: `e2e/matching-satisfaction.spec.ts`, `e2e/matching-admin.spec.ts`, `e2e/matching-audit.spec.ts`, `e2e/matching-realtime.spec.ts`.
 - Layout/условный UI: matching-сценарии в `e2e/ui-states.spec.ts`.
+- Книжный режим: `e2e/matching-books.spec.ts`; lifecycle и разрушительные override — `e2e/matching-admin.spec.ts`; мобильная геометрия и focus trap — `e2e/ui-states.spec.ts`.
+- Миграция книжной модели: `drizzle/0053_matching_books.test.ts` проверяет таблицы, ограничения, audit triggers и DB guards.
 - Guard от возврата legacy runtime: `lib/matching/__tests__/no-legacy-runtime.test.ts`.
 - Обязательные ранги: `lib/matching/rank-assignment.ts` — pure-логика полностью покрыта unit-тестами; SQL-мутации executor'а/`runInTx` unit-харнессом БД не покрыты (в репо его нет для DB-слоя), верифицируются E2E `e2e/ui-states.spec.ts` (`book ranks persist across reload on signup and status-return`) + ручной проверкой на e2e-ветке Neon.
