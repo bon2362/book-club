@@ -25,16 +25,12 @@ interface Props {
   adminControls?: React.ReactNode
 }
 
-function peopleText(book: MatchingBookView, viewerRef: string) {
-  const final = book.participants.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
-  const conditional = book.participants.filter((participant) => participant.status === 'conditional').length
-  const interested = book.participants.filter((participant) => participant.status === 'interest' && participant.ref !== viewerRef).length
-  if (final === 0 && conditional === 0 && interested === 0) return 'Пока только у вас в списке'
-  return [
-    final > 0 ? `${final} уже записал${final === 1 ? 'ся' : 'ись'}` : '',
-    conditional > 0 ? `${conditional} готов${conditional === 1 ? '' : 'ы'} читать` : '',
-    interested > 0 ? `ещё ${interested} держ${interested === 1 ? 'ит' : 'ат'} в списке` : '',
-  ].filter(Boolean).join(' · ')
+function enrolledText(count: number) {
+  return `${count} уже записал${count === 1 ? 'ся' : 'ись'}`
+}
+
+function addedText(count: number) {
+  return `ещё ${count} добавил${count === 1 ? '' : 'и'} эту книгу`
 }
 
 export default function MatchingBookCard({
@@ -56,6 +52,8 @@ export default function MatchingBookCard({
   const lockedElsewhere = viewerAssignmentBookId !== null && viewerAssignmentBookId !== book.bookId
   const hasHardElsewhere = viewerHardBookId !== null && viewerHardBookId !== book.bookId
   const formed = book.formedAt !== null
+  const finalCount = book.participants.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
+  const conditionalCount = book.participants.filter((participant) => participant.status === 'conditional').length
   const pending = pendingAction !== null
   const className = [
     'nd-mb-card',
@@ -79,12 +77,18 @@ export default function MatchingBookCard({
         </button>
         <div className="nd-mb-titles">
           {assignedHere && <div className="nd-mb-kicker is-assigned">◆ ваш круг</div>}
-          {!assignedHere && formed && <div className="nd-mb-kicker is-formed">◆ группа собиралась</div>}
+          {!assignedHere && formed && <div className="nd-mb-kicker is-formed">◆ группа собрана</div>}
           <button type="button" className="nd-mb-title" onClick={(event) => onOpenBook(book, event.currentTarget)}>
             {book.title}
           </button>
           <div className="nd-mb-author">{book.author}</div>
-          {!formed && <div className="nd-mb-meta">{peopleText(book, viewerRef)}</div>}
+          {!formed && (
+            <div className="nd-mb-meta">
+              {finalCount > 0 && <span className="nd-mb-enrolled"><span aria-hidden="true" />{enrolledText(finalCount)}</span>}
+              {book.intersectionCount > 0 && <span className="nd-mb-added">{addedText(book.intersectionCount)}</span>}
+              {finalCount === 0 && book.intersectionCount === 0 && <span className="nd-mb-added">Пока только у вас в списке</span>}
+            </div>
+          )}
           {formed && book.currentViability === 'needs_attention' && (
             <div className="nd-mb-viability">Состав требует корректировки</div>
           )}
@@ -134,10 +138,12 @@ export default function MatchingBookCard({
                 aria-pressed={conditionalHere}
                 onClick={(event) => onCommand(conditionalHere ? 'unsetConditional' : 'setConditional', book.bookId, event.currentTarget)}
               >
-                {pendingAction === 'setConditional' || pendingAction === 'unsetConditional' ? 'Сохраняем…' : conditionalHere ? '✓ Готов читать' : 'Готов читать'}
+                {pendingAction === 'setConditional' || pendingAction === 'unsetConditional'
+                  ? 'Сохраняем…'
+                  : `${conditionalHere ? '✓ ' : ''}Готов читать${conditionalCount > 0 ? ` · ${conditionalCount}` : ''}`}
               </button>
             )}
-            {formed && book.allowedActions.hard && <span>Книга уже собиралась — можно присоединиться</span>}
+            {formed && book.allowedActions.hard && <span>Книга уже собрана, но можно присоединиться</span>}
           </>
         )}
       </div>

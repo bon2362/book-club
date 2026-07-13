@@ -143,14 +143,18 @@
 .nd-mb-card.has-no-overlap:focus-within,
 .nd-mb-card.has-no-overlap:hover { opacity: 1; }
 .nd-mb-head { display: flex; align-items: flex-start; gap: 0.9rem; }
-.nd-mb-cover { width: 54px; height: 76px; flex: 0 0 54px; overflow: hidden; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--bg-elevated); box-shadow: var(--shadow-cover); cursor: pointer; }
+.nd-mb-cover { position: relative; display: block; width: 54px; height: 76px; flex: 0 0 54px; overflow: hidden; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--bg-elevated); box-shadow: var(--shadow-cover); cursor: pointer; }
 .nd-mb-cover img { width: 100%; height: 100%; object-fit: cover; }
 .nd-mb-titles { min-width: 0; flex: 1; }
 .nd-mb-kicker { margin-bottom: 0.25rem; color: var(--success); font: 700 0.58rem/1 var(--nd-sans); letter-spacing: 0.12em; text-transform: uppercase; }
 .nd-mb-title { display: block; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text); font: 700 1.08rem/1.18 var(--nd-serif); text-align: left; cursor: pointer; }
 .nd-mb-title:hover { color: var(--accent); }
 .nd-mb-author { margin-top: 0.12rem; color: var(--text-secondary); font-size: 0.8rem; font-style: italic; }
-.nd-mb-meta, .nd-mb-viability { margin-top: 0.45rem; color: var(--text-muted); font-size: 0.76rem; }
+.nd-mb-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.7rem; margin-top: 0.45rem; color: var(--text-muted); font-size: 0.76rem; }
+.nd-mb-enrolled { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--success); font-weight: 700; }
+.nd-mb-enrolled > span { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+.nd-mb-added { color: var(--text-muted); }
+.nd-mb-viability { margin-top: 0.45rem; color: var(--text-muted); font-size: 0.76rem; }
 .nd-mb-viability { color: var(--status-warn); font-weight: 700; }
 .nd-mb-participant-tiers { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem 1rem; margin-top: 0.8rem; padding-top: 0.75rem; border-top: 1px solid var(--hair-soft); }
 .nd-mb-tier { display: flex; align-items: center; gap: 0.45rem; color: var(--text-secondary); font-size: 0.74rem; }

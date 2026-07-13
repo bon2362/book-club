@@ -24,8 +24,10 @@ describe('MatchingBookCard', () => {
 
   it('shows the hybrid status summary and primary copy', () => {
     render(<MatchingBookCard book={book} {...baseProps} />)
-    expect(screen.getByText(/1 уже записался · 1 готов читать · ещё 1 держит/)).toBeInTheDocument()
+    expect(screen.getByText('1 уже записался')).toBeInTheDocument()
+    expect(screen.getByText('ещё 3 добавили эту книгу')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Записать' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Готов читать · 1' })).toBeInTheDocument()
     expect(screen.getByLabelText('Определившиеся участники')).toHaveTextContent('Анна')
     expect(screen.getByLabelText('Определившиеся участники')).not.toHaveTextContent('Вера')
   })
@@ -33,7 +35,7 @@ describe('MatchingBookCard', () => {
   it('uses switch copy when hard choice exists elsewhere', () => {
     render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
     expect(screen.getByRole('button', { name: 'Записаться сюда' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Готов читать' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Готов читать · 1' })).toBeDisabled()
   })
 
   it('emits a hard command from the initiating button', () => {
