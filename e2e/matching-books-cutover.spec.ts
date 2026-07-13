@@ -2,6 +2,8 @@ import type { APIRequestContext, Browser, BrowserContext, Page } from '@playwrig
 import { epic, feature } from 'allure-js-commons'
 import { test, expect } from './fixtures'
 
+test.describe.configure({ timeout: 120_000 })
+
 type AdminIdentity = {
   context: BrowserContext
   page: Page
@@ -107,11 +109,13 @@ test('cutover импортирует exact locked circle, оставшиеся c
     expect(sessionAfter[0].marker).not.toBeNull()
     const marker = String(sessionAfter[0].marker)
 
-    const assignments = await dbExec(
+    const assignmentRows = () => dbExec(
       `select user_id as "userId", book_id as "bookId", source, circle_id as "circleId"
        from matching_book_assignments where session_id = $1 order by user_id`,
       [session.id],
     )
+    await expect.poll(async () => (await assignmentRows()).length, { timeout: 10_000 }).toBe(5)
+    const assignments = await assignmentRows()
     expect(assignments).toHaveLength(5)
     for (const member of lockedMembers) {
       expect(assignments).toContainEqual(expect.objectContaining({

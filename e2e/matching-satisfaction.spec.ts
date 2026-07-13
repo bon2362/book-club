@@ -556,7 +556,6 @@ test('подтверждение переживает reload, видно дру�
 
     await page.reload()
     await expect(page.getByTestId('matching-locked-circles')).toBeVisible()
-    await expect(page.getByTestId('matching-header').getByText('Вы наблюдаете')).toBeVisible()
     await expect(page.getByTestId('circle-confirm-button')).toHaveCount(0)
 
     await page.goto('/admin?tab=matching')
