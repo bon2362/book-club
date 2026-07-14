@@ -44,7 +44,7 @@ test.describe('Matching books: mobile layout and focus', () => {
     expect(coverBox!.width, 'book cover keeps the 54px prototype width').toBeCloseTo(54, 0)
     expect(coverBox!.height, 'book cover keeps the 76px prototype height').toBeCloseTo(76, 0)
     expect(await cover.evaluate((element) => getComputedStyle(element).position), 'Next Image fill is anchored to the cover, not the whole card').toBe('relative')
-    const cta = card.getByRole('button', { name: 'Записать', exact: true })
+    const cta = card.getByRole('button', { name: 'Записаться', exact: true })
     await expect(cta).toBeVisible()
     const ctaBox = await cta.boundingBox()
     expect(ctaBox).not.toBeNull()
@@ -74,8 +74,22 @@ test.describe('Matching books: mobile layout and focus', () => {
     await expect(dialog).toContainText(participantB.name)
     await expect(dialog).toContainText(participantC.name)
 
+    const participantRank = dialog.getByRole('button', { name: new RegExp(participantB.name) })
+    await participantRank.click()
+    const rankTooltip = dialog.getByRole('tooltip')
+    await expect(rankTooltip).toContainText(new RegExp(`У ${participantB.name} на \\d+ месте`))
+    const rankTooltipBox = await rankTooltip.boundingBox()
+    expect(rankTooltipBox).not.toBeNull()
+    expect(rankTooltipBox!.x).toBeGreaterThanOrEqual(0)
+    expect(rankTooltipBox!.x + rankTooltipBox!.width).toBeLessThanOrEqual(391)
+    await participantA.page.keyboard.press('Escape')
+    await expect(rankTooltip).toHaveCount(0)
+
+    const closeButton = dialog.getByRole('button', { name: 'Закрыть' })
+    await closeButton.focus()
     await participantA.page.keyboard.press('Shift+Tab')
     await expect(dialog.locator(':focus')).toHaveCount(1)
+    await closeButton.focus()
     await participantA.page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
     await expect(trigger).toBeFocused()
@@ -91,11 +105,11 @@ test.describe('Matching books: mobile layout and focus', () => {
     const hardResponse = participantB.page.waitForResponse((response) => (
       response.request().method() === 'POST' && response.url().endsWith('/book-actions')
     ))
-    await participantBCard.getByRole('button', { name: 'Записать', exact: true }).click()
+    await participantBCard.getByRole('button', { name: 'Записаться', exact: true }).click()
     expect((await hardResponse).ok()).toBe(true)
     await participantB.page.reload()
     await participantB.page.waitForLoadState('networkidle')
-    await expect(participantB.page.getByText('✓ Вы записаны')).toBeVisible()
+    await expect(participantBCard).toContainText('✓ Вы записаны')
 
     await participantA.page.goto('/matching')
     await participantA.page.reload()
@@ -125,6 +139,76 @@ test.describe('Matching books: mobile layout and focus', () => {
     await expect(adminCard.getByText('2 уже записались')).toBeVisible()
     await expect(adminCard.getByText(`Без круга: ${participantA.name}`)).toHaveCount(0)
     expect(await admin.page.getByRole('button', { name: 'Управлять составом' }).count()).toBeGreaterThan(0)
+  })
+})
+
+test.describe('Matching books: document flow and visual states', () => {
+  test('desktop uses document scroll and separates the viewer-only tail', async ({
+    matchingBooksFixture,
+    createTestBook,
+  }) => {
+    const { participantA } = matchingBooksFixture
+    let lastPersonalBookId = ''
+    for (let index = 0; index < 5; index++) {
+      const book = await createTestBook({ title: `E2E Personal Tail ${index} ${test.info().testId}`, author: 'Tail Author' })
+      lastPersonalBookId = book.id
+      const add = await participantA.page.request.post('/api/matching/books', { data: { bookId: book.id } })
+      expect(add.ok(), await add.text()).toBe(true)
+    }
+
+    await participantA.page.setViewportSize({ width: 1440, height: 700 })
+    await participantA.page.goto('/matching')
+    await participantA.page.waitForLoadState('networkidle')
+
+    const workspace = participantA.page.getByTestId('matching-scenarios-workspace')
+    await expect(workspace).toHaveClass(/is-document/)
+    expect(await workspace.evaluate(element => getComputedStyle(element).overflow)).toBe('visible')
+    await expect(participantA.page.locator('.nd-mx-fade')).toHaveCount(0)
+    await expect(participantA.page.getByTestId('matching-viewer-only-divider')).toHaveCount(1)
+    expect(await participantA.page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight)).toBe(true)
+
+    const lastCard = participantA.page.getByTestId(`matching-book-card-${lastPersonalBookId}`)
+    await lastCard.scrollIntoViewIfNeeded()
+    const lastBox = await lastCard.boundingBox()
+    expect(lastBox).not.toBeNull()
+    expect(lastBox!.y).toBeGreaterThanOrEqual(0)
+    expect(lastBox!.y + lastBox!.height).toBeLessThanOrEqual(701)
+  })
+
+  test('formed book uses the semantic success fill', async ({ matchingBooksFixture }) => {
+    const { session, books, participantA, participantB, participantC } = matchingBooksFixture
+    const act = async (participant: typeof participantA, action: 'setConditional' | 'setHard') => {
+      const currentResponse = await participant.page.request.get(`/api/matching/state?session=${session.id}`)
+      expect(currentResponse.ok(), await currentResponse.text()).toBe(true)
+      const current = await currentResponse.json() as { session: { stateVersion: number } }
+      const response = await participant.page.request.post(`/api/matching/sessions/${session.id}/book-actions`, {
+        data: { action, bookId: books[0].id, expectedStateVersion: current.session.stateVersion },
+      })
+      expect(response.ok(), await response.text()).toBe(true)
+    }
+    await act(participantA, 'setConditional')
+    await act(participantB, 'setHard')
+    await act(participantC, 'setHard')
+
+    await participantA.page.goto('/matching')
+    await participantA.page.reload()
+    await participantA.page.waitForLoadState('networkidle')
+    const card = participantA.page.getByTestId(`matching-book-card-${books[0].id}`)
+    const colors = await card.evaluate((element) => {
+      const probe = document.createElement('div')
+      probe.style.background = 'var(--bg-tag-green)'
+      document.body.appendChild(probe)
+      const expected = getComputedStyle(probe).backgroundColor
+      probe.remove()
+      return {
+        actual: getComputedStyle(element).backgroundColor,
+        expected,
+        base: getComputedStyle(document.body).backgroundColor,
+      }
+    })
+    expect(colors.expected).not.toBe('rgba(0, 0, 0, 0)')
+    expect(colors.expected).not.toBe(colors.base)
+    expect(colors.actual).toBe(colors.expected)
   })
 })
 

@@ -50,28 +50,30 @@ test('условный и твёрдый выбор сохраняются, а �
 
   const firstCard = participantA.page.getByTestId(`matching-book-card-${books[0].id}`)
   const secondCard = participantA.page.getByTestId(`matching-book-card-${books[1].id}`)
-  await firstCard.getByRole('button', { name: 'Готов читать', exact: true }).click()
-  await expect(firstCard.getByRole('button', { name: /Готов читать/ })).toHaveAttribute('aria-pressed', 'true')
+  await firstCard.getByRole('button', { name: 'Готов:а читать', exact: true }).click()
+  await expect(firstCard.getByRole('button', { name: /Готов:а читать/ })).toHaveAttribute('aria-pressed', 'true')
 
   await participantA.page.reload()
   await participantA.page.waitForLoadState('networkidle')
-  await expect(firstCard.getByRole('button', { name: /Готов читать/ })).toHaveAttribute('aria-pressed', 'true')
+  await expect(firstCard.getByRole('button', { name: /Готов:а читать/ })).toHaveAttribute('aria-pressed', 'true')
 
-  await secondCard.getByRole('button', { name: 'Записать', exact: true }).click()
-  await expect(secondCard).toContainText('Вы записаны')
+  await secondCard.getByRole('button', { name: 'Записаться', exact: true }).click()
+  await expect(secondCard).toContainText('✓ Вы записаны')
   await participantA.page.reload()
   await participantA.page.waitForLoadState('networkidle')
-  await expect(secondCard).toContainText('Вы записаны')
-  await expect(firstCard.getByRole('button', { name: /Готов читать/ })).toHaveCount(0)
+  await expect(secondCard).toContainText('✓ Вы записаны')
+  await expect(firstCard.getByRole('button', { name: /Готов:а читать/ })).toHaveCount(0)
   const afterHard = await state(participantA.page.request, session.id)
   expect(afterHard.bookMode?.books.find((book) => book.bookId === books[0].id)?.viewerStatus).toBe('interest')
 
-  await firstCard.getByRole('button', { name: 'Записаться сюда', exact: true }).click()
-  await expect(firstCard).toContainText('Вы записаны')
+  await firstCard.getByRole('button', { name: 'Записаться', exact: true }).click()
+  await expect(firstCard.getByRole('group', { name: 'Подтверждение смены книги' })).toBeVisible()
+  await expect.poll(() => state(participantA.page.request, session.id).then(current => current.bookMode?.books.find(book => book.bookId === books[1].id)?.viewerStatus)).toBe('hard')
+  await firstCard.getByRole('button', { name: 'Перезаписаться', exact: true }).click()
+  await expect(firstCard).toContainText('✓ Вы записаны')
   await participantA.page.reload()
   await participantA.page.waitForLoadState('networkidle')
-  await expect(firstCard).toContainText('Вы записаны')
-  await expect(secondCard).not.toContainText('Вы записаны')
+  await expect(firstCard).toContainText('✓ Вы записаны')
 
   const persisted = await state(participantA.page.request, session.id)
   expect(persisted.bookMode?.books.find((book) => book.bookId === books[0].id)?.viewerStatus).toBe('hard')
@@ -89,24 +91,24 @@ test('администратор переключает твёрдый выбо�
   await admin.page.waitForLoadState('networkidle')
   const firstCard = admin.page.getByTestId(`matching-book-card-${books[0].id}`)
   const secondCard = admin.page.getByTestId(`matching-book-card-${books[1].id}`)
-  await expect(firstCard).toContainText('Вы записаны')
+  await expect(firstCard).toContainText('✓ Вы записаны')
 
   const switchResponse = admin.page.waitForResponse((response) => (
     response.request().method() === 'POST' &&
     response.url().includes(`/api/matching/sessions/${session.id}/book-actions?as=${participantA.userId}`)
   ))
-  await secondCard.getByRole('button', { name: 'Записаться сюда', exact: true }).click()
+  await secondCard.getByRole('button', { name: 'Записаться', exact: true }).click()
+  await secondCard.getByRole('button', { name: 'Перезаписаться', exact: true }).click()
   expect((await switchResponse).ok()).toBe(true)
 
   await admin.page.reload()
   await admin.page.waitForLoadState('networkidle')
-  await expect(secondCard).toContainText('Вы записаны')
-  await expect(firstCard).not.toContainText('Вы записаны')
+  await expect(secondCard).toContainText('✓ Вы записаны')
 
   await participantA.page.goto('/matching')
   await participantA.page.reload()
   await participantA.page.waitForLoadState('networkidle')
-  await expect(participantA.page.getByTestId(`matching-book-card-${books[1].id}`)).toContainText('Вы записаны')
+  await expect(participantA.page.getByTestId(`matching-book-card-${books[1].id}`)).toContainText('✓ Вы записаны')
   const persisted = await state(participantA.page.request, session.id)
   expect(persisted.bookMode?.books.find((book) => book.bookId === books[1].id)?.viewerStatus).toBe('hard')
 
@@ -140,7 +142,7 @@ test('два твёрдых выбора и одно условное форми
     await participant.page.reload()
     await participant.page.waitForLoadState('networkidle')
     const card = participant.page.getByTestId(`matching-book-card-${books[0].id}`)
-    await expect(card).toContainText('Вы назначены на эту книгу')
+    await expect(participant.page.getByTestId('matching-books-selection')).toContainText(books[0].title)
     const persisted = await state(participant.page.request, session.id)
     expect(persisted.bookMode?.viewerAssignmentBookId).toBe(books[0].id)
     const formed = persisted.bookMode?.books.find((book) => book.bookId === books[0].id)
@@ -157,7 +159,10 @@ test('два твёрдых выбора и одно условное форми
   })
   expect(leave.status()).toBe(409)
   await participantA.page.reload()
-  await expect(participantA.page.getByTestId(`matching-book-card-${books[0].id}`)).toContainText('Вы назначены на эту книгу')
+  await participantA.page.getByRole('button', { name: 'Отменить', exact: true }).click()
+  await expect(participantA.page.getByTestId('matching-books-message')).toContainText('обратитесь к администратору')
+  await participantA.page.reload()
+  await expect(participantA.page.getByTestId('matching-books-selection')).toContainText(books[0].title)
 })
 
 test('актуальный шорт-лист меняется live: conditional снимается, hard защищён, свободный участник может выйти', async ({
@@ -185,7 +190,7 @@ test('актуальный шорт-лист меняется live: conditional 
   const removeHard = await participantA.page.request.delete(`/api/matching/books/${extraBook.id}`)
   expect(removeHard.status()).toBe(409)
   await participantA.page.reload()
-  await expect(participantA.page.getByTestId(`matching-book-card-${extraBook.id}`)).toContainText('Вы записаны')
+  await expect(participantA.page.getByTestId(`matching-book-card-${extraBook.id}`)).toContainText('✓ Вы записаны')
 
   await bookAction(participantA.page.request, session.id, 'cancelHard')
   current = await state(participantA.page.request, session.id)
@@ -265,8 +270,8 @@ test('администратор вне состава видит union книг
   for (const book of books) {
     const card = admin.page.getByTestId(`matching-book-card-${book.id}`)
     await expect(card).not.toContainText('Административный режим — выбор участника недоступен')
-    await expect(card.getByRole('button', { name: 'Записать', exact: true })).toHaveCount(0)
-    await expect(card.getByRole('button', { name: /Готов читать/ })).toHaveCount(0)
+    await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
+    await expect(card.getByRole('button', { name: /Готов:а читать/ })).toHaveCount(0)
     await expect(admin.page.getByTestId(`matching-book-admin-${book.id}`)).toBeVisible()
   }
 })

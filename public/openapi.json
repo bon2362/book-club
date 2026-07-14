@@ -869,10 +869,11 @@
                   "properties": {
                     "ref": { "type": "string" },
                     "displayName": { "type": "string" },
+                    "rank": { "type": "integer", "minimum": 1, "nullable": true },
                     "status": { "type": "string", "enum": ["interest", "conditional", "hard", "assigned"] },
                     "adminUserId": { "type": "string", "description": "Только privileged admin read model" }
                   },
-                  "required": ["ref", "displayName", "status"]
+                  "required": ["ref", "displayName", "rank", "status"]
                 } },
                 "circles": { "type": "array", "items": {
                   "type": "object",

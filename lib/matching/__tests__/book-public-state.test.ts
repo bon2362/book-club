@@ -9,6 +9,7 @@ const books = [
   { bookId: 'b1', title: 'Первая', author: 'Автор', coverUrl: null, sortOrder: 2 },
   { bookId: 'b2', title: 'Вторая', author: 'Автор', coverUrl: null, sortOrder: 1 },
 ]
+const interest = (userId: string, bookId: string, rank: number | null = 1) => ({ userId, bookId, rank })
 
 describe('buildPublicBookModeState', () => {
   it('keeps every viewer shortlist book and sorts by intersections', () => {
@@ -16,8 +17,8 @@ describe('buildPublicBookModeState', () => {
       initializedAt: new Date('2026-07-13T12:00:00Z'), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
       books, participants,
       interests: [
-        { userId: 'u1', bookId: 'b1' }, { userId: 'u1', bookId: 'b2' },
-        { userId: 'u2', bookId: 'b1' }, { userId: 'u3', bookId: 'b1' },
+        interest('u1', 'b1'), interest('u1', 'b2'),
+        interest('u2', 'b1'), interest('u3', 'b1'),
       ],
       intents: [], assignments: [], formedAtByBookId: new Map(), circles: [],
     })
@@ -28,7 +29,7 @@ describe('buildPublicBookModeState', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
       books, participants,
-      interests: [{ userId: 'u1', bookId: 'b1' }, { userId: 'u1', bookId: 'b2' }, { userId: 'u2', bookId: 'b2' }],
+      interests: [interest('u1', 'b1'), interest('u1', 'b2'), interest('u2', 'b2')],
       intents: [], assignments: [{ userId: 'u1', bookId: 'b1', circleId: null }],
       formedAtByBookId: new Map([['b1', new Date('2026-07-13T12:00:00Z')]]), circles: [],
     })
@@ -41,7 +42,7 @@ describe('buildPublicBookModeState', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'closed', viewerUserId: 'u1', admin: false,
       books, participants,
-      interests: participants.map(({ userId }) => ({ userId, bookId: 'b1' })),
+      interests: participants.map(({ userId }, index) => interest(userId, 'b1', index + 1)),
       intents: [], assignments: participants.map(({ userId }) => ({ userId, bookId: 'b1', circleId: null })),
       formedAtByBookId: new Map([['b1', new Date('2026-07-13T12:00:00Z')]]), circles: [],
     })
@@ -54,7 +55,7 @@ describe('buildPublicBookModeState', () => {
     const common = {
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'admin',
       books, participants,
-      interests: [{ userId: 'u1', bookId: 'b1' }], intents: [], assignments: [],
+      interests: [interest('u1', 'b1')], intents: [], assignments: [],
       formedAtByBookId: new Map<string, Date>(), circles: [],
     }
     const participant = buildPublicBookModeState({ ...common, viewerUserId: 'u1', admin: false })
@@ -70,7 +71,7 @@ describe('buildPublicBookModeState', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: true,
       books, participants,
-      interests: [{ userId: 'u1', bookId: 'b1' }], intents: [],
+      interests: [interest('u1', 'b1')], intents: [],
       assignments: [{ userId: 'u2', bookId: 'b1', circleId: null }],
       formedAtByBookId: new Map(), circles: [],
     })
@@ -91,5 +92,63 @@ describe('buildPublicBookModeState', () => {
       bookId: 'b1', formedAt: '2026-07-13T12:00:00.000Z', currentViability: 'needs_attention',
     }))
     expect(state.books[0].circles).toEqual([{ id: 'circle-1', position: 1, memberRefs: [] }])
+  })
+
+  it('sorts shared books by all available ranks without a top-three cutoff', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [
+        interest('u1', 'b1', 1), interest('u2', 'b1', 8),
+        interest('u1', 'b2', 3), interest('u3', 'b2', 4),
+      ],
+      intents: [], assignments: [], formedAtByBookId: new Map(), circles: [],
+    })
+
+    expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
+    expect(state.books.find(book => book.bookId === 'b1')?.participants).toContainEqual(expect.objectContaining({ ref: 'r2', rank: 8 }))
+  })
+
+  it('does not let a participant assigned elsewhere improve satisfaction order', () => {
+    const rankedBooks = [...books, { bookId: 'b3', title: 'Третья', author: 'Автор', coverUrl: null, sortOrder: 3 }]
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books: rankedBooks, participants,
+      interests: [
+        interest('u1', 'b1', 5), interest('u2', 'b1', 1),
+        interest('u1', 'b2', 3), interest('u3', 'b2', 4),
+      ],
+      intents: [], assignments: [{ userId: 'u2', bookId: 'b3', circleId: null }],
+      formedAtByBookId: new Map(), circles: [],
+    })
+
+    expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
+    expect(state.books.find(book => book.bookId === 'b1')?.participants).toContainEqual(expect.objectContaining({ ref: 'r2', rank: 1 }))
+  })
+
+  it('uses stable catalog order after equal decision and satisfaction scores', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1', 2), interest('u1', 'b2', 2)],
+      intents: [], assignments: [], formedAtByBookId: new Map(), circles: [],
+    })
+
+    expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
+  })
+
+  it('keeps the viewer-only books in one tail even when one is conditional', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [
+        interest('u1', 'b1', 1),
+        interest('u1', 'b2', 4), interest('u2', 'b2', 5),
+      ],
+      intents: [{ userId: 'u1', bookId: 'b1', kind: 'conditional' }], assignments: [],
+      formedAtByBookId: new Map(), circles: [],
+    })
+
+    expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
   })
 })

@@ -14,10 +14,10 @@ function initial(name: string) {
 }
 
 export function participantStatusLabel(status: MatchingBookParticipantStatus) {
-  if (status === 'interest') return 'В списке'
-  if (status === 'conditional') return 'Готов:а читать'
-  if (status === 'hard') return 'Окончательный выбор'
-  return 'В круге'
+  if (status === 'interest') return 'пока только в списке'
+  if (status === 'conditional') return 'готов:а читать'
+  if (status === 'hard') return 'уже записал:ась'
+  return 'в круге'
 }
 
 export default function MatchingBookParticipants({

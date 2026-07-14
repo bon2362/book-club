@@ -68,15 +68,54 @@ describe('MatchingBookDetailModal matching participants', () => {
         frozen
         onClose={() => {}}
         matchingParticipants={[
-          { ref: 'p1', displayName: 'Анна', status: 'hard' },
-          { ref: 'p2', displayName: 'Борис', status: 'interest' },
+          { ref: 'p1', displayName: 'Анна', status: 'hard', rank: 1 },
+          { ref: 'p2', displayName: 'Борис', status: 'interest', rank: 4 },
         ]}
       />,
     )
     const list = screen.getByTestId('matching-book-participant-list')
     expect(list).toHaveTextContent('Анна')
-    expect(list).toHaveTextContent('Окончательный выбор')
+    expect(list).toHaveTextContent('уже записал:ась')
     expect(list).toHaveTextContent('Борис')
-    expect(list).toHaveTextContent('В списке')
+    expect(list).toHaveTextContent('пока только в списке')
+  })
+
+  it('shows a rank tooltip on focus and tap', () => {
+    render(
+      <MatchingBookDetailModal
+        book={{ ...book, personalStatus: null }}
+        frozen
+        onClose={() => {}}
+        matchingParticipants={[{ ref: 'p1', displayName: 'Анна', status: 'hard', rank: 4 }]}
+      />,
+    )
+    const participant = screen.getByRole('button', { name: /Анна.*уже записал:ась/i })
+
+    fireEvent.focus(participant)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('У Анна на 4 месте')
+    fireEvent.blur(participant)
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    fireEvent.click(participant)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('У Анна на 4 месте')
+  })
+
+  it('keeps the rank tooltip open while the pointer moves over it', () => {
+    render(
+      <MatchingBookDetailModal
+        book={{ ...book, personalStatus: null }}
+        frozen
+        onClose={() => {}}
+        matchingParticipants={[{ ref: 'p1', displayName: 'Анна', status: 'interest', rank: 2 }]}
+      />,
+    )
+    const participant = screen.getByRole('button', { name: /Анна.*пока только в списке/i })
+    const item = participant.closest('li')!
+
+    fireEvent.mouseEnter(item)
+    const tooltip = screen.getByRole('tooltip')
+    fireEvent.mouseEnter(tooltip)
+    expect(tooltip).toBeInTheDocument()
+    fireEvent.mouseLeave(item)
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
   })
 })

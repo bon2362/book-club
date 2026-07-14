@@ -8,6 +8,7 @@ export interface MatchingBookParticipantView {
   ref: string
   displayName: string
   status: MatchingBookParticipantStatus
+  rank: number | null
   /** Present only in the privileged admin read model. */
   adminUserId?: string
 }

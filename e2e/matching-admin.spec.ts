@@ -339,7 +339,7 @@ test('администратор закрывает, снова открывае
   })
   await participantC.page.goto('/matching')
   await participantC.page.reload()
-  await expect(participantC.page.getByTestId(`matching-book-card-${books[1].id}`)).toContainText('Вы назначены на эту книгу')
+  await expect(participantC.page.getByTestId('matching-books-selection')).toContainText(books[1].title)
 
   await adminBookAction(admin.page.request, session.id, participantA.userId, {
     action: 'unassign',
@@ -347,7 +347,7 @@ test('администратор закрывает, снова открывае
   })
   await participantB.page.goto('/matching')
   await participantB.page.reload()
-  await expect(participantB.page.getByTestId(`matching-book-card-${books[0].id}`)).not.toContainText('Вы назначены на эту книгу')
+  await expect(participantB.page.getByTestId('matching-books-selection')).toHaveCount(0)
 
   await adminBookAction(admin.page.request, session.id, participantA.userId, { action: 'closeSession' })
   await participantA.page.goto('/matching')
@@ -365,5 +365,5 @@ test('администратор закрывает, снова открывае
   await participantB.page.reload()
   await participantB.page.waitForLoadState('networkidle')
   await expect(participantB.page.getByText('● открыта')).toBeVisible()
-  await expect(participantB.page.getByTestId(`matching-book-card-${books[1].id}`).getByRole('button', { name: 'Записать', exact: true })).toBeVisible()
+  await expect(participantB.page.getByTestId(`matching-book-card-${books[1].id}`).getByRole('button', { name: 'Записаться', exact: true })).toBeVisible()
 })
