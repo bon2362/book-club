@@ -57,6 +57,19 @@ describe('MatchingBookCard', () => {
     expect(container.querySelector('.nd-mb-actions')).not.toBeInTheDocument()
   })
 
+  it('shows unplaced participants only after the book has formed', () => {
+    const assignedBook = {
+      ...book,
+      participants: [...book.participants, { ref: 'viewer', displayName: 'Евгений', status: 'assigned' as const }],
+      unplacedParticipantRefs: ['viewer'],
+    }
+    const { rerender } = render(<MatchingBookCard book={assignedBook} {...baseProps} />)
+    expect(screen.queryByText('Без круга: Евгений')).not.toBeInTheDocument()
+
+    rerender(<MatchingBookCard book={{ ...assignedBook, formedAt: '2026-07-14T08:00:00Z' }} {...baseProps} />)
+    expect(screen.getByText('Без круга: Евгений')).toBeInTheDocument()
+  })
+
   it('uses switch copy when hard choice exists elsewhere', () => {
     render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
     expect(screen.getByRole('button', { name: 'Записаться сюда' })).toBeInTheDocument()
