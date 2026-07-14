@@ -24,6 +24,13 @@ async function action(request: APIRequestContext, sessionId: string, actionName:
 }
 
 test('concurrent thresholds assign a conditional participant exactly once', async ({ matchingApiFixture }) => {
+  // This scenario performs the full six-participant legacy setup before the
+  // concurrent writes. GitHub's production server can need more than the
+  // suite-wide 60s budget for the test body; when that deadline fired the
+  // fixture teardown deleted the identities underneath the in-flight retry,
+  // which surfaced as a misleading 401 instead of a timeout.
+  test.setTimeout(120_000)
+
   const { session, books, participantA, participantB, admin, addParticipant } = matchingApiFixture
   const [participantC, participantD, participantE] = await Promise.all([
     addParticipant('Вера Книги E2E'),
