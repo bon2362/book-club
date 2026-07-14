@@ -18,6 +18,7 @@ interface Props {
   bookMode: MatchingBookModeState
   booksById: Record<string, ScenarioBookMeta>
   isAdmin: boolean
+  mutationUserId?: string
   onState: (state: unknown) => void
   onRefresh: () => Promise<void>
 }
@@ -32,6 +33,7 @@ export default function MatchingBooksView({
   bookMode,
   booksById,
   isAdmin,
+  mutationUserId,
   onState,
   onRefresh,
 }: Props) {
@@ -50,7 +52,8 @@ export default function MatchingBooksView({
     setPending({ action, bookId })
     setMessage(null)
     try {
-      const response = await fetch(`/api/matching/sessions/${sessionId}/book-actions`, {
+      const impersonationQuery = mutationUserId ? `?as=${encodeURIComponent(mutationUserId)}` : ''
+      const response = await fetch(`/api/matching/sessions/${sessionId}/book-actions${impersonationQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, bookId, expectedStateVersion: stateVersion }),
@@ -61,7 +64,7 @@ export default function MatchingBooksView({
         setMessage('Сессия изменилась. Данные обновлены — повторите действие.')
         return
       }
-      if (!response.ok) throw new Error(body.error ?? 'Не удалось изменить выбор')
+      if (!response.ok) throw new Error(bookActionErrorMessage(body.error))
       if (body.state) onState(body.state)
       else await onRefresh()
     } catch (cause) {
@@ -164,4 +167,20 @@ export default function MatchingBooksView({
       </div>
     </div>
   )
+}
+
+function bookActionErrorMessage(code?: string) {
+  switch (code) {
+    case 'participant_locked':
+      return 'Вы уже назначены в сформированный круг. Изменить выбор может только организатор.'
+    case 'book_not_in_shortlist':
+      return 'Этой книги больше нет в вашем списке. Обновите страницу и выберите другую.'
+    case 'session_frozen':
+    case 'book_action_forbidden':
+      return 'Сейчас изменить выбор нельзя. Обновите страницу, чтобы увидеть актуальное состояние.'
+    case 'participant_missing':
+      return 'Вы больше не участвуете в этой сессии.'
+    default:
+      return 'Не удалось изменить выбор. Обновите страницу и попробуйте снова.'
+  }
 }

@@ -51,6 +51,7 @@ interface Props {
   pollIntervalMs?: number
   isAdmin?: boolean
   isImpersonating?: boolean
+  impersonatedUserId?: string
   viewerDisplayName?: string
 }
 
@@ -71,6 +72,7 @@ export default function MatchingRealtimeClient({
   pollIntervalMs,
   isAdmin = false,
   isImpersonating = false,
+  impersonatedUserId,
   viewerDisplayName,
 }: Props) {
   const router = useRouter()
@@ -87,8 +89,9 @@ export default function MatchingRealtimeClient({
 
   const fetchFullState = useCallback(async () => {
     try {
-      const res = await fetch(`/api/matching/state?session=${sessionId}`)
-      if (!res.ok) return
+      const impersonationQuery = impersonatedUserId ? `&as=${encodeURIComponent(impersonatedUserId)}` : ''
+      const res = await fetch(`/api/matching/state?session=${sessionId}${impersonationQuery}`)
+      if (!res.ok) return false
       const raw = await res.json()
       // Derive viewerConfirmedCircleKey from the raw payload
       const viewerConfirmedCircleKey = extractViewerConfirmedKey(raw)
@@ -102,10 +105,16 @@ export default function MatchingRealtimeClient({
         viewerConfirmedCircleKey,
         bookMode: raw.bookMode ?? null,
       })
+      return true
     } catch {
       // non-fatal; state stays stale until next poll
+      return false
     }
-  }, [sessionId])
+  }, [sessionId, impersonatedUserId])
+
+  const refreshFullState = useCallback(async () => {
+    await fetchFullState()
+  }, [fetchFullState])
 
   const poll = useCallback(async () => {
     try {
@@ -128,12 +137,16 @@ export default function MatchingRealtimeClient({
 
       const versionChanged =
         lastVersionRef.current !== null && data.version !== lastVersionRef.current
-      if (lastVersionRef.current === null || versionChanged) {
+      if (lastVersionRef.current === null) {
         lastVersionRef.current = data.version
-        if (versionChanged) {
-          await fetchFullState()
-          router.refresh()
+      } else if (versionChanged) {
+        const refreshed = await fetchFullState()
+        if (!refreshed) {
+          setHealthy(false)
+          return
         }
+        lastVersionRef.current = data.version
+        router.refresh()
       }
 
       if (data.status === 'frozen') {
@@ -149,11 +162,12 @@ export default function MatchingRealtimeClient({
     }
   }, [sessionId, adaptive, fetchFullState, router])
 
-  // On mount: initialise lastVersion from initialState so we don't trigger a
-  // fetch on the first poll if nothing changed.
+  // Reset all viewer-specific client state when RSC props switch impersonation.
   useEffect(() => {
+    setState(initialState)
+    setMode(initialState.bookMode ? 'books' : 'scenarios')
     lastVersionRef.current = initialState.session.stateVersion
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialState, impersonatedUserId])
 
   useVisibleInterval(poll, intervalMs, { enabled: !stopped })
 
@@ -198,7 +212,7 @@ export default function MatchingRealtimeClient({
         isImpersonating={isImpersonating}
         viewerAssigned={Boolean(state.bookMode?.viewerAssignmentBookId)}
         bookMode={Boolean(state.bookMode)}
-        onSessionRefresh={fetchFullState}
+        onSessionRefresh={refreshFullState}
       />
       {isAdmin && !isImpersonating && (
         <MatchingBookAdminToolbar
@@ -207,7 +221,7 @@ export default function MatchingRealtimeClient({
           stateVersion={state.session.stateVersion}
           initialized={Boolean(state.bookMode)}
           onState={applyCanonicalState}
-          onRefresh={fetchFullState}
+          onRefresh={refreshFullState}
         />
       )}
       {state.bookMode && <MatchingModeTabs value={mode} onChange={setMode} />}
@@ -240,8 +254,9 @@ export default function MatchingRealtimeClient({
             bookMode={state.bookMode}
             booksById={resolvedBooksById}
             isAdmin={isAdmin && !isImpersonating}
+            mutationUserId={impersonatedUserId}
             onState={applyCanonicalState}
-            onRefresh={fetchFullState}
+            onRefresh={refreshFullState}
           />
         </div>
       ) : (
@@ -270,7 +285,7 @@ export default function MatchingRealtimeClient({
           viewerRole={state.viewer.role}
           frozen={state.session.status === 'frozen' || state.session.status === 'closed' || Boolean(state.bookMode)}
           booksById={resolvedBooksById}
-          onConfirmationChange={fetchFullState}
+          onConfirmationChange={refreshFullState}
         />
       </div>
       </div>

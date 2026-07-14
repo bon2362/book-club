@@ -989,6 +989,24 @@
         "required": ["stateVersion", "changed"],
         "additionalProperties": true
       },
+      "MatchingBookActionResult": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MatchingTransitionResult" },
+          {
+            "type": "object",
+            "properties": { "state": { "$ref": "#/components/schemas/MatchingPublicState" } },
+            "required": ["state"]
+          }
+        ]
+      },
+      "MatchingStaleBookActionError": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "enum": ["stale_state"] },
+          "state": { "$ref": "#/components/schemas/MatchingPublicState" }
+        },
+        "required": ["error", "state"]
+      },
       "MatchingTransitionSuccess": {
         "type": "object",
         "properties": {
@@ -2489,9 +2507,12 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Изменить выбор книги в книжном режиме",
-        "description": "Условный выбор, окончательный выбор, его смена или отмена. setHard атомарно удаляет все conditional намерения пользователя.",
+        "description": "Условный выбор, окончательный выбор, его смена или отмена. setHard атомарно удаляет все conditional намерения пользователя. Администратор может передать as для действия от имени просматриваемого участника; actor в журнале остаётся администратором.",
         "security": [{ "sessionCookie": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "as", "in": "query", "required": false, "description": "ID просматриваемого участника; доступно только администратору", "schema": { "type": "string" } }
+        ],
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
           "type": "object",
           "properties": {
@@ -2502,11 +2523,11 @@
           "required": ["action", "expectedStateVersion"]
         } } } },
         "responses": {
-          "200": { "description": "Выбор сохранён; ответ содержит персонализированный state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "400": { "description": "Invalid action or expectedStateVersion", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "200": { "description": "Выбор сохранён; ответ содержит персонализированный state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingBookActionResult" } } } },
+          "400": { "description": "Invalid action, expectedStateVersion or empty as target", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "403": { "description": "Participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "409": { "description": "Stale/closed/assigned or otherwise forbidden book action; stale response includes current state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Participant missing or impersonation forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Stale/closed/assigned or otherwise forbidden book action; stale response includes current state", "content": { "application/json": { "schema": { "anyOf": [{ "$ref": "#/components/schemas/MatchingStaleBookActionError" }, { "$ref": "#/components/schemas/Error" }] } } } },
           "422": { "description": "Book is not in the current global shortlist", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }

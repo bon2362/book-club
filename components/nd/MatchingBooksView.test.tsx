@@ -36,6 +36,18 @@ describe('MatchingBooksView commands', () => {
     expect(props.onRefresh).toHaveBeenCalled()
   })
 
+  it('targets the impersonated participant in a book command', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ changed: true }) }) as jest.Mock
+    props.onRefresh.mockResolvedValue(undefined)
+    render(<MatchingBooksView {...props} mutationUserId="user 2" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Записать' }))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/matching/sessions/s1/book-actions?as=user%202',
+      expect.any(Object),
+    ))
+  })
+
   it('blocks conflicting board controls globally and restores focus after completion', async () => {
     let resolveResponse!: (value: unknown) => void
     global.fetch = jest.fn().mockReturnValue(new Promise((resolve) => { resolveResponse = resolve })) as jest.Mock
@@ -74,6 +86,21 @@ describe('MatchingBooksView commands', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Записать' }))
     await waitFor(() => expect(props.onState).toHaveBeenCalledWith(canonical))
     expect(screen.getByTestId('matching-books-message')).toHaveTextContent('Данные обновлены')
+  })
+
+  it('translates a locked participant error into product language', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: 'participant_locked' }),
+    }) as jest.Mock
+    render(<MatchingBooksView {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Записать' }))
+
+    await waitFor(() => expect(screen.getByTestId('matching-books-message')).toHaveTextContent(
+      'Вы уже назначены в сформированный круг',
+    ))
+    expect(screen.queryByText('participant_locked')).not.toBeInTheDocument()
   })
 
   it('preserves backend book order', () => {
