@@ -245,11 +245,13 @@ export default async function MatchingPage({
               frozen={isReadOnly}
               mutationUserId={isImpersonating ? viewerUserId : undefined}
               workspace={showRankingGate ? undefined : <MatchingRealtimeClient
+                key={`matching-viewer-${viewerUserId}`}
                 sessionId={currentSession.id}
                 initialState={publicState!}
                 booksById={booksById}
                 isAdmin={isAdmin}
                 isImpersonating={isImpersonating}
+                impersonatedUserId={isImpersonating ? viewerUserId : undefined}
                 viewerDisplayName={isAdmin && !isImpersonating ? session.user.name ?? 'Организатор' : undefined}
               />}
               catalogIntro={showRankingGate ? undefined : <div data-testid="matching-catalog-intro" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}><h2 style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.12rem' }}>Каталог</h2><p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Слева — книги клуба, справа — ваш список и приоритеты</p></div>}

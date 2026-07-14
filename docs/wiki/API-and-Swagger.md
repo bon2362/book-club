@@ -4,7 +4,7 @@
 
 `GET /api/matching/state?session={id}` остаётся единой точкой чтения. После инициализации ответ содержит `bookMode` с книгами viewer, пересечениями, статусами участников, кругами, доступными действиями и занятым слотом. До инициализации `bookMode` равен `null`, поэтому legacy-клиент остаётся совместимым.
 
-Пользовательские решения отправляются в `POST /api/matching/sessions/{id}/book-actions`: `setConditional`, `unsetConditional`, `setHard`, `cancelHard`. Администратор использует `POST /api/admin/matching/sessions/{id}/book-admin-actions` для инициализации, назначений, кругов и close/reopen. Обе точки требуют `expectedStateVersion`; конфликт возвращает `409` и свежий state.
+Пользовательские решения отправляются в `POST /api/matching/sessions/{id}/book-actions`: `setConditional`, `unsetConditional`, `setHard`, `cancelHard`. При просмотре за участника администратор передаёт `?as={userId}`: меняется выбор участника, а автором события остаётся администратор; для обычного пользователя параметр запрещён. Администратор использует `POST /api/admin/matching/sessions/{id}/book-admin-actions` для инициализации, назначений, кругов и close/reopen. Обе точки требуют `expectedStateVersion`; конфликт возвращает `409` и свежий state.
 
 Swagger-описание этих endpoints находится в `public/openapi.json`. Оно документирует transport-контракт, но доменные ограничения — два добровольных твёрдых выбора, один слот и запрет обычного выхода после назначения — применяются серверным transition service и БД.
 

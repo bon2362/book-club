@@ -78,6 +78,55 @@ test('условный и твёрдый выбор сохраняются, а �
   expect(persisted.bookMode?.books.find((book) => book.bookId === books[1].id)?.viewerStatus).toBe('interest')
 })
 
+test('администратор переключает твёрдый выбор просматриваемого участника, а не свой', async ({
+  matchingBooksFixture,
+  dbExec,
+}) => {
+  const { session, books, participantA, admin } = matchingBooksFixture
+  await bookAction(participantA.page.request, session.id, 'setHard', books[0].id)
+
+  await admin.page.goto(`/matching?as=${participantA.userId}`)
+  await admin.page.waitForLoadState('networkidle')
+  const firstCard = admin.page.getByTestId(`matching-book-card-${books[0].id}`)
+  const secondCard = admin.page.getByTestId(`matching-book-card-${books[1].id}`)
+  await expect(firstCard).toContainText('Вы записаны')
+
+  const switchResponse = admin.page.waitForResponse((response) => (
+    response.request().method() === 'POST' &&
+    response.url().includes(`/api/matching/sessions/${session.id}/book-actions?as=${participantA.userId}`)
+  ))
+  await secondCard.getByRole('button', { name: 'Записаться сюда', exact: true }).click()
+  expect((await switchResponse).ok()).toBe(true)
+
+  await admin.page.reload()
+  await admin.page.waitForLoadState('networkidle')
+  await expect(secondCard).toContainText('Вы записаны')
+  await expect(firstCard).not.toContainText('Вы записаны')
+
+  await participantA.page.goto('/matching')
+  await participantA.page.reload()
+  await participantA.page.waitForLoadState('networkidle')
+  await expect(participantA.page.getByTestId(`matching-book-card-${books[1].id}`)).toContainText('Вы записаны')
+  const persisted = await state(participantA.page.request, session.id)
+  expect(persisted.bookMode?.books.find((book) => book.bookId === books[1].id)?.viewerStatus).toBe('hard')
+
+  const [event] = await dbExec(
+    `select event_type, actor_user_id, subject_user_id, source, book_id
+     from matching_events
+     where session_id = $1 and event_type = 'hard_switched'
+     order by occurred_at desc
+     limit 1`,
+    [session.id],
+  )
+  expect(event).toMatchObject({
+    event_type: 'hard_switched',
+    actor_user_id: admin.userId,
+    subject_user_id: participantA.userId,
+    source: 'admin',
+    book_id: books[1].id,
+  })
+})
+
 test('два твёрдых выбора и одно условное формируют круг во всех независимых контекстах', async ({
   matchingBooksFixture,
 }) => {
@@ -215,7 +264,7 @@ test('администратор вне состава видит union книг
   await expect(admin.page.getByTestId('matching-book-admin-toolbar')).toBeVisible()
   for (const book of books) {
     const card = admin.page.getByTestId(`matching-book-card-${book.id}`)
-    await expect(card).toContainText('Административный режим — выбор участника недоступен')
+    await expect(card).not.toContainText('Административный режим — выбор участника недоступен')
     await expect(card.getByRole('button', { name: 'Записать', exact: true })).toHaveCount(0)
     await expect(card.getByRole('button', { name: /Готов читать/ })).toHaveCount(0)
     await expect(admin.page.getByTestId(`matching-book-admin-${book.id}`)).toBeVisible()

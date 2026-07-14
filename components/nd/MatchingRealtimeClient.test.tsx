@@ -105,7 +105,7 @@ describe('MatchingRealtimeClient', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('/version')
   })
 
-  it('updates local full state and refreshes server props when version changes', async () => {
+  it('updates impersonated full state and refreshes server props when version changes', async () => {
     jest.useFakeTimers()
     const stateResponse = {
       ok: true,
@@ -131,13 +131,81 @@ describe('MatchingRealtimeClient', () => {
         sessionId="s1"
         initialState={makeInitialState(1)}
         bookTitleById={{}}
+        impersonatedUserId="u2"
         pollIntervalMs={50}
       />,
     )
 
     await act(async () => { await jest.advanceTimersByTimeAsync(50) })
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/state'))
+    expect(fetchMock).toHaveBeenCalledWith('/api/matching/state?session=s1&as=u2')
     expect(screen.getByText('Анна новая')).toBeInTheDocument()
+    expect(refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('resets viewer-specific state when the impersonated participant changes', () => {
+    setTabVisibility('hidden')
+    const first = makeInitialState(1)
+    first.participants[0].displayName = 'Участник А'
+    const second = makeInitialState(4)
+    second.participants[0].displayName = 'Участник Б'
+    const { rerender } = render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={first}
+        bookTitleById={{}}
+        impersonatedUserId="user-a"
+        pollIntervalMs={50_000}
+      />,
+    )
+    expect(screen.getByText('Участник А')).toBeInTheDocument()
+
+    rerender(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={second}
+        bookTitleById={{}}
+        impersonatedUserId="user-b"
+        pollIntervalMs={50_000}
+      />,
+    )
+
+    expect(screen.getByText('Участник Б')).toBeInTheDocument()
+    expect(screen.queryByText('Участник А')).not.toBeInTheDocument()
+  })
+
+  it('retries the same changed version when personalized state refresh fails', async () => {
+    jest.useFakeTimers()
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'active' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'active' }) })
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'active' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          session: { status: 'active', stateVersion: 2 },
+          viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
+          scenarios: [], lockedCircles: [], notices: [],
+          participants: [{ ref: 'r1', displayName: 'После retry', online: false }],
+        }),
+      })
+
+    render(
+      <MatchingRealtimeClient
+        sessionId="s1"
+        initialState={makeInitialState(1)}
+        bookTitleById={{}}
+        impersonatedUserId="user-a"
+        pollIntervalMs={50}
+      />,
+    )
+
+    await act(async () => { await jest.advanceTimersByTimeAsync(50) })
+    expect(refresh).not.toHaveBeenCalled()
+    await act(async () => { await jest.advanceTimersByTimeAsync(50) })
+
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/state'))).toHaveLength(2)
+    expect(screen.getByText('После retry')).toBeInTheDocument()
     expect(refresh).toHaveBeenCalledTimes(1)
   })
 
