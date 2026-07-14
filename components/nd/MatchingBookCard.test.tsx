@@ -71,11 +71,11 @@ describe('MatchingBookCard', () => {
     expect(screen.getByText('Без круга: Евгений')).toBeInTheDocument()
   })
 
-  it('explains that a new hard choice replaces the previous one', () => {
+  it('keeps the hard action available without pre-warning about the replaced choice', () => {
     render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
     expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Готов:а читать · 1' })).toBeDisabled()
-    expect(screen.getByText(/новый окончательный выбор заменит предыдущий/i)).toBeInTheDocument()
+    expect(screen.queryByText(/новый окончательный выбор заменит предыдущий/i)).not.toBeInTheDocument()
   })
 
   it('emits a hard command from the initiating button', () => {
