@@ -155,9 +155,6 @@ export default function MatchingBookCard({
                   : `${conditionalHere ? '✓ ' : ''}Готов:а читать${conditionalCount > 0 ? ` · ${conditionalCount}` : ''}`}
               </button>
             )}
-            {hasHardElsewhere && book.allowedActions.hard && (
-              <span className="nd-mb-action-note">Вы уже записаны на другую книгу. Новый окончательный выбор заменит предыдущий.</span>
-            )}
             {formed && book.allowedActions.hard && <span>Книга уже собрана, но можно присоединиться</span>}
           </>
         )}
