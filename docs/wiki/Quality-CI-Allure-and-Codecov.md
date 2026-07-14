@@ -1,5 +1,7 @@
 # Качество: CI, Allure, Codecov
 
+Локальная разработка использует focused gate: запускается только затронутый E2E без retry. Полный браузерный портфель остаётся nightly/manual и не блокирует merge. Matching-транзакции, cutover и audit дополнительно проверяются request-only suite на изолированной Neon-ветке без Chromium; браузер оставлен для golden paths, reload, realtime, focus и layout. Исполнители запускают focused checks, координатор — один полный финальный gate.
+
 Проект проверяется на нескольких уровнях: статический анализ, unit-тесты, e2e-тесты, coverage и визуальная отчетность.
 
 ![Allure report](images/allure-report.png)

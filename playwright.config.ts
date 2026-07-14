@@ -94,9 +94,9 @@ export default defineConfig({
   // email-префикс и (для книг) per-test фикстура через createTestBook —
   // конфликта между спеками нет.
   fullyParallel: false,
-  // retries: 1 — страховка от редких flaky-моментов (overload
-  // dev-сервера, медленный Neon-compute, networkidle промахи).
-  retries: 1,
+  // Локальный focused-loop падает сразу: retry скрывал flaky waits и удваивал
+  // обратную связь. Nightly/ручной CI сохраняет один диагностический retry.
+  retries: process.env.CI ? 1 : 0,
   // Matching-сценарии в полном CI-suite могут занимать чуть больше
   // стандартных 30s: teardown тогда удаляет test books, а незавершённые
   // API-запросы падают FK-ошибками. Быстрые expect-таймауты остаются 5s.
@@ -112,10 +112,28 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     ignoreHTTPSErrors: USE_LOCAL_HTTPS,
-    trace: 'on-first-retry',
+    // CI records the diagnostic retry; a no-retry local focused run retains
+    // the first failure so removing retries does not remove trace evidence.
+    trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'browser-non-matching',
+      testIgnore: ['**/matching-*.spec.ts', '**/integration/**'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'matching-golden',
+      testMatch: '**/matching-*.spec.ts',
+      grep: /@matching-golden/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      // These specs use APIRequestContext + Neon only. No browser/page fixture
+      // is requested, so Playwright does not launch Chromium for this project.
+      name: 'matching-integration',
+      testMatch: '**/integration/matching/**/*.spec.ts',
+    },
   ],
   webServer: {
     // На CI поднимаем production-сервер (`next start` по уже собранному

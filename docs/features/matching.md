@@ -51,7 +51,7 @@ Matching использует санкционированный тёплый **
 
 Подтверждение круга — **мгновенное**: «Хочу в этот круг» сразу пишет выбор (`PUT …/confirmation`), без промежуточного диалога. Одновременно можно быть только в одном выбранном круге — на прочих кругах CTA скрыт, пока есть активное подтверждение; чтобы выбрать другой, сначала «Отменить». Серверный upsert по-прежнему поддерживает прямую смену (защита на уровне API), но UI её не предлагает.
 
-Книжная вкладка использует компактные `.nd-mb-card`: обложка имеет фиксированную геометрию 54×76 и обязательно служит positioning context для `next/image` с `fill`. Без `position: relative` изображение привязывается к карточке и перекрывает доску; этот инвариант проверяется через computed style и `boundingBox()` в `e2e/ui-states.spec.ts`. Мета-строка отдельно показывает окончательные записи и общее пересечение шорт-листов, а число `conditional` выводится на кнопке «Готов:а читать». Сформированная книга получает лёгкую success-заливку из токена. Аватарная воронка на карточке не рендерится, поскольку повторяла те же агрегаты; подробные участники и их компактные статусы остаются в `MatchingBookDetailModal`, где имя по hover/focus/tap раскрывает tooltip с местом книги в списке участника. В `adminMode` пользовательский `.nd-mb-actions` отсутствует, и после мета-строки сразу идёт `MatchingBookAdminControls`.
+Книжная вкладка использует компактные `.nd-mb-card`: обложка имеет фиксированную геометрию 54×76 и обязательно служит positioning context для `next/image` с `fill`. Без `position: relative` изображение привязывается к карточке и перекрывает доску; этот инвариант проверяется через computed style и `boundingBox()` в `e2e/matching-layout.spec.ts`. Мета-строка отдельно показывает окончательные записи и общее пересечение шорт-листов, а число `conditional` выводится на кнопке «Готов:а читать». Сформированная книга получает лёгкую success-заливку из токена. Аватарная воронка на карточке не рендерится, поскольку повторяла те же агрегаты; подробные участники и их компактные статусы остаются в `MatchingBookDetailModal`, где имя по hover/focus/tap раскрывает tooltip с местом книги в списке участника. В `adminMode` пользовательский `.nd-mb-actions` отсутствует, и после мета-строки сразу идёт `MatchingBookAdminControls`.
 
 Собственный ещё не сформированный `hard` отмечается галочкой и акцентной линией прямо на карточке; там же остаются `cancelHard` и пояснение, при каком условии соберётся круг. Верхняя строка «Вы записаны на …» появляется только для сформированного assignment: её «Отменить» объясняет, что отмену делает администратор, и не отправляет мутацию.
 
@@ -109,10 +109,12 @@ Presence heartbeat — operational telemetry, а не пользовательс
 
 ## Проверки
 
+Nightly запускает только 12 браузерных Matching-сценариев со стабильным тегом `@matching-golden`, включая административный lifecycle close/reopen/dissolve/place/assign. Concurrency, cutover, audit и state/guard-инварианты выполняются request-only в `e2e/integration/matching/`. Остальные старые Matching specs сохранены как manual/archive reference и исключены из nightly через явные Playwright projects. Подробная карта рисков находится в `docs/features/testing.md`.
+
 - Unit: `lib/matching/__tests__/` и route tests.
 - E2E: `e2e/matching-satisfaction.spec.ts`, `e2e/matching-admin.spec.ts`, `e2e/matching-audit.spec.ts`, `e2e/matching-realtime.spec.ts`.
-- Layout/условный UI: matching-сценарии в `e2e/ui-states.spec.ts`.
-- Книжный режим: `e2e/matching-books.spec.ts`; lifecycle и разрушительные override — `e2e/matching-admin.spec.ts`; мобильная геометрия и focus trap — `e2e/ui-states.spec.ts`.
+- Layout/условный UI: matching-сценарии в `e2e/matching-layout.spec.ts`.
+- Книжный режим: `e2e/matching-books.spec.ts`; lifecycle и разрушительные override — `e2e/matching-admin.spec.ts`; мобильная геометрия и focus trap — `e2e/matching-layout.spec.ts`.
 - Миграция книжной модели: `drizzle/0053_matching_books.test.ts` проверяет таблицы, ограничения, audit triggers и DB guards.
 - Guard от возврата legacy runtime: `lib/matching/__tests__/no-legacy-runtime.test.ts`.
-- Обязательные ранги: `lib/matching/rank-assignment.ts` — pure-логика полностью покрыта unit-тестами; SQL-мутации executor'а/`runInTx` unit-харнессом БД не покрыты (в репо его нет для DB-слоя), верифицируются E2E `e2e/ui-states.spec.ts` (`book ranks persist across reload on signup and status-return`) + ручной проверкой на e2e-ветке Neon.
+- Обязательные ранги: `lib/matching/rank-assignment.ts` — pure-логика полностью покрыта unit-тестами; SQL-мутации executor'а/`runInTx` проверяются focused browser и request-only integration тестами на e2e-ветке Neon.

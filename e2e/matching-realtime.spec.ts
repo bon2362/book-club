@@ -65,6 +65,7 @@ async function joinAsExtraUser(
 
 test(
   'изменение другого участника прилетает на /matching без перезагрузки',
+  { tag: '@matching-golden' },
   async ({
     page,
     browser,
@@ -98,14 +99,12 @@ test(
     }
 
     await page.goto('/matching')
-    await page.waitForLoadState('networkidle')
 
     // Наблюдатель уже в сессии → welcome screen не должен появляться.
     // На случай если он всё же появился (race) — кликаем «Войти».
     const joinButton = page.getByRole('button', { name: 'Войти' })
     if (await joinButton.isVisible()) {
       await joinButton.click()
-      await page.waitForLoadState('networkidle')
     }
 
     // Один участник — кругов ещё нет.

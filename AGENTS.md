@@ -154,14 +154,14 @@ Husky pre-commit запускает `lint-staged` перед каждым ком
 
 ### E2E-тесты (Playwright)
 
-**Запуск:** `npm run test:e2e` (= `playwright test`). Отдельный файл — `npm run test:e2e e2e/ui-states.spec.ts`.
+**Запуск:** `npm run test:e2e:focused -- <spec> [--grep "..."]` для локального цикла; `npm run test:e2e:nightly` — полный портфель; `npm run test:integration:matching` — request-only Matching без Chromium. Focused-прогон выполняется без retry и обязан выбрать хотя бы один тест.
 
 **Изоляция от прод-БД (КРИТИЧНО).** E2E пишут только в изолированную Neon-ветку `e2e`; любая мутация — через фикстуру из `e2e/fixtures.ts` с cleanup в teardown, существующие прод-данные не редактируются.
 
 Детали (3 слоя защиты, тест-режим) и гочи написания тестов — `docs/features/testing.md`. Самые частые грабли, расписанные там: live-locators и кнопки-тогглы (`.first()`, не `.nth(1)`), `role="status"`×`@dnd-kit`, ContactsForm-оверлей перехватывает клики, OOM при нескольких dev-серверах, `session.user.id` в session callback, `createTestBook`-фикстура. **Пишешь или правишь Playwright-тест — сперва прочитай этот файл.**
 
 ### UI Layout Tests
-CSS-поведение (скрытие/позиционирование/анимации) — обязателен тест в `e2e/ui-states.spec.ts` (`boundingBox()`); **UI-задачу нельзя коммитить без него.** Субагент перед коммитом UI-задачи обязан прогнать `npm run lint && npm run typecheck && npm test && npm run test:e2e e2e/ui-states.spec.ts`. Как писать (boundingBox-стейты, мат-доказательство transform-формул) — `docs/features/testing.md`.
+CSS-поведение (скрытие/позиционирование/анимации) — обязателен `boundingBox()`-тест в соответствующем доменном `e2e/*-layout.spec.ts`. **UI-задачу нельзя коммитить без focused-прогона затронутого теста**, но запускать layout других доменов локально не требуется. Субагенты запускают lint/typecheck/Jest и focused E2E; один координатор выполняет полный финальный gate один раз. Как писать проверки — `docs/features/testing.md`.
 
 ## Telegram-авторизация
 Цепочка хрупкая и обросла граблями (`eval()` в виджете, `reload` vs `refresh`, Credentials без адаптера, `<Suspense>`, BotFather-домен). Архитектура, провайдеры, env vars и полный список грабель — `docs/features/auth.md`. **Трогаешь auth/telegram — сперва прочитай его, потом прогони `e2e/telegram-auth.spec.ts`.**

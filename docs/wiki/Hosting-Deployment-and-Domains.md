@@ -21,12 +21,13 @@ flowchart LR
     Branch["git checkout -b fix/x"] --> Commit["git commit"]
     Commit --> Push["git push -u origin fix/x"]
     Push --> PR["gh pr create + gh pr merge --auto"]
-    PR --> CI["GitHub Actions CI<br/>lint + secret scan + typecheck<br/>Jest + Playwright + build"]
+    PR --> CI["GitHub Actions CI<br/>lint + secret scan + typecheck<br/>Jest + build"]
     CI --> Merge["squash-merge в main<br/>auto-merge ждал зелёного CI"]
     Merge --> Vercel["Vercel build/deploy"]
     Vercel --> Domain["www.slowreading.club"]
-    CI --> Allure["Allure report on gh-pages"]
     CI --> Codecov["Codecov coverage"]
+    Merge --> Nightly["Nightly/manual Playwright<br/>browser golden + request-only integration"]
+    Nightly --> Allure["Allure report on gh-pages"]
 ```
 
 Branch protection на `main`:

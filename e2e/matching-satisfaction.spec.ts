@@ -223,7 +223,6 @@ test('исчезнувший состав переносит выбор по к�
   const invalidation = current.notices.find((notice) => notice.kind === 'confirmation_invalidated')
   expect(invalidation?.payload.members?.sort()).toEqual(['Анна E2E', 'Борис E2E'].sort())
   await participantA.page.reload()
-  await participantA.page.waitForLoadState('networkidle')
   await expect(participantA.page.getByTestId('circle-waiting')).toHaveCount(0)
   await expect(participantA.page.getByTestId('matching-notices')).toContainText(/подтверждение снято/i)
   const ackResponse = participantA.page.waitForResponse((response) => (
@@ -266,7 +265,7 @@ test('Welcome раскрывает реальные имена и сохраня
   expect(((await me.json()) as { user: { name: string } }).user.name).toBe('Новое имя')
 })
 
-test('Welcome → Ranking Gate → UI-ранжирование → доска сохраняют порядок после reload', async ({
+test('Welcome → Ranking Gate → UI-ранжирование → доска сохраняют порядок после reload', { tag: '@matching-golden' }, async ({
   page,
   createMatchingSession,
   createTestBook,
@@ -278,6 +277,18 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
   const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
   const bookA = await createTestBook({ title: `E2E Gate A ${test.info().testId}`, author: 'Gate Author' })
   const bookB = await createTestBook({ title: `E2E Gate B ${test.info().testId}`, author: 'Gate Author' })
+
+  // Preserve the /matching auth-gate journey inside the curated portfolio:
+  // unauthenticated visitors stay on /matching, see the modal, and closing it
+  // intentionally returns them home.
+  await page.goto('/matching')
+  await expect(page).toHaveURL(/\/matching/)
+  const authDialog = page.getByRole('dialog', { name: /войти в круг/i })
+  await expect(authDialog).toBeVisible()
+  await expect(authDialog.getByRole('button', { name: /войти через telegram/i })).toBeVisible()
+  await authDialog.getByRole('button', { name: 'Закрыть' }).click()
+  await expect(page).toHaveURL('/')
+
   const user = await loginAsUser({ name: 'Читатель Gate' })
   expect((await page.request.post('/api/test/signup', {
     data: {
@@ -296,7 +307,6 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
   )
 
   await page.goto('/matching')
-  await page.waitForLoadState('networkidle')
   await expect(page.getByTestId('welcome-name-input')).toHaveValue('Читатель Gate')
   const joinResponse = page.waitForResponse((response) => (
     response.request().method() === 'POST' && response.url().endsWith(`/api/matching/sessions/${session.id}/join`)
@@ -306,10 +316,12 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
   await expect(page.getByTestId('ranking-gate')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'Сначала — расставь приоритеты' })).toBeVisible()
   await expect(page.getByTestId('matching-realtime-client')).toHaveCount(0)
-  await page.waitForLoadState('networkidle')
   const enter = page.getByTestId('ranking-gate-enter')
   // Two active books already have a default rank each from add-to-list — CTA is enabled.
   await expect(enter).toBeEnabled()
+  const desktopEnterBox = await enter.boundingBox()
+  expect(desktopEnterBox).not.toBeNull()
+  expect(desktopEnterBox!.y + desktopEnterBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1)
 
   const rankResponse = page.waitForResponse((response) => (
     response.request().method() === 'PATCH' && response.url().includes('/api/matching/priorities')
@@ -335,6 +347,13 @@ test('Welcome → Ranking Gate → UI-ранжирование → доска с
   await expect(rankedRows.nth(1)).toContainText(bookA.title)
   await expect(rankedRows.nth(1)).toContainText('#2')
   await expect(enter).toBeEnabled()
+
+  await page.setViewportSize({ width: 375, height: 812 })
+  const mobileEnterBox = await enter.boundingBox()
+  expect(mobileEnterBox).not.toBeNull()
+  expect(mobileEnterBox!.x).toBeGreaterThanOrEqual(0)
+  expect(mobileEnterBox!.x + mobileEnterBox!.width).toBeLessThanOrEqual(376)
+  expect(mobileEnterBox!.y + mobileEnterBox!.height).toBeLessThanOrEqual(813)
 
   await enter.click()
   await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
@@ -376,14 +395,12 @@ test('Ranking Gate: одна книга без явного drag-реордер�
   )
 
   await page.goto('/matching')
-  await page.waitForLoadState('networkidle')
   const joinResponse = page.waitForResponse((response) => (
     response.request().method() === 'POST' && response.url().endsWith(`/api/matching/sessions/${session.id}/join`)
   ))
   await page.getByTestId('welcome-join-button').click()
   expect((await joinResponse).ok()).toBe(true)
   await expect(page.getByTestId('ranking-gate')).toBeVisible({ timeout: 15_000 })
-  await page.waitForLoadState('networkidle')
 
   const enter = page.getByTestId('ranking-gate-enter')
   // Single active book — dnd-kit never fires a reorder, but CTA is enabled anyway.
@@ -419,7 +436,6 @@ test('добавление книги из каталога на доске не
   await joinWithRankedBook(page, session.id, rankedBook.id, 'Читатель Board')
 
   await page.goto('/matching')
-  await page.waitForLoadState('networkidle')
   // Уже на доске: активная проранжированная книга, гейта нет.
   await expect(page.getByTestId('ranking-gate')).toHaveCount(0)
   await expect(page.getByTestId('matching-realtime-client')).toBeVisible()
@@ -506,7 +522,7 @@ test('удалённая заморозка обновляет SSR-катало�
   }
 })
 
-test('подтверждение переживает reload, видно другому участнику и закрепляет круг в observer mode', async ({
+test('подтверждение переживает reload, видно другому участнику и закрепляет круг в observer mode', { tag: '@matching-golden' }, async ({
   page,
   browser,
   createMatchingSession,

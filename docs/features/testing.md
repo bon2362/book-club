@@ -8,7 +8,7 @@
 |---------|-----------|-------------|-------|
 | Статический анализ | ESLint + tsc | Pre-commit (Husky) + CI | ~10 сек |
 | Unit-тесты + Coverage | Jest + Codecov | Pre-commit (Husky) + CI | ~45 сек |
-| E2E-тесты | Playwright | Nightly + вручную (`workflow_dispatch`) | ~5–10 мин |
+| E2E-тесты | Playwright | Focused локально; полный nightly/manual | focused Matching ~30 сек; полный прогон измеряется nightly |
 | Отчётность | Allure + GitHub Pages | После отдельного E2E workflow | авто |
 | Coverage tracking | Codecov | CI (после unit-тестов) | авто |
 
@@ -38,7 +38,7 @@
 
 **Запуск:** `npm test`
 
-**42 test-суита, 400 тест-кейсов** (по состоянию на март 2026).
+Количество suite и тестов растёт; актуальное значение показывает итог `npm test`.
 
 Покрывают:
 - API route handlers (`app/api/**/*.test.ts`) — каждый handler тестируется с замоканными зависимостями
@@ -80,7 +80,12 @@ Coverage автоматически загружается в **Codecov** в к�
 
 ## E2E-тесты (Playwright)
 
-**Запуск:** `npm run test:e2e` (требует запущенного dev-сервера)
+**Запуск:**
+
+- `npm run test:e2e:focused -- <spec> [--grep "..."]` — затронутый flow, локально без retry;
+- `npm run test:e2e:matching` — браузерные golden/layout Matching;
+- `npm run test:integration:matching` — HTTP/SQL/transaction Matching без BrowserContext;
+- `npm run test:e2e:nightly` — полный последовательный портфель, в CI с одним retry.
 
 Сценарии, проверяющие cookie с обязательным префиксом `__Secure-`, локально запускаются через HTTPS: `PLAYWRIGHT_HTTPS=true npm run test:e2e <spec>`. Конфиг добавляет `next dev --experimental-https` и разрешает только локальный self-signed certificate; CI и production-настройки не ослабляются.
 
@@ -122,12 +127,49 @@ Global setup/teardown удаляет E2E users и E2E matching sessions чере
 Для matching используются две составные fixture:
 
 - `matchingBoardFixture` создаёт отдельную active session, две книги и двух участников в независимых browser contexts, вступает ими в сессию и выставляет ранги; дополнительные участники добавляются через `addParticipant`;
-- `matchingBooksFixture` создаёт legacy-сессию с тремя участниками и администратором в независимых browser contexts, задаёт им общий глобальный шорт-лист и только затем включает книжный режим. Она проверяет live-инициализацию и использует размер групп 3–5;
+- `matchingBooksFixture` создаёт legacy-сессию только с одним request-only viewer и request-only администратором, ранжирует viewer и включает книжный режим. Peers B/C появляются только при вызове ленивых `getParticipantB()`/`getParticipantC()`; произвольные дополнительные участники — через `addParticipant`. Браузерная страница создаётся отдельно через `openMatchingPage`: context явно получает project context options/baseURL/HTTPS-настройки, а trace lifecycle остаётся под управлением Playwright. Неудачный login удаляет cached promise, поэтому вызов можно повторить;
+- `matchingApiFixture` из `e2e/api-fixtures.ts` создаёт multi-user legacy setup полностью через `APIRequestContext`; он используется для concurrency, cutover и audit без Chromium. Именно здесь участники создаются до cutover, когда тест проверяет импорт legacy-состава;
 - `auditCleanup` отслеживает ID тестовых sessions/users и после зависимых teardown удаляет связанные `audit_log`-строки. Она нужна потому, что глобальный audit намеренно не удаляется каскадом вместе с доменными таблицами.
 
 Все matching-мутации выполняются только в изолированной Neon-ветке `e2e`. Fixture сначала удаляют session/books и пользовательские данные по обычным FK/cleanup-маршрутам, затем `auditCleanup` убирает оставшиеся audit snapshots; production-строки не переиспользуются и не редактируются.
 
 ### Покрытие E2E
+
+Nightly — явная композиция трёх Playwright projects:
+
+| Project | Состав | Browser |
+|---|---|---|
+| `browser-non-matching` | Все обычные browser specs, Matching исключён | да |
+| `matching-golden` | Ровно 12 тестов с тегом `@matching-golden` | да |
+| `matching-integration` | `e2e/integration/matching/**` | нет |
+
+Контрольное локальное измерение после разделения портфеля: один focused Matching layout — 30 секунд, 12 браузерных Matching golden paths — 5,4 минуты, 8 request-only Matching integration — 3,2 минуты. Локальный `next dev` компилирует API-роуты лениво; итоговое время полного портфеля берётся из nightly на предварительно собранном `next start`.
+
+Большие прежние `matching-audit.spec.ts`, `matching-books-cutover.spec.ts` и неотмеченные Matching-сценарии остаются в репозитории как manual/archive reference, но не входят в nightly. Карта эквивалентного nightly-покрытия:
+
+При расследовании их можно явно запустить командой `npm run test:e2e:matching:manual -- <spec> [--grep "..."]`; отдельный config не подключён к nightly.
+
+| Риск | Nightly-проверка |
+|---|---|
+| conditional/hard/switch/reload | tagged `matching-books.spec.ts` |
+| formation и assignment guards | tagged formation golden path |
+| realtime | tagged `matching-realtime.spec.ts` |
+| admin close/reopen/dissolve/place/assign | tagged admin lifecycle |
+| focus, responsive, document scroll, formed fill | tagged book-layout tests в `matching-layout.spec.ts` |
+| legacy board shell, popup, touch CTA, long-sheet close, waiting line, attached checkmark и full width | единый tagged board-layout golden в `matching-layout.spec.ts` |
+| desktop/mobile ranking-gate geometry | tagged Welcome → Ranking Gate journey в `matching-satisfaction.spec.ts` |
+| welcome/ranking и observer lock | два tagged satisfaction golden paths |
+| concurrent threshold | `integration/matching/concurrency.spec.ts` |
+| exact cutover, overlap precedence, idempotency и rollback | `integration/matching/cutover-audit.spec.ts` |
+| actor-aware audit, semantic events, cleanup и heartbeat noise | `integration/matching/audit-events.spec.ts` |
+| legacy rank/state compatibility | `integration/matching/cutover-audit.spec.ts` |
+| assigned/closed/impersonation guards и readable state | `integration/matching/state-guards.spec.ts` |
+| auth modal и close navigation; server/client composition | tagged Welcome → Ranking Gate journey; `app/matching/page.composition.test.ts` |
+| legacy confirmation conflict/transfer/freeze | `session-transition` и `confirmation-reconciliation` Jest, observer-lock golden |
+| ranking edge cases и добавление книги | ranking/rank-assignment Jest, ranking journey и live-shortlist golden |
+| force-add/group-size/freeze и admin union view | admin route/session-transition/component Jest, admin lifecycle golden |
+
+Разбиение прежнего `ui-states.spec.ts` сохранило все 35 тестов в доменных файлах. Nightly выполняет 27 layout-тестов: все non-Matching layout и четыре curated Matching layout. Восемь подробных legacy Matching layout-тестов оставлены manual/archive; их уникальные риски не потеряны: шесть групп проверок сведены в tagged board-layout golden, две ranking-gate геометрии — в tagged ranking journey из таблицы выше.
 
 Спеки структурированы по доменным областям (отражается в Allure-отчёте):
 
@@ -146,7 +188,7 @@ Global setup/teardown удаляет E2E users и E2E matching sessions чере
 | `submit-book.spec.ts` | Каталог книг | Форма предложения книги |
 | `theme.spec.ts` | UI | Переключение темы |
 | `view-mode.spec.ts` | UI | Режимы отображения (сетка/список) |
-| `ui-states.spec.ts` | UI | CSS-поведение: скрытие header при скролле |
+| `*-layout.spec.ts` | UI | Доменное CSS-поведение и реальная геометрия |
 | `matching-satisfaction.spec.ts` | Матчинг | Disclosure и глобальное имя, Ranking Gate, подтверждение с reload, видимость статуса, закрепление и observer-mode |
 | `matching-realtime.spec.ts` | Матчинг | Polling public state по `state_version` и реальные display names без raw user ids |
 | `matching-admin.spec.ts` | Матчинг / администрирование | Force-add, роли active/observer, изменение размеров, freeze, реестр и роспуск целого круга |
@@ -160,16 +202,12 @@ Matching E2E покрывают законченные пользователь�
 
 ### Правила написания E2E-тестов
 
-**Ждать гидрации React** перед взаимодействием с client-side компонентами:
-```ts
-await page.waitForLoadState('networkidle')
-```
+После навигации ждите семантический root/состояние конкретного экрана. `networkidle` не является универсальным признаком гидрации и особенно дорог для polling/realtime страниц. Первый мутабельный click связывайте с ожиданием его HTTP response.
 
 **Тест на персистенцию обязан** перезагружать страницу и проверять состояние заново:
 ```ts
 await action()
 await page.reload()
-await page.waitForLoadState('networkidle')
 await expect(result).toBeVisible()
 ```
 
@@ -204,13 +242,14 @@ E2E **никогда не пишут в прод-БД**. Четыре слоя �
 
 ### UI Layout Tests (CSS-поведение)
 
-Задачи, затрагивающие **CSS-поведение** (скрытие, позиционирование, анимации), покрываются тестом в `e2e/ui-states.spec.ts`. **Правило: UI-задачу нельзя коммитить без такого теста.**
+Задачи, затрагивающие **CSS-поведение**, покрываются тестом в доменном `e2e/*-layout.spec.ts`: `matching`, `summary`, `admin`, `catalog`, `account` или `shell`. **Правило: UI-задачу нельзя коммитить без focused-прогона затронутого теста.** Полный layout-портфель остаётся nightly.
 
 - Проверять `boundingBox()` элемента в нужном состоянии (виден / скрыт / сдвинут).
 - **Математическое доказательство CSS-формул:** для `transform`/`position`-расчётов писать комментарий с выводом формулы (`final_pos = start_pos + transform`), проверять знак и что результат действительно за границей экрана. Это ловит ошибки, где визуально «вроде скрыто», а на деле элемент частично в кадре.
 - Субагенты перед коммитом UI-задач **обязаны** прогнать:
   ```bash
-  npm run lint && npm run typecheck && npm test && npm run test:e2e e2e/ui-states.spec.ts
+  npm run lint && npm run typecheck && npm test
+  npm run test:e2e:focused -- e2e/<domain>-layout.spec.ts --grep "точный сценарий"
   ```
 
 ---
@@ -290,7 +329,7 @@ nightly/manual E2E → отдельный GitHub Actions workflow
 - Действие меняет персистентное состояние — тест обязан включать `page.reload()` и проверку
 - Условный рендер по бизнес-логике (показать/скрыть по условию)
 - Изменение auth-цепочки (любой провайдер, JWT callback)
-- CSS-поведение: скрытие, анимации → добавлять в `e2e/ui-states.spec.ts`
+- CSS-поведение: скрытие, анимации → добавлять в доменный `e2e/*-layout.spec.ts`
 
 ### Перед каждым коммитом — явно написать:
 > **"E2E: нужен / не нужен — [причина]"**

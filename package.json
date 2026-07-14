@@ -11,6 +11,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test",
+    "test:e2e:focused": "node scripts/run-focused-e2e.mjs",
+    "test:e2e:matching": "playwright test --project=matching-golden",
+    "test:e2e:matching:manual": "playwright test --config=playwright.matching-manual.config.ts",
+    "test:e2e:nightly": "playwright test",
+    "test:integration:matching": "playwright test --project=matching-integration",
     "prepare": "husky"
   },
   "dependencies": {
