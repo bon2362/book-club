@@ -101,7 +101,7 @@ export default function MatchingBookCard({
       {formed && (
         <MatchingBookCircles circles={book.circles} participants={book.participants} viewerRef={viewerRef} />
       )}
-      {book.unplacedParticipantRefs.length > 0 && (
+      {formed && book.unplacedParticipantRefs.length > 0 && (
         <p className="nd-mb-unplaced">
           Без круга: {book.unplacedParticipantRefs.map((ref) => book.participants.find((p) => p.ref === ref)?.displayName ?? ref).join(', ')}
         </p>

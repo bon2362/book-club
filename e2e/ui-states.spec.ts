@@ -84,7 +84,7 @@ test.describe('Matching books: mobile layout and focus', () => {
   test('card keeps one status summary and admin cards skip repeated participant-action copy', async ({
     matchingBooksFixture,
   }) => {
-    const { books, participantA, participantB, admin } = matchingBooksFixture
+    const { session, books, participantA, participantB, admin } = matchingBooksFixture
     await participantB.page.goto('/matching')
     await participantB.page.waitForLoadState('networkidle')
     const participantBCard = participantB.page.getByTestId(`matching-book-card-${books[0].id}`)
@@ -104,9 +104,26 @@ test.describe('Matching books: mobile layout and focus', () => {
     await expect(participantACard.getByText('1 уже записался')).toBeVisible()
     await expect(participantACard.getByLabel('Определившиеся участники')).toHaveCount(0)
 
+    const stateResponse = await admin.page.request.get(`/api/matching/state?session=${session.id}&as=${participantA.userId}`)
+    expect(stateResponse.ok()).toBe(true)
+    const state = await stateResponse.json() as { session: { stateVersion: number } }
+    const assignResponse = await admin.page.request.post(
+      `/api/admin/matching/sessions/${session.id}/book-admin-actions`,
+      { data: {
+        action: 'assign',
+        userId: participantA.userId,
+        bookId: books[0].id,
+        expectedStateVersion: state.session.stateVersion,
+      } },
+    )
+    expect(assignResponse.ok(), await assignResponse.text()).toBe(true)
+
     await admin.page.goto('/matching')
     await admin.page.waitForLoadState('networkidle')
     await expect(admin.page.getByText('Административный режим — выбор участника недоступен')).toHaveCount(0)
+    const adminCard = admin.page.getByTestId(`matching-book-card-${books[0].id}`)
+    await expect(adminCard.getByText('2 уже записались')).toBeVisible()
+    await expect(adminCard.getByText(`Без круга: ${participantA.name}`)).toHaveCount(0)
     expect(await admin.page.getByRole('button', { name: 'Управлять составом' }).count()).toBeGreaterThan(0)
   })
 })
