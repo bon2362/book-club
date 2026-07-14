@@ -94,7 +94,7 @@ jobs:
           path: gh-pages
 
       - name: E2E tests
-        run: npm run test:e2e
+        run: npm run test:e2e:nightly
         env:
           # Бьём в изолированную Neon-ветку `e2e`, НЕ в прод. Guard в
           # lib/test-mode.ts отказывается работать, если DATABASE_URL содержит

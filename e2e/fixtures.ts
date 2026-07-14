@@ -1,4 +1,4 @@
-import { test as base, expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test'
+import { request as playwrightRequest, test as base, expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test'
 import { Pool, neonConfig } from '@neondatabase/serverless'
 import ws from 'ws'
 import { readFileSync, existsSync } from 'fs'
@@ -115,14 +115,19 @@ interface MatchingBoardFixture {
   addParticipant: (name: string, rankedBooks?: TestBook[]) => Promise<MatchingBoardParticipant>
 }
 
+interface MatchingBooksIdentity extends AdminSession {
+  request: APIRequestContext
+  isAdmin: boolean
+}
+
 interface MatchingBooksFixture {
   session: MatchingSession
   books: [TestBook, TestBook]
-  participantA: MatchingBoardParticipant
-  participantB: MatchingBoardParticipant
-  participantC: MatchingBoardParticipant
-  admin: MatchingBoardParticipant
-  addParticipant: (name: string, shortlistedBooks?: TestBook[]) => Promise<MatchingBoardParticipant>
+  participantA: MatchingBooksIdentity
+  admin: MatchingBooksIdentity
+  getParticipantB: () => Promise<MatchingBooksIdentity>
+  getParticipantC: () => Promise<MatchingBooksIdentity>
+  addParticipant: (name: string, shortlistedBooks?: TestBook[]) => Promise<MatchingBooksIdentity>
 }
 
 interface DbExecHelper {
@@ -244,10 +249,12 @@ interface E2EHelpers {
   matchingBoardFixture: MatchingBoardFixture
   /**
    * Book-centric matching board initialized in the middle of an already active
-   * legacy session. Three participants and the administrator use independent
-   * browser contexts; all users, books and the session are removed in teardown.
+   * legacy session. Identities are request-only by default; browser pages and
+   * peer participants are created lazily by the tests that need them.
    */
   matchingBooksFixture: MatchingBooksFixture
+  /** Open a browser page for a request-only Matching identity on demand. */
+  openMatchingPage: (identity: MatchingBooksIdentity) => Promise<Page>
 }
 
 async function patchIntroSection(
@@ -270,6 +277,68 @@ export const test = base.extend<E2EHelpers>({
       await context.route(pattern, (route) => route.abort())
     }
     await use(context)
+  },
+
+  openMatchingPage: async ({ browser }, use, testInfo) => {
+    const contexts: BrowserContext[] = []
+    const pages = new Map<string, Promise<Page>>()
+    const open: E2EHelpers['openMatchingPage'] = async (identity) => {
+      const existing = pages.get(identity.userId)
+      if (existing) return existing
+      const pending = (async () => {
+        const projectUse = testInfo.project.use
+        const context = await browser.newContext({
+          ...(projectUse.contextOptions ?? {}),
+          baseURL: projectUse.baseURL,
+          ignoreHTTPSErrors: projectUse.ignoreHTTPSErrors,
+          viewport: projectUse.viewport,
+          userAgent: projectUse.userAgent,
+          deviceScaleFactor: projectUse.deviceScaleFactor,
+          isMobile: projectUse.isMobile,
+          hasTouch: projectUse.hasTouch,
+          locale: projectUse.locale,
+          colorScheme: projectUse.colorScheme,
+        })
+        contexts.push(context)
+        for (const pattern of POSTHOG_PATTERNS) await context.route(pattern, route => route.abort())
+        const page = await context.newPage()
+        const login = await page.request.post('/api/test/session', {
+          data: {
+            email: identity.email,
+            name: identity.name,
+            isAdmin: identity.isAdmin,
+            telegramUsername: `matching_page_${identity.userId}`,
+          },
+        })
+        if (!login.ok()) {
+          const details = await login.text().catch(() => '')
+          throw new Error(`matching page login failed: ${login.status()} ${details}`)
+        }
+        return page
+      })()
+      pages.set(identity.userId, pending)
+      try {
+        return await pending
+      } catch (error) {
+        // A transient login failure must not poison all later attempts for the
+        // same identity with one permanently rejected cached promise.
+        if (pages.get(identity.userId) === pending) pages.delete(identity.userId)
+        throw error
+      }
+    }
+    await use(open)
+    // A test may finish while a lazy setup rejected or is still resolving.
+    // Settle every cached setup before closing any of its contexts.
+    await Promise.allSettled(Array.from(pages.values()))
+    const teardownErrors: unknown[] = []
+    for (const context of contexts.reverse()) {
+      try {
+        await context.close()
+      } catch (error) {
+        teardownErrors.push(error)
+      }
+    }
+    if (teardownErrors.length > 0) throw new AggregateError(teardownErrors, 'openMatchingPage teardown failed')
   },
 
   dbExec: async ({}, use) => {
@@ -384,6 +453,7 @@ export const test = base.extend<E2EHelpers>({
 
   createTestBook: async ({ request }, use, testInfo) => {
     const created: string[] = []
+    let nextIndex = 0
     // Suffix должен быть уникален per-test И per-run. testInfo.testId сам
     // по себе детерминирован (один и тот же для теста между запусками),
     // поэтому два параллельных CI run одного теста против одной e2e ветки
@@ -392,7 +462,9 @@ export const test = base.extend<E2EHelpers>({
     const seed = `${testInfo.testId.slice(0, 6)}${Math.random().toString(36).slice(2, 8)}`
 
     const create: E2EHelpers['createTestBook'] = async (overrides) => {
-      const index = created.length
+      // Reserve the id synchronously so parallel fixture setup cannot choose
+      // the same `created.length` before either request resolves.
+      const index = nextIndex++
       const id = overrides?.id ?? `__e2e_book_${seed}_${index}__`
       const title = overrides?.title ?? `E2E Book ${seed} #${index}`
       const res = await request.post('/api/test/books', {
@@ -538,68 +610,78 @@ export const test = base.extend<E2EHelpers>({
     }
   },
 
-  matchingBooksFixture: async ({ browser, createMatchingSession, createTestBook, auditCleanup }, use, testInfo) => {
-    const contexts: BrowserContext[] = []
-    const createdUsers: Array<{ page: Page; email: string }> = []
+  matchingBooksFixture: async ({ createMatchingSession, createTestBook, auditCleanup }, use, testInfo) => {
+    const apiContexts: APIRequestContext[] = []
+    const createdUsers: Array<{ request: APIRequestContext; email: string }> = []
+    const identitySetups: Array<Promise<MatchingBooksIdentity>> = []
+    const baseURL = String(testInfo.project.use.baseURL)
 
-    const createIdentity = async (
+    const createIdentity = (
       label: string,
       name: string,
       isAdmin: boolean,
-    ): Promise<MatchingBoardParticipant> => {
-      const context = await browser.newContext()
-      contexts.push(context)
-      for (const pattern of POSTHOG_PATTERNS) await context.route(pattern, (route) => route.abort())
-      const page = await context.newPage()
-      const email = `e2e-books-${testInfo.testId}-${label}-${Date.now()}@test.invalid`
-      const login = await page.request.post('/api/test/session', {
-        data: {
+    ): Promise<MatchingBooksIdentity> => {
+      const pending = (async () => {
+        const request = await playwrightRequest.newContext({ baseURL, ignoreHTTPSErrors: true })
+        apiContexts.push(request)
+        const email = `e2e-books-${testInfo.testId}-${label}-${Date.now()}@test.invalid`
+        const sessionData = {
           email,
           name,
           isAdmin,
           telegramUsername: `matching_books_${label.toLowerCase()}_${Date.now()}`,
-        },
-      })
-      if (!login.ok()) throw new Error(`matchingBooksFixture login failed: ${login.status()} ${await login.text()}`)
-      createdUsers.push({ page, email })
-      const { userId } = await login.json() as { userId: string }
-      auditCleanup.trackUser(userId)
-      return { email, name, userId, context, page }
+        }
+        // Register cleanup before login: a failed/partial response may still
+        // have created the user row on the server.
+        createdUsers.push({ request, email })
+        const login = await request.post('/api/test/session', { data: sessionData })
+        if (!login.ok()) throw new Error(`matchingBooksFixture login failed: ${login.status()} ${await login.text()}`)
+        const { userId } = await login.json() as { userId: string }
+        auditCleanup.trackUser(userId)
+        return { email, name, userId, request, isAdmin }
+      })()
+      identitySetups.push(pending)
+      return pending
     }
 
     try {
       const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 5 })
-      const books: [TestBook, TestBook] = [
-        await createTestBook({ title: `E2E Книжный круг A ${testInfo.testId}`, author: 'Автор A' }),
-        await createTestBook({ title: `E2E Книжный круг B ${testInfo.testId}`, author: 'Автор B' }),
-      ]
-      const participantA = await createIdentity('A', 'Анна Книги E2E', false)
-      const participantB = await createIdentity('B', 'Борис Книги E2E', false)
-      const participantC = await createIdentity('C', 'Вера Книги E2E', false)
-      const admin = await createIdentity('admin', 'Администратор Книги E2E', true)
+      const books = await Promise.all([
+        createTestBook({ title: `E2E Книжный круг A ${testInfo.testId}`, author: 'Автор A' }),
+        createTestBook({ title: `E2E Книжный круг B ${testInfo.testId}`, author: 'Автор B' }),
+      ]) as [TestBook, TestBook]
+      const identityResults = await Promise.allSettled([
+        createIdentity('A', 'Анна Книги E2E', false),
+        createIdentity('admin', 'Администратор Книги E2E', true),
+      ])
+      const identityFailure = identityResults.find(result => result.status === 'rejected')
+      if (identityFailure?.status === 'rejected') throw identityFailure.reason
+      const [participantA, admin] = identityResults.map(result => (
+        result as PromiseFulfilledResult<MatchingBooksIdentity>
+      ).value)
 
       // Participants first join the ordinary satisfaction session and set a
       // global shortlist. Only after that does the admin enable book mode.
-      const joinParticipant = async (participant: MatchingBoardParticipant, shortlistedBooks: TestBook[] = books) => {
-        const join = await participant.page.request.post(`/api/matching/sessions/${session.id}/join`, {
+      const joinParticipant = async (participant: MatchingBooksIdentity, shortlistedBooks: TestBook[] = books) => {
+        const join = await participant.request.post(`/api/matching/sessions/${session.id}/join`, {
           data: { name: participant.name },
         })
         if (!join.ok()) throw new Error(`matchingBooksFixture join failed: ${join.status()} ${await join.text()}`)
         for (const book of shortlistedBooks) {
-          const add = await participant.page.request.post('/api/matching/books', { data: { bookId: book.id } })
+          const add = await participant.request.post('/api/matching/books', { data: { bookId: book.id } })
           if (!add.ok()) throw new Error(`matchingBooksFixture add failed: ${add.status()} ${await add.text()}`)
         }
-        const rank = await participant.page.request.patch('/api/matching/priorities', {
+        const rank = await participant.request.patch('/api/matching/priorities', {
           data: { bookIds: shortlistedBooks.map((book) => book.id) },
         })
         if (!rank.ok()) throw new Error(`matchingBooksFixture rank failed: ${rank.status()} ${await rank.text()}`)
       }
-      for (const participant of [participantA, participantB, participantC]) await joinParticipant(participant)
+      await joinParticipant(participantA)
 
-      const before = await admin.page.request.get(`/api/matching/state?session=${session.id}&as=${participantA.userId}`)
+      const before = await admin.request.get(`/api/matching/state?session=${session.id}&as=${participantA.userId}`)
       if (!before.ok()) throw new Error(`matchingBooksFixture state failed: ${before.status()} ${await before.text()}`)
       const { session: stateSession } = await before.json() as { session: { stateVersion: number } }
-      const initialize = await admin.page.request.post(
+      const initialize = await admin.request.post(
         `/api/admin/matching/sessions/${session.id}/book-admin-actions`,
         { data: { action: 'initializeBookMode', expectedStateVersion: stateSession.stateVersion } },
       )
@@ -613,13 +695,44 @@ export const test = base.extend<E2EHelpers>({
         await joinParticipant(participant, shortlistedBooks)
         return participant
       }
-
-      await use({ session, books, participantA, participantB, participantC, admin, addParticipant })
-    } finally {
-      for (const user of createdUsers.reverse()) {
-        try { await user.page.request.delete('/api/test/session', { data: { email: user.email } }) } catch { /* best effort */ }
+      const lazyPeers = new Map<'B' | 'C', Promise<MatchingBooksIdentity>>()
+      const getPeer = (label: 'B' | 'C', name: string) => {
+        const existing = lazyPeers.get(label)
+        if (existing) return existing
+        const pending = addParticipant(name)
+        lazyPeers.set(label, pending)
+        pending.catch(() => lazyPeers.delete(label))
+        return pending
       }
-      for (const context of contexts.reverse()) await context.close().catch(() => {})
+
+      await use({
+        session,
+        books,
+        participantA,
+        admin,
+        getParticipantB: () => getPeer('B', 'Борис Книги E2E'),
+        getParticipantC: () => getPeer('C', 'Вера Книги E2E'),
+        addParticipant,
+      })
+    } finally {
+      await Promise.allSettled(identitySetups)
+      const teardownErrors: unknown[] = []
+      for (const user of createdUsers.reverse()) {
+        try {
+          const response = await user.request.delete('/api/test/session', { data: { email: user.email } })
+          if (!response.ok()) teardownErrors.push(new Error(`matchingBooksFixture cleanup failed: ${response.status()} ${await response.text()}`))
+        } catch (error) {
+          teardownErrors.push(error)
+        }
+      }
+      for (const request of apiContexts.reverse()) {
+        try {
+          await request.dispose()
+        } catch (error) {
+          teardownErrors.push(error)
+        }
+      }
+      if (teardownErrors.length > 0) throw new AggregateError(teardownErrors, 'matchingBooksFixture teardown failed')
     }
   },
 })
