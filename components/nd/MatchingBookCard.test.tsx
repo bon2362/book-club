@@ -28,8 +28,33 @@ describe('MatchingBookCard', () => {
     expect(screen.getByText('ещё 3 добавили эту книгу')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Записать' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Готов читать · 1' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Определившиеся участники')).toHaveTextContent('Анна')
-    expect(screen.getByLabelText('Определившиеся участники')).not.toHaveTextContent('Вера')
+    expect(screen.queryByLabelText('Определившиеся участники')).not.toBeInTheDocument()
+  })
+
+  it('uses the singular Russian form for counts ending in one except eleven', () => {
+    const participants = Array.from({ length: 21 }, (_, index) => ({
+      ref: `p${index}`,
+      displayName: `Участник ${index}`,
+      status: 'hard' as const,
+    }))
+    const { rerender } = render(
+      <MatchingBookCard book={{ ...book, intersectionCount: 21, participants }} {...baseProps} />,
+    )
+    expect(screen.getByText('21 уже записался')).toBeInTheDocument()
+    expect(screen.getByText('ещё 21 добавил эту книгу')).toBeInTheDocument()
+
+    rerender(<MatchingBookCard book={{ ...book, intersectionCount: 11, participants: participants.slice(0, 11) }} {...baseProps} />)
+    expect(screen.getByText('11 уже записались')).toBeInTheDocument()
+    expect(screen.getByText('ещё 11 добавили эту книгу')).toBeInTheDocument()
+  })
+
+  it('shows admin controls without repeating participant-action copy', () => {
+    const { container } = render(
+      <MatchingBookCard book={book} {...baseProps} adminMode adminControls={<button>Управлять составом</button>} />,
+    )
+    expect(screen.getByRole('button', { name: 'Управлять составом' })).toBeInTheDocument()
+    expect(screen.queryByText('Административный режим — выбор участника недоступен')).not.toBeInTheDocument()
+    expect(container.querySelector('.nd-mb-actions')).not.toBeInTheDocument()
   })
 
   it('uses switch copy when hard choice exists elsewhere', () => {

@@ -80,6 +80,35 @@ test.describe('Matching books: mobile layout and focus', () => {
     await expect(dialog).toHaveCount(0)
     await expect(trigger).toBeFocused()
   })
+
+  test('card keeps one status summary and admin cards skip repeated participant-action copy', async ({
+    matchingBooksFixture,
+  }) => {
+    const { books, participantA, participantB, admin } = matchingBooksFixture
+    await participantB.page.goto('/matching')
+    await participantB.page.waitForLoadState('networkidle')
+    const participantBCard = participantB.page.getByTestId(`matching-book-card-${books[0].id}`)
+    const hardResponse = participantB.page.waitForResponse((response) => (
+      response.request().method() === 'POST' && response.url().endsWith('/book-actions')
+    ))
+    await participantBCard.getByRole('button', { name: 'Записать', exact: true }).click()
+    expect((await hardResponse).ok()).toBe(true)
+    await participantB.page.reload()
+    await participantB.page.waitForLoadState('networkidle')
+    await expect(participantB.page.getByText('✓ Вы записаны')).toBeVisible()
+
+    await participantA.page.goto('/matching')
+    await participantA.page.reload()
+    await participantA.page.waitForLoadState('networkidle')
+    const participantACard = participantA.page.getByTestId(`matching-book-card-${books[0].id}`)
+    await expect(participantACard.getByText('1 уже записался')).toBeVisible()
+    await expect(participantACard.getByLabel('Определившиеся участники')).toHaveCount(0)
+
+    await admin.page.goto('/matching')
+    await admin.page.waitForLoadState('networkidle')
+    await expect(admin.page.getByText('Административный режим — выбор участника недоступен')).toHaveCount(0)
+    expect(await admin.page.getByRole('button', { name: 'Управлять составом' }).count()).toBeGreaterThan(0)
+  })
 })
 
 test.describe('Header: hide on scroll', () => {
