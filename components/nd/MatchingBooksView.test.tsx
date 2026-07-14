@@ -57,7 +57,8 @@ describe('MatchingBooksView commands', () => {
     render(<MatchingBooksView {...props} isAdmin bookMode={{ ...mode, adminParticipants: [] }} />)
     expect(screen.queryByRole('button', { name: 'Записать' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Готов читать' })).not.toBeInTheDocument()
-    expect(screen.getByText('Административный режим — выбор участника недоступен')).toBeInTheDocument()
+    expect(screen.queryByText('Административный режим — выбор участника недоступен')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Управлять составом' })).toBeInTheDocument()
   })
 
   it('marks a closed participant board as read-only', () => {

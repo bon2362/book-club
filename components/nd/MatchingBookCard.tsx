@@ -1,7 +1,6 @@
 'use client'
 
 import CoverImage from './CoverImage'
-import MatchingBookParticipants from './MatchingBookParticipants'
 import MatchingBookCircles from './MatchingBookCircles'
 import type { MatchingBookView } from './matching-book-types'
 
@@ -25,12 +24,16 @@ interface Props {
   adminControls?: React.ReactNode
 }
 
+function usesSingularForm(count: number) {
+  return count % 10 === 1 && count % 100 !== 11
+}
+
 function enrolledText(count: number) {
-  return `${count} уже записал${count === 1 ? 'ся' : 'ись'}`
+  return `${count} уже записал${usesSingularForm(count) ? 'ся' : 'ись'}`
 }
 
 function addedText(count: number) {
-  return `ещё ${count} добавил${count === 1 ? '' : 'и'} эту книгу`
+  return `ещё ${count} добавил${usesSingularForm(count) ? '' : 'и'} эту книгу`
 }
 
 export default function MatchingBookCard({
@@ -95,7 +98,6 @@ export default function MatchingBookCard({
         </div>
       </div>
 
-      {!formed && <MatchingBookParticipants participants={book.participants} />}
       {formed && (
         <MatchingBookCircles circles={book.circles} participants={book.participants} viewerRef={viewerRef} />
       )}
@@ -105,10 +107,8 @@ export default function MatchingBookCard({
         </p>
       )}
 
-      <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
-        {adminMode ? (
-          <span>Административный режим — выбор участника недоступен</span>
-        ) : assignedHere ? (
+      {!adminMode && <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
+        {assignedHere ? (
           <><strong className="nd-mb-assigned-copy">✓ Вы назначены на эту книгу</strong><span>Слот занят — изменить может только организатор</span></>
         ) : lockedElsewhere ? (
           <span>Ваш слот занят другой книгой — здесь только просмотр</span>
@@ -146,7 +146,7 @@ export default function MatchingBookCard({
             {formed && book.allowedActions.hard && <span>Книга уже собрана, но можно присоединиться</span>}
           </>
         )}
-      </div>
+      </div>}
       {adminControls}
     </article>
   )
