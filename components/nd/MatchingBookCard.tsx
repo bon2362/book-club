@@ -19,6 +19,9 @@ interface Props {
   adminMode?: boolean
   controlsDisabled?: boolean
   pendingAction: MatchingBookCommandAction | null
+  switchFromBookTitle?: string | null
+  onConfirmSwitch?: (control: HTMLButtonElement) => void
+  onCancelSwitch?: () => void
   onCommand: (action: MatchingBookCommandAction, bookId: string, control: HTMLButtonElement) => void
   onOpenBook: (book: MatchingBookView, control: HTMLButtonElement) => void
   adminControls?: React.ReactNode
@@ -45,6 +48,9 @@ export default function MatchingBookCard({
   adminMode = false,
   controlsDisabled = false,
   pendingAction,
+  switchFromBookTitle = null,
+  onConfirmSwitch,
+  onCancelSwitch,
   onCommand,
   onOpenBook,
   adminControls,
@@ -108,10 +114,14 @@ export default function MatchingBookCard({
       )}
 
       {!adminMode && <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
-        {assignedHere ? (
-          <><strong className="nd-mb-assigned-copy">✓ Вы назначены на эту книгу</strong><span>Слот занят — изменить может только организатор</span></>
-        ) : lockedElsewhere ? (
-          <span>Ваш слот занят другой книгой — здесь только просмотр</span>
+        {switchFromBookTitle && onConfirmSwitch && onCancelSwitch ? (
+          <div className="nd-mb-switch-confirm" role="group" aria-label="Подтверждение смены книги">
+            <span>Если записаться на «{book.title}», выбор «{switchFromBookTitle}» будет снят.</span>
+            <div>
+              <button type="button" className="nd-mb-btn is-hard" data-testid="matching-hard-switch-confirm" disabled={controlsDisabled} onClick={(event) => onConfirmSwitch(event.currentTarget)}>Перезаписаться</button>
+              <button type="button" className="nd-mb-btn is-ghost" disabled={controlsDisabled} onClick={onCancelSwitch}>Оставить как есть</button>
+            </div>
+          </div>
         ) : hardHere ? (
           <>
             <strong className="nd-mb-hard-copy">✓ Вы записаны</strong>
@@ -120,14 +130,16 @@ export default function MatchingBookCard({
                 {pendingAction === 'cancelHard' ? 'Отменяем…' : 'Отменить'}
               </button>
             )}
+            <span className="nd-mb-action-note">Что дальше: круг сформируется, когда будут готовы трое, включая двух записавшихся.</span>
           </>
-        ) : readOnly ? (
+        ) : assignedHere || lockedElsewhere ? null
+        : readOnly ? (
           <span>Сессия закрыта — выбор доступен только для просмотра</span>
         ) : (
           <>
             {book.allowedActions.hard && (
               <button type="button" className="nd-mb-btn is-hard" disabled={pending || controlsDisabled} onClick={(event) => onCommand('setHard', book.bookId, event.currentTarget)}>
-                {pendingAction === 'setHard' ? 'Записываем…' : hasHardElsewhere ? 'Записаться сюда' : 'Записать'}
+                {pendingAction === 'setHard' ? 'Записываем…' : 'Записаться'}
               </button>
             )}
             {!formed && book.allowedActions.conditional && (
@@ -140,8 +152,11 @@ export default function MatchingBookCard({
               >
                 {pendingAction === 'setConditional' || pendingAction === 'unsetConditional'
                   ? 'Сохраняем…'
-                  : `${conditionalHere ? '✓ ' : ''}Готов читать${conditionalCount > 0 ? ` · ${conditionalCount}` : ''}`}
+                  : `${conditionalHere ? '✓ ' : ''}Готов:а читать${conditionalCount > 0 ? ` · ${conditionalCount}` : ''}`}
               </button>
+            )}
+            {hasHardElsewhere && book.allowedActions.hard && (
+              <span className="nd-mb-action-note">Вы уже записаны на другую книгу. Новый окончательный выбор заменит предыдущий.</span>
             )}
             {formed && book.allowedActions.hard && <span>Книга уже собрана, но можно присоединиться</span>}
           </>

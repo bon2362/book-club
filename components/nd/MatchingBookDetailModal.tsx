@@ -63,6 +63,8 @@ export default function MatchingBookDetailModal({
   const [summary, setSummary] = useState<SummaryState>(null)
   const [summaryLoaded, setSummaryLoaded] = useState(false)
   const [summaryBusy, setSummaryBusy] = useState(false)
+  const [openRankTipRef, setOpenRankTipRef] = useState<string | null>(null)
+  const openRankTipRefValue = useRef<string | null>(null)
   const friendlyBookRef = book.bookSlug ?? book.bookId
   const summaryEditHref = book.bookSlug
     ? `/books/${book.bookSlug}/my-summary/edit`
@@ -74,6 +76,12 @@ export default function MatchingBookDetailModal({
     document.body.style.overflow = 'hidden'
     requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus())
     function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && openRankTipRefValue.current) {
+        e.preventDefault()
+        openRankTipRefValue.current = null
+        setOpenRankTipRef(null)
+        return
+      }
       if (e.key === 'Escape') onClose()
       if (e.key !== 'Tab' || !dialogRef.current) return
       const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'))
@@ -90,6 +98,11 @@ export default function MatchingBookDetailModal({
       previousFocusRef.current?.focus()
     }
   }, [onClose])
+
+  function showRankTip(ref: string | null) {
+    openRankTipRefValue.current = ref
+    setOpenRankTipRef(ref)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -265,12 +278,35 @@ export default function MatchingBookDetailModal({
                   Участники:
                 </div>
                 <ul className="nd-mb-modal-participants">
-                  {matchingParticipants.map((participant) => (
-                    <li key={participant.ref}>
-                      <span>{participant.displayName}</span>
-                      <span>{participantStatusLabel(participant.status)}</span>
+                  {matchingParticipants.map((participant) => {
+                    const tipId = `matching-rank-tip-${participant.ref}`
+                    const tipOpen = openRankTipRef === participant.ref
+                    return <li
+                      className={`is-${participant.status}`}
+                      key={participant.ref}
+                      onMouseEnter={() => showRankTip(participant.ref)}
+                      onMouseLeave={() => showRankTip(null)}
+                    >
+                      <button
+                        type="button"
+                        className="nd-mb-modal-participant"
+                        aria-describedby={tipOpen ? tipId : undefined}
+                        onFocus={() => showRankTip(participant.ref)}
+                        onBlur={() => showRankTip(null)}
+                        onClick={() => showRankTip(participant.ref)}
+                      >
+                        <span>{participant.displayName}</span>
+                        <span>{participantStatusLabel(participant.status)}</span>
+                      </button>
+                      {tipOpen && (
+                        <span className="nd-mb-rank-tip" id={tipId} role="tooltip">
+                          {participant.rank === null
+                            ? `У ${participant.displayName} приоритет не задан`
+                            : `У ${participant.displayName} на ${participant.rank} месте`}
+                        </span>
+                      )}
                     </li>
-                  ))}
+                  })}
                 </ul>
               </div>
             )}

@@ -26,6 +26,7 @@ export interface BookModeParticipantRow {
 export interface BookModeInterestRow {
   userId: string
   bookId: string
+  rank: number | null
 }
 
 export interface BookModeIntentRow {
@@ -76,6 +77,7 @@ export interface PublicBookModeState {
       ref: string
       displayName: string
       status: BookParticipantStatus
+      rank: number | null
       adminUserId?: string
     }>
     circles: Array<{
@@ -119,6 +121,10 @@ export function buildPublicBookModeState(input: {
   const participantById = new Map(input.participants.map(item => [item.userId, item]))
   const intentByUserBook = new Map(input.intents.map(item => [`${item.userId}:${item.bookId}`, item]))
   const assignmentByUser = new Map(input.assignments.map(item => [item.userId, item]))
+  const hardIntentByUser = new Map(
+    input.intents.filter(item => item.kind === 'hard').map(item => [item.userId, item]),
+  )
+  const interestByUserBook = new Map(input.interests.map(item => [`${item.userId}:${item.bookId}`, item]))
   const viewerAssignment = assignmentByUser.get(input.viewerUserId) ?? null
   const viewerHard = input.intents.find(item => item.userId === input.viewerUserId && item.kind === 'hard') ?? null
   const viewerBookIds = new Set(
@@ -157,6 +163,7 @@ export function buildPublicBookModeState(input: {
             intents: intentByUserBook,
             assignments: assignmentByUser,
           }),
+          rank: interestByUserBook.get(`${userId}:${book.bookId}`)?.rank ?? null,
           ...(input.admin ? { adminUserId: userId } : {}),
         }]
       }).sort((left, right) => left.displayName.localeCompare(right.displayName) || left.ref.localeCompare(right.ref))
@@ -186,6 +193,26 @@ export function buildPublicBookModeState(input: {
         assignments: assignmentByUser,
       })
       const viewerFree = !viewerAssignment
+      const isAvailableForBook = (userId: string) => {
+        const assignment = assignmentByUser.get(userId)
+        if (assignment && assignment.bookId !== book.bookId) return false
+        const hardIntent = hardIntentByUser.get(userId)
+        return !hardIntent || hardIntent.bookId === book.bookId
+      }
+      const availableInterestRows = input.interests
+        .filter(item => item.bookId === book.bookId && isAvailableForBook(item.userId))
+      const availableDecisionStatuses = bookParticipantUserIds
+        .filter(isAvailableForBook)
+        .map(userId => statusFor({
+          userId,
+          bookId: book.bookId,
+          intents: intentByUserBook,
+          assignments: assignmentByUser,
+        }))
+      const finalCount = availableDecisionStatuses.filter(status => status === 'hard' || status === 'assigned').length
+      const conditionalCount = availableDecisionStatuses.filter(status => status === 'conditional').length
+      const availableRanks = availableInterestRows
+        .flatMap(item => item.rank === null ? [] : [item.rank])
 
       return {
         bookId: book.bookId,
@@ -213,17 +240,41 @@ export function buildPublicBookModeState(input: {
           hard: !input.admin && open && viewerFree && viewerStatus !== 'hard',
           cancelHard: !input.admin && open && viewerFree && viewerStatus === 'hard',
         },
+        decisionScore: {
+          formed: formed ? 1 : 0,
+          finalCount,
+          conditionalCount,
+          viewerOnlyTail: !formed && interestedUserIds.every(userId => userId === input.viewerUserId) ? 1 : 0,
+          hasIntersection: availableInterestRows.some(item => item.userId !== input.viewerUserId) ? 1 : 0,
+          avgRank: availableRanks.length > 0
+            ? availableRanks.reduce((sum, rank) => sum + rank, 0) / availableRanks.length
+            : null,
+          worstRank: availableRanks.length > 0 ? Math.max(...availableRanks) : null,
+          interestedCount: availableRanks.length,
+        },
       }
     })
     .sort((left, right) => {
       const leftPinned = left.bookId === viewerAssignment?.bookId ? 2 : left.bookId === viewerHard?.bookId ? 1 : 0
       const rightPinned = right.bookId === viewerAssignment?.bookId ? 2 : right.bookId === viewerHard?.bookId ? 1 : 0
-      return rightPinned - leftPinned || right.intersectionCount - left.intersectionCount ||
+      const leftAvg = left.decisionScore.avgRank ?? Number.POSITIVE_INFINITY
+      const rightAvg = right.decisionScore.avgRank ?? Number.POSITIVE_INFINITY
+      const leftWorst = left.decisionScore.worstRank ?? Number.POSITIVE_INFINITY
+      const rightWorst = right.decisionScore.worstRank ?? Number.POSITIVE_INFINITY
+      return rightPinned - leftPinned ||
+        left.decisionScore.viewerOnlyTail - right.decisionScore.viewerOnlyTail ||
+        right.decisionScore.formed - left.decisionScore.formed ||
+        right.decisionScore.finalCount - left.decisionScore.finalCount ||
+        right.decisionScore.conditionalCount - left.decisionScore.conditionalCount ||
+        right.decisionScore.hasIntersection - left.decisionScore.hasIntersection ||
+        leftAvg - rightAvg || leftWorst - rightWorst ||
+        right.decisionScore.interestedCount - left.decisionScore.interestedCount ||
         left.sortOrder - right.sortOrder || left.title.localeCompare(right.title) || left.bookId.localeCompare(right.bookId)
     })
     .map((book) => {
-      const publicBook = { ...book } as Omit<typeof book, 'sortOrder'> & { sortOrder?: number }
+      const publicBook = { ...book } as Omit<typeof book, 'sortOrder' | 'decisionScore'> & { sortOrder?: number; decisionScore?: typeof book.decisionScore }
       delete publicBook.sortOrder
+      delete publicBook.decisionScore
       return publicBook
     })
 

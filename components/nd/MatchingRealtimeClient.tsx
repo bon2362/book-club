@@ -243,7 +243,7 @@ export default function MatchingRealtimeClient({
         {healthy ? '●' : '⟳ синхр.'}
       </div>
 
-      <MatchingWorkspace>
+      <MatchingWorkspace natural={Boolean(state.bookMode && mode === 'books')}>
       {state.bookMode && mode === 'books' ? (
         <div role="tabpanel" id="matching-panel-books" aria-labelledby="matching-tab-books">
           <MatchingBooksView

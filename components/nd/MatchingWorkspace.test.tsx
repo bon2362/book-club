@@ -20,3 +20,20 @@ test('fades and marks the workspace busy while scenarios recalculate', () => {
   expect(screen.getByTestId('matching-board-loader')).toBeInTheDocument()
   expect(screen.getByTestId('matching-scenarios-scroll')).toHaveStyle({ opacity: '0.45' })
 })
+
+test('uses natural document flow for the book tab', () => {
+  render(<MatchingWorkspace natural><div>book body</div></MatchingWorkspace>)
+  expect(screen.getByTestId('matching-scenarios-workspace')).toHaveClass('is-document')
+  expect(screen.getByTestId('matching-scenarios-workspace')).toHaveStyle({ height: 'auto', overflow: 'visible' })
+  expect(screen.getByTestId('matching-scenarios-scroll')).toHaveStyle({ overflowY: 'visible' })
+  expect(document.querySelector('.nd-mx-fade')).not.toBeInTheDocument()
+})
+
+test('keeps the pending indicator in the viewport in natural document flow', () => {
+  render(
+    <MatchingBoardContext.Provider value={{ pending: true, beginPending: jest.fn(), endPending: jest.fn() }}>
+      <MatchingWorkspace natural><div>book body</div></MatchingWorkspace>
+    </MatchingBoardContext.Provider>,
+  )
+  expect(screen.getByTestId('matching-board-loader')).toHaveStyle({ position: 'fixed' })
+})

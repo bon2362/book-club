@@ -84,6 +84,7 @@ export default function MatchingBookAdminControls({
                   displayName: participant.displayName,
                   adminUserId: participant.adminUserId,
                   status: 'interest',
+                  rank: null,
                 } })
                 setSelectedParticipantId('')
               }}
@@ -101,6 +102,7 @@ export default function MatchingBookAdminControls({
                   displayName: participant.displayName,
                   adminUserId: participant.adminUserId,
                   status: 'interest',
+                  rank: null,
                 } })
                 setSelectedParticipantId('')
               }}

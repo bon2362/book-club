@@ -6,9 +6,9 @@ const book: MatchingBookView = {
   bookId: 'b1', title: 'Патриот', author: 'Автор', coverUrl: null,
   intersectionCount: 3, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',
   participants: [
-    { ref: 'p1', displayName: 'Анна', status: 'hard' },
-    { ref: 'p2', displayName: 'Борис', status: 'conditional' },
-    { ref: 'p3', displayName: 'Вера', status: 'interest' },
+    { ref: 'p1', displayName: 'Анна', status: 'hard', rank: 1 },
+    { ref: 'p2', displayName: 'Борис', status: 'conditional', rank: 2 },
+    { ref: 'p3', displayName: 'Вера', status: 'interest', rank: 4 },
   ],
   circles: [], unplacedParticipantRefs: [],
   allowedActions: { conditional: true, hard: true, cancelHard: false },
@@ -26,8 +26,8 @@ describe('MatchingBookCard', () => {
     render(<MatchingBookCard book={book} {...baseProps} />)
     expect(screen.getByText('1 уже записался')).toBeInTheDocument()
     expect(screen.getByText('ещё 3 добавили эту книгу')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Записать' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Готов читать · 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Готов:а читать · 1' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Определившиеся участники')).not.toBeInTheDocument()
   })
 
@@ -36,6 +36,7 @@ describe('MatchingBookCard', () => {
       ref: `p${index}`,
       displayName: `Участник ${index}`,
       status: 'hard' as const,
+      rank: index + 1,
     }))
     const { rerender } = render(
       <MatchingBookCard book={{ ...book, intersectionCount: 21, participants }} {...baseProps} />,
@@ -60,7 +61,7 @@ describe('MatchingBookCard', () => {
   it('shows unplaced participants only after the book has formed', () => {
     const assignedBook = {
       ...book,
-      participants: [...book.participants, { ref: 'viewer', displayName: 'Евгений', status: 'assigned' as const }],
+      participants: [...book.participants, { ref: 'viewer', displayName: 'Евгений', status: 'assigned' as const, rank: 1 }],
       unplacedParticipantRefs: ['viewer'],
     }
     const { rerender } = render(<MatchingBookCard book={assignedBook} {...baseProps} />)
@@ -70,21 +71,22 @@ describe('MatchingBookCard', () => {
     expect(screen.getByText('Без круга: Евгений')).toBeInTheDocument()
   })
 
-  it('uses switch copy when hard choice exists elsewhere', () => {
+  it('explains that a new hard choice replaces the previous one', () => {
     render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
-    expect(screen.getByRole('button', { name: 'Записаться сюда' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Готов читать · 1' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Готов:а читать · 1' })).toBeDisabled()
+    expect(screen.getByText(/новый окончательный выбор заменит предыдущий/i)).toBeInTheDocument()
   })
 
   it('emits a hard command from the initiating button', () => {
     render(<MatchingBookCard book={book} {...baseProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Записать' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Записаться' }))
     expect(baseProps.onCommand).toHaveBeenCalledWith('setHard', 'b1', expect.any(HTMLButtonElement))
   })
 
-  it('renders assignment as read-only', () => {
+  it('renders an assigned card without technical slot copy', () => {
     render(<MatchingBookCard book={{ ...book, viewerStatus: 'assigned', formedAt: '2026-07-13T10:00:00Z' }} {...baseProps} viewerAssignmentBookId="b1" />)
-    expect(screen.getByText('✓ Вы назначены на эту книгу')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Записать' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/слот занят/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
   })
 })

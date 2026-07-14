@@ -5,7 +5,7 @@ import type { MatchingBookView } from './matching-book-types'
 const first: MatchingBookView = {
   bookId: 'b1', title: 'Первая', author: 'Автор', coverUrl: null, intersectionCount: 1,
   formedAt: '2026-07-13T10:00:00Z', currentViability: 'viable', viewerStatus: 'interest',
-  participants: [{ ref: 'p1', adminUserId: 'u1', displayName: 'Анна', status: 'assigned' }],
+  participants: [{ ref: 'p1', adminUserId: 'u1', displayName: 'Анна', status: 'assigned', rank: 1 }],
   circles: [{ id: 'c1', position: 1, memberRefs: ['p1'] }], unplacedParticipantRefs: [],
   allowedActions: { conditional: false, hard: false, cancelHard: false },
 }

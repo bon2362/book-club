@@ -56,7 +56,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | PATCH | `/api/summary-revisions/{id}` | Автосохранить правки опубликованного саммари. |
 | POST | `/api/summary-revisions/{id}/submit` | Отправить правки на повторную модерацию. |
 | POST | `/api/summaries/helpful/reconcile` | После входа перенести реакции гостевой cookie к аккаунту и схлопнуть дубли. |
-| GET | `/api/matching/state?session={id}` | Public state с реальными display names, сценариями, подтверждениями, закреплёнными кругами и notices; без raw `userId`. |
+| GET | `/api/matching/state?session={id}` | Public state с реальными display names, сценариями, подтверждениями, закреплёнными кругами и notices; без raw `userId`. В книжном режиме участник книги содержит nullable `rank`: позицию книги в его глобальном списке. |
 | GET | `/api/matching/version?session={id}` | Лёгкий polling версии, статуса и online refs. |
 | POST | `/api/matching/sessions/{id}/join` | Сохранить глобальное имя и вступить в сессию после disclosure. |
 | DELETE | `/api/matching/sessions/{id}/leave` | Покинуть сессию до закрепления; требует актуальную версию. |

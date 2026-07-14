@@ -11,6 +11,7 @@ import {
   matchingSessionParticipants,
   matchingSessions,
   matchingSessionBookStates,
+  bookPriorities,
   signupBooks,
   books,
   users,
@@ -176,11 +177,15 @@ export async function fetchMatchingPublicState(
   if (!session.bookModeInitializedAt) return { ...legacyState, bookMode: null }
 
   const [interests, intents, assignments, formedRows, circleRows] = await Promise.all([
-    dbClient.select({ userId: signupBooks.userId, bookId: signupBooks.bookId })
+    dbClient.select({ userId: signupBooks.userId, bookId: signupBooks.bookId, rank: bookPriorities.rank })
       .from(signupBooks)
       .innerJoin(matchingSessionParticipants, and(
         eq(matchingSessionParticipants.sessionId, sessionId),
         eq(matchingSessionParticipants.userId, signupBooks.userId),
+      ))
+      .leftJoin(bookPriorities, and(
+        eq(bookPriorities.userId, signupBooks.userId),
+        eq(bookPriorities.bookId, signupBooks.bookId),
       ))
       .where(isNull(signupBooks.personalStatus)),
     dbClient.select({
