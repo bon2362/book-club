@@ -14,7 +14,7 @@ const mode: MatchingBookModeState = {
 }
 
 const props = {
-  sessionId: 's1', stateVersion: 3, sessionStatus: 'open', viewerRef: 'viewer',
+  sessionId: 's1', stateVersion: 3, sessionStatus: 'open', viewerRef: 'viewer', minGroupSize: 3,
   bookMode: mode, booksById: {}, isAdmin: false, onState: jest.fn(), onRefresh: jest.fn(),
 }
 
@@ -28,7 +28,7 @@ describe('MatchingBooksView commands', () => {
     render(<MatchingBooksView {...props} />)
     expect(screen.getByRole('heading', { name: 'Совпадения по вашим книгам' })).toBeInTheDocument()
     expect(screen.getByText(/Выберите одну книгу, которую будете читать/)).toHaveTextContent(
-      'Нажмите "Готов:а читать", чтобы выбрать несколько книг',
+      'В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах',
     )
   })
 
@@ -149,7 +149,7 @@ describe('MatchingBooksView commands', () => {
 
     expect(screen.queryByTestId('matching-books-selection')).not.toBeInTheDocument()
     expect(screen.getByText('✓ Вы записаны')).toBeInTheDocument()
-    expect(screen.getByText(/Что дальше: круг сформируется/)).toBeInTheDocument()
+    expect(screen.getByText(/Круг соберётся, когда наберётся 3 человека/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
@@ -174,7 +174,7 @@ describe('MatchingBooksView commands', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
 
     expect(global.fetch).not.toHaveBeenCalled()
-    expect(screen.getByTestId('matching-books-message')).toHaveTextContent('Для отмены обратитесь к администратору.')
+    expect(screen.getByTestId('matching-books-message')).toHaveTextContent('Круг уже собрался — отмена затронет остальных, напишите организатору.')
   })
 
   it('renders a single divider before the unpinned viewer-only tail', () => {

@@ -1085,3 +1085,39 @@ test.describe('Satisfaction ranking gate layout', () => {
     expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height + 1)
   })
 })
+
+test.describe('Matching record button auto-enroll menu', () => {
+  test('the caret dropdown opens fully on-screen below the button, desktop and mobile', { tag: '@matching-golden' }, async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    const { books, participantA } = matchingBooksFixture
+    const page = await openMatchingPage(participantA)
+    const card = page.getByTestId(`matching-book-card-${books[0].id}`)
+    const caret = card.getByRole('button', { name: 'Автоматическая запись, если соберётся круг' })
+    const option = card.getByRole('menuitemcheckbox', { name: 'Запишите меня автоматически, если соберётся круг' })
+
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport)
+      await page.goto('/matching')
+      await caret.click()
+      await expect(option).toBeVisible()
+
+      const menuBox = await card.locator('.nd-mb-split-menu').boundingBox()
+      const barBox = await card.locator('.nd-mb-split-bar').boundingBox()
+      expect(menuBox).not.toBeNull()
+      expect(barBox).not.toBeNull()
+      expect(menuBox!.x, `${viewport.width}px: menu left edge on-screen`).toBeGreaterThanOrEqual(0)
+      expect(menuBox!.x + menuBox!.width, `${viewport.width}px: menu right edge on-screen`).toBeLessThanOrEqual(viewport.width + 1)
+      expect(menuBox!.y + menuBox!.height, `${viewport.width}px: menu bottom edge on-screen`).toBeLessThanOrEqual(viewport.height + 1)
+      // The menu drops below the record button rather than overlapping it.
+      expect(menuBox!.y, `${viewport.width}px: menu sits below the button`).toBeGreaterThanOrEqual(barBox!.y + barBox!.height - 1)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+
+      // Escape closes the menu and returns focus to the caret.
+      await page.keyboard.press('Escape')
+      await expect(option).toHaveCount(0)
+      await expect(caret).toBeFocused()
+    }
+  })
+})

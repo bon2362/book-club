@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import CoverImage from './CoverImage'
 import MatchingBookCircles from './MatchingBookCircles'
 import type { MatchingBookView } from './matching-book-types'
@@ -15,6 +16,7 @@ interface Props {
   viewerRef: string
   viewerAssignmentBookId: string | null
   viewerHardBookId: string | null
+  minGroupSize: number
   readOnly: boolean
   adminMode?: boolean
   controlsDisabled?: boolean
@@ -43,11 +45,20 @@ function interestText(count: number) {
   return `ещё у ${count} эта книга в списке`
 }
 
+function peopleWord(count: number) {
+  const ones = count % 10
+  const tens = count % 100
+  if (ones === 1 && tens !== 11) return 'человек'
+  if (ones >= 2 && ones <= 4 && (tens < 12 || tens > 14)) return 'человека'
+  return 'человек'
+}
+
 export default function MatchingBookCard({
   book,
   viewerRef,
   viewerAssignmentBookId,
   viewerHardBookId,
+  minGroupSize,
   readOnly,
   adminMode = false,
   controlsDisabled = false,
@@ -71,6 +82,31 @@ export default function MatchingBookCard({
   const interestCount = book.participants.filter((participant) => participant.status === 'interest' && participant.ref !== viewerRef).length
   const conditionalWouldAssign = book.conditionalWouldAssign ?? false
   const pending = pendingAction !== null
+  // Auto-enroll (the soft "conditional") lives behind the record button's caret.
+  const showAuto = !formed && book.allowedActions.conditional && !conditionalWouldAssign
+  const [autoMenuOpen, setAutoMenuOpen] = useState(false)
+  const splitRef = useRef<HTMLDivElement>(null)
+  const caretRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!autoMenuOpen) return
+    function onPointerDown(event: MouseEvent) {
+      if (splitRef.current && !splitRef.current.contains(event.target as Node)) setAutoMenuOpen(false)
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setAutoMenuOpen(false)
+        caretRef.current?.focus()
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [autoMenuOpen])
+
   const className = [
     'nd-mb-card',
     assignedHere ? 'is-assigned' : '',
@@ -92,8 +128,8 @@ export default function MatchingBookCard({
           <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
         </button>
         <div className="nd-mb-titles">
-          {assignedHere && <div className="nd-mb-kicker is-assigned">◆ ваш круг</div>}
-          {!assignedHere && formed && <div className="nd-mb-kicker is-formed">○ круг найден</div>}
+          {assignedHere && <div className="nd-mb-kicker is-assigned">● Ваш круг</div>}
+          {!assignedHere && formed && <div className="nd-mb-kicker is-formed">○ Круг собрался</div>}
           <button type="button" className="nd-mb-title" onClick={(event) => onOpenBook(book, event.currentTarget)}>
             {book.title}
           </button>
@@ -152,32 +188,74 @@ export default function MatchingBookCard({
                 {pendingAction === 'cancelHard' ? 'Отменяем…' : 'Отменить'}
               </button>
             )}
-            <span className="nd-mb-action-note">Что дальше: круг сформируется, когда будут готовы трое, включая двух записавшихся.</span>
+            <span className="nd-mb-action-note">Ждём остальных. Круг соберётся, когда наберётся {minGroupSize} {peopleWord(minGroupSize)}.</span>
           </>
         ) : assignedHere || lockedElsewhere ? null
         : readOnly ? (
           <span>Сессия закрыта — выбор доступен только для просмотра</span>
         ) : (
           <>
-            {book.allowedActions.hard && (
-              <button type="button" className="nd-mb-btn is-hard" disabled={pending || controlsDisabled} onClick={(event) => onCommand('setHard', book.bookId, event.currentTarget)}>
-                {pendingAction === 'setHard' ? 'Записываем…' : 'Записаться'}
-              </button>
-            )}
-            {!formed && book.allowedActions.conditional && !conditionalWouldAssign && (
+            {book.allowedActions.hard && (showAuto ? (
+              <div className="nd-mb-split" ref={splitRef}>
+                <div className="nd-mb-split-bar">
+                  <button
+                    type="button"
+                    className="nd-mb-btn is-hard nd-mb-split-main"
+                    disabled={pending || controlsDisabled}
+                    onClick={(event) => onCommand('setHard', book.bookId, event.currentTarget)}
+                  >
+                    {pendingAction === 'setHard' ? 'Записываем…' : 'Записаться'}
+                  </button>
+                  <button
+                    type="button"
+                    ref={caretRef}
+                    className="nd-mb-btn is-hard nd-mb-split-caret"
+                    aria-haspopup="menu"
+                    aria-expanded={autoMenuOpen}
+                    aria-label="Автоматическая запись, если соберётся круг"
+                    disabled={pending || controlsDisabled}
+                    onClick={() => setAutoMenuOpen((open) => !open)}
+                  >
+                    ▾
+                  </button>
+                </div>
+                {autoMenuOpen && (
+                  <div className="nd-mb-split-menu" role="menu">
+                    <button
+                      type="button"
+                      role="menuitemcheckbox"
+                      aria-checked={conditionalHere}
+                      className="nd-mb-split-opt"
+                      disabled={pending || controlsDisabled || hasHardElsewhere}
+                      onClick={(event) => onCommand(conditionalHere ? 'unsetConditional' : 'setConditional', book.bookId, event.currentTarget)}
+                    >
+                      <span className={`nd-mb-check${conditionalHere ? ' is-on' : ''}`} aria-hidden="true">{conditionalHere ? '✓' : ''}</span>
+                      <span>
+                        {pendingAction === 'setConditional' || pendingAction === 'unsetConditional'
+                          ? 'Сохраняем…'
+                          : 'Запишите меня автоматически, если соберётся круг'}
+                      </span>
+                    </button>
+                    <p className="nd-mb-split-hint">
+                      {hasHardElsewhere
+                        ? 'Сначала отмените запись на другой книге.'
+                        : 'Можно отметить несколько книг — запишем в первую, где соберётся круг.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
               <button
                 type="button"
-                className={`nd-mb-btn is-conditional${conditionalHere ? ' is-active' : ''}`}
-                disabled={pending || controlsDisabled || hasHardElsewhere}
-                aria-pressed={conditionalHere}
-                onClick={(event) => onCommand(conditionalHere ? 'unsetConditional' : 'setConditional', book.bookId, event.currentTarget)}
+                className="nd-mb-btn is-hard"
+                disabled={pending || controlsDisabled}
+                onClick={(event) => onCommand('setHard', book.bookId, event.currentTarget)}
               >
-                {pendingAction === 'setConditional' || pendingAction === 'unsetConditional'
-                  ? 'Сохраняем…'
-                  : `${conditionalHere ? '✓ ' : ''}Готов:а читать`}
+                {pendingAction === 'setHard' ? 'Записываем…' : 'Записаться'}
               </button>
-            )}
-            {formed && book.allowedActions.hard && <span>Круг уже найден, но можно присоединиться</span>}
+            ))}
+            {showAuto && conditionalHere && <span className="nd-mb-auto-note">Авто-запись включена</span>}
+            {formed && book.allowedActions.hard && <span>Круг уже собран, но можно присоединиться</span>}
           </>
         )}
       </div>}
