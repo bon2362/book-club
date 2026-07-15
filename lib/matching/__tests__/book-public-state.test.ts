@@ -151,4 +151,72 @@ describe('buildPublicBookModeState', () => {
 
     expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
   })
+
+  it('flags conditionalWouldAssign when two other available hard intents already exist', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1', 1)],
+      intents: [
+        { userId: 'u2', bookId: 'b1', kind: 'hard' },
+        { userId: 'u3', bookId: 'b1', kind: 'hard' },
+      ],
+      assignments: [], formedAtByBookId: new Map(), circles: [],
+    })
+    const b1 = state.books.find(book => book.bookId === 'b1')!
+    expect(b1.conditionalWouldAssign).toBe(true)
+    expect(b1.allowedActions.conditional).toBe(true)
+  })
+
+  it('keeps conditionalWouldAssign false below the two-hard threshold', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1', 1)],
+      intents: [{ userId: 'u2', bookId: 'b1', kind: 'hard' }],
+      assignments: [], formedAtByBookId: new Map(), circles: [],
+    })
+    expect(state.books.find(book => book.bookId === 'b1')!.conditionalWouldAssign).toBe(false)
+  })
+
+  it('never flags conditionalWouldAssign when the viewer already committed a hard elsewhere', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1', 1), interest('u1', 'b2', 1)],
+      intents: [
+        { userId: 'u1', bookId: 'b2', kind: 'hard' },
+        { userId: 'u2', bookId: 'b1', kind: 'hard' },
+        { userId: 'u3', bookId: 'b1', kind: 'hard' },
+      ],
+      assignments: [], formedAtByBookId: new Map(), circles: [],
+    })
+    expect(state.books.find(book => book.bookId === 'b1')!.conditionalWouldAssign).toBe(false)
+  })
+
+  it('exposes two stable circles for a book with six assignments', () => {
+    const sixParticipants = Array.from({ length: 6 }, (_, index) => ({
+      userId: `u${index + 1}`, publicRef: `r${index + 1}`, displayName: `Читатель ${index + 1}`,
+    }))
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants: sixParticipants,
+      interests: sixParticipants.map(({ userId }, index) => interest(userId, 'b1', index + 1)),
+      intents: [],
+      assignments: sixParticipants.map(({ userId }, index) => ({
+        userId, bookId: 'b1', circleId: index < 3 ? 'circle-1' : 'circle-2',
+      })),
+      formedAtByBookId: new Map([['b1', new Date('2026-07-13T12:00:00Z')]]),
+      circles: [
+        { id: 'circle-1', bookId: 'b1', position: 1 },
+        { id: 'circle-2', bookId: 'b1', position: 2 },
+      ],
+    })
+    const b1 = state.books.find(book => book.bookId === 'b1')!
+    expect(b1.circles).toHaveLength(2)
+    expect(b1.circles.map(circle => circle.memberRefs.length)).toEqual([3, 3])
+    const viewerCircles = b1.circles.filter(circle => circle.memberRefs.includes('r1'))
+    expect(viewerCircles).toHaveLength(1)
+    expect(b1.currentViability).toBe('viable')
+  })
 })

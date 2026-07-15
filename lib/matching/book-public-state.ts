@@ -1,3 +1,5 @@
+import { shouldFormBook } from './book-partition'
+
 export type BookIntentKind = 'conditional' | 'hard'
 export type BookParticipantStatus = 'interest' | BookIntentKind | 'assigned'
 
@@ -91,6 +93,8 @@ export interface PublicBookModeState {
       hard: boolean
       cancelHard: boolean
     }
+    /** True when setting the viewer's conditional would immediately form the book and assign them. */
+    conditionalWouldAssign: boolean
   }>
 }
 
@@ -211,6 +215,20 @@ export function buildPublicBookModeState(input: {
         }))
       const finalCount = availableDecisionStatuses.filter(status => status === 'hard' || status === 'assigned').length
       const conditionalCount = availableDecisionStatuses.filter(status => status === 'conditional').length
+      // Adding the viewer's conditional forms the book (and assigns them) only when the
+      // real rule holds among the other available intents: ≥2 hard and hard+conditional ≥ 3.
+      const otherAvailableStatuses = bookParticipantUserIds
+        .filter(userId => userId !== input.viewerUserId && isAvailableForBook(userId))
+        .map(userId => statusFor({
+          userId,
+          bookId: book.bookId,
+          intents: intentByUserBook,
+          assignments: assignmentByUser,
+        }))
+      const otherHardCount = otherAvailableStatuses.filter(status => status === 'hard').length
+      const otherConditionalCount = otherAvailableStatuses.filter(status => status === 'conditional').length
+      const conditionalWouldAssign = !formed && viewerFree && !viewerHard &&
+        shouldFormBook(otherHardCount, otherConditionalCount + 1)
       const availableRanks = availableInterestRows
         .flatMap(item => item.rank === null ? [] : [item.rank])
 
@@ -240,6 +258,7 @@ export function buildPublicBookModeState(input: {
           hard: !input.admin && open && viewerFree && viewerStatus !== 'hard',
           cancelHard: !input.admin && open && viewerFree && viewerStatus === 'hard',
         },
+        conditionalWouldAssign,
         decisionScore: {
           formed: formed ? 1 : 0,
           finalCount,

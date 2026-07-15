@@ -32,11 +32,15 @@ function usesSingularForm(count: number) {
 }
 
 function enrolledText(count: number) {
-  return `${count} уже записал${usesSingularForm(count) ? 'ся' : 'ись'}`
+  return `${count} уже записал${usesSingularForm(count) ? ':ась' : 'ись'}`
 }
 
-function addedText(count: number) {
-  return `ещё ${count} добавил${usesSingularForm(count) ? '' : 'и'} эту книгу`
+function conditionalText(count: number) {
+  return `${count} готов${usesSingularForm(count) ? ':а' : 'ы'} читать`
+}
+
+function interestText(count: number) {
+  return `ещё у ${count} эта книга в списке`
 }
 
 export default function MatchingBookCard({
@@ -61,8 +65,11 @@ export default function MatchingBookCard({
   const lockedElsewhere = viewerAssignmentBookId !== null && viewerAssignmentBookId !== book.bookId
   const hasHardElsewhere = viewerHardBookId !== null && viewerHardBookId !== book.bookId
   const formed = book.formedAt !== null
-  const finalCount = book.participants.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
+  // Three mutually-exclusive aggregate groups; the interest group excludes the viewer.
+  const enrolledCount = book.participants.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
   const conditionalCount = book.participants.filter((participant) => participant.status === 'conditional').length
+  const interestCount = book.participants.filter((participant) => participant.status === 'interest' && participant.ref !== viewerRef).length
+  const conditionalWouldAssign = book.conditionalWouldAssign ?? false
   const pending = pendingAction !== null
   const className = [
     'nd-mb-card',
@@ -86,16 +93,31 @@ export default function MatchingBookCard({
         </button>
         <div className="nd-mb-titles">
           {assignedHere && <div className="nd-mb-kicker is-assigned">◆ ваш круг</div>}
-          {!assignedHere && formed && <div className="nd-mb-kicker is-formed">◆ группа собрана</div>}
+          {!assignedHere && formed && <div className="nd-mb-kicker is-formed">○ круг найден</div>}
           <button type="button" className="nd-mb-title" onClick={(event) => onOpenBook(book, event.currentTarget)}>
             {book.title}
           </button>
           <div className="nd-mb-author">{book.author}</div>
           {!formed && (
-            <div className="nd-mb-meta">
-              {finalCount > 0 && <span className="nd-mb-enrolled"><span aria-hidden="true" />{enrolledText(finalCount)}</span>}
-              {book.intersectionCount > 0 && <span className="nd-mb-added">{addedText(book.intersectionCount)}</span>}
-              {finalCount === 0 && book.intersectionCount === 0 && <span className="nd-mb-added">Пока только у вас в списке</span>}
+            <div className="nd-mb-metrics">
+              {enrolledCount > 0 && (
+                <button type="button" className="nd-mb-metric is-enrolled" onClick={(event) => onOpenBook(book, event.currentTarget)}>
+                  {enrolledText(enrolledCount)}
+                </button>
+              )}
+              {conditionalCount > 0 && (
+                <button type="button" className="nd-mb-metric is-conditional" onClick={(event) => onOpenBook(book, event.currentTarget)}>
+                  {conditionalText(conditionalCount)}
+                </button>
+              )}
+              {interestCount > 0 && (
+                <button type="button" className="nd-mb-metric" onClick={(event) => onOpenBook(book, event.currentTarget)}>
+                  {interestText(interestCount)}
+                </button>
+              )}
+              {enrolledCount === 0 && conditionalCount === 0 && interestCount === 0 && (
+                <span className="nd-mb-metric-empty">Пока только у вас в списке</span>
+              )}
             </div>
           )}
           {formed && book.currentViability === 'needs_attention' && (
@@ -142,7 +164,7 @@ export default function MatchingBookCard({
                 {pendingAction === 'setHard' ? 'Записываем…' : 'Записаться'}
               </button>
             )}
-            {!formed && book.allowedActions.conditional && (
+            {!formed && book.allowedActions.conditional && !conditionalWouldAssign && (
               <button
                 type="button"
                 className={`nd-mb-btn is-conditional${conditionalHere ? ' is-active' : ''}`}
@@ -152,10 +174,10 @@ export default function MatchingBookCard({
               >
                 {pendingAction === 'setConditional' || pendingAction === 'unsetConditional'
                   ? 'Сохраняем…'
-                  : `${conditionalHere ? '✓ ' : ''}Готов:а читать${conditionalCount > 0 ? ` · ${conditionalCount}` : ''}`}
+                  : `${conditionalHere ? '✓ ' : ''}Готов:а читать`}
               </button>
             )}
-            {formed && book.allowedActions.hard && <span>Книга уже собрана, но можно присоединиться</span>}
+            {formed && book.allowedActions.hard && <span>Круг уже найден, но можно присоединиться</span>}
           </>
         )}
       </div>}
