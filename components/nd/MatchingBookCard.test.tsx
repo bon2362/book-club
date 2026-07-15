@@ -17,8 +17,12 @@ const book: MatchingBookView = {
 
 const baseProps = {
   viewerRef: 'viewer', viewerAssignmentBookId: null, viewerHardBookId: null,
+  minGroupSize: 3,
   readOnly: false, pendingAction: null, onCommand: jest.fn(), onOpenBook: jest.fn(),
 }
+
+const AUTO_CARET = 'Автоматическая запись, если соберётся круг'
+const AUTO_OPTION = 'Запишите меня автоматически, если соберётся круг'
 
 describe('MatchingBookCard', () => {
   beforeEach(() => { baseProps.onCommand.mockClear(); baseProps.onOpenBook.mockClear() })
@@ -29,8 +33,9 @@ describe('MatchingBookCard', () => {
     expect(screen.getByRole('button', { name: '1 готов:а читать' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'ещё у 1 эта книга в списке' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
-    // The conditional CTA carries no count anymore.
-    expect(screen.getByRole('button', { name: 'Готов:а читать' })).toBeInTheDocument()
+    // The soft option now lives behind the record button's caret, not a separate CTA.
+    expect(screen.getByRole('button', { name: AUTO_CARET })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Готов:а читать' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Определившиеся участники')).not.toBeInTheDocument()
   })
 
@@ -83,15 +88,51 @@ describe('MatchingBookCard', () => {
     expect(screen.getByRole('button', { name: '1 готов:а читать' })).toBeInTheDocument()
   })
 
-  it('hides the conditional CTA when the click would immediately assign', () => {
-    render(<MatchingBookCard book={{ ...book, conditionalWouldAssign: true }} {...baseProps} />)
-    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Готов:а читать' })).not.toBeInTheDocument()
+  it('opens the auto-enroll menu and toggles the soft intent from a checkbox', () => {
+    render(<MatchingBookCard book={book} {...baseProps} />)
+    expect(screen.queryByRole('menuitemcheckbox')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: AUTO_CARET }))
+    const option = screen.getByRole('menuitemcheckbox', { name: AUTO_OPTION })
+    expect(option).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(option)
+    expect(baseProps.onCommand).toHaveBeenCalledWith('setConditional', 'b1', expect.any(HTMLButtonElement))
   })
 
-  it('keeps the conditional CTA when the click stays tentative', () => {
+  it('reflects an active auto-enroll and unsets it from the menu', () => {
+    render(<MatchingBookCard book={{ ...book, viewerStatus: 'conditional' }} {...baseProps} />)
+    expect(screen.getByText('Авто-запись включена')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: AUTO_CARET }))
+    const option = screen.getByRole('menuitemcheckbox', { name: AUTO_OPTION })
+    expect(option).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(option)
+    expect(baseProps.onCommand).toHaveBeenCalledWith('unsetConditional', 'b1', expect.any(HTMLButtonElement))
+  })
+
+  it('drops the caret entirely when the soft click would immediately assign', () => {
+    render(<MatchingBookCard book={{ ...book, conditionalWouldAssign: true }} {...baseProps} />)
+    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: AUTO_CARET })).not.toBeInTheDocument()
+  })
+
+  it('keeps the caret when the soft click stays tentative', () => {
     render(<MatchingBookCard book={{ ...book, conditionalWouldAssign: false }} {...baseProps} />)
-    expect(screen.getByRole('button', { name: 'Готов:а читать' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: AUTO_CARET })).toBeInTheDocument()
+  })
+
+  it('disables the auto-enroll option when a hard choice sits on another book', () => {
+    render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
+    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: AUTO_CARET }))
+    expect(screen.getByRole('menuitemcheckbox', { name: AUTO_OPTION })).toBeDisabled()
+    expect(screen.getByText('Сначала отмените запись на другой книге.')).toBeInTheDocument()
+  })
+
+  it('substitutes the session group size into the waiting note', () => {
+    const hardBook = { ...book, viewerStatus: 'hard' as const, allowedActions: { conditional: false, hard: false, cancelHard: true } }
+    const { rerender } = render(<MatchingBookCard book={hardBook} {...baseProps} minGroupSize={5} />)
+    expect(screen.getByText('Ждём остальных. Круг соберётся, когда наберётся 5 человек.')).toBeInTheDocument()
+    rerender(<MatchingBookCard book={hardBook} {...baseProps} minGroupSize={3} />)
+    expect(screen.getByText('Ждём остальных. Круг соберётся, когда наберётся 3 человека.')).toBeInTheDocument()
   })
 
   it('shows admin controls without repeating participant-action copy', () => {
@@ -103,15 +144,15 @@ describe('MatchingBookCard', () => {
     expect(container.querySelector('.nd-mb-actions')).not.toBeInTheDocument()
   })
 
-  it('labels a formed book the viewer has not joined with the circle-found kicker', () => {
+  it('labels a formed book the viewer has not joined with the circle-assembled kicker', () => {
     render(<MatchingBookCard book={{ ...book, formedAt: '2026-07-14T08:00:00Z', allowedActions: { conditional: false, hard: true, cancelHard: false } }} {...baseProps} />)
-    expect(screen.getByText('○ круг найден')).toBeInTheDocument()
-    expect(screen.getByText('Круг уже найден, но можно присоединиться')).toBeInTheDocument()
+    expect(screen.getByText('○ Круг собрался')).toBeInTheDocument()
+    expect(screen.getByText('Круг уже собран, но можно присоединиться')).toBeInTheDocument()
   })
 
-  it('labels the viewer own circle', () => {
+  it('labels the viewer own circle with the filled circle kicker', () => {
     render(<MatchingBookCard book={{ ...book, viewerStatus: 'assigned', formedAt: '2026-07-13T10:00:00Z' }} {...baseProps} viewerAssignmentBookId="b1" />)
-    expect(screen.getByText('◆ ваш круг')).toBeInTheDocument()
+    expect(screen.getByText('● Ваш круг')).toBeInTheDocument()
   })
 
   it('shows unplaced participants only after the book has formed', () => {
@@ -125,13 +166,6 @@ describe('MatchingBookCard', () => {
 
     rerender(<MatchingBookCard book={{ ...assignedBook, formedAt: '2026-07-14T08:00:00Z' }} {...baseProps} />)
     expect(screen.getByText('Без круга: Евгений')).toBeInTheDocument()
-  })
-
-  it('keeps the hard action available while a hard elsewhere disables the conditional CTA', () => {
-    render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
-    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Готов:а читать' })).toBeDisabled()
-    expect(screen.queryByText(/новый окончательный выбор заменит предыдущий/i)).not.toBeInTheDocument()
   })
 
   it('emits a hard command from the initiating button', () => {

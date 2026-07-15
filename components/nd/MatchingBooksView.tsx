@@ -15,6 +15,7 @@ interface Props {
   stateVersion: number
   sessionStatus: string
   viewerRef: string
+  minGroupSize: number
   bookMode: MatchingBookModeState
   booksById: Record<string, ScenarioBookMeta>
   isAdmin: boolean
@@ -25,11 +26,20 @@ interface Props {
 
 type PendingCommand = { bookId: string; action: MatchingBookCommandAction | MatchingBookAdminAction } | null
 
+function peopleWord(count: number) {
+  const ones = count % 10
+  const tens = count % 100
+  if (ones === 1 && tens !== 11) return 'человек'
+  if (ones >= 2 && ones <= 4 && (tens < 12 || tens > 14)) return 'человека'
+  return 'человек'
+}
+
 export default function MatchingBooksView({
   sessionId,
   stateVersion,
   sessionStatus,
   viewerRef,
+  minGroupSize,
   bookMode,
   booksById,
   isAdmin,
@@ -147,7 +157,7 @@ export default function MatchingBooksView({
         <h2>{isAdmin ? 'Книги сессии' : 'Совпадения по вашим книгам'}</h2>
         <p>{isAdmin
           ? 'Здесь можно увидеть и скорректировать актуальные договорённости участников.'
-          : 'Выберите одну книгу, которую будете читать. Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки. Нажмите на имя участни:цы, чтобы узнать, на какое место он:а поместила книгу. Нажмите "Готов:а читать", чтобы выбрать несколько книг - вы будете записаны на первую книгу, на которую соберется достаточно людей (трое).'}
+          : `Выберите одну книгу, которую будете читать. Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки. Нажмите на имя участни:цы, чтобы узнать, на какое место он:а поместила книгу. В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — вас запишут на первую, на которую соберётся круг (${minGroupSize} ${peopleWord(minGroupSize)}).`}
         </p>
         {readOnly && !isAdmin && (
           <div className="nd-mb-slot" data-testid="matching-books-readonly">Сессия закрыта — выбор доступен только для просмотра</div>
@@ -162,7 +172,7 @@ export default function MatchingBooksView({
             disabled={pending !== null}
             onClick={(event) => {
               if (bookMode.viewerAssignmentBookId) {
-                setMessage('Для отмены обратитесь к администратору.')
+                setMessage('Круг уже собрался — отмена затронет остальных, напишите организатору.')
                 return
               }
               void performCommand('cancelHard', viewerSelectedBookId, event.currentTarget)
@@ -189,6 +199,7 @@ export default function MatchingBooksView({
               viewerRef={viewerRef}
               viewerAssignmentBookId={bookMode.viewerAssignmentBookId}
               viewerHardBookId={viewerHardBookId}
+              minGroupSize={minGroupSize}
               readOnly={readOnly}
               adminMode={isAdmin}
               controlsDisabled={pending !== null}

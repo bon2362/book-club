@@ -51,17 +51,26 @@ test('условный и твёрдый выбор сохраняются, а �
 
   const firstCard = participantAPage.getByTestId(`matching-book-card-${books[0].id}`)
   const secondCard = participantAPage.getByTestId(`matching-book-card-${books[1].id}`)
-  await firstCard.getByRole('button', { name: 'Готов:а читать', exact: true }).click()
-  await expect(firstCard.getByRole('button', { name: /Готов:а читать/ })).toHaveAttribute('aria-pressed', 'true')
+  const autoCaret = 'Автоматическая запись, если соберётся круг'
+  const autoOption = 'Запишите меня автоматически, если соберётся круг'
+  await firstCard.getByRole('button', { name: autoCaret }).click()
+  const firstAutoOption = firstCard.getByRole('menuitemcheckbox', { name: autoOption })
+  await firstAutoOption.click()
+  await expect(firstAutoOption).toHaveAttribute('aria-checked', 'true')
 
   await participantAPage.reload()
-  await expect(firstCard.getByRole('button', { name: /Готов:а читать/ })).toHaveAttribute('aria-pressed', 'true')
+  // The soft intent persists: the collapsed card advertises it, and reopening the menu shows it checked.
+  await expect(firstCard.getByText('Авто-запись включена')).toBeVisible()
+  await firstCard.getByRole('button', { name: autoCaret }).click()
+  await expect(firstCard.getByRole('menuitemcheckbox', { name: autoOption })).toHaveAttribute('aria-checked', 'true')
 
   await secondCard.getByRole('button', { name: 'Записаться', exact: true }).click()
   await expect(secondCard).toContainText('✓ Вы записаны')
   await participantAPage.reload()
   await expect(secondCard).toContainText('✓ Вы записаны')
-  await expect(firstCard.getByRole('button', { name: /Готов:а читать/ })).toHaveCount(0)
+  // The hard choice atomically clears the soft auto-enroll: no active hint, no caret on the first card.
+  await expect(firstCard.getByText('Авто-запись включена')).toHaveCount(0)
+  await expect(firstCard.getByRole('button', { name: autoCaret })).toHaveCount(0)
   const afterHard = await state(participantA.request, session.id)
   expect(afterHard.bookMode?.books.find((book) => book.bookId === books[0].id)?.viewerStatus).toBe('interest')
 
@@ -165,7 +174,7 @@ test('два твёрдых выбора и одно условное форми
   expect(leave.status()).toBe(409)
   await participantAPage.reload()
   await participantAPage.getByRole('button', { name: 'Отменить', exact: true }).click()
-  await expect(participantAPage.getByTestId('matching-books-message')).toContainText('обратитесь к администратору')
+  await expect(participantAPage.getByTestId('matching-books-message')).toContainText('напишите организатору')
   await participantAPage.reload()
   await expect(participantAPage.getByTestId('matching-books-selection')).toContainText(books[0].title)
 })
@@ -244,7 +253,7 @@ test('администратор вне состава видит union книг
     const card = adminPage.getByTestId(`matching-book-card-${book.id}`)
     await expect(card).not.toContainText('Административный режим — выбор участника недоступен')
     await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
-    await expect(card.getByRole('button', { name: /Готов:а читать/ })).toHaveCount(0)
+    await expect(card.getByRole('button', { name: 'Автоматическая запись, если соберётся круг' })).toHaveCount(0)
     await expect(adminPage.getByTestId(`matching-book-admin-${book.id}`)).toBeVisible()
   }
 })

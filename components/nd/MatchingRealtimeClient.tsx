@@ -251,6 +251,7 @@ export default function MatchingRealtimeClient({
             stateVersion={state.session.stateVersion}
             sessionStatus={state.session.status}
             viewerRef={state.viewer.ref}
+            minGroupSize={state.session.minGroupSize}
             bookMode={state.bookMode}
             booksById={resolvedBooksById}
             isAdmin={isAdmin && !isImpersonating}
