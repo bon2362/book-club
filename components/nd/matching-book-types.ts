@@ -38,6 +38,8 @@ export interface MatchingBookView {
   circles: MatchingBookCircleView[]
   unplacedParticipantRefs: string[]
   allowedActions: MatchingBookAllowedActions
+  /** Server-computed: setting the viewer's conditional here would immediately form and assign. */
+  conditionalWouldAssign?: boolean
   /** Optional catalog fields let the shared detail sheet work in admin union mode. */
   bookSlug?: string | null
   description?: string

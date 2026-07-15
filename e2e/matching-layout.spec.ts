@@ -103,7 +103,7 @@ test.describe('Matching books: mobile layout and focus', () => {
     await participantBCard.getByRole('button', { name: 'Записаться', exact: true }).click()
     expect((await hardResponse).ok()).toBe(true)
     await participantAPage.reload()
-    await expect(card.getByText('1 уже записался')).toBeVisible()
+    await expect(card.getByRole('button', { name: '1 уже записал:ась' })).toBeVisible()
     await expect(card.getByLabel('Определившиеся участники')).toHaveCount(0)
 
     const stateResponse = await admin.request.get(`/api/matching/state?session=${session.id}&as=${participantA.userId}`)
@@ -146,7 +146,7 @@ test.describe('Matching books: mobile layout and focus', () => {
     await participantAPage.goto('/matching')
     await participantAPage.reload()
     const participantACard = participantAPage.getByTestId(`matching-book-card-${books[0].id}`)
-    await expect(participantACard.getByText('1 уже записался')).toBeVisible()
+    await expect(participantACard.getByRole('button', { name: '1 уже записал:ась' })).toBeVisible()
     await expect(participantACard.getByLabel('Определившиеся участники')).toHaveCount(0)
 
     const stateResponse = await admin.request.get(`/api/matching/state?session=${session.id}&as=${participantA.userId}`)
@@ -870,6 +870,106 @@ test.describe('Matching layout', () => {
     expect(catalogAfter!.y).toBeCloseTo(catalogBefore!.y, 0)
     await expect(page.getByText('Мои ходы', { exact: true })).toHaveCount(0)
     await expect(page.getByText('Лента событий', { exact: true })).toHaveCount(0)
+  })
+})
+
+test.describe('Matching book cards and two circles', () => {
+  test('counters open the shared popup and one book keeps two stable circles', { tag: '@matching-golden' }, async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    test.setTimeout(120_000)
+    const { session, books, participantA, addParticipant } = matchingBooksFixture
+    const bookId = books[0].id
+    const peers = await Promise.all([
+      addParticipant('Круг Пётр'),
+      addParticipant('Круг Павел'),
+      addParticipant('Круг Пелагея'),
+      addParticipant('Круг Прохор'),
+      addParticipant('Круг Полина'),
+    ])
+
+    const page = await openMatchingPage(participantA)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/matching')
+
+    const card = page.getByTestId(`matching-book-card-${bookId}`)
+
+    // The interest counter is a real button that opens the same book popup.
+    const counter = card.getByRole('button', { name: 'ещё у 5 эта книга в списке' })
+    await expect(counter).toBeVisible()
+    await counter.click()
+    const dialog = page.getByRole('dialog', { name: books[0].title })
+    await expect(dialog).toBeVisible()
+    const groups = dialog.locator('.nd-mb-modal-participant')
+    await expect(groups).toHaveCount(6)
+    const groupBoxes = await groups.evaluateAll((els) => els.map((el) => {
+      const rect = el.getBoundingClientRect()
+      return { x: rect.x, right: rect.x + rect.width, width: rect.width }
+    }))
+    for (const box of groupBoxes) {
+      expect(box.width, 'each name+status group has geometry').toBeGreaterThan(0)
+      expect(box.x, 'group left edge inside the sheet').toBeGreaterThanOrEqual(0)
+      expect(box.right, 'group right edge inside the 640px sheet').toBeLessThanOrEqual(641)
+    }
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    // Four conditionals then two hard cross the threshold in one formation, so the
+    // book assigns all six and the deterministic partition yields two circles of three.
+    const act = async (identity: typeof participantA, action: 'setConditional' | 'setHard') => {
+      const stateResponse = await identity.request.get(`/api/matching/state?session=${session.id}`)
+      expect(stateResponse.ok(), await stateResponse.text()).toBe(true)
+      const current = await stateResponse.json() as { session: { stateVersion: number } }
+      const response = await identity.request.post(`/api/matching/sessions/${session.id}/book-actions`, {
+        data: { action, bookId, expectedStateVersion: current.session.stateVersion },
+      })
+      expect(response.ok(), await response.text()).toBe(true)
+    }
+    await act(peers[0], 'setConditional')
+    await act(peers[1], 'setConditional')
+    await act(peers[2], 'setConditional')
+    await act(participantA, 'setConditional')
+    await act(peers[3], 'setHard')
+    await act(peers[4], 'setHard')
+
+    await page.reload()
+    const circles = card.locator('.nd-mb-circle')
+    await expect(circles).toHaveCount(2)
+    // Exactly one circle is the viewer's own.
+    await expect(card.locator('.nd-mb-circle.is-mine')).toHaveCount(1)
+    await expect(card.getByRole('heading', { name: /· ваш/ })).toHaveCount(1)
+
+    // The formed card keeps only the 3px success inset — the old extra 4px assigned
+    // border-left is gone, so the left mark can never be wider than the inset line.
+    const borderLeftWidth = await card.evaluate((el) => getComputedStyle(el).borderLeftWidth)
+    expect(parseFloat(borderLeftWidth), 'no separate assigned 4px border').toBeLessThan(4)
+
+    const desktopBoxes = await circles.evaluateAll((els) => els.map((el) => {
+      const rect = el.getBoundingClientRect()
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+    }))
+    const [d1, d2] = desktopBoxes
+    const horizontalOverlap = Math.min(d1.x + d1.width, d2.x + d2.width) - Math.max(d1.x, d2.x)
+    const verticalOverlap = Math.min(d1.y + d1.height, d2.y + d2.height) - Math.max(d1.y, d2.y)
+    expect(horizontalOverlap > 1 && verticalOverlap > 1, 'desktop circles do not overlap').toBe(false)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    // Mobile: the two circles collapse into one column with no horizontal overflow.
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.reload()
+    await expect(circles).toHaveCount(2)
+    const mobileBoxes = await circles.evaluateAll((els) => els.map((el) => {
+      const rect = el.getBoundingClientRect()
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+    }))
+    const [m1, m2] = mobileBoxes
+    expect(m2.y, 'circles stack vertically on mobile').toBeGreaterThanOrEqual(m1.y + m1.height - 1)
+    for (const box of mobileBoxes) {
+      expect(box.x).toBeGreaterThanOrEqual(0)
+      expect(box.x + box.width).toBeLessThanOrEqual(391)
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
   })
 })
 

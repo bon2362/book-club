@@ -12,6 +12,7 @@ const book: MatchingBookView = {
   ],
   circles: [], unplacedParticipantRefs: [],
   allowedActions: { conditional: true, hard: true, cancelHard: false },
+  conditionalWouldAssign: false,
 }
 
 const baseProps = {
@@ -22,13 +23,35 @@ const baseProps = {
 describe('MatchingBookCard', () => {
   beforeEach(() => { baseProps.onCommand.mockClear(); baseProps.onOpenBook.mockClear() })
 
-  it('shows the hybrid status summary and primary copy', () => {
+  it('renders the three mutually-exclusive aggregate groups as buttons', () => {
     render(<MatchingBookCard book={book} {...baseProps} />)
-    expect(screen.getByText('1 уже записался')).toBeInTheDocument()
-    expect(screen.getByText('ещё 3 добавили эту книгу')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1 уже записал:ась' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1 готов:а читать' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ещё у 1 эта книга в списке' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Готов:а читать · 1' })).toBeInTheDocument()
+    // The conditional CTA carries no count anymore.
+    expect(screen.getByRole('button', { name: 'Готов:а читать' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Определившиеся участники')).not.toBeInTheDocument()
+  })
+
+  it('excludes the viewer from the interest group and hides empty groups', () => {
+    const viewerInterest = {
+      ...book,
+      participants: [
+        { ref: 'viewer', displayName: 'Вы', status: 'interest' as const, rank: 1 },
+        { ref: 'p3', displayName: 'Вера', status: 'interest' as const, rank: 4 },
+      ],
+    }
+    render(<MatchingBookCard book={viewerInterest} {...baseProps} />)
+    expect(screen.getByRole('button', { name: 'ещё у 1 эта книга в списке' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /уже записал/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /готов/ })).not.toBeInTheDocument()
+  })
+
+  it('opens the shared book popup from any aggregate button', () => {
+    render(<MatchingBookCard book={book} {...baseProps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'ещё у 1 эта книга в списке' }))
+    expect(baseProps.onOpenBook).toHaveBeenCalledWith(book, expect.any(HTMLButtonElement))
   })
 
   it('uses the singular Russian form for counts ending in one except eleven', () => {
@@ -39,14 +62,36 @@ describe('MatchingBookCard', () => {
       rank: index + 1,
     }))
     const { rerender } = render(
-      <MatchingBookCard book={{ ...book, intersectionCount: 21, participants }} {...baseProps} />,
+      <MatchingBookCard book={{ ...book, participants }} {...baseProps} />,
     )
-    expect(screen.getByText('21 уже записался')).toBeInTheDocument()
-    expect(screen.getByText('ещё 21 добавил эту книгу')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '21 уже записал:ась' })).toBeInTheDocument()
 
-    rerender(<MatchingBookCard book={{ ...book, intersectionCount: 11, participants: participants.slice(0, 11) }} {...baseProps} />)
-    expect(screen.getByText('11 уже записались')).toBeInTheDocument()
-    expect(screen.getByText('ещё 11 добавили эту книгу')).toBeInTheDocument()
+    rerender(<MatchingBookCard book={{ ...book, participants: participants.slice(0, 11) }} {...baseProps} />)
+    expect(screen.getByRole('button', { name: '11 уже записались' })).toBeInTheDocument()
+  })
+
+  it('pluralises the conditional group like the ready-to-read wording', () => {
+    const conditional = (length: number) => ({
+      ...book,
+      participants: Array.from({ length }, (_, index) => ({
+        ref: `c${index}`, displayName: `Готовый ${index}`, status: 'conditional' as const, rank: index + 1,
+      })),
+    })
+    const { rerender } = render(<MatchingBookCard book={conditional(2)} {...baseProps} />)
+    expect(screen.getByRole('button', { name: '2 готовы читать' })).toBeInTheDocument()
+    rerender(<MatchingBookCard book={conditional(1)} {...baseProps} />)
+    expect(screen.getByRole('button', { name: '1 готов:а читать' })).toBeInTheDocument()
+  })
+
+  it('hides the conditional CTA when the click would immediately assign', () => {
+    render(<MatchingBookCard book={{ ...book, conditionalWouldAssign: true }} {...baseProps} />)
+    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Готов:а читать' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the conditional CTA when the click stays tentative', () => {
+    render(<MatchingBookCard book={{ ...book, conditionalWouldAssign: false }} {...baseProps} />)
+    expect(screen.getByRole('button', { name: 'Готов:а читать' })).toBeInTheDocument()
   })
 
   it('shows admin controls without repeating participant-action copy', () => {
@@ -56,6 +101,17 @@ describe('MatchingBookCard', () => {
     expect(screen.getByRole('button', { name: 'Управлять составом' })).toBeInTheDocument()
     expect(screen.queryByText('Административный режим — выбор участника недоступен')).not.toBeInTheDocument()
     expect(container.querySelector('.nd-mb-actions')).not.toBeInTheDocument()
+  })
+
+  it('labels a formed book the viewer has not joined with the circle-found kicker', () => {
+    render(<MatchingBookCard book={{ ...book, formedAt: '2026-07-14T08:00:00Z', allowedActions: { conditional: false, hard: true, cancelHard: false } }} {...baseProps} />)
+    expect(screen.getByText('○ круг найден')).toBeInTheDocument()
+    expect(screen.getByText('Круг уже найден, но можно присоединиться')).toBeInTheDocument()
+  })
+
+  it('labels the viewer own circle', () => {
+    render(<MatchingBookCard book={{ ...book, viewerStatus: 'assigned', formedAt: '2026-07-13T10:00:00Z' }} {...baseProps} viewerAssignmentBookId="b1" />)
+    expect(screen.getByText('◆ ваш круг')).toBeInTheDocument()
   })
 
   it('shows unplaced participants only after the book has formed', () => {
@@ -71,10 +127,10 @@ describe('MatchingBookCard', () => {
     expect(screen.getByText('Без круга: Евгений')).toBeInTheDocument()
   })
 
-  it('keeps the hard action available without pre-warning about the replaced choice', () => {
+  it('keeps the hard action available while a hard elsewhere disables the conditional CTA', () => {
     render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
     expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Готов:а читать · 1' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Готов:а читать' })).toBeDisabled()
     expect(screen.queryByText(/новый окончательный выбор заменит предыдущий/i)).not.toBeInTheDocument()
   })
 
