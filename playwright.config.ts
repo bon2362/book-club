@@ -99,8 +99,19 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   // Matching-сценарии в полном CI-suite могут занимать чуть больше
   // стандартных 30s: teardown тогда удаляет test books, а незавершённые
-  // API-запросы падают FK-ошибками. Быстрые expect-таймауты остаются 5s.
-  timeout: 60_000,
+  // API-запросы падают FK-ошибками.
+  //
+  // CI-бюджет 120s (не 60s): ночной прогон 2026-07-16 показал, что общая
+  // скорость рана (Neon e2e branch + runner) плавает до ~1.7×, а тяжёлые
+  // integration-тесты в зелёные ночи проходят за 53–57s — запас при 60s
+  // нулевой, и медленная ночь валит их таймаутом без бага в коде.
+  // Локально остаётся 60s, чтобы focused-цикл падал быстро.
+  timeout: process.env.CI ? 120_000 : 60_000,
+  // Expect-таймаут: локально быстрые 5s, в CI 15s — ассерты вида
+  // «клик → toContainText после server round-trip» (POST + refresh state)
+  // в медленную ночь не укладываются в 5s и дают ложные падения
+  // («Записываем…» ещё не стало «✓ Вы записаны»).
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
   // workers:1 — matching E2E опираются на единственную active session
   // (`matching_sessions_single_active_idx`) и `/matching` всегда читает её.
   // Параллельные спеки могут удалить/заменить active session друг у друга,
