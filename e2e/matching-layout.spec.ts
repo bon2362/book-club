@@ -1211,6 +1211,26 @@ test.describe('Matching record button auto-enroll menu', () => {
       const barBox = await card.locator('.nd-mb-split-bar').boundingBox()
       expect(menuBox).not.toBeNull()
       expect(barBox).not.toBeNull()
+      if (viewport.width > 540) {
+        await caret.hover()
+        const dividerColors = await caret.evaluate((element) => {
+          const probe = document.createElement('span')
+          probe.style.color = 'var(--accent-line)'
+          document.body.appendChild(probe)
+          const expected = getComputedStyle(probe).color
+          probe.remove()
+          const style = getComputedStyle(element)
+          return {
+            actual: style.borderLeftColor,
+            expected,
+            width: style.borderLeftWidth,
+            borderStyle: style.borderLeftStyle,
+          }
+        })
+        expect(dividerColors.actual, 'desktop caret uses the visible split divider token').toBe(dividerColors.expected)
+        expect(dividerColors.width).toBe('1px')
+        expect(dividerColors.borderStyle).toBe('solid')
+      }
       expect(menuBox!.x, `${viewport.width}px: menu left edge on-screen`).toBeGreaterThanOrEqual(0)
       expect(menuBox!.x + menuBox!.width, `${viewport.width}px: menu right edge on-screen`).toBeLessThanOrEqual(viewport.width + 1)
       expect(menuBox!.y + menuBox!.height, `${viewport.width}px: menu bottom edge on-screen`).toBeLessThanOrEqual(viewport.height + 1)
