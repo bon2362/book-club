@@ -130,6 +130,7 @@
 .nd-mb-intro { margin-bottom: 1rem; }
 .nd-mb-intro h2 { margin: 0; font: 700 1.28rem/1.2 var(--nd-serif); }
 .nd-mb-intro p { max-width: 64ch; margin: 0.3rem 0 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; }
+.nd-mb-intro-copy-mobile { display: none; }
 .nd-mb-slot { margin-top: 0.8rem; padding: 0.6rem 0.8rem; border-radius: var(--radius-control); background: var(--bg-input); box-shadow: var(--shadow-card); color: var(--text-secondary); font-size: 0.82rem; }
 .nd-mb-slot.is-open { border-left: 3px solid var(--accent); }
 .nd-mb-slot.is-taken { border-left: 3px solid var(--success); color: var(--success); }
@@ -144,6 +145,9 @@
 .nd-mb-card.has-no-overlap { opacity: 0.72; }
 .nd-mb-card.has-no-overlap:focus-within,
 .nd-mb-card.has-no-overlap:hover { opacity: 1; }
+.nd-mb-card.is-dim { opacity: 0.72; }
+.nd-mb-card.is-dim.has-no-overlap:focus-within,
+.nd-mb-card.is-dim.has-no-overlap:hover { opacity: 0.72; }
 .nd-mb-head { display: flex; align-items: flex-start; gap: 0.9rem; }
 .nd-mb-cover { position: relative; display: block; width: 54px; height: 76px; flex: 0 0 54px; overflow: hidden; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--bg-elevated); box-shadow: var(--shadow-cover); cursor: pointer; }
 .nd-mb-cover img { width: 100%; height: 100%; object-fit: cover; }
@@ -234,9 +238,20 @@
 }
 
 @media (max-width: 540px) {
-  .nd-mx-mode-tabs { padding: 0 0.9rem; }
+  .nd-mx-mode-tabs { display: none; }
   .nd-mb-view { padding: 0.35rem 0 2.5rem; }
-  .nd-mb-card { padding: 0.85rem 0.9rem; }
+  .nd-mb-intro-copy-desktop { display: none; }
+  .nd-mb-intro-copy-mobile { display: block; }
+  .nd-mb-list { gap: 0.85rem; }
+  .nd-mb-card { padding: 0.9rem 0.95rem; }
+  .nd-mb-cover { width: 56px; height: 80px; flex-basis: 56px; }
+  .nd-mb-head { gap: 0.8rem; }
+  .nd-mb-title { font-size: 1.04rem; }
+  .nd-mb-author { font-size: 0.78rem; }
+  .nd-mb-metrics { gap: 0.22rem 0.7rem; }
+  .nd-mb-title,
+  .nd-mb-metric { display: inline-flex; align-items: center; min-height: 44px; }
+  .nd-mb-split-opt { min-height: 44px; align-items: center; }
   .nd-mb-circles { grid-template-columns: minmax(0, 1fr); }
   .nd-mb-actions { align-items: stretch; }
   .nd-mb-actions .nd-mb-btn { flex: 1 1 100%; min-height: 44px; }
@@ -245,7 +260,8 @@
   .nd-mb-split-main { flex: 1 1 auto; }
   .nd-mb-split-caret { flex: 0 0 auto; }
   .nd-mb-selection { align-items: flex-start; }
-  .nd-mb-modal-participant { min-height: 32px; }
+  .nd-mb-selection .p-link { display: inline-flex; align-items: center; min-height: 44px; }
+  .nd-mb-modal-participant { min-height: 44px; }
   .nd-mb-rank-tip { position: fixed; top: auto; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); left: 1rem; width: auto; }
   .nd-mb-participant-tiers { align-items: flex-start; }
 }
@@ -709,6 +725,11 @@ body {
 .nd-back-to-catalog:hover { color: var(--accent); }
 .nd-matching-popover-row:hover { background: var(--surface-soft); }
 .nd-matching-popover-close:hover { color: var(--accent); }
+.nd-mx-hdr-menu-icon,
+.nd-mx-session-menu-meta,
+.nd-mx-session-menu-tail,
+.nd-mx-session-menu-leave { display: none; }
+.nd-mx-session-menu-viewer { color: var(--text-secondary); font-weight: 400; }
 .nd-back-to-catalog:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
@@ -1193,11 +1214,12 @@ body {
   .nd-flow-fade-collapse { transition: none !important; }
   .nd-flow-gate-intro { animation: none !important; }
   .nd-board-spinner { animation-duration: 1.6s; }
-  .nd-mx-sheet { animation: none !important; }
+  .nd-mx-sheet { animation: none !important; transition: none !important; }
 }
 
-/* §5 Book popup sheet: grabber affordance, hidden on desktop by default. */
-.nd-mx-sheet-grabber { display: none; }
+/* §5 Book popup sheet: drag affordance, hidden on desktop by default. */
+.nd-mx-sheet-drag-handle { display: none; }
+.nd-mx-sheet-grabber { display: block; }
 
 /* §5 Book popup sheet: slide-up entrance (mobile only, see media block below). */
 @keyframes nd-mx-sheet-in {
@@ -1228,19 +1250,98 @@ body {
   .nd-scenario-tip { white-space: normal; max-width: calc(100vw - 2rem); }
 
   /* §3 Compact header. */
-  .nd-mx-hdr { padding: 0.5rem 0.9rem !important; column-gap: 0.6rem !important; }
+  .nd-mx-hdr { padding: max(0.5rem, env(safe-area-inset-top)) 0.9rem 0.5rem !important; column-gap: 0.6rem !important; }
+  .nd-mx-hdr-row { flex-wrap: nowrap !important; gap: 0.45rem !important; }
   /* Left group must be able to shrink below its content so the title actually
      ellipsis-clips (a nowrap title otherwise keeps the group at full text width). */
-  .nd-mx-hdr-l { flex: 1 1 auto !important; min-width: 0 !important; }
+  .nd-mx-hdr-l { flex: 1 1 auto !important; min-width: 0 !important; flex-wrap: nowrap !important; gap: 0.45rem !important; }
   .nd-mx-hdr-title { font-size: 1rem !important; flex: 1 1 auto !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-  /* Hide the participant avatar stack on mobile — only the count remains (tap opens
-     the popover). Frees ~100px so the compact header fits a 390px viewport. */
+  .nd-mx-hdr-status { flex: none; font-size: 0.72rem !important; white-space: nowrap; }
+  .nd-mx-hdr-r { flex: none; gap: 0 !important; }
+  .nd-back-to-catalog { display: inline-flex; align-items: center; width: 44px; height: 44px; padding: 0; justify-content: center; }
+  /* Replace the desktop participant stack with one calm, accessible session menu. */
   .nd-mx-hdr-av { display: none !important; }
+  .nd-mx-hdr-participant-count,
   .nd-mx-hdr-groups,
   .nd-mx-hdr-you,
+  .nd-mx-hdr-observer,
+  .nd-mx-hdr-leave,
   .nd-mx-hdr-deadline,
   .nd-mx-hdr-div,
   .nd-mx-hdr-back-text { display: none !important; }
+  .nd-mx-session-menu-trigger {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    border: 1px solid var(--hair) !important;
+    border-radius: var(--radius-control);
+    background: var(--bg-input) !important;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .nd-mx-session-menu-trigger:hover { background: var(--surface-soft) !important; }
+  .nd-mx-session-menu-trigger[data-state="open"] {
+    border-color: var(--accent) !important;
+    background: var(--accent-soft) !important;
+    color: var(--accent);
+  }
+  .nd-mx-session-menu-trigger:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .nd-mx-hdr-menu-icon {
+    display: grid;
+    gap: 4px;
+    width: 18px;
+  }
+  .nd-mx-hdr-menu-icon > span {
+    display: block;
+    height: 1px;
+    background: currentColor;
+  }
+  .nd-mx-session-menu {
+    z-index: 30 !important;
+    width: min(252px, calc(100vw - 1.8rem)) !important;
+    max-height: calc(100vh - 4.5rem);
+    max-height: calc(100svh - 4.5rem);
+    overflow-y: auto !important;
+  }
+  .nd-mx-session-menu-meta {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.8rem 0.9rem;
+    border-bottom: 1px solid var(--hair-soft);
+    font: 0.78rem/1.35 var(--nd-sans);
+    color: var(--text-secondary);
+  }
+  .nd-mx-session-menu-status { color: var(--text-muted); }
+  .nd-mx-session-menu-status.is-active { color: var(--success); }
+  .nd-mx-session-menu-observer { color: var(--success); }
+  .nd-mx-session-menu-overflow-row { display: none !important; }
+  .nd-mx-session-menu-tail {
+    display: block;
+    padding: 0.45rem 0.9rem 0.7rem;
+    font: 0.78rem var(--nd-sans);
+    color: var(--text-muted);
+  }
+  .nd-mx-session-menu-leave {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.9rem;
+    border: 0;
+    border-top: 1px solid var(--hair-soft);
+    background: transparent;
+    color: var(--text-secondary);
+    text-align: left;
+    font: 0.8rem var(--nd-sans);
+    cursor: pointer;
+  }
+  .nd-mx-session-menu-leave:disabled { color: var(--text-muted); cursor: default; }
+  .nd-matching-popover-close { min-height: 44px; }
+  .nd-mx-hdr-row:has(.nd-inline-number),
+  .nd-mx-hdr-l:has(.nd-inline-number) { flex-wrap: wrap !important; }
 
   /* §4 Gate: drop the 100svh lock, let the page scroll naturally. */
   .nd-mx-gate-root { height: auto !important; overflow: visible !important; }
@@ -1313,33 +1414,54 @@ body {
        когда iOS пересчитывает вьюпорт). `svh` = высота при показанном UI браузера —
        худший случай, так что шит всегда помещается сразу. `vh` оставлен фолбэком
        для браузеров без поддержки svh. */
-    max-height: 92vh !important;
-    max-height: 92svh !important;
+    max-height: 90vh !important;
+    max-height: 90svh !important;
     border-radius: var(--radius-card) var(--radius-card) 0 0 !important;
     padding-bottom: env(safe-area-inset-bottom) !important;
     animation: nd-mx-sheet-in 0.24s ease-out;
+    transition: transform 0.2s ease-out;
   }
+  .nd-mx-sheet.is-dragging { transition: none; }
 
   /* §5 Book popup: drag grabber affordance, centered at the top of the sheet. */
+  .nd-mx-sheet-drag-handle {
+    display: grid;
+    place-items: start center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.6rem 0 0;
+    border: 0;
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+  }
+  .nd-mx-sheet-drag-handle:active { cursor: grabbing; }
+  .nd-mx-sheet-drag-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .nd-mx-sheet-grabber {
-    display: block;
     width: 36px;
     height: 4px;
-    margin: 0.6rem auto 0;
     background: var(--hair);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-control);
   }
 
   /* §5 Book popup: cover + title/meta collapse into a row, like BookCardMobile. */
   .nd-mx-sheet-grid {
-    grid-template-columns: 64px minmax(0,1fr) !important;
+    grid-template-columns: 96px minmax(0,1fr) !important;
     gap: 0.9rem !important;
-    padding: 0.6rem 1.1rem 0 !important;
+    padding: 0.35rem 1.1rem 0 !important;
   }
   .nd-mx-sheet-cover {
-    width: 64px !important;
-    height: 96px !important;
+    width: 96px !important;
+    height: 144px !important;
   }
+  .nd-mx-sheet-heading { padding-right: 2.5rem !important; }
+  .nd-mx-sheet-heading { display: contents; }
+  .nd-mx-sheet-title { grid-column: 2; grid-row: 1; align-self: end; padding-right: 2.5rem; font-size: 1.3rem !important; }
+  .nd-mx-sheet-meta { grid-column: 2; grid-row: 2; align-self: start; padding-right: 2.5rem; font-size: 0.82rem !important; }
+  .nd-mx-sheet-cover { grid-column: 1; grid-row: 1 / span 2; }
+  .nd-mx-sheet-participants,
+  .nd-mx-sheet-tags { grid-column: 1 / -1; }
+  .nd-mx-sheet-body { padding: 1.2rem 1.1rem calc(1.5rem + env(safe-area-inset-bottom)) !important; }
 
   /* §5 Book popup: close button tap target ≥44px on mobile. */
   .nd-mx-sheet-close {

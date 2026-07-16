@@ -179,4 +179,11 @@ describe('MatchingBookCard', () => {
     expect(screen.queryByText(/слот занят/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
   })
+
+  it('marks cards locked by another assignment as dimmed and actionless', () => {
+    render(<MatchingBookCard book={book} {...baseProps} viewerAssignmentBookId="another-book" />)
+    const card = screen.getByTestId('matching-book-card-b1')
+    expect(card).toHaveClass('is-dim')
+    expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
+  })
 })

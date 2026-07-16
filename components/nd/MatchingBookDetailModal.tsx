@@ -65,6 +65,10 @@ export default function MatchingBookDetailModal({
   const [summaryBusy, setSummaryBusy] = useState(false)
   const [openRankTipRef, setOpenRankTipRef] = useState<string | null>(null)
   const openRankTipRefValue = useRef<string | null>(null)
+  const dragStartYRef = useRef<number | null>(null)
+  const dragPointerIdRef = useRef<number | null>(null)
+  const [dragOffset, setDragOffset] = useState(0)
+  const [dragging, setDragging] = useState(false)
   const friendlyBookRef = book.bookSlug ?? book.bookId
   const summaryEditHref = book.bookSlug
     ? `/books/${book.bookSlug}/my-summary/edit`
@@ -74,7 +78,7 @@ export default function MatchingBookDetailModal({
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus())
+    requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>('.nd-mx-sheet-close')?.focus())
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape' && openRankTipRefValue.current) {
         e.preventDefault()
@@ -84,7 +88,9 @@ export default function MatchingBookDetailModal({
       }
       if (e.key === 'Escape') onClose()
       if (e.key !== 'Tab' || !dialogRef.current) return
+      const mobileSheet = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 540px)').matches
       const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'))
+        .filter((element) => mobileSheet || !element.classList.contains('nd-mx-sheet-drag-handle'))
       if (focusable.length === 0) return
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
@@ -103,6 +109,38 @@ export default function MatchingBookDetailModal({
     openRankTipRefValue.current = ref
     setOpenRankTipRef(ref)
   }
+
+  function startSheetDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0 || dragPointerIdRef.current !== null) return
+    dragPointerIdRef.current = event.pointerId
+    dragStartYRef.current = event.clientY
+    setDragging(true)
+  }
+
+  useEffect(() => {
+    if (!dragging) return
+    function moveSheetDrag(event: PointerEvent) {
+      if (dragStartYRef.current === null || dragPointerIdRef.current !== event.pointerId) return
+      setDragOffset(Math.max(0, event.clientY - dragStartYRef.current))
+    }
+    function finishSheetDrag(event: PointerEvent) {
+      if (dragStartYRef.current === null || dragPointerIdRef.current !== event.pointerId) return
+      const distance = Math.max(0, event.clientY - dragStartYRef.current)
+      dragStartYRef.current = null
+      dragPointerIdRef.current = null
+      setDragging(false)
+      setDragOffset(0)
+      if (distance >= 96) onClose()
+    }
+    window.addEventListener('pointermove', moveSheetDrag)
+    window.addEventListener('pointerup', finishSheetDrag)
+    window.addEventListener('pointercancel', finishSheetDrag)
+    return () => {
+      window.removeEventListener('pointermove', moveSheetDrag)
+      window.removeEventListener('pointerup', finishSheetDrag)
+      window.removeEventListener('pointercancel', finishSheetDrag)
+    }
+  }, [dragging, onClose])
 
   useEffect(() => {
     let cancelled = false
@@ -176,7 +214,7 @@ export default function MatchingBookDetailModal({
         aria-modal="true"
         aria-label={book.title}
         onClick={(e) => e.stopPropagation()}
-        className="relative max-w-[640px] w-full nd-mx-sheet"
+        className={`relative max-w-[640px] w-full nd-mx-sheet${dragging ? ' is-dragging' : ''}`}
         style={{
           background: 'var(--bg-input)',
           borderRadius: 'var(--radius-card)',
@@ -185,10 +223,20 @@ export default function MatchingBookDetailModal({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
         }}
       >
         {/* Bottom-sheet grabber affordance: hidden on desktop, shown ≤540px. */}
-        <div className="nd-mx-sheet-grabber" aria-hidden="true" />
+        <button
+          type="button"
+          className="nd-mx-sheet-drag-handle"
+          aria-label="Потяните лист вниз"
+          data-testid="matching-book-sheet-drag-handle"
+          onPointerDown={startSheetDrag}
+          onClick={(event) => { if (event.detail === 0) onClose() }}
+        >
+          <span className="nd-mx-sheet-grabber" aria-hidden="true" />
+        </button>
 
         {/* Close button: soft round. Прибит к самому диалогу (он не скроллится),
             а не к прокручиваемому контенту — иначе на iOS крестик уезжал вместе с
@@ -232,9 +280,9 @@ export default function MatchingBookDetailModal({
             <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
           </div>
 
-          <div style={{ paddingTop: '0.1rem', paddingRight: '2rem' }}>
+          <div className="nd-mx-sheet-heading" style={{ paddingTop: '0.1rem', paddingRight: '2rem' }}>
             <h3
-              className="leading-tight"
+              className="leading-tight nd-mx-sheet-title"
               style={{
                 margin: '0 0 0.4rem',
                 fontFamily: 'var(--nd-serif)',
@@ -247,13 +295,13 @@ export default function MatchingBookDetailModal({
             >
               {book.title}
             </h3>
-            <p style={{ margin: '0 0 0.85rem', fontSize: '0.92rem', color: 'var(--text-muted)' }}>
+            <p className="nd-mx-sheet-meta" style={{ margin: '0 0 0.85rem', fontSize: '0.92rem', color: 'var(--text-muted)' }}>
               {book.author}{meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
             </p>
 
             {/* п.7: «Кто записался» поднято наверх — первое, что видит человек */}
             {chips.length > 0 && (
-              <div style={{ marginBottom: '0.85rem' }}>
+              <div className="nd-mx-sheet-participants" style={{ marginBottom: '0.85rem' }}>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
                   Записались на книгу:
                 </div>
@@ -273,7 +321,7 @@ export default function MatchingBookDetailModal({
             )}
 
             {matchingParticipants.length > 0 && (
-              <div style={{ marginBottom: '0.85rem' }} data-testid="matching-book-participant-list">
+              <div className="nd-mx-sheet-participants" style={{ marginBottom: '0.85rem' }} data-testid="matching-book-participant-list">
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
                   Участники:
                 </div>
@@ -312,7 +360,7 @@ export default function MatchingBookDetailModal({
             )}
 
             {book.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 nd-mx-sheet-tags">
                 {book.tags.map((tag) => (
                   <span
                     key={tag}
@@ -333,7 +381,7 @@ export default function MatchingBookDetailModal({
         </div>
 
         {/* Body */}
-        <div style={{ padding: '1.5rem 1.9rem 1.9rem' }}>
+        <div className="nd-mx-sheet-body" style={{ padding: '1.5rem 1.9rem 1.9rem' }}>
           {book.description && (
             <p
               style={{ margin: '0 0 1.5rem', fontSize: '0.92rem', lineHeight: 1.68, color: 'var(--text-body)', whiteSpace: 'pre-line' }}

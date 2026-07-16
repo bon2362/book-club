@@ -61,6 +61,10 @@ describe('MatchingBookDetailModal summary action', () => {
 })
 
 describe('MatchingBookDetailModal matching participants', () => {
+  beforeAll(() => {
+    Object.defineProperty(window, 'PointerEvent', { configurable: true, value: MouseEvent })
+  })
+
   it('shows the complete named list including simple interest', () => {
     render(
       <MatchingBookDetailModal
@@ -117,5 +121,41 @@ describe('MatchingBookDetailModal matching participants', () => {
     expect(tooltip).toBeInTheDocument()
     fireEvent.mouseLeave(item)
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+  })
+
+  it('closes after a downward drag past the sheet threshold', () => {
+    const onClose = jest.fn()
+    render(<MatchingBookDetailModal book={{ ...book, personalStatus: null }} frozen onClose={onClose} />)
+    const handle = screen.getByTestId('matching-book-sheet-drag-handle')
+
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 1, clientY: 20 })
+    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 130 })
+    fireEvent.pointerUp(handle, { pointerId: 1, clientY: 130 })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('snaps back after a short downward drag', () => {
+    const onClose = jest.fn()
+    render(<MatchingBookDetailModal book={{ ...book, personalStatus: null }} frozen onClose={onClose} />)
+    const handle = screen.getByTestId('matching-book-sheet-drag-handle')
+    const dialog = screen.getByRole('dialog')
+
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 2, clientY: 20 })
+    fireEvent.pointerMove(handle, { pointerId: 2, clientY: 65 })
+    expect(dialog).toHaveStyle({ transform: 'translateY(45px)' })
+    fireEvent.pointerUp(handle, { pointerId: 2, clientY: 65 })
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(dialog).not.toHaveStyle({ transform: 'translateY(45px)' })
+  })
+
+  it('also exposes the drag handle as a keyboard close control', () => {
+    const onClose = jest.fn()
+    render(<MatchingBookDetailModal book={{ ...book, personalStatus: null }} frozen onClose={onClose} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Потяните лист вниз' }), { detail: 0 })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

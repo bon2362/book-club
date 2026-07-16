@@ -176,6 +176,22 @@ export default function MatchingRealtimeClient({
     hadBookModeRef.current = Boolean(state.bookMode)
   }, [state.bookMode])
 
+  useEffect(() => {
+    if (!state.bookMode || typeof window.matchMedia !== 'function') return
+    const mobile = window.matchMedia('(max-width: 540px)')
+    const keepBooksOnMobile = (matches: boolean) => {
+      if (matches) setMode('books')
+    }
+    keepBooksOnMobile(mobile.matches)
+    const onChange = (event: MediaQueryListEvent) => keepBooksOnMobile(event.matches)
+    if (mobile.addEventListener) mobile.addEventListener('change', onChange)
+    else mobile.addListener?.(onChange)
+    return () => {
+      if (mobile.removeEventListener) mobile.removeEventListener('change', onChange)
+      else mobile.removeListener?.(onChange)
+    }
+  }, [state.bookMode])
+
   const applyCanonicalState = useCallback((raw: unknown) => {
     if (!raw || typeof raw !== 'object') return
     const next = raw as Partial<MatchingPublicState>
@@ -202,6 +218,7 @@ export default function MatchingRealtimeClient({
         maxGroupSize={state.session.maxGroupSize}
         deadlineAt={state.session.deadlineAt}
         viewer={{
+          ref: state.viewer.ref,
           displayName: viewerDisplayName ?? (isAdmin && !isImpersonating
             ? 'Организатор'
             : state.participants.find((participant) => participant.ref === state.viewer.ref)?.displayName ?? 'Участник'),

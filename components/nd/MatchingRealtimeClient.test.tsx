@@ -1,4 +1,4 @@
-import { act, render, waitFor, screen } from '@testing-library/react'
+import { act, fireEvent, render, waitFor, screen } from '@testing-library/react'
 import MatchingRealtimeClient, { type MatchingPublicState } from './MatchingRealtimeClient'
 
 const refresh = jest.fn()
@@ -6,6 +6,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 
 describe('MatchingRealtimeClient', () => {
   let fetchMock: jest.Mock
+  const originalMatchMedia = window.matchMedia
 
   beforeEach(() => {
     setTabVisibility('visible')
@@ -17,6 +18,8 @@ describe('MatchingRealtimeClient', () => {
   afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
+    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', { configurable: true, value: originalMatchMedia })
+    else Reflect.deleteProperty(window, 'matchMedia')
   })
 
   function setTabVisibility(state: 'visible' | 'hidden') {
@@ -88,6 +91,43 @@ describe('MatchingRealtimeClient', () => {
     expect(screen.getByRole('tab', { name: 'Книги' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByTestId('matching-books-view')).toHaveTextContent('Книга режима')
     expect(screen.queryByTestId('matching-scenarios-empty')).not.toBeInTheDocument()
+  })
+
+  it('returns an initialized session to books when the viewport enters mobile', () => {
+    let mobile = false
+    const listeners = new Set<(event: MediaQueryListEvent) => void>()
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: jest.fn().mockImplementation((query: string) => ({
+        get matches() { return mobile },
+        media: query,
+        onchange: null,
+        addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
+        removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
+        dispatchEvent: () => true,
+      })),
+    })
+    const state = makeInitialState()
+    state.bookMode = {
+      initializedAt: '2026-07-13T10:00:00.000Z',
+      viewerAssignmentBookId: null,
+      books: [{
+        bookId: 'b1', title: 'Мобильная книга', author: 'Автор', coverUrl: null,
+        intersectionCount: 0, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',
+        participants: [], circles: [], unplacedParticipantRefs: [],
+        allowedActions: { conditional: true, hard: true, cancelHard: false },
+      }],
+    }
+    respondVersion(1)
+    render(<MatchingRealtimeClient sessionId="s1" initialState={state} bookTitleById={{}} pollIntervalMs={50_000} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Сценарии' }))
+    expect(screen.getByRole('tab', { name: 'Сценарии' })).toHaveAttribute('aria-selected', 'true')
+
+    mobile = true
+    act(() => listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent)))
+
+    expect(screen.getByRole('tab', { name: 'Книги' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByTestId('matching-books-view')).toHaveTextContent('Мобильная книга')
   })
 
   it('does not fire a state fetch on the first poll when version is unchanged', async () => {

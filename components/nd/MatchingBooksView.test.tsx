@@ -27,9 +27,10 @@ describe('MatchingBooksView commands', () => {
   it('uses the approved participant heading and instructions', () => {
     render(<MatchingBooksView {...props} />)
     expect(screen.getByRole('heading', { name: 'Совпадения по вашим книгам' })).toBeInTheDocument()
-    expect(screen.getByText(/Выберите одну книгу, которую будете читать/)).toHaveTextContent(
+    expect(document.querySelector('.nd-mb-intro-copy-desktop')).toHaveTextContent(
       'В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах',
     )
+    expect(document.querySelector('.nd-mb-intro-copy-mobile')).toHaveTextContent('круг из 3 человек')
   })
 
   it('sends a versioned hard command', async () => {
