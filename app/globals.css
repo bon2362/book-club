@@ -1559,7 +1559,7 @@ body {
 }
 .summary-page__col { min-width: 0; }
 @media (min-width: 1100px) {
-  .summary-page {
+  .summary-page--with-toc {
     max-width: 1060px;
     display: grid;
     grid-template-columns: 240px minmax(0, 760px);

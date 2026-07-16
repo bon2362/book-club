@@ -143,9 +143,9 @@ stateDiagram-v2
 
 **Извлечение заголовков.** `lib/summary-toc.ts` экспортирует `extractH2Headings(markdown): TocHeading[]` — функция парсит Markdown, выделяет все `##` в порядке документа, удаляет fenced-code блоки (чтобы не путать код с реальными заголовками) и очищает инлайн-форматирование (ссылки, `**bold**`, `` `код` `` и т.п.). На выходе массив `{ id: string, text: string }`, где `id` — стабильный slug (кириллица сохраняется, дубли получают суффиксы `-2`, `-3` и т.д.).
 
-**Консистентность DOM ↔ TOC.** Якоря (идентификаторы заголовков) должны совпадать в обоих местах. Это гарантируется так: `SummaryMarkdown` при рендере Markdown вызывает `extractH2Headings` один раз (в `SummaryArticle` в `app/books/[bookSlug]/summaries/page.tsx`), получает массив, и затем при встрече каждого `##` в Markdown проставляет `id` ровно из этого массива по счётчику (не пересчитывая slug независимо). Таким образом DOM-id и id в TOC совпадают поэлементно.
+**Консистентность DOM ↔ TOC.** Якоря (идентификаторы заголовков) должны совпадать в обоих местах. Страница в `app/books/[bookSlug]/summaries/page.tsx` вызывает `extractH2Headings` для данных TOC, а `SummaryMarkdown` использует общий `createSlugger()` при рендере каждого `##`. Оба пути опираются на одну slug-логику, включая суффиксы дублей, поэтому ссылки TOC совпадают с DOM-id заголовков.
 
-**Инъекция id на заголовки.** `SummaryMarkdown` — компонент, который рендерит Markdown через `react-markdown` с кастомным `h2` компонентом. Для каждого `<h2>` он присваивает из TOC-массива `id={headings[counter].id}` и добавляет `scroll-margin-top: calc(var(--header-height, 0px) + 1rem)`, чтобы при скролле к якорю заголовок не застревал под липким хедером.
+**Инъекция id на заголовки.** `SummaryMarkdown` — компонент, который рендерит Markdown через `react-markdown` с кастомным `h2` компонентом. Для каждого `<h2>` он вычисляет id общим с TOC слаггером и добавляет `scroll-margin-top: calc(var(--header-height, 0px) + 1rem)`, чтобы при скролле к якорю заголовок не застревал под липким хедером.
 
 **Клиентский scroll-spy.** `SummaryToc` — client component в `components/nd/SummaryToc.tsx` получает `headings?: TocHeading[]` и реализует:
 - **IntersectionObserver** на все `<h2>` — отслеживает, какой заголовок в данный момент виден в viewport, с `rootMargin: '-15% 0px -70% 0px'` (привилегия верхней части экрана для активного маркера).
@@ -153,7 +153,9 @@ stateDiagram-v2
 - **Мобиль (<1100px)**: sticky-бар вверху (`.summary-toc__bar`) с кнопкой, которая показывает текущий раздел и переключает нижний лист; нижний лист (`.summary-toc__sheet`) — фиксированный элемент в низу экрана с overlay-фоном.
 - Ссылки на якоря работают через `scroll-behavior: smooth`.
 
-**Порог видимости.** TOC появляется только в компоненте `SummaryArticle`, если `headings.length >= 2`. Если заголовков меньше двух, TOC не рендерится.
+**Порог видимости.** Страница рендерит `SummaryToc`, только если `toc.length >= 2`. Если заголовков меньше двух, TOC не рендерится.
+
+**Раскладка страницы.** На десктопе двухколоночная сетка `240px + 760px` включается только вместе с TOC. Если оглавления нет, страница сохраняет обычную центрированную читательскую колонку шириной до 760 px. На мобильных ширинах раскладка остаётся одноколоночной независимо от количества заголовков.
 
 ### Стили и дизайн
 
@@ -162,9 +164,9 @@ stateDiagram-v2
 ### Ключевые файлы
 
 - `lib/summary-toc.ts` — `extractH2Headings()` (парсинг и дедупликация id), `slugify()` (генерация slug с сохранением кириллицы), интерфейс `TocHeading`.
-- `components/nd/SummaryMarkdown.tsx` — инъекция id в `<h2>` из TOC-массива, добавление `scroll-margin-top`.
+- `components/nd/SummaryMarkdown.tsx` — вычисление id для `<h2>` общим с TOC слаггером, добавление `scroll-margin-top`.
 - `components/nd/SummaryToc.tsx` — client component с IntersectionObserver scroll-spy, sticky-рукав (десктоп) и bottom sheet (мобиль).
-- `app/books/[bookSlug]/summaries/page.tsx` — компонент `SummaryArticle`, вызывает `extractH2Headings`, прокидывает `headings` в `SummaryToc` при `headings.length >= 2`.
+- `app/books/[bookSlug]/summaries/page.tsx` — вызывает `extractH2Headings`, рендерит `SummaryToc` при `toc.length >= 2` и включает соответствующую двухколоночную раскладку.
 - `app/globals.css` — стили `.summary-toc*`, `.summary-page`.
 
 ## Ключевые файлы

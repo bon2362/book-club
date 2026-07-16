@@ -48,6 +48,7 @@ export default async function BookSummariesPage({
   const activeIndex = selectSummaryIndex(slugs, searchParams.author)
   const active = summaries[activeIndex]
   const toc = extractH2Headings(active.bodyMarkdown)
+  const hasToc = toc.length >= 2
   const [helpfulCount, session] = await Promise.all([
     getSummaryHelpfulCount(active.id),
     auth(),
@@ -58,8 +59,8 @@ export default async function BookSummariesPage({
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
-      <div className="summary-page">
-        {toc.length >= 2 && <SummaryToc headings={toc} />}
+      <div className={`summary-page${hasToc ? ' summary-page--with-toc' : ''}`}>
+        {hasToc && <SummaryToc headings={toc} />}
         <div className="summary-page__col">
           <a href="/" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.78rem', color: 'var(--text-muted)', textDecoration: 'none' }}>← Каталог</a>
           <header style={{ margin: '1.2rem 0 2rem', borderBottom: '2px solid var(--border-strong)', paddingBottom: '1.2rem' }}>

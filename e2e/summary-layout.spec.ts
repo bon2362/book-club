@@ -423,6 +423,29 @@ test.describe('Оглавление саммари (TOC)', () => {
     '## Выводы', ...Array(20).fill('Текст раздела выводов.'),
   ].join('\n\n')
 
+  test('десктоп: без оглавления статья сохраняет читательскую ширину', async ({ page, createPublishedSummary }) => {
+    const summary = await createPublishedSummary({
+      bodyMarkdown: 'Саммари без заголовков второго уровня и без оглавления.',
+    })
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto(summary.url)
+
+    const pageContainer = page.locator('.summary-page')
+    const column = page.locator('.summary-page__col')
+    await expect(column).toBeVisible()
+    await expect(page.locator('.summary-toc__rail')).toHaveCount(0)
+    const pageBox = await pageContainer.boundingBox()
+    const columnBox = await column.boundingBox()
+
+    expect(pageBox).not.toBeNull()
+    expect(columnBox).not.toBeNull()
+    expect(Math.abs(pageBox!.width - 760)).toBeLessThanOrEqual(1)
+    // .summary-page uses border-box sizing: 760px outer width minus 24px padding on each side.
+    expect(Math.abs(columnBox!.width - (760 - 2 * 24))).toBeLessThanOrEqual(1)
+    const rightSpace = page.viewportSize()!.width - columnBox!.x - columnBox!.width
+    expect(Math.abs(columnBox!.x - rightSpace)).toBeLessThanOrEqual(2)
+  })
+
   test('десктоп: sticky-рукав держится во вьюпорте и подсвечивает секцию', async ({ page, createPublishedSummary }) => {
     const summary = await createPublishedSummary({ bodyMarkdown: body })
     // .summary-toc__rail переключается чистым CSS media query
