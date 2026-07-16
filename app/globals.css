@@ -249,19 +249,18 @@
   .nd-mb-title { font-size: 1.04rem; }
   .nd-mb-author { font-size: 0.78rem; }
   .nd-mb-metrics { gap: 0.22rem 0.7rem; }
-  .nd-mb-title,
-  .nd-mb-metric { display: inline-flex; align-items: center; min-height: 44px; }
   .nd-mb-split-opt { min-height: 44px; align-items: center; }
   .nd-mb-circles { grid-template-columns: minmax(0, 1fr); }
   .nd-mb-actions { align-items: stretch; }
   .nd-mb-actions .nd-mb-btn { flex: 1 1 100%; min-height: 44px; }
+  .nd-mb-actions .nd-mb-btn.is-ghost { flex: 0 0 auto; align-self: flex-start; }
   .nd-mb-actions .nd-mb-split { flex: 1 1 100%; }
   .nd-mb-split-bar { display: flex; }
-  .nd-mb-split-main { flex: 1 1 auto; }
-  .nd-mb-split-caret { flex: 0 0 auto; }
+  .nd-mb-actions .nd-mb-split-main { flex: 1 1 auto; }
+  .nd-mb-actions .nd-mb-split-caret { flex: 0 0 auto; }
   .nd-mb-selection { align-items: flex-start; }
   .nd-mb-selection .p-link { display: inline-flex; align-items: center; min-height: 44px; }
-  .nd-mb-modal-participant { min-height: 44px; }
+  .nd-mb-modal-participant { min-height: 34px; }
   .nd-mb-rank-tip { position: fixed; top: auto; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); left: 1rem; width: auto; }
   .nd-mb-participant-tiers { align-items: flex-start; }
 }
@@ -1447,17 +1446,16 @@ body {
   /* §5 Book popup: cover + title/meta collapse into a row, like BookCardMobile. */
   .nd-mx-sheet-grid {
     grid-template-columns: 96px minmax(0,1fr) !important;
-    gap: 0.9rem !important;
+    gap: 1rem !important;
     padding: 0.35rem 1.1rem 0 !important;
   }
   .nd-mx-sheet-cover {
     width: 96px !important;
     height: 144px !important;
   }
-  .nd-mx-sheet-heading { padding-right: 2.5rem !important; }
   .nd-mx-sheet-heading { display: contents; }
-  .nd-mx-sheet-title { grid-column: 2; grid-row: 1; align-self: end; padding-right: 2.5rem; font-size: 1.3rem !important; }
-  .nd-mx-sheet-meta { grid-column: 2; grid-row: 2; align-self: start; padding-right: 2.5rem; font-size: 0.82rem !important; }
+  .nd-mx-sheet-title { grid-column: 2; grid-row: 1; align-self: end; font-size: 1.28rem !important; line-height: 1.18 !important; }
+  .nd-mx-sheet-meta { grid-column: 2; grid-row: 2; align-self: start; font-size: 0.82rem !important; }
   .nd-mx-sheet-cover { grid-column: 1; grid-row: 1 / span 2; }
   .nd-mx-sheet-participants,
   .nd-mx-sheet-tags { grid-column: 1 / -1; }
