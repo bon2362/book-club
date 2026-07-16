@@ -1007,14 +1007,22 @@ test.describe('Matching book cards and two circles', () => {
     await expect(dialog).toBeVisible()
     const groups = dialog.locator('.nd-mb-modal-participant')
     await expect(groups).toHaveCount(6)
+    // Геометрия относительно самого шита, не вьюпорта: на десктопе шит (max-width
+    // 640px) центрирован, т.е. при 1440px начинается на x = (1440-640)/2 = 400.
+    // Абсолютная проверка `right <= 641` здесь всегда ложно-красная — group_right =
+    // sheet_x + offset ≈ 400 + 437 = 837 > 641 даже без переполнения. Инвариант
+    // «группа не вылезает из шита»: sheet_x <= group_x и group_right <= sheet_x + sheet_width.
+    const sheetBox = await dialog.boundingBox()
+    if (!sheetBox) throw new Error('dialog has no bounding box')
+    expect(sheetBox.width, 'desktop sheet keeps its 640px cap').toBeLessThanOrEqual(641)
     const groupBoxes = await groups.evaluateAll((els) => els.map((el) => {
       const rect = el.getBoundingClientRect()
       return { x: rect.x, right: rect.x + rect.width, width: rect.width }
     }))
     for (const box of groupBoxes) {
       expect(box.width, 'each name+status group has geometry').toBeGreaterThan(0)
-      expect(box.x, 'group left edge inside the sheet').toBeGreaterThanOrEqual(0)
-      expect(box.right, 'group right edge inside the 640px sheet').toBeLessThanOrEqual(641)
+      expect(box.x, 'group left edge inside the sheet').toBeGreaterThanOrEqual(sheetBox.x)
+      expect(box.right, 'group right edge inside the sheet').toBeLessThanOrEqual(sheetBox.x + sheetBox.width + 1)
     }
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
