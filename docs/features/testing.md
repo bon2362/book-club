@@ -122,7 +122,7 @@ Playwright запускается с `workers: 1`: matching-тесты испо�
 
 Каждый E2E-тест создаёт нужные ему книги через `createTestBook` фикстуру (см. `e2e/fixtures.ts`). Id'шники имеют префикс `__e2e_book_<testId>_<index>__`, фикстура удаляет книгу в teardown (FK signup_books/book_priorities → cascade). Глобального seed-каталога больше нет — каждая спека работает только со своими данными.
 
-Global setup/teardown удаляет E2E users и E2E matching sessions через `/api/test/cleanup-users`; per-test login fixtures не удаляют пользователей, чтобы не ломать session cookies и FK во время suite.
+Global setup/teardown удаляет E2E users и E2E matching sessions через `/api/test/cleanup-users`; per-test login fixtures не удаляют пользователей, чтобы не ломать session cookies и FK во время suite. Cleanup сносит **только хвосты старше 2 часов**: ветка `e2e` общая для CI nightly и локальных focused-прогонов, и без age-gate setup/teardown одного прогона удалял живых пользователей другого посреди теста (источник флака book-summaries в nightly 29497802469). Свежий мусор упавшего прогона доживает до следующего sweep'а — это нормально, id/email уникальны per-test.
 
 Для matching используются две составные fixture:
 

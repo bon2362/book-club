@@ -80,7 +80,7 @@ E2E **никогда не пишут в продакшен Neon**. Изоляц�
 
 Любая мутация — через фикстуру в `e2e/fixtures.ts` (`loginAsUser`, `loginAsAdmin`, `createIntroSection`, `createTestBook`, `createMatchingSession`). Книги, intro-секции и matching-сессии удаляются fixture teardown. E2E users не удаляются внутри отдельных тестов: они живут до global cleanup, чтобы session cookies других шагов не получали FK-разрыв к таблице `user`.
 
-Global setup/teardown вызывает `/api/test/cleanup-users`: он удаляет E2E users, identities, feedback/notifications и E2E matching sessions (`E2E Matching %`, `E2E Admin Satisfaction %`). Тесты не редактируют существующие записи; вместо этого создают свою сущность, проверяют, fixture/global cleanup удаляет.
+Global setup/teardown вызывает `/api/test/cleanup-users`: он удаляет E2E users, identities, feedback/notifications и E2E matching sessions (`E2E Matching %`, `E2E Admin Satisfaction %`) — но только записи **старше 2 часов**. Ветка `e2e` общая для CI nightly и локальных прогонов; age-gate не даёт одному прогону удалить живых пользователей другого посреди теста. Тесты не редактируют существующие записи; вместо этого создают свою сущность, проверяют, fixture/global cleanup удаляет.
 
 Когда нужна новая сущность — добавь фикстуру, не пиши inline-cleanup в теле теста.
 
