@@ -1,5 +1,13 @@
 // Test-only endpoint: removes E2E users that may be left behind by failed tests.
 // Only works when NEXTAUTH_TEST_MODE=true — never enabled in production.
+//
+// ВАЖНО: удаляются только хвосты старше STALE_INTERVAL. Ветка `e2e` общая:
+// nightly в CI и локальные focused-прогоны могут идти одновременно, и без
+// age-gate global setup/teardown одного прогона сносил живых пользователей
+// другого прямо между /api/test/session и /api/test/signup (nightly run
+// 29497802469: юзер прожил 0.9 секунды → FK violation в signup_books).
+// Свежий мусор упавшего прогона доживает до следующего sweep'а — это
+// осознанная цена: id/email уникальны per-test, коллизий не бывает.
 
 import { NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
@@ -41,16 +49,18 @@ export async function DELETE() {
     WITH target_users AS (
       SELECT u."id", u."contact_email"
       FROM "user" u
-      WHERE u."contact_email" ILIKE '%@test.invalid'
-        OR u."name" ILIKE 'E2E %'
+      WHERE (u."contact_email" ILIKE '%@test.invalid'
+        OR u."name" ILIKE 'E2E %')
+        AND u."created_at" < now() - interval '2 hours'
 
       UNION
 
       SELECT ui."user_id" AS "id", u."contact_email"
       FROM "user_identities" ui
       JOIN "user" u ON u."id" = ui."user_id"
-      WHERE ui."email" ILIKE '%@test.invalid'
-        OR ui."provider_account_id" ILIKE '%@test.invalid'
+      WHERE (ui."email" ILIKE '%@test.invalid'
+        OR ui."provider_account_id" ILIKE '%@test.invalid')
+        AND u."created_at" < now() - interval '2 hours'
     ),
     target_emails AS (
       SELECT "contact_email" AS "email"
@@ -60,8 +70,9 @@ export async function DELETE() {
     target_matching_sessions AS (
       SELECT "id"
       FROM "matching_sessions"
-      WHERE "name" ILIKE 'E2E Matching %'
-        OR "name" ILIKE 'E2E Admin Satisfaction %'
+      WHERE ("name" ILIKE 'E2E Matching %'
+        OR "name" ILIKE 'E2E Admin Satisfaction %')
+        AND "created_at" < now() - interval '2 hours'
     ),
     deleted_matching_book_assignments AS (
       DELETE FROM "matching_book_assignments"
@@ -81,14 +92,15 @@ export async function DELETE() {
     deleted_feedback AS (
       DELETE FROM "feedback"
       WHERE "user_id" IN (SELECT "id" FROM target_users)
-        OR "email" ILIKE '%@test.invalid'
-        OR "message" ILIKE 'E2E %'
+        OR (("email" ILIKE '%@test.invalid' OR "message" ILIKE 'E2E %')
+          AND "created_at" < now() - interval '2 hours')
       RETURNING "id"
     ),
     deleted_notifications AS (
       DELETE FROM "notification_queue"
       WHERE "user_email" IN (SELECT "email" FROM target_emails)
-        OR "user_email" ILIKE '%@test.invalid'
+        OR ("user_email" ILIKE '%@test.invalid'
+          AND "created_at" < now() - interval '2 hours')
       RETURNING "id"
     ),
     deleted_identities AS (

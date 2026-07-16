@@ -59,7 +59,11 @@ describe('DELETE /api/test/cleanup-users', () => {
 
     expect(res.status).toBe(200)
     expect(db.execute).toHaveBeenCalled()
-    expect(JSON.stringify((db.execute as jest.Mock).mock.calls[0][0])).toContain('matching_sessions')
+    const sqlText = JSON.stringify((db.execute as jest.Mock).mock.calls[0][0])
+    expect(sqlText).toContain('matching_sessions')
+    // Age-gate: общая e2e-ветка, параллельный прогон не должен терять живых
+    // пользователей. Каждый удаляющий CTE обязан фильтровать по created_at.
+    expect(sqlText.match(/interval '2 hours'/g)?.length ?? 0).toBeGreaterThanOrEqual(5)
     await expect(res.json()).resolves.toEqual({
       ok: true,
       deleted: { users: 2, identities: 2, feedback: 1, notifications: 0, matchingSessions: 3 },

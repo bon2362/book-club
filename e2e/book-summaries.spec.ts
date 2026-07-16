@@ -316,11 +316,16 @@ test.describe('Саммари книг', () => {
     loginAsAdmin: (args: { name: string }) => Promise<unknown>,
   ) {
     const user = await loginAsUser({ name: opts.userName })
-    await page.request.post('/api/test/signup', {
+    // Каждый шаг проверяем явно с телом ответа: молчаливый провал здесь
+    // раньше всплывал как непонятный TypeError на draft.summary.id.
+    const signupRes = await page.request.post('/api/test/signup', {
       data: { userId: user.userId, name: user.name, email: user.email, contacts: '@e2e', selectedBookIds: [opts.bookId] },
     })
-    await page.request.patch(`/api/signup-books/${encodeURIComponent(opts.bookId)}/status`, { data: { status: 'read' } })
+    expect(signupRes.ok(), `POST /api/test/signup failed: ${signupRes.status()} ${await signupRes.text().catch(() => '')}`).toBe(true)
+    const statusRes = await page.request.patch(`/api/signup-books/${encodeURIComponent(opts.bookId)}/status`, { data: { status: 'read' } })
+    expect(statusRes.ok(), `PATCH status failed: ${statusRes.status()} ${await statusRes.text().catch(() => '')}`).toBe(true)
     const draftRes = await page.request.post(`/api/summaries/by-book/${encodeURIComponent(opts.bookId)}`)
+    expect(draftRes.ok(), `POST /api/summaries/by-book failed: ${draftRes.status()} ${await draftRes.text().catch(() => '')}`).toBe(true)
     const draft = (await draftRes.json()) as { summary: { id: string } }
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
