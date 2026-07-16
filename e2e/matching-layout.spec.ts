@@ -20,42 +20,42 @@ test.beforeEach(async () => {
 })
 
 test.describe('Matching books: mobile layout and focus', () => {
-  test('390px keeps cards and CTA in viewport, and book dialog traps/restores focus', { tag: '@matching-golden' }, async ({
+  test('393px keeps cards and CTA in viewport, and book dialog traps/restores focus', { tag: '@matching-golden' }, async ({
     matchingBooksFixture,
     openMatchingPage,
   }) => {
     const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
     const [participantB, participantC] = await Promise.all([getParticipantB(), getParticipantC()])
     const participantAPage = await openMatchingPage(participantA)
-    await participantAPage.setViewportSize({ width: 390, height: 844 })
+    await participantAPage.setViewportSize({ width: 900, height: 844 })
     await participantAPage.goto('/matching')
+
+    const booksTab = participantAPage.getByRole('tab', { name: 'Книги' })
+    const scenariosTab = participantAPage.getByRole('tab', { name: 'Сценарии' })
+    await scenariosTab.click()
+    await expect(scenariosTab).toHaveAttribute('aria-selected', 'true')
+    await participantAPage.setViewportSize({ width: 393, height: 852 })
+    await expect(booksTab).toBeHidden()
+    await expect(scenariosTab).toBeHidden()
+    await expect(participantAPage.getByTestId('matching-books-view')).toBeVisible()
 
     const card = participantAPage.getByTestId(`matching-book-card-${books[0].id}`)
     const cardBox = await card.boundingBox()
     expect(cardBox).not.toBeNull()
-    expect(cardBox!.x, 'card left edge is inside the 390px viewport').toBeGreaterThanOrEqual(0)
-    expect(cardBox!.x + cardBox!.width, 'card right edge is inside the 390px viewport').toBeLessThanOrEqual(391)
+    expect(cardBox!.x, 'card left edge is inside the 393px viewport').toBeGreaterThanOrEqual(0)
+    expect(cardBox!.x + cardBox!.width, 'card right edge is inside the 393px viewport').toBeLessThanOrEqual(394)
     const cover = card.getByRole('button', { name: `Открыть книгу «${books[0].title}»` })
     const coverBox = await cover.boundingBox()
     expect(coverBox).not.toBeNull()
-    expect(coverBox!.width, 'book cover keeps the 54px prototype width').toBeCloseTo(54, 0)
-    expect(coverBox!.height, 'book cover keeps the 76px prototype height').toBeCloseTo(76, 0)
+    expect(coverBox!.width, 'book cover keeps the 56px mobile width').toBeCloseTo(56, 0)
+    expect(coverBox!.height, 'book cover keeps the 80px mobile height').toBeCloseTo(80, 0)
     expect(await cover.evaluate((element) => getComputedStyle(element).position), 'Next Image fill is anchored to the cover, not the whole card').toBe('relative')
     const cta = card.getByRole('button', { name: 'Записаться', exact: true })
     await expect(cta).toBeVisible()
     const ctaBox = await cta.boundingBox()
     expect(ctaBox).not.toBeNull()
-    expect(ctaBox!.x + ctaBox!.width).toBeLessThanOrEqual(391)
+    expect(ctaBox!.x + ctaBox!.width).toBeLessThanOrEqual(394)
     expect(await participantAPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-
-    const booksTab = participantAPage.getByRole('tab', { name: 'Книги' })
-    const scenariosTab = participantAPage.getByRole('tab', { name: 'Сценарии' })
-    await expect(booksTab).toHaveAttribute('aria-selected', 'true')
-    await scenariosTab.click()
-    await expect(scenariosTab).toHaveAttribute('aria-selected', 'true')
-    await expect(participantAPage.getByTestId('matching-books-view')).toHaveCount(0)
-    await booksTab.click()
-    await expect(booksTab).toHaveAttribute('aria-selected', 'true')
 
     const trigger = cover
     await trigger.focus()
@@ -65,7 +65,11 @@ test.describe('Matching books: mobile layout and focus', () => {
     const dialogBox = await dialog.boundingBox()
     expect(dialogBox).not.toBeNull()
     expect(dialogBox!.x).toBeGreaterThanOrEqual(0)
-    expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(391)
+    expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(394)
+    const sheetCoverBox = await dialog.locator('.nd-mx-sheet-cover').boundingBox()
+    expect(sheetCoverBox).not.toBeNull()
+    expect(sheetCoverBox!.width).toBeCloseTo(96, 0)
+    expect(sheetCoverBox!.height).toBeCloseTo(144, 0)
     await expect(dialog.getByRole('button', { name: 'Закрыть' })).toBeFocused()
     await expect(dialog).toContainText(participantA.name)
     await expect(dialog).toContainText(participantB.name)
@@ -78,7 +82,7 @@ test.describe('Matching books: mobile layout and focus', () => {
     const rankTooltipBox = await rankTooltip.boundingBox()
     expect(rankTooltipBox).not.toBeNull()
     expect(rankTooltipBox!.x).toBeGreaterThanOrEqual(0)
-    expect(rankTooltipBox!.x + rankTooltipBox!.width).toBeLessThanOrEqual(391)
+    expect(rankTooltipBox!.x + rankTooltipBox!.width).toBeLessThanOrEqual(394)
     await participantAPage.keyboard.press('Escape')
     await expect(rankTooltip).toHaveCount(0)
 
@@ -90,6 +94,21 @@ test.describe('Matching books: mobile layout and focus', () => {
     await participantAPage.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
     await expect(trigger).toBeFocused()
+
+    await trigger.click()
+    const draggedDialog = participantAPage.getByRole('dialog', { name: books[0].title })
+    const dragHandle = draggedDialog.getByRole('button', { name: 'Потяните лист вниз' })
+    await dragHandle.dispatchEvent('pointerdown', { button: 0, pointerId: 7, pointerType: 'touch', clientY: 20 })
+    await dragHandle.dispatchEvent('pointermove', { pointerId: 7, pointerType: 'touch', clientY: 130 })
+    await dragHandle.dispatchEvent('pointerup', { pointerId: 7, pointerType: 'touch', clientY: 130 })
+    await expect(draggedDialog).toHaveCount(0)
+
+    await participantAPage.setViewportSize({ width: 360, height: 800 })
+    const narrowCardBox = await card.boundingBox()
+    expect(narrowCardBox).not.toBeNull()
+    expect(narrowCardBox!.x).toBeGreaterThanOrEqual(0)
+    expect(narrowCardBox!.x + narrowCardBox!.width).toBeLessThanOrEqual(361)
+    expect(await participantAPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
     // Keep the compact participant/admin status regression in the same
     // mobile golden instead of spending a second browser-golden slot.
@@ -370,13 +389,11 @@ test.describe('Matching restored board shell', () => {
 
         const header = page.getByTestId('matching-header')
         const isMobile = viewport.width <= 540
-        // Controls that stay visible on both the full and the compact mobile header
+        // Controls that stay visible on both the full and the compact mobile header.
         const controls = [
           page.getByRole('link', { name: /каталог/i }),
           header.getByRole('heading', { name: session.name }),
           header.getByText('● активна', { exact: true }),
-          header.getByRole('button', { name: /участники: 4/i }),
-          header.getByRole('button', { name: 'Покинуть' }),
         ]
         for (const control of controls) {
           await expect(control, `${viewport.label}: header control stays visible`).toBeVisible()
@@ -384,6 +401,21 @@ test.describe('Matching restored board shell', () => {
           expect(box, `${viewport.label}: header control has geometry`).not.toBeNull()
           expect(box!.x, `${viewport.label}: header control starts inside viewport`).toBeGreaterThanOrEqual(0)
           expect(box!.x + box!.width, `${viewport.label}: header control ends inside viewport`).toBeLessThanOrEqual(viewport.width + 1)
+        }
+        const sessionMenuTrigger = header.getByRole('button', { name: /участники и меню сессии: 4/i })
+        await expect(sessionMenuTrigger).toBeVisible()
+        const sessionMenuTriggerBox = await sessionMenuTrigger.boundingBox()
+        expect(sessionMenuTriggerBox).not.toBeNull()
+        expect(sessionMenuTriggerBox!.x).toBeGreaterThanOrEqual(0)
+        expect(sessionMenuTriggerBox!.x + sessionMenuTriggerBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+        expect(sessionMenuTriggerBox!.y).toBeGreaterThanOrEqual(0)
+        expect(sessionMenuTriggerBox!.y + sessionMenuTriggerBox!.height).toBeLessThanOrEqual(viewport.height + 1)
+        if (isMobile) {
+          expect(sessionMenuTriggerBox!.width).toBeGreaterThanOrEqual(44)
+          expect(sessionMenuTriggerBox!.height).toBeGreaterThanOrEqual(44)
+          await expect(header.locator('.nd-mx-hdr-leave')).toBeHidden()
+        } else {
+          await expect(header.locator('.nd-mx-hdr-leave')).toBeVisible()
         }
         // Verbose meta collapses on the compact mobile header (≤540px), stays on wider screens
         const collapsibleMeta = [
@@ -399,13 +431,21 @@ test.describe('Matching restored board shell', () => {
         const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
         expect(horizontalOverflow, `${viewport.label}: page has no accidental horizontal overflow`).toBeLessThanOrEqual(1)
 
-        await header.getByRole('button', { name: /участники: 4/i }).click()
+        await sessionMenuTrigger.click()
         const popover = page.getByRole('dialog', { name: 'Участники' })
         await expect(popover).toBeVisible()
         const popoverBox = await popover.boundingBox()
         expect(popoverBox).not.toBeNull()
         expect(popoverBox!.x).toBeGreaterThanOrEqual(0)
         expect(popoverBox!.x + popoverBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+        expect(popoverBox!.y).toBeGreaterThanOrEqual(0)
+        expect(popoverBox!.y + popoverBox!.height).toBeLessThanOrEqual(viewport.height + 1)
+        await expect(popover).toContainText('Анна Layout · вы')
+        if (isMobile) {
+          await expect(popover).toContainText('Группы по 2')
+          await expect(popover).toContainText('Дедлайн не задан')
+          await expect(popover.getByRole('button', { name: 'Покинуть сессию' })).toBeVisible()
+        }
         await popover.getByRole('button', { name: /закрыть список/i }).click()
 
         if (viewport.label === 'mobile') {
@@ -586,7 +626,7 @@ test.describe('Matching restored board shell', () => {
     }
   })
 
-  // Регресс на «попап нельзя закрыть»: на мобилке шит занимает 92vh, крестик был
+  // Регресс на «попап нельзя закрыть»: на мобилке шит занимает 90svh, крестик был
   // absolute внутри скролл-контейнера и уезжал вместе с длинным описанием — закрыть
   // становилось нечем. Крестик теперь в sticky-обёртке и обязан оставаться в кадре
   // после прокрутки контента вниз, и клик по нему должен реально закрывать шит.
@@ -596,7 +636,7 @@ test.describe('Matching restored board shell', () => {
     createTestBook,
   }) => {
     const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
-    // Длинное описание гарантирует, что контент шита переполняет 92vh и скроллится.
+    // Длинное описание гарантирует, что контент шита переполняет 90svh и скроллится.
     const longDescription = Array.from({ length: 40 }, (_, index) =>
       `Абзац ${index + 1}: длинное описание книги, чтобы шит гарантированно переполнялся и появлялась внутренняя прокрутка.`
     ).join('\n\n')
@@ -853,7 +893,7 @@ test.describe('Matching layout', () => {
     await expect(page.getByText('Группы по 2')).toBeVisible()
     await expect(page.getByText('Дедлайн не задан')).toBeVisible()
     await expect(page.getByText('● активна')).toBeVisible()
-    await page.getByRole('button', { name: /участники: 2/i }).click()
+    await page.getByRole('button', { name: /участники и меню сессии: 2/i }).click()
     const participants = page.getByRole('dialog', { name: 'Участники' })
     await expect(participants).toContainText('UI Matching One')
     await expect(participants).toContainText('UI Matching Two')

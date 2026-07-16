@@ -8,7 +8,7 @@ export interface MatchingHeaderParticipant { ref: string; displayName: string; o
 export interface MatchingHeaderProps {
   sessionId: string; sessionName: string; sessionStatus: string; stateVersion: number
   minGroupSize: number; maxGroupSize: number; deadlineAt: string | null
-  viewer: { displayName: string; role: 'active' | 'observer' }
+  viewer: { ref: string; displayName: string; role: 'active' | 'observer' }
   participants: MatchingHeaderParticipant[]; isAdmin: boolean; isImpersonating: boolean
   viewerAssigned?: boolean
   bookMode?: boolean
@@ -125,10 +125,14 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
   const statusLabel = props.sessionStatus === 'active'
     ? 'активна'
     : props.sessionStatus === 'open' ? 'открыта' : props.sessionStatus === 'closed' ? 'закрыта' : 'заморожена'
+  const viewerParticipant = props.participants.find((participant) => participant.ref === props.viewer.ref)
+  const menuParticipants = viewerParticipant
+    ? [viewerParticipant, ...props.participants.filter((participant) => participant.ref !== props.viewer.ref)]
+    : props.participants
   return <>
     {props.isImpersonating && <div data-testid="admin-impersonation-banner" style={{ padding: '0.45rem 1.3rem', borderBottom: '1px solid var(--border)', color: 'var(--status-warn)' }}>👁 Просмотр за {props.viewer.displayName}<a href="/admin?tab=matching" style={{ float: 'right', color: 'inherit' }}>← вернуться в админку</a></div>}
     <header data-testid="matching-header" className="nd-mx-hdr" style={{ padding: '0.7rem 1.3rem', borderBottom: '1px solid var(--border-strong)', background: 'var(--bg)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+      <div className="nd-mx-hdr-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div className="nd-mx-hdr-l" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
           <a href="/" aria-label="На каталог" className="nd-back-to-catalog" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>←<span className="nd-mx-hdr-back-text"> Каталог</span></a><span className="nd-mx-hdr-div" style={{ width: 1, height: 22, background: 'var(--border)' }} />
           <h1 className="nd-mx-hdr-title" style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.2rem', fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.1, color: 'var(--text)' }}>{props.sessionName}</h1>
@@ -138,23 +142,38 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
             <button type="button" onClick={saveSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: '1px solid var(--text)', background: 'var(--text)', color: 'var(--bg-input)' }}>Сохранить</button>
             <button type="button" onClick={cancelSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)' }}>Отмена</button>
           </div> : <span className="nd-mx-hdr-groups" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{groups} {props.isAdmin && !props.bookMode && (props.sessionStatus === 'active' || props.sessionStatus === 'open') && <button type="button" aria-label="Изменить размер групп" onClick={() => setEditingSize(true)} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>✎</button>}</span>}
-          <span className="nd-mx-hdr-deadline" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{deadlineText(props.deadlineAt, now)}</span><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: props.sessionStatus === 'active' || props.sessionStatus === 'open' ? 'var(--success)' : 'var(--text-muted)' }}>● {statusLabel}</span>
+          <span className="nd-mx-hdr-deadline" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{deadlineText(props.deadlineAt, now)}</span><span className="nd-mx-hdr-status" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: props.sessionStatus === 'active' || props.sessionStatus === 'open' ? 'var(--success)' : 'var(--text-muted)' }}>● {statusLabel}</span>
         </div>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {props.viewer.role === 'observer' ? <span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--success)', borderBottom: '1px solid var(--success)' }}>Вы наблюдаете</span> : <span className="nd-mx-hdr-you" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Вы — <strong style={{ color: 'var(--text)' }}>{props.viewer.displayName}</strong></span>}
+        <div className="nd-mx-hdr-r" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {props.viewer.role === 'observer' ? <span className="nd-mx-hdr-observer" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--success)', borderBottom: '1px solid var(--success)' }}>Вы наблюдаете</span> : <span className="nd-mx-hdr-you" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Вы — <strong style={{ color: 'var(--text)' }}>{props.viewer.displayName}</strong></span>}
           <Popover.Root open={participantsOpen} onOpenChange={setParticipantsOpen}>
             <Popover.Trigger asChild>
-              <button type="button" aria-label={`Участники: ${props.participants.length}`} style={{ display: 'flex', alignItems: 'center', border: 0, background: 'transparent' }}>{props.participants.slice(0, 5).map((participant, index) => <span key={participant.ref} className="nd-mx-hdr-av" aria-label={`${participant.displayName} — ${participant.online ? 'онлайн' : 'не в сети'}`} style={{ marginLeft: index ? -8 : 0, width: 28, height: 28, borderRadius: '50%', background: 'var(--chip-bg)', boxShadow: '0 0 0 2px var(--bg)', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.66rem', fontFamily: 'var(--nd-sans)' }}>{participant.displayName[0]}</span>)}{props.participants.length > 5 && <span className="nd-mx-hdr-av" style={{ marginLeft: -8, width: 28, height: 28, borderRadius: '50%', background: 'var(--bg)', color: 'var(--text-muted)', border: '1px solid var(--hair)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.6rem', fontFamily: 'var(--nd-sans)' }}>+{props.participants.length - 5}</span>}<span style={{ marginLeft: 6, fontFamily: 'var(--nd-sans)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{props.participants.length}</span></button>
+              <button type="button" className="nd-mx-session-menu-trigger" aria-label={`Участники и меню сессии: ${props.participants.length}`} style={{ display: 'flex', alignItems: 'center', border: 0, background: 'transparent' }}>
+                <span className="nd-mx-hdr-menu-icon" aria-hidden="true"><span /><span /><span /></span>
+                {props.participants.slice(0, 5).map((participant, index) => <span key={participant.ref} className="nd-mx-hdr-av" aria-label={`${participant.displayName} — ${participant.online ? 'онлайн' : 'не в сети'}`} style={{ marginLeft: index ? -8 : 0, width: 28, height: 28, borderRadius: '50%', background: 'var(--chip-bg)', boxShadow: '0 0 0 2px var(--bg)', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.66rem', fontFamily: 'var(--nd-sans)' }}>{participant.displayName[0]}</span>)}
+                {props.participants.length > 5 && <span className="nd-mx-hdr-av" style={{ marginLeft: -8, width: 28, height: 28, borderRadius: '50%', background: 'var(--bg)', color: 'var(--text-muted)', border: '1px solid var(--hair)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.6rem', fontFamily: 'var(--nd-sans)' }}>+{props.participants.length - 5}</span>}
+                <span className="nd-mx-hdr-participant-count" style={{ marginLeft: 6, fontFamily: 'var(--nd-sans)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{props.participants.length}</span>
+              </button>
             </Popover.Trigger>
             <Popover.Portal>
-              <Popover.Content role="dialog" aria-label="Участники" sideOffset={8} align="end" style={{ zIndex: 5, width: 264, padding: 0, background: 'var(--bg-input)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-pop)', overflow: 'hidden' }}>
+              <Popover.Content className="nd-mx-session-menu" role="dialog" aria-label="Участники" sideOffset={8} align="end" style={{ zIndex: 5, width: 264, padding: 0, background: 'var(--bg-input)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-pop)', overflow: 'hidden' }}>
+                <div className="nd-mx-session-menu-meta">
+                  <span>{groups}</span>
+                  <span>{deadlineText(props.deadlineAt, now)}</span>
+                  <span className={`nd-mx-session-menu-status${props.sessionStatus === 'active' || props.sessionStatus === 'open' ? ' is-active' : ''}`}>● {statusLabel}</span>
+                  {props.viewer.role === 'observer' && <span className="nd-mx-session-menu-observer">Вы наблюдаете</span>}
+                </div>
                 <div style={{ padding: '0.7rem 0.9rem 0.5rem' }}><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)' }}>Участники · {props.participants.length}</span></div>
-                {props.participants.map((participant) => <div key={participant.ref} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0.9rem' }} className="nd-matching-popover-row"><span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: participant.online ? 'var(--status-ok)' : 'var(--text-muted)', opacity: participant.online ? 1 : 0.4 }} /><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.85rem', color: participant.displayName === props.viewer.displayName ? 'var(--text)' : 'var(--text-body)', fontWeight: participant.displayName === props.viewer.displayName ? 700 : 400 }}>{participant.displayName}</span></div>)}
+                <div className="nd-mx-session-menu-participants">
+                  {menuParticipants.map((participant, index) => <div key={participant.ref} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0.9rem' }} className={`nd-matching-popover-row${index >= 6 ? ' nd-mx-session-menu-overflow-row' : ''}`}><span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: participant.online ? 'var(--status-ok)' : 'var(--text-muted)', opacity: participant.online ? 1 : 0.4 }} /><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.85rem', color: participant.ref === props.viewer.ref ? 'var(--text)' : 'var(--text-body)', fontWeight: participant.ref === props.viewer.ref ? 700 : 400 }}>{participant.displayName}{participant.ref === props.viewer.ref && <span className="nd-mx-session-menu-viewer"> · вы</span>}</span></div>)}
+                </div>
+                {props.participants.length > 6 && <div className="nd-mx-session-menu-tail">…и ещё {props.participants.length - 6}</div>}
+                {!props.isAdmin && !props.isImpersonating && props.viewer.role === 'active' && <button type="button" className="nd-mx-session-menu-leave" onClick={leave} disabled={pending || props.viewerAssigned} title={props.viewerAssigned ? 'Назначенный участник не может выйти самостоятельно' : undefined}>{pending ? 'Подождите…' : 'Покинуть сессию'}</button>}
                 <Popover.Close aria-label="Закрыть список участников" className="nd-matching-popover-close" style={{ display: 'block', width: '100%', textAlign: 'left', marginTop: 0, borderTop: '1px solid var(--hair-soft)', borderLeft: 0, borderRight: 0, borderBottom: 0, background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', padding: '0.55rem 0.9rem', cursor: 'pointer', transition: 'color 0.15s ease' }}>Закрыть</Popover.Close>
               </Popover.Content>
             </Popover.Portal>
           </Popover.Root>
-          {!props.isAdmin && !props.isImpersonating && props.viewer.role === 'active' && <button type="button" onClick={leave} disabled={pending || props.viewerAssigned} title={props.viewerAssigned ? 'Назначенный участник не может выйти самостоятельно' : undefined} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', textDecoration: props.viewerAssigned ? 'line-through' : undefined }}>{pending ? 'Подождите…' : 'Покинуть'}</button>}
+          {!props.isAdmin && !props.isImpersonating && props.viewer.role === 'active' && <button type="button" className="nd-mx-hdr-leave" onClick={leave} disabled={pending || props.viewerAssigned} title={props.viewerAssigned ? 'Назначенный участник не может выйти самостоятельно' : undefined} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', textDecoration: props.viewerAssigned ? 'line-through' : undefined }}>{pending ? 'Подождите…' : 'Покинуть'}</button>}
         </div>
       </div>{error && <p role="alert" style={{ margin: '0.45rem 0 0', fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--accent)' }}>{error}</p>}
     </header>

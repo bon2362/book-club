@@ -7,7 +7,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 const base = {
   sessionId: 'session-safe', sessionName: 'Июльский круг', sessionStatus: 'active', stateVersion: 7,
   minGroupSize: 3, maxGroupSize: 4, deadlineAt: null,
-  viewer: { displayName: 'Анна', role: 'active' as const },
+  viewer: { ref: 'safe-a', displayName: 'Анна', role: 'active' as const },
   participants: [
     { ref: 'safe-a', displayName: 'Анна', online: true },
     { ref: 'safe-b', displayName: 'Борис', online: false },
@@ -29,10 +29,36 @@ test('renders safe session orientation and real-name participant popover', () =>
   expect(screen.queryByText(/псевдоним|мои ходы|лента/i)).toBeNull()
 })
 
+test('session menu exposes mobile metadata, a stable viewer marker and participant tail', () => {
+  const participants = [
+    { ref: 'same-name', displayName: 'Анна', online: false },
+    ...Array.from({ length: 6 }, (_, index) => ({ ref: `safe-${index}`, displayName: `Участник ${index + 1}`, online: index % 2 === 0 })),
+    { ref: 'safe-a', displayName: 'Анна', online: true },
+  ]
+  render(<MatchingHeader {...base} deadlineAt="2026-07-20T00:00:00.000Z" participants={participants} />)
+  fireEvent.click(screen.getByRole('button', { name: /участники и меню сессии/i }))
+  const dialog = screen.getByRole('dialog', { name: 'Участники' })
+  expect(dialog).toHaveTextContent('Группы 3–4')
+  expect(dialog).toHaveTextContent(/Дедлайн/)
+  expect(dialog).toHaveTextContent('● активна')
+  expect(dialog).toHaveTextContent('Анна · вы')
+  expect(dialog).toHaveTextContent('…и ещё 2')
+  expect(screen.getByRole('button', { name: 'Покинуть сессию' })).toBeEnabled()
+})
+
+test('session-menu leave action respects an existing assignment', () => {
+  render(<MatchingHeader {...base} viewerAssigned />)
+  fireEvent.click(screen.getByRole('button', { name: /участники и меню сессии/i }))
+  expect(screen.getByRole('button', { name: 'Покинуть сессию' })).toBeDisabled()
+})
+
 test('shows observer identity and hides leave while impersonating', () => {
-  const { rerender } = render(<MatchingHeader {...base} viewer={{ displayName: 'Анна', role: 'observer' }} />)
+  const { rerender } = render(<MatchingHeader {...base} viewer={{ ref: 'safe-a', displayName: 'Анна', role: 'observer' }} />)
   expect(screen.getByText('Вы наблюдаете')).toBeInTheDocument()
-  rerender(<MatchingHeader {...base} isAdmin isImpersonating viewer={{ displayName: 'Анна', role: 'active' }} />)
+  fireEvent.click(screen.getByRole('button', { name: /участники и меню сессии/i }))
+  expect(screen.getAllByText('Вы наблюдаете')).toHaveLength(2)
+  fireEvent.click(screen.getByRole('button', { name: 'Закрыть список участников' }))
+  rerender(<MatchingHeader {...base} isAdmin isImpersonating viewer={{ ref: 'safe-a', displayName: 'Анна', role: 'active' }} />)
   const banner = screen.getByTestId('admin-impersonation-banner')
   expect(banner).toBeInTheDocument()
   expect(banner.getElementsByTagName('a')[0]).toHaveAttribute('href', '/admin?tab=matching')
@@ -118,16 +144,16 @@ test('participant popover is keyboard accessible and restores trigger focus', as
   expect(trigger).toHaveAttribute('aria-controls')
   const dialog = screen.getByRole('dialog', { name: 'Участники' })
   expect(dialog).toBeInTheDocument()
-  const close = screen.getByRole('button', { name: 'Закрыть список участников' })
-  await waitFor(() => expect(close).toHaveFocus())
-  fireEvent.keyDown(close, { key: 'Tab' })
+  const menuLeave = screen.getByRole('button', { name: 'Покинуть сессию' })
+  await waitFor(() => expect(menuLeave).toHaveFocus())
+  fireEvent.keyDown(menuLeave, { key: 'Tab' })
   fireEvent.keyDown(dialog, { key: 'Escape' })
   await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Участники' })).toBeNull())
   await waitFor(() => expect(trigger).toHaveFocus())
 
   fireEvent.click(trigger)
   expect(screen.getByRole('dialog', { name: 'Участники' })).toBeInTheDocument()
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Закрыть список участников' })).toHaveFocus())
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Покинуть сессию' })).toHaveFocus())
   fireEvent.pointerDown(document.body, { button: 0, pointerType: 'mouse' })
   await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Участники' })).toBeNull())
 })

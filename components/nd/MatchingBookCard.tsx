@@ -112,6 +112,7 @@ export default function MatchingBookCard({
     assignedHere ? 'is-assigned' : '',
     hardHere ? 'is-hard' : '',
     formed ? 'is-formed' : '',
+    lockedElsewhere ? 'is-dim' : '',
     book.currentViability === 'needs_attention' ? 'needs-attention' : '',
     book.intersectionCount === 0 ? 'has-no-overlap' : '',
   ].filter(Boolean).join(' ')
