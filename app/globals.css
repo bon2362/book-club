@@ -231,6 +231,10 @@
 .nd-mb-modal-participants li.is-assigned .nd-mb-modal-participant span:last-child { color: var(--success); font-weight: 700; }
 .nd-mb-rank-tip { position: absolute; z-index: 4; top: calc(100% + 0.35rem); left: 0; width: max-content; max-width: min(260px, calc(100vw - 2rem)); padding: 0.45rem 0.6rem; border: 1px solid var(--hair); border-radius: var(--radius-control); background: var(--bg-input); box-shadow: var(--shadow-pop); color: var(--text-body); font-size: 0.72rem; line-height: 1.35; }
 
+@media (min-width: 541px) {
+  .nd-mb-btn.is-hard.nd-mb-split-caret { border-left-color: var(--accent-line); }
+}
+
 .nd-mx-board-cap:has(.nd-mx-workspace.is-document) { height: auto !important; min-height: 0 !important; }
 
 @media (prefers-reduced-motion: reduce) {
