@@ -24,8 +24,23 @@ test.describe('Matching books: mobile layout and focus', () => {
     matchingBooksFixture,
     openMatchingPage,
   }) => {
-    const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
+    const { session, books, participantA, admin, getParticipantB, getParticipantC, addParticipant } = matchingBooksFixture
     const [participantB, participantC] = await Promise.all([getParticipantB(), getParticipantC()])
+    await addParticipant('Галина Книги E2E')
+    const setBookAction = async (
+      participant: typeof participantA,
+      action: 'setHard' | 'setConditional',
+    ) => {
+      const currentResponse = await participant.request.get(`/api/matching/state?session=${session.id}`)
+      expect(currentResponse.ok(), await currentResponse.text()).toBe(true)
+      const current = await currentResponse.json() as { session: { stateVersion: number } }
+      const actionResponse = await participant.request.post(`/api/matching/sessions/${session.id}/book-actions`, {
+        data: { action, bookId: books[0].id, expectedStateVersion: current.session.stateVersion },
+      })
+      expect(actionResponse.ok(), await actionResponse.text()).toBe(true)
+    }
+    await setBookAction(participantB, 'setHard')
+    await setBookAction(participantC, 'setConditional')
     const participantAPage = await openMatchingPage(participantA)
     await participantAPage.setViewportSize({ width: 900, height: 844 })
     await participantAPage.goto('/matching')
@@ -55,6 +70,20 @@ test.describe('Matching books: mobile layout and focus', () => {
     const ctaBox = await cta.boundingBox()
     expect(ctaBox).not.toBeNull()
     expect(ctaBox!.x + ctaBox!.width).toBeLessThanOrEqual(394)
+    const splitCaret = card.getByRole('button', { name: 'Автоматическая запись, если соберётся круг' })
+    const splitCaretBox = await splitCaret.boundingBox()
+    expect(splitCaretBox).not.toBeNull()
+    expect(splitCaretBox!.width, 'split disclosure stays a narrow tap target').toBeLessThanOrEqual(52)
+    expect(ctaBox!.width, 'split primary action takes the remaining width').toBeGreaterThan(splitCaretBox!.width * 3)
+    const title = card.getByRole('button', { name: books[0].title, exact: true })
+    const titleBox = await title.boundingBox()
+    expect(titleBox).not.toBeNull()
+    expect(await title.evaluate((element) => getComputedStyle(element).minHeight), 'book title has no artificial tap-target height').toBe('0px')
+    const metricBoxes = await card.locator('.nd-mb-metric').evaluateAll((elements) => (
+      elements.map(element => element.getBoundingClientRect().height)
+    ))
+    expect(metricBoxes, 'hard, conditional and interest counters are all present').toHaveLength(3)
+    expect(Math.max(...metricBoxes), 'metadata counters do not become 44px controls').toBeLessThan(32)
     expect(await participantAPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
     const trigger = cover
@@ -70,10 +99,20 @@ test.describe('Matching books: mobile layout and focus', () => {
     expect(sheetCoverBox).not.toBeNull()
     expect(sheetCoverBox!.width).toBeCloseTo(96, 0)
     expect(sheetCoverBox!.height).toBeCloseTo(144, 0)
+    const sheetTitle = dialog.locator('.nd-mx-sheet-title')
+    const sheetTitleBox = await sheetTitle.boundingBox()
+    expect(sheetTitleBox).not.toBeNull()
+    const sheetTitlePaddingRight = await sheetTitle.evaluate((element) => parseFloat(getComputedStyle(element).paddingRight))
+    expect(sheetTitleBox!.width - sheetTitlePaddingRight, 'sheet title receives the full second column').toBeGreaterThan(220)
     await expect(dialog.getByRole('button', { name: 'Закрыть' })).toBeFocused()
     await expect(dialog).toContainText(participantA.name)
     await expect(dialog).toContainText(participantB.name)
     await expect(dialog).toContainText(participantC.name)
+    const participantChipHeights = await dialog.locator('.nd-mb-modal-participant').evaluateAll((elements) => (
+      elements.map(element => element.getBoundingClientRect().height)
+    ))
+    expect(participantChipHeights.length).toBeGreaterThanOrEqual(3)
+    expect(Math.max(...participantChipHeights), 'participant chips stay compact').toBeLessThanOrEqual(36)
 
     const participantRank = dialog.getByRole('button', { name: new RegExp(participantB.name) })
     await participantRank.click()
@@ -109,18 +148,43 @@ test.describe('Matching books: mobile layout and focus', () => {
     expect(narrowCardBox!.x).toBeGreaterThanOrEqual(0)
     expect(narrowCardBox!.x + narrowCardBox!.width).toBeLessThanOrEqual(361)
     expect(await participantAPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await trigger.click()
+    const narrowDialog = participantAPage.getByRole('dialog', { name: books[0].title })
+    const [narrowDialogBox, narrowSheetCoverBox, narrowSheetTitleBox] = await Promise.all([
+      narrowDialog.boundingBox(),
+      narrowDialog.locator('.nd-mx-sheet-cover').boundingBox(),
+      narrowDialog.locator('.nd-mx-sheet-title').boundingBox(),
+    ])
+    expect(narrowDialogBox).not.toBeNull()
+    expect(narrowDialogBox!.x + narrowDialogBox!.width).toBeLessThanOrEqual(361)
+    expect(narrowSheetCoverBox).not.toBeNull()
+    expect(narrowSheetCoverBox!.width).toBeCloseTo(96, 0)
+    expect(narrowSheetCoverBox!.height).toBeCloseTo(144, 0)
+    expect(narrowSheetTitleBox).not.toBeNull()
+    expect(narrowSheetTitleBox!.width, '360px sheet still gives the title a readable column').toBeGreaterThan(190)
+    const narrowChipHeights = await narrowDialog.locator('.nd-mb-modal-participant').evaluateAll((elements) => (
+      elements.map(element => element.getBoundingClientRect().height)
+    ))
+    expect(Math.max(...narrowChipHeights)).toBeLessThanOrEqual(36)
+    await narrowDialog.getByRole('button', { name: 'Закрыть' }).click()
 
     // Keep the compact participant/admin status regression in the same
     // mobile golden instead of spending a second browser-golden slot.
     const participantBPage = await openMatchingPage(participantB)
     const adminPage = await openMatchingPage(admin)
+    await participantBPage.setViewportSize({ width: 393, height: 852 })
     await participantBPage.goto('/matching')
     const participantBCard = participantBPage.getByTestId(`matching-book-card-${books[0].id}`)
-    const hardResponse = participantBPage.waitForResponse(response => (
-      response.request().method() === 'POST' && response.url().endsWith('/book-actions')
-    ))
-    await participantBCard.getByRole('button', { name: 'Записаться', exact: true }).click()
-    expect((await hardResponse).ok()).toBe(true)
+    await expect(participantBCard).toContainText('✓ Вы записаны')
+    const cancelHard = participantBCard.getByRole('button', { name: 'Отменить', exact: true })
+    const [participantBCardBox, cancelHardBox] = await Promise.all([
+      participantBCard.boundingBox(),
+      cancelHard.boundingBox(),
+    ])
+    expect(participantBCardBox).not.toBeNull()
+    expect(cancelHardBox).not.toBeNull()
+    expect(cancelHardBox!.height, 'secondary action remains a reachable tap target').toBeGreaterThanOrEqual(44)
+    expect(cancelHardBox!.width, 'secondary action does not imitate the primary full-width CTA').toBeLessThan(participantBCardBox!.width / 2)
     await participantAPage.reload()
     await expect(card.getByRole('button', { name: '1 уже записал:ась' })).toBeVisible()
     await expect(card.getByLabel('Определившиеся участники')).toHaveCount(0)

@@ -2,7 +2,7 @@
 title: 'Уточнить карточки и детали книг в Matching'
 type: 'feature'
 created: '2026-07-15'
-status: 'ready-for-dev'
+status: 'done'
 context:
   - 'docs/features/matching.md'
   - 'docs/features/testing.md'
