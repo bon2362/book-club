@@ -1,0 +1,64 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - link "На каталог" [ref=e11] [cursor=pointer]:
+            - /url: /
+            - text: ←
+            - generic [ref=e12]: Каталог
+          - heading "E2E Matching 590145632e466b7eed11-5b0a9358d94a2f2ddecd" [level=1] [ref=e14]
+          - generic [ref=e15]: Группы 3–5
+          - generic [ref=e16]: Дедлайн не задан
+          - generic [ref=e17]: ● открыта
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - text: Вы —
+            - strong [ref=e20]: Администратор Книги E2E
+          - 'button "Участники: 3" [ref=e21] [cursor=pointer]':
+            - generic "Вера Книги E2E — не в сети" [ref=e22]: В
+            - generic "Анна Книги E2E — онлайн" [ref=e23]: А
+            - generic "Борис Книги E2E — онлайн" [ref=e24]: Б
+            - generic [ref=e25]: "3"
+    - generic [ref=e26]:
+      - generic [ref=e27]: Административный режим книжной доски
+      - button "Закрыть сессию" [ref=e28] [cursor=pointer]
+    - tablist "Режим матчинга" [ref=e29]:
+      - tab "Книги" [selected] [ref=e30] [cursor=pointer]
+      - tab "Сценарии" [ref=e31] [cursor=pointer]
+    - generic [ref=e32]: ●
+    - tabpanel "Книги" [ref=e35]:
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - heading "Книги сессии" [level=2] [ref=e38]
+          - paragraph [ref=e39]: Здесь можно увидеть и скорректировать актуальные договорённости участников.
+        - generic [ref=e40]:
+          - article [ref=e42]:
+            - generic [ref=e43]:
+              - button "Открыть книгу «E2E Книжный круг A 590145632e466b7eed11-5b0a9358d94a2f2ddecd»" [ref=e44] [cursor=pointer]:
+                - 'generic "Обложка: E2E Книжный круг A 590145632e466b7eed11-5b0a9358d94a2f2ddecd" [ref=e45]':
+                  - generic [ref=e46]: АA
+              - generic [ref=e47]:
+                - button "E2E Книжный круг A 590145632e466b7eed11-5b0a9358d94a2f2ddecd" [ref=e48] [cursor=pointer]
+                - generic [ref=e49]: Автор A
+                - generic [ref=e50]:
+                  - button "2 уже записались" [ref=e51] [cursor=pointer]
+                  - button "ещё у 1 эта книга в списке" [ref=e52] [cursor=pointer]
+            - region "Управление книгой «E2E Книжный круг A 590145632e466b7eed11-5b0a9358d94a2f2ddecd»" [ref=e53]:
+              - button "Управлять составом" [ref=e54] [cursor=pointer]
+          - article [ref=e56]:
+            - generic [ref=e57]:
+              - button "Открыть книгу «E2E Книжный круг B 590145632e466b7eed11-5b0a9358d94a2f2ddecd»" [ref=e58] [cursor=pointer]:
+                - 'generic "Обложка: E2E Книжный круг B 590145632e466b7eed11-5b0a9358d94a2f2ddecd" [ref=e59]':
+                  - generic [ref=e60]: АB
+              - generic [ref=e61]:
+                - button "E2E Книжный круг B 590145632e466b7eed11-5b0a9358d94a2f2ddecd" [ref=e62] [cursor=pointer]
+                - generic [ref=e63]: Автор B
+                - button "ещё у 3 эта книга в списке" [ref=e65] [cursor=pointer]
+            - region "Управление книгой «E2E Книжный круг B 590145632e466b7eed11-5b0a9358d94a2f2ddecd»" [ref=e66]:
+              - button "Управлять составом" [ref=e67] [cursor=pointer]
+  - alert [ref=e68]
+```
