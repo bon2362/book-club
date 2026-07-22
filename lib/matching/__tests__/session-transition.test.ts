@@ -108,8 +108,9 @@ class MemoryTransitionStore implements MatchingTransitionStore {
     return this.confirmations.length !== before
   }
 
-  async applyAction(_sessionId: string, action: MatchingAction) {
+  async applyAction(_sessionId: string, action: MatchingAction, _nextStateVersion: number, context: { sessionStatus: string }) {
     this.calls.push(`applyAction:${action.type}`)
+    this.calls.push(`applyActionContext:${context.sessionStatus}`)
     this.actionApplied = true
     return this.applyResult
   }
@@ -576,7 +577,76 @@ describe('executeMatchingTransition', () => {
     await expect(executeMatchingTransition({
       sessionId: 's1', actor, expectedStateVersion: 4,
       action: { type: 'change_book', userId: 'u1', bookId: 'b1', operation: 'remove' },
-    }, closedStore)).resolves.toEqual({ changed: true, stateVersion: 5 })
+    }, closedStore)).resolves.toEqual({ changed: true, stateVersion: 4 })
+    expect(closedStore.calls).toContain('applyActionContext:closed')
+    expect(closedStore.calls).not.toContain('bumpStateVersion')
+  })
+
+  it.each([
+    ['closed', { type: 'change_book', userId: 'u1', bookId: 'b1', operation: 'remove' } as const],
+    ['closed', { type: 'change_rank', userId: 'u1', bookId: 'b1', rank: 2 } as const],
+    ['closed', { type: 'change_status', userId: 'u1', bookId: 'b1', status: 'reading' } as const],
+    ['frozen', { type: 'change_book', userId: 'u1', bookId: 'b1', operation: 'remove' } as const],
+    ['frozen', { type: 'change_rank', userId: 'u1', bookId: 'b1', rank: 2 } as const],
+    ['frozen', { type: 'change_status', userId: 'u1', bookId: 'b1', status: 'reading' } as const],
+  ])('allows %s historical $type without changing matching history/version', async (status, action) => {
+    const store = new MemoryTransitionStore()
+    store.session = { status, stateVersion: 4, bookModeInitializedAt: null }
+    store.events.push({ eventType: 'historical_event', stateVersion: 3 })
+    store.notices.push({ userId: 'u1', kind: 'historical_notice' })
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action,
+    }, store)).resolves.toEqual({ changed: true, stateVersion: 4 })
+
+    expect(store.calls).toContain(`applyAction:${action.type}`)
+    expect(store.calls).toContain(`applyActionContext:${status}`)
+    expect(store.calls).not.toContain('getRankedScenarios')
+    expect(store.calls).not.toContain('writeEvents')
+    expect(store.calls).not.toContain('writeNotices')
+    expect(store.calls).not.toContain('bumpStateVersion')
+    expect(store.events).toEqual([{ eventType: 'historical_event', stateVersion: 3 }])
+    expect(store.notices).toEqual([{ userId: 'u1', kind: 'historical_notice' }])
+  })
+
+  it.each(['closed', 'frozen'])('allows %s observer to change historical personal status', async (status) => {
+    const store = new MemoryTransitionStore()
+    store.session = { status, stateVersion: 4, bookModeInitializedAt: null }
+    store.roles.set('u1', 'observer')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'change_status', userId: 'u1', bookId: 'b1', status: 'reading' },
+    }, store)).resolves.toEqual({ changed: true, stateVersion: 4 })
+
+    expect(store.calls).not.toContain('getParticipantRole:u1')
+    expect(store.calls).toContain('applyAction:change_status')
+  })
+
+  it('keeps observer lock for personal status changes in an open session', async () => {
+    const store = new MemoryTransitionStore()
+    store.session = { status: 'open', stateVersion: 4, bookModeInitializedAt: new Date() }
+    store.roles.set('u1', 'observer')
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'change_status', userId: 'u1', bookId: 'b1', status: 'reading' },
+    }, store)).rejects.toMatchObject({ code: 'participant_locked' })
+
+    expect(store.calls).toContain('getParticipantRole:u1')
+    expect(store.calls).not.toContain('applyAction:change_status')
+  })
+
+  it('does not extend historical bypass to replace_signup', async () => {
+    const store = new MemoryTransitionStore()
+    store.session = { status: 'closed', stateVersion: 4, bookModeInitializedAt: new Date() }
+
+    await expect(executeMatchingTransition({
+      sessionId: 's1', actor, expectedStateVersion: 4,
+      action: { type: 'replace_signup', userId: 'u1', name: 'Анна', contacts: '@anna', bookIds: ['b1'] },
+    }, store)).rejects.toMatchObject({ code: 'session_frozen' })
+    expect(store.calls).not.toContain('applyAction:replace_signup')
   })
 
   it('allows book choices and leaving after a legacy-imported participant is canonically unassigned', async () => {

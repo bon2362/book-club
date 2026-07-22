@@ -16,6 +16,7 @@ jest.mock('@/lib/db', () => ({
     select: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    insert: jest.fn(),
     transaction: jest.fn(),
   },
 }))
@@ -56,6 +57,10 @@ beforeEach(() => {
   ;(db.select as jest.Mock).mockReturnValue(defaultChain)
   ;(db.update as jest.Mock).mockReturnValue({ set: jest.fn().mockReturnThis(), where: jest.fn().mockResolvedValue(undefined) })
   ;(db.delete as jest.Mock).mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) })
+  ;(db.insert as jest.Mock).mockReturnValue({
+    values: jest.fn().mockReturnThis(),
+    onConflictDoNothing: jest.fn().mockResolvedValue(undefined),
+  })
 })
 
 describe('PATCH /api/admin/signup-books — security & validation', () => {
@@ -127,11 +132,12 @@ describe('PATCH /api/admin/signup-books — happy path', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'b1' }]),
     }
-    // Second select: no priority row
+    // Second select: no priority rows, locked in canonical order.
     const noPriorityChain = {
       from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([]),
+      where: jest.fn().mockReturnValue({
+        orderBy: jest.fn().mockReturnValue({ for: jest.fn().mockResolvedValue([]) }),
+      }),
     }
     ;(db.select as jest.Mock)
       .mockReturnValueOnce(signupChain)
@@ -143,7 +149,7 @@ describe('PATCH /api/admin/signup-books — happy path', () => {
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
     expect(db.update).toHaveBeenCalledTimes(1)
-    expect(db.delete).not.toHaveBeenCalled()
+    expect(db.delete).toHaveBeenCalledTimes(1)
     expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('u1')
   })
 
@@ -157,8 +163,11 @@ describe('PATCH /api/admin/signup-books — happy path', () => {
     }
     const priorityChain = {
       from: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ rank: 2 }]),
+      where: jest.fn().mockReturnValue({
+        orderBy: jest.fn().mockReturnValue({
+          for: jest.fn().mockResolvedValue([{ bookId: 'b1', rank: 2, rankSource: 'manual' }]),
+        }),
+      }),
     }
     ;(db.select as jest.Mock)
       .mockReturnValueOnce(signupChain)
@@ -175,13 +184,11 @@ describe('PATCH /api/admin/signup-books — happy path', () => {
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
-    // update signupBooks + update bookPriorities (re-rank)
-    expect(db.update).toHaveBeenCalledTimes(2)
-    // delete priority row
+    expect(db.update).toHaveBeenCalledTimes(1)
     expect(db.delete).toHaveBeenCalledTimes(1)
   })
 
-  it('returns 200 when status = null (reset) — no priority rerank', async () => {
+  it('moves a stale priority to the end as auto when status = null', async () => {
     mockAuth.mockResolvedValueOnce({ user: { isAdmin: true } })
 
     const signupChain = {
@@ -189,17 +196,38 @@ describe('PATCH /api/admin/signup-books — happy path', () => {
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([{ bookId: 'b1' }]),
     }
-    ;(db.select as jest.Mock).mockReturnValueOnce(signupChain)
+    const rankedChain = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnValue({
+        orderBy: jest.fn().mockReturnValue({
+          for: jest.fn().mockResolvedValue([
+            { bookId: 'b1', rank: 1, rankSource: 'manual' },
+            { bookId: 'b2', rank: 2, rankSource: 'manual' },
+          ]),
+        }),
+      }),
+    }
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce(signupChain)
+      .mockReturnValueOnce(rankedChain)
+    const onConflictDoUpdate = jest.fn().mockResolvedValue(undefined)
+    const insertValues = jest.fn().mockReturnValue({ onConflictDoUpdate })
+    ;(db.insert as jest.Mock).mockReturnValue({ values: insertValues })
 
     const res = await PATCH(makeRequest({ userId: 'u1', bookId: 'b1', status: null }))
     const data = await res.json()
 
     expect(res.status).toBe(200)
     expect(data.ok).toBe(true)
-    // Only updates signupBooks, no priority operations
-    expect(db.update).toHaveBeenCalledTimes(1)
+    expect(db.update).toHaveBeenCalledTimes(2)
     expect(db.delete).not.toHaveBeenCalled()
-    // No second select for priorities (status is null)
-    expect(db.select).toHaveBeenCalledTimes(1)
+    expect(db.select).toHaveBeenCalledTimes(2)
+    expect(db.insert).toHaveBeenCalledTimes(1)
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'u1', bookId: 'b1', rank: 2, rankSource: 'auto',
+    }))
+    expect(onConflictDoUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      set: expect.objectContaining({ rank: 2, rankSource: 'auto' }),
+    }))
   })
 })

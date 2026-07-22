@@ -22,6 +22,13 @@ export async function getActiveMatchingSessionIdForParticipant(userId: string): 
   const [activeSession] = await db
     .select({ id: matchingSessions.id })
     .from(matchingSessions)
+    .innerJoin(
+      matchingSessionParticipants,
+      and(
+        eq(matchingSessionParticipants.sessionId, matchingSessions.id),
+        eq(matchingSessionParticipants.userId, userId),
+      ),
+    )
     .where(inArray(matchingSessions.status, ['open', 'active', 'closed', 'frozen']))
     .orderBy(
       sql`CASE WHEN ${matchingSessions.status} IN ('open', 'active') THEN 0 ELSE 1 END`,
@@ -30,19 +37,5 @@ export async function getActiveMatchingSessionIdForParticipant(userId: string): 
     .limit(1)
 
   if (!activeSession) return null
-
-  const [participant] = await db
-    .select({ userId: matchingSessionParticipants.userId })
-    .from(matchingSessionParticipants)
-    .where(
-      and(
-        eq(matchingSessionParticipants.sessionId, activeSession.id),
-        eq(matchingSessionParticipants.userId, userId),
-      ),
-    )
-    .limit(1)
-
-  if (!participant) return null
-
   return activeSession.id
 }

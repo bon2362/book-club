@@ -802,6 +802,126 @@ describe('AdminPanel — merge users', () => {
   })
 })
 
+describe('AdminPanel — смена статуса книги', () => {
+  const signupBook = {
+    bookId: 'book-1',
+    bookName: 'Книга для статуса',
+    bookAuthor: 'Автор',
+    personalStatus: null,
+    signedAt: '2026-07-20T10:00:00.000Z',
+  }
+
+  function installStatusFetch(
+    statusResponse: { ok: boolean; status: number; error?: string },
+    options: { refreshFails?: boolean } = {},
+  ) {
+    let drawerLoads = 0
+    const initialDetails = { ...mockAdminUserDetails, signupBooks: [signupBook], priorities: [{ bookId: 'book-1', rank: 1, rankSource: 'auto' }] }
+    const updatedDetails = { ...mockAdminUserDetails, signupBooks: [{ ...signupBook, personalStatus: 'reading' }], priorities: [] }
+    ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === '/api/admin/submissions') return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      if (url === '/api/admin/summaries') return Promise.resolve({ ok: true, json: () => Promise.resolve({ summaries: [] }) })
+      if (url === '/api/admin/feedback') return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      if (url === '/api/admin/users') return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUsers }) })
+      if (url === '/api/admin/users/user-old') {
+        drawerLoads += 1
+        if (drawerLoads > 1 && options.refreshFails) return Promise.reject(new Error('browser internals'))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: drawerLoads > 1 ? updatedDetails : initialDetails }) })
+      }
+      if (url === '/api/signup-books/book-1/status?as=user-old' && init?.method === 'PATCH') {
+        return Promise.resolve({
+          ok: statusResponse.ok,
+          status: statusResponse.status,
+          json: () => Promise.resolve(statusResponse.error ? { error: statusResponse.error } : { ok: true }),
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url} ${init?.method ?? 'GET'}`)
+    })
+    return () => drawerLoads
+  }
+
+  it('перечитывает drawer с сервера после успешного изменения', async () => {
+    const drawerLoads = installStatusFetch({ ok: true, status: 200 })
+    render(<AdminPanel {...defaultProps} />)
+
+    fireEvent.click(await screen.findByText('Старый участник'))
+    const drawer = screen.getByRole('dialog')
+    fireEvent.click(await within(drawer).findByRole('button', { name: 'Книга для статуса' }))
+    fireEvent.click(within(drawer).getByTestId('admin-status-option-reading'))
+
+    await waitFor(() => expect(drawerLoads()).toBe(2))
+    expect(await within(drawer).findByText('Читаю')).toBeInTheDocument()
+    expect(within(drawer).queryByTestId('admin-user-action-error')).not.toBeInTheDocument()
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/signup-books/book-1/status?as=user-old',
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ status: 'reading' }) }),
+    )
+  })
+
+  it('показывает причину отказа и не подменяет статус локально', async () => {
+    const drawerLoads = installStatusFetch({ ok: false, status: 409, error: 'participant_locked' })
+    render(<AdminPanel {...defaultProps} />)
+
+    fireEvent.click(await screen.findByText('Старый участник'))
+    const drawer = screen.getByRole('dialog')
+    fireEvent.click(await within(drawer).findByRole('button', { name: 'Книга для статуса' }))
+    fireEvent.click(within(drawer).getByTestId('admin-status-option-reading'))
+
+    expect(await within(drawer).findByRole('alert')).toHaveTextContent('Книга закреплена за участником в текущем матчинге.')
+    expect(drawerLoads()).toBe(1)
+    expect(within(drawer).queryByText('Читаю')).not.toBeInTheDocument()
+  })
+
+  it('отличает успешный PATCH от неудачного последующего refresh', async () => {
+    installStatusFetch({ ok: true, status: 200 }, { refreshFails: true })
+    render(<AdminPanel {...defaultProps} />)
+
+    fireEvent.click(await screen.findByText('Старый участник'))
+    const drawer = screen.getByRole('dialog')
+    fireEvent.click(await within(drawer).findByRole('button', { name: 'Книга для статуса' }))
+    fireEvent.click(within(drawer).getByTestId('admin-status-option-reading'))
+
+    expect(await within(drawer).findByRole('alert')).toHaveTextContent(
+      'Статус сохранён, но не удалось обновить карточку. Закройте и откройте её снова.',
+    )
+    expect(within(drawer).queryByText('browser internals')).not.toBeInTheDocument()
+  })
+
+  it('не позволяет позднему ответу пользователя A заменить уже открытого пользователя B', async () => {
+    let resolveOld!: (value: unknown) => void
+    let resolveNew!: (value: unknown) => void
+    const oldResponse = new Promise(resolve => { resolveOld = resolve })
+    const newResponse = new Promise(resolve => { resolveNew = resolve })
+    ;(global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/admin/users') return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: mockAdminUsers }) })
+      if (url === '/api/admin/users/user-old') return oldResponse
+      if (url === '/api/admin/users/user-new') return newResponse
+      if (url === '/api/admin/submissions') return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      if (url === '/api/admin/summaries') return Promise.resolve({ ok: true, json: () => Promise.resolve({ summaries: [] }) })
+      if (url === '/api/admin/feedback') return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: [] }) })
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+    render(<AdminPanel {...defaultProps} />)
+
+    fireEvent.click(await screen.findByText('Старый участник'))
+    fireEvent.click(screen.getByText('Новый участник'))
+    await act(async () => resolveNew({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: { ...mockAdminUserDetails, user: { ...mockAdminUsers[1], prioritiesSet: false } } }),
+    }))
+    expect(await screen.findByRole('dialog', { name: /Новый участник/ })).toBeInTheDocument()
+
+    await act(async () => resolveOld({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: mockAdminUserDetails }),
+    }))
+    expect(screen.getByRole('dialog', { name: /Новый участник/ })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: /Старый участник/ })).not.toBeInTheDocument()
+  })
+})
+
 describe('AdminPanel — таб-бар', () => {
   it('таб "По книгам" удалён', () => {
     render(<AdminPanel {...defaultProps} byBook={mockByBook} />)

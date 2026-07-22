@@ -113,7 +113,12 @@ export interface MatchingTransitionStore {
   }): Promise<boolean>
   upsertConfirmation(sessionId: string, confirmation: CircleConfirmation): Promise<void>
   deleteConfirmation(sessionId: string, userId: string): Promise<boolean>
-  applyAction(sessionId: string, action: MatchingAction, nextStateVersion: number): Promise<MatchingActionResult>
+  applyAction(
+    sessionId: string,
+    action: MatchingAction,
+    nextStateVersion: number,
+    context: { sessionStatus: string },
+  ): Promise<MatchingActionResult>
   lockCircle(sessionId: string, circle: ReconciliationCircle, stateVersion: number): Promise<void>
   writeEvents(sessionId: string, events: MatchingEventDraft[]): Promise<void>
   writeNotices(sessionId: string, notices: MatchingNoticeDraft[]): Promise<void>
@@ -157,9 +162,6 @@ function requiresActiveParticipant(action: MatchingAction): boolean {
   return ![
     'self_join',
     'admin_add',
-    'change_book',
-    'change_rank',
-    'change_status',
     'replace_signup',
     'reorder_priorities',
     'change_group_size',
@@ -358,18 +360,20 @@ export async function executeMatchingTransition(
     'self_join', 'admin_add', 'leave', 'admin_remove', 'change_book',
     'change_rank', 'change_status', 'replace_signup', 'reorder_priorities',
   ].includes(action.type)
-  const catalogBookAction = [
-    'change_book', 'change_rank', 'change_status', 'replace_signup', 'reorder_priorities',
-  ].includes(action.type)
+  const historicalCatalogMutation = [
+    'change_book', 'change_rank', 'change_status',
+  ].includes(action.type) && ['closed', 'frozen'].includes(session.status)
   const bookAction = canonicalBookAction || sharedBookAction
   const adminBookAction = action.type.startsWith('admin_') || (input.actor.source === 'admin' && sharedBookAction)
   const lifecycleAction = ['close_session', 'reopen_session'].includes(action.type)
-  if (action.type === 'initialize_book_mode') {
+  if (historicalCatalogMutation) {
+    // Catalog changes remain valid after a session ends. The DB executor receives
+    // the lifecycle below so it can preserve historical intents/assignments.
+  } else if (action.type === 'initialize_book_mode') {
     if (session.bookModeInitializedAt) return { changed: false, stateVersion: session.stateVersion }
   } else if (bookAction || lifecycleAction) {
     if (!session.bookModeInitializedAt) throw new MatchingTransitionError('book_mode_unavailable')
-    const closedCatalogMutation = session.status === 'closed' && catalogBookAction
-    if (!adminBookAction && !lifecycleAction && session.status !== 'open' && !closedCatalogMutation) {
+    if (!adminBookAction && !lifecycleAction && session.status !== 'open') {
       throw new MatchingTransitionError('session_frozen')
     }
   } else {
@@ -400,7 +404,7 @@ export async function executeMatchingTransition(
   }
 
   const subjectUserId = participantUserId(action)
-  if (subjectUserId && requiresActiveParticipant(action)) {
+  if (subjectUserId && requiresActiveParticipant(action) && !historicalCatalogMutation) {
     const role = await store.getParticipantRole(input.sessionId, subjectUserId)
     if (role === 'missing') throw new MatchingTransitionError('participant_missing')
     if (role === 'observer') throw new MatchingTransitionError('participant_locked')
@@ -456,8 +460,13 @@ export async function executeMatchingTransition(
     })
     changed = true
   } else {
-    const applied = await store.applyAction(input.sessionId, action, nextStateVersion)
+    const applied = await store.applyAction(input.sessionId, action, nextStateVersion, {
+      sessionStatus: session.status,
+    })
     changed = typeof applied === 'boolean' ? applied : applied.changed
+    if (changed && historicalCatalogMutation) {
+      return { changed: true, stateVersion: session.stateVersion }
+    }
     if (changed) {
       if (typeof applied !== 'boolean' && applied.events.length > 0) {
         events.push(...applied.events.map((event) => ({ ...event, stateVersion: nextStateVersion })))

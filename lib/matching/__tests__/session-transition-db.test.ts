@@ -1,4 +1,5 @@
 import { fetchRankedMatchingScenarios, toRankedReconciliationScenarios } from '../reconciliation-scenarios-db'
+import { shouldEnforceCatalogMatchingLocks } from '../session-transition-db'
 import { fetchMatchingScenarioInput } from '../scenario-input-db'
 import type { MatchingScenario } from '../scenarios'
 import fs from 'fs'
@@ -55,6 +56,16 @@ describe('toRankedReconciliationScenarios', () => {
   })
 })
 
+describe('catalog matching locks by lifecycle', () => {
+  it.each(['open', 'active'])('keeps current-session locks for %s', (status) => {
+    expect(shouldEnforceCatalogMatchingLocks(status)).toBe(true)
+  })
+
+  it.each(['closed', 'frozen'])('preserves historical records instead of enforcing %s locks', (status) => {
+    expect(shouldEnforceCatalogMatchingLocks(status)).toBe(false)
+  })
+})
+
 it('returns only the minimal reconciliation model across the transition boundary', async () => {
   ;(fetchMatchingScenarioInput as jest.Mock).mockResolvedValue({
     participants: ['u1', 'u2', 'u3'].map((userId) => ({ userId, displayName: userId })),
@@ -79,4 +90,6 @@ it('does not couple the transition store to the full presentation overview reade
   const source = fs.readFileSync(path.join(process.cwd(), 'lib/matching/session-transition-db.ts'), 'utf8')
   expect(source).not.toContain("from './scenario-overview-db'")
   expect(source).not.toContain('fetchMatchingScenarioOverview')
+  expect(source).not.toContain('signup.personalStatus === status) return false')
+  expect(source).toContain("return statusChanged || inserted.length > 0")
 })

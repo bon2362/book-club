@@ -317,6 +317,11 @@ export default function AdminPanel({
   const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
   const [userDrawerLoading, setUserDrawerLoading] = useState(false)
   const [userMergeLoading, setUserMergeLoading] = useState(false)
+  const [userActionError, setUserActionError] = useState('')
+  const selectedAdminUserIdRef = useRef<string | null>(null)
+  const drawerRequestIdRef = useRef(0)
+  const statusRequestIdRef = useRef(0)
+  const statusAbortRef = useRef<AbortController | null>(null)
   const [view, setView] = useState<View>(() => parseAdminView(tabParam))
   // Generic transient status message used by various admin actions (e.g. delete-user errors).
   const [syncMsg, setSyncMsg] = useState('')
@@ -431,23 +436,39 @@ export default function AdminPanel({
     })
   }
 
-  async function openUserDrawer(userId: string) {
+  async function loadUserDrawer(userId: string, clearCurrent: boolean) {
+    const requestId = ++drawerRequestIdRef.current
     setSelectedAdminUserId(userId)
-    setSelectedAdminUser(null)
+    selectedAdminUserIdRef.current = userId
+    if (clearCurrent) setSelectedAdminUser(null)
     setUserDrawerLoading(true)
     try {
       const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`)
-      if (!res.ok) return
+      if (!res.ok) throw new Error('Не удалось перечитать карточку пользователя.')
       const d = await res.json()
-      if (d.success) setSelectedAdminUser(d.data)
+      if (!d.success) throw new Error('Не удалось перечитать карточку пользователя.')
+      if (requestId !== drawerRequestIdRef.current || selectedAdminUserIdRef.current !== userId) return false
+      setSelectedAdminUser(d.data)
+      return true
     } finally {
-      setUserDrawerLoading(false)
+      if (requestId === drawerRequestIdRef.current) setUserDrawerLoading(false)
     }
   }
 
+  async function openUserDrawer(userId: string) {
+    setUserActionError('')
+    await loadUserDrawer(userId, true).catch(() => {})
+  }
+
   function closeUserDrawer() {
+    drawerRequestIdRef.current += 1
+    statusRequestIdRef.current += 1
+    statusAbortRef.current?.abort()
+    statusAbortRef.current = null
+    selectedAdminUserIdRef.current = null
     setSelectedAdminUserId(null)
     setSelectedAdminUser(null)
+    setUserActionError('')
   }
 
   async function handleDeleteUser(userId: string, userName: string) {
@@ -506,25 +527,46 @@ export default function AdminPanel({
   }
 
   async function handleChangeStatus(userId: string, bookId: string, status: PersonalBookStatus) {
+    const requestId = ++statusRequestIdRef.current
+    statusAbortRef.current?.abort()
+    const controller = new AbortController()
+    statusAbortRef.current = controller
+    setUserActionError('')
+    let patchSucceeded = false
     try {
-      const res = await fetch('/api/admin/signup-books', {
+      const res = await fetch(`/api/signup-books/${encodeURIComponent(bookId)}/status?as=${encodeURIComponent(userId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, bookId, status }),
+        body: JSON.stringify({ status }),
+        signal: controller.signal,
       })
-      if (!res.ok) return
-      setSelectedAdminUser(prev => {
-        if (!prev || prev.user.id !== userId) return prev
-        const updatedBooks = prev.signupBooks.map(b =>
-          b.bookId === bookId ? { ...b, personalStatus: status } : b,
-        )
-        const updatedPriorities = status !== null
-          ? prev.priorities.filter(p => p.bookId !== bookId)
-          : prev.priorities
-        return { ...prev, signupBooks: updatedBooks, priorities: updatedPriorities }
-      })
-    } catch {
-      // silently ignore
+      if (requestId !== statusRequestIdRef.current || selectedAdminUserIdRef.current !== userId) return
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null
+        const messages: Record<string, string> = {
+          participant_locked: 'Книга закреплена за участником в текущем матчинге.',
+          book_action_forbidden: 'Сначала отмените твёрдый выбор книги в текущем матчинге.',
+          session_frozen: 'Текущая matching-сессия не принимает изменения.',
+          stale_state: 'Состояние матчинга изменилось. Повторите действие.',
+        }
+        setUserActionError(messages[data?.error ?? ''] ?? `Не удалось изменить статус книги (код ${res.status}).`)
+        return
+      }
+      patchSucceeded = true
+      const refreshed = await loadUserDrawer(userId, false)
+      if (!refreshed && selectedAdminUserIdRef.current === userId && requestId === statusRequestIdRef.current) {
+        setUserActionError('Статус сохранён, но не удалось обновить карточку. Закройте и откройте её снова.')
+        return
+      }
+      await loadAdminUsers()
+    } catch (error) {
+      if (requestId !== statusRequestIdRef.current || selectedAdminUserIdRef.current !== userId) return
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setUserActionError(patchSucceeded
+        ? 'Статус сохранён, но не удалось обновить карточку. Закройте и откройте её снова.'
+        : 'Не удалось изменить статус книги: ошибка сети.')
+    } finally {
+      if (requestId === statusRequestIdRef.current) statusAbortRef.current = null
     }
   }
 
@@ -1707,6 +1749,7 @@ export default function AdminPanel({
           await handleMergeUser(selectedAdminUser.user.id, targetUserId, reason)
         }}
         mergeLoading={userMergeLoading}
+        actionError={userActionError}
         onOpenSubmission={(submissionId) => {
           closeUserDrawer()
           setView('submissions')

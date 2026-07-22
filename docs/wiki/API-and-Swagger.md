@@ -48,6 +48,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | POST | `/api/signup` | Записаться на выбранные книги. |
 | GET/PUT | `/api/priorities` | Читать и сохранять приоритеты. |
 | GET/POST | `/api/submissions` | Читать и создавать свои заявки. |
+| PATCH | `/api/signup-books/{bookId}/status` | Изменить личный статус книги; администратор может передать `?as={userId}` для карточки участника. |
 | DELETE | `/api/submissions/{id}` | Удалить свою заявку. |
 | GET/POST | `/api/summaries/by-book/{bookId}` | Читать своё саммари по книге или создать draft для прочитанной книги. |
 | PATCH | `/api/summaries/{id}` | Автосохранить своё draft/rejected саммари. |
