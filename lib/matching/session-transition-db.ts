@@ -42,6 +42,10 @@ import type {
 
 type DbClient = typeof db
 
+export function shouldEnforceCatalogMatchingLocks(sessionStatus: string): boolean {
+  return sessionStatus !== 'closed' && sessionStatus !== 'frozen'
+}
+
 function executeRows<T>(result: unknown): T[] {
   if (result && typeof result === 'object' && 'rows' in result) {
     return (result as { rows: T[] }).rows
@@ -237,6 +241,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     sessionId: string,
     action: MatchingAction,
     nextStateVersion: number,
+    context: { sessionStatus: string },
   ): Promise<MatchingActionResult> {
     if ([
       'initialize_book_mode', 'set_conditional', 'unset_conditional', 'set_hard',
@@ -317,11 +322,11 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         return deleted.length > 0
       }
       case 'change_book':
-        return this.changeBook(sessionId, action.userId, action.bookId, action.operation)
+        return this.changeBook(sessionId, action.userId, action.bookId, action.operation, context.sessionStatus)
       case 'change_rank':
         return this.changeRank(action.userId, action.bookId, action.rank)
       case 'change_status':
-        return this.changeStatus(sessionId, action.userId, action.bookId, action.status)
+        return this.changeStatus(sessionId, action.userId, action.bookId, action.status, context.sessionStatus)
       case 'replace_signup':
         return this.replaceSignup(sessionId, action.userId, action.name, action.contacts, action.bookIds)
       case 'reorder_priorities':
@@ -450,6 +455,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     userId: string,
     bookId: string,
     operation: 'add' | 'remove',
+    sessionStatus: string,
   ): Promise<boolean> {
     if (operation === 'add') {
       const inserted = await this.tx
@@ -470,26 +476,28 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       return inserted.length > 0
     }
 
-    const [assignment] = await this.tx.select({ userId: matchingBookAssignments.userId })
-      .from(matchingBookAssignments).where(and(
-        eq(matchingBookAssignments.sessionId, sessionId),
-        eq(matchingBookAssignments.userId, userId),
-        eq(matchingBookAssignments.bookId, bookId),
-      )).limit(1)
-    if (assignment) throw new MatchingTransitionError('participant_locked')
-    const [intent] = await this.tx.select({ kind: matchingBookIntents.kind })
-      .from(matchingBookIntents).where(and(
-        eq(matchingBookIntents.sessionId, sessionId),
-        eq(matchingBookIntents.userId, userId),
-        eq(matchingBookIntents.bookId, bookId),
-      )).limit(1)
-    if (intent?.kind === 'hard') throw new MatchingTransitionError('book_action_forbidden')
-    if (intent?.kind === 'conditional') {
-      await this.tx.delete(matchingBookIntents).where(and(
-        eq(matchingBookIntents.sessionId, sessionId),
-        eq(matchingBookIntents.userId, userId),
-        eq(matchingBookIntents.bookId, bookId),
-      ))
+    if (shouldEnforceCatalogMatchingLocks(sessionStatus)) {
+      const [assignment] = await this.tx.select({ userId: matchingBookAssignments.userId })
+        .from(matchingBookAssignments).where(and(
+          eq(matchingBookAssignments.sessionId, sessionId),
+          eq(matchingBookAssignments.userId, userId),
+          eq(matchingBookAssignments.bookId, bookId),
+        )).limit(1)
+      if (assignment) throw new MatchingTransitionError('participant_locked')
+      const [intent] = await this.tx.select({ kind: matchingBookIntents.kind })
+        .from(matchingBookIntents).where(and(
+          eq(matchingBookIntents.sessionId, sessionId),
+          eq(matchingBookIntents.userId, userId),
+          eq(matchingBookIntents.bookId, bookId),
+        )).limit(1)
+      if (intent?.kind === 'hard') throw new MatchingTransitionError('book_action_forbidden')
+      if (intent?.kind === 'conditional') {
+        await this.tx.delete(matchingBookIntents).where(and(
+          eq(matchingBookIntents.sessionId, sessionId),
+          eq(matchingBookIntents.userId, userId),
+          eq(matchingBookIntents.bookId, bookId),
+        ))
+      }
     }
 
     const deleted = await this.tx
@@ -598,15 +606,17 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     userId: string,
     bookId: string,
     status: 'reading' | 'read' | null,
+    sessionStatus: string,
   ): Promise<boolean> {
     const [signup] = await this.tx
       .select({ personalStatus: signupBooks.personalStatus })
       .from(signupBooks)
       .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
       .limit(1)
-    if (!signup || signup.personalStatus === status) return false
+    if (!signup) return false
+    const statusChanged = signup.personalStatus !== status
 
-    if (status !== null) {
+    if (status !== null && shouldEnforceCatalogMatchingLocks(sessionStatus)) {
       const [assignment] = await this.tx.select({ userId: matchingBookAssignments.userId })
         .from(matchingBookAssignments).where(and(
           eq(matchingBookAssignments.sessionId, sessionId),
@@ -630,15 +640,19 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       }
     }
 
-    await this.tx
-      .update(signupBooks)
-      .set({ personalStatus: status, personalStatusUpdatedAt: new Date() })
-      .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+    if (statusChanged) {
+      await this.tx
+        .update(signupBooks)
+        .set({ personalStatus: status, personalStatusUpdatedAt: new Date() })
+        .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
+    }
 
     if (status !== null) {
-      await this.tx
+      const deleted = await this.tx
         .delete(bookPriorities)
         .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
+        .returning({ bookId: bookPriorities.bookId })
+      if (deleted.length === 0) return statusChanged
       const remaining = await this.tx
         .select({ bookId: bookPriorities.bookId })
         .from(bookPriorities)
@@ -653,19 +667,20 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
             eq(bookPriorities.bookId, remaining[index].bookId),
           ))
       }
+      return true
     } else {
       // Возврат книги в матчинг: дописать auto-ранг в конец, если его нет.
       const ranked = await this.tx
         .select({ rank: bookPriorities.rank })
         .from(bookPriorities)
         .where(eq(bookPriorities.userId, userId))
-      await this.tx
+      const inserted = await this.tx
         .insert(bookPriorities)
         .values({ userId, bookId, rank: nextRank(ranked.map(r => ({ bookId, rank: r.rank }))), rankSource: 'auto' })
         .onConflictDoNothing()
+        .returning({ bookId: bookPriorities.bookId })
+      return statusChanged || inserted.length > 0
     }
-
-    return true
   }
 
   private async changeRank(userId: string, bookId: string, rank: number | null): Promise<boolean> {

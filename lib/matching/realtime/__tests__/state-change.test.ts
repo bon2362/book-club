@@ -20,6 +20,7 @@ const mockBump = bumpSessionState as jest.Mock
 function selectLimitRows(rows: unknown[]) {
   return {
     from: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     limit: jest.fn().mockResolvedValue(rows),
@@ -29,30 +30,19 @@ function selectLimitRows(rows: unknown[]) {
 describe('broadcastActiveMatchingStateChangeForParticipant', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('does nothing when there is no active matching session', async () => {
-    mockSelect.mockReturnValueOnce(selectLimitRows([]))
+  it('returns null when the user has no membership in any eligible session', async () => {
+    const query = selectLimitRows([])
+    mockSelect.mockReturnValueOnce(query)
 
     const result = await broadcastActiveMatchingStateChangeForParticipant('user-1')
 
     expect(result).toBeNull()
     expect(mockBump).not.toHaveBeenCalled()
+    expect(query.innerJoin).toHaveBeenCalledTimes(1)
   })
 
-  it('does nothing when the user is not a participant', async () => {
-    mockSelect
-      .mockReturnValueOnce(selectLimitRows([{ id: 'session-1' }]))
-      .mockReturnValueOnce(selectLimitRows([]))
-
-    const result = await broadcastActiveMatchingStateChangeForParticipant('user-1')
-
-    expect(result).toBeNull()
-    expect(mockBump).not.toHaveBeenCalled()
-  })
-
-  it('bumps state_version for active session participants', async () => {
-    mockSelect
-      .mockReturnValueOnce(selectLimitRows([{ id: 'session-1' }]))
-      .mockReturnValueOnce(selectLimitRows([{ userId: 'user-1' }]))
+  it('bumps state_version for the current or latest historical session joined by the participant', async () => {
+    mockSelect.mockReturnValueOnce(selectLimitRows([{ id: 'session-1' }]))
 
     const result = await broadcastActiveMatchingStateChangeForParticipant('user-1')
 

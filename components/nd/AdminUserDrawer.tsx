@@ -15,6 +15,7 @@ interface Props {
   onOpenSubmission: (submissionId: string) => void
   onChangeStatus: (bookId: string, status: PersonalBookStatus) => void
   mergeLoading: boolean
+  actionError: string
 }
 
 const sans = 'var(--nd-sans), system-ui, sans-serif'
@@ -160,6 +161,7 @@ export default function AdminUserDrawer({
   onOpenSubmission,
   onChangeStatus,
   mergeLoading,
+  actionError,
 }: Props) {
   const [openMenuBookId, setOpenMenuBookId] = useState<string | null>(null)
   const [mergeTargetUserId, setMergeTargetUserId] = useState('')
@@ -319,6 +321,11 @@ export default function AdminUserDrawer({
         </header>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', fontFamily: sans }}>
+          {actionError && (
+            <p role="alert" data-testid="admin-user-action-error" style={{ color: 'var(--accent)', margin: '0 0 1rem' }}>
+              {actionError}
+            </p>
+          )}
           {loading && <p style={{ color: 'var(--text-secondary)' }}>Загрузка данных…</p>}
           {!loading && !data && <p style={{ color: 'var(--text-muted)' }}>Не удалось загрузить пользователя.</p>}
           {data && user && (

@@ -13,6 +13,7 @@ import {
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { transitionError } from '@/lib/matching/transition-http'
+import { compactRanks, nextRank } from '@/lib/matching/rank-assignment'
 
 const VALID_STATUSES = new Set(['reading', 'read'])
 
@@ -81,24 +82,46 @@ export async function PATCH(req: NextRequest) {
       .set({ personalStatus: status ?? null, personalStatusUpdatedAt: new Date() })
       .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 
-    if (status !== null && status !== undefined) {
-      const [existing] = await tx
-        .select({ rank: bookPriorities.rank })
-        .from(bookPriorities)
-        .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
-        .limit(1)
-
-      if (existing) {
-        await tx
-          .delete(bookPriorities)
-          .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
-
-        await tx
-          .update(bookPriorities)
-          .set({ rank: sql`${bookPriorities.rank} - 1` })
-          .where(and(eq(bookPriorities.userId, userId), gt(bookPriorities.rank, existing.rank)))
+      // Keep the same mandatory-rank invariant as the canonical
+      // PATCH /api/signup-books/:bookId/status path.
+      if (status !== null && status !== undefined) {
+        const existing = await tx
+          .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank, rankSource: bookPriorities.rankSource })
+          .from(bookPriorities)
+          .where(eq(bookPriorities.userId, userId))
+          .orderBy(bookPriorities.bookId)
+          .for('update')
+        const remaining = existing.filter((row) => row.bookId !== bookId)
+        await tx.delete(bookPriorities).where(and(
+          eq(bookPriorities.userId, userId),
+          eq(bookPriorities.bookId, bookId),
+        ))
+        for (const row of compactRanks(remaining)) {
+          await tx.update(bookPriorities)
+            .set({ rank: row.rank, updatedAt: new Date() })
+            .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, row.bookId)))
+        }
+      } else {
+        const ranked = await tx
+          .select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank, rankSource: bookPriorities.rankSource })
+          .from(bookPriorities)
+          .where(eq(bookPriorities.userId, userId))
+          .orderBy(bookPriorities.bookId)
+          .for('update')
+        const remaining = ranked.filter((row) => row.bookId !== bookId)
+        const compacted = compactRanks(remaining)
+        for (const row of compacted) {
+          await tx.update(bookPriorities)
+            .set({ rank: row.rank, updatedAt: new Date() })
+            .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, row.bookId)))
+        }
+        await tx.insert(bookPriorities)
+          .values({ userId, bookId, rank: nextRank(compacted), rankSource: 'auto', updatedAt: new Date() })
+          .onConflictDoUpdate({
+            target: [bookPriorities.userId, bookPriorities.bookId],
+            set: { rank: nextRank(compacted), rankSource: 'auto', updatedAt: new Date() },
+          })
       }
-    }
     },
   )
   await broadcastActiveMatchingStateChangeForParticipant(userId)

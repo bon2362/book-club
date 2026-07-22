@@ -182,6 +182,7 @@ Nightly — явная композиция трёх Playwright projects:
 | `admin.spec.ts` | Администрирование | Редиректы для не-админов |
 | `admin-delete-user.spec.ts` | Администрирование | Удаление пользователя в AdminPanel |
 | `admin-book-status.spec.ts` | Администрирование | Изменение статуса книги, SEC-проверка 403 |
+| `admin-user-book-status.spec.ts` | Администрирование | Смена personal status из карточки участника, повторное открытие drawer и персистентность после `page.reload()` |
 | `book-card.spec.ts` | Каталог книг | Разворачивание описания книги |
 | `search.spec.ts` | Каталог книг | Поиск и фильтрация |
 | `priority-hint.spec.ts` | Каталог книг | Тост с подсказкой о приоритетах |

@@ -3161,6 +3161,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "as",
+            "in": "query",
+            "required": false,
+            "description": "ID пользователя, чей personal status меняется. Разрешён только администратору; actor аудита остаётся текущим администратором.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3869,6 +3878,33 @@
           },
           "401": {
             "description": "Не авторизован"
+          },
+          "403": {
+            "description": "Параметр as передан не администратором"
+          },
+          "409": {
+            "description": "Изменение запрещено ограничением текущей matching-сессии или конфликтом версии",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "session_frozen",
+                        "stale_state",
+                        "participant_locked",
+                        "book_mode_unavailable",
+                        "book_action_forbidden",
+                        "invalid_book_action"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
             "description": "Пользователь не записан на эту книгу"
