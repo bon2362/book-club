@@ -101,8 +101,6 @@ export const epochInputSchema = z
   })
   .strict()
 
-export const timelinePublishSchema = z.object({ published: z.boolean() }).strict()
-
 export type EventTypeInput = z.infer<typeof eventTypeInputSchema>
 export type EventInput = z.infer<typeof eventInputSchema>
 export type EpochInput = z.infer<typeof epochInputSchema>
