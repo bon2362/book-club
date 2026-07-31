@@ -7,6 +7,7 @@ import {
   createViewportTransform,
   dateRangeForEvent,
   estimateEventLabelTextWidth,
+  estimateEventRowWidth,
   finishedIntervalCollisionBox,
   EVENT_DOT_BOX_PX,
   EVENT_LABEL_MAX_TEXT_WIDTH_PX,
@@ -15,6 +16,17 @@ import {
 } from '@/lib/timeline'
 import type { TimelineEventView } from '@/lib/timeline/view-model'
 import { normalizeDataColor } from './data-color'
+import {
+  EVENT_AREA_HEIGHT_PX,
+  EVENT_LANE_PITCH_PX,
+  EVENT_LANE_BASE_PX,
+  MARKER_ROW_HEIGHT_PX,
+  eventAreaHeight,
+  eventBottom,
+  labelMaxWidth,
+  occupiedLaneCount,
+  type LaneOccupant,
+} from './event-area'
 import { formatCanvasDate } from './format-historical-date'
 
 /**
@@ -23,16 +35,7 @@ import { formatCanvasDate } from './format-historical-date'
  * Ручки изменения границ интервала (этап 5) не переносятся.
  */
 
-export const EVENT_LANE_PITCH_PX = 46
-export const EVENT_LANE_BASE_PX = 16
-/** Предел высоты полотна: сколько дорожек раскладка вообще может занять. */
-export const EVENT_AREA_HEIGHT_PX = 380
-/** Ниже этой высоты полотно не сжимается, даже если событий одна дорожка. */
-const EVENT_AREA_MIN_HEIGHT_PX = 120
 const EVENT_HORIZONTAL_CLEARANCE_PX = 12
-const MARKER_ROW_HEIGHT_PX = 20
-
-const eventBottom = (lane: number) => EVENT_LANE_BASE_PX + lane * EVENT_LANE_PITCH_PX
 
 const labelStyle: CSSProperties = {
   fontFamily: 'var(--nd-sans)',
@@ -83,6 +86,17 @@ function markerButtonStyle(x: number, lane: number, selected: boolean): CSSPrope
   }
 }
 
+/** Ряд метки помимо текста: сама метка, два отступа и год. */
+const POINT_ROW_CHROME_PX = 64
+/** Ряд интервала помимо текста: засечка, отступы и диапазон «1618 — 1648». */
+const INTERVAL_ROW_CHROME_PX = 96
+
+const clampedLabelStyle = (maxWidth: number): CSSProperties => ({
+  maxWidth: `${maxWidth}px`,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+})
+
 function Dot({ color, icon, selected }: { color: string; icon: string; selected: boolean }) {
   return (
     <span
@@ -112,6 +126,7 @@ function PointEvent({
   lane,
   label,
   selected,
+  width,
   onSelect,
 }: {
   event: TimelineEventView
@@ -119,13 +134,17 @@ function PointEvent({
   lane: number
   label: string | undefined
   selected: boolean
+  width: number
   onSelect: () => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
+  const maxWidth = labelMaxWidth(x, width, POINT_ROW_CHROME_PX)
   // Подсказка нужна, когда подпись сокращена или её нет вовсе. Она нативная:
   // собственный тултип на React-состоянии залипал после клика — выбор события
   // сдвигает полотно, и элемент уезжает из-под курсора без `pointerleave`.
-  const truncated = label !== event.title || estimateEventLabelTextWidth(event.title) >= EVENT_LABEL_MAX_TEXT_WIDTH_PX
+  const truncated = label !== event.title
+    || estimateEventLabelTextWidth(event.title) >= EVENT_LABEL_MAX_TEXT_WIDTH_PX
+    || estimateEventLabelTextWidth(label) > maxWidth
 
   return (
     <button
@@ -142,7 +161,10 @@ function PointEvent({
       <Dot color={color} icon={event.icon} selected={selected} />
       {label ? (
         <>
-          <span data-testid="timeline-event-label" style={{ ...labelStyle, fontWeight: selected ? 600 : 400 }}>
+          <span
+            data-testid="timeline-event-label"
+            style={{ ...labelStyle, ...clampedLabelStyle(maxWidth), fontWeight: selected ? 600 : 400 }}
+          >
             {label}
           </span>
           <span style={dateStyle}>{formatCanvasDate(event)}</span>
@@ -158,6 +180,7 @@ function IntervalEvent({
   endX,
   lane,
   selected,
+  width,
   onSelect,
 }: {
   event: TimelineEventView
@@ -165,9 +188,14 @@ function IntervalEvent({
   endX: number
   lane: number
   selected: boolean
+  width: number
   onSelect: () => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
+  // Подпись интервала растёт вправо от его начала. У правого края её ужимаем,
+  // а не разворачиваем: раскладка резервирует место справа, и развёрнутая
+  // подпись наезжала бы на соседей.
+  const maxWidth = labelMaxWidth(startX, width, INTERVAL_ROW_CHROME_PX)
 
   return (
     <button
@@ -215,7 +243,10 @@ function IntervalEvent({
           gap: '0.5rem',
         }}
       >
-        <span data-testid="timeline-event-label" style={{ ...labelStyle, fontWeight: selected ? 600 : 400 }}>
+        <span
+          data-testid="timeline-event-label"
+          style={{ ...labelStyle, ...clampedLabelStyle(maxWidth), fontWeight: selected ? 600 : 400 }}
+        >
           {event.title}
         </span>
         <span style={dateStyle}>{formatCanvasDate(event)}</span>
@@ -282,12 +313,28 @@ export default function TimelineEventLayer({
     horizontalClearance: EVENT_HORIZONTAL_CLEARANCE_PX,
   })
   const laneById = new Map(layout.placements.map(({ id, lane }) => [id, lane]))
-  // Полотно занимает столько, сколько заняли дорожки: пустая высота сверху
-  // выглядела бы обрывом ленты.
-  const height = Math.min(
-    EVENT_AREA_HEIGHT_PX,
-    Math.max(EVENT_AREA_MIN_HEIGHT_PX, eventBottom(layout.laneCount) + MARKER_ROW_HEIGHT_PX),
-  )
+
+  // Высота считается только по тому, что попадает на полотно. Раскладка идёт с
+  // запасом за краями (иначе дорожки прыгали бы при прокрутке), и без этого
+  // фильтра события далеко справа задирали высоту до потолка, оставляя сверху
+  // пустоту.
+  const occupants: LaneOccupant[] = [
+    ...intervalBoxes.map((box) => ({
+      lane: laneById.get(box.id) ?? 0,
+      start: box.start,
+      end: box.end,
+    })),
+    ...layout.markers.map((marker) => {
+      const lane = laneById.get(marker.id) ?? 0
+      if (marker.type === 'cluster') {
+        return { lane, start: marker.start, end: marker.end }
+      }
+      const rowWidth = estimateEventRowWidth(marker.label)
+      const head = marker.x - EVENT_DOT_BOX_PX / 2
+      return { lane, start: head, end: head + rowWidth }
+    }),
+  ]
+  const height = eventAreaHeight(occupiedLaneCount(occupants, width))
 
   return (
     <div
@@ -311,6 +358,7 @@ export default function TimelineEventLayer({
               endX={connection.endX}
               lane={lane}
               selected={event.id === selectedId}
+              width={width}
               onSelect={() => onSelect(event.id)}
             />
           </span>
@@ -358,6 +406,7 @@ export default function TimelineEventLayer({
               lane={lane}
               label={marker.label}
               selected={event.id === selectedId}
+              width={width}
               onSelect={() => onSelect(event.id)}
             />
           </span>

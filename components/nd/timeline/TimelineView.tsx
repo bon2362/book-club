@@ -45,11 +45,18 @@ function initialRange(timeline: TimelineViewData): VisibleRange {
   return fitRange(values, 0.15)
 }
 
+/**
+ * Публичная страница всегда открывается «вместив» всё содержимое.
+ *
+ * Сохранённые в базе `viewportStart`/`viewportEnd` для этого не годятся: это
+ * состояние редактора локального приложения, застывшее там, где владелец
+ * прекратил работу. У «Всеобщей истории» оно показывало 4 события из 31 —
+ * человек, открывший присланную ссылку, видел почти пустое полотно.
+ *
+ * Осмысленный стартовый вид владелец сможет задать на этапе 4, когда появится
+ * редактор; до тех пор сохранённые значения на просмотр не влияют.
+ */
 function resolveInitialRange(timeline: TimelineViewData): VisibleRange {
-  const { viewportStart, viewportEnd } = timeline
-  if (viewportStart !== null && viewportEnd !== null && viewportEnd > viewportStart) {
-    return { start: viewportStart, end: viewportEnd }
-  }
   return initialRange(timeline)
 }
 
