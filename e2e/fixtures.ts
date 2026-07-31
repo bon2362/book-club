@@ -210,6 +210,19 @@ type TestTimeline = {
 
 type TestTimelineOverrides = Partial<Pick<TestTimeline, 'title' | 'description' | 'published'>>
 
+/**
+ * Область имён для строк, которые тест создаёт САМ — через админский интерфейс
+ * или админский API. Идентификаторы там выдаёт продукт, поэтому уборка идёт по
+ * префиксу названия.
+ */
+type TimelineAdminScope = {
+  /** Префикс, который тест обязан подставлять в названия. */
+  prefix: string
+  /** Название с префиксом: `scope.name('Тип')`. */
+  name: (suffix: string) => string
+}
+
+
 interface E2EHelpers {
   /**
    * Raw-SQL helper against the e2e Neon branch (process.env.DATABASE_URL).
@@ -284,6 +297,13 @@ interface E2EHelpers {
    * are never touched.
    */
   createTestTimeline: (overrides?: TestTimelineOverrides) => Promise<TestTimeline>
+
+  /**
+   * Префикс имён для админских сценариев Timeline. Всё, что тест заведёт через
+   * интерфейс с этим префиксом (типы, события, эпохи), удаляется в teardown
+   * вместе со своими audit-строками. Существующие данные не трогаются.
+   */
+  timelineAdminScope: TimelineAdminScope
 }
 
 async function patchIntroSection(
@@ -855,6 +875,29 @@ export const test = base.extend<E2EHelpers>({
     }
 
     await use(create)
+  },
+
+  timelineAdminScope: async ({ dbExec }, use, testInfo) => {
+    const prefix = `__e2e_tl_${testInfo.testId.slice(0, 6)}${Math.random().toString(36).slice(2, 8)}__`
+    const like = `${prefix}%`
+
+    // Уборка идёт LIFO, поэтому порядок регистрации обратный порядку удаления:
+    // сперва снимаются audit-строки (пока по названиям ещё можно найти id),
+    // затем события, затем эпохи и в самом конце типы — у типов внешний ключ
+    // ON DELETE RESTRICT, и удалять их можно только после их событий.
+    dbExec.registerCleanup('delete from historical_event_types where title like $1', [like])
+    dbExec.registerCleanup('delete from historical_epochs where title like $1', [like])
+    dbExec.registerCleanup('delete from historical_events where title like $1', [like])
+    dbExec.registerCleanup(
+      `delete from audit_log where entity_id in (
+         select id from historical_events where title like $1
+         union all select id from historical_epochs where title like $1
+         union all select id from historical_event_types where title like $1
+       )`,
+      [like],
+    )
+
+    await use({ prefix, name: (suffix: string) => `${prefix}${suffix}` })
   },
 })
 
