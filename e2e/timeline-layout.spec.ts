@@ -45,6 +45,34 @@ test.describe('Лента времени — геометрия', () => {
     }
   })
 
+  // Дефект: у правого края подпись уходила за полотно и обрезалась
+  // `overflow: hidden`. Теперь ряд разворачивается влево.
+  test('подписи событий не выходят за правый край полотна', async ({
+    page,
+    createTestTimeline,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+
+    await page.goto(timeline.url)
+    const canvas = page.getByTestId('timeline-canvas')
+    await expect(canvas).toBeVisible()
+
+    const canvasBox = await canvas.boundingBox()
+    expect(canvasBox).not.toBeNull()
+
+    const labels = canvas.getByTestId('timeline-event-label')
+    const count = await labels.count()
+    expect(count).toBeGreaterThanOrEqual(1)
+
+    for (let index = 0; index < count; index += 1) {
+      const box = await labels.nth(index).boundingBox()
+      expect(box).not.toBeNull()
+      expect(box!.x).toBeGreaterThanOrEqual(canvasBox!.x - 1)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(canvasBox!.x + canvasBox!.width + 1)
+    }
+  })
+
   test('подпись эпохи остаётся внутри своей полосы', async ({ page, createTestTimeline }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
     const timeline = await createTestTimeline()
