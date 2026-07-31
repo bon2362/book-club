@@ -32,6 +32,12 @@ export const AUDITED_TABLES = [
   'verificationToken',
   'telegram_preauth_tokens',
   'notification_queue',
+  'historical_event_types',
+  'historical_events',
+  'historical_epochs',
+  'timelines',
+  'timeline_events',
+  'timeline_epochs',
 ] as const
 
 export type AuditedTable = (typeof AUDITED_TABLES)[number]

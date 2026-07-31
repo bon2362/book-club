@@ -34,6 +34,7 @@
 
 - [Каталог книг](Books-Catalog)
 - [Саммари книг от участников](Book-Summaries)
+- [Ленты времени](Timelines)
 - [Авторизация и пользователи](Auth-and-Users)
 - [Заявки, записи и приоритеты](Submissions-Signups-and-Priorities)
 - [Панель администратора](Admin-Panel)
