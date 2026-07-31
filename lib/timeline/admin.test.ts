@@ -7,7 +7,6 @@ import {
   epochInputSchema,
   eventInputSchema,
   eventTypeInputSchema,
-  timelinePublishSchema,
 } from './admin'
 
 describe('assertEventDates', () => {
@@ -201,13 +200,6 @@ describe('epochInputSchema', () => {
     })
     expect(parsed.start).toEqual({ year: 800, era: 'BCE' })
     expect(parsed.end).toEqual({ year: 476, era: 'CE' })
-  })
-})
-
-describe('timelinePublishSchema', () => {
-  it('принимает только published', () => {
-    expect(timelinePublishSchema.parse({ published: true })).toEqual({ published: true })
-    expect(timelinePublishSchema.safeParse({ published: true, title: 'x' }).success).toBe(false)
   })
 })
 

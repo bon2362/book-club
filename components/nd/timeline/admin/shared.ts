@@ -135,13 +135,48 @@ export interface AdminEpochRow extends DateColumnsShape {
   imageCaption: string | null
 }
 
-export interface AdminTimelineSummary {
+export interface AdminTimelineDetail {
   id: string
   slug: string
   title: string
   description: string
   published: boolean
+}
+
+export interface AdminTimelineSummary extends AdminTimelineDetail {
   eventCount: number
+}
+
+/** Событие, включённое в ленту: строка справочника плюс заметка этой ленты. */
+export interface AdminTimelineEvent extends AdminEventRow {
+  note: string
+}
+
+/** Эпоха на ленте: строка справочника плюс её оформление на этой ленте. */
+export interface AdminTimelineEpoch extends AdminEpochRow {
+  note: string
+  color: string
+  visible: boolean
+  pinnedLane: number | null
+}
+
+/** Ответ `GET /api/admin/timeline/timelines/[id]/contents`. */
+export interface AdminTimelineContents {
+  timeline: AdminTimelineSummary
+  events: AdminTimelineEvent[]
+  epochs: AdminTimelineEpoch[]
+  availableEvents: AdminEventRow[]
+  availableEpochs: AdminEpochRow[]
+}
+
+/** Даты строки справочника — для сортировки хронологией, а не по названию. */
+export function rowStart(row: {
+  startYear: number
+  startEra: string
+  startMonth: number | null
+  startDay: number | null
+}): HistoricalDate {
+  return makeDate(row.startYear, row.startEra === 'BCE' ? 'BCE' : 'CE', row.startMonth, row.startDay)
 }
 
 // --- Значения форм ---------------------------------------------------------

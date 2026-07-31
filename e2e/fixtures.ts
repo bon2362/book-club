@@ -883,16 +883,19 @@ export const test = base.extend<E2EHelpers>({
 
     // Уборка идёт LIFO, поэтому порядок регистрации обратный порядку удаления:
     // сперва снимаются audit-строки (пока по названиям ещё можно найти id),
-    // затем события, затем эпохи и в самом конце типы — у типов внешний ключ
-    // ON DELETE RESTRICT, и удалять их можно только после их событий.
+    // затем ленты (связи уходят каскадом), затем события, затем эпохи и в самом
+    // конце типы — у типов внешний ключ ON DELETE RESTRICT, и удалять их можно
+    // только после их событий.
     dbExec.registerCleanup('delete from historical_event_types where title like $1', [like])
     dbExec.registerCleanup('delete from historical_epochs where title like $1', [like])
     dbExec.registerCleanup('delete from historical_events where title like $1', [like])
+    dbExec.registerCleanup('delete from timelines where title like $1', [like])
     dbExec.registerCleanup(
       `delete from audit_log where entity_id in (
          select id from historical_events where title like $1
          union all select id from historical_epochs where title like $1
          union all select id from historical_event_types where title like $1
+         union all select id from timelines where title like $1
        )`,
       [like],
     )

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import EpochForm from './EpochForm'
 import EventForm from './EventForm'
 import EventTypeForm from './EventTypeForm'
+import TimelineContents from './TimelineContents'
+import TimelineForm from './TimelineForm'
 import {
   SANS,
   SERIF,
@@ -16,7 +18,6 @@ import {
   errorStyle,
   formatDateLabel,
   formatRangeLabel,
-  microLabelStyle,
   readError,
   rowStyle,
 } from './shared'
@@ -25,11 +26,9 @@ import {
  * Вкладка «Ленты времени» в панели администратора.
  *
  * Четыре списка — события, эпохи, типы и сами ленты — с переключением между
- * ними. Формы вынесены в отдельные компоненты: `AdminBooksCatalog` разросся до
- * полутора тысяч строк ровно потому, что всё жило в одном файле.
- *
- * Сборка подборок (какие события попадают в какую ленту) — этап 5; здесь
- * ленты только публикуются и снимаются с публикации.
+ * ними. Формы и экран сборки вынесены в отдельные компоненты:
+ * `AdminBooksCatalog` разросся до полутора тысяч строк ровно потому, что всё
+ * жило в одном файле.
  */
 
 type Section = 'events' | 'epochs' | 'types' | 'timelines'
@@ -45,6 +44,7 @@ type Editing =
   | { kind: 'event'; row: AdminEventRow | null }
   | { kind: 'epoch'; row: AdminEpochRow | null }
   | { kind: 'type'; row: AdminEventType | null }
+  | { kind: 'timeline'; row: AdminTimelineSummary | null }
   | null
 
 async function loadList<T>(url: string): Promise<T[]> {
@@ -64,6 +64,8 @@ export default function AdminTimelinePanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<Editing>(null)
+  /** Открытый экран состава ленты — id ленты или null. */
+  const [contentsOf, setContentsOf] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -105,6 +107,34 @@ export default function AdminTimelinePanel() {
     await reload()
   }
 
+  async function removeTimeline(timeline: AdminTimelineSummary) {
+    // Подтверждение объясняет, что теряется: сами события и эпохи остаются в
+    // общей базе, уходит только подборка.
+    const confirmed = window.confirm(
+      `Удалить ленту «${timeline.title}»?\n\n` +
+        'События и эпохи останутся в общей базе и на других лентах — ' +
+        'удалится только сама подборка и ссылка на неё.',
+    )
+    if (!confirmed) return
+
+    setError(null)
+    const res = await fetch(`/api/admin/timeline/timelines/${timeline.id}`, { method: 'DELETE' })
+    const message = await readError(res)
+    if (message) { setError(message); return }
+    await reload()
+  }
+
+  if (contentsOf) {
+    return (
+      <div data-testid="admin-timeline-panel">
+        <TimelineContents
+          timelineId={contentsOf}
+          onBack={() => { setContentsOf(null); void reload() }}
+        />
+      </div>
+    )
+  }
+
   if (editing) {
     const back = () => setEditing(null)
     return (
@@ -117,6 +147,9 @@ export default function AdminTimelinePanel() {
         )}
         {editing.kind === 'epoch' && (
           <EpochForm editing={editing.row} onSaved={afterSave} onCancel={back} />
+        )}
+        {editing.kind === 'timeline' && (
+          <TimelineForm editing={editing.row} onSaved={afterSave} onCancel={back} />
         )}
       </div>
     )
@@ -148,24 +181,24 @@ export default function AdminTimelinePanel() {
           </button>
         ))}
 
-        {section !== 'timelines' && (
-          <button
-            type="button"
-            onClick={() =>
-              setEditing(
-                section === 'events'
-                  ? { kind: 'event', row: null }
-                  : section === 'epochs'
-                    ? { kind: 'epoch', row: null }
-                    : { kind: 'type', row: null },
-              )
-            }
-            style={{ ...buttonStyle('primary'), marginLeft: 'auto' }}
-            data-testid="timeline-add"
-          >
-            Добавить
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() =>
+            setEditing(
+              section === 'events'
+                ? { kind: 'event', row: null }
+                : section === 'epochs'
+                  ? { kind: 'epoch', row: null }
+                  : section === 'types'
+                    ? { kind: 'type', row: null }
+                    : { kind: 'timeline', row: null },
+            )
+          }
+          style={{ ...buttonStyle('primary'), marginLeft: 'auto' }}
+          data-testid="timeline-add"
+        >
+          Добавить
+        </button>
       </div>
 
       {error && <p style={errorStyle} role="alert" data-testid="timeline-panel-error">{error}</p>}
@@ -259,7 +292,24 @@ export default function AdminTimelinePanel() {
               data-testid="timeline-timeline-row"
               style={{ ...rowStyle, cursor: 'default' }}
             >
-              <span style={{ flex: 1 }}>{row.title}</span>
+              <button
+                type="button"
+                onClick={() => setContentsOf(row.id)}
+                data-testid="timeline-open-contents"
+                style={{
+                  flex: 1,
+                  textAlign: 'left',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  fontFamily: SANS,
+                  fontSize: '0.85rem',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                }}
+              >
+                {row.title}
+              </button>
               <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>
                 событий: {row.eventCount}
               </span>
@@ -284,6 +334,22 @@ export default function AdminTimelinePanel() {
               >
                 {row.published ? 'Снять с публикации' : 'Опубликовать'}
               </button>
+              <button
+                type="button"
+                onClick={() => setEditing({ kind: 'timeline', row })}
+                data-testid="timeline-edit"
+                style={buttonStyle()}
+              >
+                Править
+              </button>
+              <button
+                type="button"
+                onClick={() => void removeTimeline(row)}
+                data-testid="timeline-delete"
+                style={buttonStyle('danger')}
+              >
+                Удалить
+              </button>
               <Link
                 href={`/timeline/${row.slug}`}
                 data-testid="timeline-public-link"
@@ -293,9 +359,6 @@ export default function AdminTimelinePanel() {
               </Link>
             </div>
           ))}
-          <p style={{ ...microLabelStyle, marginTop: '1rem' }}>
-            Состав лент собирается в локальном приложении — перенос в админку идёт следующим этапом
-          </p>
         </div>
       )}
     </div>
