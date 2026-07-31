@@ -188,6 +188,28 @@ export async function cleanupTrackedAuditRows(
   )
 }
 
+type TestTimelineEvent = {
+  id: string
+  title: string
+  description: string
+}
+
+type TestTimeline = {
+  id: string
+  slug: string
+  title: string
+  description: string
+  published: boolean
+  /** Точечное событие. */
+  pointEvent: TestTimelineEvent
+  /** Событие-интервал. */
+  intervalEvent: TestTimelineEvent
+  epoch: { id: string; title: string }
+  url: string
+}
+
+type TestTimelineOverrides = Partial<Pick<TestTimeline, 'title' | 'description' | 'published'>>
+
 interface E2EHelpers {
   /**
    * Raw-SQL helper against the e2e Neon branch (process.env.DATABASE_URL).
@@ -255,6 +277,13 @@ interface E2EHelpers {
   matchingBooksFixture: MatchingBooksFixture
   /** Open a browser page for a request-only Matching identity on demand. */
   openMatchingPage: (identity: MatchingBooksIdentity) => Promise<Page>
+
+  /**
+   * Create an isolated timeline (own event type, two events and one epoch) in
+   * the e2e Neon branch. Every row is deleted in teardown; existing timelines
+   * are never touched.
+   */
+  createTestTimeline: (overrides?: TestTimelineOverrides) => Promise<TestTimeline>
 }
 
 async function patchIntroSection(
@@ -734,6 +763,98 @@ export const test = base.extend<E2EHelpers>({
       }
       if (teardownErrors.length > 0) throw new AggregateError(teardownErrors, 'matchingBooksFixture teardown failed')
     }
+  },
+
+  createTestTimeline: async ({ dbExec }, use, testInfo) => {
+    let count = 0
+
+    const create: E2EHelpers['createTestTimeline'] = async (overrides) => {
+      const suffix = `${testInfo.testId.slice(0, 6)}${Math.random().toString(36).slice(2, 8)}${count++}`
+      const timelineId = `__e2e_timeline_${suffix}__`
+      const typeId = `__e2e_timeline_type_${suffix}__`
+      const pointId = `__e2e_timeline_point_${suffix}__`
+      const intervalId = `__e2e_timeline_interval_${suffix}__`
+      const epochId = `__e2e_timeline_epoch_${suffix}__`
+      const slug = `e2e-timeline-${suffix}`.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+      const published = overrides?.published ?? true
+      const title = overrides?.title ?? `E2E лента ${suffix}`
+      const description = overrides?.description ?? 'Лента времени, созданная E2E-фикстурой.'
+
+      await dbExec(
+        `insert into historical_event_types (id, title, color, icon) values ($1, $2, '#C0603A', '★')`,
+        [typeId, `E2E тип ${suffix}`],
+      )
+      dbExec.registerCleanup('delete from historical_event_types where id = $1', [typeId])
+
+      const pointEvent: TestTimelineEvent = {
+        id: pointId,
+        title: `E2E точка ${suffix}`,
+        description: `Описание точечного события ${suffix}.`,
+      }
+      await dbExec(
+        `insert into historical_events
+           (id, title, event_type_id, start_year, start_era, ongoing, description)
+         values ($1, $2, $3, 1917, 'CE', false, $4)`,
+        [pointEvent.id, pointEvent.title, typeId, pointEvent.description],
+      )
+      dbExec.registerCleanup('delete from historical_events where id = $1', [pointEvent.id])
+
+      const intervalEvent: TestTimelineEvent = {
+        id: intervalId,
+        title: `E2E интервал ${suffix}`,
+        description: `Описание события-интервала ${suffix}.`,
+      }
+      await dbExec(
+        `insert into historical_events
+           (id, title, event_type_id, start_year, start_era, end_year, end_era, ongoing, description)
+         values ($1, $2, $3, 1914, 'CE', 1918, 'CE', false, $4)`,
+        [intervalEvent.id, intervalEvent.title, typeId, intervalEvent.description],
+      )
+      dbExec.registerCleanup('delete from historical_events where id = $1', [intervalEvent.id])
+
+      const epochTitle = `E2E эпоха ${suffix}`
+      await dbExec(
+        `insert into historical_epochs
+           (id, title, start_year, start_era, end_year, end_era, description)
+         values ($1, $2, 1900, 'CE', 1950, 'CE', 'Описание эпохи.')`,
+        [epochId, epochTitle],
+      )
+      dbExec.registerCleanup('delete from historical_epochs where id = $1', [epochId])
+
+      await dbExec(
+        `insert into timelines (id, slug, title, description, published) values ($1, $2, $3, $4, $5)`,
+        [timelineId, slug, title, description, published],
+      )
+      dbExec.registerCleanup('delete from timelines where id = $1', [timelineId])
+
+      await dbExec(
+        `insert into timeline_events (timeline_id, event_id, note) values ($1, $2, ''), ($1, $3, '')`,
+        [timelineId, pointEvent.id, intervalEvent.id],
+      )
+      await dbExec(
+        `insert into timeline_epochs (timeline_id, epoch_id, color, visible) values ($1, $2, '#2D6A4F', true)`,
+        [timelineId, epochId],
+      )
+      // Связи уходят каскадом вместе с таймлайном и событиями — отдельная
+      // регистрация не нужна, но audit-строки триггеров надо убрать явно.
+      dbExec.registerCleanup('delete from audit_log where entity_id = any($1::text[])', [
+        [timelineId, typeId, pointEvent.id, intervalEvent.id, epochId],
+      ])
+
+      return {
+        id: timelineId,
+        slug,
+        title,
+        description,
+        published,
+        pointEvent,
+        intervalEvent,
+        epoch: { id: epochId, title: epochTitle },
+        url: `/timeline/${slug}`,
+      }
+    }
+
+    await use(create)
   },
 })
 

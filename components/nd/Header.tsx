@@ -123,6 +123,24 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             gap: '1rem',
           }}
         >
+          <Link
+            href="/timeline"
+            prefetch={false}
+            className="nd-header-timeline-link"
+            style={{
+              fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+              fontSize: '0.65rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--text-muted)',
+              textDecoration: 'none',
+              borderBottom: '1px solid var(--border)',
+              padding: '0 0 1px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Лента времени
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"
