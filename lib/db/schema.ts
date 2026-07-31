@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   pgTable, text, timestamp, integer, boolean, primaryKey, foreignKey, index, uniqueIndex, jsonb, check,
+  doublePrecision,
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('user', {
@@ -518,4 +519,111 @@ export const auditLog = pgTable('audit_log', {
   entityIdx: index('audit_log_entity_idx').on(t.entityType, t.entityId, t.occurredAt),
   actorIdx:  index('audit_log_actor_idx').on(t.actorUserId, t.occurredAt),
   timeIdx:   index('audit_log_occurred_at_idx').on(t.occurredAt),
+}))
+
+// ---------------------------------------------------------------------------
+// Timeline (раздел «Лента времени»). Данные перенесены из локального SQLite,
+// подробности — docs/features/timeline.md.
+// ---------------------------------------------------------------------------
+
+export const historicalEventTypes = pgTable('historical_event_types', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  color: text('color').notNull(),
+  icon: text('icon').notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  titleLowerUnique: uniqueIndex('historical_event_types_title_lower_idx').on(sql`lower(${t.title})`),
+}))
+
+export const historicalEvents = pgTable('historical_events', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  eventTypeId: text('event_type_id').notNull()
+    .references(() => historicalEventTypes.id, { onDelete: 'restrict' }),
+  startYear: integer('start_year').notNull(),
+  startEra: text('start_era').notNull(),
+  startMonth: integer('start_month'),
+  startDay: integer('start_day'),
+  endYear: integer('end_year'),
+  endEra: text('end_era'),
+  endMonth: integer('end_month'),
+  endDay: integer('end_day'),
+  ongoing: boolean('ongoing').notNull().default(false),
+  description: text('description').notNull().default(''),
+  imageUrl: text('image_url'),
+  imageCaption: text('image_caption'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  titleIdx: index('historical_events_title_idx').on(t.title),
+  typeIdx: index('historical_events_type_idx').on(t.eventTypeId),
+}))
+
+export const historicalEpochs = pgTable('historical_epochs', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  startYear: integer('start_year').notNull(),
+  startEra: text('start_era').notNull(),
+  startMonth: integer('start_month'),
+  startDay: integer('start_day'),
+  endYear: integer('end_year').notNull(),
+  endEra: text('end_era').notNull(),
+  endMonth: integer('end_month'),
+  endDay: integer('end_day'),
+  description: text('description').notNull().default(''),
+  imageUrl: text('image_url'),
+  imageCaption: text('image_caption'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  titleIdx: index('historical_epochs_title_idx').on(t.title),
+}))
+
+export const timelines = pgTable('timelines', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull().default(''),
+  published: boolean('published').notNull().default(false),
+  viewportStart: doublePrecision('viewport_start'),
+  viewportEnd: doublePrecision('viewport_end'),
+  filterTypeIds: jsonb('filter_type_ids').$type<string[]>().notNull().default([]),
+  epochsVisible: boolean('epochs_visible').notNull().default(true),
+  showAll: boolean('show_all').notNull().default(false),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  slugUnique: uniqueIndex('timelines_slug_unique').on(t.slug),
+  publishedIdx: index('timelines_published_idx').on(t.published),
+}))
+
+export const timelineEvents = pgTable('timeline_events', {
+  timelineId: text('timeline_id').notNull()
+    .references(() => timelines.id, { onDelete: 'cascade' }),
+  eventId: text('event_id').notNull()
+    .references(() => historicalEvents.id, { onDelete: 'cascade' }),
+  note: text('note').notNull().default(''),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.timelineId, t.eventId] }),
+  eventIdx: index('timeline_events_event_idx').on(t.eventId),
+}))
+
+export const timelineEpochs = pgTable('timeline_epochs', {
+  timelineId: text('timeline_id').notNull()
+    .references(() => timelines.id, { onDelete: 'cascade' }),
+  epochId: text('epoch_id').notNull()
+    .references(() => historicalEpochs.id, { onDelete: 'cascade' }),
+  note: text('note').notNull().default(''),
+  color: text('color').notNull(),
+  visible: boolean('visible').notNull().default(true),
+  pinnedLane: integer('pinned_lane'),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.timelineId, t.epochId] }),
+  epochIdx: index('timeline_epochs_epoch_idx').on(t.epochId),
 }))

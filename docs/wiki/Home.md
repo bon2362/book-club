@@ -14,6 +14,7 @@
 - [Авторизация и пользователи](Auth-and-Users)
 - [Каталог книг](Books-Catalog)
 - [Саммари книг от участников](Book-Summaries)
+- [Ленты времени](Timelines)
 - [Панель администратора](Admin-Panel)
 - [Заявки, записи и приоритеты](Submissions-Signups-and-Priorities)
 - [Уведомления и письма](Notifications-and-Email)
