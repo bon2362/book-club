@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import {
   assignEpochLanes,
   createViewportTransform,
@@ -18,7 +17,9 @@ interface Props {
   range: VisibleRange
   width: number
   dragging: boolean
+  hoverId?: string | undefined
   selectedId?: string | undefined
+  onHoverChange: (id: string | null) => void
   onSelect: (id: string) => void
 }
 
@@ -37,10 +38,11 @@ export default function TimelineEpochLayer({
   range,
   width,
   dragging,
+  hoverId,
   selectedId,
+  onHoverChange,
   onSelect,
 }: Props) {
-  const [tooltip, setTooltip] = useState<{ epoch: TimelineEpochView; left: number; top: number } | null>(null)
   const transform = createViewportTransform(range, width)
   const layout = assignEpochLanes(
     epochs.map((epoch) => ({
@@ -75,24 +77,25 @@ export default function TimelineEpochLayer({
         const label = epochLabelPlacement({ left, right, width })
         const lane = laneById.get(epoch.id) ?? 0
         const selected = epoch.id === selectedId
+        const active = epoch.id === hoverId || selected
         const color = normalizeEpochColor(epoch.color)
 
         return (
           <button
             key={epoch.id}
             type="button"
-            className={epoch.isLibrary ? 'tl-library-item' : undefined}
+            className={[
+              'tl-epoch',
+              active ? 'is-on' : '',
+              epoch.isLibrary ? 'tl-library-item' : '',
+            ].filter(Boolean).join(' ')}
             data-testid="timeline-epoch"
             data-epoch-id={epoch.id}
             aria-label={epoch.title}
             aria-pressed={selected}
             onClick={() => onSelect(epoch.id)}
-            onMouseEnter={(mouseEvent) => {
-              if (dragging) return
-              const bounds = mouseEvent.currentTarget.getBoundingClientRect()
-              setTooltip({ epoch, left: bounds.left + bounds.width / 2, top: bounds.top - 10 })
-            }}
-            onMouseLeave={() => setTooltip(null)}
+            onMouseEnter={() => { if (!dragging) onHoverChange(epoch.id) }}
+            onMouseLeave={() => onHoverChange(null)}
             style={{
               position: 'absolute',
               left: `${left}px`,
@@ -112,6 +115,7 @@ export default function TimelineEpochLayer({
             }}
           >
             <span
+              className="tl-epoch-label"
               data-testid="timeline-epoch-label"
               style={{
                 position: 'relative',
@@ -134,27 +138,6 @@ export default function TimelineEpochLayer({
           </button>
         )
       })}
-      {tooltip !== null && !dragging ? (
-        <div
-          role="tooltip"
-          style={{
-            position: 'fixed',
-            zIndex: 20,
-            left: `${tooltip.left}px`,
-            top: `${tooltip.top}px`,
-            maxWidth: '22rem',
-            transform: 'translate(-50%, -100%)',
-            padding: '0.5rem 0.7rem',
-            borderRadius: 'var(--radius-control)',
-            background: 'var(--bg-input)',
-            boxShadow: 'var(--shadow-pop)',
-            pointerEvents: 'none',
-          }}
-        >
-          <div style={{ font: '0.9rem/1.25 var(--nd-serif)', color: 'var(--text)' }}>{tooltip.epoch.title}</div>
-          {tooltip.epoch.isLibrary ? <div style={{ marginTop: '0.35rem', font: '0.68rem/1.2 var(--nd-sans)', color: 'var(--accent)' }}>Есть в базе · клик — прикрепить</div> : null}
-        </div>
-      ) : null}
     </div>
   )
 }

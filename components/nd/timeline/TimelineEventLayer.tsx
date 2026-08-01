@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import {
   createViewportTransform,
   dateRangeForEvent,
@@ -43,26 +43,24 @@ const dateStyle: CSSProperties = {
 }
 
 /** Вертикальный волосок от метки события к оси лет. */
-function Connector({ x, lane, selected, ghost = false }: { x: number; lane: number; selected: boolean; ghost?: boolean }) {
+function Connector({ x, lane, active, ghost = false }: { x: number; lane: number; active: boolean; ghost?: boolean }) {
   return (
     <span
       aria-hidden="true"
+      className={`tl-connector${active ? ' is-on' : ''}`}
       style={{
         position: 'absolute',
         left: `${x}px`,
         bottom: 0,
-        width: '1px',
         height: `${eventBottom(lane)}px`,
-        background: selected ? 'var(--accent)' : 'var(--tl-connector)',
-        backgroundImage: ghost ? 'linear-gradient(to bottom, var(--tl-connector) 50%, transparent 50%)' : 'none',
+        backgroundImage: ghost && !active ? 'linear-gradient(to bottom, var(--tl-connector) 50%, transparent 50%)' : 'none',
         backgroundSize: ghost ? '1px 4px' : 'auto',
-        opacity: selected ? 0.55 : 1,
       }}
     />
   )
 }
 
-function markerButtonStyle(x: number, lane: number, selected: boolean): CSSProperties {
+function markerButtonStyle(x: number, lane: number, active: boolean): CSSProperties {
   return {
     position: 'absolute',
     left: `${x - EVENT_MARKER_SIZE_PX / 2}px`,
@@ -73,25 +71,24 @@ function markerButtonStyle(x: number, lane: number, selected: boolean): CSSPrope
     border: 'none',
     background: 'none',
     cursor: 'pointer',
-    zIndex: selected ? 2 : 1,
+    zIndex: active ? 2 : 1,
   }
 }
 
-function Dot({ color, selected, ghost = false }: { color: string; selected: boolean; ghost?: boolean }) {
+function Dot({ color, active, ghost = false }: { color: string; active: boolean; ghost?: boolean }) {
   return (
     <span
       aria-hidden="true"
+      className="tl-dot"
       style={{
         flexShrink: 0,
         width: `${EVENT_MARKER_SIZE_PX}px`,
         height: `${EVENT_MARKER_SIZE_PX}px`,
         borderRadius: '50%',
         background: ghost ? 'var(--bg)' : color,
-        boxShadow: selected
-          ? '0 0 0 2px var(--bg), 0 0 0 3px var(--text)'
-          : ghost
-            ? `inset 0 0 0 1px ${color}, 0 0 0 3px var(--bg)`
-            : '0 0 0 3px var(--bg)',
+        boxShadow: ghost
+          ? `inset 0 0 0 1px ${color}, 0 0 0 3px var(${active ? '--bg-tag' : '--bg'})`
+          : `0 0 0 3px var(${active ? '--bg-tag' : '--bg'})`,
       }}
     >
     </span>
@@ -103,6 +100,8 @@ function PointEvent({
   x,
   lane,
   mode,
+  dragging,
+  active,
   selected,
   onSelect,
   onHover,
@@ -111,28 +110,36 @@ function PointEvent({
   x: number
   lane: number
   mode: 'label' | 'dot'
+  dragging: boolean
+  active: boolean
   selected: boolean
   onSelect: () => void
-  onHover: (event: TimelineEventView | null, element?: HTMLElement) => void
+  onHover: (id: string | null) => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
   return (
     <button
       type="button"
-      className={event.isLibrary ? 'tl-library-item' : undefined}
+      className={[
+        'tl-marker',
+        mode === 'dot' ? 'is-bare' : '',
+        active ? 'is-on' : '',
+        event.isLibrary ? 'tl-library-item' : '',
+      ].filter(Boolean).join(' ')}
       data-testid="timeline-event"
       data-event-id={event.id}
       data-shape="point"
       aria-label={event.title}
       aria-pressed={selected}
       onClick={onSelect}
-      onMouseEnter={(mouseEvent) => onHover(event, mouseEvent.currentTarget)}
+      onMouseEnter={() => { if (!dragging) onHover(event.id) }}
       onMouseLeave={() => onHover(null)}
-      style={{ ...markerButtonStyle(x, lane, selected), opacity: event.isLibrary ? 0.42 : 1 }}
+      style={{ ...markerButtonStyle(x, lane, active), opacity: event.isLibrary ? 0.42 : 1 }}
     >
-      <Dot color={color} selected={selected} ghost={event.isLibrary} />
+      <Dot color={color} active={active} ghost={event.isLibrary} />
       {mode === 'label' ? (
         <span
+          className="tl-marker-row"
           style={{
             position: 'absolute',
             top: '50%',
@@ -144,12 +151,13 @@ function PointEvent({
           }}
         >
           <span
+            className="tl-label"
             data-testid="timeline-event-label"
-            style={{ ...labelStyle, fontWeight: selected ? 600 : 400 }}
+            style={labelStyle}
           >
             {event.title}
           </span>
-          <span style={dateStyle}>{formatCanvasDate(event)}</span>
+          <span className="tl-date" style={dateStyle}>{formatCanvasDate(event)}</span>
         </span>
       ) : null}
     </button>
@@ -161,6 +169,8 @@ function IntervalEvent({
   startX,
   endX,
   lane,
+  dragging,
+  active,
   selected,
   labelX,
   labelled,
@@ -171,25 +181,31 @@ function IntervalEvent({
   startX: number
   endX: number
   lane: number
+  dragging: boolean
+  active: boolean
   selected: boolean
   labelX: number
   labelled: boolean
   onSelect: () => void
-  onHover: (event: TimelineEventView | null, element?: HTMLElement) => void
+  onHover: (id: string | null) => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
 
   return (
     <button
       type="button"
-      className={event.isLibrary ? 'tl-library-item' : undefined}
+      className={[
+        'tl-span',
+        active ? 'is-on' : '',
+        event.isLibrary ? 'tl-library-item' : '',
+      ].filter(Boolean).join(' ')}
       data-testid="timeline-event"
       data-event-id={event.id}
       data-shape="interval"
       aria-label={event.title}
       aria-pressed={selected}
       onClick={onSelect}
-      onMouseEnter={(mouseEvent) => onHover(event, mouseEvent.currentTarget)}
+      onMouseEnter={() => { if (!dragging) onHover(event.id) }}
       onMouseLeave={() => onHover(null)}
       style={{
         position: 'absolute',
@@ -202,33 +218,28 @@ function IntervalEvent({
         background: 'none',
         cursor: 'pointer',
         textAlign: 'left',
-        zIndex: selected ? 2 : 1,
+        zIndex: active ? 2 : 1,
         opacity: event.isLibrary ? 0.42 : 1,
       }}
     >
       {/* Отрезок от начала к концу — линией цвета типа, без заливки блока. */}
-      {selected ? (
-        <span
-          aria-hidden="true"
-          style={{ position: 'absolute', inset: '-2px 0 0', background: color, opacity: 0.1 }}
-        />
-      ) : null}
       <span
         aria-hidden="true"
+        className="tl-span-line"
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
           bottom: 0,
-          height: selected ? '3px' : '2px',
           background: event.isLibrary ? 'transparent' : color,
           borderTop: event.isLibrary ? `1px dashed ${color}` : 'none',
         }}
       />
-      <span aria-hidden="true" style={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
-      <span aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
+      <span aria-hidden="true" className="tl-notch" style={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
+      <span aria-hidden="true" className="tl-notch" style={{ position: 'absolute', right: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
       {labelled ? (
         <span
+          className="tl-span-row"
           style={{
             position: 'absolute',
             left: `${labelX - startX}px`,
@@ -239,12 +250,13 @@ function IntervalEvent({
           }}
         >
           <span
+            className="tl-label"
             data-testid="timeline-event-label"
-            style={{ ...labelStyle, fontWeight: selected ? 600 : 400 }}
+            style={labelStyle}
           >
             {event.title}
           </span>
-          <span style={dateStyle}>{formatCanvasDate(event)}</span>
+          <span className="tl-date" style={dateStyle}>{formatCanvasDate(event)}</span>
         </span>
       ) : null}
     </button>
@@ -258,7 +270,9 @@ interface Props {
   width: number
   height: number
   dragging: boolean
+  hoverId?: string | undefined
   selectedId?: string | undefined
+  onHoverChange: (id: string | null) => void
   onSelect: (id: string) => void
   onCluster: (range: { start: number; end: number }) => void
 }
@@ -306,11 +320,12 @@ export default function TimelineEventLayer({
   width,
   height,
   dragging,
+  hoverId,
   selectedId,
+  onHoverChange,
   onSelect,
   onCluster,
 }: Props) {
-  const [tooltip, setTooltip] = useState<{ event: TimelineEventView; left: number; top: number } | null>(null)
   const measureText = useMemo(() => createTextMeasurer(), [])
   const transform = createViewportTransform(range, width)
   const eventById = new Map(events.map((event) => [event.id, event]))
@@ -340,22 +355,46 @@ export default function TimelineEventLayer({
     labelFont: EVENT_LABEL_FONT,
     dateFont: EVENT_DATE_FONT,
   })
-
-  function showTooltip(event: TimelineEventView | null, element?: HTMLElement): void {
-    if (event === null || element === undefined || dragging) {
-      setTooltip(null)
-      return
-    }
-    const bounds = element.getBoundingClientRect()
-    setTooltip({ event, left: bounds.left + bounds.width / 2, top: bounds.top - 10 })
-  }
+  const activeAxisDots = [
+    ...layout.markers.flatMap((marker) => {
+      const event = eventById.get(marker.id)
+      if (
+        event === undefined ||
+        !visibleEventIds.has(marker.id) ||
+        !marker.intersectsCanvas ||
+        (event.id !== hoverId && event.id !== selectedId)
+      ) return []
+      return [{ key: `marker-${event.id}`, x: marker.x, color: normalizeDataColor(event.color) }]
+    }),
+    ...layout.clusters.flatMap((cluster) => {
+      const visibleCluster = visibleClusterGeometry(
+        cluster.memberIds,
+        visibleEventIds,
+        eventXById,
+        width,
+      )
+      if (
+        visibleCluster === null ||
+        !visibleCluster.intersectsCanvas ||
+        visibleCluster.memberIds.length !== 1
+      ) return []
+      const event = eventById.get(visibleCluster.memberIds[0]!)
+      if (event === undefined || (event.id !== hoverId && event.id !== selectedId)) return []
+      return [{
+        key: `cluster-${cluster.id}`,
+        x: visibleCluster.x,
+        color: normalizeDataColor(event.color),
+      }]
+    }),
+  ]
 
   return (
-    <div
-      aria-label="События"
-      data-testid="timeline-events"
-      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
-    >
+    <>
+      <div
+        aria-label="События"
+        data-testid="timeline-events"
+        style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
+      >
       {layout.spans.map((placement) => {
         const event = eventById.get(placement.id)
         if (
@@ -365,22 +404,39 @@ export default function TimelineEventLayer({
         ) return null
         const startVisible = placement.startX >= 0 && placement.startX <= width
         const endVisible = placement.endX >= 0 && placement.endX <= width
+        const active = event.id === hoverId || event.id === selectedId
+        const color = normalizeDataColor(event.color)
         return (
           <span key={event.id}>
-            {startVisible ? <Connector x={placement.startX} lane={placement.lane} selected={event.id === selectedId} ghost={event.isLibrary} /> : null}
+            {active ? (
+              <span
+                aria-hidden="true"
+                className="tl-span-area"
+                data-testid="timeline-span-area"
+                style={{
+                  left: `${placement.startX}px`,
+                  width: `${Math.max(placement.endX - placement.startX, 4)}px`,
+                  height: `${eventBottom(placement.lane)}px`,
+                  background: color,
+                }}
+              />
+            ) : null}
+            {startVisible ? <Connector x={placement.startX} lane={placement.lane} active={active} ghost={event.isLibrary} /> : null}
             {!event.ongoing && endVisible ? (
-              <Connector x={placement.endX} lane={placement.lane} selected={event.id === selectedId} ghost={event.isLibrary} />
+              <Connector x={placement.endX} lane={placement.lane} active={active} ghost={event.isLibrary} />
             ) : null}
             <IntervalEvent
               event={event}
               startX={placement.startX}
               endX={placement.endX}
               lane={placement.lane}
+              dragging={dragging}
               labelX={placement.labelX}
               labelled={placement.labelled}
+              active={active}
               selected={event.id === selectedId}
               onSelect={() => onSelect(event.id)}
-              onHover={showTooltip}
+              onHover={onHoverChange}
             />
           </span>
         )
@@ -393,17 +449,20 @@ export default function TimelineEventLayer({
           !visibleEventIds.has(marker.id) ||
           !marker.intersectsCanvas
         ) return null
+        const active = event.id === hoverId || event.id === selectedId
         return (
           <span key={event.id}>
-            <Connector x={marker.x} lane={marker.lane} selected={event.id === selectedId} ghost={event.isLibrary} />
+            <Connector x={marker.x} lane={marker.lane} active={active} ghost={event.isLibrary} />
             <PointEvent
               event={event}
               x={marker.x}
               lane={marker.lane}
               mode={marker.mode}
+              dragging={dragging}
+              active={active}
               selected={event.id === selectedId}
               onSelect={() => onSelect(event.id)}
-              onHover={showTooltip}
+              onHover={onHoverChange}
             />
           </span>
         )
@@ -420,11 +479,12 @@ export default function TimelineEventLayer({
         if (visibleCluster.memberIds.length === 1) {
           const event = eventById.get(visibleCluster.memberIds[0]!)
           if (event === undefined) return null
+          const active = event.id === hoverId || event.id === selectedId
           return <span key={cluster.id}>
             <Connector
               x={visibleCluster.x}
               lane={cluster.lane}
-              selected={event.id === selectedId}
+              active={active}
               ghost={event.isLibrary}
             />
             <PointEvent
@@ -432,15 +492,17 @@ export default function TimelineEventLayer({
               x={visibleCluster.x}
               lane={cluster.lane}
               mode="dot"
+              dragging={dragging}
+              active={active}
               selected={event.id === selectedId}
               onSelect={() => onSelect(event.id)}
-              onHover={showTooltip}
+              onHover={onHoverChange}
             />
           </span>
         }
 
         return <span key={cluster.id}>
-          <Connector x={visibleCluster.x} lane={cluster.lane} selected={false} />
+          <Connector x={visibleCluster.x} lane={cluster.lane} active={false} />
           <button
             type="button"
             data-testid="timeline-cluster"
@@ -467,32 +529,16 @@ export default function TimelineEventLayer({
           </button>
         </span>
       })}
-      {tooltip !== null && !dragging ? (
-        <div
-          role="tooltip"
-          style={{
-            position: 'fixed',
-            zIndex: 20,
-            left: `${tooltip.left}px`,
-            top: `${tooltip.top}px`,
-            maxWidth: '22rem',
-            transform: 'translate(-50%, -100%)',
-            padding: '0.5rem 0.7rem',
-            borderRadius: 'var(--radius-control)',
-            background: 'var(--bg-input)',
-            boxShadow: 'var(--shadow-pop)',
-            pointerEvents: 'none',
-          }}
-        >
-          <div style={{ font: '0.9rem/1.25 var(--nd-serif)', color: 'var(--text)' }}>
-            <span aria-hidden="true">{tooltip.event.icon} </span>{tooltip.event.title}
-          </div>
-          <div style={{ marginTop: '0.15rem', font: '0.68rem/1 var(--nd-mono)', color: 'var(--text-muted)' }}>
-            {formatCanvasDate(tooltip.event)}
-          </div>
-          {tooltip.event.isLibrary ? <div style={{ marginTop: '0.35rem', font: '0.68rem/1.2 var(--nd-sans)', color: 'var(--accent)' }}>Есть в базе · клик — прикрепить</div> : null}
-        </div>
-      ) : null}
-    </div>
+      </div>
+      {activeAxisDots.map((dot) => (
+        <span
+          key={dot.key}
+          aria-hidden="true"
+          className="tl-axis-dot"
+          data-testid="timeline-axis-dot"
+          style={{ left: `${dot.x}px`, background: dot.color }}
+        />
+      ))}
+    </>
   )
 }

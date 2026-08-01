@@ -151,6 +151,76 @@
   cursor: grabbing;
 }
 
+/* Timeline hover and selection share one geometry-neutral state. */
+.tl-marker-row::before,
+.tl-span-row::before {
+  content: '';
+  position: absolute;
+  inset: -5px -8px;
+  background: var(--bg-tag);
+  opacity: 0;
+  pointer-events: none;
+}
+.tl-marker.is-on .tl-marker-row::before,
+.tl-span.is-on .tl-span-row::before {
+  opacity: 1;
+}
+.tl-label,
+.tl-date,
+.tl-dot,
+.tl-notch {
+  position: relative;
+}
+.tl-connector {
+  width: 1px;
+  background: var(--tl-connector);
+}
+.tl-connector.is-on {
+  width: 2px;
+  margin-left: -0.5px;
+  background: var(--tl-axis);
+}
+.tl-axis-dot {
+  position: absolute;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.tl-span-area {
+  position: absolute;
+  bottom: 0;
+  opacity: 0.09;
+  pointer-events: none;
+}
+.tl-span-line {
+  height: 2px;
+}
+.tl-span.is-on .tl-span-line {
+  height: 3px;
+}
+.tl-epoch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+}
+.tl-epoch:hover::after {
+  opacity: 0.06;
+}
+.tl-epoch.is-on::after {
+  opacity: 0.09;
+}
+.tl-epoch-label {
+  z-index: 1;
+}
+
 .tl-chip:hover {
   background: var(--surface-soft) !important;
 }
