@@ -34,6 +34,38 @@ async function expectEventLabelsNotToOverlap(canvas: Locator): Promise<void> {
   }
 }
 
+interface EventLabelBox {
+  text: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+async function eventLabelBoxes(canvas: Locator): Promise<EventLabelBox[]> {
+  return canvas.getByTestId('timeline-event-label').evaluateAll((labels) => labels
+    .map((label) => {
+      const box = label.getBoundingClientRect()
+      return {
+        text: label.textContent ?? '',
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      }
+    })
+    .sort((left, right) => left.text.localeCompare(right.text)))
+}
+
+function expectSameLabelPositions(before: EventLabelBox[], after: EventLabelBox[]): void {
+  expect(after).toHaveLength(before.length)
+  before.forEach((box, index) => {
+    expect(after[index]?.text).toBe(box.text)
+    expect(after[index]?.x).toBeCloseTo(box.x, 4)
+    expect(after[index]?.y).toBeCloseTo(box.y, 4)
+  })
+}
+
 test.describe('Лента времени — геометрия', () => {
   test('подписи соседних событий не накладываются друг на друга', async ({
     page,
@@ -50,6 +82,162 @@ test.describe('Лента времени — геометрия', () => {
     await page.getByRole('button', { name: 'Приблизить' }).click()
     await page.getByRole('button', { name: 'Приблизить' }).click()
     await expectEventLabelsNotToOverlap(canvas)
+  })
+
+  test('панорамирование сдвигает все подписи одинаково и не меняет дорожки', async ({
+    page,
+    createTestTimeline,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+    await page.goto(timeline.url)
+
+    const canvas = page.getByTestId('timeline-canvas')
+    await expect(canvas).toBeVisible()
+    const before = await eventLabelBoxes(canvas)
+    expect(before).toHaveLength(2)
+
+    await canvas.hover()
+    await page.mouse.wheel(240, 0)
+    await expect.poll(async () => (await eventLabelBoxes(canvas))[0]?.x).not.toBe(before[0]?.x)
+    const after = await eventLabelBoxes(canvas)
+
+    expect(after).toHaveLength(before.length)
+    const shifts = before.map((box, index) => after[index]!.x - box.x)
+    shifts.forEach((shift) => expect(shift).toBeCloseTo(shifts[0]!, 4))
+    before.forEach((box, index) => expect(after[index]?.y).toBeCloseTo(box.y, 4))
+  })
+
+  test('переключение типа не двигает подписи оставшегося типа', async ({
+    page,
+    createTestTimeline,
+    loginAsAdmin,
+    timelineAdminScope,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+    await loginAsAdmin()
+
+    const secondTypeTitle = timelineAdminScope.name('Второй тип')
+    const typeResponse = await page.request.post('/api/admin/timeline/event-types', {
+      data: { title: secondTypeTitle, color: '#57795F', icon: '◆' },
+    })
+    expect(typeResponse.ok()).toBe(true)
+    const typeId = (await typeResponse.json()).data.id as string
+    const patchResponse = await page.request.patch(
+      `/api/admin/timeline/events/${timeline.pointEvent.id}`,
+      {
+        data: {
+          title: timeline.pointEvent.title,
+          eventTypeId: typeId,
+          start: { year: 1917, era: 'CE', month: null, day: null },
+          end: null,
+          ongoing: false,
+          description: timeline.pointEvent.description,
+          imageUrl: null,
+          imageCaption: null,
+        },
+      },
+    )
+    expect(patchResponse.ok()).toBe(true)
+
+    await page.goto(timeline.url)
+    const canvas = page.getByTestId('timeline-canvas')
+    const interval = canvas.getByRole('button', { name: timeline.intervalEvent.title })
+    const intervalLabel = interval.getByTestId('timeline-event-label')
+    const before = await intervalLabel.boundingBox()
+    expect(before).not.toBeNull()
+
+    const secondTypeChip = page
+      .getByTestId('timeline-legend')
+      .locator('button.tl-chip')
+      .filter({ hasText: secondTypeTitle })
+    await expect(secondTypeChip).toHaveCount(1)
+    await secondTypeChip.click()
+    await expect(canvas.getByRole('button', { name: timeline.pointEvent.title })).toHaveCount(0)
+    const after = await intervalLabel.boundingBox()
+
+    expect(after).not.toBeNull()
+    expect(after!.x).toBeCloseTo(before!.x, 4)
+    expect(after!.y).toBeCloseTo(before!.y, 4)
+  })
+
+  test('переключение эпох не двигает ось и подписи событий', async ({
+    page,
+    createTestTimeline,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+    await page.goto(timeline.url)
+
+    const canvas = page.getByTestId('timeline-canvas')
+    const beforeLabels = await eventLabelBoxes(canvas)
+    const beforeRuler = await page.getByTestId('timeline-ruler').boundingBox()
+    const beforeEpochLayer = await page.getByTestId('timeline-epochs').boundingBox()
+    expect(beforeRuler).not.toBeNull()
+    expect(beforeEpochLayer).not.toBeNull()
+
+    await page.getByRole('button', { name: 'Эпохи 1' }).click()
+    await expect(page.getByTestId('timeline-epoch')).toHaveCount(0)
+    const afterLabels = await eventLabelBoxes(canvas)
+    const afterRuler = await page.getByTestId('timeline-ruler').boundingBox()
+    const afterEpochLayer = await page.getByTestId('timeline-epochs').boundingBox()
+
+    expectSameLabelPositions(beforeLabels, afterLabels)
+    expect(afterRuler?.y).toBeCloseTo(beforeRuler!.y, 4)
+    expect(afterEpochLayer?.height).toBeCloseTo(beforeEpochLayer!.height, 4)
+  })
+
+  test('изменение масштаба вправе менять координаты подписей', async ({
+    page,
+    createTestTimeline,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+    await page.goto(timeline.url)
+
+    const canvas = page.getByTestId('timeline-canvas')
+    const before = await eventLabelBoxes(canvas)
+    await page.getByRole('button', { name: 'Приблизить' }).click()
+    await expect.poll(async () => (await eventLabelBoxes(canvas))[0]?.x).not.toBe(before[0]?.x)
+
+    expect(await eventLabelBoxes(canvas)).not.toEqual(before)
+  })
+
+  test('полностью ушедшие за край события отсутствуют в DOM', async ({
+    page,
+    createTestTimeline,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+    await page.goto(timeline.url)
+
+    const canvas = page.getByTestId('timeline-canvas')
+    const events = canvas.getByTestId('timeline-event')
+    const pointEvent = canvas.getByRole('button', { name: timeline.pointEvent.title })
+    const canvasBox = await canvas.boundingBox()
+    expect(canvasBox).not.toBeNull()
+    await expect(events).toHaveCount(2)
+    await canvas.hover()
+
+    let pointIsPastLeftEdge = false
+    for (let step = 0; step < 30; step += 1) {
+      await page.mouse.wheel(20, 0)
+      const pointBox = await pointEvent.boundingBox()
+      if (pointBox !== null && pointBox.x + pointBox.width < canvasBox!.x) {
+        pointIsPastLeftEdge = true
+        break
+      }
+    }
+
+    expect(pointIsPastLeftEdge).toBe(true)
+    const visibleLabelBox = await pointEvent.getByTestId('timeline-event-label').boundingBox()
+    expect(visibleLabelBox).not.toBeNull()
+    expect(visibleLabelBox!.x + visibleLabelBox!.width).toBeGreaterThan(canvasBox!.x)
+
+    await page.mouse.wheel(2400, 0)
+
+    await expect(events).toHaveCount(0)
   })
 
   test('подпись эпохи остаётся внутри своей полосы', async ({ page, createTestTimeline }) => {
