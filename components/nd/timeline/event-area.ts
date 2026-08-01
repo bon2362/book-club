@@ -9,8 +9,8 @@ export const EVENT_LANE_BASE_PX = 10
 export const EVENT_LANE_TOP_RESERVE_PX = 6
 export const MARKER_ROW_HEIGHT_PX = 20
 
-export const eventBottom = (lane: number): number =>
-  EVENT_LANE_BASE_PX + lane * EVENT_LANE_PITCH_PX
+export const eventBottom = (lane: number, pitch = EVENT_LANE_PITCH_PX): number =>
+  EVENT_LANE_BASE_PX + lane * pitch
 
 export interface LaneOccupant {
   lane: number
@@ -40,6 +40,15 @@ export function eventLaneCapacity(height: number): number {
   return Math.max(
     1,
     Math.floor((height - EVENT_LANE_BASE_PX - EVENT_LANE_TOP_RESERVE_PX) / EVENT_LANE_PITCH_PX),
+  )
+}
+
+/** Раскрывает занятые дорожки по свободной высоте, не сжимая и не разрежая их чрезмерно. */
+export function eventLanePitch(height: number, laneCount: number): number {
+  const availablePitch = (height - EVENT_LANE_BASE_PX - 22) / Math.max(laneCount, 1)
+  return Math.min(
+    EVENT_LANE_PITCH_PX * 1.8,
+    Math.max(EVENT_LANE_PITCH_PX, availablePitch),
   )
 }
 

@@ -55,14 +55,10 @@ export function coordinateToHistoricalDate(value: number): HistoricalDate {
   };
 }
 
-function historicalDateFromUtcDate(date: Date): HistoricalDate {
-  const year = date.getUTCFullYear();
-
-  return {
-    ...fromAstronomicalYear(year),
-    month: date.getUTCMonth() + 1,
-    day: date.getUTCDate(),
-  };
+/** Единая координата текущего локального календарного месяца для всей ленты. */
+export function tlNow(): number {
+  const date = new Date()
+  return date.getFullYear() + date.getMonth() / 12
 }
 
 function endBoundaryDate(date: HistoricalDate): HistoricalDate {
@@ -76,16 +72,11 @@ function endBoundaryDate(date: HistoricalDate): HistoricalDate {
 /** Returns the displayed coordinate interval for a point, interval, or ongoing event. */
 export function dateRangeForEvent(
   event: TimelineEventDates,
-  now: Date = new Date(),
 ): { start: number; end: number } {
   return {
     start: historicalDateToCoordinate(event.start),
-    end: historicalDateToCoordinate(
-      event.ongoing
-        ? historicalDateFromUtcDate(now)
-        : event.end
-          ? endBoundaryDate(event.end)
-          : event.start,
-    ),
+    end: event.ongoing
+      ? tlNow()
+      : historicalDateToCoordinate(event.end ? endBoundaryDate(event.end) : event.start),
   };
 }

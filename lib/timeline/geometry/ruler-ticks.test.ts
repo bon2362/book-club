@@ -16,11 +16,11 @@ describe('buildRulerTicks', () => {
     const major = ticks.filter((tick) => tick.major)
     const minor = ticks.filter((tick) => !tick.major)
 
-    // Подписанный шаг — 20 лет, между подписями по четыре немых засечки.
+    // Подписанный шаг — 20 лет, между подписями одна засечка посередине.
     expect(major.map((tick) => tick.value)).toEqual([20, 40, 60, 80, 100])
     expect(major.every((tick) => tick.label === String(tick.value))).toBe(true)
     expect(minor.every((tick) => tick.label === '')).toBe(true)
-    expect(minor.every((tick) => tick.value % 4 === 0 && tick.value % 20 !== 0)).toBe(true)
+    expect(minor.map((tick) => tick.value)).toEqual([10, 30, 50, 70, 90])
   })
 
   it('keeps ticks bounded across million-year ranges', () => {
@@ -34,6 +34,6 @@ describe('buildRulerTicks', () => {
       { value: 800_000, label: '800000', major: true },
       { value: 1_000_000, label: '1000000', major: true },
     ]);
-    expect(ticks).toHaveLength(26);
+    expect(ticks).toHaveLength(11);
   });
 });

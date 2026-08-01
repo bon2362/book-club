@@ -3,16 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  assignEpochLanes,
+  createViewportTransform,
   dateRangeForEvent,
   bringCoordinateIntoView,
   fitRange,
   historicalDateToCoordinate,
+  tlNow,
   type VisibleRange,
 } from '@/lib/timeline'
 import type { TimelineViewData } from '@/lib/timeline/view-model'
 import { resolveTimelineInitialRange } from '@/lib/timeline/view-model'
 import TimelineDetailCard from './TimelineDetailCard'
-import TimelineEpochLayer from './TimelineEpochLayer'
+import TimelineEpochLayer, { EPOCH_LANE_PITCH_PX } from './TimelineEpochLayer'
 import TimelineEventLayer from './TimelineEventLayer'
 import TimelineLegend, { type TimelineLegendType } from './TimelineLegend'
 import TimelineMobileList from './TimelineMobileList'
@@ -32,6 +35,49 @@ const FALLBACK_WIDTH_PX = 1000
 const FALLBACK_HEIGHT_PX = 200
 /** Сохранённый в базе список типов, означающий «скрыть все события». */
 const HIDE_ALL_EVENT_TYPES = '__none__'
+
+function TimelineNow({
+  range,
+  width,
+  epochs,
+  showEpochs,
+}: {
+  range: VisibleRange
+  width: number
+  epochs: TimelineViewData['epochs']
+  showEpochs: boolean
+}) {
+  const nowX = createViewportTransform(range, width).toX(tlNow())
+  if (nowX < -60 || nowX > width + 60) return null
+
+  const epochLaneCount = assignEpochLanes(epochs.map((epoch) => ({
+    id: epoch.id,
+    start: epoch.start,
+    end: epoch.end,
+    ...(epoch.pinnedLane === undefined ? {} : { pinnedLane: epoch.pinnedLane }),
+  }))).laneCount
+  const belowHeight = 35 + (showEpochs ? Math.max(epochLaneCount, 1) * EPOCH_LANE_PITCH_PX + 2 : 0)
+
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="tl-future"
+        data-testid="timeline-future"
+        style={{ left: `${Math.max(nowX, 0)}px`, bottom: `${-belowHeight}px` }}
+      />
+      <span
+        aria-label="Сегодня"
+        className="tl-now"
+        data-testid="timeline-now"
+        style={{ left: `${nowX}px`, bottom: `${-belowHeight}px` }}
+      >
+        <span aria-hidden="true" className="tl-now-cap" />
+        <span className="tl-now-label">Сегодня</span>
+      </span>
+    </>
+  )
+}
 
 interface Props {
   timeline: TimelineViewData
@@ -56,8 +102,11 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
   const router = useRouter()
   const rootRef = useRef<HTMLDivElement>(null)
   const eventsRef = useRef<HTMLDivElement>(null)
-  const [measuredWidth, setMeasuredWidth] = useState(FALLBACK_WIDTH_PX)
-  const [measuredHeight, setMeasuredHeight] = useState(FALLBACK_HEIGHT_PX)
+  const [measuredSize, setMeasuredSize] = useState({
+    width: FALLBACK_WIDTH_PX,
+    height: FALLBACK_HEIGHT_PX,
+  })
+  const { width: measuredWidth, height: measuredHeight } = measuredSize
   const [range, setRange] = useState<VisibleRange>(() => resolveTimelineInitialRange(timeline))
   const [selected, setSelected] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -144,8 +193,12 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
     if (eventsBox === null) return
     const updateSize = () => {
       const next = eventsBox.getBoundingClientRect()
-      if (next.width > 0) setMeasuredWidth(next.width)
-      if (next.height > 0) setMeasuredHeight(next.height)
+      if (next.width <= 0 || next.height <= 0) return
+      setMeasuredSize((current) => (
+        current.width === next.width && current.height === next.height
+          ? current
+          : { width: next.width, height: next.height }
+      ))
     }
     updateSize()
     if (typeof ResizeObserver === 'undefined') return
@@ -220,7 +273,6 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
             }}
           />}
         </div>
-        <div className="nd-timeline-spacer" aria-hidden="true" />
         <div className="nd-timeline-canvas-region">
           {isAdmin ? (
             <TimelineAdminTools
@@ -272,6 +324,12 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
                 }}
                 onSelect={selectEvent}
                 onCluster={(clusterRange) => setRange(fitRange([clusterRange.start, clusterRange.end], 0.5))}
+              />
+              <TimelineNow
+                range={range}
+                width={measuredWidth}
+                epochs={epochs}
+                showEpochs={epochsEnabled}
               />
             </div>
             <TimelineRuler range={range} width={measuredWidth} />

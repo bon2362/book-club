@@ -3,7 +3,18 @@ import {
   coordinateToHistoricalDate,
   dateRangeForEvent,
   historicalDateToCoordinate,
+  tlNow,
 } from './time-coordinate';
+
+describe('tlNow', () => {
+  afterEach(() => jest.useRealTimers())
+
+  it('returns one local calendar coordinate for every today marker consumer', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-19T12:00:00.000Z'))
+
+    expect(tlNow()).toBe(2026 + 7 / 12)
+  })
+})
 
 describe('historicalDateToCoordinate', () => {
   it('orders BCE and CE dates continuously without a public year zero', () => {
@@ -74,16 +85,14 @@ describe('dateRangeForEvent', () => {
     });
   });
 
-  it('uses the supplied current UTC day as the endpoint of an ongoing event', () => {
+  it('ends an ongoing interval at the same coordinate as the today marker', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-19T12:00:00.000Z'))
     const event = {
-      start: { year: 1, era: 'CE' },
-      end: { year: 2, era: 'CE' },
+      start: { year: 2020, era: 'CE' },
       ongoing: true,
-    } satisfies TimelineEventDates;
+    } satisfies TimelineEventDates
 
-    const range = dateRangeForEvent(event, new Date(Date.UTC(2024, 1, 29)));
-
-    expect(range.start).toBe(1);
-    expect(range.end).toBeCloseTo(2024 + 59 / 366);
-  });
+    expect(dateRangeForEvent(event).end).toBe(tlNow())
+    jest.useRealTimers()
+  })
 });

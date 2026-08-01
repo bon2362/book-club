@@ -288,6 +288,10 @@ test.describe('Лента времени — геометрия', () => {
 
       const canvas = page.getByTestId('timeline-canvas')
       const interval = canvas.getByRole('button', { name: timeline.intervalEvent.title })
+      const connector = interval.locator('xpath=preceding-sibling::*[contains(@class, "tl-connector")][1]')
+      const connectorBackground = await connector
+        .evaluate((element) => getComputedStyle(element).backgroundImage)
+      expect(connectorBackground).toContain('linear-gradient')
       await interval.hover()
       await expect(interval).toHaveClass(/(^|\s)is-on(\s|$)/)
 
@@ -298,6 +302,19 @@ test.describe('Лента времени — геометрия', () => {
       expect(areaBox!.x).toBeCloseTo(intervalBox!.x, 4)
       expect(areaBox!.width).toBeCloseTo(intervalBox!.width, 4)
       expect(areaBox!.y).toBeCloseTo(intervalBox!.y + intervalBox!.height, 4)
+
+      const line = interval.locator('.tl-span-rule')
+      const lineBox = await line.boundingBox()
+      expect(lineBox).not.toBeNull()
+      const topElementClass = await page.evaluate(({ x, y }) =>
+        document.elementFromPoint(x, y)?.className,
+      {
+        x: lineBox!.x + lineBox!.width / 2,
+        y: lineBox!.y + lineBox!.height / 2,
+      })
+      expect(topElementClass).toContain('tl-span-rule')
+
+      await expect(connector).toHaveClass(/(^|\s)is-on(\s|$)/)
 
       await page.mouse.wheel(1, 0)
       await expect(interval).not.toHaveClass(/(^|\s)is-on(\s|$)/)
@@ -323,6 +340,56 @@ test.describe('Лента времени — геометрия', () => {
       await page.mouse.move(0, 0)
       await expect(epoch).toHaveAttribute('class', hoverClass!)
     })
+  })
+
+  test('на высоком экране расстояние между занятыми дорожками становится больше базового', async ({ page, createTestTimeline }) => {
+    await page.setViewportSize({ width: 1400, height: 1000 })
+    const timeline = await createTestTimeline()
+    await page.goto(timeline.url)
+
+    const canvas = page.getByTestId('timeline-events')
+    const labels = canvas.getByTestId('timeline-event-label')
+    const canvasBox = await canvas.boundingBox()
+    const labelBoxes = await labels.evaluateAll((items) => items.map((item) => item.getBoundingClientRect().toJSON()))
+    expect(canvasBox).not.toBeNull()
+    expect(labelBoxes.length).toBeGreaterThanOrEqual(2)
+
+    expect(Math.abs(labelBoxes[0]!.y - labelBoxes[1]!.y)).toBeGreaterThan(44)
+  })
+
+  test('сегодня пересекает полотно и эпохи, а продолжающийся интервал заканчивается на этой линии', async ({
+    page,
+    createTestTimeline,
+    dbExec,
+  }) => {
+    await page.setViewportSize({ width: 1400, height: 900 })
+    const timeline = await createTestTimeline()
+    await dbExec(
+      'update historical_events set end_year = null, end_era = null, ongoing = true where id = $1',
+      [timeline.intervalEvent.id],
+    )
+
+    await page.goto(timeline.url)
+    const canvas = page.getByTestId('timeline-canvas')
+    const today = canvas.getByTestId('timeline-now')
+    const future = canvas.getByTestId('timeline-future')
+    const interval = canvas.getByRole('button', { name: timeline.intervalEvent.title })
+    await expect(today).toBeVisible()
+    await expect(future).toBeVisible()
+
+    const [todayBox, futureBox, intervalBox, epochsBox] = await Promise.all([
+      today.boundingBox(),
+      future.boundingBox(),
+      interval.boundingBox(),
+      page.getByTestId('timeline-epochs').boundingBox(),
+    ])
+    expect(todayBox).not.toBeNull()
+    expect(futureBox).not.toBeNull()
+    expect(intervalBox).not.toBeNull()
+    expect(epochsBox).not.toBeNull()
+    expect(intervalBox!.x + intervalBox!.width).toBeCloseTo(todayBox!.x, 1)
+    expect(futureBox!.x).toBeCloseTo(todayBox!.x, 1)
+    expect(todayBox!.y + todayBox!.height).toBeGreaterThanOrEqual(epochsBox!.y + epochsBox!.height - 1)
   })
 
   test('подпись эпохи остаётся внутри своей полосы', async ({ page, createTestTimeline }) => {

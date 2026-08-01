@@ -168,17 +168,29 @@
 .tl-label,
 .tl-date,
 .tl-dot,
-.tl-notch {
+.tl-span-cap {
   position: relative;
 }
 .tl-connector {
+  position: absolute;
+  bottom: 0;
   width: 1px;
-  background: var(--tl-connector);
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--tl-tick) 0 7px,
+    var(--tl-connector) 7px 72%,
+    transparent
+  );
+}
+.tl-connector.is-ghost {
+  opacity: 0.42;
 }
 .tl-connector.is-on {
   width: 2px;
   margin-left: -0.5px;
   background: var(--tl-axis);
+  opacity: 1;
 }
 .tl-axis-dot {
   position: absolute;
@@ -193,14 +205,62 @@
 .tl-span-area {
   position: absolute;
   bottom: 0;
-  opacity: 0.09;
+  opacity: 0.05;
   pointer-events: none;
 }
-.tl-span-line {
+.tl-span-rule {
   height: 2px;
+  z-index: 1;
 }
-.tl-span.is-on .tl-span-line {
+.tl-span-cap {
+  z-index: 1;
+}
+.tl-span.is-on .tl-span-rule {
   height: 3px;
+}
+.tl-now {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--accent), var(--accent-line));
+}
+.tl-now-cap {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.tl-now-label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.18rem 0.35rem;
+  background: var(--bg);
+  color: var(--accent);
+  font: 700 0.58rem/1 var(--nd-sans);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tl-future {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--tl-axis) 0 1px,
+    transparent 1px 6px
+  );
 }
 .tl-epoch::after {
   content: '';
@@ -288,13 +348,16 @@
     padding: 0 var(--tl-gut) 1.1rem;
     border-top: 1px solid var(--hair);
   }
-  .nd-timeline-spacer {
+  .nd-timeline-canvas-region {
     min-height: 0;
     flex: 1;
-  }
-  .nd-timeline-canvas-region {
-    flex: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
     padding: 0 var(--tl-gut);
+  }
+  .tl-bar {
+    margin-bottom: auto;
   }
 }
 
