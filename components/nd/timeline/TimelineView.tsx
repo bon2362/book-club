@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   dateRangeForEvent,
   bringCoordinateIntoView,
@@ -31,6 +32,7 @@ const HIDE_ALL_EVENT_TYPES = '__none__'
 
 interface Props {
   timeline: TimelineViewData
+  isAdmin?: boolean
 }
 
 function fitTimelineRange(timeline: TimelineViewData): VisibleRange {
@@ -47,7 +49,8 @@ function fitTimelineRange(timeline: TimelineViewData): VisibleRange {
   return fitRange(values, 0.15)
 }
 
-export default function TimelineView({ timeline }: Props) {
+export default function TimelineView({ timeline, isAdmin = false }: Props) {
+  const router = useRouter()
   const rootRef = useRef<HTMLDivElement>(null)
   const eventsRef = useRef<HTMLDivElement>(null)
   const [measuredWidth, setMeasuredWidth] = useState(FALLBACK_WIDTH_PX)
@@ -141,7 +144,16 @@ export default function TimelineView({ timeline }: Props) {
     <div className="nd-timeline-view">
       <div className="hidden md:flex nd-timeline-desktop" data-testid="timeline-canvas-wrapper">
         <div className="nd-timeline-detail-shell">
-          <TimelineDetailCard selected={detail} onClose={() => setSelected(null)} />
+          <TimelineDetailCard
+            selected={detail}
+            timelineId={timeline.id}
+            isAdmin={isAdmin}
+            onClose={() => setSelected(null)}
+            onChanged={() => {
+              setSelected(null)
+              router.refresh()
+            }}
+          />
         </div>
         <div className="nd-timeline-spacer" aria-hidden="true" />
         <div className="nd-timeline-canvas-region">

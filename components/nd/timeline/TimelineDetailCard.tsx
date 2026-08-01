@@ -1,21 +1,33 @@
 'use client'
 
 import Image from 'next/image'
+import { useState } from 'react'
 import SummaryMarkdown from '../SummaryMarkdown'
 import { normalizeDataColor, normalizeEpochColor } from './data-color'
 import { formatDateRange } from './format-historical-date'
 import type { TimelineEpochView, TimelineEventView } from '@/lib/timeline/view-model'
+import TimelineInlineEditor from './TimelineInlineEditor'
 
 interface Props {
   selected: { kind: 'event'; item: TimelineEventView } | { kind: 'epoch'; item: TimelineEpochView } | null
   onClose: () => void
+  timelineId?: string
+  isAdmin?: boolean
+  onChanged?: () => void
 }
 
 /**
  * Карточка выбранного элемента. Не модальное окно — панель над лентой, чтобы
  * не перекрывать полотно и не требовать ловушки фокуса.
  */
-export default function TimelineDetailCard({ selected, onClose }: Props) {
+export default function TimelineDetailCard({
+  selected,
+  onClose,
+  timelineId,
+  isAdmin = false,
+  onChanged = () => {},
+}: Props) {
+  const [editing, setEditing] = useState(false)
   if (selected === null) {
     return (
       <div
@@ -39,6 +51,17 @@ export default function TimelineDetailCard({ selected, onClose }: Props) {
     : formatDateRange({ start: selected.item.start, end: selected.item.end })
   const kindLabel = selected.kind === 'event' ? selected.item.typeTitle : 'Эпоха'
   const isPoint = selected.kind === 'event' && selected.item.end === undefined && !selected.item.ongoing
+
+  if (editing && isAdmin && timelineId) {
+    return (
+      <TimelineInlineEditor
+        timelineId={timelineId}
+        selected={selected}
+        onCancel={() => setEditing(false)}
+        onChanged={onChanged}
+      />
+    )
+  }
 
   return (
     <article
@@ -66,12 +89,34 @@ export default function TimelineDetailCard({ selected, onClose }: Props) {
         <span style={{ color: 'var(--text-muted)', font: '0.6rem/1 var(--nd-sans)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
           {kindLabel}
         </span>
+        {isAdmin && timelineId ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            style={{
+              marginLeft: '0.35rem',
+              padding: '0.18rem 0.55rem 0.18rem 0.9rem',
+              background: 'none',
+              border: 'none',
+              boxShadow: 'inset 1px 0 0 var(--hair)',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              font: '0.6rem/1 var(--nd-sans)',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Править
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onClose}
           aria-label="Закрыть карточку"
           style={{
-            marginLeft: 'auto',
+            marginLeft: isAdmin && timelineId ? 0 : 'auto',
+            paddingLeft: isAdmin && timelineId ? '0.9rem' : 0,
+            boxShadow: isAdmin && timelineId ? 'inset 1px 0 0 var(--hair)' : 'none',
             background: 'none',
             border: 'none',
             cursor: 'pointer',

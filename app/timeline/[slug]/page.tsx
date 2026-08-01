@@ -81,7 +81,7 @@ export default async function TimelinePage({ params }: { params: { slug: string 
       ) : null}
       </div>
 
-      <TimelineView timeline={timeline} />
+      <TimelineView timeline={timeline} isAdmin={isAdmin} />
     </main>
   )
 }
