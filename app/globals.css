@@ -92,11 +92,139 @@
   /* ── Header height (runtime, выставляется ResizeObserver в Header.tsx) ──── */
   --header-height:   57px;
   --filters-search-font-size: 0.8rem;
+
+  /* ── Timeline canvas ──────────────────────────────────────────────────── */
+  --tl-gut:        clamp(1rem, 3vw, 2rem);
+  --tl-axis:       #D6C9B4;
+  --tl-tick:       #C9BCA6;
+  --tl-tick-soft:  #E2D8C6;
+  --tl-connector:  #E3D9C8;
+  --tl-lane-pitch: 44px;
+  --tl-events-h:   clamp(200px, 40dvh, 460px);
+
+  /* ── Timeline data palette: event types ──────────────────────────────── */
+  --data-terracotta: #B0603C;
+  --data-slate:      #5D7290;
+  --data-sage:       #57795F;
+  --data-plum:       #7A5E86;
+  --data-ochre:      #8A6B3A;
+
+  /* ── Timeline data palette: epoch tints ──────────────────────────────── */
+  --tint-sand:  #EFE4D6;
+  --tint-ochre: #EADFCB;
+  --tint-sage:  #E1E3D2;
+  --tint-slate: #DCE2E4;
+  --tint-rose:  #E9DCDC;
+  --tint-plum:  #E3DCE6;
 }
 
 @media (max-width: 540px) {
   :root {
     --filters-search-font-size: 16px;
+  }
+}
+
+/* ── Timeline page geometry ─────────────────────────────────────────────── */
+.nd-timeline-page {
+  margin: 0;
+  padding: 2.5rem 1.5rem 4rem;
+}
+.nd-timeline-heading {
+  padding-bottom: 1rem;
+}
+.nd-timeline-events-shell {
+  position: relative;
+  width: 100%;
+  height: var(--tl-events-h);
+}
+.nd-timeline-help {
+  margin: 0.5rem 0 1rem;
+  color: var(--text-muted);
+  font: 0.6rem/1 var(--nd-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.nd-timeline-canvas {
+  cursor: grab;
+}
+.nd-timeline-canvas.is-dragging {
+  cursor: grabbing;
+}
+
+.tl-chip:hover {
+  background: var(--surface-soft) !important;
+}
+
+.tl-tool:hover {
+  border-color: var(--tl-axis) !important;
+}
+
+.tl-tool:active {
+  background: var(--accent) !important;
+  color: var(--bg-input) !important;
+}
+.nd-timeline-canvas:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent-line);
+}
+.nd-timeline-detail-body {
+  max-width: 56rem;
+  margin-top: 0.45rem;
+  color: var(--text-body);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.nd-timeline-detail-body > :first-child,
+.nd-timeline-detail-note > :first-child {
+  margin-top: 0;
+}
+.nd-timeline-detail-note {
+  max-width: 56rem;
+  margin-top: 0.6rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--accent-line);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+@media (min-width: 768px) {
+  .nd-timeline-page {
+    display: flex;
+    height: 100dvh;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+  }
+  .nd-timeline-heading {
+    flex: none;
+    padding: 1.5rem var(--tl-gut) 1rem;
+  }
+  .nd-timeline-view {
+    min-height: 0;
+    flex: 1;
+  }
+  .nd-timeline-desktop {
+    min-height: 0;
+    height: 100%;
+    flex-direction: column;
+  }
+  .nd-timeline-detail-shell {
+    min-height: 152px;
+    max-height: 40dvh;
+    flex: none;
+    overflow-y: auto;
+    padding: 0 var(--tl-gut) 1.1rem;
+    border-top: 1px solid var(--hair);
+  }
+  .nd-timeline-spacer {
+    min-height: 0;
+    flex: 1;
+  }
+  .nd-timeline-canvas-region {
+    flex: none;
+    padding: 0 var(--tl-gut);
   }
 }
 

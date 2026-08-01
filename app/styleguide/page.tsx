@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { TIMELINE_EPOCH_PALETTE, TIMELINE_PALETTE } from '@/components/nd/timeline/admin/palette'
 
 export const metadata = { title: 'Дизайн-система — Долгое наступление' }
 
@@ -86,6 +87,31 @@ export default function StyleguidePage() {
                   <div style={{ fontSize: '0.74rem', fontWeight: 600 }}>{s.nm}</div>
                   <div style={{ fontFamily: mono, fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{s.hex}</div>
                   <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', marginTop: '0.25rem', lineHeight: 1.4 }}>{s.use}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={{ padding: '3rem 0 0' }}>
+          <SecHead num="01.1" title="Палитра данных ленты времени" note="значения сохраняются в базе" />
+          <div style={{ display: 'grid', gap: '1.4rem' }}>
+            {[
+              { title: 'Типы событий', colors: TIMELINE_PALETTE },
+              { title: 'Тинты эпох', colors: TIMELINE_EPOCH_PALETTE },
+            ].map((group) => (
+              <div key={group.title}>
+                <Eyebrow style={{ marginBottom: '0.7rem' }}>{group.title}</Eyebrow>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}>
+                  {group.colors.map((color) => (
+                    <div key={color.value} style={{ background: 'var(--bg)' }}>
+                      <div style={{ height: '48px', background: color.value, borderBottom: '1px solid var(--border)' }} />
+                      <div style={{ padding: '0.5rem 0.65rem' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600 }}>{color.label}</div>
+                        <div style={{ marginTop: '0.1rem', fontFamily: mono, fontSize: '0.66rem', color: 'var(--text-muted)' }}>{color.value}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

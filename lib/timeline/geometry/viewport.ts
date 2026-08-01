@@ -46,6 +46,22 @@ export function panRange(range: VisibleRange, delta: number): VisibleRange {
   return { start: range.start + delta, end: range.end + delta };
 }
 
+/** Minimally pans a coordinate to a safe pixel inset without recentering it. */
+export function bringCoordinateIntoView(
+  range: VisibleRange,
+  coordinate: number,
+  width: number,
+  paddingPixels: number,
+): VisibleRange {
+  if (width <= 0) return range;
+  const transform = createViewportTransform(range, width);
+  const x = transform.toX(coordinate);
+  const padding = Math.min(Math.max(paddingPixels, 0), width / 2);
+  const targetX = x < padding ? padding : x > width - padding ? width - padding : x;
+  if (targetX === x) return range;
+  return panRange(range, (x - targetX) * transform.unitsPerPixel);
+}
+
 /**
  * Fits coordinates into a range with virtual space at both edges.
  * An empty timeline receives the deterministic finite range from 0 to 1.

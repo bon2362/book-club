@@ -11,8 +11,9 @@ import { createViewportTransform, panRange, zoomRangeAroundPointer, type Visible
 
 const ZOOM_IN_FACTOR = 0.8
 const ZOOM_OUT_FACTOR = 1.25
-const MIN_SPAN = 1 / 366
-const MAX_SPAN = 10_000_000
+const MIN_SPAN = 2
+const MAX_SPAN = 40_000
+const DRAG_THRESHOLD_PX = 3
 
 export interface TimelineNavigationOptions {
   rootRef: RefObject<HTMLElement | null>
@@ -20,6 +21,8 @@ export interface TimelineNavigationOptions {
   width: number
   onViewportChange(range: VisibleRange): void
   onFit(): void
+  onEscape(): void
+  onDraggingChange?(dragging: boolean): void
 }
 
 export interface TimelineNavigationCommands {
@@ -43,11 +46,14 @@ export function useTimelineNavigation({
   width,
   onViewportChange,
   onFit,
+  onEscape,
+  onDraggingChange,
 }: TimelineNavigationOptions): TimelineNavigationCommands {
-  const optionsRef = useRef({ range, width, onViewportChange, onFit })
-  optionsRef.current = { range, width, onViewportChange, onFit }
+  const optionsRef = useRef({ range, width, onViewportChange, onFit, onEscape, onDraggingChange })
+  optionsRef.current = { range, width, onViewportChange, onFit, onEscape, onDraggingChange }
   const activeRef = useRef(false)
-  const dragRef = useRef<{ pointerId: number; lastX: number } | undefined>(undefined)
+  const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; dragging: boolean } | undefined>(undefined)
+  const suppressClickRef = useRef(false)
 
   const zoomAtCenter = useCallback((factor: number): void => {
     const current = optionsRef.current
@@ -75,7 +81,7 @@ export function useTimelineNavigation({
 
     function handleWheel(event: WheelEvent): void {
       const current = optionsRef.current
-      if (event.ctrlKey) {
+      if (event.ctrlKey || event.metaKey) {
         event.preventDefault()
         const bounds = rootElement.getBoundingClientRect()
         const x = Math.min(current.width, Math.max(0, event.clientX - bounds.left))
@@ -91,9 +97,7 @@ export function useTimelineNavigation({
         return
       }
 
-      // Горизонтальная прокрутка ленты; вертикальная прокрутка страницы
-      // остаётся за браузером, иначе мимо ленты не пролистать.
-      const pixelDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : 0
+      const pixelDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
       if (pixelDelta === 0) return
       event.preventDefault()
       const unitsPerPixel = (current.range.end - current.range.start) / current.width
@@ -102,14 +106,7 @@ export function useTimelineNavigation({
 
     function handlePointerDown(event: PointerEvent): void {
       if (event.button !== 0) return
-      const target = event.target
-      if (
-        target instanceof Element &&
-        target.closest('button, a, input, textarea, select, label, [contenteditable="true"]')
-      ) {
-        return
-      }
-      dragRef.current = { pointerId: event.pointerId, lastX: event.clientX }
+      dragRef.current = { pointerId: event.pointerId, startX: event.clientX, lastX: event.clientX, dragging: false }
     }
 
     function handlePointerMove(event: PointerEvent): void {
@@ -118,15 +115,35 @@ export function useTimelineNavigation({
       const current = optionsRef.current
       const pixelDelta = event.clientX - drag.lastX
       if (pixelDelta === 0) return
+      if (!drag.dragging && Math.abs(event.clientX - drag.startX) < DRAG_THRESHOLD_PX) return
+      if (!drag.dragging) {
+        drag.dragging = true
+        current.onDraggingChange?.(true)
+      }
       drag.lastX = event.clientX
       const unitsPerPixel = (current.range.end - current.range.start) / current.width
       current.onViewportChange(panRange(current.range, -pixelDelta * unitsPerPixel))
     }
 
     function handlePointerUp(event: PointerEvent): void {
-      if (dragRef.current?.pointerId === event.pointerId) {
+      const drag = dragRef.current
+      if (drag?.pointerId === event.pointerId) {
+        if (drag.dragging) {
+          suppressClickRef.current = true
+          window.setTimeout(() => {
+            suppressClickRef.current = false
+          }, 0)
+        }
         dragRef.current = undefined
+        optionsRef.current.onDraggingChange?.(false)
       }
+    }
+
+    function handleClick(event: MouseEvent): void {
+      if (!suppressClickRef.current) return
+      suppressClickRef.current = false
+      event.preventDefault()
+      event.stopPropagation()
     }
 
     function handleKeyDown(event: KeyboardEvent): void {
@@ -140,6 +157,9 @@ export function useTimelineNavigation({
       } else if (event.key.toLowerCase() === 'f') {
         event.preventDefault()
         fit()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        optionsRef.current.onEscape()
       }
     }
 
@@ -149,6 +169,7 @@ export function useTimelineNavigation({
     rootElement.addEventListener('focusout', deactivateIfOutside)
     rootElement.addEventListener('wheel', handleWheel, { passive: false })
     rootElement.addEventListener('pointerdown', handlePointerDown)
+    rootElement.addEventListener('click', handleClick, true)
     window.addEventListener('pointermove', handlePointerMove)
     window.addEventListener('pointerup', handlePointerUp)
     window.addEventListener('keydown', handleKeyDown)
@@ -159,9 +180,11 @@ export function useTimelineNavigation({
       rootElement.removeEventListener('focusout', deactivateIfOutside)
       rootElement.removeEventListener('wheel', handleWheel)
       rootElement.removeEventListener('pointerdown', handlePointerDown)
+      rootElement.removeEventListener('click', handleClick, true)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('keydown', handleKeyDown)
+      optionsRef.current.onDraggingChange?.(false)
     }
   }, [fit, rootRef, zoomIn, zoomOut])
 

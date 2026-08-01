@@ -14,3 +14,25 @@ export function normalizeDataColor(value: string | null | undefined): string {
   const trimmed = value.trim()
   return HEX_COLOR.test(trimmed) ? trimmed : FALLBACK_DATA_COLOR
 }
+
+const EPOCH_TINTS = TIMELINE_EPOCH_PALETTE.map(({ value }) => value)
+
+/**
+ * Старые эпохи хранят насыщенные цвета. На публичном полотне каждый такой
+ * цвет стабильно проецируется на утверждённую палитру светлых заливок.
+ */
+export function normalizeEpochColor(value: string | null | undefined): string {
+  const normalized = normalizeDataColor(value)
+  if (normalized === FALLBACK_DATA_COLOR) return EPOCH_TINTS[0]
+
+  const approvedTint = EPOCH_TINTS.find((tint) => tint.toLowerCase() === normalized.toLowerCase())
+  if (approvedTint !== undefined) return approvedTint
+
+  let hash = 0
+  for (const character of normalized.toLowerCase()) {
+    hash = (hash * 31 + character.charCodeAt(0)) >>> 0
+  }
+
+  return EPOCH_TINTS[hash % EPOCH_TINTS.length]
+}
+import { TIMELINE_EPOCH_PALETTE } from './admin/palette'

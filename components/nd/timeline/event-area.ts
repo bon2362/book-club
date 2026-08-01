@@ -4,12 +4,9 @@
  * тестом — оба правила ниже возникли из видимых дефектов вёрстки.
  */
 
-export const EVENT_LANE_PITCH_PX = 46
-export const EVENT_LANE_BASE_PX = 16
-/** Предел высоты полотна: сколько дорожек раскладка вообще может занять. */
-export const EVENT_AREA_HEIGHT_PX = 380
-/** Ниже этой высоты полотно не сжимается, даже если событий одна дорожка. */
-export const EVENT_AREA_MIN_HEIGHT_PX = 120
+export const EVENT_LANE_PITCH_PX = 44
+export const EVENT_LANE_BASE_PX = 10
+export const EVENT_LANE_TOP_RESERVE_PX = 6
 export const MARKER_ROW_HEIGHT_PX = 20
 
 export const eventBottom = (lane: number): number =>
@@ -38,10 +35,11 @@ export function occupiedLaneCount(items: LaneOccupant[], width: number): number 
   return Math.max(...visible.map((item) => item.lane)) + 1
 }
 
-export function eventAreaHeight(laneCount: number): number {
-  return Math.min(
-    EVENT_AREA_HEIGHT_PX,
-    Math.max(EVENT_AREA_MIN_HEIGHT_PX, eventBottom(laneCount) + MARKER_ROW_HEIGHT_PX),
+/** Сколько дорожек помещается в фактически измеренную CSS-высоту полотна. */
+export function eventLaneCapacity(height: number): number {
+  return Math.max(
+    1,
+    Math.floor((height - EVENT_LANE_BASE_PX - EVENT_LANE_TOP_RESERVE_PX) / EVENT_LANE_PITCH_PX),
   )
 }
 

@@ -10,14 +10,14 @@ interface Props {
 
 const buttonStyle: CSSProperties = {
   fontFamily: 'var(--nd-sans)',
-  fontSize: '0.6rem',
+  fontSize: '0.62rem',
   textTransform: 'uppercase',
-  letterSpacing: '0.12em',
+  letterSpacing: '0.1em',
   color: 'var(--text-secondary)',
   background: 'var(--bg-input)',
-  border: '1px solid var(--border)',
+  border: '1px solid var(--hair)',
   borderRadius: 'var(--radius)',
-  padding: '0.35rem 0.7rem',
+  padding: '0.3rem 0.55rem',
   cursor: 'pointer',
   lineHeight: 1,
 }
@@ -27,15 +27,15 @@ export default function TimelineControls({ onZoomIn, onZoomOut, onFit }: Props) 
   return (
     <div
       aria-label="Управление лентой"
-      style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', marginBottom: '0.5rem' }}
+      style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}
     >
-      <button type="button" aria-label="Приблизить" title="Приблизить (+)" onClick={onZoomIn} style={buttonStyle}>
+      <button className="tl-tool" type="button" aria-label="Приблизить" title="Приблизить (+)" onClick={onZoomIn} style={buttonStyle}>
         +
       </button>
-      <button type="button" aria-label="Отдалить" title="Отдалить (−)" onClick={onZoomOut} style={buttonStyle}>
+      <button className="tl-tool" type="button" aria-label="Отдалить" title="Отдалить (−)" onClick={onZoomOut} style={buttonStyle}>
         −
       </button>
-      <button type="button" aria-label="Вместить" title="Вместить всё (F)" onClick={onFit} style={buttonStyle}>
+      <button className="tl-tool" type="button" aria-label="Вместить" title="Вместить всё (F)" onClick={onFit} style={buttonStyle}>
         Вместить
       </button>
     </div>

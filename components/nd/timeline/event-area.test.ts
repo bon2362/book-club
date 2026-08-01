@@ -1,8 +1,7 @@
 import {
-  EVENT_AREA_HEIGHT_PX,
-  EVENT_AREA_MIN_HEIGHT_PX,
-  eventAreaHeight,
-  eventBottom,
+  EVENT_LANE_BASE_PX,
+  EVENT_LANE_PITCH_PX,
+  eventLaneCapacity,
   labelMaxWidth,
   occupiedLaneCount,
 } from './event-area'
@@ -43,25 +42,22 @@ describe('occupiedLaneCount', () => {
   })
 })
 
-describe('eventAreaHeight', () => {
-  it('never collapses below the minimum, even with a single lane', () => {
-    expect(eventAreaHeight(1)).toBe(EVENT_AREA_MIN_HEIGHT_PX)
+describe('eventLaneCapacity', () => {
+  it('derives four lanes from the minimum 200 px canvas', () => {
+    expect(eventLaneCapacity(200)).toBe(4)
   })
 
-  it('never grows past the ceiling', () => {
-    expect(eventAreaHeight(100)).toBe(EVENT_AREA_HEIGHT_PX)
+  it('derives ten lanes from the maximum 460 px canvas', () => {
+    expect(eventLaneCapacity(460)).toBe(10)
   })
 
-  it('grows with the number of lanes between those bounds', () => {
-    const four = eventAreaHeight(4)
-    const six = eventAreaHeight(6)
-    expect(four).toBeGreaterThan(EVENT_AREA_MIN_HEIGHT_PX)
-    expect(six).toBeGreaterThan(four)
-    expect(six).toBeLessThanOrEqual(EVENT_AREA_HEIGHT_PX)
+  it('keeps one lane when the measured box is temporarily too small', () => {
+    expect(eventLaneCapacity(0)).toBe(1)
   })
 
-  it('leaves room for the marker row above the topmost lane', () => {
-    expect(eventAreaHeight(5)).toBeGreaterThan(eventBottom(5))
+  it('uses the exact base, top reserve and 44 px pitch from the handoff', () => {
+    const heightForSixLanes = EVENT_LANE_BASE_PX + 6 + EVENT_LANE_PITCH_PX * 6
+    expect(eventLaneCapacity(heightForSixLanes)).toBe(6)
   })
 })
 

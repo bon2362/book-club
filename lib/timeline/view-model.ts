@@ -1,4 +1,6 @@
 import { compareHistoricalDates, type HistoricalDate, type HistoricalEra } from './historical-date'
+import { dateRangeForEvent, historicalDateToCoordinate } from './geometry/time-coordinate'
+import { fitRange, type VisibleRange } from './geometry/viewport'
 
 /**
  * Сборка плоских строк базы в структуру, которую рисует лента.
@@ -62,6 +64,50 @@ export interface TimelineViewData {
   showAll: boolean
   events: TimelineEventView[]
   epochs: TimelineEpochView[]
+}
+
+function fitTimelineRange(timeline: TimelineViewData): VisibleRange {
+  const values = [
+    ...timeline.events.flatMap((event) => {
+      const range = dateRangeForEvent(event)
+      return [range.start, range.end]
+    }),
+    ...timeline.epochs.flatMap((epoch) => [
+      historicalDateToCoordinate(epoch.start),
+      historicalDateToCoordinate(epoch.end),
+    ]),
+  ]
+  return fitRange(values, 0.15)
+}
+
+/** Uses a saved viewport only when it still represents enough timeline content. */
+export function resolveTimelineInitialRange(timeline: TimelineViewData): VisibleRange {
+  const fitAll = fitTimelineRange(timeline)
+  const { viewportStart, viewportEnd } = timeline
+  if (
+    viewportStart === null ||
+    viewportEnd === null ||
+    !Number.isFinite(viewportStart) ||
+    !Number.isFinite(viewportEnd) ||
+    viewportEnd <= viewportStart
+  ) {
+    return fitAll
+  }
+
+  const saved = { start: viewportStart, end: viewportEnd }
+  const eventCount = timeline.events.filter((event) => {
+    const range = dateRangeForEvent(event)
+    return range.end >= saved.start && range.start <= saved.end
+  }).length
+  const epochCount = timeline.epochs.filter((epoch) => {
+    const start = historicalDateToCoordinate(epoch.start)
+    const end = historicalDateToCoordinate(epoch.end)
+    return end >= saved.start && start <= saved.end
+  }).length
+  const total = timeline.events.length + timeline.epochs.length
+  const minimumInside = Math.max(5, Math.ceil(total * 0.25))
+
+  return eventCount + epochCount >= minimumInside ? saved : fitAll
 }
 
 /** Строка `timelines`. */

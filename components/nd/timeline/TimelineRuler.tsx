@@ -20,11 +20,13 @@ export default function TimelineRuler({ range, width }: Props) {
       data-testid="timeline-ruler"
       style={{
         position: 'relative',
-        height: `${RULER_HEIGHT_PX}px`,
-        borderTop: '1px solid var(--border-strong)',
+        height: '34px',
+        marginInline: 'calc(-1 * var(--tl-gut))',
+        borderTop: '1px solid var(--tl-axis)',
         overflow: 'hidden',
       }}
     >
+      <div style={{ position: 'relative', width: `${width}px`, height: '100%', margin: '0 auto' }}>
       {buildRulerTicks(range, width).map((tick) => (
         <span
           key={tick.value}
@@ -43,18 +45,16 @@ export default function TimelineRuler({ range, width }: Props) {
               display: 'block',
               width: '1px',
               height: tick.major ? '8px' : '4px',
-              background: tick.major ? 'var(--text-muted)' : 'var(--border)',
+              background: tick.major ? 'var(--tl-tick)' : 'var(--tl-tick-soft)',
             }}
           />
           {tick.major ? (
             <span
               style={{
-                fontFamily: 'var(--nd-sans)',
-                fontSize: '0.6rem',
-                letterSpacing: '0.04em',
+                font: '0.68rem/1 var(--nd-mono)',
                 color: 'var(--text-muted)',
                 whiteSpace: 'nowrap',
-                paddingTop: '2px',
+                paddingTop: '3px',
                 transform: 'translateX(-50%)',
               }}
             >
@@ -63,6 +63,7 @@ export default function TimelineRuler({ range, width }: Props) {
           ) : null}
         </span>
       ))}
+      </div>
     </div>
   )
 }

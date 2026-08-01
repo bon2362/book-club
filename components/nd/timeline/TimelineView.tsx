@@ -3,16 +3,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   dateRangeForEvent,
+  bringCoordinateIntoView,
   fitRange,
   historicalDateToCoordinate,
-  type DensityStage,
   type VisibleRange,
 } from '@/lib/timeline'
 import type { TimelineViewData } from '@/lib/timeline/view-model'
-import TimelineControls from './TimelineControls'
+import { resolveTimelineInitialRange } from '@/lib/timeline/view-model'
 import TimelineDetailCard from './TimelineDetailCard'
 import TimelineEpochLayer from './TimelineEpochLayer'
 import TimelineEventLayer from './TimelineEventLayer'
+import TimelineLegend, { type TimelineLegendType } from './TimelineLegend'
 import TimelineMobileList from './TimelineMobileList'
 import TimelineRuler from './TimelineRuler'
 import { useTimelineNavigation } from './use-timeline-navigation'
@@ -24,6 +25,7 @@ import { useTimelineNavigation } from './use-timeline-navigation'
  */
 
 const FALLBACK_WIDTH_PX = 1000
+const FALLBACK_HEIGHT_PX = 200
 /** Сохранённый в базе список типов, означающий «скрыть все события». */
 const HIDE_ALL_EVENT_TYPES = '__none__'
 
@@ -31,7 +33,7 @@ interface Props {
   timeline: TimelineViewData
 }
 
-function initialRange(timeline: TimelineViewData): VisibleRange {
+function fitTimelineRange(timeline: TimelineViewData): VisibleRange {
   const values = [
     ...timeline.events.flatMap((event) => {
       const range = dateRangeForEvent(event)
@@ -45,60 +47,64 @@ function initialRange(timeline: TimelineViewData): VisibleRange {
   return fitRange(values, 0.15)
 }
 
-/**
- * Публичная страница всегда открывается «вместив» всё содержимое.
- *
- * Сохранённые в базе `viewportStart`/`viewportEnd` для этого не годятся: это
- * состояние редактора локального приложения, застывшее там, где владелец
- * прекратил работу. У «Всеобщей истории» оно показывало 4 события из 31 —
- * человек, открывший присланную ссылку, видел почти пустое полотно.
- *
- * Осмысленный стартовый вид владелец сможет задать на этапе 4, когда появится
- * редактор; до тех пор сохранённые значения на просмотр не влияют.
- */
-function resolveInitialRange(timeline: TimelineViewData): VisibleRange {
-  return initialRange(timeline)
-}
-
-function densityStage(range: VisibleRange, width: number): DensityStage {
-  const unitsPerPixel = (range.end - range.start) / Math.max(width, 1)
-  if (unitsPerPixel <= 0.2) return 'full-label'
-  if (unitsPerPixel <= 1) return 'shortened-label'
-  if (unitsPerPixel <= 4) return 'marker-only'
-  return 'cluster'
-}
-
 export default function TimelineView({ timeline }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const eventsRef = useRef<HTMLDivElement>(null)
   const [measuredWidth, setMeasuredWidth] = useState(FALLBACK_WIDTH_PX)
-  const [range, setRange] = useState<VisibleRange>(() => resolveInitialRange(timeline))
+  const [measuredHeight, setMeasuredHeight] = useState(FALLBACK_HEIGHT_PX)
+  const [range, setRange] = useState<VisibleRange>(() => resolveTimelineInitialRange(timeline))
   const [selected, setSelected] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const eventTypes = useMemo<TimelineLegendType[]>(() => {
+    const byId = new Map<string, TimelineLegendType>()
+    timeline.events.forEach((event) => {
+      const existing = byId.get(event.typeId)
+      if (existing === undefined) {
+        byId.set(event.typeId, {
+          id: event.typeId,
+          title: event.typeTitle,
+          color: event.color,
+          count: 1,
+        })
+      } else {
+        existing.count += 1
+      }
+    })
+    return Array.from(byId.values())
+  }, [timeline.events])
+  const [enabledTypeIds, setEnabledTypeIds] = useState<Set<string>>(() => {
+    const allIds = new Set(timeline.events.map((event) => event.typeId))
+    if (timeline.filterTypeIds.includes(HIDE_ALL_EVENT_TYPES)) return new Set()
+    return timeline.filterTypeIds.length === 0 ? allIds : new Set(timeline.filterTypeIds)
+  })
+  const [epochsEnabled, setEpochsEnabled] = useState(timeline.epochsVisible)
 
   const events = useMemo(() => {
-    if (timeline.filterTypeIds.length === 0) return timeline.events
-    if (timeline.filterTypeIds.includes(HIDE_ALL_EVENT_TYPES)) return []
-    return timeline.events.filter((event) => timeline.filterTypeIds.includes(event.typeId))
-  }, [timeline.events, timeline.filterTypeIds])
+    return timeline.events.filter((event) => enabledTypeIds.has(event.typeId))
+  }, [timeline.events, enabledTypeIds])
 
   const navigation = useTimelineNavigation({
     rootRef,
     range,
     width: measuredWidth,
     onViewportChange: setRange,
-    onFit: () => setRange(initialRange(timeline)),
+    onFit: () => setRange(fitTimelineRange(timeline)),
+    onEscape: () => setSelected(null),
+    onDraggingChange: setDragging,
   })
 
   useEffect(() => {
-    const root = rootRef.current
-    if (root === null) return
-    const updateWidth = () => {
-      const next = root.getBoundingClientRect().width
-      if (next > 0) setMeasuredWidth(next)
+    const eventsBox = eventsRef.current
+    if (eventsBox === null) return
+    const updateSize = () => {
+      const next = eventsBox.getBoundingClientRect()
+      if (next.width > 0) setMeasuredWidth(next.width)
+      if (next.height > 0) setMeasuredHeight(next.height)
     }
-    updateWidth()
+    updateSize()
     if (typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(updateWidth)
-    observer.observe(root)
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(eventsBox)
     return () => observer.disconnect()
   }, [])
 
@@ -118,64 +124,80 @@ export default function TimelineView({ timeline }: Props) {
     const event = events.find((candidate) => candidate.id === id)
     if (event === undefined) return
     setSelected({ kind: 'event', id })
-    // Выбранное событие подтягивается в центр — как в исходном приложении.
-    const center = dateRangeForEvent(event).start
-    const span = range.end - range.start
-    setRange({ start: center - span / 2, end: center + span / 2 })
+    const nextRange = bringCoordinateIntoView(range, dateRangeForEvent(event).start, measuredWidth, 80)
+    if (nextRange !== range) setRange(nextRange)
+  }
+
+  function toggleType(id: string): void {
+    setEnabledTypeIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   return (
-    <div>
-      <div className="hidden md:block" data-testid="timeline-canvas-wrapper">
-        <TimelineControls onZoomIn={navigation.zoomIn} onZoomOut={navigation.zoomOut} onFit={navigation.fit} />
-        <div
-          ref={rootRef}
-          tabIndex={0}
-          data-testid="timeline-canvas"
-          aria-label={`Лента времени: ${timeline.title}`}
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            background: 'var(--bg-input)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            touchAction: 'pan-y',
-          }}
-        >
-          <TimelineEventLayer
-            events={events}
-            range={range}
-            width={measuredWidth}
-            densityStage={densityStage(range, measuredWidth)}
-            showAll={timeline.showAll}
-            selectedId={selected?.kind === 'event' ? selected.id : undefined}
-            onSelect={selectEvent}
-            onCluster={(clusterRange) => setRange(fitRange([clusterRange.start, clusterRange.end], 0.5))}
-          />
-          <TimelineRuler range={range} width={measuredWidth} />
-          {timeline.epochsVisible ? (
-            <TimelineEpochLayer
-              epochs={timeline.epochs}
-              range={range}
-              width={measuredWidth}
-              selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
-              onSelect={(id) => setSelected({ kind: 'epoch', id })}
-            />
-          ) : null}
+    <div className="nd-timeline-view">
+      <div className="hidden md:flex nd-timeline-desktop" data-testid="timeline-canvas-wrapper">
+        <div className="nd-timeline-detail-shell">
+          <TimelineDetailCard selected={detail} onClose={() => setSelected(null)} />
         </div>
-        <p
-          style={{
-            fontFamily: 'var(--nd-sans)',
-            fontSize: '0.6rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: 'var(--text-muted)',
-            margin: '0.5rem 0 1rem',
-          }}
-        >
-          Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −, F
-        </p>
-        <TimelineDetailCard selected={detail} onClose={() => setSelected(null)} />
+        <div className="nd-timeline-spacer" aria-hidden="true" />
+        <div className="nd-timeline-canvas-region">
+          <TimelineLegend
+            eventTypes={eventTypes}
+            enabledTypeIds={enabledTypeIds}
+            epochsEnabled={epochsEnabled}
+            epochCount={timeline.epochs.filter((epoch) => epoch.visible).length}
+            onToggleType={toggleType}
+            onToggleEpochs={() => setEpochsEnabled((current) => !current)}
+            onZoomIn={navigation.zoomIn}
+            onZoomOut={navigation.zoomOut}
+            onFit={navigation.fit}
+          />
+          <div
+            ref={rootRef}
+            className={`nd-timeline-canvas${dragging ? ' is-dragging' : ''}`}
+            tabIndex={0}
+            data-testid="timeline-canvas"
+            aria-label={`Лента времени: ${timeline.title}`}
+            style={{
+              position: 'relative',
+              background: 'var(--bg)',
+              border: 'none',
+              borderTop: '1px solid var(--hair)',
+              touchAction: 'pan-y',
+            }}
+          >
+            <div ref={eventsRef} className="nd-timeline-events-shell">
+              <TimelineEventLayer
+                events={events}
+                range={range}
+                width={measuredWidth}
+                height={measuredHeight}
+                dragging={dragging}
+                selectedId={selected?.kind === 'event' ? selected.id : undefined}
+                onSelect={selectEvent}
+                onCluster={(clusterRange) => setRange(fitRange([clusterRange.start, clusterRange.end], 0.5))}
+              />
+            </div>
+            <TimelineRuler range={range} width={measuredWidth} />
+            {epochsEnabled ? (
+              <TimelineEpochLayer
+                epochs={timeline.epochs}
+                range={range}
+                width={measuredWidth}
+                dragging={dragging}
+                selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
+                onSelect={(id) => setSelected({ kind: 'epoch', id })}
+              />
+            ) : null}
+          </div>
+          <p className="nd-timeline-help">
+            Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −, F
+          </p>
+        </div>
       </div>
 
       <div className="md:hidden" data-testid="timeline-mobile">

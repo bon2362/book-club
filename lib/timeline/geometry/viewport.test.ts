@@ -1,4 +1,5 @@
 import {
+  bringCoordinateIntoView,
   createViewportTransform,
   fitRange,
   zoomRangeAroundPointer,
@@ -17,6 +18,28 @@ describe('createViewportTransform', () => {
     expect(transform.fromX(200)).toBe(110);
   });
 });
+
+describe('bringCoordinateIntoView', () => {
+  it('keeps the range unchanged while the coordinate is on screen', () => {
+    const range = { start: 0, end: 100 }
+
+    expect(bringCoordinateIntoView(range, 50, 1000, 80)).toBe(range)
+  })
+
+  it('shifts minimally to the left padding', () => {
+    expect(bringCoordinateIntoView({ start: 0, end: 100 }, -5, 1000, 80)).toEqual({
+      start: -13,
+      end: 87,
+    })
+  })
+
+  it('shifts minimally to the right padding', () => {
+    expect(bringCoordinateIntoView({ start: 0, end: 100 }, 105, 1000, 80)).toEqual({
+      start: 13,
+      end: 113,
+    })
+  })
+})
 
 describe('zoomRangeAroundPointer', () => {
   it('keeps the pointer coordinate at the same relative viewport position', () => {

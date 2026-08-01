@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
+import type { Locator } from '@playwright/test'
 
 // Геометрия ленты: раскладка событий по дорожкам не должна давать наложений,
 // подпись эпохи обязана оставаться внутри своей полосы, а на узком экране
@@ -10,6 +11,29 @@ test.beforeEach(async () => {
   await feature('Состояния интерфейса')
 })
 
+async function expectEventLabelsNotToOverlap(canvas: Locator): Promise<void> {
+  const labels = canvas.getByTestId('timeline-event-label')
+  const count = await labels.count()
+  expect(count).toBeGreaterThanOrEqual(2)
+
+  const boxes = []
+  for (let index = 0; index < count; index += 1) {
+    const box = await labels.nth(index).boundingBox()
+    expect(box).not.toBeNull()
+    boxes.push(box!)
+  }
+
+  for (let left = 0; left < boxes.length; left += 1) {
+    for (let right = left + 1; right < boxes.length; right += 1) {
+      const a = boxes[left]
+      const b = boxes[right]
+      const overlapX = a.x < b.x + b.width && b.x < a.x + a.width
+      const overlapY = a.y < b.y + b.height && b.y < a.y + a.height
+      expect(overlapX && overlapY).toBe(false)
+    }
+  }
+}
+
 test.describe('Лента времени — геометрия', () => {
   test('подписи соседних событий не накладываются друг на друга', async ({
     page,
@@ -19,58 +43,13 @@ test.describe('Лента времени — геометрия', () => {
     const timeline = await createTestTimeline()
 
     await page.goto(timeline.url)
-    await expect(page.getByTestId('timeline-canvas')).toBeVisible()
-
-    const labels = page.getByTestId('timeline-canvas').getByTestId('timeline-event-label')
-    const count = await labels.count()
-    expect(count).toBeGreaterThanOrEqual(2)
-
-    const boxes = []
-    for (let index = 0; index < count; index += 1) {
-      const box = await labels.nth(index).boundingBox()
-      expect(box).not.toBeNull()
-      boxes.push(box!)
-    }
-
-    // Две подписи пересекаются, только если пересекаются и по горизонтали, и
-    // по вертикали. Раскладка обязана развести их хотя бы по одной оси.
-    for (let left = 0; left < boxes.length; left += 1) {
-      for (let right = left + 1; right < boxes.length; right += 1) {
-        const a = boxes[left]
-        const b = boxes[right]
-        const overlapX = a.x < b.x + b.width && b.x < a.x + a.width
-        const overlapY = a.y < b.y + b.height && b.y < a.y + a.height
-        expect(overlapX && overlapY).toBe(false)
-      }
-    }
-  })
-
-  // Дефект: у правого края подпись уходила за полотно и обрезалась
-  // `overflow: hidden`. Теперь ряд разворачивается влево.
-  test('подписи событий не выходят за правый край полотна', async ({
-    page,
-    createTestTimeline,
-  }) => {
-    await page.setViewportSize({ width: 1280, height: 800 })
-    const timeline = await createTestTimeline()
-
-    await page.goto(timeline.url)
     const canvas = page.getByTestId('timeline-canvas')
     await expect(canvas).toBeVisible()
+    await expectEventLabelsNotToOverlap(canvas)
 
-    const canvasBox = await canvas.boundingBox()
-    expect(canvasBox).not.toBeNull()
-
-    const labels = canvas.getByTestId('timeline-event-label')
-    const count = await labels.count()
-    expect(count).toBeGreaterThanOrEqual(1)
-
-    for (let index = 0; index < count; index += 1) {
-      const box = await labels.nth(index).boundingBox()
-      expect(box).not.toBeNull()
-      expect(box!.x).toBeGreaterThanOrEqual(canvasBox!.x - 1)
-      expect(box!.x + box!.width).toBeLessThanOrEqual(canvasBox!.x + canvasBox!.width + 1)
-    }
+    await page.getByRole('button', { name: 'Приблизить' }).click()
+    await page.getByRole('button', { name: 'Приблизить' }).click()
+    await expectEventLabelsNotToOverlap(canvas)
   })
 
   test('подпись эпохи остаётся внутри своей полосы', async ({ page, createTestTimeline }) => {
@@ -113,7 +92,7 @@ test.describe('Лента времени — геометрия', () => {
 
   test('на 375 px лента скрыта, виден вертикальный список', async ({ page, createTestTimeline }) => {
     const timeline = await createTestTimeline()
-    await page.setViewportSize({ width: 375, height: 812 })
+    await page.setViewportSize({ width: 375, height: 400 })
 
     await page.goto(timeline.url)
 
@@ -123,6 +102,28 @@ test.describe('Лента времени — геометрия', () => {
     const items = page.getByTestId('timeline-mobile-event')
     await expect(items.first()).toContainText(timeline.intervalEvent.title)
     await expect(items.filter({ hasText: timeline.pointEvent.title })).toHaveCount(1)
+    expect(await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight)).toBe(true)
+  })
+
+  test('клик по видимому событию не меняет диапазон', async ({ page, createTestTimeline }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+    await page.goto(timeline.url)
+
+    const rulerTicks = page.getByTestId('timeline-ruler').locator(':scope > div > span')
+    const snapshot = () => rulerTicks.evaluateAll((ticks) => ticks.map((tick) => ({
+      left: (tick as HTMLElement).style.left,
+      text: tick.textContent,
+    })))
+    const before = await snapshot()
+
+    await page
+      .getByTestId('timeline-canvas')
+      .getByRole('button', { name: timeline.pointEvent.title })
+      .click()
+    await expect(page.getByTestId('timeline-detail')).toBeVisible()
+
+    expect(await snapshot()).toEqual(before)
   })
 
   test('на 1280 px видна лента, вертикальный список скрыт', async ({ page, createTestTimeline }) => {

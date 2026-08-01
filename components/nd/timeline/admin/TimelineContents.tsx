@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { compareHistoricalDates } from '@/lib/timeline'
 import MembershipDetail, { type Membership } from './MembershipDetail'
-import { DEFAULT_TIMELINE_COLOR } from './palette'
+import { DEFAULT_TIMELINE_EPOCH_COLOR } from './palette'
 import {
   SANS,
   SERIF,
@@ -135,7 +135,7 @@ export default function TimelineContents({ timelineId, onBack }: Props) {
     const body =
       kind === 'events'
         ? { note: '' }
-        : { note: '', color: DEFAULT_TIMELINE_COLOR, visible: true, pinnedLane: null }
+        : { note: '', color: DEFAULT_TIMELINE_EPOCH_COLOR, visible: true, pinnedLane: null }
 
     const res = await fetch(url, {
       method: 'PUT',

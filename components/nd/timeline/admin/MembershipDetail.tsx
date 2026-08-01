@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import MarkdownField from './MarkdownField'
-import { TIMELINE_PALETTE } from './palette'
+import { TIMELINE_EPOCH_PALETTE } from './palette'
 import {
   SANS,
   SERIF,
@@ -45,7 +45,7 @@ export default function MembershipDetail({ timelineId, membership, onSaved, onCa
   const epoch = membership.kind === 'epoch' ? membership.item : null
 
   const [note, setNote] = useState(membership.item.note)
-  const [color, setColor] = useState(epoch?.color ?? TIMELINE_PALETTE[0].value)
+  const [color, setColor] = useState(epoch?.color ?? TIMELINE_EPOCH_PALETTE[0].value)
   const [visible, setVisible] = useState(epoch?.visible ?? true)
   const [lane, setLane] = useState(epoch?.pinnedLane == null ? '' : String(epoch.pinnedLane))
   const [error, setError] = useState<string | null>(null)
@@ -122,7 +122,7 @@ export default function MembershipDetail({ timelineId, membership, onSaved, onCa
           <div style={{ marginBottom: '1rem' }}>
             <span style={microLabelStyle}>Цвет на ленте</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }} data-testid="membership-palette">
-              {TIMELINE_PALETTE.map(option => (
+              {TIMELINE_EPOCH_PALETTE.map(option => (
                 <button
                   key={option.value}
                   type="button"

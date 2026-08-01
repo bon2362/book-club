@@ -3,6 +3,7 @@
  */
 import {
   buildTimelineView,
+  resolveTimelineInitialRange,
   type TimelineEpochRow,
   type TimelineEventRow,
   type TimelineRow,
@@ -182,5 +183,32 @@ describe('buildTimelineView', () => {
     expect(view.events).toEqual([])
     expect(view.epochs).toEqual([])
     expect(view.filterTypeIds).toEqual([])
+  })
+})
+
+describe('resolveTimelineInitialRange', () => {
+  function viewWithSavedRange(inside: number) {
+    const events = Array.from({ length: 31 }, (_, index) => eventRow({
+      id: `event-${index}`,
+      title: `Событие ${index}`,
+      startYear: index < inside ? 1000 + index : 2000 + index,
+    }))
+    return buildTimelineView({
+      timeline: { ...timeline, viewportStart: 999, viewportEnd: 1010 },
+      events,
+      epochs: [],
+    })
+  }
+
+  it('rejects the saved range when it contains only 4 of 31 items', () => {
+    const view = viewWithSavedRange(4)
+
+    expect(resolveTimelineInitialRange(view)).not.toEqual({ start: 999, end: 1010 })
+  })
+
+  it('accepts the saved range when it contains 8 of 31 items', () => {
+    const view = viewWithSavedRange(8)
+
+    expect(resolveTimelineInitialRange(view)).toEqual({ start: 999, end: 1010 })
   })
 })

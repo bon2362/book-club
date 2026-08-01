@@ -11,8 +11,7 @@
  * Tailwind-классах с произвольным значением. Массив констант под неё не
  * попадает — и по сути правило не нарушено: в разметке цвета по-прежнему нет.
  *
- * Цвета подобраны к пергаментному фону сайта (`--bg: #F9F5EE`): приглушённые,
- * средней насыщенности, различимые рядом друг с другом.
+ * Значения зеркалят токены `--data-*` и `--tint-*` из `app/globals.css`.
  */
 
 export interface PaletteColor {
@@ -21,16 +20,22 @@ export interface PaletteColor {
 }
 
 export const TIMELINE_PALETTE: PaletteColor[] = [
-  { value: '#C0603A', label: 'Терракота' },
-  { value: '#8C3B2E', label: 'Кирпич' },
-  { value: '#B08328', label: 'Охра' },
-  { value: '#6E7A34', label: 'Олива' },
-  { value: '#2D6A4F', label: 'Хвоя' },
-  { value: '#2F6E7E', label: 'Морская волна' },
-  { value: '#3B5C99', label: 'Индиго' },
-  { value: '#6B4E8C', label: 'Слива' },
-  { value: '#8A5A72', label: 'Вереск' },
-  { value: '#5A5148', label: 'Сепия' },
+  { value: '#B0603C', label: 'Терракота' },
+  { value: '#5D7290', label: 'Сланец' },
+  { value: '#57795F', label: 'Шалфей' },
+  { value: '#7A5E86', label: 'Слива' },
+  { value: '#8A6B3A', label: 'Охра' },
 ]
 
 export const DEFAULT_TIMELINE_COLOR = TIMELINE_PALETTE[0].value
+
+export const TIMELINE_EPOCH_PALETTE: PaletteColor[] = [
+  { value: '#EFE4D6', label: 'Песок' },
+  { value: '#EADFCB', label: 'Светлая охра' },
+  { value: '#E1E3D2', label: 'Светлый шалфей' },
+  { value: '#DCE2E4', label: 'Светлый сланец' },
+  { value: '#E9DCDC', label: 'Пыльная роза' },
+  { value: '#E3DCE6', label: 'Светлая слива' },
+]
+
+export const DEFAULT_TIMELINE_EPOCH_COLOR = TIMELINE_EPOCH_PALETTE[0].value

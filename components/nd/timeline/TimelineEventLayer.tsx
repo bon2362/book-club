@@ -1,58 +1,49 @@
 'use client'
 
-import type { CSSProperties, ReactNode } from 'react'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import {
-  buildEventConnection,
-  buildEventLayout,
   createViewportTransform,
   dateRangeForEvent,
-  estimateEventLabelTextWidth,
-  estimateEventRowWidth,
-  finishedIntervalCollisionBox,
-  EVENT_DOT_BOX_PX,
-  EVENT_LABEL_MAX_TEXT_WIDTH_PX,
-  type DensityStage,
+  tlLayout,
   type VisibleRange,
 } from '@/lib/timeline'
 import type { TimelineEventView } from '@/lib/timeline/view-model'
 import { normalizeDataColor } from './data-color'
 import {
-  EVENT_AREA_HEIGHT_PX,
-  EVENT_LANE_PITCH_PX,
-  EVENT_LANE_BASE_PX,
   MARKER_ROW_HEIGHT_PX,
-  eventAreaHeight,
   eventBottom,
-  labelMaxWidth,
-  occupiedLaneCount,
-  type LaneOccupant,
+  eventLaneCapacity,
 } from './event-area'
 import { formatCanvasDate } from './format-historical-date'
+import { createTextMeasurer, EVENT_DATE_FONT, EVENT_LABEL_FONT } from './measure-text'
 
 /**
  * Слой событий: точки, интервалы и кластеры. Вся раскладка приходит из
- * `buildEventLayout` — здесь ничего не считается, только размещается.
+ * `tlLayout` — здесь ничего не считается, только размещается.
  * Ручки изменения границ интервала (этап 5) не переносятся.
  */
 
-const EVENT_HORIZONTAL_CLEARANCE_PX = 12
+const EVENT_MARKER_SIZE_PX = 8
 
 const labelStyle: CSSProperties = {
   fontFamily: 'var(--nd-sans)',
-  fontSize: '0.84rem',
+  fontSize: '0.845rem',
+  lineHeight: 1,
   color: 'var(--text)',
   whiteSpace: 'nowrap',
 }
 
 const dateStyle: CSSProperties = {
   fontFamily: 'var(--nd-mono)',
-  fontSize: '0.65rem',
+  fontSize: '0.7rem',
+  lineHeight: 1,
+  letterSpacing: '0.02em',
   color: 'var(--text-muted)',
   whiteSpace: 'nowrap',
 }
 
 /** Вертикальный волосок от метки события к оси лет. */
-function Connector({ x, lane }: { x: number; lane: number }) {
+function Connector({ x, lane, selected }: { x: number; lane: number; selected: boolean }) {
   return (
     <span
       aria-hidden="true"
@@ -62,7 +53,8 @@ function Connector({ x, lane }: { x: number; lane: number }) {
         bottom: 0,
         width: '1px',
         height: `${eventBottom(lane)}px`,
-        background: 'var(--border)',
+        background: selected ? 'var(--accent)' : 'var(--tl-connector)',
+        opacity: selected ? 0.55 : 1,
       }}
     />
   )
@@ -71,51 +63,33 @@ function Connector({ x, lane }: { x: number; lane: number }) {
 function markerButtonStyle(x: number, lane: number, selected: boolean): CSSProperties {
   return {
     position: 'absolute',
-    left: `${x - EVENT_DOT_BOX_PX / 2}px`,
+    left: `${x - EVENT_MARKER_SIZE_PX / 2}px`,
     bottom: `${eventBottom(lane)}px`,
     height: `${MARKER_ROW_HEIGHT_PX}px`,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
+    width: `${EVENT_MARKER_SIZE_PX}px`,
     padding: 0,
     border: 'none',
     background: 'none',
     cursor: 'pointer',
-    textAlign: 'left',
     zIndex: selected ? 2 : 1,
   }
 }
 
-/** Ряд метки помимо текста: сама метка, два отступа и год. */
-const POINT_ROW_CHROME_PX = 64
-/** Ряд интервала помимо текста: засечка, отступы и диапазон «1618 — 1648». */
-const INTERVAL_ROW_CHROME_PX = 96
-
-const clampedLabelStyle = (maxWidth: number): CSSProperties => ({
-  maxWidth: `${maxWidth}px`,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-})
-
-function Dot({ color, icon, selected }: { color: string; icon: string; selected: boolean }) {
+function Dot({ color, selected }: { color: string; selected: boolean }) {
   return (
     <span
       aria-hidden="true"
       style={{
         flexShrink: 0,
-        width: `${EVENT_DOT_BOX_PX}px`,
-        height: `${EVENT_DOT_BOX_PX}px`,
+        width: `${EVENT_MARKER_SIZE_PX}px`,
+        height: `${EVENT_MARKER_SIZE_PX}px`,
         borderRadius: '50%',
         background: color,
-        border: selected ? '2px solid var(--text)' : '2px solid var(--bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '0.6rem',
-        lineHeight: 1,
+        boxShadow: selected
+          ? '0 0 0 2px var(--bg), 0 0 0 3px var(--text)'
+          : '0 0 0 3px var(--bg)',
       }}
     >
-      {icon}
     </span>
   )
 }
@@ -124,28 +98,22 @@ function PointEvent({
   event,
   x,
   lane,
-  label,
+  side,
+  mode,
   selected,
-  width,
   onSelect,
+  onHover,
 }: {
   event: TimelineEventView
   x: number
   lane: number
-  label: string | undefined
+  side: 'left' | 'right'
+  mode: 'label' | 'dot'
   selected: boolean
-  width: number
   onSelect: () => void
+  onHover: (event: TimelineEventView | null, element?: HTMLElement) => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
-  const maxWidth = labelMaxWidth(x, width, POINT_ROW_CHROME_PX)
-  // Подсказка нужна, когда подпись сокращена или её нет вовсе. Она нативная:
-  // собственный тултип на React-состоянии залипал после клика — выбор события
-  // сдвигает полотно, и элемент уезжает из-под курсора без `pointerleave`.
-  const truncated = label !== event.title
-    || estimateEventLabelTextWidth(event.title) >= EVENT_LABEL_MAX_TEXT_WIDTH_PX
-    || estimateEventLabelTextWidth(label) > maxWidth
-
   return (
     <button
       type="button"
@@ -154,21 +122,33 @@ function PointEvent({
       data-shape="point"
       aria-label={event.title}
       aria-pressed={selected}
-      title={truncated ? `${event.title} · ${formatCanvasDate(event)}` : undefined}
       onClick={onSelect}
+      onMouseEnter={(mouseEvent) => onHover(event, mouseEvent.currentTarget)}
+      onMouseLeave={() => onHover(null)}
       style={markerButtonStyle(x, lane, selected)}
     >
-      <Dot color={color} icon={event.icon} selected={selected} />
-      {label ? (
-        <>
+      <Dot color={color} selected={selected} />
+      {mode === 'label' ? (
+        <span
+          style={{
+            position: 'absolute',
+            top: '50%',
+            ...(side === 'right' ? { left: 'calc(100% + 0.5rem)' } : { right: 'calc(100% + 0.5rem)' }),
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            flexDirection: side === 'right' ? 'row' : 'row-reverse',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
           <span
             data-testid="timeline-event-label"
-            style={{ ...labelStyle, ...clampedLabelStyle(maxWidth), fontWeight: selected ? 600 : 400 }}
+            style={{ ...labelStyle, fontWeight: selected ? 600 : 400 }}
           >
-            {label}
+            {event.title}
           </span>
           <span style={dateStyle}>{formatCanvasDate(event)}</span>
-        </>
+        </span>
       ) : null}
     </button>
   )
@@ -180,22 +160,22 @@ function IntervalEvent({
   endX,
   lane,
   selected,
-  width,
+  labelX,
+  labelled,
   onSelect,
+  onHover,
 }: {
   event: TimelineEventView
   startX: number
   endX: number
   lane: number
   selected: boolean
-  width: number
+  labelX: number
+  labelled: boolean
   onSelect: () => void
+  onHover: (event: TimelineEventView | null, element?: HTMLElement) => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
-  // Подпись интервала растёт вправо от его начала. У правого края её ужимаем,
-  // а не разворачиваем: раскладка резервирует место справа, и развёрнутая
-  // подпись наезжала бы на соседей.
-  const maxWidth = labelMaxWidth(startX, width, INTERVAL_ROW_CHROME_PX)
 
   return (
     <button
@@ -205,8 +185,9 @@ function IntervalEvent({
       data-shape="interval"
       aria-label={event.title}
       aria-pressed={selected}
-      title={`${event.title} · ${formatCanvasDate(event)}`}
       onClick={onSelect}
+      onMouseEnter={(mouseEvent) => onHover(event, mouseEvent.currentTarget)}
+      onMouseLeave={() => onHover(null)}
       style={{
         position: 'absolute',
         left: `${startX}px`,
@@ -222,6 +203,12 @@ function IntervalEvent({
       }}
     >
       {/* Отрезок от начала к концу — линией цвета типа, без заливки блока. */}
+      {selected ? (
+        <span
+          aria-hidden="true"
+          style={{ position: 'absolute', inset: '-2px 0 0', background: color, opacity: 0.1 }}
+        />
+      ) : null}
       <span
         aria-hidden="true"
         style={{
@@ -233,24 +220,28 @@ function IntervalEvent({
           background: color,
         }}
       />
-      <span
-        style={{
-          position: 'absolute',
-          left: 0,
-          bottom: '5px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-        }}
-      >
+      <span aria-hidden="true" style={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
+      <span aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
+      {labelled ? (
         <span
-          data-testid="timeline-event-label"
-          style={{ ...labelStyle, ...clampedLabelStyle(maxWidth), fontWeight: selected ? 600 : 400 }}
+          style={{
+            position: 'absolute',
+            left: `${labelX - startX}px`,
+            bottom: '5px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
         >
-          {event.title}
+          <span
+            data-testid="timeline-event-label"
+            style={{ ...labelStyle, fontWeight: selected ? 600 : 400 }}
+          >
+            {event.title}
+          </span>
+          <span style={dateStyle}>{formatCanvasDate(event)}</span>
         </span>
-        <span style={dateStyle}>{formatCanvasDate(event)}</span>
-      </span>
+      ) : null}
     </button>
   )
 }
@@ -259,8 +250,8 @@ interface Props {
   events: TimelineEventView[]
   range: VisibleRange
   width: number
-  densityStage: DensityStage
-  showAll: boolean
+  height: number
+  dragging: boolean
   selectedId?: string | undefined
   onSelect: (id: string) => void
   onCluster: (range: { start: number; end: number }) => void
@@ -270,12 +261,14 @@ export default function TimelineEventLayer({
   events,
   range,
   width,
-  densityStage,
-  showAll,
+  height,
+  dragging,
   selectedId,
   onSelect,
   onCluster,
 }: Props) {
+  const [tooltip, setTooltip] = useState<{ event: TimelineEventView; left: number; top: number } | null>(null)
+  const measureText = useMemo(() => createTextMeasurer(), [])
   const transform = createViewportTransform(range, width)
   const span = range.end - range.start
   const visible = events.filter((event) => {
@@ -285,133 +278,141 @@ export default function TimelineEventLayer({
       (eventRange.end >= range.start - span && eventRange.start <= range.end + span)
     )
   })
-  const points = visible.filter((event) => event.end === undefined && !event.ongoing)
-  const intervals = visible.filter((event) => event.end !== undefined || event.ongoing)
-  const pointById = new Map(points.map((event) => [event.id, event]))
-
-  const intervalBoxes = intervals.map((event) => {
+  const eventById = new Map(visible.map((event) => [event.id, event]))
+  const layout = tlLayout({
+    events: visible.map((event) => {
     const eventRange = dateRangeForEvent(event)
     const start = transform.toX(eventRange.start)
-    const end = Math.max(transform.toX(eventRange.end), start + EVENT_DOT_BOX_PX)
-    return event.end === undefined
-      ? { id: event.id, start, end }
-      : finishedIntervalCollisionBox({ id: event.id, start, end, label: event.title })
-  })
-
-  const laneCapacity = Math.max(1, Math.floor((EVENT_AREA_HEIGHT_PX - EVENT_LANE_BASE_PX) / EVENT_LANE_PITCH_PX))
-  const layout = buildEventLayout({
-    points: points.map((event) => ({
-      id: event.id,
-      x: transform.toX(dateRangeForEvent(event).start),
-      label: event.title,
-      ...(event.id === selectedId ? { selected: true } : {}),
-    })),
-    intervalBoxes,
-    preferredStage: densityStage,
-    showAll,
-    laneCapacity,
-    horizontalClearance: EVENT_HORIZONTAL_CLEARANCE_PX,
-  })
-  const laneById = new Map(layout.placements.map(({ id, lane }) => [id, lane]))
-
-  // Высота считается только по тому, что попадает на полотно. Раскладка идёт с
-  // запасом за краями (иначе дорожки прыгали бы при прокрутке), и без этого
-  // фильтра события далеко справа задирали высоту до потолка, оставляя сверху
-  // пустоту.
-  const occupants: LaneOccupant[] = [
-    ...intervalBoxes.map((box) => ({
-      lane: laneById.get(box.id) ?? 0,
-      start: box.start,
-      end: box.end,
-    })),
-    ...layout.markers.map((marker) => {
-      const lane = laneById.get(marker.id) ?? 0
-      if (marker.type === 'cluster') {
-        return { lane, start: marker.start, end: marker.end }
+      return {
+        id: event.id,
+        title: event.title,
+        dateLabel: formatCanvasDate(event),
+        startX: start,
+        ...(event.end !== undefined || event.ongoing
+          ? { endX: Math.max(transform.toX(eventRange.end), start + 4) }
+          : {}),
       }
-      const rowWidth = estimateEventRowWidth(marker.label)
-      const head = marker.x - EVENT_DOT_BOX_PX / 2
-      return { lane, start: head, end: head + rowWidth }
     }),
-  ]
-  const height = eventAreaHeight(occupiedLaneCount(occupants, width))
+    width,
+    capacity: eventLaneCapacity(height),
+    markerWidth: EVENT_MARKER_SIZE_PX,
+    selectedId,
+    measureText,
+    labelFont: EVENT_LABEL_FONT,
+    dateFont: EVENT_DATE_FONT,
+  })
+
+  function showTooltip(event: TimelineEventView | null, element?: HTMLElement): void {
+    if (event === null || element === undefined || dragging) {
+      setTooltip(null)
+      return
+    }
+    const bounds = element.getBoundingClientRect()
+    setTooltip({ event, left: bounds.left + bounds.width / 2, top: bounds.top - 10 })
+  }
 
   return (
     <div
       aria-label="События"
       data-testid="timeline-events"
-      style={{ position: 'relative', height: `${height}px`, overflow: 'hidden' }}
+      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
-      {intervals.map((event) => {
-        const connection = buildEventConnection(event, range, width)
-        if (connection === undefined || connection.kind === 'point') return null
-        const lane = laneById.get(event.id) ?? 0
+      {layout.spans.map((placement) => {
+        const event = eventById.get(placement.id)
+        if (event === undefined) return null
+        const startVisible = placement.startX >= 0 && placement.startX <= width
+        const endVisible = placement.endX >= 0 && placement.endX <= width
         return (
           <span key={event.id}>
-            {connection.startVisible ? <Connector x={connection.startX} lane={lane} /> : null}
-            {connection.kind === 'finished-interval' && connection.endVisible ? (
-              <Connector x={connection.endX} lane={lane} />
+            {startVisible ? <Connector x={placement.startX} lane={placement.lane} selected={event.id === selectedId} /> : null}
+            {!event.ongoing && endVisible ? (
+              <Connector x={placement.endX} lane={placement.lane} selected={event.id === selectedId} />
             ) : null}
             <IntervalEvent
               event={event}
-              startX={connection.startX}
-              endX={connection.endX}
-              lane={lane}
+              startX={placement.startX}
+              endX={placement.endX}
+              lane={placement.lane}
+              labelX={placement.labelX}
+              labelled={placement.labelled}
               selected={event.id === selectedId}
-              width={width}
               onSelect={() => onSelect(event.id)}
+              onHover={showTooltip}
             />
           </span>
         )
       })}
 
       {layout.markers.map((marker) => {
-        const lane = laneById.get(marker.id) ?? 0
-
-        if (marker.type === 'cluster') {
-          return (
-            <span key={marker.id}>
-              <Connector x={marker.x} lane={lane} />
-              <button
-                type="button"
-                data-testid="timeline-cluster"
-                aria-label={`${marker.count} событий — приблизить`}
-                onClick={() => onCluster({ start: transform.fromX(marker.start), end: transform.fromX(marker.end) })}
-                style={{
-                  ...markerButtonStyle(marker.x, lane, false),
-                  width: `${EVENT_DOT_BOX_PX}px`,
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  border: '1px solid var(--text)',
-                  background: 'var(--bg-input)',
-                  fontFamily: 'var(--nd-sans)',
-                  fontSize: '0.62rem',
-                  color: 'var(--text)',
-                }}
-              >
-                {marker.count}
-              </button>
-            </span>
-          )
-        }
-
-        const event = pointById.get(marker.id)
+        const event = eventById.get(marker.id)
         if (event === undefined) return null
         return (
           <span key={event.id}>
-            <Connector x={marker.x} lane={lane} />
+            <Connector x={marker.x} lane={marker.lane} selected={event.id === selectedId} />
             <PointEvent
               event={event}
               x={marker.x}
-              lane={lane}
-              label={marker.label}
+              lane={marker.lane}
+              side={marker.side}
+              mode={marker.mode}
               selected={event.id === selectedId}
-              width={width}
               onSelect={() => onSelect(event.id)}
+              onHover={showTooltip}
             />
           </span>
         )
       })}
+      {layout.clusters.map((cluster) => (
+        <span key={cluster.id}>
+          <Connector x={cluster.x} lane={cluster.lane} selected={false} />
+          <button
+            type="button"
+            data-testid="timeline-cluster"
+            aria-label={`${cluster.count} событий — приблизить`}
+            onClick={() => onCluster({ start: transform.fromX(cluster.start), end: transform.fromX(cluster.end) })}
+            style={{
+              ...markerButtonStyle(cluster.x, cluster.lane, false),
+              width: '20px',
+              left: `${cluster.x - 10}px`,
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: '50%',
+              border: '1px solid var(--text)',
+              background: 'var(--bg-input)',
+              fontFamily: 'var(--nd-sans)',
+              fontSize: '0.62rem',
+              color: 'var(--text)',
+            }}
+          >
+            {cluster.count}
+          </button>
+        </span>
+      ))}
+      {tooltip !== null && !dragging ? (
+        <div
+          role="tooltip"
+          style={{
+            position: 'fixed',
+            zIndex: 20,
+            left: `${tooltip.left}px`,
+            top: `${tooltip.top}px`,
+            maxWidth: '22rem',
+            transform: 'translate(-50%, -100%)',
+            padding: '0.5rem 0.7rem',
+            borderRadius: 'var(--radius-control)',
+            background: 'var(--bg-input)',
+            boxShadow: 'var(--shadow-pop)',
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ font: '0.9rem/1.25 var(--nd-serif)', color: 'var(--text)' }}>
+            <span aria-hidden="true">{tooltip.event.icon} </span>{tooltip.event.title}
+          </div>
+          <div style={{ marginTop: '0.15rem', font: '0.68rem/1 var(--nd-mono)', color: 'var(--text-muted)' }}>
+            {formatCanvasDate(tooltip.event)}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

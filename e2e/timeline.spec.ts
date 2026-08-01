@@ -54,6 +54,26 @@ test.describe('Лента времени — публичный просмотр
     await expect(detail.getByRole('heading', { name: timeline.epoch.title })).toBeVisible()
   })
 
+  test('легенда локально скрывает тип событий и сбрасывается после перезагрузки', async ({
+    page,
+    createTestTimeline,
+  }) => {
+    const timeline = await createTestTimeline()
+    await page.goto(timeline.url)
+
+    const canvasEvents = page.getByTestId('timeline-canvas').getByTestId('timeline-event')
+    await expect(canvasEvents).toHaveCount(2)
+    const typeChip = page.getByTestId('timeline-legend').locator('button.tl-chip').first()
+    await expect(typeChip).toHaveAttribute('aria-pressed', 'true')
+
+    await typeChip.click()
+    await expect(typeChip).toHaveAttribute('aria-pressed', 'false')
+    await expect(canvasEvents).toHaveCount(0)
+
+    await page.reload()
+    await expect(page.getByTestId('timeline-canvas').getByTestId('timeline-event')).toHaveCount(2)
+  })
+
   test('неопубликованная лента неавторизованному отдаёт 404', async ({ page, createTestTimeline }) => {
     const draft = await createTestTimeline({ published: false })
 
