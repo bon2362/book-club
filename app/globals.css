@@ -150,6 +150,19 @@
 .nd-timeline-canvas.is-dragging {
   cursor: grabbing;
 }
+
+.tl-chip:hover {
+  background: var(--surface-soft) !important;
+}
+
+.tl-tool:hover {
+  border-color: var(--tl-axis) !important;
+}
+
+.tl-tool:active {
+  background: var(--accent) !important;
+  color: var(--bg-input) !important;
+}
 .nd-timeline-canvas:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--accent-line);
