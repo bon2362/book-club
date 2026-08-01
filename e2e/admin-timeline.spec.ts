@@ -67,7 +67,7 @@ test.describe('AdminPanel — вкладка «Ленты времени»', () 
 
     await page.getByTestId('event-type-title').fill(typeTitle)
     await page.getByTestId('event-type-icon').fill('⚔')
-    await page.getByTestId('event-type-color-2D6A4F').click()
+    await page.getByTestId('event-type-color-57795F').click()
     await page.getByTestId('event-type-save').click()
 
     await expect(page.getByTestId('timeline-types-list')).toBeVisible()
