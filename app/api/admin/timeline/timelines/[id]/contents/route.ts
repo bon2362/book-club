@@ -85,7 +85,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       .from(historicalEpochs)
       .orderBy(asc(historicalEpochs.title)),
     db
-      .select({ eventId: timelineEvents.eventId, note: timelineEvents.note })
+      .select({
+        eventId: timelineEvents.eventId,
+        note: timelineEvents.note,
+        visible: timelineEvents.visible,
+      })
       .from(timelineEvents)
       .where(eq(timelineEvents.timelineId, params.id)),
     db
@@ -107,7 +111,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const availableEvents = []
   for (const row of allEvents) {
     const link = eventLinkById.get(row.id)
-    if (link) events.push({ ...row, note: link.note })
+    if (link) events.push({ ...row, note: link.note, visible: link.visible })
     else availableEvents.push(row)
   }
 

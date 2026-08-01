@@ -1688,6 +1688,13 @@ body {
   padding: 2.5rem 1.5rem 4rem;
 }
 .summary-page__col { min-width: 0; }
+
+.tl-library-item {
+  transition: opacity 0.15s ease;
+}
+.tl-library-item:hover {
+  opacity: 0.85 !important;
+}
 @media (min-width: 1100px) {
   .summary-page--with-toc {
     max-width: 1060px;

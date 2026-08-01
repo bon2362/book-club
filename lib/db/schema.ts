@@ -605,6 +605,7 @@ export const timelineEvents = pgTable('timeline_events', {
   eventId: text('event_id').notNull()
     .references(() => historicalEvents.id, { onDelete: 'cascade' }),
   note: text('note').notNull().default(''),
+  visible: boolean('visible').notNull().default(true),
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({

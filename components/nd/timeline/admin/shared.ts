@@ -150,6 +150,7 @@ export interface AdminTimelineSummary extends AdminTimelineDetail {
 /** Событие, включённое в ленту: строка справочника плюс заметка этой ленты. */
 export interface AdminTimelineEvent extends AdminEventRow {
   note: string
+  visible: boolean
 }
 
 /** Эпоха на ленте: строка справочника плюс её оформление на этой ленте. */

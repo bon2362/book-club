@@ -44,6 +44,7 @@ function eventRow(overrides: Partial<TimelineEventRow> = {}): TimelineEventRow {
     imageUrl: null,
     imageCaption: null,
     note: '',
+    visible: true,
     ...overrides,
   }
 }
