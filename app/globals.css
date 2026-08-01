@@ -92,6 +92,30 @@
   /* ── Header height (runtime, выставляется ResizeObserver в Header.tsx) ──── */
   --header-height:   57px;
   --filters-search-font-size: 0.8rem;
+
+  /* ── Timeline canvas ──────────────────────────────────────────────────── */
+  --tl-gut:        clamp(1rem, 3vw, 2rem);
+  --tl-axis:       #D6C9B4;
+  --tl-tick:       #C9BCA6;
+  --tl-tick-soft:  #E2D8C6;
+  --tl-connector:  #E3D9C8;
+  --tl-lane-pitch: 44px;
+  --tl-events-h:   clamp(200px, 40dvh, 460px);
+
+  /* ── Timeline data palette: event types ──────────────────────────────── */
+  --data-terracotta: #B0603C;
+  --data-slate:      #5D7290;
+  --data-sage:       #57795F;
+  --data-plum:       #7A5E86;
+  --data-ochre:      #8A6B3A;
+
+  /* ── Timeline data palette: epoch tints ──────────────────────────────── */
+  --tint-sand:  #EFE4D6;
+  --tint-ochre: #EADFCB;
+  --tint-sage:  #E1E3D2;
+  --tint-slate: #DCE2E4;
+  --tint-rose:  #E9DCDC;
+  --tint-plum:  #E3DCE6;
 }
 
 @media (max-width: 540px) {
