@@ -204,6 +204,42 @@ test.describe('Лента времени — правка на полотне', 
     await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: eventTitle })).toBeVisible()
   })
 
+  test('дорожка эпохи правится на полотне, ставит полосу на нужную строку и переживает reload', async ({
+    page,
+    createTestTimeline,
+    loginAsAdmin,
+  }) => {
+    const timeline = await createTestTimeline()
+    await loginAsAdmin()
+
+    await page.goto(timeline.url)
+    const epochBar = page.getByTestId('timeline-canvas').getByRole('button', { name: timeline.epoch.title })
+    const epochLayer = page.getByTestId('timeline-epochs')
+    await expect(epochBar).toBeVisible()
+    await epochBar.click()
+    await page.getByRole('button', { name: 'Править' }).click()
+    await page.getByTestId('inline-lane').fill('2')
+    await page.getByTestId('timeline-inline-editor').getByRole('button', { name: 'Сохранить' }).click()
+    await expect(page.getByTestId('timeline-detail-empty')).toBeVisible()
+
+    await page.reload()
+    const afterBar = page.getByTestId('timeline-canvas').getByRole('button', { name: timeline.epoch.title })
+    await expect(afterBar).toBeVisible()
+    const [afterBox, afterLayer] = await Promise.all([afterBar.boundingBox(), epochLayer.boundingBox()])
+    expect(afterBox).not.toBeNull()
+    expect(afterLayer).not.toBeNull()
+    // Дорожка 2 — третья строка слоя эпох, шаг дорожки 26px.
+    expect(
+      afterBox!.y - afterLayer!.y,
+      `Полоса должна встать на дорожку 2: полоса ${JSON.stringify(afterBox)}, слой ${JSON.stringify(afterLayer)}`,
+    ).toBe(52)
+
+    const contents = (await (await page.request.get(`/api/admin/timeline/timelines/${timeline.id}/contents`)).json()).data as {
+      epochs: Array<{ id: string; pinnedLane: number | null }>
+    }
+    expect(contents.epochs).toContainEqual(expect.objectContaining({ id: timeline.epoch.id, pinnedLane: 2 }))
+  })
+
   test('прикрепление включает выключенный слой эпох и сохраняется после reload', async ({
     page,
     createTestTimeline,

@@ -69,6 +69,7 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
   const [imageCaption, setImageCaption] = useState(item.imageCaption ?? '')
   const [note, setNote] = useState(item.note)
   const [color, setColor] = useState(epoch?.color ?? TIMELINE_EPOCH_PALETTE[0].value)
+  const [lane, setLane] = useState(epoch?.pinnedLane == null ? '' : String(epoch.pinnedLane))
   const [visible] = useState(item.visible)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -84,6 +85,17 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
       .catch(() => {})
   }, [event])
 
+  /** Пустое поле — эпоха раскладывается автоматически, число — закрепление дорожки. */
+  function pinnedLane(): number | null {
+    const trimmed = lane.trim()
+    return trimmed === '' ? null : Number(trimmed)
+  }
+
+  function laneInvalid() {
+    const trimmed = lane.trim()
+    return trimmed !== '' && !/^\d+$/.test(trimmed)
+  }
+
   const membershipUrl = selected.kind === 'event'
     ? `/api/admin/timeline/timelines/${timelineId}/events/${item.id}`
     : `/api/admin/timeline/timelines/${timelineId}/epochs/${item.id}`
@@ -96,6 +108,11 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
     setError(null)
     if (!title.trim()) {
       setError('Название обязательно')
+      return
+    }
+
+    if (selected.kind === 'epoch' && laneInvalid()) {
+      setError('Дорожка — целое число, не меньше нуля')
       return
     }
 
@@ -142,7 +159,7 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
 
     const membershipBody = selected.kind === 'event'
       ? { note, visible }
-      : { note, color, visible, pinnedLane: epoch?.pinnedLane ?? null }
+      : { note, color, visible, pinnedLane: pinnedLane() }
     const membershipError = await request(membershipUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -157,6 +174,10 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
   }
 
   async function toggleVisibility() {
+    if (selected.kind === 'epoch' && laneInvalid()) {
+      setError('Дорожка — целое число, не меньше нуля')
+      return
+    }
     setBusy(true)
     setError(null)
     const nextVisible = !item.visible
@@ -165,7 +186,7 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
       : {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ note, color, visible: nextVisible, pinnedLane: epoch?.pinnedLane ?? null }),
+          body: JSON.stringify({ note, color, visible: nextVisible, pinnedLane: pinnedLane() }),
         }
     const message = await request(membershipUrl, init)
     setBusy(false)
@@ -292,13 +313,30 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
       </div>
 
       {selected.kind === 'epoch' ? (
-        <div style={{ marginTop: '0.7rem' }}>
-          <span style={microLabelStyle}>Цвет полосы · только эта лента</span>
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
-            {TIMELINE_EPOCH_PALETTE.map((option) => (
-              <button key={option.value} type="button" aria-label={option.label} aria-pressed={color === option.value} onClick={() => setColor(option.value)} style={{ width: '1.75rem', height: '1.75rem', background: option.value, border: color === option.value ? '2px solid var(--text)' : '1px solid var(--hair)', cursor: 'pointer' }} />
-            ))}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '1.4rem', marginTop: '0.7rem' }}>
+          <div>
+            <span style={microLabelStyle}>Цвет полосы · только эта лента</span>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              {TIMELINE_EPOCH_PALETTE.map((option) => (
+                <button key={option.value} type="button" aria-label={option.label} aria-pressed={color === option.value} onClick={() => setColor(option.value)} style={{ width: '1.75rem', height: '1.75rem', background: option.value, border: color === option.value ? '2px solid var(--text)' : '1px solid var(--hair)', cursor: 'pointer' }} />
+              ))}
+            </div>
           </div>
+          <label style={{ width: '11rem' }}>
+            <span style={microLabelStyle}>Дорожка · только эта лента</span>
+            <input
+              value={lane}
+              onChange={(changeEvent) => setLane(changeEvent.target.value)}
+              aria-label="Закреплённая дорожка эпохи"
+              placeholder="без закрепления"
+              inputMode="numeric"
+              data-testid="inline-lane"
+              style={inputStyle}
+            />
+            <span style={{ display: 'block', marginTop: '0.3rem', color: 'var(--text-muted)', font: '0.66rem/1.35 var(--nd-sans)' }}>
+              0 — верхняя строка. Пусто — место подберётся само.
+            </span>
+          </label>
         </div>
       ) : null}
 
