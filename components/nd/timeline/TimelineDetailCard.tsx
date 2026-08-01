@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import SummaryMarkdown from '../SummaryMarkdown'
 import { normalizeDataColor, normalizeEpochColor } from './data-color'
 import { formatDateRange } from './format-historical-date'
@@ -15,12 +15,12 @@ interface Props {
   onClose: () => void
   timelineId?: string
   isAdmin?: boolean
-  onChanged?: () => void
+  onChanged?: (keepSelection?: { kind: 'event' | 'epoch'; id: string }) => void
 }
 
 /**
- * Карточка выбранного элемента. Не модальное окно — панель над лентой, чтобы
- * не перекрывать полотно и не требовать ловушки фокуса.
+ * Основная карточка выбранного элемента — панель над лентой. Отдельный
+ * полноэкранный просмотр изображения открывается как модальное окно.
  */
 export default function TimelineDetailCard({
   selected,
@@ -31,6 +31,32 @@ export default function TimelineDetailCard({
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [attachError, setAttachError] = useState<string | null>(null)
+  const [attaching, setAttaching] = useState(false)
+  const [imageOpen, setImageOpen] = useState(false)
+  const imagePreviewRef = useRef<HTMLButtonElement>(null)
+  const lightboxCloseRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!imageOpen) return
+    const opener = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : imagePreviewRef.current
+    lightboxCloseRef.current?.focus()
+    const handleLightboxKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setImageOpen(false)
+      } else if (event.key === 'Tab') {
+        event.preventDefault()
+        lightboxCloseRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleLightboxKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleLightboxKeyDown)
+      opener?.focus()
+    }
+  }, [imageOpen])
+
   if (selected === null) {
     return (
       <div
@@ -58,6 +84,7 @@ export default function TimelineDetailCard({
   async function attachLibraryItem() {
     if (!timelineId || selected === null) return
     setAttachError(null)
+    setAttaching(true)
     const url = selected.kind === 'event'
       ? `/api/admin/timeline/timelines/${timelineId}/events/${item.id}`
       : `/api/admin/timeline/timelines/${timelineId}/epochs/${item.id}`
@@ -68,9 +95,11 @@ export default function TimelineDetailCard({
       const response = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const message = await readError(response)
       if (message) setAttachError(message)
-      else onChanged()
+      else onChanged({ kind: selected.kind, id: item.id })
     } catch {
       setAttachError('Не удалось прикрепить элемент')
+    } finally {
+      setAttaching(false)
     }
   }
 
@@ -132,7 +161,14 @@ export default function TimelineDetailCard({
           </button>
         ) : null}
         {isAdmin && timelineId && item.isLibrary ? (
-          <button type="button" onClick={() => void attachLibraryItem()} style={{ ...buttonStyle('primary'), marginLeft: '0.35rem' }}>+ Прикрепить</button>
+          <button
+            type="button"
+            disabled={attaching}
+            onClick={() => void attachLibraryItem()}
+            style={{ ...buttonStyle('primary'), marginLeft: '0.35rem', cursor: attaching ? 'wait' : 'pointer' }}
+          >
+            {attaching ? 'Прикрепляем…' : '+ Прикрепить'}
+          </button>
         ) : null}
         <button
           type="button"
@@ -156,17 +192,27 @@ export default function TimelineDetailCard({
         </button>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.1rem', paddingTop: '0.35rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.1rem', paddingTop: '0.35rem' }}>
         {item.imageUrl ? (
-        <figure style={{ position: 'relative', flex: 'none', width: selected.kind === 'event' ? '80px' : '140px', height: selected.kind === 'event' ? '106px' : '94px', margin: 0, background: 'var(--surface-soft)', boxShadow: 'inset 0 0 0 1px var(--hair)' }}>
-          <Image
-            src={item.imageUrl}
-            alt={item.imageCaption ?? item.title}
-            fill
-            unoptimized
-            style={{ objectFit: 'cover' }}
-          />
-        </figure>
+          <figure className="nd-timeline-detail-media">
+            <button
+              ref={imagePreviewRef}
+              type="button"
+              className="nd-timeline-detail-image-button"
+              aria-label={`Открыть изображение: ${item.imageCaption ?? item.title}`}
+              onClick={() => setImageOpen(true)}
+            >
+              <Image
+                src={item.imageUrl}
+                alt={item.imageCaption ?? item.title}
+                fill
+                sizes="(min-width: 768px) 280px, 45vw"
+                unoptimized
+                style={{ objectFit: 'contain' }}
+              />
+            </button>
+            {item.imageCaption ? <figcaption>{item.imageCaption}</figcaption> : null}
+          </figure>
         ) : null}
 
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -183,6 +229,38 @@ export default function TimelineDetailCard({
           {attachError ? <p role="alert" style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{attachError}</p> : null}
         </div>
       </div>
+      {imageOpen && item.imageUrl ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={item.imageCaption ?? item.title}
+          className="nd-timeline-lightbox"
+          onClick={() => setImageOpen(false)}
+        >
+          <figure className="nd-timeline-lightbox-content" onClick={(event) => event.stopPropagation()}>
+            <button
+              ref={lightboxCloseRef}
+              type="button"
+              className="nd-timeline-lightbox-close"
+              aria-label="Закрыть изображение"
+              onClick={() => setImageOpen(false)}
+            >
+              Закрыть
+            </button>
+            <div className="nd-timeline-lightbox-image">
+              <Image
+                src={item.imageUrl}
+                alt={item.imageCaption ?? item.title}
+                fill
+                sizes="90vw"
+                unoptimized
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
+            {item.imageCaption ? <figcaption>{item.imageCaption}</figcaption> : null}
+          </figure>
+        </div>
+      ) : null}
     </article>
   )
 }

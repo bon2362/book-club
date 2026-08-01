@@ -252,8 +252,13 @@ test.describe('Лента времени — геометрия', () => {
       const canvas = page.getByTestId('timeline-canvas')
       const event = canvas.getByRole('button', { name: timeline.pointEvent.title })
       const label = event.getByTestId('timeline-event-label')
+      const dot = event.locator('.tl-dot')
       const before = await label.boundingBox()
+      const dotBefore = await dot.boundingBox()
       expect(before).not.toBeNull()
+      expect(dotBefore).not.toBeNull()
+      expect(dotBefore!.width).toBeGreaterThanOrEqual(8)
+      expect(dotBefore!.height).toBeGreaterThanOrEqual(8)
 
       await event.hover()
       await expect(event).toHaveClass(/(^|\s)is-on(\s|$)/)
@@ -271,6 +276,14 @@ test.describe('Лента времени — геометрия', () => {
       expect(axisDotBox).not.toBeNull()
       expect(axisDotBox!.x + axisDotBox!.width / 2)
         .toBeCloseTo(eventBox!.x + eventBox!.width / 2, 4)
+
+      const topElementClass = await page.evaluate(({ x, y }) =>
+        document.elementFromPoint(x, y)?.className,
+      {
+        x: dotBefore!.x + dotBefore!.width / 2,
+        y: dotBefore!.y + dotBefore!.height / 2,
+      })
+      expect(topElementClass).toContain('tl-dot')
 
       const hoverClass = await event.getAttribute('class')
       await event.click()
@@ -355,6 +368,30 @@ test.describe('Лента времени — геометрия', () => {
     expect(labelBoxes.length).toBeGreaterThanOrEqual(2)
 
     expect(Math.abs(labelBoxes[0]!.y - labelBoxes[1]!.y)).toBeGreaterThan(44)
+  })
+
+  test('превью изображения крупное и открывает полноэкранный просмотр', async ({
+    page,
+    createTestTimeline,
+    dbExec,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    const timeline = await createTestTimeline()
+    const imageUrl = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="600"%3E%3Crect width="800" height="600" fill="%23EDE5D8"/%3E%3C/svg%3E'
+    await dbExec(
+      'update historical_events set image_url = $1, image_caption = $2 where id = $3',
+      [imageUrl, 'Карта события', timeline.pointEvent.id],
+    )
+
+    await page.goto(timeline.url)
+    await page.getByTestId('timeline-canvas').getByRole('button', { name: timeline.pointEvent.title }).click()
+    const preview = page.getByRole('button', { name: 'Открыть изображение: Карта события' })
+    const previewBox = await preview.boundingBox()
+    expect(previewBox).not.toBeNull()
+    expect(previewBox!.width).toBeGreaterThanOrEqual(180)
+
+    await preview.click()
+    await expect(page.getByRole('dialog', { name: 'Карта события' })).toBeVisible()
   })
 
   test('сегодня пересекает полотно и эпохи, а продолжающийся интервал заканчивается на этой линии', async ({

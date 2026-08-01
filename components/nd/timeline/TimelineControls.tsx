@@ -5,7 +5,6 @@ import type { CSSProperties } from 'react'
 interface Props {
   onZoomIn: () => void
   onZoomOut: () => void
-  onFit: () => void
 }
 
 const buttonStyle: CSSProperties = {
@@ -22,8 +21,8 @@ const buttonStyle: CSSProperties = {
   lineHeight: 1,
 }
 
-/** Приблизить / отдалить / вместить — порт TimelineControls на токены проекта. */
-export default function TimelineControls({ onZoomIn, onZoomOut, onFit }: Props) {
+/** Приблизить / отдалить — порт TimelineControls на токены проекта. */
+export default function TimelineControls({ onZoomIn, onZoomOut }: Props) {
   return (
     <div
       aria-label="Управление лентой"
@@ -34,9 +33,6 @@ export default function TimelineControls({ onZoomIn, onZoomOut, onFit }: Props) 
       </button>
       <button className="tl-tool" type="button" aria-label="Отдалить" title="Отдалить (−)" onClick={onZoomOut} style={buttonStyle}>
         −
-      </button>
-      <button className="tl-tool" type="button" aria-label="Вместить" title="Вместить всё (F)" onClick={onFit} style={buttonStyle}>
-        Вместить
       </button>
     </div>
   )

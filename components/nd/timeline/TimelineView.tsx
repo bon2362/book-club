@@ -8,7 +8,6 @@ import {
   dateRangeForEvent,
   bringCoordinateIntoView,
   fitRange,
-  historicalDateToCoordinate,
   tlNow,
   type VisibleRange,
 } from '@/lib/timeline'
@@ -82,20 +81,6 @@ function TimelineNow({
 interface Props {
   timeline: TimelineViewData
   isAdmin?: boolean
-}
-
-function fitTimelineRange(timeline: TimelineViewData): VisibleRange {
-  const values = [
-    ...timeline.events.flatMap((event) => {
-      const range = dateRangeForEvent(event)
-      return [range.start, range.end]
-    }),
-    ...timeline.epochs.flatMap((epoch) => [
-      historicalDateToCoordinate(epoch.start),
-      historicalDateToCoordinate(epoch.end),
-    ]),
-  ]
-  return fitRange(values, 0.15)
 }
 
 export default function TimelineView({ timeline, isAdmin = false }: Props) {
@@ -180,7 +165,6 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
     range,
     width: measuredWidth,
     onViewportChange: setRange,
-    onFit: () => setRange(fitTimelineRange(timeline)),
     onEscape: () => setSelected(null),
     onDraggingChange: (nextDragging) => {
       setDragging(nextDragging)
@@ -213,6 +197,14 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
       ? timeline.events.some(({ id }) => id === pendingSelection.id)
       : timeline.epochs.some(({ id }) => id === pendingSelection.id)
     if (!exists) return
+    if (pendingSelection.kind === 'event') {
+      const attached = timeline.events.find(({ id }) => id === pendingSelection.id)
+      if (attached !== undefined) {
+        setEnabledTypeIds((current) => new Set(current).add(attached.typeId))
+      }
+    } else {
+      setEpochsEnabled(true)
+    }
     setSelected(pendingSelection)
     setPendingSelection(null)
   }, [pendingSelection, timeline.events, timeline.epochs])
@@ -267,8 +259,9 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
             timelineId={timeline.id}
             isAdmin={isAdmin}
             onClose={() => setSelected(null)}
-            onChanged={() => {
-              setSelected(null)
+            onChanged={(keepSelection) => {
+              if (keepSelection === undefined) setSelected(null)
+              else setPendingSelection(keepSelection)
               router.refresh()
             }}
           />}
@@ -290,7 +283,6 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
             onToggleEpochs={() => setEpochsEnabled((current) => !current)}
             onZoomIn={navigation.zoomIn}
             onZoomOut={navigation.zoomOut}
-            onFit={navigation.fit}
             showLibrary={showLibrary}
             onToggleLibrary={isAdmin ? () => setShowLibrary((current) => !current) : undefined}
           />
@@ -349,7 +341,7 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
             />
           </div>
           <p className="nd-timeline-help">
-            Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −, F
+            Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −
           </p>
         </div>
       </div>

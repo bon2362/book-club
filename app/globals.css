@@ -171,11 +171,16 @@
 .tl-span-cap {
   position: relative;
 }
+.tl-dot {
+  display: block;
+  z-index: 2;
+}
 .tl-connector {
   position: absolute;
   bottom: 0;
   width: 1px;
   pointer-events: none;
+  z-index: 0;
   background: linear-gradient(
     to top,
     var(--tl-tick) 0 7px,
@@ -200,6 +205,7 @@
   margin-left: -3.5px;
   border-radius: 50%;
   pointer-events: none;
+  z-index: 3;
   box-shadow: 0 0 0 2px var(--bg);
 }
 .tl-span-area {
@@ -318,6 +324,64 @@
   font-size: 0.85rem;
   line-height: 1.55;
 }
+.nd-timeline-detail-media {
+  flex: none;
+  width: clamp(180px, 20vw, 280px);
+  margin: 0;
+}
+.nd-timeline-detail-image-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--hair);
+  background: var(--surface-soft);
+  cursor: zoom-in;
+}
+.nd-timeline-detail-media figcaption,
+.nd-timeline-lightbox-content figcaption {
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  font: 0.68rem/1.35 var(--nd-sans);
+}
+.nd-timeline-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--tl-gut);
+  background: var(--overlay);
+}
+.nd-timeline-lightbox-content {
+  position: relative;
+  width: min(92vw, 1100px);
+  margin: 0;
+  padding: 2.75rem 1rem 0.8rem;
+  background: var(--bg-input);
+  box-shadow: var(--shadow-pop);
+}
+.nd-timeline-lightbox-image {
+  position: relative;
+  width: 100%;
+  height: min(78dvh, 780px);
+}
+.nd-timeline-lightbox-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: 0.62rem/1 var(--nd-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 
 @media (min-width: 768px) {
   .nd-timeline-page {
@@ -347,6 +411,7 @@
     overflow-y: auto;
     padding: 0 var(--tl-gut) 1.1rem;
     border-top: 1px solid var(--hair);
+    background: var(--bg);
   }
   .nd-timeline-canvas-region {
     min-height: 0;
@@ -355,6 +420,17 @@
     flex-direction: column;
     justify-content: flex-end;
     padding: 0 var(--tl-gut);
+  }
+  .nd-timeline-canvas {
+    min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .nd-timeline-events-shell {
+    min-height: 160px;
+    height: auto;
+    flex: 1;
   }
   .tl-bar {
     margin-bottom: auto;

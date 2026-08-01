@@ -58,10 +58,33 @@ test.describe('Лента времени — правка на полотне', 
     const title = timelineAdminScope.name('Создано на полотне')
 
     await page.goto(timeline.url)
-    await page.getByRole('button', { name: '+ Событие' }).click()
+    const detailShell = page.locator('.nd-timeline-detail-shell')
+    const createEventButton = page.getByRole('button', { name: '+ Событие' })
+    const [detailShellBox, createEventButtonBox] = await Promise.all([
+      detailShell.boundingBox(),
+      createEventButton.boundingBox(),
+    ])
+    expect(detailShellBox).not.toBeNull()
+    expect(createEventButtonBox).not.toBeNull()
+    expect(
+      detailShellBox!.y + detailShellBox!.height,
+      `Панель деталей ${JSON.stringify(detailShellBox)} перекрывает кнопку создания ${JSON.stringify(createEventButtonBox)}`,
+    ).toBeLessThanOrEqual(createEventButtonBox!.y)
+    await createEventButton.click()
     await page.getByLabel('Название нового события').fill(title)
     await expect(page.getByTestId('timeline-create-form').getByRole('button', { pressed: true })).toHaveCount(1)
-    await page.getByRole('button', { name: 'Создать' }).click()
+    const createButton = page.getByRole('button', { name: 'Создать' })
+    await createButton.scrollIntoViewIfNeeded()
+    const createButtonBox = await createButton.boundingBox()
+    expect(createButtonBox).not.toBeNull()
+    const formOwnsButtonCenter = await page.evaluate(({ x, y }) => {
+      return document.elementFromPoint(x, y)?.closest('[data-testid="timeline-create-form"]') !== null
+    }, {
+      x: createButtonBox!.x + createButtonBox!.width / 2,
+      y: createButtonBox!.y + createButtonBox!.height / 2,
+    })
+    expect(formOwnsButtonCenter).toBe(true)
+    await createButton.click()
     await expect(page.getByTestId('timeline-detail')).toContainText(title)
 
     await page.reload()
@@ -135,5 +158,86 @@ test.describe('Лента времени — правка на полотне', 
     expect(events.some(({ id }) => id === timeline.pointEvent.id)).toBe(true)
     const contents = (await (await page.request.get(`/api/admin/timeline/timelines/${timeline.id}/contents`)).json()).data as { events: Array<{ id: string }> }
     expect(contents.events.some(({ id }) => id === timeline.pointEvent.id)).toBe(false)
+  })
+
+  test('прикрепление делает событие нового типа видимым и сохраняет его после reload', async ({
+    page,
+    createTestTimeline,
+    loginAsAdmin,
+    timelineAdminScope,
+  }) => {
+    const timeline = await createTestTimeline()
+    await loginAsAdmin()
+    const typeTitle = timelineAdminScope.name('Новый тип')
+    const eventTitle = timelineAdminScope.name('Неприкреплённое событие')
+
+    const typeResponse = await page.request.post('/api/admin/timeline/event-types', {
+      data: { title: typeTitle, color: '#5D7290', icon: '●' },
+    })
+    expect(typeResponse.ok()).toBe(true)
+    const typeId = (await typeResponse.json()).data.id as string
+    const eventResponse = await page.request.post('/api/admin/timeline/events', {
+      data: {
+        title: eventTitle,
+        eventTypeId: typeId,
+        start: { year: 1920, era: 'CE', month: null, day: null },
+        end: null,
+        ongoing: false,
+        description: '',
+        imageUrl: null,
+        imageCaption: null,
+      },
+    })
+    expect(eventResponse.ok()).toBe(true)
+
+    await page.goto(timeline.url)
+    await page.getByLabel('Найти в базе').fill(eventTitle)
+    await page.getByRole('option', { name: new RegExp(eventTitle) }).click()
+    await page.getByRole('button', { name: '+ Прикрепить' }).click()
+
+    const canvasEvent = page.getByTestId('timeline-canvas').getByRole('button', { name: eventTitle })
+    await expect(canvasEvent).toBeVisible()
+    await expect(page.getByTestId('timeline-detail')).toContainText(eventTitle)
+    await expect(page.getByRole('button', { name: 'Править' })).toBeVisible()
+
+    await page.reload()
+    await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: eventTitle })).toBeVisible()
+  })
+
+  test('прикрепление включает выключенный слой эпох и сохраняется после reload', async ({
+    page,
+    createTestTimeline,
+    loginAsAdmin,
+    timelineAdminScope,
+  }) => {
+    const timeline = await createTestTimeline()
+    await loginAsAdmin()
+    const epochTitle = timelineAdminScope.name('Неприкреплённая эпоха')
+    const epochResponse = await page.request.post('/api/admin/timeline/epochs', {
+      data: {
+        title: epochTitle,
+        start: { year: 1600, era: 'CE', month: null, day: null },
+        end: { year: 1700, era: 'CE', month: null, day: null },
+        description: '',
+        imageUrl: null,
+        imageCaption: null,
+      },
+    })
+    expect(epochResponse.ok(), `${epochResponse.status()} ${await epochResponse.text()}`).toBe(true)
+
+    await page.goto(timeline.url)
+    await page.getByRole('button', { name: 'Эпохи 1' }).click()
+    await expect(page.getByTestId('timeline-epoch')).toHaveCount(0)
+    await page.getByLabel('Найти в базе').fill(epochTitle)
+    await page.getByRole('option', { name: new RegExp(epochTitle) }).click()
+    await page.getByRole('button', { name: '+ Прикрепить' }).click()
+
+    const canvasEpoch = page.getByTestId('timeline-canvas').getByRole('button', { name: epochTitle })
+    await expect(canvasEpoch).toBeVisible()
+    await expect(page.getByTestId('timeline-detail')).toContainText(epochTitle)
+    await expect(page.getByRole('button', { name: 'Править' })).toBeVisible()
+
+    await page.reload()
+    await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: epochTitle })).toBeVisible()
   })
 })
