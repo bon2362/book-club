@@ -76,6 +76,7 @@ export default function TimelineView({ timeline }: Props) {
   const [measuredHeight, setMeasuredHeight] = useState(FALLBACK_HEIGHT_PX)
   const [range, setRange] = useState<VisibleRange>(() => resolveInitialRange(timeline))
   const [selected, setSelected] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   const events = useMemo(() => {
     if (timeline.filterTypeIds.length === 0) return timeline.events
@@ -89,6 +90,7 @@ export default function TimelineView({ timeline }: Props) {
     width: measuredWidth,
     onViewportChange: setRange,
     onFit: () => setRange(initialRange(timeline)),
+    onDraggingChange: setDragging,
   })
 
   useEffect(() => {
@@ -139,15 +141,15 @@ export default function TimelineView({ timeline }: Props) {
           <TimelineControls onZoomIn={navigation.zoomIn} onZoomOut={navigation.zoomOut} onFit={navigation.fit} />
           <div
             ref={rootRef}
+            className={`nd-timeline-canvas${dragging ? ' is-dragging' : ''}`}
             tabIndex={0}
             data-testid="timeline-canvas"
             aria-label={`Лента времени: ${timeline.title}`}
             style={{
               position: 'relative',
-              overflow: 'hidden',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
+              background: 'var(--bg)',
+              border: 'none',
+              borderTop: '1px solid var(--hair)',
               touchAction: 'pan-y',
             }}
           >
@@ -157,6 +159,7 @@ export default function TimelineView({ timeline }: Props) {
                 range={range}
                 width={measuredWidth}
                 height={measuredHeight}
+                dragging={dragging}
                 densityStage={densityStage(range, measuredWidth)}
                 showAll={timeline.showAll}
                 selectedId={selected?.kind === 'event' ? selected.id : undefined}
@@ -170,6 +173,7 @@ export default function TimelineView({ timeline }: Props) {
                 epochs={timeline.epochs}
                 range={range}
                 width={measuredWidth}
+                dragging={dragging}
                 selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
                 onSelect={(id) => setSelected({ kind: 'epoch', id })}
               />

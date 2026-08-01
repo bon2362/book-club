@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import SummaryMarkdown from '../SummaryMarkdown'
-import { normalizeDataColor } from './data-color'
+import { normalizeDataColor, normalizeEpochColor } from './data-color'
 import { formatDateRange } from './format-historical-date'
 import type { TimelineEpochView, TimelineEventView } from '@/lib/timeline/view-model'
 
@@ -12,7 +12,7 @@ interface Props {
 }
 
 /**
- * Карточка выбранного элемента. Не модальное окно — панель под лентой, чтобы
+ * Карточка выбранного элемента. Не модальное окно — панель над лентой, чтобы
  * не перекрывать полотно и не требовать ловушки фокуса.
  */
 export default function TimelineDetailCard({ selected, onClose }: Props) {
@@ -21,49 +21,50 @@ export default function TimelineDetailCard({ selected, onClose }: Props) {
       <div
         data-testid="timeline-detail-empty"
         style={{
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          background: 'var(--bg-input)',
-          padding: '1rem 1.2rem',
+          paddingTop: '1.15rem',
           fontFamily: 'var(--nd-sans)',
           fontSize: '0.8rem',
           color: 'var(--text-muted)',
         }}
       >
-        Выберите событие или эпоху на ленте, чтобы прочитать подробности.
+        Выберите событие или эпоху на ленте — <b style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>подробности появятся здесь</b>.
       </div>
     )
   }
 
   const { item } = selected
-  const color = normalizeDataColor(item.color)
+  const color = selected.kind === 'epoch' ? normalizeEpochColor(item.color) : normalizeDataColor(item.color)
   const dateLabel = selected.kind === 'event'
     ? formatDateRange(selected.item)
     : formatDateRange({ start: selected.item.start, end: selected.item.end })
   const kindLabel = selected.kind === 'event' ? selected.item.typeTitle : 'Эпоха'
+  const isPoint = selected.kind === 'event' && selected.item.end === undefined && !selected.item.ongoing
 
   return (
     <article
       data-testid="timeline-detail"
       style={{
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${color}`,
-        borderRadius: 'var(--radius)',
-        background: 'var(--bg-input)',
-        padding: '1rem 1.2rem',
+        paddingTop: '0.35rem',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', paddingTop: '0.65rem' }}>
         <span
           style={{
-            fontFamily: 'var(--nd-sans)',
-            fontSize: '0.6rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: 'var(--text-muted)',
+            font: '0.72rem/1 var(--nd-mono)',
+            color: 'var(--text-secondary)',
+            letterSpacing: '0.02em',
           }}
         >
-          {kindLabel} · {dateLabel}
+          {dateLabel}
+        </span>
+        {isPoint ? (
+          <span style={{ padding: '0.15rem 0.35rem', boxShadow: 'inset 0 0 0 1px var(--hair)', color: 'var(--text-muted)', font: '0.6rem/1 var(--nd-sans)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            Одна дата
+          </span>
+        ) : null}
+        <span aria-hidden="true" style={{ width: '7px', height: '7px', borderRadius: selected.kind === 'event' ? '50%' : 0, background: color, flex: 'none' }} />
+        <span style={{ color: 'var(--text-muted)', font: '0.6rem/1 var(--nd-sans)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {kindLabel}
         </span>
         <button
           type="button"
@@ -85,62 +86,31 @@ export default function TimelineDetailCard({ selected, onClose }: Props) {
         </button>
       </div>
 
-      <h2
-        style={{
-          fontFamily: 'var(--nd-serif)',
-          fontSize: '1.2rem',
-          letterSpacing: '-0.01em',
-          color: 'var(--text)',
-          margin: '0.4rem 0 0.6rem',
-        }}
-      >
-        {item.title}
-      </h2>
-
-      {item.imageUrl ? (
-        <figure style={{ margin: '0 0 0.8rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.1rem', paddingTop: '0.35rem' }}>
+        {item.imageUrl ? (
+        <figure style={{ position: 'relative', flex: 'none', width: selected.kind === 'event' ? '80px' : '140px', height: selected.kind === 'event' ? '106px' : '94px', margin: 0, background: 'var(--surface-soft)', boxShadow: 'inset 0 0 0 1px var(--hair)' }}>
           <Image
             src={item.imageUrl}
             alt={item.imageCaption ?? item.title}
-            width={640}
-            height={360}
+            fill
             unoptimized
-            style={{ width: '100%', height: 'auto', border: '1px solid var(--border)' }}
+            style={{ objectFit: 'cover' }}
           />
-          {item.imageCaption ? (
-            <figcaption
-              style={{
-                fontFamily: 'var(--nd-sans)',
-                fontSize: '0.7rem',
-                color: 'var(--text-muted)',
-                paddingTop: '0.3rem',
-              }}
-            >
-              {item.imageCaption}
-            </figcaption>
-          ) : null}
         </figure>
-      ) : null}
+        ) : null}
 
-      {item.description ? <SummaryMarkdown markdown={item.description} /> : null}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h2 style={{ margin: '0.3rem 0 0', color: 'var(--text)', font: '700 1.45rem/1.2 var(--nd-serif)', letterSpacing: '-0.015em' }}>
+            {item.title}
+          </h2>
 
-      {item.note ? (
-        <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.8rem', paddingTop: '0.8rem' }}>
-          <p
-            style={{
-              fontFamily: 'var(--nd-sans)',
-              fontSize: '0.6rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--text-muted)',
-              margin: '0 0 0.4rem',
-            }}
-          >
-            Заметка к таймлайну
-          </p>
-          <SummaryMarkdown markdown={item.note} />
+          {item.description ? <div className="nd-timeline-detail-body"><SummaryMarkdown markdown={item.description} /></div> : null}
+
+          {item.note ? (
+            <div className="nd-timeline-detail-note"><SummaryMarkdown markdown={item.note} /></div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </article>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   assignEpochLanes,
   createViewportTransform,
@@ -8,25 +9,27 @@ import {
   type VisibleRange,
 } from '@/lib/timeline'
 import type { TimelineEpochView } from '@/lib/timeline/view-model'
-import { normalizeDataColor } from './data-color'
+import { normalizeEpochColor } from './data-color'
 
 interface Props {
   epochs: TimelineEpochView[]
   range: VisibleRange
   width: number
+  dragging: boolean
   selectedId?: string | undefined
   onSelect: (id: string) => void
 }
 
 /** Высота полосы эпохи и шаг дорожек. */
-const EPOCH_BAR_HEIGHT_PX = 24
-export const EPOCH_LANE_PITCH_PX = 29
+const EPOCH_BAR_HEIGHT_PX = 21
+export const EPOCH_LANE_PITCH_PX = 26
 
 /**
  * Полосы эпох. Дорожки считает `assignEpochLanes`, положение подписи —
  * `epochLabelPlacement`. Перетаскивание дорожек (этап 5) не переносится.
  */
-export default function TimelineEpochLayer({ epochs, range, width, selectedId, onSelect }: Props) {
+export default function TimelineEpochLayer({ epochs, range, width, dragging, selectedId, onSelect }: Props) {
+  const [tooltip, setTooltip] = useState<{ epoch: TimelineEpochView; left: number; top: number } | null>(null)
   const transform = createViewportTransform(range, width)
   const activeEpochs = epochs.filter((epoch) => epoch.visible)
   const layout = assignEpochLanes(
@@ -61,7 +64,7 @@ export default function TimelineEpochLayer({ epochs, range, width, selectedId, o
         const label = epochLabelPlacement({ left, right, width })
         const lane = laneById.get(epoch.id) ?? 0
         const selected = epoch.id === selectedId
-        const color = normalizeDataColor(epoch.color)
+        const color = normalizeEpochColor(epoch.color)
 
         return (
           <button
@@ -71,8 +74,13 @@ export default function TimelineEpochLayer({ epochs, range, width, selectedId, o
             data-epoch-id={epoch.id}
             aria-label={epoch.title}
             aria-pressed={selected}
-            title={epoch.title}
             onClick={() => onSelect(epoch.id)}
+            onMouseEnter={(mouseEvent) => {
+              if (dragging) return
+              const bounds = mouseEvent.currentTarget.getBoundingClientRect()
+              setTooltip({ epoch, left: bounds.left + bounds.width / 2, top: bounds.top - 10 })
+            }}
+            onMouseLeave={() => setTooltip(null)}
             style={{
               position: 'absolute',
               left: `${left}px`,
@@ -81,24 +89,13 @@ export default function TimelineEpochLayer({ epochs, range, width, selectedId, o
               height: `${EPOCH_BAR_HEIGHT_PX}px`,
               padding: 0,
               border: 'none',
-              borderBottom: selected ? '2px solid var(--text)' : '2px solid transparent',
-              borderRadius: 'var(--radius)',
-              background: 'transparent',
+              boxShadow: selected ? 'inset 0 -2px 0 var(--text)' : 'none',
+              background: color,
               cursor: 'pointer',
               textAlign: 'left',
               overflow: 'hidden',
             }}
           >
-            {/* Заливка своим цветом из данных — прозрачностью, чтобы подпись читалась. */}
-            <span
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: color,
-                opacity: selected ? 0.42 : 0.26,
-              }}
-            />
             <span
               data-testid="timeline-epoch-label"
               style={{
@@ -107,11 +104,11 @@ export default function TimelineEpochLayer({ epochs, range, width, selectedId, o
                 marginLeft: `${label.offset}px`,
                 maxWidth: `${label.maxWidth}px`,
                 opacity: label.visible ? 1 : 0,
-                padding: '0 0.4rem',
+                padding: '0 0.45rem',
                 lineHeight: `${EPOCH_BAR_HEIGHT_PX}px`,
                 fontFamily: 'var(--nd-serif)',
-                fontSize: '0.8rem',
-                color: 'var(--text)',
+                fontSize: '0.78rem',
+                color: 'var(--text-body)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -122,6 +119,26 @@ export default function TimelineEpochLayer({ epochs, range, width, selectedId, o
           </button>
         )
       })}
+      {tooltip !== null && !dragging ? (
+        <div
+          role="tooltip"
+          style={{
+            position: 'fixed',
+            zIndex: 20,
+            left: `${tooltip.left}px`,
+            top: `${tooltip.top}px`,
+            maxWidth: '22rem',
+            transform: 'translate(-50%, -100%)',
+            padding: '0.5rem 0.7rem',
+            borderRadius: 'var(--radius-control)',
+            background: 'var(--bg-input)',
+            boxShadow: 'var(--shadow-pop)',
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ font: '0.9rem/1.25 var(--nd-serif)', color: 'var(--text)' }}>{tooltip.epoch.title}</div>
+        </div>
+      ) : null}
     </div>
   )
 }

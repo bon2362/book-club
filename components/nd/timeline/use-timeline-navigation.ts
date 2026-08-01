@@ -20,6 +20,7 @@ export interface TimelineNavigationOptions {
   width: number
   onViewportChange(range: VisibleRange): void
   onFit(): void
+  onDraggingChange?(dragging: boolean): void
 }
 
 export interface TimelineNavigationCommands {
@@ -43,9 +44,10 @@ export function useTimelineNavigation({
   width,
   onViewportChange,
   onFit,
+  onDraggingChange,
 }: TimelineNavigationOptions): TimelineNavigationCommands {
-  const optionsRef = useRef({ range, width, onViewportChange, onFit })
-  optionsRef.current = { range, width, onViewportChange, onFit }
+  const optionsRef = useRef({ range, width, onViewportChange, onFit, onDraggingChange })
+  optionsRef.current = { range, width, onViewportChange, onFit, onDraggingChange }
   const activeRef = useRef(false)
   const dragRef = useRef<{ pointerId: number; lastX: number } | undefined>(undefined)
 
@@ -118,6 +120,7 @@ export function useTimelineNavigation({
       const current = optionsRef.current
       const pixelDelta = event.clientX - drag.lastX
       if (pixelDelta === 0) return
+      current.onDraggingChange?.(true)
       drag.lastX = event.clientX
       const unitsPerPixel = (current.range.end - current.range.start) / current.width
       current.onViewportChange(panRange(current.range, -pixelDelta * unitsPerPixel))
@@ -126,6 +129,7 @@ export function useTimelineNavigation({
     function handlePointerUp(event: PointerEvent): void {
       if (dragRef.current?.pointerId === event.pointerId) {
         dragRef.current = undefined
+        optionsRef.current.onDraggingChange?.(false)
       }
     }
 
@@ -162,6 +166,7 @@ export function useTimelineNavigation({
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('keydown', handleKeyDown)
+      optionsRef.current.onDraggingChange?.(false)
     }
   }, [fit, rootRef, zoomIn, zoomOut])
 

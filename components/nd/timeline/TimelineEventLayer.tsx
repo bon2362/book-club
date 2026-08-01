@@ -1,15 +1,13 @@
 'use client'
 
-import type { CSSProperties, ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import {
   buildEventConnection,
   buildEventLayout,
   createViewportTransform,
   dateRangeForEvent,
-  estimateEventLabelTextWidth,
   finishedIntervalCollisionBox,
   EVENT_DOT_BOX_PX,
-  EVENT_LABEL_MAX_TEXT_WIDTH_PX,
   type DensityStage,
   type VisibleRange,
 } from '@/lib/timeline'
@@ -30,23 +28,27 @@ import { formatCanvasDate } from './format-historical-date'
  */
 
 const EVENT_HORIZONTAL_CLEARANCE_PX = 12
+const EVENT_MARKER_SIZE_PX = 8
 
 const labelStyle: CSSProperties = {
   fontFamily: 'var(--nd-sans)',
-  fontSize: '0.84rem',
+  fontSize: '0.845rem',
+  lineHeight: 1,
   color: 'var(--text)',
   whiteSpace: 'nowrap',
 }
 
 const dateStyle: CSSProperties = {
   fontFamily: 'var(--nd-mono)',
-  fontSize: '0.65rem',
+  fontSize: '0.7rem',
+  lineHeight: 1,
+  letterSpacing: '0.02em',
   color: 'var(--text-muted)',
   whiteSpace: 'nowrap',
 }
 
 /** Вертикальный волосок от метки события к оси лет. */
-function Connector({ x, lane }: { x: number; lane: number }) {
+function Connector({ x, lane, selected }: { x: number; lane: number; selected: boolean }) {
   return (
     <span
       aria-hidden="true"
@@ -56,7 +58,8 @@ function Connector({ x, lane }: { x: number; lane: number }) {
         bottom: 0,
         width: '1px',
         height: `${eventBottom(lane)}px`,
-        background: 'var(--border)',
+        background: selected ? 'var(--accent)' : 'var(--tl-connector)',
+        opacity: selected ? 0.55 : 1,
       }}
     />
   )
@@ -65,7 +68,7 @@ function Connector({ x, lane }: { x: number; lane: number }) {
 function markerButtonStyle(x: number, lane: number, selected: boolean): CSSProperties {
   return {
     position: 'absolute',
-    left: `${x - EVENT_DOT_BOX_PX / 2}px`,
+    left: `${x - EVENT_MARKER_SIZE_PX / 2}px`,
     bottom: `${eventBottom(lane)}px`,
     height: `${MARKER_ROW_HEIGHT_PX}px`,
     display: 'flex',
@@ -91,25 +94,21 @@ const clampedLabelStyle = (maxWidth: number): CSSProperties => ({
   textOverflow: 'ellipsis',
 })
 
-function Dot({ color, icon, selected }: { color: string; icon: string; selected: boolean }) {
+function Dot({ color, selected }: { color: string; selected: boolean }) {
   return (
     <span
       aria-hidden="true"
       style={{
         flexShrink: 0,
-        width: `${EVENT_DOT_BOX_PX}px`,
-        height: `${EVENT_DOT_BOX_PX}px`,
+        width: `${EVENT_MARKER_SIZE_PX}px`,
+        height: `${EVENT_MARKER_SIZE_PX}px`,
         borderRadius: '50%',
         background: color,
-        border: selected ? '2px solid var(--text)' : '2px solid var(--bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '0.6rem',
-        lineHeight: 1,
+        boxShadow: selected
+          ? '0 0 0 2px var(--bg), 0 0 0 3px var(--text)'
+          : '0 0 0 3px var(--bg)',
       }}
     >
-      {icon}
     </span>
   )
 }
@@ -122,6 +121,7 @@ function PointEvent({
   selected,
   width,
   onSelect,
+  onHover,
 }: {
   event: TimelineEventView
   x: number
@@ -130,16 +130,10 @@ function PointEvent({
   selected: boolean
   width: number
   onSelect: () => void
+  onHover: (event: TimelineEventView | null, element?: HTMLElement) => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
   const maxWidth = labelMaxWidth(x, width, POINT_ROW_CHROME_PX)
-  // Подсказка нужна, когда подпись сокращена или её нет вовсе. Она нативная:
-  // собственный тултип на React-состоянии залипал после клика — выбор события
-  // сдвигает полотно, и элемент уезжает из-под курсора без `pointerleave`.
-  const truncated = label !== event.title
-    || estimateEventLabelTextWidth(event.title) >= EVENT_LABEL_MAX_TEXT_WIDTH_PX
-    || estimateEventLabelTextWidth(label) > maxWidth
-
   return (
     <button
       type="button"
@@ -148,11 +142,12 @@ function PointEvent({
       data-shape="point"
       aria-label={event.title}
       aria-pressed={selected}
-      title={truncated ? `${event.title} · ${formatCanvasDate(event)}` : undefined}
       onClick={onSelect}
+      onMouseEnter={(mouseEvent) => onHover(event, mouseEvent.currentTarget)}
+      onMouseLeave={() => onHover(null)}
       style={markerButtonStyle(x, lane, selected)}
     >
-      <Dot color={color} icon={event.icon} selected={selected} />
+      <Dot color={color} selected={selected} />
       {label ? (
         <>
           <span
@@ -176,6 +171,7 @@ function IntervalEvent({
   selected,
   width,
   onSelect,
+  onHover,
 }: {
   event: TimelineEventView
   startX: number
@@ -184,6 +180,7 @@ function IntervalEvent({
   selected: boolean
   width: number
   onSelect: () => void
+  onHover: (event: TimelineEventView | null, element?: HTMLElement) => void
 }): ReactNode {
   const color = normalizeDataColor(event.color)
   // Подпись интервала растёт вправо от его начала. У правого края её ужимаем,
@@ -199,8 +196,9 @@ function IntervalEvent({
       data-shape="interval"
       aria-label={event.title}
       aria-pressed={selected}
-      title={`${event.title} · ${formatCanvasDate(event)}`}
       onClick={onSelect}
+      onMouseEnter={(mouseEvent) => onHover(event, mouseEvent.currentTarget)}
+      onMouseLeave={() => onHover(null)}
       style={{
         position: 'absolute',
         left: `${startX}px`,
@@ -216,6 +214,12 @@ function IntervalEvent({
       }}
     >
       {/* Отрезок от начала к концу — линией цвета типа, без заливки блока. */}
+      {selected ? (
+        <span
+          aria-hidden="true"
+          style={{ position: 'absolute', inset: '-2px 0 0', background: color, opacity: 0.1 }}
+        />
+      ) : null}
       <span
         aria-hidden="true"
         style={{
@@ -227,6 +231,8 @@ function IntervalEvent({
           background: color,
         }}
       />
+      <span aria-hidden="true" style={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
+      <span aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
       <span
         style={{
           position: 'absolute',
@@ -255,6 +261,7 @@ interface Props {
   width: number
   densityStage: DensityStage
   height: number
+  dragging: boolean
   showAll: boolean
   selectedId?: string | undefined
   onSelect: (id: string) => void
@@ -266,12 +273,14 @@ export default function TimelineEventLayer({
   range,
   width,
   height,
+  dragging,
   densityStage,
   showAll,
   selectedId,
   onSelect,
   onCluster,
 }: Props) {
+  const [tooltip, setTooltip] = useState<{ event: TimelineEventView; left: number; top: number } | null>(null)
   const transform = createViewportTransform(range, width)
   const span = range.end - range.start
   const visible = events.filter((event) => {
@@ -310,6 +319,15 @@ export default function TimelineEventLayer({
   })
   const laneById = new Map(layout.placements.map(({ id, lane }) => [id, lane]))
 
+  function showTooltip(event: TimelineEventView | null, element?: HTMLElement): void {
+    if (event === null || element === undefined || dragging) {
+      setTooltip(null)
+      return
+    }
+    const bounds = element.getBoundingClientRect()
+    setTooltip({ event, left: bounds.left + bounds.width / 2, top: bounds.top - 10 })
+  }
+
   return (
     <div
       aria-label="События"
@@ -322,9 +340,9 @@ export default function TimelineEventLayer({
         const lane = laneById.get(event.id) ?? 0
         return (
           <span key={event.id}>
-            {connection.startVisible ? <Connector x={connection.startX} lane={lane} /> : null}
+            {connection.startVisible ? <Connector x={connection.startX} lane={lane} selected={event.id === selectedId} /> : null}
             {connection.kind === 'finished-interval' && connection.endVisible ? (
-              <Connector x={connection.endX} lane={lane} />
+              <Connector x={connection.endX} lane={lane} selected={event.id === selectedId} />
             ) : null}
             <IntervalEvent
               event={event}
@@ -334,6 +352,7 @@ export default function TimelineEventLayer({
               selected={event.id === selectedId}
               width={width}
               onSelect={() => onSelect(event.id)}
+              onHover={showTooltip}
             />
           </span>
         )
@@ -345,7 +364,7 @@ export default function TimelineEventLayer({
         if (marker.type === 'cluster') {
           return (
             <span key={marker.id}>
-              <Connector x={marker.x} lane={lane} />
+              <Connector x={marker.x} lane={lane} selected={false} />
               <button
                 type="button"
                 data-testid="timeline-cluster"
@@ -373,7 +392,7 @@ export default function TimelineEventLayer({
         if (event === undefined) return null
         return (
           <span key={event.id}>
-            <Connector x={marker.x} lane={lane} />
+            <Connector x={marker.x} lane={lane} selected={event.id === selectedId} />
             <PointEvent
               event={event}
               x={marker.x}
@@ -382,10 +401,36 @@ export default function TimelineEventLayer({
               selected={event.id === selectedId}
               width={width}
               onSelect={() => onSelect(event.id)}
+              onHover={showTooltip}
             />
           </span>
         )
       })}
+      {tooltip !== null && !dragging ? (
+        <div
+          role="tooltip"
+          style={{
+            position: 'fixed',
+            zIndex: 20,
+            left: `${tooltip.left}px`,
+            top: `${tooltip.top}px`,
+            maxWidth: '22rem',
+            transform: 'translate(-50%, -100%)',
+            padding: '0.5rem 0.7rem',
+            borderRadius: 'var(--radius-control)',
+            background: 'var(--bg-input)',
+            boxShadow: 'var(--shadow-pop)',
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ font: '0.9rem/1.25 var(--nd-serif)', color: 'var(--text)' }}>
+            <span aria-hidden="true">{tooltip.event.icon} </span>{tooltip.event.title}
+          </div>
+          <div style={{ marginTop: '0.15rem', font: '0.68rem/1 var(--nd-mono)', color: 'var(--text-muted)' }}>
+            {formatCanvasDate(tooltip.event)}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
