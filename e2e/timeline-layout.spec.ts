@@ -240,6 +240,91 @@ test.describe('Лента времени — геометрия', () => {
     await expect(events).toHaveCount(0)
   })
 
+  test.describe('hover и выбор', () => {
+    test('точечное событие сохраняет геометрию подписи и одинаково подсвечивается', async ({
+      page,
+      createTestTimeline,
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 800 })
+      const timeline = await createTestTimeline()
+      await page.goto(timeline.url)
+
+      const canvas = page.getByTestId('timeline-canvas')
+      const event = canvas.getByRole('button', { name: timeline.pointEvent.title })
+      const label = event.getByTestId('timeline-event-label')
+      const before = await label.boundingBox()
+      expect(before).not.toBeNull()
+
+      await event.hover()
+      await expect(event).toHaveClass(/(^|\s)is-on(\s|$)/)
+      await expect(page.getByRole('tooltip')).toHaveCount(0)
+      const hovered = await label.boundingBox()
+      expect(hovered).not.toBeNull()
+      expect(hovered!.x).toBeCloseTo(before!.x, 4)
+      expect(hovered!.y).toBeCloseTo(before!.y, 4)
+      expect(hovered!.width).toBeCloseTo(before!.width, 4)
+
+      const axisDot = canvas.getByTestId('timeline-axis-dot')
+      const eventBox = await event.boundingBox()
+      const axisDotBox = await axisDot.boundingBox()
+      expect(eventBox).not.toBeNull()
+      expect(axisDotBox).not.toBeNull()
+      expect(axisDotBox!.x + axisDotBox!.width / 2)
+        .toBeCloseTo(eventBox!.x + eventBox!.width / 2, 4)
+
+      const hoverClass = await event.getAttribute('class')
+      await event.click()
+      await page.mouse.move(0, 0)
+      await expect(event).toHaveAttribute('class', hoverClass!)
+    })
+
+    test('интервал тянет активную область от линии до оси и сбрасывает hover колесом', async ({
+      page,
+      createTestTimeline,
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 800 })
+      const timeline = await createTestTimeline()
+      await page.goto(timeline.url)
+
+      const canvas = page.getByTestId('timeline-canvas')
+      const interval = canvas.getByRole('button', { name: timeline.intervalEvent.title })
+      await interval.hover()
+      await expect(interval).toHaveClass(/(^|\s)is-on(\s|$)/)
+
+      const intervalBox = await interval.boundingBox()
+      const areaBox = await canvas.getByTestId('timeline-span-area').boundingBox()
+      expect(intervalBox).not.toBeNull()
+      expect(areaBox).not.toBeNull()
+      expect(areaBox!.x).toBeCloseTo(intervalBox!.x, 4)
+      expect(areaBox!.width).toBeCloseTo(intervalBox!.width, 4)
+      expect(areaBox!.y).toBeCloseTo(intervalBox!.y + intervalBox!.height, 4)
+
+      await page.mouse.wheel(1, 0)
+      await expect(interval).not.toHaveClass(/(^|\s)is-on(\s|$)/)
+      await expect(canvas.getByTestId('timeline-span-area')).toHaveCount(0)
+    })
+
+    test('эпоха использует одинаковое состояние для hover и выбора без tooltip', async ({
+      page,
+      createTestTimeline,
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 800 })
+      const timeline = await createTestTimeline()
+      await page.goto(timeline.url)
+
+      const epoch = page.getByTestId('timeline-epoch')
+      await expect(epoch).toHaveCount(1)
+      await epoch.hover()
+      await expect(epoch).toHaveClass(/(^|\s)is-on(\s|$)/)
+      await expect(page.getByRole('tooltip')).toHaveCount(0)
+
+      const hoverClass = await epoch.getAttribute('class')
+      await epoch.click()
+      await page.mouse.move(0, 0)
+      await expect(epoch).toHaveAttribute('class', hoverClass!)
+    })
+  })
+
   test('подпись эпохи остаётся внутри своей полосы', async ({ page, createTestTimeline }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
     const timeline = await createTestTimeline()

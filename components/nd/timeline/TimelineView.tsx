@@ -60,6 +60,7 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
   const [measuredHeight, setMeasuredHeight] = useState(FALLBACK_HEIGHT_PX)
   const [range, setRange] = useState<VisibleRange>(() => resolveTimelineInitialRange(timeline))
   const [selected, setSelected] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
+  const [hoverId, setHoverId] = useState<string | null>(null)
   const [creating, setCreating] = useState<'event' | 'epoch' | null>(null)
   const [pendingSelection, setPendingSelection] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
   const [showLibrary, setShowLibrary] = useState(false)
@@ -132,7 +133,10 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
     onViewportChange: setRange,
     onFit: () => setRange(fitTimelineRange(timeline)),
     onEscape: () => setSelected(null),
-    onDraggingChange: setDragging,
+    onDraggingChange: (nextDragging) => {
+      setDragging(nextDragging)
+      if (nextDragging) setHoverId(null)
+    },
   })
 
   useEffect(() => {
@@ -244,6 +248,7 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
             tabIndex={0}
             data-testid="timeline-canvas"
             aria-label={`Лента времени: ${timeline.title}`}
+            onWheel={() => setHoverId(null)}
             style={{
               position: 'relative',
               background: 'var(--bg)',
@@ -260,7 +265,11 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
                 width={measuredWidth}
                 height={measuredHeight}
                 dragging={dragging}
+                hoverId={hoverId ?? undefined}
                 selectedId={selected?.kind === 'event' ? selected.id : undefined}
+                onHoverChange={(id) => {
+                  if (id === null || !dragging) setHoverId(id)
+                }}
                 onSelect={selectEvent}
                 onCluster={(clusterRange) => setRange(fitRange([clusterRange.start, clusterRange.end], 0.5))}
               />
@@ -273,7 +282,11 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
               range={range}
               width={measuredWidth}
               dragging={dragging}
+              hoverId={hoverId ?? undefined}
               selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
+              onHoverChange={(id) => {
+                if (id === null || !dragging) setHoverId(id)
+              }}
               onSelect={(id) => setSelected({ kind: 'epoch', id })}
             />
           </div>
