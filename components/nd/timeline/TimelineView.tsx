@@ -5,7 +5,6 @@ import {
   dateRangeForEvent,
   fitRange,
   historicalDateToCoordinate,
-  type DensityStage,
   type VisibleRange,
 } from '@/lib/timeline'
 import type { TimelineViewData } from '@/lib/timeline/view-model'
@@ -59,14 +58,6 @@ function initialRange(timeline: TimelineViewData): VisibleRange {
  */
 function resolveInitialRange(timeline: TimelineViewData): VisibleRange {
   return initialRange(timeline)
-}
-
-function densityStage(range: VisibleRange, width: number): DensityStage {
-  const unitsPerPixel = (range.end - range.start) / Math.max(width, 1)
-  if (unitsPerPixel <= 0.2) return 'full-label'
-  if (unitsPerPixel <= 1) return 'shortened-label'
-  if (unitsPerPixel <= 4) return 'marker-only'
-  return 'cluster'
 }
 
 export default function TimelineView({ timeline }: Props) {
@@ -160,8 +151,6 @@ export default function TimelineView({ timeline }: Props) {
                 width={measuredWidth}
                 height={measuredHeight}
                 dragging={dragging}
-                densityStage={densityStage(range, measuredWidth)}
-                showAll={timeline.showAll}
                 selectedId={selected?.kind === 'event' ? selected.id : undefined}
                 onSelect={selectEvent}
                 onCluster={(clusterRange) => setRange(fitRange([clusterRange.start, clusterRange.end], 0.5))}
