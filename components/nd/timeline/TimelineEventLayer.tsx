@@ -43,7 +43,7 @@ const dateStyle: CSSProperties = {
 }
 
 /** Вертикальный волосок от метки события к оси лет. */
-function Connector({ x, lane, selected }: { x: number; lane: number; selected: boolean }) {
+function Connector({ x, lane, selected, ghost = false }: { x: number; lane: number; selected: boolean; ghost?: boolean }) {
   return (
     <span
       aria-hidden="true"
@@ -54,6 +54,8 @@ function Connector({ x, lane, selected }: { x: number; lane: number; selected: b
         width: '1px',
         height: `${eventBottom(lane)}px`,
         background: selected ? 'var(--accent)' : 'var(--tl-connector)',
+        backgroundImage: ghost ? 'linear-gradient(to bottom, var(--tl-connector) 50%, transparent 50%)' : 'none',
+        backgroundSize: ghost ? '1px 4px' : 'auto',
         opacity: selected ? 0.55 : 1,
       }}
     />
@@ -75,7 +77,7 @@ function markerButtonStyle(x: number, lane: number, selected: boolean): CSSPrope
   }
 }
 
-function Dot({ color, selected }: { color: string; selected: boolean }) {
+function Dot({ color, selected, ghost = false }: { color: string; selected: boolean; ghost?: boolean }) {
   return (
     <span
       aria-hidden="true"
@@ -84,10 +86,12 @@ function Dot({ color, selected }: { color: string; selected: boolean }) {
         width: `${EVENT_MARKER_SIZE_PX}px`,
         height: `${EVENT_MARKER_SIZE_PX}px`,
         borderRadius: '50%',
-        background: color,
+        background: ghost ? 'var(--bg)' : color,
         boxShadow: selected
           ? '0 0 0 2px var(--bg), 0 0 0 3px var(--text)'
-          : '0 0 0 3px var(--bg)',
+          : ghost
+            ? `inset 0 0 0 1px ${color}, 0 0 0 3px var(--bg)`
+            : '0 0 0 3px var(--bg)',
       }}
     >
     </span>
@@ -117,6 +121,7 @@ function PointEvent({
   return (
     <button
       type="button"
+      className={event.isLibrary ? 'tl-library-item' : undefined}
       data-testid="timeline-event"
       data-event-id={event.id}
       data-shape="point"
@@ -125,9 +130,9 @@ function PointEvent({
       onClick={onSelect}
       onMouseEnter={(mouseEvent) => onHover(event, mouseEvent.currentTarget)}
       onMouseLeave={() => onHover(null)}
-      style={markerButtonStyle(x, lane, selected)}
+      style={{ ...markerButtonStyle(x, lane, selected), opacity: event.isLibrary ? 0.42 : 1 }}
     >
-      <Dot color={color} selected={selected} />
+      <Dot color={color} selected={selected} ghost={event.isLibrary} />
       {mode === 'label' ? (
         <span
           style={{
@@ -180,6 +185,7 @@ function IntervalEvent({
   return (
     <button
       type="button"
+      className={event.isLibrary ? 'tl-library-item' : undefined}
       data-testid="timeline-event"
       data-event-id={event.id}
       data-shape="interval"
@@ -200,6 +206,7 @@ function IntervalEvent({
         cursor: 'pointer',
         textAlign: 'left',
         zIndex: selected ? 2 : 1,
+        opacity: event.isLibrary ? 0.42 : 1,
       }}
     >
       {/* Отрезок от начала к концу — линией цвета типа, без заливки блока. */}
@@ -217,7 +224,8 @@ function IntervalEvent({
           right: 0,
           bottom: 0,
           height: selected ? '3px' : '2px',
-          background: color,
+          background: event.isLibrary ? 'transparent' : color,
+          borderTop: event.isLibrary ? `1px dashed ${color}` : 'none',
         }}
       />
       <span aria-hidden="true" style={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
@@ -324,9 +332,9 @@ export default function TimelineEventLayer({
         const endVisible = placement.endX >= 0 && placement.endX <= width
         return (
           <span key={event.id}>
-            {startVisible ? <Connector x={placement.startX} lane={placement.lane} selected={event.id === selectedId} /> : null}
+            {startVisible ? <Connector x={placement.startX} lane={placement.lane} selected={event.id === selectedId} ghost={event.isLibrary} /> : null}
             {!event.ongoing && endVisible ? (
-              <Connector x={placement.endX} lane={placement.lane} selected={event.id === selectedId} />
+              <Connector x={placement.endX} lane={placement.lane} selected={event.id === selectedId} ghost={event.isLibrary} />
             ) : null}
             <IntervalEvent
               event={event}
@@ -348,7 +356,7 @@ export default function TimelineEventLayer({
         if (event === undefined) return null
         return (
           <span key={event.id}>
-            <Connector x={marker.x} lane={marker.lane} selected={event.id === selectedId} />
+            <Connector x={marker.x} lane={marker.lane} selected={event.id === selectedId} ghost={event.isLibrary} />
             <PointEvent
               event={event}
               x={marker.x}
@@ -411,6 +419,7 @@ export default function TimelineEventLayer({
           <div style={{ marginTop: '0.15rem', font: '0.68rem/1 var(--nd-mono)', color: 'var(--text-muted)' }}>
             {formatCanvasDate(tooltip.event)}
           </div>
+          {tooltip.event.isLibrary ? <div style={{ marginTop: '0.35rem', font: '0.68rem/1.2 var(--nd-sans)', color: 'var(--accent)' }}>Есть в базе · клик — прикрепить</div> : null}
         </div>
       ) : null}
     </div>

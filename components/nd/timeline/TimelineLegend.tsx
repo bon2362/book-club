@@ -21,6 +21,8 @@ interface Props {
   onZoomIn: () => void
   onZoomOut: () => void
   onFit: () => void
+  showLibrary?: boolean
+  onToggleLibrary?: () => void
 }
 
 const chipStyle: CSSProperties = {
@@ -54,6 +56,8 @@ export default function TimelineLegend({
   onZoomIn,
   onZoomOut,
   onFit,
+  showLibrary = false,
+  onToggleLibrary,
 }: Props) {
   return (
     <div
@@ -125,6 +129,18 @@ export default function TimelineLegend({
         <span>Эпохи</span>
         <span style={countStyle}>{epochCount}</span>
       </button>
+      {onToggleLibrary ? (
+        <button
+          type="button"
+          className="tl-chip"
+          aria-pressed={showLibrary}
+          onClick={onToggleLibrary}
+          style={{ ...chipStyle, color: showLibrary ? 'var(--text)' : 'var(--text-muted)', boxShadow: showLibrary ? 'inset 0 -1px 0 var(--accent)' : 'none' }}
+        >
+          <span aria-hidden="true" style={{ width: '9px', height: '9px', borderRadius: '50%', background: 'var(--bg)', boxShadow: 'inset 0 0 0 1px var(--tl-axis)' }} />
+          Вся база
+        </button>
+      ) : null}
       <div style={{ flex: '1 1 1rem' }} />
       <TimelineControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} />
     </div>

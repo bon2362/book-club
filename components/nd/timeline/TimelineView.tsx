@@ -17,6 +17,9 @@ import TimelineEventLayer from './TimelineEventLayer'
 import TimelineLegend, { type TimelineLegendType } from './TimelineLegend'
 import TimelineMobileList from './TimelineMobileList'
 import TimelineRuler from './TimelineRuler'
+import TimelineAdminTools, { type TimelineSearchItem } from './TimelineAdminTools'
+import TimelineCreateForm from './TimelineCreateForm'
+import { DEFAULT_TIMELINE_EPOCH_COLOR } from './admin/palette'
 import { useTimelineNavigation } from './use-timeline-navigation'
 
 /**
@@ -57,6 +60,9 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
   const [measuredHeight, setMeasuredHeight] = useState(FALLBACK_HEIGHT_PX)
   const [range, setRange] = useState<VisibleRange>(() => resolveTimelineInitialRange(timeline))
   const [selected, setSelected] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
+  const [creating, setCreating] = useState<'event' | 'epoch' | null>(null)
+  const [pendingSelection, setPendingSelection] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
+  const [showLibrary, setShowLibrary] = useState(false)
   const [dragging, setDragging] = useState(false)
   const eventTypes = useMemo<TimelineLegendType[]>(() => {
     const byId = new Map<string, TimelineLegendType>()
@@ -82,9 +88,32 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
   })
   const [epochsEnabled, setEpochsEnabled] = useState(timeline.epochsVisible)
 
+  const libraryEvents = useMemo(() => timeline.libraryEvents.map((event) => ({
+    ...event,
+    note: '',
+    visible: true,
+    isLibrary: true,
+  })), [timeline.libraryEvents])
+  const libraryEpochs = useMemo(() => timeline.libraryEpochs.map((epoch) => ({
+    ...epoch,
+    note: '',
+    color: DEFAULT_TIMELINE_EPOCH_COLOR,
+    visible: true,
+    isLibrary: true,
+  })), [timeline.libraryEpochs])
+
   const events = useMemo(() => {
-    return timeline.events.filter((event) => event.visible && enabledTypeIds.has(event.typeId))
-  }, [timeline.events, enabledTypeIds])
+    const attached = timeline.events.filter((event) => event.visible && enabledTypeIds.has(event.typeId))
+    return showLibrary ? [...attached, ...libraryEvents] : attached
+  }, [timeline.events, enabledTypeIds, showLibrary, libraryEvents])
+
+  const epochs = useMemo(() => showLibrary ? [...timeline.epochs, ...libraryEpochs] : timeline.epochs, [timeline.epochs, showLibrary, libraryEpochs])
+  const searchItems = useMemo<TimelineSearchItem[]>(() => [
+    ...timeline.events.map((item) => ({ kind: 'event' as const, item })),
+    ...timeline.epochs.map((item) => ({ kind: 'epoch' as const, item })),
+    ...libraryEvents.map((item) => ({ kind: 'event' as const, item })),
+    ...libraryEpochs.map((item) => ({ kind: 'epoch' as const, item })),
+  ], [timeline.events, timeline.epochs, libraryEvents, libraryEpochs])
 
   const navigation = useTimelineNavigation({
     rootRef,
@@ -111,11 +140,21 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
     return () => observer.disconnect()
   }, [])
 
+  useEffect(() => {
+    if (pendingSelection === null) return
+    const exists = pendingSelection.kind === 'event'
+      ? timeline.events.some(({ id }) => id === pendingSelection.id)
+      : timeline.epochs.some(({ id }) => id === pendingSelection.id)
+    if (!exists) return
+    setSelected(pendingSelection)
+    setPendingSelection(null)
+  }, [pendingSelection, timeline.events, timeline.epochs])
+
   const selectedEvent = selected?.kind === 'event'
-    ? events.find((event) => event.id === selected.id) ?? null
+    ? [...timeline.events, ...libraryEvents].find((event) => event.id === selected.id) ?? null
     : null
   const selectedEpoch = selected?.kind === 'epoch'
-    ? timeline.epochs.find((epoch) => epoch.id === selected.id) ?? null
+    ? [...timeline.epochs, ...libraryEpochs].find((epoch) => epoch.id === selected.id) ?? null
     : null
   const detail = selectedEvent !== null
     ? ({ kind: 'event', item: selectedEvent } as const)
@@ -144,7 +183,19 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
     <div className="nd-timeline-view">
       <div className="hidden md:flex nd-timeline-desktop" data-testid="timeline-canvas-wrapper">
         <div className="nd-timeline-detail-shell">
-          <TimelineDetailCard
+          {creating ? (
+            <TimelineCreateForm
+              kind={creating}
+              timelineId={timeline.id}
+              range={range}
+              onCancel={() => setCreating(null)}
+              onCreated={(kind, id) => {
+                setCreating(null)
+                setPendingSelection({ kind, id })
+                router.refresh()
+              }}
+            />
+          ) : <TimelineDetailCard
             selected={detail}
             timelineId={timeline.id}
             isAdmin={isAdmin}
@@ -153,10 +204,17 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
               setSelected(null)
               router.refresh()
             }}
-          />
+          />}
         </div>
         <div className="nd-timeline-spacer" aria-hidden="true" />
         <div className="nd-timeline-canvas-region">
+          {isAdmin ? (
+            <TimelineAdminTools
+              items={searchItems}
+              onCreate={(kind) => { setSelected(null); setCreating(kind) }}
+              onSelect={(next) => { setCreating(null); setSelected({ kind: next.kind, id: next.item.id }) }}
+            />
+          ) : null}
           <TimelineLegend
             eventTypes={eventTypes}
             enabledTypeIds={enabledTypeIds}
@@ -167,6 +225,8 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
             onZoomIn={navigation.zoomIn}
             onZoomOut={navigation.zoomOut}
             onFit={navigation.fit}
+            showLibrary={showLibrary}
+            onToggleLibrary={isAdmin ? () => setShowLibrary((current) => !current) : undefined}
           />
           <div
             ref={rootRef}
@@ -197,7 +257,7 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
             <TimelineRuler range={range} width={measuredWidth} />
             {epochsEnabled ? (
               <TimelineEpochLayer
-                epochs={timeline.epochs}
+                epochs={epochs}
                 range={range}
                 width={measuredWidth}
                 dragging={dragging}

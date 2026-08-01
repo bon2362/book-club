@@ -36,6 +36,8 @@ export interface TimelineEventView {
   note: string
   /** Видимость события — свойство связи только с этой лентой. */
   visible: boolean
+  /** Элемент общей базы, ещё не прикреплённый к этой ленте. */
+  isLibrary?: boolean
 }
 
 export type TimelineLibraryEventView = Omit<TimelineEventView, 'note' | 'visible'>
@@ -53,6 +55,8 @@ export interface TimelineEpochView {
   color: string
   visible: boolean
   pinnedLane?: number
+  /** Элемент общей базы, ещё не прикреплённый к этой ленте. */
+  isLibrary?: boolean
 }
 
 export type TimelineLibraryEpochView = Omit<

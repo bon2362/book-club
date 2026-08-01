@@ -70,6 +70,7 @@ export default function TimelineEpochLayer({ epochs, range, width, dragging, sel
           <button
             key={epoch.id}
             type="button"
+            className={epoch.isLibrary ? 'tl-library-item' : undefined}
             data-testid="timeline-epoch"
             data-epoch-id={epoch.id}
             aria-label={epoch.title}
@@ -89,8 +90,11 @@ export default function TimelineEpochLayer({ epochs, range, width, dragging, sel
               height: `${EPOCH_BAR_HEIGHT_PX}px`,
               padding: 0,
               border: 'none',
+              outline: epoch.isLibrary ? '1px solid var(--tl-axis)' : 'none',
+              outlineOffset: epoch.isLibrary ? '-1px' : 0,
               boxShadow: selected ? 'inset 0 -2px 0 var(--text)' : 'none',
-              background: color,
+              background: epoch.isLibrary ? 'transparent' : color,
+              opacity: epoch.isLibrary ? 0.42 : 1,
               cursor: 'pointer',
               textAlign: 'left',
               overflow: 'hidden',
@@ -137,6 +141,7 @@ export default function TimelineEpochLayer({ epochs, range, width, dragging, sel
           }}
         >
           <div style={{ font: '0.9rem/1.25 var(--nd-serif)', color: 'var(--text)' }}>{tooltip.epoch.title}</div>
+          {tooltip.epoch.isLibrary ? <div style={{ marginTop: '0.35rem', font: '0.68rem/1.2 var(--nd-sans)', color: 'var(--accent)' }}>Есть в базе · клик — прикрепить</div> : null}
         </div>
       ) : null}
     </div>

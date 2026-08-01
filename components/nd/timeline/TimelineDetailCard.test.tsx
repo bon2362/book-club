@@ -112,3 +112,25 @@ it('разделяет скрытие, открепление и удалени�
     expect.objectContaining({ method: 'DELETE' }),
   ))
 })
+
+it('призрак предлагает прикрепление без режима правки', async () => {
+  const onChanged = jest.fn()
+  render(
+    <TimelineDetailCard
+      selected={{ kind: 'event', item: { ...event, isLibrary: true } }}
+      timelineId="timeline-1"
+      isAdmin
+      onClose={jest.fn()}
+      onChanged={onChanged}
+    />,
+  )
+
+  expect(screen.queryByRole('button', { name: 'Править' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '+ Прикрепить' }))
+
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+    '/api/admin/timeline/timelines/timeline-1/events/event-1',
+    expect.objectContaining({ method: 'PUT' }),
+  ))
+  expect(onChanged).toHaveBeenCalled()
+})

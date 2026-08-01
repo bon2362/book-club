@@ -65,6 +65,8 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
     usageCount: 0,
   }] : [])
   const [description, setDescription] = useState(item.description)
+  const [imageUrl, setImageUrl] = useState(item.imageUrl ?? '')
+  const [imageCaption, setImageCaption] = useState(item.imageCaption ?? '')
   const [note, setNote] = useState(item.note)
   const [color, setColor] = useState(epoch?.color ?? TIMELINE_EPOCH_PALETTE[0].value)
   const [visible] = useState(item.visible)
@@ -116,16 +118,16 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
           end: end ? apiDate(end) : null,
           ongoing,
           description,
-          imageUrl: item.imageUrl,
-          imageCaption: item.imageCaption,
+          imageUrl: imageUrl || null,
+          imageCaption: imageCaption || null,
         }
       : {
           title,
           start: apiDate(start),
           end: end ? apiDate(end) : null,
           description,
-          imageUrl: item.imageUrl,
-          imageCaption: item.imageCaption,
+          imageUrl: imageUrl || null,
+          imageCaption: imageCaption || null,
         }
     const commonError = await request(itemUrl, {
       method: 'PATCH',
@@ -279,6 +281,14 @@ export default function TimelineInlineEditor({ timelineId, selected, onCancel, o
           <span style={microLabelStyle}>Заметка · только эта лента</span>
           <textarea aria-label="Заметка для этой ленты" value={note} onChange={(changeEvent) => setNote(changeEvent.target.value)} style={{ ...textareaStyle, minHeight: '5rem' }} />
         </label>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(14rem, 1fr)', alignItems: 'end', gap: '0.7rem', marginTop: '0.7rem' }}>
+        <div aria-hidden="true" style={{ width: selected.kind === 'event' ? '80px' : '140px', height: selected.kind === 'event' ? '106px' : '94px', background: 'var(--surface-soft)', boxShadow: 'inset 0 0 0 1px var(--hair)' }} />
+        <div>
+          <label><span style={microLabelStyle}>Адрес картинки · общий</span><input value={imageUrl} onChange={(changeEvent) => setImageUrl(changeEvent.target.value)} aria-label="Адрес картинки" placeholder="https://…" style={inputStyle} /></label>
+          <label><span style={{ ...microLabelStyle, marginTop: '0.45rem' }}>Подпись к картинке · общая</span><input value={imageCaption} onChange={(changeEvent) => setImageCaption(changeEvent.target.value)} aria-label="Подпись к картинке" style={inputStyle} /></label>
+        </div>
       </div>
 
       {selected.kind === 'epoch' ? (
