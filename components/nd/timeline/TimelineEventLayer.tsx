@@ -102,7 +102,6 @@ function PointEvent({
   event,
   x,
   lane,
-  side,
   mode,
   selected,
   onSelect,
@@ -111,7 +110,6 @@ function PointEvent({
   event: TimelineEventView
   x: number
   lane: number
-  side: 'left' | 'right'
   mode: 'label' | 'dot'
   selected: boolean
   onSelect: () => void
@@ -138,10 +136,9 @@ function PointEvent({
           style={{
             position: 'absolute',
             top: '50%',
-            ...(side === 'right' ? { left: 'calc(100% + 0.5rem)' } : { right: 'calc(100% + 0.5rem)' }),
+            left: 'calc(100% + 0.5rem)',
             transform: 'translateY(-50%)',
             display: 'flex',
-            flexDirection: side === 'right' ? 'row' : 'row-reverse',
             alignItems: 'center',
             gap: '0.5rem',
           }}
@@ -256,6 +253,7 @@ function IntervalEvent({
 
 interface Props {
   events: TimelineEventView[]
+  visibleEventIds: ReadonlySet<string>
   range: VisibleRange
   width: number
   height: number
@@ -267,6 +265,7 @@ interface Props {
 
 export default function TimelineEventLayer({
   events,
+  visibleEventIds,
   range,
   width,
   height,
@@ -278,24 +277,17 @@ export default function TimelineEventLayer({
   const [tooltip, setTooltip] = useState<{ event: TimelineEventView; left: number; top: number } | null>(null)
   const measureText = useMemo(() => createTextMeasurer(), [])
   const transform = createViewportTransform(range, width)
-  const span = range.end - range.start
-  const visible = events.filter((event) => {
-    const eventRange = dateRangeForEvent(event)
-    return (
-      event.id === selectedId ||
-      (eventRange.end >= range.start - span && eventRange.start <= range.end + span)
-    )
-  })
-  const eventById = new Map(visible.map((event) => [event.id, event]))
+  const eventById = new Map(events.map((event) => [event.id, event]))
   const layout = tlLayout({
-    events: visible.map((event) => {
-    const eventRange = dateRangeForEvent(event)
-    const start = transform.toX(eventRange.start)
+    events: events.map((event) => {
+      const eventRange = dateRangeForEvent(event)
+      const start = transform.toX(eventRange.start)
       return {
         id: event.id,
         title: event.title,
         dateLabel: formatCanvasDate(event),
         startX: start,
+        isLibrary: event.isLibrary,
         ...(event.end !== undefined || event.ongoing
           ? { endX: Math.max(transform.toX(eventRange.end), start + 4) }
           : {}),
@@ -327,7 +319,11 @@ export default function TimelineEventLayer({
     >
       {layout.spans.map((placement) => {
         const event = eventById.get(placement.id)
-        if (event === undefined) return null
+        if (
+          event === undefined ||
+          !visibleEventIds.has(placement.id) ||
+          !placement.intersectsCanvas
+        ) return null
         const startVisible = placement.startX >= 0 && placement.startX <= width
         const endVisible = placement.endX >= 0 && placement.endX <= width
         return (
@@ -353,7 +349,11 @@ export default function TimelineEventLayer({
 
       {layout.markers.map((marker) => {
         const event = eventById.get(marker.id)
-        if (event === undefined) return null
+        if (
+          event === undefined ||
+          !visibleEventIds.has(marker.id) ||
+          !marker.intersectsCanvas
+        ) return null
         return (
           <span key={event.id}>
             <Connector x={marker.x} lane={marker.lane} selected={event.id === selectedId} ghost={event.isLibrary} />
@@ -361,7 +361,6 @@ export default function TimelineEventLayer({
               event={event}
               x={marker.x}
               lane={marker.lane}
-              side={marker.side}
               mode={marker.mode}
               selected={event.id === selectedId}
               onSelect={() => onSelect(event.id)}
@@ -370,13 +369,15 @@ export default function TimelineEventLayer({
           </span>
         )
       })}
-      {layout.clusters.map((cluster) => (
-        <span key={cluster.id}>
+      {layout.clusters.map((cluster) => {
+        const memberIds = cluster.memberIds.filter((id) => visibleEventIds.has(id))
+        if (!cluster.intersectsCanvas || memberIds.length === 0) return null
+        return <span key={cluster.id}>
           <Connector x={cluster.x} lane={cluster.lane} selected={false} />
           <button
             type="button"
             data-testid="timeline-cluster"
-            aria-label={`${cluster.count} событий — приблизить`}
+            aria-label={`${memberIds.length} событий — приблизить`}
             onClick={() => onCluster({ start: transform.fromX(cluster.start), end: transform.fromX(cluster.end) })}
             style={{
               ...markerButtonStyle(cluster.x, cluster.lane, false),
@@ -392,10 +393,10 @@ export default function TimelineEventLayer({
               color: 'var(--text)',
             }}
           >
-            {cluster.count}
+            {memberIds.length}
           </button>
         </span>
-      ))}
+      })}
       {tooltip !== null && !dragging ? (
         <div
           role="tooltip"

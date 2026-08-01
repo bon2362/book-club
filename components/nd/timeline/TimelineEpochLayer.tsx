@@ -13,6 +13,8 @@ import { normalizeEpochColor } from './data-color'
 
 interface Props {
   epochs: TimelineEpochView[]
+  enabled: boolean
+  showLibrary: boolean
   range: VisibleRange
   width: number
   dragging: boolean
@@ -28,12 +30,20 @@ export const EPOCH_LANE_PITCH_PX = 26
  * Полосы эпох. Дорожки считает `assignEpochLanes`, положение подписи —
  * `epochLabelPlacement`. Перетаскивание дорожек (этап 5) не переносится.
  */
-export default function TimelineEpochLayer({ epochs, range, width, dragging, selectedId, onSelect }: Props) {
+export default function TimelineEpochLayer({
+  epochs,
+  enabled,
+  showLibrary,
+  range,
+  width,
+  dragging,
+  selectedId,
+  onSelect,
+}: Props) {
   const [tooltip, setTooltip] = useState<{ epoch: TimelineEpochView; left: number; top: number } | null>(null)
   const transform = createViewportTransform(range, width)
-  const activeEpochs = epochs.filter((epoch) => epoch.visible)
   const layout = assignEpochLanes(
-    activeEpochs.map((epoch) => ({
+    epochs.map((epoch) => ({
       id: epoch.id,
       start: epoch.start,
       end: epoch.end,
@@ -42,7 +52,8 @@ export default function TimelineEpochLayer({ epochs, range, width, dragging, sel
   )
   const laneById = new Map(layout.placements.map(({ id, lane }) => [id, lane]))
   const span = range.end - range.start
-  const visible = activeEpochs.filter((epoch) => {
+  const visible = epochs.filter((epoch) => {
+    if (!enabled || !epoch.visible || (epoch.isLibrary && !showLibrary)) return false
     const start = historicalDateToCoordinate(epoch.start)
     const end = historicalDateToCoordinate(epoch.end)
     return epoch.id === selectedId || (end >= range.start - span && start <= range.end + span)

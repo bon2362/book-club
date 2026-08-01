@@ -102,12 +102,22 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
     isLibrary: true,
   })), [timeline.libraryEpochs])
 
+  const allEvents = useMemo(
+    () => [...timeline.events, ...libraryEvents],
+    [timeline.events, libraryEvents],
+  )
   const events = useMemo(() => {
     const attached = timeline.events.filter((event) => event.visible && enabledTypeIds.has(event.typeId))
     return showLibrary ? [...attached, ...libraryEvents] : attached
   }, [timeline.events, enabledTypeIds, showLibrary, libraryEvents])
-
-  const epochs = useMemo(() => showLibrary ? [...timeline.epochs, ...libraryEpochs] : timeline.epochs, [timeline.epochs, showLibrary, libraryEpochs])
+  const visibleEventIds = useMemo(
+    () => new Set(events.map(({ id }) => id)),
+    [events],
+  )
+  const epochs = useMemo(
+    () => [...timeline.epochs, ...libraryEpochs],
+    [timeline.epochs, libraryEpochs],
+  )
   const searchItems = useMemo<TimelineSearchItem[]>(() => [
     ...timeline.events.map((item) => ({ kind: 'event' as const, item })),
     ...timeline.epochs.map((item) => ({ kind: 'epoch' as const, item })),
@@ -151,7 +161,7 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
   }, [pendingSelection, timeline.events, timeline.epochs])
 
   const selectedEvent = selected?.kind === 'event'
-    ? [...timeline.events, ...libraryEvents].find((event) => event.id === selected.id) ?? null
+    ? allEvents.find((event) => event.id === selected.id) ?? null
     : null
   const selectedEpoch = selected?.kind === 'epoch'
     ? [...timeline.epochs, ...libraryEpochs].find((epoch) => epoch.id === selected.id) ?? null
@@ -244,7 +254,8 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
           >
             <div ref={eventsRef} className="nd-timeline-events-shell">
               <TimelineEventLayer
-                events={events}
+                events={allEvents}
+                visibleEventIds={visibleEventIds}
                 range={range}
                 width={measuredWidth}
                 height={measuredHeight}
@@ -255,16 +266,16 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
               />
             </div>
             <TimelineRuler range={range} width={measuredWidth} />
-            {epochsEnabled ? (
-              <TimelineEpochLayer
-                epochs={epochs}
-                range={range}
-                width={measuredWidth}
-                dragging={dragging}
-                selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
-                onSelect={(id) => setSelected({ kind: 'epoch', id })}
-              />
-            ) : null}
+            <TimelineEpochLayer
+              epochs={epochs}
+              enabled={epochsEnabled}
+              showLibrary={showLibrary}
+              range={range}
+              width={measuredWidth}
+              dragging={dragging}
+              selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
+              onSelect={(id) => setSelected({ kind: 'epoch', id })}
+            />
           </div>
           <p className="nd-timeline-help">
             Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −, F
