@@ -20,7 +20,6 @@ export interface TimelineNavigationOptions {
   range: VisibleRange
   width: number
   onViewportChange(range: VisibleRange): void
-  onFit(): void
   onEscape(): void
   onDraggingChange?(dragging: boolean): void
 }
@@ -28,7 +27,6 @@ export interface TimelineNavigationOptions {
 export interface TimelineNavigationCommands {
   zoomIn(): void
   zoomOut(): void
-  fit(): void
 }
 
 function isTextEntry(element: Element | null): boolean {
@@ -45,12 +43,11 @@ export function useTimelineNavigation({
   range,
   width,
   onViewportChange,
-  onFit,
   onEscape,
   onDraggingChange,
 }: TimelineNavigationOptions): TimelineNavigationCommands {
-  const optionsRef = useRef({ range, width, onViewportChange, onFit, onEscape, onDraggingChange })
-  optionsRef.current = { range, width, onViewportChange, onFit, onEscape, onDraggingChange }
+  const optionsRef = useRef({ range, width, onViewportChange, onEscape, onDraggingChange })
+  optionsRef.current = { range, width, onViewportChange, onEscape, onDraggingChange }
   const activeRef = useRef(false)
   const dragRef = useRef<{ pointerId: number; startX: number; lastX: number; dragging: boolean } | undefined>(undefined)
   const suppressClickRef = useRef(false)
@@ -65,8 +62,6 @@ export function useTimelineNavigation({
 
   const zoomIn = useCallback(() => zoomAtCenter(ZOOM_IN_FACTOR), [zoomAtCenter])
   const zoomOut = useCallback(() => zoomAtCenter(ZOOM_OUT_FACTOR), [zoomAtCenter])
-  const fit = useCallback(() => optionsRef.current.onFit(), [])
-
   useEffect(() => {
     const root = rootRef.current
     if (root === null) return
@@ -154,9 +149,6 @@ export function useTimelineNavigation({
       } else if (event.key === '-' || event.key === '_') {
         event.preventDefault()
         zoomOut()
-      } else if (event.key.toLowerCase() === 'f') {
-        event.preventDefault()
-        fit()
       } else if (event.key === 'Escape') {
         event.preventDefault()
         optionsRef.current.onEscape()
@@ -186,7 +178,7 @@ export function useTimelineNavigation({
       window.removeEventListener('keydown', handleKeyDown)
       optionsRef.current.onDraggingChange?.(false)
     }
-  }, [fit, rootRef, zoomIn, zoomOut])
+  }, [rootRef, zoomIn, zoomOut])
 
-  return { zoomIn, zoomOut, fit }
+  return { zoomIn, zoomOut }
 }

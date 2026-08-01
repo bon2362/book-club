@@ -20,7 +20,6 @@ interface Props {
   onToggleEpochs: () => void
   onZoomIn: () => void
   onZoomOut: () => void
-  onFit: () => void
   showLibrary?: boolean
   onToggleLibrary?: () => void
 }
@@ -55,7 +54,6 @@ export default function TimelineLegend({
   onToggleEpochs,
   onZoomIn,
   onZoomOut,
-  onFit,
   showLibrary = false,
   onToggleLibrary,
 }: Props) {
@@ -143,7 +141,7 @@ export default function TimelineLegend({
         </button>
       ) : null}
       <div style={{ flex: '1 1 1rem' }} />
-      <TimelineControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} />
+      <TimelineControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} />
     </div>
   )
 }

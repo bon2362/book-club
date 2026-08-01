@@ -66,7 +66,7 @@ it('сохраняет общие поля отдельно от свойств 
     '/api/admin/timeline/timelines/timeline-1/events/event-1',
     expect.objectContaining({ method: 'PUT' }),
   )
-  expect(onChanged).toHaveBeenCalled()
+  expect(onChanged).toHaveBeenCalledWith()
 })
 
 it('разделяет скрытие, открепление и удаление из общей базы', async () => {
@@ -132,5 +132,31 @@ it('призрак предлагает прикрепление без режи
     '/api/admin/timeline/timelines/timeline-1/events/event-1',
     expect.objectContaining({ method: 'PUT' }),
   ))
-  expect(onChanged).toHaveBeenCalled()
+  expect(onChanged).toHaveBeenCalledWith({ kind: 'event', id: 'event-1' })
+})
+
+it('открывает изображение в полноэкранном диалоге и закрывает его по Escape', () => {
+  render(
+    <TimelineDetailCard
+      selected={{
+        kind: 'event',
+        item: {
+          ...event,
+          imageUrl: 'https://example.com/map.jpg',
+          imageCaption: 'Маршрут экспедиции',
+        },
+      }}
+      onClose={jest.fn()}
+    />,
+  )
+
+  const previewButton = screen.getByRole('button', { name: 'Открыть изображение: Маршрут экспедиции' })
+  previewButton.focus()
+  fireEvent.click(previewButton)
+
+  expect(screen.getByRole('dialog', { name: 'Маршрут экспедиции' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Закрыть изображение' })).toHaveFocus()
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(previewButton).toHaveFocus()
 })
