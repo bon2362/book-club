@@ -24,6 +24,7 @@ import { useTimelineNavigation } from './use-timeline-navigation'
  */
 
 const FALLBACK_WIDTH_PX = 1000
+const FALLBACK_HEIGHT_PX = 200
 /** Сохранённый в базе список типов, означающий «скрыть все события». */
 const HIDE_ALL_EVENT_TYPES = '__none__'
 
@@ -70,7 +71,9 @@ function densityStage(range: VisibleRange, width: number): DensityStage {
 
 export default function TimelineView({ timeline }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const eventsRef = useRef<HTMLDivElement>(null)
   const [measuredWidth, setMeasuredWidth] = useState(FALLBACK_WIDTH_PX)
+  const [measuredHeight, setMeasuredHeight] = useState(FALLBACK_HEIGHT_PX)
   const [range, setRange] = useState<VisibleRange>(() => resolveInitialRange(timeline))
   const [selected, setSelected] = useState<{ kind: 'event' | 'epoch'; id: string } | null>(null)
 
@@ -89,16 +92,17 @@ export default function TimelineView({ timeline }: Props) {
   })
 
   useEffect(() => {
-    const root = rootRef.current
-    if (root === null) return
-    const updateWidth = () => {
-      const next = root.getBoundingClientRect().width
-      if (next > 0) setMeasuredWidth(next)
+    const eventsBox = eventsRef.current
+    if (eventsBox === null) return
+    const updateSize = () => {
+      const next = eventsBox.getBoundingClientRect()
+      if (next.width > 0) setMeasuredWidth(next.width)
+      if (next.height > 0) setMeasuredHeight(next.height)
     }
-    updateWidth()
+    updateSize()
     if (typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(updateWidth)
-    observer.observe(root)
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(eventsBox)
     return () => observer.disconnect()
   }, [])
 
@@ -125,57 +129,56 @@ export default function TimelineView({ timeline }: Props) {
   }
 
   return (
-    <div>
-      <div className="hidden md:block" data-testid="timeline-canvas-wrapper">
-        <TimelineControls onZoomIn={navigation.zoomIn} onZoomOut={navigation.zoomOut} onFit={navigation.fit} />
-        <div
-          ref={rootRef}
-          tabIndex={0}
-          data-testid="timeline-canvas"
-          aria-label={`Лента времени: ${timeline.title}`}
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            background: 'var(--bg-input)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            touchAction: 'pan-y',
-          }}
-        >
-          <TimelineEventLayer
-            events={events}
-            range={range}
-            width={measuredWidth}
-            densityStage={densityStage(range, measuredWidth)}
-            showAll={timeline.showAll}
-            selectedId={selected?.kind === 'event' ? selected.id : undefined}
-            onSelect={selectEvent}
-            onCluster={(clusterRange) => setRange(fitRange([clusterRange.start, clusterRange.end], 0.5))}
-          />
-          <TimelineRuler range={range} width={measuredWidth} />
-          {timeline.epochsVisible ? (
-            <TimelineEpochLayer
-              epochs={timeline.epochs}
-              range={range}
-              width={measuredWidth}
-              selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
-              onSelect={(id) => setSelected({ kind: 'epoch', id })}
-            />
-          ) : null}
+    <div className="nd-timeline-view">
+      <div className="hidden md:flex nd-timeline-desktop" data-testid="timeline-canvas-wrapper">
+        <div className="nd-timeline-detail-shell">
+          <TimelineDetailCard selected={detail} onClose={() => setSelected(null)} />
         </div>
-        <p
-          style={{
-            fontFamily: 'var(--nd-sans)',
-            fontSize: '0.6rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            color: 'var(--text-muted)',
-            margin: '0.5rem 0 1rem',
-          }}
-        >
-          Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −, F
-        </p>
-        <TimelineDetailCard selected={detail} onClose={() => setSelected(null)} />
+        <div className="nd-timeline-spacer" aria-hidden="true" />
+        <div className="nd-timeline-canvas-region">
+          <TimelineControls onZoomIn={navigation.zoomIn} onZoomOut={navigation.zoomOut} onFit={navigation.fit} />
+          <div
+            ref={rootRef}
+            tabIndex={0}
+            data-testid="timeline-canvas"
+            aria-label={`Лента времени: ${timeline.title}`}
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              touchAction: 'pan-y',
+            }}
+          >
+            <div ref={eventsRef} className="nd-timeline-events-shell">
+              <TimelineEventLayer
+                events={events}
+                range={range}
+                width={measuredWidth}
+                height={measuredHeight}
+                densityStage={densityStage(range, measuredWidth)}
+                showAll={timeline.showAll}
+                selectedId={selected?.kind === 'event' ? selected.id : undefined}
+                onSelect={selectEvent}
+                onCluster={(clusterRange) => setRange(fitRange([clusterRange.start, clusterRange.end], 0.5))}
+              />
+            </div>
+            <TimelineRuler range={range} width={measuredWidth} />
+            {timeline.epochsVisible ? (
+              <TimelineEpochLayer
+                epochs={timeline.epochs}
+                range={range}
+                width={measuredWidth}
+                selectedId={selected?.kind === 'epoch' ? selected.id : undefined}
+                onSelect={(id) => setSelected({ kind: 'epoch', id })}
+              />
+            ) : null}
+          </div>
+          <p className="nd-timeline-help">
+            Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −, F
+          </p>
+        </div>
       </div>
 
       <div className="md:hidden" data-testid="timeline-mobile">

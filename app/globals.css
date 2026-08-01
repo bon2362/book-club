@@ -124,6 +124,65 @@
   }
 }
 
+/* ── Timeline page geometry ─────────────────────────────────────────────── */
+.nd-timeline-page {
+  margin: 0;
+  padding: 2.5rem 1.5rem 4rem;
+}
+.nd-timeline-heading {
+  padding-bottom: 1rem;
+}
+.nd-timeline-events-shell {
+  position: relative;
+  width: 100%;
+  height: var(--tl-events-h);
+}
+.nd-timeline-help {
+  margin: 0.5rem 0 1rem;
+  color: var(--text-muted);
+  font: 0.6rem/1 var(--nd-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+  .nd-timeline-page {
+    display: flex;
+    height: 100dvh;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+  }
+  .nd-timeline-heading {
+    flex: none;
+    padding: 1.5rem var(--tl-gut) 1rem;
+  }
+  .nd-timeline-view {
+    min-height: 0;
+    flex: 1;
+  }
+  .nd-timeline-desktop {
+    min-height: 0;
+    height: 100%;
+    flex-direction: column;
+  }
+  .nd-timeline-detail-shell {
+    min-height: 152px;
+    max-height: 40dvh;
+    flex: none;
+    overflow-y: auto;
+    padding: 0 var(--tl-gut) 1.1rem;
+  }
+  .nd-timeline-spacer {
+    min-height: 0;
+    flex: 1;
+  }
+  .nd-timeline-canvas-region {
+    flex: none;
+    padding: 0 var(--tl-gut);
+  }
+}
+
 /* ── Matching: book-centric mode ───────────────────────────────────────── */
 .nd-mx-mode-tabs {
   display: flex;

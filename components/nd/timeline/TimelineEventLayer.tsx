@@ -7,7 +7,6 @@ import {
   createViewportTransform,
   dateRangeForEvent,
   estimateEventLabelTextWidth,
-  estimateEventRowWidth,
   finishedIntervalCollisionBox,
   EVENT_DOT_BOX_PX,
   EVENT_LABEL_MAX_TEXT_WIDTH_PX,
@@ -17,15 +16,10 @@ import {
 import type { TimelineEventView } from '@/lib/timeline/view-model'
 import { normalizeDataColor } from './data-color'
 import {
-  EVENT_AREA_HEIGHT_PX,
-  EVENT_LANE_PITCH_PX,
-  EVENT_LANE_BASE_PX,
   MARKER_ROW_HEIGHT_PX,
-  eventAreaHeight,
   eventBottom,
+  eventLaneCapacity,
   labelMaxWidth,
-  occupiedLaneCount,
-  type LaneOccupant,
 } from './event-area'
 import { formatCanvasDate } from './format-historical-date'
 
@@ -260,6 +254,7 @@ interface Props {
   range: VisibleRange
   width: number
   densityStage: DensityStage
+  height: number
   showAll: boolean
   selectedId?: string | undefined
   onSelect: (id: string) => void
@@ -270,6 +265,7 @@ export default function TimelineEventLayer({
   events,
   range,
   width,
+  height,
   densityStage,
   showAll,
   selectedId,
@@ -298,7 +294,7 @@ export default function TimelineEventLayer({
       : finishedIntervalCollisionBox({ id: event.id, start, end, label: event.title })
   })
 
-  const laneCapacity = Math.max(1, Math.floor((EVENT_AREA_HEIGHT_PX - EVENT_LANE_BASE_PX) / EVENT_LANE_PITCH_PX))
+  const laneCapacity = eventLaneCapacity(height)
   const layout = buildEventLayout({
     points: points.map((event) => ({
       id: event.id,
@@ -314,33 +310,11 @@ export default function TimelineEventLayer({
   })
   const laneById = new Map(layout.placements.map(({ id, lane }) => [id, lane]))
 
-  // Высота считается только по тому, что попадает на полотно. Раскладка идёт с
-  // запасом за краями (иначе дорожки прыгали бы при прокрутке), и без этого
-  // фильтра события далеко справа задирали высоту до потолка, оставляя сверху
-  // пустоту.
-  const occupants: LaneOccupant[] = [
-    ...intervalBoxes.map((box) => ({
-      lane: laneById.get(box.id) ?? 0,
-      start: box.start,
-      end: box.end,
-    })),
-    ...layout.markers.map((marker) => {
-      const lane = laneById.get(marker.id) ?? 0
-      if (marker.type === 'cluster') {
-        return { lane, start: marker.start, end: marker.end }
-      }
-      const rowWidth = estimateEventRowWidth(marker.label)
-      const head = marker.x - EVENT_DOT_BOX_PX / 2
-      return { lane, start: head, end: head + rowWidth }
-    }),
-  ]
-  const height = eventAreaHeight(occupiedLaneCount(occupants, width))
-
   return (
     <div
       aria-label="События"
       data-testid="timeline-events"
-      style={{ position: 'relative', height: `${height}px`, overflow: 'hidden' }}
+      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
       {intervals.map((event) => {
         const connection = buildEventConnection(event, range, width)
