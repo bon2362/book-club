@@ -214,8 +214,27 @@ test.describe('Лента времени — геометрия', () => {
 
     const canvas = page.getByTestId('timeline-canvas')
     const events = canvas.getByTestId('timeline-event')
+    const pointEvent = canvas.getByRole('button', { name: timeline.pointEvent.title })
+    const canvasBox = await canvas.boundingBox()
+    expect(canvasBox).not.toBeNull()
     await expect(events).toHaveCount(2)
     await canvas.hover()
+
+    let pointIsPastLeftEdge = false
+    for (let step = 0; step < 30; step += 1) {
+      await page.mouse.wheel(20, 0)
+      const pointBox = await pointEvent.boundingBox()
+      if (pointBox !== null && pointBox.x + pointBox.width < canvasBox!.x) {
+        pointIsPastLeftEdge = true
+        break
+      }
+    }
+
+    expect(pointIsPastLeftEdge).toBe(true)
+    const visibleLabelBox = await pointEvent.getByTestId('timeline-event-label').boundingBox()
+    expect(visibleLabelBox).not.toBeNull()
+    expect(visibleLabelBox!.x + visibleLabelBox!.width).toBeGreaterThan(canvasBox!.x)
+
     await page.mouse.wheel(2400, 0)
 
     await expect(events).toHaveCount(0)

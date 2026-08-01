@@ -6,14 +6,12 @@ function layout(
   events: TimelineLayoutEvent[],
   capacity = 1,
   width = 100,
-  selectedId: string | undefined = undefined,
 ) {
   return tlLayout({
     events,
     width,
     capacity,
     markerWidth: 8,
-    selectedId,
     measureText,
     labelFont: 'label',
     dateFont: 'date',
@@ -77,17 +75,6 @@ describe('tlLayout', () => {
 
     expect(withGhosts.first).toBe(withoutGhosts.first)
     expect(withGhosts.second).toBe(withoutGhosts.second)
-  })
-
-  it('does not let selection change lane assignment', () => {
-    const events: TimelineLayoutEvent[] = [
-      { id: 'first', title: 'Первое событие', dateLabel: '1000', startX: 10 },
-      { id: 'second', title: 'Второе событие', dateLabel: '1010', startX: 40 },
-    ]
-
-    expect(laneMap(layout(events, 2, 100, 'second'))).toEqual(
-      laneMap(layout(events, 2, 100, undefined)),
-    )
   })
 
   it('allows scale changes to recompute lanes', () => {

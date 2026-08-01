@@ -56,7 +56,6 @@ interface TimelineLayoutInput {
   width: number
   capacity: number
   markerWidth: number
-  selectedId: string | undefined
   measureText: TimelineTextMeasurer
   labelFont: string
   dateFont: string

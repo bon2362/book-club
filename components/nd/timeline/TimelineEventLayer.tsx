@@ -263,6 +263,42 @@ interface Props {
   onCluster: (range: { start: number; end: number }) => void
 }
 
+interface VisibleClusterGeometry {
+  memberIds: string[]
+  start: number
+  end: number
+  x: number
+  intersectsCanvas: boolean
+}
+
+export function visibleClusterGeometry(
+  memberIds: readonly string[],
+  visibleEventIds: ReadonlySet<string>,
+  xById: ReadonlyMap<string, number>,
+  width: number,
+): VisibleClusterGeometry | null {
+  const visibleMembers = memberIds
+    .filter((id) => visibleEventIds.has(id))
+    .map((id) => ({ id, x: xById.get(id) }))
+    .filter((member): member is { id: string; x: number } => member.x !== undefined)
+
+  if (visibleMembers.length === 0) return null
+
+  const positions = visibleMembers.map(({ x }) => x)
+  const start = Math.min(...positions)
+  const end = Math.max(...positions)
+  const x = (start + end) / 2
+  const halfWidth = visibleMembers.length === 1 ? EVENT_MARKER_SIZE_PX / 2 : 12
+
+  return {
+    memberIds: visibleMembers.map(({ id }) => id),
+    start,
+    end,
+    x,
+    intersectsCanvas: x + halfWidth >= 0 && x - halfWidth <= width,
+  }
+}
+
 export default function TimelineEventLayer({
   events,
   visibleEventIds,
@@ -278,6 +314,10 @@ export default function TimelineEventLayer({
   const measureText = useMemo(() => createTextMeasurer(), [])
   const transform = createViewportTransform(range, width)
   const eventById = new Map(events.map((event) => [event.id, event]))
+  const eventXById = new Map(events.map((event) => [
+    event.id,
+    transform.toX(dateRangeForEvent(event).start),
+  ]))
   const layout = tlLayout({
     events: events.map((event) => {
       const eventRange = dateRangeForEvent(event)
@@ -296,7 +336,6 @@ export default function TimelineEventLayer({
     width,
     capacity: eventLaneCapacity(height),
     markerWidth: EVENT_MARKER_SIZE_PX,
-    selectedId,
     measureText,
     labelFont: EVENT_LABEL_FONT,
     dateFont: EVENT_DATE_FONT,
@@ -370,19 +409,50 @@ export default function TimelineEventLayer({
         )
       })}
       {layout.clusters.map((cluster) => {
-        const memberIds = cluster.memberIds.filter((id) => visibleEventIds.has(id))
-        if (!cluster.intersectsCanvas || memberIds.length === 0) return null
+        const visibleCluster = visibleClusterGeometry(
+          cluster.memberIds,
+          visibleEventIds,
+          eventXById,
+          width,
+        )
+        if (visibleCluster === null || !visibleCluster.intersectsCanvas) return null
+
+        if (visibleCluster.memberIds.length === 1) {
+          const event = eventById.get(visibleCluster.memberIds[0]!)
+          if (event === undefined) return null
+          return <span key={cluster.id}>
+            <Connector
+              x={visibleCluster.x}
+              lane={cluster.lane}
+              selected={event.id === selectedId}
+              ghost={event.isLibrary}
+            />
+            <PointEvent
+              event={event}
+              x={visibleCluster.x}
+              lane={cluster.lane}
+              mode="dot"
+              selected={event.id === selectedId}
+              onSelect={() => onSelect(event.id)}
+              onHover={showTooltip}
+            />
+          </span>
+        }
+
         return <span key={cluster.id}>
-          <Connector x={cluster.x} lane={cluster.lane} selected={false} />
+          <Connector x={visibleCluster.x} lane={cluster.lane} selected={false} />
           <button
             type="button"
             data-testid="timeline-cluster"
-            aria-label={`${memberIds.length} событий — приблизить`}
-            onClick={() => onCluster({ start: transform.fromX(cluster.start), end: transform.fromX(cluster.end) })}
+            aria-label={`${visibleCluster.memberIds.length} событий — приблизить`}
+            onClick={() => onCluster({
+              start: transform.fromX(visibleCluster.start),
+              end: transform.fromX(visibleCluster.end),
+            })}
             style={{
-              ...markerButtonStyle(cluster.x, cluster.lane, false),
+              ...markerButtonStyle(visibleCluster.x, cluster.lane, false),
               width: '20px',
-              left: `${cluster.x - 10}px`,
+              left: `${visibleCluster.x - 10}px`,
               display: 'grid',
               placeItems: 'center',
               borderRadius: '50%',
@@ -393,7 +463,7 @@ export default function TimelineEventLayer({
               color: 'var(--text)',
             }}
           >
-            {memberIds.length}
+            {visibleCluster.memberIds.length}
           </button>
         </span>
       })}
