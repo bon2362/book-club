@@ -57,7 +57,7 @@ export default function TimelineView({ timeline }: Props) {
   const [dragging, setDragging] = useState(false)
   const eventTypes = useMemo<TimelineLegendType[]>(() => {
     const byId = new Map<string, TimelineLegendType>()
-    timeline.events.forEach((event) => {
+    timeline.events.filter((event) => event.visible).forEach((event) => {
       const existing = byId.get(event.typeId)
       if (existing === undefined) {
         byId.set(event.typeId, {
@@ -80,7 +80,7 @@ export default function TimelineView({ timeline }: Props) {
   const [epochsEnabled, setEpochsEnabled] = useState(timeline.epochsVisible)
 
   const events = useMemo(() => {
-    return timeline.events.filter((event) => enabledTypeIds.has(event.typeId))
+    return timeline.events.filter((event) => event.visible && enabledTypeIds.has(event.typeId))
   }, [timeline.events, enabledTypeIds])
 
   const navigation = useTimelineNavigation({

@@ -57,11 +57,14 @@ describe('timelinePatchSchema', () => {
 
 describe('eventMembershipSchema', () => {
   it('пустое тело даёт пустую заметку', () => {
-    expect(eventMembershipSchema.parse({})).toEqual({ note: '' })
+    expect(eventMembershipSchema.parse({})).toEqual({ note: '', visible: true })
   })
 
   it('сохраняет заметку', () => {
-    expect(eventMembershipSchema.parse({ note: '**важно**' })).toEqual({ note: '**важно**' })
+    expect(eventMembershipSchema.parse({ note: '**важно**' })).toEqual({
+      note: '**важно**',
+      visible: true,
+    })
   })
 })
 

@@ -80,6 +80,19 @@ describe('fetchTimelineSummaries', () => {
 })
 
 describe('fetchTimelineBySlug', () => {
+  const timelineRow = {
+    id: 'tl-1',
+    slug: 'istoriya',
+    title: 'История',
+    description: '',
+    published: true,
+    viewportStart: null,
+    viewportEnd: null,
+    filterTypeIds: [],
+    epochsVisible: true,
+    showAll: false,
+  }
+
   it('ищет по slug и не фильтрует по published — решение принимает страница', async () => {
     queue.push([
       {
@@ -110,6 +123,67 @@ describe('fetchTimelineBySlug', () => {
     queue.push([])
 
     expect(await fetchTimelineBySlug('нет-такого')).toBeNull()
+  })
+
+  it('без includeLibrary не запрашивает и не возвращает непривязанные элементы', async () => {
+    queue.push([timelineRow])
+    queue.push([])
+    queue.push([])
+    queue.push([{ id: 'unattached', title: 'Не в этой ленте' }])
+
+    const view = await fetchTimelineBySlug('istoriya')
+
+    expect(view).toMatchObject({ libraryEvents: [], libraryEpochs: [] })
+    expect(queue).toHaveLength(1)
+  })
+
+  it('с includeLibrary возвращает только непривязанные элементы общей базы', async () => {
+    const attachedEvent = {
+      id: 'event-attached',
+      title: 'В ленте',
+      typeId: 'type-1',
+      typeTitle: 'Событие',
+      color: '#5D7290',
+      icon: '',
+      startYear: 1900,
+      startEra: 'CE',
+      startMonth: null,
+      startDay: null,
+      endYear: null,
+      endEra: null,
+      endMonth: null,
+      endDay: null,
+      ongoing: false,
+      description: '',
+      imageUrl: null,
+      imageCaption: null,
+    }
+    const attachedEpoch = {
+      id: 'epoch-attached',
+      title: 'В ленте',
+      startYear: 1900,
+      startEra: 'CE',
+      startMonth: null,
+      startDay: null,
+      endYear: 1950,
+      endEra: 'CE',
+      endMonth: null,
+      endDay: null,
+      description: '',
+      imageUrl: null,
+      imageCaption: null,
+    }
+
+    queue.push([timelineRow])
+    queue.push([{ ...attachedEvent, note: '', visible: true }])
+    queue.push([{ ...attachedEpoch, note: '', color: '#EFE4D6', visible: true, pinnedLane: null }])
+    queue.push([attachedEvent, { ...attachedEvent, id: 'event-library', title: 'Только в базе' }])
+    queue.push([attachedEpoch, { ...attachedEpoch, id: 'epoch-library', title: 'Только в базе' }])
+
+    const view = await fetchTimelineBySlug('istoriya', { includeLibrary: true })
+
+    expect(view?.libraryEvents.map(({ id }) => id)).toEqual(['event-library'])
+    expect(view?.libraryEpochs.map(({ id }) => id)).toEqual(['epoch-library'])
   })
 
   it('склеивает событие с типом, а эпоху — с цветом связи', async () => {
@@ -148,6 +222,7 @@ describe('fetchTimelineBySlug', () => {
         imageUrl: null,
         imageCaption: null,
         note: 'заметка',
+        visible: true,
       },
     ])
     queue.push([

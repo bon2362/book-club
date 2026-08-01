@@ -28,9 +28,12 @@ jest.mock('@/lib/db', () => {
 const onConflictDoUpdate = jest.fn().mockResolvedValue(undefined)
 const insertValues = jest.fn(() => ({ onConflictDoUpdate }))
 const deleteWhere = jest.fn().mockResolvedValue(undefined)
+const updateWhere = jest.fn().mockResolvedValue(undefined)
+const updateSet = jest.fn(() => ({ where: updateWhere }))
 const tx = {
   insert: jest.fn(() => ({ values: insertValues })),
   delete: jest.fn(() => ({ where: deleteWhere })),
+  update: jest.fn(() => ({ set: updateSet })),
 }
 const withAuditContextMock = jest.fn(
   (_ctx: unknown, fn: (t: unknown) => Promise<unknown>) => fn(tx),
@@ -40,7 +43,7 @@ jest.mock('@/lib/audit/with-audit-context', () => ({
     (withAuditContextMock as unknown as (...a: unknown[]) => unknown)(...args),
 }))
 
-import { DELETE as DELETE_EVENT, PUT as PUT_EVENT } from './events/[eventId]/route'
+import { DELETE as DELETE_EVENT, PATCH as PATCH_EVENT, PUT as PUT_EVENT } from './events/[eventId]/route'
 import { DELETE as DELETE_EPOCH, PUT as PUT_EPOCH } from './epochs/[epochId]/route'
 
 const mockAuth = authModule.auth as jest.Mock
@@ -83,7 +86,44 @@ beforeEach(() => {
   insertValues.mockClear()
   onConflictDoUpdate.mockClear()
   deleteWhere.mockClear()
+  updateSet.mockClear()
+  updateWhere.mockClear()
   withAuditContextMock.mockClear()
+})
+
+describe('PATCH /api/admin/timeline/timelines/[id]/events/[eventId]', () => {
+  it('403 без админа', async () => {
+    mockAuth.mockResolvedValue({ user: { isAdmin: false } })
+
+    const res = await PATCH_EVENT(makeRequest({ visible: false }, 'PATCH'), eventParams)
+
+    expect(res.status).toBe(403)
+    expect(withAuditContextMock).not.toHaveBeenCalled()
+  })
+
+  it('строго принимает только visible', async () => {
+    mockAuth.mockResolvedValue(admin)
+
+    const res = await PATCH_EVENT(makeRequest({ visible: false, note: 'лишнее' }, 'PATCH'), eventParams)
+
+    expect(res.status).toBe(400)
+    expect(withAuditContextMock).not.toHaveBeenCalled()
+  })
+
+  it('меняет видимость связи через withAuditContext', async () => {
+    mockAuth.mockResolvedValue(admin)
+
+    const res = await PATCH_EVENT(makeRequest({ visible: false }, 'PATCH'), eventParams)
+
+    expect(res.status).toBe(200)
+    expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({ visible: false }))
+    expect(updateWhere).toHaveBeenCalled()
+    expect(withAuditContextMock).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'admin', actorUserId: 'admin-1' }),
+      expect.any(Function),
+    )
+    expect(await res.json()).toMatchObject({ success: true, data: { visible: false } })
+  })
 })
 
 describe('PUT /api/admin/timeline/timelines/[id]/events/[eventId]', () => {

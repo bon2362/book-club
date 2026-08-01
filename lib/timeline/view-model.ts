@@ -34,7 +34,11 @@ export interface TimelineEventView {
   imageCaption: string | null
   /** Заметка, привязанная к событию именно в этом таймлайне. */
   note: string
+  /** Видимость события — свойство связи только с этой лентой. */
+  visible: boolean
 }
+
+export type TimelineLibraryEventView = Omit<TimelineEventView, 'note' | 'visible'>
 
 export interface TimelineEpochView {
   id: string
@@ -51,6 +55,11 @@ export interface TimelineEpochView {
   pinnedLane?: number
 }
 
+export type TimelineLibraryEpochView = Omit<
+  TimelineEpochView,
+  'note' | 'color' | 'visible' | 'pinnedLane'
+>
+
 export interface TimelineViewData {
   id: string
   slug: string
@@ -64,6 +73,9 @@ export interface TimelineViewData {
   showAll: boolean
   events: TimelineEventView[]
   epochs: TimelineEpochView[]
+  /** Общая база без элементов, уже прикреплённых к этой ленте; только для админа. */
+  libraryEvents: TimelineLibraryEventView[]
+  libraryEpochs: TimelineLibraryEpochView[]
 }
 
 function fitTimelineRange(timeline: TimelineViewData): VisibleRange {
@@ -145,7 +157,10 @@ export interface TimelineEventRow {
   imageUrl: string | null
   imageCaption: string | null
   note: string
+  visible: boolean
 }
+
+export type TimelineLibraryEventRow = Omit<TimelineEventRow, 'note' | 'visible'>
 
 /** Строка `timeline_epochs` вместе с эпохой. */
 export interface TimelineEpochRow {
@@ -168,10 +183,17 @@ export interface TimelineEpochRow {
   pinnedLane: number | null
 }
 
+export type TimelineLibraryEpochRow = Omit<
+  TimelineEpochRow,
+  'note' | 'color' | 'visible' | 'pinnedLane'
+>
+
 export interface TimelineViewRows {
   timeline: TimelineRow
   events: TimelineEventRow[]
   epochs: TimelineEpochRow[]
+  libraryEvents?: TimelineLibraryEventRow[]
+  libraryEpochs?: TimelineLibraryEpochRow[]
 }
 
 function era(value: string): HistoricalEra {
@@ -195,7 +217,7 @@ function historicalDate(
   return date
 }
 
-function eventFromRow(row: TimelineEventRow): TimelineEventView {
+function libraryEventFromRow(row: TimelineLibraryEventRow): TimelineLibraryEventView {
   const start = historicalDate(row.startYear, row.startEra, row.startMonth, row.startDay)
   const end = row.endYear === null || row.endEra === null
     ? undefined
@@ -214,11 +236,14 @@ function eventFromRow(row: TimelineEventRow): TimelineEventView {
     description: row.description,
     imageUrl: row.imageUrl,
     imageCaption: row.imageCaption,
-    note: row.note,
   }
 }
 
-function epochFromRow(row: TimelineEpochRow): TimelineEpochView {
+function eventFromRow(row: TimelineEventRow): TimelineEventView {
+  return { ...libraryEventFromRow(row), note: row.note, visible: row.visible }
+}
+
+function libraryEpochFromRow(row: TimelineLibraryEpochRow): TimelineLibraryEpochView {
   return {
     id: row.id,
     title: row.title,
@@ -227,6 +252,12 @@ function epochFromRow(row: TimelineEpochRow): TimelineEpochView {
     description: row.description,
     imageUrl: row.imageUrl,
     imageCaption: row.imageCaption,
+  }
+}
+
+function epochFromRow(row: TimelineEpochRow): TimelineEpochView {
+  return {
+    ...libraryEpochFromRow(row),
     note: row.note,
     color: row.color,
     visible: row.visible,
@@ -245,7 +276,13 @@ function byChronology(
   )
 }
 
-export function buildTimelineView({ timeline, events, epochs }: TimelineViewRows): TimelineViewData {
+export function buildTimelineView({
+  timeline,
+  events,
+  epochs,
+  libraryEvents = [],
+  libraryEpochs = [],
+}: TimelineViewRows): TimelineViewData {
   return {
     id: timeline.id,
     slug: timeline.slug,
@@ -261,5 +298,7 @@ export function buildTimelineView({ timeline, events, epochs }: TimelineViewRows
     // Невидимые эпохи остаются в наборе с флагом: показывать их или нет —
     // решение слоя отрисовки, а не сборки.
     epochs: epochs.map(epochFromRow).sort(byChronology),
+    libraryEvents: libraryEvents.map(libraryEventFromRow).sort(byChronology),
+    libraryEpochs: libraryEpochs.map(libraryEpochFromRow).sort(byChronology),
   }
 }

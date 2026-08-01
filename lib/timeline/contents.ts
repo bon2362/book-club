@@ -77,7 +77,14 @@ export const timelinePatchSchema = z
   .strict()
   .refine((value) => Object.keys(value).length > 0, 'Нечего менять')
 
-export const eventMembershipSchema = z.object({ note: noteSchema }).strict()
+export const eventMembershipSchema = z
+  .object({
+    note: noteSchema,
+    visible: z.boolean().nullish().transform((value) => value ?? true),
+  })
+  .strict()
+
+export const eventMembershipPatchSchema = z.object({ visible: z.boolean() }).strict()
 
 export const epochMembershipSchema = z
   .object({
@@ -91,6 +98,7 @@ export const epochMembershipSchema = z
 export type TimelineInput = z.infer<typeof timelineInputSchema>
 export type TimelinePatch = z.infer<typeof timelinePatchSchema>
 export type EventMembershipInput = z.infer<typeof eventMembershipSchema>
+export type EventMembershipPatch = z.infer<typeof eventMembershipPatchSchema>
 export type EpochMembershipInput = z.infer<typeof epochMembershipSchema>
 
 /** Эпоха ленты в том виде, в каком её хватает для проверки дорожек. */

@@ -28,8 +28,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function TimelinePage({ params }: { params: { slug: string } }) {
-  const [session, timeline] = await Promise.all([auth(), fetchTimelineBySlug(params.slug)])
+  const session = await auth()
   const isAdmin = session?.user?.isAdmin ?? false
+  const timeline = await fetchTimelineBySlug(params.slug, { includeLibrary: isAdmin })
 
   // Неопубликованная лента существует только для админа: остальным её нет.
   if (timeline === null || (!timeline.published && !isAdmin)) notFound()
