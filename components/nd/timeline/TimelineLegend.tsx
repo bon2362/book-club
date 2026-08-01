@@ -61,6 +61,7 @@ export default function TimelineLegend({
 }: Props) {
   return (
     <div
+      className="tl-bar"
       data-testid="timeline-legend"
       style={{
         minHeight: '42px',

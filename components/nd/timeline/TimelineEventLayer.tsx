@@ -13,6 +13,7 @@ import {
   MARKER_ROW_HEIGHT_PX,
   eventBottom,
   eventLaneCapacity,
+  eventLanePitch,
 } from './event-area'
 import { formatCanvasDate } from './format-historical-date'
 import { createTextMeasurer, EVENT_DATE_FONT, EVENT_LABEL_FONT } from './measure-text'
@@ -43,28 +44,26 @@ const dateStyle: CSSProperties = {
 }
 
 /** Вертикальный волосок от метки события к оси лет. */
-function Connector({ x, lane, active, ghost = false }: { x: number; lane: number; active: boolean; ghost?: boolean }) {
+function Connector({ x, lane, pitch, active, ghost = false }: { x: number; lane: number; pitch: number; active: boolean; ghost?: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className={`tl-connector${active ? ' is-on' : ''}`}
+      className={`tl-connector${active ? ' is-on' : ''}${ghost ? ' is-ghost' : ''}`}
       style={{
         position: 'absolute',
         left: `${x}px`,
         bottom: 0,
-        height: `${eventBottom(lane)}px`,
-        backgroundImage: ghost && !active ? 'linear-gradient(to bottom, var(--tl-connector) 50%, transparent 50%)' : 'none',
-        backgroundSize: ghost ? '1px 4px' : 'auto',
+        height: `${eventBottom(lane, pitch)}px`,
       }}
     />
   )
 }
 
-function markerButtonStyle(x: number, lane: number, active: boolean): CSSProperties {
+function markerButtonStyle(x: number, lane: number, pitch: number, active: boolean): CSSProperties {
   return {
     position: 'absolute',
     left: `${x - EVENT_MARKER_SIZE_PX / 2}px`,
-    bottom: `${eventBottom(lane)}px`,
+    bottom: `${eventBottom(lane, pitch)}px`,
     height: `${MARKER_ROW_HEIGHT_PX}px`,
     width: `${EVENT_MARKER_SIZE_PX}px`,
     padding: 0,
@@ -99,6 +98,7 @@ function PointEvent({
   event,
   x,
   lane,
+  pitch,
   mode,
   dragging,
   active,
@@ -109,6 +109,7 @@ function PointEvent({
   event: TimelineEventView
   x: number
   lane: number
+  pitch: number
   mode: 'label' | 'dot'
   dragging: boolean
   active: boolean
@@ -134,7 +135,7 @@ function PointEvent({
       onClick={onSelect}
       onMouseEnter={() => { if (!dragging) onHover(event.id) }}
       onMouseLeave={() => onHover(null)}
-      style={{ ...markerButtonStyle(x, lane, active), opacity: event.isLibrary ? 0.42 : 1 }}
+      style={{ ...markerButtonStyle(x, lane, pitch, active), opacity: event.isLibrary ? 0.42 : 1 }}
     >
       <Dot color={color} active={active} ghost={event.isLibrary} />
       {mode === 'label' ? (
@@ -169,6 +170,7 @@ function IntervalEvent({
   startX,
   endX,
   lane,
+  pitch,
   dragging,
   active,
   selected,
@@ -181,6 +183,7 @@ function IntervalEvent({
   startX: number
   endX: number
   lane: number
+  pitch: number
   dragging: boolean
   active: boolean
   selected: boolean
@@ -210,7 +213,7 @@ function IntervalEvent({
       style={{
         position: 'absolute',
         left: `${startX}px`,
-        bottom: `${eventBottom(lane)}px`,
+        bottom: `${eventBottom(lane, pitch)}px`,
         width: `${Math.max(endX - startX, 4)}px`,
         height: `${MARKER_ROW_HEIGHT_PX}px`,
         padding: 0,
@@ -225,7 +228,7 @@ function IntervalEvent({
       {/* Отрезок от начала к концу — линией цвета типа, без заливки блока. */}
       <span
         aria-hidden="true"
-        className="tl-span-line"
+        className="tl-span-rule"
         style={{
           position: 'absolute',
           left: 0,
@@ -235,8 +238,8 @@ function IntervalEvent({
           borderTop: event.isLibrary ? `1px dashed ${color}` : 'none',
         }}
       />
-      <span aria-hidden="true" className="tl-notch" style={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
-      <span aria-hidden="true" className="tl-notch" style={{ position: 'absolute', right: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
+      <span aria-hidden="true" className="tl-span-cap" style={{ position: 'absolute', left: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
+      <span aria-hidden="true" className="tl-span-cap" style={{ position: 'absolute', right: 0, bottom: 0, width: '1px', height: '8px', background: color }} />
       {labelled ? (
         <span
           className="tl-span-row"
@@ -355,6 +358,7 @@ export default function TimelineEventLayer({
     labelFont: EVENT_LABEL_FONT,
     dateFont: EVENT_DATE_FONT,
   })
+  const lanePitch = eventLanePitch(height, layout.laneCount)
   const activeAxisDots = [
     ...layout.markers.flatMap((marker) => {
       const event = eventById.get(marker.id)
@@ -400,36 +404,46 @@ export default function TimelineEventLayer({
         if (
           event === undefined ||
           !visibleEventIds.has(placement.id) ||
+          !placement.intersectsCanvas ||
+          (event.id !== hoverId && event.id !== selectedId)
+        ) return null
+        return (
+          <span
+            key={`area-${event.id}`}
+            aria-hidden="true"
+            className="tl-span-area"
+            data-testid="timeline-span-area"
+            style={{
+              left: `${placement.startX}px`,
+              width: `${Math.max(placement.endX - placement.startX, 4)}px`,
+              height: `${eventBottom(placement.lane, lanePitch)}px`,
+              background: normalizeDataColor(event.color),
+            }}
+          />
+        )
+      })}
+      {layout.spans.map((placement) => {
+        const event = eventById.get(placement.id)
+        if (
+          event === undefined ||
+          !visibleEventIds.has(placement.id) ||
           !placement.intersectsCanvas
         ) return null
         const startVisible = placement.startX >= 0 && placement.startX <= width
         const endVisible = placement.endX >= 0 && placement.endX <= width
         const active = event.id === hoverId || event.id === selectedId
-        const color = normalizeDataColor(event.color)
         return (
           <span key={event.id}>
-            {active ? (
-              <span
-                aria-hidden="true"
-                className="tl-span-area"
-                data-testid="timeline-span-area"
-                style={{
-                  left: `${placement.startX}px`,
-                  width: `${Math.max(placement.endX - placement.startX, 4)}px`,
-                  height: `${eventBottom(placement.lane)}px`,
-                  background: color,
-                }}
-              />
-            ) : null}
-            {startVisible ? <Connector x={placement.startX} lane={placement.lane} active={active} ghost={event.isLibrary} /> : null}
+            {startVisible ? <Connector x={placement.startX} lane={placement.lane} pitch={lanePitch} active={active} ghost={event.isLibrary} /> : null}
             {!event.ongoing && endVisible ? (
-              <Connector x={placement.endX} lane={placement.lane} active={active} ghost={event.isLibrary} />
+              <Connector x={placement.endX} lane={placement.lane} pitch={lanePitch} active={active} ghost={event.isLibrary} />
             ) : null}
             <IntervalEvent
               event={event}
               startX={placement.startX}
               endX={placement.endX}
               lane={placement.lane}
+              pitch={lanePitch}
               dragging={dragging}
               labelX={placement.labelX}
               labelled={placement.labelled}
@@ -452,11 +466,12 @@ export default function TimelineEventLayer({
         const active = event.id === hoverId || event.id === selectedId
         return (
           <span key={event.id}>
-            <Connector x={marker.x} lane={marker.lane} active={active} ghost={event.isLibrary} />
+            <Connector x={marker.x} lane={marker.lane} pitch={lanePitch} active={active} ghost={event.isLibrary} />
             <PointEvent
               event={event}
               x={marker.x}
               lane={marker.lane}
+              pitch={lanePitch}
               mode={marker.mode}
               dragging={dragging}
               active={active}
@@ -484,6 +499,7 @@ export default function TimelineEventLayer({
             <Connector
               x={visibleCluster.x}
               lane={cluster.lane}
+              pitch={lanePitch}
               active={active}
               ghost={event.isLibrary}
             />
@@ -491,6 +507,7 @@ export default function TimelineEventLayer({
               event={event}
               x={visibleCluster.x}
               lane={cluster.lane}
+              pitch={lanePitch}
               mode="dot"
               dragging={dragging}
               active={active}
@@ -502,7 +519,7 @@ export default function TimelineEventLayer({
         }
 
         return <span key={cluster.id}>
-          <Connector x={visibleCluster.x} lane={cluster.lane} active={false} />
+          <Connector x={visibleCluster.x} lane={cluster.lane} pitch={lanePitch} active={false} />
           <button
             type="button"
             data-testid="timeline-cluster"
@@ -512,7 +529,7 @@ export default function TimelineEventLayer({
               end: transform.fromX(visibleCluster.end),
             })}
             style={{
-              ...markerButtonStyle(visibleCluster.x, cluster.lane, false),
+              ...markerButtonStyle(visibleCluster.x, cluster.lane, lanePitch, false),
               width: '20px',
               left: `${visibleCluster.x - 10}px`,
               display: 'grid',

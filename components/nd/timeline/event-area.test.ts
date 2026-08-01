@@ -1,6 +1,7 @@
 import {
   EVENT_LANE_BASE_PX,
   EVENT_LANE_PITCH_PX,
+  eventLanePitch,
   eventLaneCapacity,
   labelMaxWidth,
   occupiedLaneCount,
@@ -58,6 +59,20 @@ describe('eventLaneCapacity', () => {
   it('uses the exact base, top reserve and 44 px pitch from the handoff', () => {
     const heightForSixLanes = EVENT_LANE_BASE_PX + 6 + EVENT_LANE_PITCH_PX * 6
     expect(eventLaneCapacity(heightForSixLanes)).toBe(6)
+  })
+})
+
+describe('eventLanePitch', () => {
+  it('uses the available height to open six lanes beyond the base spacing', () => {
+    expect(eventLanePitch(460, 6)).toBeCloseTo((460 - EVENT_LANE_BASE_PX - 22) / 6)
+  })
+
+  it('never compresses lanes below 44 px', () => {
+    expect(eventLanePitch(200, 10)).toBe(EVENT_LANE_PITCH_PX)
+  })
+
+  it('caps expanded lanes at 1.8 times the base spacing', () => {
+    expect(eventLanePitch(1000, 2)).toBe(EVENT_LANE_PITCH_PX * 1.8)
   })
 })
 

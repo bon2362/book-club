@@ -25,9 +25,7 @@ function niceTickStep(minimumStep: number): number {
 
 /** Splits a labelled step into unlabelled subdivisions, or none if it divides badly. */
 function minorStep(step: number): number | undefined {
-  if (step % 5 === 0) return step / 5;
-  if (step % 2 === 0) return step / 2;
-  return undefined;
+  return step % 2 === 0 ? step / 2 : undefined;
 }
 
 /**
