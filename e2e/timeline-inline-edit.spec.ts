@@ -68,7 +68,7 @@ test.describe('Лента времени — правка на полотне', 
     await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: title })).toBeVisible()
   })
 
-  test('правка общего названия видна и в админском списке', async ({
+  test('правка общего названия сохраняется в общей базе', async ({
     page,
     createTestTimeline,
     loginAsAdmin,
@@ -87,9 +87,10 @@ test.describe('Лента времени — правка на полотне', 
     await page.reload()
     await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: title })).toBeVisible()
 
-    await page.goto('/admin?tab=timeline')
-    await page.getByTestId('timeline-section-events').click()
-    await expect(page.getByTestId('timeline-events-list')).toContainText(title)
+    const eventsResponse = await page.request.get('/api/admin/timeline/events')
+    expect(eventsResponse.ok()).toBe(true)
+    const events = (await eventsResponse.json()).data as Array<{ id: string; title: string }>
+    expect(events).toContainEqual(expect.objectContaining({ id: timeline.pointEvent.id, title }))
   })
 
   test('скрытие убирает событие с полотна, но оставляет в общей базе и связи', async ({

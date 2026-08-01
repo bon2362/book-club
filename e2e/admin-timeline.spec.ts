@@ -1,10 +1,8 @@
 import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
-// Вкладка «Ленты времени» в панели администратора: справочники типов, событий
-// и эпох плюс переключатель публикации ленты. Всё, что тест заводит через
-// интерфейс, помечается префиксом из timelineAdminScope и удаляется в teardown
-// вместе с audit-строками; существующие данные не редактируются.
+// Сокращённая вкладка «Ленты времени»: типы событий и управление публикацией
+// лент. События, эпохи и состав редактируются на самом полотне.
 
 const PLAIN_USER_EMAIL = 'e2e-timeline-admin-plain@test.invalid'
 
@@ -47,7 +45,7 @@ test.describe('AdminPanel — вкладка «Ленты времени»', () 
     await expect(page.getByTestId('admin-timeline-panel')).toHaveCount(0)
   })
 
-  test('админ заводит тип и событие — после перезагрузки оба на месте', async ({
+  test('админ видит только типы и ленты, созданный тип сохраняется после перезагрузки', async ({
     page,
     loginAsAdmin,
     timelineAdminScope,
@@ -55,13 +53,14 @@ test.describe('AdminPanel — вкладка «Ленты времени»', () 
     await loginAsAdmin()
 
     const typeTitle = timelineAdminScope.name('Тип')
-    const eventTitle = timelineAdminScope.name('Событие')
 
     await page.goto('/admin?tab=timeline')
     await expect(page.getByTestId('admin-timeline-panel')).toBeVisible()
+    await expect(page.getByTestId('timeline-section-events')).toHaveCount(0)
+    await expect(page.getByTestId('timeline-section-epochs')).toHaveCount(0)
+    await expect(page.getByTestId('timeline-section-types')).toBeVisible()
+    await expect(page.getByTestId('timeline-section-timelines')).toBeVisible()
 
-    // --- Тип события ---------------------------------------------------
-    await page.getByTestId('timeline-section-types').click()
     await page.getByTestId('timeline-add').click()
     await expect(page.getByTestId('timeline-event-type-form')).toBeVisible()
 
@@ -75,57 +74,12 @@ test.describe('AdminPanel — вкладка «Ленты времени»', () 
       page.getByTestId('timeline-type-row').filter({ hasText: typeTitle }),
     ).toHaveCount(1)
 
-    // --- Событие этого типа ---------------------------------------------
-    await page.getByTestId('timeline-section-events').click()
-    await page.getByTestId('timeline-add').click()
-    await expect(page.getByTestId('timeline-event-form')).toBeVisible()
-
-    await page.getByTestId('event-title').fill(eventTitle)
-    const typeSelect = page.getByTestId('event-type-select')
-    const typeValue = await typeSelect
-      .locator('option')
-      .filter({ hasText: typeTitle })
-      .getAttribute('value')
-    expect(typeValue).toBeTruthy()
-    await typeSelect.selectOption(typeValue as string)
-
-    await page.getByTestId('event-start-year').fill('1917')
-    await page.getByTestId('event-start-month').selectOption('11')
-    await page.getByTestId('event-start-day').selectOption('7')
-    await page.getByTestId('event-description').fill('Описание из E2E-теста.')
-    await page.getByTestId('event-save').click()
-
-    await expect(page.getByTestId('timeline-events-list')).toBeVisible()
-    await expect(
-      page.getByTestId('timeline-event-row').filter({ hasText: eventTitle }),
-    ).toHaveCount(1)
-
-    // Перезагрузка: состояние персистентно, а не живёт в памяти вкладки.
+    // Перезагрузка подтверждает персистентность типа.
     await page.reload()
     await expect(page.getByTestId('admin-timeline-panel')).toBeVisible()
-
-    await page.getByTestId('timeline-section-events').click()
-    const eventRow = page.getByTestId('timeline-event-row').filter({ hasText: eventTitle })
-    await expect(eventRow).toHaveCount(1)
-    await expect(eventRow).toContainText('7 ноября 1917')
-
-    await page.getByTestId('timeline-section-types').click()
     const typeRow = page.getByTestId('timeline-type-row').filter({ hasText: typeTitle })
     await expect(typeRow).toHaveCount(1)
-    await expect(typeRow).toContainText('событий: 1')
-
-    // Открытие строки показывает сохранённые значения — правка работает от
-    // тех же данных, что записались в базу.
-    await eventRowCheck()
-
-    async function eventRowCheck() {
-      await page.getByTestId('timeline-section-events').click()
-      await page.getByTestId('timeline-event-row').filter({ hasText: eventTitle }).click()
-      await expect(page.getByTestId('event-title')).toHaveValue(eventTitle)
-      await expect(page.getByTestId('event-start-year')).toHaveValue('1917')
-      await expect(page.getByTestId('event-start-day')).toHaveValue('7')
-      await page.getByTestId('event-cancel').click()
-    }
+    await expect(typeRow).toContainText('событий: 0')
   })
 
   test('удаление используемого типа показывает понятную ошибку, а не падение', async ({
