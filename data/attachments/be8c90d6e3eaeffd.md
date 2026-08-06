@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - paragraph [ref=e4]:
+        - link "Ленты времени" [ref=e5] [cursor=pointer]:
+          - /url: /timeline
+      - heading "E2E лента 95a8f99eoysa0" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Лента времени, созданная E2E-фикстурой.
+    - generic [ref=e9]:
+      - generic [ref=e11]: Выберите событие или эпоху на ленте — подробности появятся здесь.
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - button "E2E тип 95a8f99eoysa0 2" [pressed] [ref=e14] [cursor=pointer]:
+            - generic [ref=e16]: E2E тип 95a8f99eoysa0
+            - generic [ref=e17]: "2"
+          - button "Эпохи 1" [active] [ref=e19] [cursor=pointer]:
+            - generic [ref=e21]: Эпохи
+            - generic [ref=e22]: "1"
+          - generic "Управление лентой" [ref=e23]:
+            - button "Приблизить" [ref=e24] [cursor=pointer]: +
+            - button "Отдалить" [ref=e25] [cursor=pointer]: −
+        - 'generic "Лента времени: E2E лента 95a8f99eoysa0" [ref=e26]':
+          - generic "События" [ref=e28]:
+            - button "E2E интервал 95a8f99eoysa0" [ref=e29] [cursor=pointer]:
+              - generic [ref=e33]:
+                - generic [ref=e34]: E2E интервал 95a8f99eoysa0
+                - generic [ref=e35]: 1914 — 1918
+            - button "E2E точка 95a8f99eoysa0" [ref=e36] [cursor=pointer]:
+              - generic [ref=e38]:
+                - generic [ref=e39]: E2E точка 95a8f99eoysa0
+                - generic [ref=e40]: "1917"
+          - region "Шкала лет" [ref=e41]:
+            - generic [ref=e42]:
+              - generic [ref=e47]: "1900"
+              - generic [ref=e52]: "1910"
+              - generic [ref=e57]: "1920"
+              - generic [ref=e62]: "1930"
+              - generic [ref=e67]: "1940"
+              - generic [ref=e72]: "1950"
+          - generic "Эпохи" [ref=e75]
+        - paragraph [ref=e76]: Перетащите полотно мышью · Ctrl + колесо — масштаб · клавиши +, −
+  - alert [ref=e77]
+```
