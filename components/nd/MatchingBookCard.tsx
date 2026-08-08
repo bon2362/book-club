@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import CoverImage from './CoverImage'
 import MatchingBookCircles from './MatchingBookCircles'
 import type { MatchingBookView } from './matching-book-types'
+import {
+  MAX_CIRCLE_SIZE,
+  MIN_CIRCLE_SIZE,
+  MIN_FORMATION_HARD_CHOICES,
+  MIN_FORMATION_TOTAL_CHOICES,
+} from '@/lib/matching/book-partition'
 
 export type MatchingBookCommandAction =
   | 'setConditional'
@@ -16,7 +22,6 @@ interface Props {
   viewerRef: string
   viewerAssignmentBookId: string | null
   viewerHardBookId: string | null
-  minGroupSize: number
   readOnly: boolean
   adminMode?: boolean
   controlsDisabled?: boolean
@@ -45,20 +50,11 @@ function interestText(count: number) {
   return `ещё у ${count} эта книга в списке`
 }
 
-function peopleWord(count: number) {
-  const ones = count % 10
-  const tens = count % 100
-  if (ones === 1 && tens !== 11) return 'человек'
-  if (ones >= 2 && ones <= 4 && (tens < 12 || tens > 14)) return 'человека'
-  return 'человек'
-}
-
 export default function MatchingBookCard({
   book,
   viewerRef,
   viewerAssignmentBookId,
   viewerHardBookId,
-  minGroupSize,
   readOnly,
   adminMode = false,
   controlsDisabled = false,
@@ -189,7 +185,7 @@ export default function MatchingBookCard({
                 {pendingAction === 'cancelHard' ? 'Отменяем…' : 'Отменить'}
               </button>
             )}
-            <span className="nd-mb-action-note">Ждём остальных. Круг соберётся, когда наберётся {minGroupSize} {peopleWord(minGroupSize)}.</span>
+            <span className="nd-mb-action-note">{`Ждём остальных. Книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего. Круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек.`}</span>
           </>
         ) : assignedHere || lockedElsewhere ? null
         : readOnly ? (

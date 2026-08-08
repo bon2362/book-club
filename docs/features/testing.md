@@ -159,7 +159,7 @@ Nightly — явная композиция трёх Playwright projects:
 | assigned/closed/impersonation guards и readable state | `integration/matching/state-guards.spec.ts` |
 | auth modal, welcome и close navigation | matching welcome/book journeys |
 | ranking edge cases и добавление книги | ranking/rank-assignment Jest, ranking journey и live-shortlist golden |
-| force-add/group-size и admin union view | admin route/session-transition/component Jest, admin lifecycle golden |
+| force-add и admin union view | admin route/session-transition/component Jest, admin lifecycle golden |
 
 Сценарные Matching E2E удалены вместе с runtime. Nightly оставляет книжные и welcome/layout golden paths; request-only integration покрывает lifecycle, guards и конкурентность книжной модели.
 
@@ -189,7 +189,7 @@ Nightly — явная композиция трёх Playwright projects:
 
 Matching E2E покрывают книжную доску, popup, выбор с reload, формирование и lifecycle. Каждый тест создаёт собственную открытую сессию и пользователей. Проверки персистентности обязательно делают `page.reload()`.
 
-Книжные спеки запускаются после применения к изолированной Neon-ветке `e2e` миграций `0053_matching_books.sql` и `0059_remove_matching_scenarios.sql`. Nightly поддерживает Drizzle-схему до сборки и Playwright; fixtures миграции не применяют. Никогда не переключайте тесты на production URL.
+Книжные спеки запускаются после применения к изолированной Neon-ветке `e2e` миграций `0053_matching_books.sql`, `0059_remove_matching_scenarios.sql` и `0060_remove_matching_group_sizes.sql`. Nightly поддерживает Drizzle-схему до сборки и Playwright; fixtures миграции не применяют. Никогда не переключайте тесты на production URL.
 
 ### Правила написания E2E-тестов
 

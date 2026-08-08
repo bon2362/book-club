@@ -3,8 +3,14 @@ export interface PartitionAssignment {
   assignedAt: Date
 }
 
+export const MIN_CIRCLE_SIZE = 3
+export const MAX_CIRCLE_SIZE = 5
+export const MIN_FORMATION_HARD_CHOICES = 2
+export const MIN_FORMATION_TOTAL_CHOICES = 3
+
 export function shouldFormBook(hardCount: number, conditionalCount: number): boolean {
-  return hardCount >= 2 && hardCount + conditionalCount >= 3
+  return hardCount >= MIN_FORMATION_HARD_CHOICES
+    && hardCount + conditionalCount >= MIN_FORMATION_TOTAL_CHOICES
 }
 
 export function planBookFormation(input: {
@@ -30,13 +36,13 @@ export function planBookFormation(input: {
 export function partitionBookAssignments<T extends PartitionAssignment>(
   assignments: readonly T[],
 ): T[][] {
-  if (assignments.length < 3) return []
+  if (assignments.length < MIN_CIRCLE_SIZE) return []
 
   const ordered = [...assignments].sort((left, right) => {
     const byTime = left.assignedAt.getTime() - right.assignedAt.getTime()
     return byTime || left.userId.localeCompare(right.userId)
   })
-  const circleCount = Math.ceil(ordered.length / 5)
+  const circleCount = Math.ceil(ordered.length / MAX_CIRCLE_SIZE)
   const baseSize = Math.floor(ordered.length / circleCount)
   const largerCircles = ordered.length % circleCount
   const circles: T[][] = []

@@ -59,8 +59,6 @@ export async function fetchMatchingPublicState(
     name: matchingSessions.name,
     status: matchingSessions.status,
     stateVersion: matchingSessions.stateVersion,
-    minGroupSize: matchingSessions.minGroupSize,
-    maxGroupSize: matchingSessions.maxGroupSize,
     deadlineAt: matchingSessions.deadlineAt,
     createdAt: matchingSessions.createdAt,
   }).from(matchingSessions).where(eq(matchingSessions.id, sessionId)).limit(1)
@@ -172,8 +170,6 @@ export async function fetchMatchingPublicState(
       name: session.name,
       status: sessionStatus,
       stateVersion: session.stateVersion,
-      minGroupSize: session.minGroupSize,
-      maxGroupSize: session.maxGroupSize,
       deadlineAt: session.deadlineAt?.toISOString() ?? null,
     },
     viewer: {

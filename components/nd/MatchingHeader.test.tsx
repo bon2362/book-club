@@ -6,7 +6,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 
 const base = {
   sessionId: 'session-safe', sessionName: 'Июльский круг', sessionStatus: 'open', stateVersion: 7,
-  minGroupSize: 3, maxGroupSize: 4, deadlineAt: null,
+  deadlineAt: null,
   viewer: { ref: 'safe-a', displayName: 'Анна', role: 'active' as const },
   participants: [
     { ref: 'safe-a', displayName: 'Анна', online: true },
@@ -21,7 +21,7 @@ test('renders safe session orientation and real-name participant popover', () =>
   render(<MatchingHeader {...base} />)
   expect(screen.getByRole('link', { name: /каталог/i })).toHaveAttribute('href', '/')
   expect(screen.getByRole('heading', { name: 'Июльский круг' })).toBeInTheDocument()
-  expect(screen.getByText('Группы 3–4')).toBeInTheDocument()
+  expect(screen.queryByText(/Группы? (по )?\d/)).toBeNull()
   expect(screen.getByText(/Вы —/)).toHaveTextContent('Анна')
   fireEvent.click(screen.getByRole('button', { name: /участники/i }))
   expect(screen.getByRole('dialog', { name: /участники/i })).toHaveTextContent('Анна')
@@ -38,7 +38,7 @@ test('session menu exposes mobile metadata, a stable viewer marker and participa
   render(<MatchingHeader {...base} deadlineAt="2026-07-20T00:00:00.000Z" participants={participants} />)
   fireEvent.click(screen.getByRole('button', { name: /участники и меню сессии/i }))
   const dialog = screen.getByRole('dialog', { name: 'Участники' })
-  expect(dialog).toHaveTextContent('Группы 3–4')
+  expect(dialog).not.toHaveTextContent(/Группы? (по )?\d/)
   expect(dialog).toHaveTextContent(/Дедлайн/)
   expect(dialog).toHaveTextContent('● открыта')
   expect(dialog).toHaveTextContent('Анна · вы')
@@ -158,51 +158,7 @@ test('participant popover is keyboard accessible and restores trigger focus', as
   await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Участники' })).toBeNull())
 })
 
-test('admin edits active group size and refreshes the public state', async () => {
-  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({}) })
-  const onSessionRefresh = jest.fn().mockResolvedValue(undefined)
-  render(<MatchingHeader {...base} isAdmin onSessionRefresh={onSessionRefresh} />)
-  fireEvent.click(screen.getByRole('button', { name: /изменить размер групп/i }))
-  fireEvent.change(screen.getByLabelText('Минимум участников'), { target: { value: '2' } })
-  fireEvent.change(screen.getByLabelText('Максимум участников'), { target: { value: '5' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/matching/sessions/session-safe', expect.objectContaining({
-    method: 'PATCH', body: JSON.stringify({ minGroupSize: 2, maxGroupSize: 5 }),
-  })))
-  expect(onSessionRefresh).toHaveBeenCalledTimes(1)
-})
-
-test('book mode fixes group size at 3–5 and hides the legacy editor', () => {
-  render(<MatchingHeader {...base} isAdmin bookMode minGroupSize={2} maxGroupSize={9} sessionStatus="open" />)
-  expect(screen.getByText('Группы 3–5')).toBeInTheDocument()
-  expect(screen.getByText('● открыта')).toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: /изменить размер групп/i })).toBeNull()
-})
-
 test('renders the canonical open status label', () => {
   render(<MatchingHeader {...base} />)
   expect(screen.getByText('● открыта')).toBeInTheDocument()
-})
-
-test('validates group size locally and allows cancel', () => {
-  render(<MatchingHeader {...base} isAdmin />)
-  fireEvent.click(screen.getByRole('button', { name: /изменить размер групп/i }))
-  fireEvent.change(screen.getByLabelText('Минимум участников'), { target: { value: '1' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
-  expect(screen.getByRole('alert')).toHaveTextContent(/минимум 2/i)
-  expect(global.fetch).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByRole('button', { name: 'Отмена' }))
-  expect(screen.queryByLabelText('Минимум участников')).toBeNull()
-})
-
-test('shows group-size API errors and hides editing for participants and frozen sessions', async () => {
-  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, json: async () => ({ error: 'Размер занят' }) })
-  const { rerender } = render(<MatchingHeader {...base} isAdmin />)
-  fireEvent.click(screen.getByRole('button', { name: /изменить размер групп/i }))
-  fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
-  expect(await screen.findByRole('alert')).toHaveTextContent('Размер занят')
-  rerender(<MatchingHeader {...base} />)
-  expect(screen.queryByRole('button', { name: /изменить размер групп/i })).toBeNull()
-  rerender(<MatchingHeader {...base} isAdmin sessionStatus="frozen" />)
-  expect(screen.queryByRole('button', { name: /изменить размер групп/i })).toBeNull()
 })

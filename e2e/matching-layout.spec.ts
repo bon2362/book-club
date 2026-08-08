@@ -23,6 +23,7 @@ test.describe('Matching canonical book board layout', () => {
       await expect(board).toBeVisible()
       await expect(page.getByRole('tab')).toHaveCount(0)
       await expect(page.getByText('Сценарии', { exact: true })).toHaveCount(0)
+      await expect(page.getByTestId('matching-header').getByText(/Группы? (по )?\d/)).toHaveCount(0)
 
       const [boardBox, cardBox] = await Promise.all([board.boundingBox(), card.boundingBox()])
       expect(boardBox).not.toBeNull()

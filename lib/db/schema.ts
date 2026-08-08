@@ -265,8 +265,6 @@ export const matchingSessions = pgTable('matching_sessions', {
   createdAt:          timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   deadlineAt:         timestamp('deadline_at', { mode: 'date' }),
   status:             text('status').notNull().default('open'), // 'open' | 'closed'
-  minGroupSize:       integer('min_group_size').notNull().default(3),
-  maxGroupSize:       integer('max_group_size').notNull().default(3),
   stateVersion:       integer('state_version').notNull().default(0),
 }, (t) => ({
   singleActiveIdx: uniqueIndex('matching_sessions_single_active_idx')
