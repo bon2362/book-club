@@ -14,7 +14,6 @@ function parseAction(body: Record<string, unknown>): MatchingAction | null {
   const bookId = typeof body.bookId === 'string' ? body.bookId.trim() : ''
   const circleId = typeof body.circleId === 'string' ? body.circleId.trim() : null
   switch (body.action) {
-    case 'initializeBookMode': return { type: 'initialize_book_mode' }
     case 'assign': return userId && bookId ? { type: 'admin_assign_book', userId, bookId } : null
     case 'unassign': return userId ? { type: 'admin_unassign_book', userId } : null
     case 'removeParticipant': return userId ? { type: 'admin_remove', userId } : null

@@ -48,7 +48,7 @@ describe('withMatchingGuards', () => {
     const chain = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ status: 'active' }]),
+      limit: jest.fn().mockResolvedValue([{ status: 'open' }]),
     }
     mockDb.select = jest.fn().mockReturnValue(chain)
     const handler = withMatchingGuards(async () => new Response('ok'), { mutates: true })

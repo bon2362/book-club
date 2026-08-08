@@ -264,26 +264,17 @@ export const matchingSessions = pgTable('matching_sessions', {
   createdBy:          text('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt:          timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   deadlineAt:         timestamp('deadline_at', { mode: 'date' }),
-  status:             text('status').notNull().default('active'), // 'active' | 'frozen'
+  status:             text('status').notNull().default('open'), // 'open' | 'closed'
   minGroupSize:       integer('min_group_size').notNull().default(3),
   maxGroupSize:       integer('max_group_size').notNull().default(3),
   stateVersion:       integer('state_version').notNull().default(0),
-  bookModeInitializedAt:           timestamp('book_mode_initialized_at', { mode: 'date' }),
-  frozenAt:                        timestamp('frozen_at', { mode: 'date' }),
-  frozenScenarioJson:              jsonb('frozen_scenario_json'),
 }, (t) => ({
-  // During the lifecycle rollout both the legacy `active` and canonical `open`
-  // values mean writable/current. The shared index prevents one of each.
   singleActiveIdx: uniqueIndex('matching_sessions_single_active_idx')
     .on(sql`(true)`)
-    .where(sql`${t.status} IN ('active', 'open')`),
+    .where(sql`${t.status} = 'open'`),
   statusCheck: check(
     'matching_sessions_status_check',
-    sql`${t.status} IN ('active', 'frozen', 'open', 'closed')`,
-  ),
-  bookModeLifecycleCheck: check(
-    'matching_sessions_book_mode_lifecycle_check',
-    sql`${t.bookModeInitializedAt} IS NULL OR ${t.status} IN ('open', 'closed')`,
+    sql`${t.status} IN ('open', 'closed')`,
   ),
 }))
 
@@ -300,57 +291,6 @@ export const matchingSessionParticipants = pgTable('matching_session_participant
   pk: primaryKey({ columns: [t.sessionId, t.userId] }),
   sessionPublicRefUniq: uniqueIndex('matching_session_participants_session_public_ref_idx').on(t.sessionId, t.publicRef),
   joinSourceCheck: check('matching_session_participants_join_source_check', sql`${t.joinSource} IN ('self', 'admin')`),
-}))
-
-export const matchingCircleConfirmations = pgTable('matching_circle_confirmations', {
-  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
-  circleKey: text('circle_key').notNull(),
-  memberUserIdsJson: jsonb('member_user_ids_json').$type<string[]>().notNull(),
-  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
-}, (t) => ({
-  pk: primaryKey({
-    name: 'matching_circle_confirmations_session_user_pk',
-    columns: [t.sessionId, t.userId],
-  }),
-  sessionCircleIdx: index('matching_circle_confirmations_session_circle_idx').on(t.sessionId, t.circleKey),
-}))
-
-export const matchingLockedCircles = pgTable('matching_locked_circles', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
-  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
-  circleKey: text('circle_key').notNull(),
-  status: text('status').notNull().default('locked'), // 'locked' | 'dissolved'
-  lockedAt: timestamp('locked_at', { mode: 'date' }).notNull().defaultNow(),
-  lockedStateVersion: integer('locked_state_version').notNull(),
-  dissolvedAt: timestamp('dissolved_at', { mode: 'date' }),
-  dissolvedBy: text('dissolved_by').references(() => users.id, { onDelete: 'set null' }),
-  dissolveReason: text('dissolve_reason'),
-}, (t) => ({
-  activeCircleUniq: uniqueIndex('matching_locked_circles_active_circle_idx')
-    .on(t.sessionId, t.circleKey)
-    .where(sql`${t.status} = 'locked'`),
-  sessionLockedAtIdx: index('matching_locked_circles_session_locked_at_idx').on(t.sessionId, t.lockedAt),
-  statusCheck: check('matching_locked_circles_status_check', sql`${t.status} IN ('locked', 'dissolved')`),
-}))
-
-export const matchingLockedCircleMembers = pgTable('matching_locked_circle_members', {
-  circleId: text('circle_id').notNull().references(() => matchingLockedCircles.id, { onDelete: 'cascade' }),
-  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  displayNameSnapshot: text('display_name_snapshot').notNull(),
-  releasedAt: timestamp('released_at', { mode: 'date' }),
-}, (t) => ({
-  pk: primaryKey({
-    name: 'matching_locked_circle_members_circle_user_pk',
-    columns: [t.circleId, t.userId],
-  }),
-  activeUserUniq: uniqueIndex('matching_locked_circle_members_active_user_idx')
-    .on(t.sessionId, t.userId)
-    .where(sql`${t.releasedAt} IS NULL`),
 }))
 
 export const matchingBookIntents = pgTable('matching_book_intents', {
@@ -399,16 +339,12 @@ export const matchingCircles = pgTable('matching_circles', {
   sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
   bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
   position: integer('position').notNull(),
-  legacyLockedCircleId: text('legacy_locked_circle_id')
-    .references(() => matchingLockedCircles.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
 }, (t) => ({
   identityUniq: uniqueIndex('matching_circles_id_session_book_uniq').on(t.id, t.sessionId, t.bookId),
   sessionBookPositionUniq: uniqueIndex('matching_circles_session_book_position_uniq')
     .on(t.sessionId, t.bookId, t.position),
-  legacyLockedCircleUniq: uniqueIndex('matching_circles_legacy_locked_circle_uniq')
-    .on(t.legacyLockedCircleId),
   positionCheck: check('matching_circles_position_check', sql`${t.position} >= 1`),
 }))
 

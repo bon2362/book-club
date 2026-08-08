@@ -17,7 +17,6 @@ import {
 } from '@/lib/db/schema'
 import type { db as defaultDb } from '@/lib/db'
 import type { PersonalBookStatus } from '@/lib/signup-books'
-import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 type Tx = typeof defaultDb
 
@@ -290,7 +289,6 @@ export async function mergeUsers(tx: Tx, input: MergeUsersInput) {
   if (!sourceUser) throw new MissingMergeUserError('source user not found')
   if (!targetUser) throw new MissingMergeUserError('target user not found')
 
-  await enableMatchingLegacyCleanup(tx)
 
   const [sourceIdentityRows, targetIdentityRows, sourceSignupRows, targetSignupRows, sourcePriorityRows, targetPriorityRows,
     sourceAssignmentRows, targetAssignmentRows, sourceIntentRows, targetIntentRows] = await Promise.all([

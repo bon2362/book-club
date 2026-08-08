@@ -13,7 +13,6 @@ jest.mock('@/lib/audit/with-audit-context', () => ({
   withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) =>
     fn((jest.requireMock('@/lib/db') as { db: unknown }).db),
 }))
-jest.mock('@/lib/matching/legacy-cleanup', () => ({ enableMatchingLegacyCleanup: jest.fn() }))
 
 import { db } from '@/lib/db'
 

@@ -52,7 +52,7 @@ describe('DELETE /api/admin/matching/sessions/[id]/participants/[userId]', () =>
   })
 
   it('maps a frozen session to 409', async () => {
-    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_frozen'))
+    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_closed'))
     expect((await DELETE(makeReq(), params)).status).toBe(409)
   })
 })

@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
+import { normalizeMatchingSessionStatus } from '../session-status'
 
 /**
  * Инкрементит счётчик версии сессии — единственный сигнал «состояние изменилось»,
@@ -30,5 +31,5 @@ export async function getSessionState(
     .from(matchingSessions)
     .where(eq(matchingSessions.id, sessionId))
     .limit(1)
-  return row ?? null
+  return row ? { ...row, status: normalizeMatchingSessionStatus(row.status) } : null
 }

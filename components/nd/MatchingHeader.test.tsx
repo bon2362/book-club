@@ -5,7 +5,7 @@ const refresh = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 
 const base = {
-  sessionId: 'session-safe', sessionName: 'Июльский круг', sessionStatus: 'active', stateVersion: 7,
+  sessionId: 'session-safe', sessionName: 'Июльский круг', sessionStatus: 'open', stateVersion: 7,
   minGroupSize: 3, maxGroupSize: 4, deadlineAt: null,
   viewer: { ref: 'safe-a', displayName: 'Анна', role: 'active' as const },
   participants: [
@@ -40,7 +40,7 @@ test('session menu exposes mobile metadata, a stable viewer marker and participa
   const dialog = screen.getByRole('dialog', { name: 'Участники' })
   expect(dialog).toHaveTextContent('Группы 3–4')
   expect(dialog).toHaveTextContent(/Дедлайн/)
-  expect(dialog).toHaveTextContent('● активна')
+  expect(dialog).toHaveTextContent('● открыта')
   expect(dialog).toHaveTextContent('Анна · вы')
   expect(dialog).toHaveTextContent('…и ещё 2')
   expect(screen.getByRole('button', { name: 'Покинуть сессию' })).toBeEnabled()
@@ -179,9 +179,9 @@ test('book mode fixes group size at 3–5 and hides the legacy editor', () => {
   expect(screen.queryByRole('button', { name: /изменить размер групп/i })).toBeNull()
 })
 
-test('preserves the legacy active status label', () => {
+test('renders the canonical open status label', () => {
   render(<MatchingHeader {...base} />)
-  expect(screen.getByText('● активна')).toBeInTheDocument()
+  expect(screen.getByText('● открыта')).toBeInTheDocument()
 })
 
 test('validates group size locally and allows cancel', () => {

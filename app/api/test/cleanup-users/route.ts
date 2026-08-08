@@ -13,7 +13,6 @@ import { NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
-import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -44,7 +43,6 @@ export async function DELETE() {
   if (!isTestEndpointAllowed()) return notAllowed()
 
   const result = await withAuditContext({ actorUserId: null, actorLabel: 'E2E bulk cleanup', source: 'system' }, async (tx) => {
-    await enableMatchingLegacyCleanup(tx)
     return tx.execute(sql`
     WITH target_users AS (
       SELECT u."id", u."contact_email"

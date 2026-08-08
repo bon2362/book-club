@@ -18,24 +18,7 @@ interface MatchingSession {
   maxGroupSize: number
   deadlineAt: string | null
   createdAt: string
-  frozenAt: string | null
-  frozenScenarioJson: unknown
   stateVersion: number
-  bookModeInitializedAt: string | null
-}
-
-function frozenScenarioCircles(value: unknown): Array<{ circleKey: string; bookId: string; memberCount: number }> {
-  if (!value || typeof value !== 'object') return []
-  const leader = (value as { remainingLeader?: unknown }).remainingLeader
-  if (!leader || typeof leader !== 'object') return []
-  const circles = (leader as { circles?: unknown }).circles
-  if (!Array.isArray(circles)) return []
-  return circles.flatMap((circle) => {
-    if (!circle || typeof circle !== 'object') return []
-    const row = circle as { circleKey?: unknown; bookId?: unknown; memberUserIds?: unknown }
-    if (typeof row.circleKey !== 'string' || typeof row.bookId !== 'string' || !Array.isArray(row.memberUserIds)) return []
-    return [{ circleKey: row.circleKey, bookId: row.bookId, memberCount: row.memberUserIds.length }]
-  })
 }
 
 interface MatchingEvent extends MatchingEventLike {
@@ -52,25 +35,6 @@ interface Participant {
   joinedAt: string
   name: string | null
   role: 'active' | 'observer'
-}
-
-interface LockedCircleMember {
-  userId: string
-  displayNameSnapshot: string
-  releasedAt: string | null
-}
-
-interface LockedCircle {
-  id: string
-  sessionId: string
-  circleKey: string
-  bookId: string
-  bookTitle: string | null
-  status: 'locked' | 'dissolved'
-  lockedAt: string
-  dissolvedAt: string | null
-  dissolveReason: string | null
-  members: LockedCircleMember[]
 }
 
 interface AllUser {
@@ -108,8 +72,6 @@ const microLabel: React.CSSProperties = {
 }
 
 function statusRu(status: string): string {
-  if (status === 'active') return 'Активная'
-  if (status === 'frozen') return 'Зафиксирована'
   if (status === 'open') return 'Открыта'
   if (status === 'closed') return 'Закрыта'
   return status
@@ -137,121 +99,6 @@ const filterSelectStyle: React.CSSProperties = {
   maxWidth: 180,
 }
 
-// ——— Dissolve dialog ———
-
-interface DissolveDialogProps {
-  circle: LockedCircle
-  onClose: () => void
-  onDissolved: () => void
-  sessionId: string
-}
-
-function DissolveDialog({ circle, onClose, onDissolved, sessionId }: DissolveDialogProps) {
-  const [reason, setReason] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = reason.trim()
-    if (!trimmed) return
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(
-        `/api/admin/matching/sessions/${sessionId}/circles/${circle.id}/dissolve`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason: trimmed }),
-        },
-      )
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Ошибка роспуска')
-      onDissolved()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Неизвестная ошибка')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    background: 'var(--overlay)',
-    zIndex: 1000,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '1rem',
-  }
-  const dialogStyle: React.CSSProperties = {
-    background: 'var(--bg)',
-    border: '1px solid var(--border-strong)',
-    borderLeft: '3px solid var(--accent)',
-    padding: '1.4rem 1.6rem',
-    maxWidth: 460,
-    width: '100%',
-    fontFamily: 'var(--nd-mono), monospace',
-  }
-
-  return (
-    <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="Распустить круг">
-      <div style={dialogStyle}>
-        <div style={{ fontFamily: 'var(--nd-serif), Georgia, serif', fontSize: '1rem', marginBottom: '0.8rem' }}>
-          Распустить круг
-        </div>
-        {circle.bookTitle && (
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-body)', marginBottom: '0.5rem' }}>
-            Книга: <strong>{circle.bookTitle}</strong>
-          </div>
-        )}
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.8rem' }}>
-          Состав ({circle.members.length}):
-          {' '}{circle.members.map(m => m.displayNameSnapshot).join(', ')}
-        </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
-              Причина <span style={{ color: 'var(--accent)' }}>*</span>
-            </label>
-            <input
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              placeholder="Обязательно укажите причину"
-              required
-              disabled={loading}
-              style={{ ...fieldInput, borderBottom: '1px solid var(--border-strong)' }}
-              data-testid="dissolve-reason-input"
-              autoFocus
-            />
-          </div>
-          {error && <p style={{ color: 'var(--accent)', fontSize: '0.75rem', margin: 0 }}>{error}</p>}
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
-            <button
-              type="submit"
-              disabled={loading || !reason.trim()}
-              style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)', opacity: !reason.trim() || loading ? 0.5 : 1 }}
-              data-testid="dissolve-confirm-btn"
-            >
-              {loading ? 'Распускаю…' : 'Распустить круг'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              style={btn}
-            >
-              Отмена
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
 // ——— Main component ———
 
 export default function AdminMatchingSession() {
@@ -271,10 +118,6 @@ export default function AdminMatchingSession() {
   const [selectedUserId, setSelectedUserId] = useState('')
   const [addingParticipant, setAddingParticipant] = useState(false)
   const [removingUserId, setRemovingUserId] = useState<string | null>(null)
-
-  const [lockedCircles, setLockedCircles] = useState<LockedCircle[]>([])
-  const [lockedCirclesLoading, setLockedCirclesLoading] = useState(false)
-  const [dissolveTarget, setDissolveTarget] = useState<LockedCircle | null>(null)
 
   // Form state
   const [name, setName] = useState('')
@@ -327,17 +170,6 @@ export default function AdminMatchingSession() {
     }
   }, [])
 
-  const loadLockedCircles = useCallback(async (sessionId: string) => {
-    setLockedCirclesLoading(true)
-    try {
-      const res = await fetch(`/api/admin/matching/sessions/${sessionId}/locked-circles`)
-      const json = await res.json()
-      if (res.ok) setLockedCircles(json.data ?? [])
-    } finally {
-      setLockedCirclesLoading(false)
-    }
-  }, [])
-
   const loadAllUsers = useCallback(async () => {
     const res = await fetch('/api/admin/users')
     const json = await res.json()
@@ -349,20 +181,19 @@ export default function AdminMatchingSession() {
     if (sessions.length === 0) return
     setSelectedSessionId(prev => {
       if (prev && sessions.some(s => s.id === prev)) return prev
-      return (sessions.find(s => s.status === 'open' || s.status === 'active') ?? sessions[0]).id
+      return (sessions.find(s => s.status === 'open') ?? sessions[0]).id
     })
   }, [sessions])
 
-  // Load data for whichever legacy or book-mode session is selected.
+  // Load data for the selected session.
   useEffect(() => {
     if (!selectedSessionId) return
     loadEvents(selectedSessionId)
     loadParticipants(selectedSessionId)
-    loadLockedCircles(selectedSessionId)
     loadAllUsers()
     setEventFilters(EMPTY_FILTERS)
     setVisibleEventsCount(EVENTS_PAGE_SIZE)
-  }, [selectedSessionId, loadEvents, loadParticipants, loadLockedCircles, loadAllUsers])
+  }, [selectedSessionId, loadEvents, loadParticipants, loadAllUsers])
 
   // Distinct values for each filterable column, derived from the loaded events.
   const eventFilterOptions = useMemo(() => {
@@ -400,16 +231,11 @@ export default function AdminMatchingSession() {
     setVisibleEventsCount(EVENTS_PAGE_SIZE)
   }, [])
 
-  const openSession = sessions.find(s => s.status === 'open' || s.status === 'active')
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null
-  const selectedFrozenCircles = selectedSession ? frozenScenarioCircles(selectedSession.frozenScenarioJson) : []
-  const isSelectedOpen = selectedSession?.status === 'active' || selectedSession?.status === 'open'
-  const isSelectedFrozen = selectedSession?.status === 'frozen'
+  const openSession = sessions.find(s => s.status === 'open')
+  const isSelectedOpen = selectedSession?.status === 'open'
   const isSelectedClosed = selectedSession?.status === 'closed'
-  const isSelectedBookMode = Boolean(selectedSession?.bookModeInitializedAt)
-  const canAdminMutateParticipants = Boolean(selectedSession && (
-    isSelectedOpen || (isSelectedClosed && isSelectedBookMode)
-  ))
+  const canAdminMutateParticipants = Boolean(selectedSession && isSelectedOpen)
   const [freezing, setFreezing] = useState(false)
   const [freezeError, setFreezeError] = useState<string | null>(null)
 
@@ -433,8 +259,6 @@ export default function AdminMatchingSession() {
 
   async function handleRemoveParticipant(userId: string) {
     if (!selectedSession || !canAdminMutateParticipants) return
-    const participant = participants.find(p => p.userId === userId)
-    if (participant?.role === 'observer' && !isSelectedBookMode) return // legacy circle must be dissolved first
     setRemovingUserId(userId)
     try {
       const res = await fetch(
@@ -449,25 +273,8 @@ export default function AdminMatchingSession() {
     }
   }
 
-  async function handleFreeze() {
-    if (!openSession || openSession.status !== 'active') return
-    if (!window.confirm(`Зафиксировать сессию «${openSession.name}»? Это действие необратимо.`)) return
-    setFreezing(true)
-    setFreezeError(null)
-    try {
-      const res = await fetch(`/api/matching/sessions/${openSession.id}/freeze`, { method: 'POST' })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Ошибка заморозки')
-      await load()
-    } catch (e) {
-      setFreezeError(e instanceof Error ? e.message : 'Неизвестная ошибка')
-    } finally {
-      setFreezing(false)
-    }
-  }
-
   async function handleBookModeLifecycle(action: 'closeSession' | 'reopenSession') {
-    if (!selectedSession?.bookModeInitializedAt) return
+    if (!selectedSession) return
     const label = action === 'closeSession' ? 'Закрыть' : 'Снова открыть'
     if (!window.confirm(`${label} сессию «${selectedSession.name}»?`)) return
     setFreezing(true)
@@ -526,7 +333,7 @@ export default function AdminMatchingSession() {
       {loading && <p style={{ color: 'var(--text-muted)' }}>Загрузка…</p>}
       {error && <p style={{ color: 'var(--accent)' }}>{error}</p>}
 
-      {/* Session switcher — pick any session (active or frozen) to inspect */}
+      {/* Session switcher */}
       {!loading && sessions.length > 0 && (
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ ...microLabel, marginBottom: '0.5rem' }}>Сессии</div>
@@ -547,7 +354,7 @@ export default function AdminMatchingSession() {
                     borderRadius: 'var(--radius)',
                     background: active ? 'var(--text)' : 'var(--bg-input)',
                     color: active ? 'var(--bg-input)' : 'var(--text-body)',
-                    borderBottom: s.status === 'active' || s.status === 'open'
+                    borderBottom: s.status === 'open'
                       ? '2px solid var(--success)'
                       : '2px solid var(--border-strong)',
                     display: 'flex',
@@ -605,9 +412,6 @@ export default function AdminMatchingSession() {
             {selectedSession.deadlineAt && (
               <span>Дедлайн: {new Date(selectedSession.deadlineAt).toLocaleString('ru-RU')}</span>
             )}
-            {selectedSession.frozenAt && (
-              <span>Зафиксирована: {new Date(selectedSession.frozenAt).toLocaleDateString('ru-RU')}</span>
-            )}
           </div>
 
           {isSelectedOpen && (
@@ -618,25 +422,17 @@ export default function AdminMatchingSession() {
               >
                 Открыть страницу матчинга →
               </a>
-              {selectedSession.status === 'active' && !isSelectedBookMode && <button
-                  onClick={handleFreeze}
-                  disabled={freezing}
-                  style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
-                  data-testid="admin-freeze-session"
-                >
-                  {freezing ? 'Фиксирую…' : 'Зафиксировать'}
-                </button>}
-              {selectedSession.status === 'open' && isSelectedBookMode && <button
+              <button
                   onClick={() => handleBookModeLifecycle('closeSession')}
                   disabled={freezing}
                   style={{ ...btn, borderColor: 'var(--accent)', color: 'var(--accent)' }}
                   data-testid="admin-close-session"
                 >
                   {freezing ? 'Закрываю…' : 'Закрыть сессию'}
-                </button>}
+                </button>
             </div>
           )}
-          {isSelectedClosed && isSelectedBookMode && (
+          {isSelectedClosed && (
             <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Участники не могут менять выбор; административная корректировка остаётся доступной.</span>
               <button
@@ -649,93 +445,7 @@ export default function AdminMatchingSession() {
               </button>
             </div>
           )}
-          {isSelectedFrozen && (
-            <>
-              <p style={{ ...microLabel, marginTop: '0.7rem' }}>
-                Сессия зафиксирована — данные доступны только для просмотра
-              </p>
-              <div data-testid="admin-frozen-snapshot" style={{ marginTop: '0.7rem', borderTop: '1px solid var(--border)', paddingTop: '0.6rem' }}>
-                <div style={microLabel}>Снимок оставшегося сценария</div>
-                {selectedFrozenCircles.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.35rem 0 0' }}>Кругов не осталось.</p>
-                ) : (
-                  <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.2rem', color: 'var(--text-body)', fontSize: '0.75rem' }}>
-                    {selectedFrozenCircles.map((circle) => (
-                      <li key={circle.circleKey}>
-                        Книга {circle.bookId} — {circle.memberCount} {circle.memberCount === 1 ? 'участник' : circle.memberCount < 5 ? 'участника' : 'участников'}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </>
-          )}
           {freezeError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem', marginTop: 4 }}>{freezeError}</p>}
-        </div>
-      )}
-
-      {/* Locked circles registry */}
-      {!loading && selectedSession && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ ...microLabel, marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            Закреплённые круги ({lockedCircles.length})
-            <button
-              onClick={() => loadLockedCircles(selectedSession.id)}
-              style={{ ...btn, fontSize: '0.7rem', padding: '2px 6px' }}
-            >
-              ↺
-            </button>
-          </div>
-
-          {lockedCirclesLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Загрузка…</p>}
-
-          {!lockedCirclesLoading && lockedCircles.length === 0 && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Нет закреплённых кругов.</p>
-          )}
-
-          {!lockedCirclesLoading && lockedCircles.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {lockedCircles.map(circle => (
-                <div
-                  key={circle.id}
-                  data-testid="locked-circle-row"
-                  style={{
-                    border: '1px solid var(--border)',
-                    borderLeft: circle.status === 'locked' ? '2px solid var(--success)' : '2px solid var(--border-strong)',
-                    padding: '0.55rem 0.7rem',
-                    fontSize: '0.76rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 600 }}>{circle.bookTitle ?? circle.bookId}</span>
-                    <span style={{ ...microLabel, color: circle.status === 'locked' ? 'var(--success)' : 'var(--text-muted)' }}>
-                      {circle.status === 'locked' ? 'закреплён' : 'распущен'}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-                      {new Date(circle.lockedAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                    {circle.members.map(m => m.displayNameSnapshot).join(', ')}
-                  </div>
-                  {circle.dissolveReason && (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.15rem' }}>
-                      Причина роспуска: {circle.dissolveReason}
-                    </div>
-                  )}
-                  {circle.status === 'locked' && selectedSession.status === 'active' && !isSelectedBookMode && (
-                    <button
-                      onClick={() => setDissolveTarget(circle)}
-                      style={{ ...btn, marginTop: '0.4rem', fontSize: '0.7rem', padding: '2px 7px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
-                      data-testid="dissolve-circle-btn"
-                    >
-                      Распустить круг
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -772,7 +482,6 @@ export default function AdminMatchingSession() {
               <tbody>
                 {participants.map(p => {
                   const isObserver = p.role === 'observer'
-                  const removalBlocked = isObserver && !isSelectedBookMode
                   const isOnline = onlinePublicRefs.has(p.publicRef)
                   return (
                     <tr key={p.userId} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -813,23 +522,13 @@ export default function AdminMatchingSession() {
                       </td>
                       {canAdminMutateParticipants && (
                         <td style={{ padding: '3px 8px' }}>
-                          {removalBlocked ? (
-                            <span
-                              title="Сначала распустите закреплённый круг, чтобы убрать наблюдателя"
-                              style={{ color: 'var(--text-muted)', fontSize: '0.7rem', cursor: 'not-allowed' }}
-                              data-testid="remove-observer-disabled"
-                            >
-                              сначала распустить круг
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => handleRemoveParticipant(p.userId)}
-                              disabled={removingUserId === p.userId}
-                              style={{ ...btn, fontSize: '0.7rem', padding: '1px 6px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
-                            >
-                              {removingUserId === p.userId ? '…' : 'Убрать'}
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleRemoveParticipant(p.userId)}
+                            disabled={removingUserId === p.userId}
+                            style={{ ...btn, fontSize: '0.7rem', padding: '1px 6px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
+                          >
+                            {removingUserId === p.userId ? '…' : 'Убрать'}
+                          </button>
                         </td>
                       )}
                     </tr>
@@ -1123,21 +822,6 @@ export default function AdminMatchingSession() {
         </div>
       )}
 
-      {/* Dissolve dialog */}
-      {dissolveTarget && selectedSession && (
-        <DissolveDialog
-          circle={dissolveTarget}
-          sessionId={selectedSession.id}
-          onClose={() => setDissolveTarget(null)}
-          onDissolved={async () => {
-            setDissolveTarget(null)
-            await Promise.all([
-              loadLockedCircles(selectedSession.id),
-              loadParticipants(selectedSession.id),
-            ])
-          }}
-        />
-      )}
     </div>
   )
 }

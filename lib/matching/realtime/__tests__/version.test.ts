@@ -11,7 +11,7 @@ const updateChain = { set: jest.fn().mockReturnThis(), where: jest.fn().mockReso
 const selectChain = {
   from: jest.fn().mockReturnThis(),
   where: jest.fn().mockReturnThis(),
-  limit: jest.fn().mockResolvedValue([{ version: 5, status: 'active' }]),
+  limit: jest.fn().mockResolvedValue([{ version: 5, status: 'open' }]),
 }
 const mockDb = {
   update: jest.fn(() => updateChain),
@@ -32,7 +32,7 @@ describe('matching realtime version helper', () => {
 
   it('getSessionState returns version and status', async () => {
     const state = await getSessionState('session-1', mockDb)
-    expect(state).toEqual({ version: 5, status: 'active' })
+    expect(state).toEqual({ version: 5, status: 'open' })
   })
 
   it('getSessionState returns null for missing session', async () => {

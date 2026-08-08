@@ -2,30 +2,27 @@ import { render, screen } from '@testing-library/react'
 import MatchingWorkspace from './MatchingWorkspace'
 import { MatchingBoardContext } from './MatchingBoardProvider'
 
-test('renders a full-width scenarios workspace with an internal scroll region and no panel heading', () => {
-  render(<MatchingWorkspace><div>scenario body</div></MatchingWorkspace>)
-  expect(screen.getByTestId('matching-scenarios-scroll')).toHaveStyle({ overflowY: 'auto' })
-  expect(screen.queryByRole('heading', { name: /Сценарии/ })).toBeNull()
-  expect(screen.queryByText(/Расклады по близости интересов/)).toBeNull()
-  expect(screen.queryByText(/Мои ходы|Лента событий/)).toBeNull()
+test('renders a full-width workspace with an internal scroll region', () => {
+  render(<MatchingWorkspace><div>board body</div></MatchingWorkspace>)
+  expect(screen.getByTestId('matching-workspace-scroll')).toHaveStyle({ overflowY: 'auto' })
 })
 
-test('fades and marks the workspace busy while scenarios recalculate', () => {
+test('fades and marks the workspace busy while the board refreshes', () => {
   render(
     <MatchingBoardContext.Provider value={{ pending: true, beginPending: jest.fn(), endPending: jest.fn() }}>
-      <MatchingWorkspace><div>scenario body</div></MatchingWorkspace>
+      <MatchingWorkspace><div>board body</div></MatchingWorkspace>
     </MatchingBoardContext.Provider>,
   )
-  expect(screen.getByTestId('matching-scenarios-workspace')).toHaveAttribute('aria-busy', 'true')
+  expect(screen.getByTestId('matching-workspace')).toHaveAttribute('aria-busy', 'true')
   expect(screen.getByTestId('matching-board-loader')).toBeInTheDocument()
-  expect(screen.getByTestId('matching-scenarios-scroll')).toHaveStyle({ opacity: '0.45' })
+  expect(screen.getByTestId('matching-workspace-scroll')).toHaveStyle({ opacity: '0.45' })
 })
 
-test('uses natural document flow for the book tab', () => {
+test('uses natural document flow for the book board', () => {
   render(<MatchingWorkspace natural><div>book body</div></MatchingWorkspace>)
-  expect(screen.getByTestId('matching-scenarios-workspace')).toHaveClass('is-document')
-  expect(screen.getByTestId('matching-scenarios-workspace')).toHaveStyle({ height: 'auto', overflow: 'visible' })
-  expect(screen.getByTestId('matching-scenarios-scroll')).toHaveStyle({ overflowY: 'visible' })
+  expect(screen.getByTestId('matching-workspace')).toHaveClass('is-document')
+  expect(screen.getByTestId('matching-workspace')).toHaveStyle({ height: 'auto', overflow: 'visible' })
+  expect(screen.getByTestId('matching-workspace-scroll')).toHaveStyle({ overflowY: 'visible' })
   expect(document.querySelector('.nd-mx-fade')).not.toBeInTheDocument()
 })
 

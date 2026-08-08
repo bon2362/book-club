@@ -107,7 +107,7 @@ describe('POST /api/admin/matching/sessions/[id]/participants', () => {
   })
 
   it('maps a non-active session to 409', async () => {
-    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_frozen'))
+    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_closed'))
     expect((await POST(makeReq({ userId: 'user-1' }), params)).status).toBe(409)
   })
 })

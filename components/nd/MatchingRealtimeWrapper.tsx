@@ -2,7 +2,7 @@
 
 /**
  * MatchingRealtimeWrapper — лёгкий опросчик версии для частей страницы без полного
- * MatchingRealtimeClient (например, personal list внутри MatchingSatisfactionFlow).
+ * MatchingRealtimeClient (например, personal list книжной доски).
  * При изменении версии делает router.refresh() чтобы получить свежие серверные данные.
  *
  * Если MatchingRealtimeClient уже монтирован на той же странице, он управляет
@@ -36,7 +36,7 @@ export default function MatchingRealtimeWrapper({ sessionId }: Props) {
         if (versionChanged) router.refresh()
       }
 
-      if (data.status === 'frozen') setStopped(true)
+      if (data.status === 'closed') setStopped(true)
     } catch {
       // non-fatal
     }

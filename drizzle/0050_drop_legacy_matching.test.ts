@@ -30,10 +30,10 @@ describe('0050 legacy matching schema cleanup', () => {
     expect(schema).not.toContain(`'${column}'`)
   })
 
-  it('drops the participant pseudonym column while keeping frozen snapshots', () => {
+  it('drops the participant pseudonym column; later migrations may remove frozen snapshots', () => {
     expect(sql).toContain('ALTER TABLE "matching_session_participants" DROP COLUMN IF EXISTS "pseudonym"')
     expect(schema).not.toContain("pseudonym: text('pseudonym')")
-    expect(schema).toContain("frozenAt:")
-    expect(schema).toContain("frozenScenarioJson:")
+    expect(schema).not.toContain("frozenAt:")
+    expect(schema).not.toContain("frozenScenarioJson:")
   })
 })

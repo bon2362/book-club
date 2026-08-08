@@ -15,13 +15,11 @@ import {
   matchingBookAssignments,
   matchingBookIntents,
   matchingCircles,
-  matchingLockedCircles,
   matchingSessionBookStates,
 } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
-import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -88,15 +86,13 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
   // Matching results intentionally protect their book with ON DELETE RESTRICT.
-  // Test teardown removes disposable canonical and legacy state in FK order;
+  // Test teardown removes disposable canonical state in FK order;
   // the usual book cascades then clear signups and priorities.
   await withAuditContext({ actorUserId: null, actorLabel: 'E2E cleanup', source: 'system' }, async (tx) => {
-    await enableMatchingLegacyCleanup(tx)
     await tx.delete(matchingBookAssignments).where(eq(matchingBookAssignments.bookId, id))
     await tx.delete(matchingBookIntents).where(eq(matchingBookIntents.bookId, id))
     await tx.delete(matchingCircles).where(eq(matchingCircles.bookId, id))
     await tx.delete(matchingSessionBookStates).where(eq(matchingSessionBookStates.bookId, id))
-    await tx.delete(matchingLockedCircles).where(eq(matchingLockedCircles.bookId, id))
     await tx.delete(books).where(eq(books.id, id))
   })
   return NextResponse.json({ ok: true })

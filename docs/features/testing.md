@@ -127,8 +127,8 @@ Global setup/teardown удаляет E2E users и E2E matching sessions чере
 Для matching используются две составные fixture:
 
 - `matchingBoardFixture` создаёт отдельную active session, две книги и двух участников в независимых browser contexts, вступает ими в сессию и выставляет ранги; дополнительные участники добавляются через `addParticipant`;
-- `matchingBooksFixture` создаёт legacy-сессию только с одним request-only viewer и request-only администратором, ранжирует viewer и включает книжный режим. Peers B/C появляются только при вызове ленивых `getParticipantB()`/`getParticipantC()`; произвольные дополнительные участники — через `addParticipant`. Браузерная страница создаётся отдельно через `openMatchingPage`: context явно получает project context options/baseURL/HTTPS-настройки, а trace lifecycle остаётся под управлением Playwright. Неудачный login удаляет cached promise, поэтому вызов можно повторить;
-- `matchingApiFixture` из `e2e/api-fixtures.ts` создаёт multi-user legacy setup полностью через `APIRequestContext`; он используется для concurrency, cutover и audit без Chromium. Именно здесь участники создаются до cutover, когда тест проверяет импорт legacy-состава;
+- `matchingBooksFixture` создаёт открытую книжную сессию с request-only viewer и администратором. Peers B/C появляются только при вызове ленивых `getParticipantB()`/`getParticipantC()`; произвольные дополнительные участники — через `addParticipant`. Браузерная страница создаётся отдельно через `openMatchingPage`;
+- `matchingApiFixture` из `e2e/api-fixtures.ts` создаёт multi-user книжный setup полностью через `APIRequestContext`; он используется для concurrency и lifecycle guards без Chromium;
 - `auditCleanup` отслеживает ID тестовых sessions/users и после зависимых teardown удаляет связанные `audit_log`-строки. Она нужна потому, что глобальный audit намеренно не удаляется каскадом вместе с доменными таблицами.
 
 Все matching-мутации выполняются только в изолированной Neon-ветке `e2e`. Fixture сначала удаляют session/books и пользовательские данные по обычным FK/cleanup-маршрутам, затем `auditCleanup` убирает оставшиеся audit snapshots; production-строки не переиспользуются и не редактируются.
@@ -140,36 +140,28 @@ Nightly — явная композиция трёх Playwright projects:
 | Project | Состав | Browser |
 |---|---|---|
 | `browser-non-matching` | Все обычные browser specs, Matching исключён | да |
-| `matching-golden` | Ровно 12 тестов с тегом `@matching-golden` | да |
+| `matching-golden` | Книжные тесты с тегом `@matching-golden` | да |
 | `matching-integration` | `e2e/integration/matching/**` | нет |
 
-Контрольное локальное измерение после разделения портфеля: один focused Matching layout — 30 секунд, 12 браузерных Matching golden paths — 5,4 минуты, 8 request-only Matching integration — 3,2 минуты. Локальный `next dev` компилирует API-роуты лениво; итоговое время полного портфеля берётся из nightly на предварительно собранном `next start`.
-
-Большие прежние `matching-audit.spec.ts`, `matching-books-cutover.spec.ts` и неотмеченные Matching-сценарии остаются в репозитории как manual/archive reference, но не входят в nightly. Карта эквивалентного nightly-покрытия:
-
-При расследовании их можно явно запустить командой `npm run test:e2e:matching:manual -- <spec> [--grep "..."]`; отдельный config не подключён к nightly.
+Сценарные specs и cutover-проверки удалены вместе с runtime. Карта актуального покрытия:
 
 | Риск | Nightly-проверка |
 |---|---|
 | conditional/hard/switch/reload | tagged `matching-books.spec.ts` |
 | formation и assignment guards | tagged formation golden path |
-| realtime | tagged `matching-realtime.spec.ts` |
-| admin close/reopen/dissolve/place/assign | tagged admin lifecycle |
+| realtime polling | `MatchingRealtimeClient.test.tsx` и книжные browser journeys |
+| admin close/reopen/place/assign | tagged admin lifecycle |
 | focus, responsive, document scroll, formed fill | tagged book-layout tests в `matching-layout.spec.ts` |
-| legacy board shell, popup, touch CTA, long-sheet close, waiting line, attached checkmark и full width | единый tagged board-layout golden в `matching-layout.spec.ts` |
-| desktop/mobile ranking-gate geometry | tagged Welcome → Ranking Gate journey в `matching-satisfaction.spec.ts` |
-| welcome/ranking и observer lock | два tagged satisfaction golden paths |
+| book board shell, popup, long-sheet close, waiting line и full width | tagged book-layout tests в `matching-layout.spec.ts` |
 | concurrent threshold | `integration/matching/concurrency.spec.ts` |
-| exact cutover, overlap precedence, idempotency и rollback | `integration/matching/cutover-audit.spec.ts` |
-| actor-aware audit, semantic events, cleanup и heartbeat noise | `integration/matching/audit-events.spec.ts` |
-| legacy rank/state compatibility | `integration/matching/cutover-audit.spec.ts` |
+| destructive scenario-removal migration: active/frozen import and rollback | `integration/matching/scenario-removal-migration.spec.ts` |
+| actor-aware audit, semantic events, cleanup и heartbeat noise | книжные audit integration tests |
 | assigned/closed/impersonation guards и readable state | `integration/matching/state-guards.spec.ts` |
-| auth modal и close navigation; server/client composition | tagged Welcome → Ranking Gate journey; `app/matching/page.composition.test.ts` |
-| legacy confirmation conflict/transfer/freeze | `session-transition` и `confirmation-reconciliation` Jest, observer-lock golden |
+| auth modal, welcome и close navigation | matching welcome/book journeys |
 | ranking edge cases и добавление книги | ranking/rank-assignment Jest, ranking journey и live-shortlist golden |
-| force-add/group-size/freeze и admin union view | admin route/session-transition/component Jest, admin lifecycle golden |
+| force-add/group-size и admin union view | admin route/session-transition/component Jest, admin lifecycle golden |
 
-Разбиение прежнего `ui-states.spec.ts` сохранило все 35 тестов в доменных файлах. Nightly выполняет 27 layout-тестов: все non-Matching layout и четыре curated Matching layout. Восемь подробных legacy Matching layout-тестов оставлены manual/archive; их уникальные риски не потеряны: шесть групп проверок сведены в tagged board-layout golden, две ranking-gate геометрии — в tagged ranking journey из таблицы выше.
+Сценарные Matching E2E удалены вместе с runtime. Nightly оставляет книжные и welcome/layout golden paths; request-only integration покрывает lifecycle, guards и конкурентность книжной модели.
 
 Спеки структурированы по доменным областям (отражается в Allure-отчёте):
 
@@ -192,16 +184,12 @@ Nightly — явная композиция трёх Playwright projects:
 | `theme.spec.ts` | UI | Переключение темы |
 | `view-mode.spec.ts` | UI | Режимы отображения (сетка/список) |
 | `*-layout.spec.ts` | UI | Доменное CSS-поведение и реальная геометрия |
-| `matching-satisfaction.spec.ts` | Матчинг | Disclosure и глобальное имя, Ranking Gate, подтверждение с reload, видимость статуса, закрепление и observer-mode |
-| `matching-realtime.spec.ts` | Матчинг | Polling public state по `state_version` и реальные display names без raw user ids |
-| `matching-admin.spec.ts` | Матчинг / администрирование | Force-add, роли active/observer, изменение размеров, freeze, реестр и роспуск целого круга |
-| `matching-audit.spec.ts` | Матчинг / аудит | Смысловые `matching_events`, глобальный audit, actor/source и отсутствие heartbeat-шума |
 | `matching-books.spec.ts` | Матчинг | Условный/твёрдый выбор с reload, атомарная смена книги, очистка условных согласий и формирование при двух hard |
-| `matching-books-cutover.spec.ts` | Матчинг | Live cutover legacy → books: exact import, overlap precedence, rollback preflight и однократный marker/version |
+| `matching-layout.spec.ts` | Матчинг / UI | Единая книжная доска без вкладок, desktop/mobile geometry, popup и меню авто-записи |
 
-Matching E2E покрывают законченные пользовательские истории: Welcome → Ranking Gate → board, шапку/участников/книжный popup, confirm/cancel/atomic switch, перенос или сброс выбора после изменения книги/ранга, lock → observer и исключение из дальнейшего расчёта, а также admin и оба журнала. Они создают минимум двух пользователей и собственную active session. Проверки персистентности обязательно делают `page.reload()`. Удаление тестовой книги сначала очищает связанные locked circles, поскольку production FK намеренно запрещает удалить книгу из закреплённого результата.
+Matching E2E покрывают книжную доску, popup, выбор с reload, формирование и lifecycle. Каждый тест создаёт собственную открытую сессию и пользователей. Проверки персистентности обязательно делают `page.reload()`.
 
-Книжные спеки запускаются только когда к изолированной Neon-ветке `e2e` один раз применена `0053_matching_books.sql`: помимо схемы она создаёт audit/guard triggers, которые `drizzle-kit push` не генерирует. Nightly workflow затем поддерживает Drizzle-схему шагом `drizzle-kit push --force` до сборки и Playwright; сами fixtures миграции не применяют. При локальном запуске явно заданный `DATABASE_URL` имеет приоритет над `.env.test.local`; оба варианта всё равно проходят E2E DB guards. Никогда не переключайте тесты на production URL.
+Книжные спеки запускаются после применения к изолированной Neon-ветке `e2e` миграций `0053_matching_books.sql` и `0059_remove_matching_scenarios.sql`. Nightly поддерживает Drizzle-схему до сборки и Playwright; fixtures миграции не применяют. Никогда не переключайте тесты на production URL.
 
 ### Правила написания E2E-тестов
 

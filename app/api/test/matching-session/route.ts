@@ -9,7 +9,6 @@ import { matchingSessions } from '@/lib/db/schema'
 import { and, eq, lt } from 'drizzle-orm'
 import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
-import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -36,10 +35,10 @@ async function waitForActiveSlot() {
   while (Date.now() - startedAt < ACTIVE_SLOT_TIMEOUT_MS) {
     await db
       .update(matchingSessions)
-      .set({ status: 'frozen', frozenAt: new Date() })
+      .set({ status: 'closed' })
       .where(
         and(
-          eq(matchingSessions.status, 'active'),
+          eq(matchingSessions.status, 'open'),
           lt(matchingSessions.createdAt, new Date(Date.now() - STALE_ACTIVE_MS)),
         ),
       )
@@ -47,7 +46,7 @@ async function waitForActiveSlot() {
     const [active] = await db
       .select({ id: matchingSessions.id })
       .from(matchingSessions)
-      .where(eq(matchingSessions.status, 'active'))
+      .where(eq(matchingSessions.status, 'open'))
       .limit(1)
 
     if (!active) return
@@ -71,7 +70,7 @@ export async function POST(req: NextRequest) {
         .insert(matchingSessions)
         .values({
           name: overrides.name ?? `E2E Matching ${Date.now().toString(36)}`,
-          status: 'active',
+          status: 'open',
           minGroupSize: overrides.minGroupSize ?? 3,
           maxGroupSize: overrides.maxGroupSize ?? overrides.minGroupSize ?? 3,
           deadlineAt: overrides.deadlineAt ? new Date(overrides.deadlineAt) : null,
@@ -103,7 +102,6 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
   await withAuditContext({ actorUserId: null, actorLabel: 'E2E cleanup', source: 'system' }, async (tx) => {
-    await enableMatchingLegacyCleanup(tx)
     await tx.delete(matchingSessions).where(eq(matchingSessions.id, id))
   })
   return NextResponse.json({ ok: true })

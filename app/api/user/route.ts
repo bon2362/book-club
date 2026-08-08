@@ -7,7 +7,6 @@ import { matchingBookAssignments, matchingBookIntents, notificationQueue, users 
 import { eq } from 'drizzle-orm'
 import { deletePostHogPerson } from '@/lib/posthog-server'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
-import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 export async function DELETE() {
   const session = await auth()
@@ -29,7 +28,6 @@ export async function DELETE() {
       source: 'profile',
     },
     async (tx) => {
-      await enableMatchingLegacyCleanup(tx)
       if (targetUser?.contactEmail) {
         await tx
           .delete(notificationQueue)

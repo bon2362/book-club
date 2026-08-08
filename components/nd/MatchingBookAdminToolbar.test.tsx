@@ -6,36 +6,12 @@ describe('MatchingBookAdminToolbar', () => {
     jest.spyOn(window, 'confirm').mockReturnValue(true)
   })
 
-  it('initializes book mode through the admin command route', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ stateVersion: 2 }) }) as jest.Mock
-    const onRefresh = jest.fn().mockResolvedValue(undefined)
-    render(
-      <MatchingBookAdminToolbar
-        sessionId="s1"
-        sessionStatus="active"
-        stateVersion={1}
-        initialized={false}
-        onState={() => {}}
-        onRefresh={onRefresh}
-      />,
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Включить книжный режим' }))
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
-      '/api/admin/matching/sessions/s1/book-admin-actions',
-      expect.objectContaining({ method: 'POST' }),
-    ))
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)).toEqual({
-      action: 'initializeBookMode', expectedStateVersion: 1,
-    })
-  })
-
   it('offers reopen for a closed initialized session', () => {
     render(
       <MatchingBookAdminToolbar
         sessionId="s1"
         sessionStatus="closed"
         stateVersion={2}
-        initialized
         onState={() => {}}
         onRefresh={async () => {}}
       />,
@@ -53,7 +29,6 @@ describe('MatchingBookAdminToolbar', () => {
         sessionId="s1"
         sessionStatus={sessionStatus}
         stateVersion={2}
-        initialized
         onState={() => {}}
         onRefresh={async () => {}}
       />,
@@ -72,7 +47,6 @@ describe('MatchingBookAdminToolbar', () => {
         sessionId="s1"
         sessionStatus="open"
         stateVersion={3}
-        initialized
         onState={onState}
         onRefresh={async () => {}}
       />,

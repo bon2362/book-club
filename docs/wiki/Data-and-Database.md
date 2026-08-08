@@ -11,7 +11,7 @@
 | `matching_circles` | Актуальные группы по книге и их порядок. |
 | `matching_book_assignments` | Единственный занятый книжный слот участника, источник назначения и круг. |
 
-В `matching_sessions.book_mode_initialized_at` хранится момент необратимого перехода сессии в книжную модель. После него DB trigger запрещает записи в legacy confirmations/locked circles. Другой trigger не позволяет удалить из глобального `signup_books` книгу, на которой у пользователя стоит текущий твёрдый выбор или назначение. Шорт-лист остаётся глобальным, но уже зафиксированная договорённость не может исчезнуть обходным путём.
+Книжная модель теперь единственная: новая сессия сразу имеет статус `open`. DB trigger не позволяет удалить из глобального `signup_books` книгу, на которой у пользователя стоит текущий твёрдый выбор или назначение. Шорт-лист остаётся глобальным, но уже зафиксированная договорённость не может исчезнуть обходным путём.
 
 Новые таблицы включены в глобальный audit log. Удаление сессии каскадно удаляет книжные данные; ссылки на книги используют `RESTRICT`, чтобы результат не потерялся из-за удаления каталожной записи.
 
@@ -29,9 +29,9 @@ erDiagram
     books ||--o{ book_priorities : ranked
     user ||--o{ matching_session_participants : joins
     matching_sessions ||--o{ matching_session_participants : contains
-    matching_sessions ||--o{ matching_circle_confirmations : confirms
-    matching_sessions ||--o{ matching_locked_circles : locks
-    matching_locked_circles ||--o{ matching_locked_circle_members : contains
+    matching_sessions ||--o{ matching_book_intents : collects
+    matching_sessions ||--o{ matching_book_assignments : assigns
+    matching_sessions ||--o{ matching_circles : forms
     matching_sessions ||--o{ matching_notices : notifies
     matching_sessions ||--o{ matching_events : records
     user ||--o{ book_submissions : submits
@@ -98,7 +98,6 @@ erDiagram
       integer min_group_size
       integer max_group_size
       timestamp deadline_at
-      jsonb frozen_scenario_json
     }
 
     matching_session_participants {
@@ -107,23 +106,6 @@ erDiagram
       text public_ref
       text join_source
       timestamp joined_at
-    }
-
-    matching_circle_confirmations {
-      text session_id
-      text user_id
-      text book_id
-      text circle_key
-      jsonb member_user_ids_json
-    }
-
-    matching_locked_circles {
-      text id
-      text session_id
-      text book_id
-      text circle_key
-      text status
-      text dissolve_reason
     }
 
     matching_events {
@@ -173,10 +155,10 @@ erDiagram
 | `notification_queue` | Очередь email-уведомлений. | Позволяет отправлять digest, а не письмо на каждое действие. |
 | `intro_sections` | Редактируемые блоки intro на главной. | Позволяет менять объяснение сайта из админки. |
 | `telegram_preauth_tokens` | Короткоживущие токены Telegram-входа. | Нужны для безопасного Telegram redirect flow. |
-| `matching_sessions` | Matching-сессии: статус, размеры групп, `state_version`, freeze snapshot. | Координирует транзакционные пересчёты. |
-| `matching_session_participants` | Участники, непрозрачный public ref, presence и источник self/admin. | Сохраняет доступ и для observer после закрепления. |
-| `matching_circle_confirmations` | Одно временное подтверждение книги и точного состава на пользователя. | Позволяет собрать единогласие, атомарно переключить и перенести выбор на круг той же книги. |
-| `matching_locked_circles` / `matching_locked_circle_members` | Закреплённые или распущенные круги и их состав. | Неизменяемый участниками результат; dissolve освобождает весь состав. |
+| `matching_sessions` | Matching-сессии: `open | closed`, размеры групп и `state_version`. | Координирует транзакционные книжные изменения. |
+| `matching_session_participants` | Участники, непрозрачный public ref, presence и источник self/admin. | Управляет доступом к книжной доске. |
+| `matching_book_intents` / `matching_book_assignments` | Записи и итоговые назначения участников. | Хранит решения книжного режима. |
+| `matching_circles` / `matching_session_book_states` | Актуальные круги и факт формирования книги. | Хранит состав результата книжного режима. |
 | `matching_notices` | Durable-сообщения о переносе, сбросе и закреплении. | Уведомление переживает закрытую страницу. |
 | `matching_events` | Смысловой журнал matching с actor/subject, before/after и снимками имён. | Источник админской аналитики изменений предпочтений. |
 | `user_merge_events` | Summary-события admin merge дублей пользователей. | Даёт читаемую историю слияния поверх подробного row-level audit. |
@@ -198,8 +180,8 @@ erDiagram
 - `signup_books`
 - `book_priorities`
 - `matching_session_participants`
-- `matching_circle_confirmations`
-- `matching_locked_circle_members`
+- `matching_book_intents`
+- `matching_book_assignments`
 - `matching_notices`
 - `matching_events`
 - `book_submissions`
@@ -228,6 +210,7 @@ erDiagram
 - `0048_matching_simplified.sql` — public refs, confirmations, locked circles, notices, matching events, ограничения и audit triggers нового flow.
 - `0049_restore_matching_presence_audit_filter.sql` — возвращает подавление чистых `last_seen_at` heartbeat-обновлений в глобальном audit log; старые шумовые записи сохраняются как история.
 - `0050_drop_legacy_matching.sql` — удаляет режим coverage, псевдонимы, старые метрики и две legacy matching-таблицы после зелёного production smoke-check.
+- `0059_remove_matching_scenarios.sql` — валидирует и переносит все зафиксированные круги в книжную модель, проверяет точное совпадение составов, переводит статусы в `open | closed` и удаляет сценарные таблицы/колонки вместе с audit-триггерами.
 - `0051_book_priorities_rank_source.sql` и `0052_backfill_book_ranks.sql` — обязательные ранги книг: добавляют колонку `book_priorities.rank_source` и разово бэкфиллят её (существующие ранги → `manual`, недостающие ранги для активных записей на книги → `auto` в конец по `signed_at`). **Обе требуют ручного прогона оператором на production после деплоя, строго в порядке 0051 → 0052** — не входят в автодеплой Vercel/CI. После однократного прогона повторный запуск не нужен: дальше инвариант поддерживается кодом на лету.
 - `0034_matching_pseudonym_reservations.sql` и `0035_matching_preference_events.sql` — исторические миграции; созданные ими legacy-таблицы удалены в `0050`.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).
@@ -246,4 +229,4 @@ erDiagram
 
 `user.last_activity_at` и `user_activity_events`.
 
-Если нужно понять matching, смотреть связку `matching_session_participants` → `matching_circle_confirmations` → `matching_locked_circles`, а историю решения — в `matching_events`. Legacy matching-колонки и две прежние таблицы уже удалены миграцией `0050`; прежний runtime доступен только по git-тегу.
+Если нужно понять matching, смотреть связку `matching_session_participants` → `matching_book_intents` → `matching_book_assignments` → `matching_circles`, а историю решения — в `matching_events`. Сценарные таблицы и колонки удалены миграцией `0059`; прежний runtime доступен только по git-тегу.
