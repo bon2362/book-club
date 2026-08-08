@@ -20,6 +20,44 @@ test.beforeEach(async () => {
 })
 
 test.describe('Matching books: mobile layout and focus', () => {
+  test('participant instructions expand inline without mobile overflow', async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    const { books, participantA } = matchingBooksFixture
+    const participantPage = await openMatchingPage(participantA)
+    await participantPage.setViewportSize({ width: 393, height: 852 })
+    await participantPage.goto('/matching')
+    await expect(participantPage.getByTestId('matching-books-view')).toBeVisible()
+
+    const disclosure = participantPage.getByRole('button', { name: 'Подробнее' })
+    const firstCard = participantPage.getByTestId(`matching-book-card-${books[0].id}`)
+    const collapsedCardBox = await firstCard.boundingBox()
+    const disclosureBox = await disclosure.boundingBox()
+    expect(collapsedCardBox).not.toBeNull()
+    expect(disclosureBox).not.toBeNull()
+    expect(disclosureBox!.height, 'mobile disclosure has a reachable tap target').toBeGreaterThanOrEqual(44)
+    await expect(participantPage.getByRole('list', { name: 'Как выбрать книгу' })).toHaveCount(0)
+
+    await disclosure.click()
+    const instructions = participantPage.getByRole('list', { name: 'Как выбрать книгу' })
+    await expect(instructions).toBeVisible()
+    await expect(participantPage.getByRole('button', { name: 'Короче' })).toHaveAttribute('aria-expanded', 'true')
+    const [instructionsBox, expandedCardBox] = await Promise.all([
+      instructions.boundingBox(),
+      firstCard.boundingBox(),
+    ])
+    expect(instructionsBox).not.toBeNull()
+    expect(expandedCardBox).not.toBeNull()
+    expect(instructionsBox!.x).toBeGreaterThanOrEqual(0)
+    expect(instructionsBox!.x + instructionsBox!.width).toBeLessThanOrEqual(394)
+    expect(expandedCardBox!.y, 'expanded instructions push the book list down').toBeGreaterThan(collapsedCardBox!.y)
+    expect(await participantPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    await participantPage.getByRole('button', { name: 'Короче' }).click()
+    await expect(instructions).toHaveCount(0)
+  })
+
   test('393px keeps cards and CTA in viewport, and book dialog traps/restores focus', { tag: '@matching-golden' }, async ({
     matchingBooksFixture,
     openMatchingPage,
