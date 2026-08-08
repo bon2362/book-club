@@ -1,22 +1,17 @@
 import { randomUUID } from 'crypto'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
   matchingBookAssignments,
   matchingBookIntents,
-  matchingCircleConfirmations,
   matchingCircles,
-  matchingLockedCircleMembers,
-  matchingLockedCircles,
   matchingSessionBookStates,
-  matchingSessionParticipants,
   matchingSessions,
   signupBooks,
 } from '@/lib/db/schema'
 import { nextRank } from './rank-assignment'
 import { partitionBookAssignments, planBookFormation } from './book-partition'
-import { planLegacyBookModeImport } from './book-import'
 import {
   MatchingTransitionError,
   type MatchingAction,
@@ -27,7 +22,6 @@ import {
 type DbClient = typeof db
 type BookAction = Extract<MatchingAction, {
   type:
-    | 'initialize_book_mode'
     | 'set_conditional'
     | 'unset_conditional'
     | 'set_hard'
@@ -73,15 +67,6 @@ async function ensureShortlistBook(tx: DbClient, userId: string, bookId: string)
   await tx.insert(bookPriorities)
     .values({ userId, bookId, rank: nextRank(ranked), rankSource: 'auto' })
     .onConflictDoNothing()
-}
-
-async function ensureImportedShortlistBook(tx: DbClient, userId: string, bookId: string) {
-  const [existing] = await tx.select({ personalStatus: signupBooks.personalStatus })
-    .from(signupBooks)
-    .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
-    .limit(1)
-  if (existing && existing.personalStatus !== null) throw new MatchingTransitionError('invalid_book_action')
-  if (!existing) await ensureShortlistBook(tx, userId, bookId)
 }
 
 async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: string) {
@@ -180,136 +165,6 @@ async function formBookIfReady(
   return { formed: true, assignedUserIds }
 }
 
-async function initializeBookMode(
-  tx: DbClient,
-  sessionId: string,
-  nextStateVersion: number,
-  actor: MatchingTransitionActor,
-): Promise<MatchingActionResult> {
-  const participants = await tx.select({ userId: matchingSessionParticipants.userId })
-    .from(matchingSessionParticipants)
-    .where(eq(matchingSessionParticipants.sessionId, sessionId))
-  const participantIds = new Set(participants.map(item => item.userId))
-  const legacyCircles = await tx.select({
-    id: matchingLockedCircles.id,
-    bookId: matchingLockedCircles.bookId,
-    lockedAt: matchingLockedCircles.lockedAt,
-  }).from(matchingLockedCircles).where(and(
-    eq(matchingLockedCircles.sessionId, sessionId),
-    eq(matchingLockedCircles.status, 'locked'),
-  )).orderBy(asc(matchingLockedCircles.lockedAt), asc(matchingLockedCircles.id))
-  const legacyMembers = legacyCircles.length > 0
-    ? await tx.select({
-      circleId: matchingLockedCircleMembers.circleId,
-      userId: matchingLockedCircleMembers.userId,
-    }).from(matchingLockedCircleMembers).where(and(
-      inArray(matchingLockedCircleMembers.circleId, legacyCircles.map(circle => circle.id)),
-      isNull(matchingLockedCircleMembers.releasedAt),
-    ))
-    : []
-
-  const confirmations = await tx.select({
-    userId: matchingCircleConfirmations.userId,
-    bookId: matchingCircleConfirmations.bookId,
-  }).from(matchingCircleConfirmations).where(eq(matchingCircleConfirmations.sessionId, sessionId))
-  const importPlan = planLegacyBookModeImport({
-    participantUserIds: participantIds,
-    circles: legacyCircles,
-    members: legacyMembers,
-    confirmations,
-  })
-
-  const positionByBook = new Map<string, number>()
-  for (const circle of legacyCircles) {
-    const members = legacyMembers.filter(member => member.circleId === circle.id)
-    if (members.length === 0) throw new MatchingTransitionError('invalid_book_action')
-    const position = (positionByBook.get(circle.bookId) ?? 0) + 1
-    positionByBook.set(circle.bookId, position)
-    await tx.insert(matchingSessionBookStates).values({
-      sessionId,
-      bookId: circle.bookId,
-      formedStateVersion: nextStateVersion,
-    }).onConflictDoNothing()
-    const newCircleId = randomUUID()
-    await tx.insert(matchingCircles).values({
-      id: newCircleId,
-      sessionId,
-      bookId: circle.bookId,
-      position,
-      legacyLockedCircleId: circle.id,
-    })
-    for (const member of members) {
-      await ensureImportedShortlistBook(tx, member.userId, circle.bookId)
-      await tx.insert(matchingBookAssignments).values({
-        sessionId,
-        userId: member.userId,
-        bookId: circle.bookId,
-        source: 'legacy',
-        assignedBy: actor.userId,
-        circleId: newCircleId,
-      })
-    }
-  }
-
-  const affectedBookIds = new Set<string>()
-  for (const confirmation of importPlan.confirmations) {
-    await ensureImportedShortlistBook(tx, confirmation.userId, confirmation.bookId)
-    await tx.insert(matchingBookIntents).values({
-      sessionId,
-      userId: confirmation.userId,
-      bookId: confirmation.bookId,
-      kind: 'hard',
-    }).onConflictDoUpdate({
-      target: [matchingBookIntents.sessionId, matchingBookIntents.userId, matchingBookIntents.bookId],
-      set: { kind: 'hard', updatedAt: new Date() },
-    })
-    affectedBookIds.add(confirmation.bookId)
-  }
-  const formationEvents: Omit<import('./session-transition').MatchingEventDraft, 'stateVersion'>[] = []
-  for (const bookId of Array.from(affectedBookIds)) {
-    const outcome = await formBookIfReady(tx, sessionId, bookId, nextStateVersion, actor)
-    if (outcome.formed) {
-      formationEvents.push({ eventType: 'book_formed', bookId, after: { assignedUserIds: outcome.assignedUserIds } })
-      formationEvents.push(...outcome.assignedUserIds.map(userId => ({
-        eventType: 'participant_auto_assigned', subjectUserId: userId, bookId,
-      })))
-    }
-  }
-
-  const [session] = await tx.select({ status: matchingSessions.status })
-    .from(matchingSessions).where(eq(matchingSessions.id, sessionId)).limit(1)
-  await tx.update(matchingSessions).set({
-    status: session?.status === 'frozen' || session?.status === 'closed' ? 'closed' : 'open',
-    bookModeInitializedAt: new Date(),
-  }).where(eq(matchingSessions.id, sessionId))
-  return {
-    changed: true,
-    events: [
-      ...legacyCircles.map(circle => ({
-        eventType: 'legacy_circle_imported',
-        actorUserId: actor.userId,
-        bookId: circle.bookId,
-        metadata: { legacyLockedCircleId: circle.id },
-      })),
-      ...importPlan.confirmations.map(confirmation => ({
-        eventType: 'legacy_confirmation_imported',
-        actorUserId: actor.userId,
-        subjectUserId: confirmation.userId,
-        bookId: confirmation.bookId,
-      })),
-      ...formationEvents,
-      {
-        eventType: 'book_mode_initialized',
-        actorUserId: actor.userId,
-        after: {
-          importedCircles: legacyCircles.length,
-          importedConfirmations: importPlan.confirmations.length,
-        },
-      },
-    ],
-  }
-}
-
 export async function applyBookMatchingAction(input: {
   tx: DbClient
   sessionId: string
@@ -318,15 +173,13 @@ export async function applyBookMatchingAction(input: {
   nextStateVersion: number
 }): Promise<MatchingActionResult> {
   const { tx, sessionId, action, actor, nextStateVersion } = input
-  if (action.type === 'initialize_book_mode') {
-    return initializeBookMode(tx, sessionId, nextStateVersion, actor)
-  }
   if (action.type === 'close_session' || action.type === 'reopen_session') {
     const target = action.type === 'close_session' ? 'closed' : 'open'
+    const sourceStatuses = action.type === 'close_session' ? ['active', 'open'] : ['frozen', 'closed']
     let updated: Array<{ id: string }>
     try {
       updated = await tx.update(matchingSessions).set({ status: target })
-        .where(and(eq(matchingSessions.id, sessionId), eq(matchingSessions.status, target === 'open' ? 'closed' : 'open')))
+        .where(and(eq(matchingSessions.id, sessionId), inArray(matchingSessions.status, sourceStatuses)))
         .returning({ id: matchingSessions.id })
     } catch (error) {
       if (action.type === 'reopen_session' && error && typeof error === 'object' && 'code' in error && error.code === '23505') {

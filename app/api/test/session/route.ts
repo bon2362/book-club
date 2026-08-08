@@ -9,7 +9,6 @@ import { isTestEndpointAllowed } from '@/lib/test-mode'
 import { normalizeIdentityProvider, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
 import { issueServerSession } from '@/lib/auth-session'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
-import { enableMatchingLegacyCleanup } from '@/lib/matching/legacy-cleanup'
 
 function notAllowed() {
   return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
@@ -84,7 +83,6 @@ export async function DELETE(req: NextRequest) {
   const userId = userRows[0]?.id ?? identityRows[0]?.userId ?? null
 
   await withAuditContext({ actorUserId: null, actorLabel: 'E2E cleanup', source: 'system' }, async (tx) => {
-    await enableMatchingLegacyCleanup(tx)
     if (email) await tx.delete(notificationQueue).where(eq(notificationQueue.userEmail, email))
     if (userId) {
       await tx.delete(matchingBookAssignments).where(eq(matchingBookAssignments.userId, userId))

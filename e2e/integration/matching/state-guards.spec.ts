@@ -46,13 +46,6 @@ test('formed assignment guards shortlist removal and leaving the session', async
   const { session, books, participantA, participantB, addParticipant } = matchingApiFixture
   const participantC = await addParticipant('Вера API E2E')
 
-  const beforeCutover = await state(participantA.request, session.id)
-  const initialize = await matchingApiFixture.admin.request.post(
-    `/api/admin/matching/sessions/${session.id}/book-admin-actions`,
-    { data: { action: 'initializeBookMode', expectedStateVersion: beforeCutover.session.stateVersion } },
-  )
-  expect(initialize.ok(), await initialize.text()).toBe(true)
-
   await participantAction(participantB.request, session.id, 'setConditional', books[0].id)
   await participantAction(participantA.request, session.id, 'setHard', books[0].id)
   await participantAction(participantC.request, session.id, 'setHard', books[0].id)
@@ -74,12 +67,6 @@ test('formed assignment guards shortlist removal and leaving the session', async
 
 test('closed book session remains readable, rejects participant actions, and can reopen', async ({ matchingApiFixture }) => {
   const { session, books, participantA, participantB, admin } = matchingApiFixture
-  const beforeCutover = await state(participantA.request, session.id)
-  const initialize = await admin.request.post(`/api/admin/matching/sessions/${session.id}/book-admin-actions`, {
-    data: { action: 'initializeBookMode', expectedStateVersion: beforeCutover.session.stateVersion },
-  })
-  expect(initialize.ok(), await initialize.text()).toBe(true)
-
   await adminAction(admin.request, session.id, participantA.userId, 'closeSession')
   const closed = await state(participantB.request, session.id)
   expect(closed.session.status).toBe('closed')

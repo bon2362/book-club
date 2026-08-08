@@ -17,7 +17,6 @@ jest.mock('@/lib/db', () => ({
   },
 }))
 jest.mock('@/lib/posthog-server', () => ({ deletePostHogPerson: jest.fn().mockResolvedValue(undefined) }))
-jest.mock('@/lib/matching/legacy-cleanup', () => ({ enableMatchingLegacyCleanup: jest.fn() }))
 
 const mockAuth = authModule.auth as jest.Mock
 const { deletePostHogPerson: mockDeletePostHogPerson } = jest.requireMock('@/lib/posthog-server')

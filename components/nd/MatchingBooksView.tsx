@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { useBookDetail } from './BookDetailProvider'
 import MatchingBookCard, { type MatchingBookCommandAction } from './MatchingBookCard'
 import MatchingBookAdminControls, { type MatchingBookAdminAction, type MatchingBookAdminCommand } from './MatchingBookAdminControls'
-import type { ScenarioBookMeta } from './MatchingScenarios'
+import type { MatchingBookDetail } from './MatchingBookDetailModal'
 import {
   matchingBookDetail,
   type MatchingBookModeState,
@@ -17,7 +17,7 @@ interface Props {
   viewerRef: string
   minGroupSize: number
   bookMode: MatchingBookModeState
-  booksById: Record<string, ScenarioBookMeta>
+  booksById: Record<string, MatchingBookDetail>
   isAdmin: boolean
   mutationUserId?: string
   onState: (state: unknown) => void
@@ -56,7 +56,7 @@ export default function MatchingBooksView({
   const viewerHardBookId = bookMode.books.find((book) => book.viewerStatus === 'hard')?.bookId ?? null
   const viewerSelectedBookId = bookMode.viewerAssignmentBookId
   const selectedBook = booksById[viewerSelectedBookId ?? ''] ?? bookMode.books.find(book => book.bookId === viewerSelectedBookId)
-  const readOnly = sessionStatus === 'closed' || sessionStatus === 'frozen'
+  const readOnly = sessionStatus === 'closed'
   // The read model owns canonical sorting (including catalog-order tie breaking).
   const books = bookMode.books
 
@@ -266,7 +266,7 @@ function bookActionErrorMessage(code?: string) {
       return 'Вы уже назначены в сформированный круг. Изменить выбор может только организатор.'
     case 'book_not_in_shortlist':
       return 'Этой книги больше нет в вашем списке. Обновите страницу и выберите другую.'
-    case 'session_frozen':
+    case 'session_closed':
     case 'book_action_forbidden':
       return 'Сейчас изменить выбор нельзя. Обновите страницу, чтобы увидеть актуальное состояние.'
     case 'participant_missing':

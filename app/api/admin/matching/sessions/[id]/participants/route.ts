@@ -3,8 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingSessionParticipants, matchingLockedCircleMembers, users } from '@/lib/db/schema'
-import { and, eq, isNull } from 'drizzle-orm'
+import { matchingBookAssignments, matchingSessionParticipants, users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { transitionError } from '@/lib/matching/transition-http'
 import { fetchOnlineParticipantRefs } from '@/lib/matching/presence'
@@ -31,17 +31,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
     .orderBy(matchingSessionParticipants.joinedAt)
 
-  const lockedRows = await db
-    .select({ userId: matchingLockedCircleMembers.userId })
-    .from(matchingLockedCircleMembers)
-    .where(and(
-      eq(matchingLockedCircleMembers.sessionId, sessionId),
-      isNull(matchingLockedCircleMembers.releasedAt),
-    ))
-  const lockedUserIds = new Set(lockedRows.map((row) => row.userId))
+  const assignmentRows = await db.select({ userId: matchingBookAssignments.userId })
+    .from(matchingBookAssignments)
+    .where(eq(matchingBookAssignments.sessionId, sessionId))
+  const assignedUserIds = new Set(assignmentRows.map((row) => row.userId))
   const data = participants.map((participant) => ({
     ...participant,
-    role: lockedUserIds.has(participant.userId) ? ('observer' as const) : ('active' as const),
+    role: assignedUserIds.has(participant.userId) ? ('observer' as const) : ('active' as const),
   }))
 
   // Онлайн-статус — best-effort: если колонка last_seen_at ещё не накатана, не падаем.

@@ -709,106 +709,9 @@
         "properties": {
           "ref": { "type": "string" },
           "displayName": { "type": "string" },
-          "online": { "type": "boolean" },
-          "confirmedCircleKey": { "type": "string", "nullable": true }
+          "online": { "type": "boolean" }
         },
-        "required": ["ref", "displayName", "online", "confirmedCircleKey"]
-      },
-      "MatchingCircle": {
-        "type": "object",
-        "properties": {
-          "circleKey": { "type": "string" },
-          "bookId": { "type": "string" },
-          "members": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "ref": { "type": "string" },
-                "displayName": { "type": "string" },
-                "rank": { "type": "integer", "nullable": true },
-                "interest": { "type": "string", "enum": ["очень хочу", "хочу", "без ранга"] },
-                "confirmed": { "type": "boolean" }
-              },
-              "required": ["ref", "displayName", "rank", "interest", "confirmed"]
-            }
-          },
-          "avgRank": { "type": "number", "nullable": true },
-          "confirmedCount": { "type": "integer" },
-          "memberCount": { "type": "integer" },
-          "viewerIsMember": { "type": "boolean" }
-        },
-        "required": ["circleKey", "bookId", "members", "avgRank", "confirmedCount", "memberCount", "viewerIsMember"]
-      },
-      "MatchingScenario": {
-        "type": "object",
-        "properties": {
-          "ref": { "type": "string" },
-          "score": {
-            "type": "object",
-            "properties": {
-              "coveredCount": { "type": "integer" },
-              "totalCount": { "type": "integer" },
-              "avgRank": { "type": "number", "nullable": true },
-              "worstRank": { "type": "integer", "nullable": true }
-            },
-            "required": ["coveredCount", "totalCount", "avgRank", "worstRank"]
-          },
-          "leftOut": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": { "ref": { "type": "string" }, "displayName": { "type": "string" } },
-              "required": ["ref", "displayName"]
-            }
-          },
-          "circles": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingCircle" } }
-        },
-        "required": ["ref", "score", "leftOut", "circles"]
-      },
-      "MatchingLockedCircle": {
-        "type": "object",
-        "properties": {
-          "circleKey": { "type": "string" },
-          "bookId": { "type": "string" },
-          "lockedAt": { "$ref": "#/components/schemas/DateTime" },
-          "members": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": { "ref": { "type": "string" }, "displayName": { "type": "string" } },
-              "required": ["ref", "displayName"]
-            }
-          }
-        },
-        "required": ["circleKey", "bookId", "lockedAt", "members"]
-      },
-      "AdminMatchingLockedCircle": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string" },
-          "sessionId": { "type": "string" },
-          "circleKey": { "type": "string" },
-          "bookId": { "type": "string" },
-          "bookTitle": { "type": "string", "nullable": true },
-          "status": { "type": "string", "enum": ["locked", "dissolved"] },
-          "lockedAt": { "$ref": "#/components/schemas/DateTime" },
-          "dissolvedAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
-          "dissolveReason": { "type": "string", "nullable": true },
-          "members": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "userId": { "type": "string" },
-                "displayNameSnapshot": { "type": "string" },
-                "releasedAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true }
-              },
-              "required": ["userId", "displayNameSnapshot", "releasedAt"]
-            }
-          }
-        },
-        "required": ["id", "sessionId", "circleKey", "bookId", "bookTitle", "status", "lockedAt", "dissolvedAt", "dissolveReason", "members"]
+        "required": ["ref", "displayName", "online"]
       },
       "MatchingNotice": {
         "type": "object",
@@ -819,32 +722,6 @@
           "createdAt": { "$ref": "#/components/schemas/DateTime" }
         },
         "required": ["id", "kind", "payload", "createdAt"]
-      },
-      "MatchingFrozenSnapshot": {
-        "type": "object",
-        "description": "Безопасная participant-facing часть frozen snapshot; raw userId отсутствует.",
-        "properties": {
-          "remainingLeader": {
-            "type": "object",
-            "nullable": true,
-            "properties": {
-              "circles": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "circleKey": { "type": "string" },
-                    "bookId": { "type": "string" },
-                    "memberRefs": { "type": "array", "items": { "type": "string" } }
-                  },
-                  "required": ["circleKey", "bookId", "memberRefs"]
-                }
-              }
-            },
-            "required": ["circles"]
-          }
-        },
-        "required": ["remainingLeader"]
       },
       "MatchingBookModeState": {
         "type": "object",
@@ -908,31 +785,27 @@
             "type": "object",
             "properties": {
               "name": { "type": "string" },
-              "status": { "type": "string", "enum": ["active", "frozen", "open", "closed"] },
+              "status": { "type": "string", "enum": ["open", "closed"] },
               "stateVersion": { "type": "integer" },
               "minGroupSize": { "type": "integer" },
               "maxGroupSize": { "type": "integer" },
-              "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
-              "frozenSnapshot": { "allOf": [{ "$ref": "#/components/schemas/MatchingFrozenSnapshot" }], "nullable": true }
+              "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true }
             },
-            "required": ["name", "status", "stateVersion", "minGroupSize", "maxGroupSize", "deadlineAt", "frozenSnapshot"]
+            "required": ["name", "status", "stateVersion", "minGroupSize", "maxGroupSize", "deadlineAt"]
           },
           "viewer": {
             "type": "object",
             "properties": {
               "role": { "type": "string", "enum": ["active", "observer"] },
-              "ref": { "type": "string" },
-              "lockedCircleKey": { "type": "string", "nullable": true }
+              "ref": { "type": "string" }
             },
-            "required": ["role", "ref", "lockedCircleKey"]
+            "required": ["role", "ref"]
           },
           "participants": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingParticipant" } },
-          "scenarios": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingScenario" } },
-          "lockedCircles": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingLockedCircle" } },
           "notices": { "type": "array", "items": { "$ref": "#/components/schemas/MatchingNotice" } },
-          "bookMode": { "allOf": [{ "$ref": "#/components/schemas/MatchingBookModeState" }], "nullable": true }
+          "bookMode": { "$ref": "#/components/schemas/MatchingBookModeState" }
         },
-        "required": ["session", "viewer", "participants", "scenarios", "lockedCircles", "notices", "bookMode"]
+        "required": ["session", "viewer", "participants", "notices", "bookMode"]
       },
       "MatchingEvent": {
         "type": "object",
@@ -972,14 +845,6 @@
           "actorUserId", "actorNameSnapshot", "subjectUserId", "subjectNameSnapshot",
           "bookId", "before", "after", "metadata", "stateVersion", "occurredAt"
         ]
-      },
-      "MatchingConfirmationRequest": {
-        "type": "object",
-        "properties": {
-          "circleKey": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "Сервер trim-ит строку и отклоняет пустой ключ" },
-          "expectedStateVersion": { "type": "integer", "minimum": 0 }
-        },
-        "required": ["circleKey", "expectedStateVersion"]
       },
       "MatchingTransitionResult": {
         "type": "object",
@@ -1031,18 +896,16 @@
         "properties": {
           "id": { "type": "string" },
           "name": { "type": "string" },
-          "status": { "type": "string", "enum": ["active", "frozen"] },
+          "status": { "type": "string", "enum": ["open", "closed"] },
           "minGroupSize": { "type": "integer" },
           "maxGroupSize": { "type": "integer" },
           "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
           "createdAt": { "$ref": "#/components/schemas/DateTime" },
-          "frozenAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
-          "frozenScenarioJson": { "type": "object", "nullable": true },
           "stateVersion": { "type": "integer" }
         },
         "required": [
           "id", "name", "status", "minGroupSize", "maxGroupSize", "deadlineAt",
-          "createdAt", "frozenAt", "frozenScenarioJson", "stateVersion"
+          "createdAt", "stateVersion"
         ]
       },
       "AdminMatchingParticipant": {
@@ -2245,7 +2108,7 @@
       },
       "post": {
         "tags": ["Admin"],
-        "summary": "Создать active matching-сессию",
+        "summary": "Создать открытую matching-сессию",
         "security": [{ "sessionCookie": [] }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
           "type": "object",
@@ -2266,7 +2129,7 @@
                 "type": "object",
                 "properties": {
                   "id": { "type": "string" }, "name": { "type": "string" },
-                  "status": { "type": "string", "enum": ["active"] },
+                  "status": { "type": "string", "enum": ["open"] },
                   "minGroupSize": { "type": "integer" }, "maxGroupSize": { "type": "integer" }
                 },
                 "required": ["id", "name", "status", "minGroupSize", "maxGroupSize"]
@@ -2319,7 +2182,7 @@
               "type": "object",
               "properties": {
                 "version": { "type": "integer" },
-                "status": { "type": "string", "enum": ["active", "frozen"] },
+                "status": { "type": "string", "enum": ["open", "closed"] },
                 "online": { "type": "array", "items": { "type": "string" } }
               },
               "required": ["version", "status", "online"]
@@ -2372,44 +2235,6 @@
           "404": { "description": "Session not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "409": { "description": "Любая иная доменная ошибка leave, включая stale/locked/missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "500": { "description": "Unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      }
-    },
-    "/api/matching/sessions/{id}/confirmation": {
-      "put": {
-        "tags": ["Auth"],
-        "summary": "Подтвердить или атомарно переключить выбранный круг",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingConfirmationRequest" } } } },
-        "responses": {
-          "200": { "description": "Переход выполнен", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "400": { "description": "circleKey and expectedStateVersion required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "403": { "description": "Participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "409": { "description": "Stale state, frozen session or locked participant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      },
-      "delete": {
-        "tags": ["Auth"],
-        "summary": "Отменить временное подтверждение",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": {
-          "type": "object",
-          "properties": { "expectedStateVersion": { "type": "integer", "minimum": 0 } },
-          "required": ["expectedStateVersion"]
-        } } } },
-        "responses": {
-          "200": { "description": "Подтверждение отменено", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionResult" } } } },
-          "400": { "description": "expectedStateVersion required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "401": { "description": "Unauthorized", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "403": { "description": "Participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "409": { "description": "Stale state, frozen session or locked participant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2537,13 +2362,13 @@
       "post": {
         "tags": ["Admin"],
         "summary": "Управлять книжным режимом matching-сессии",
-        "description": "Необратимо включает книжный режим, меняет назначения и круги либо закрывает/повторно открывает сессию.",
+        "description": "Меняет назначения и круги либо закрывает/повторно открывает сессию.",
         "security": [{ "sessionCookie": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": {
           "type": "object",
           "properties": {
-            "action": { "type": "string", "enum": ["initializeBookMode", "assign", "unassign", "removeParticipant", "createCircle", "deleteCircle", "place", "closeSession", "reopenSession"] },
+            "action": { "type": "string", "enum": ["assign", "unassign", "removeParticipant", "createCircle", "deleteCircle", "place", "closeSession", "reopenSession"] },
             "bookId": { "type": "string" },
             "userId": { "type": "string" },
             "circleId": { "type": "string", "nullable": true },
@@ -2556,22 +2381,6 @@
           "400": { "description": "Invalid admin action or expectedStateVersion", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "409": { "description": "Stale state or lifecycle conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      }
-    },
-    "/api/matching/sessions/{id}/freeze": {
-      "post": {
-        "tags": ["Admin"],
-        "summary": "Заморозить matching-сессию",
-        "description": "Сохраняет итоговый snapshot и запрещает последующие доменные изменения.",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": {
-          "200": { "description": "Сессия заморожена", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingOkTransitionResult" } } } },
-          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },
@@ -2651,54 +2460,6 @@
           "200": { "description": "Участник удалён", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionSuccess" } } } },
           "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      }
-    },
-    "/api/admin/matching/sessions/{id}/locked-circles": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Получить реестр закреплённых и распущенных кругов",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": {
-            "description": "История кругов с названиями книг и снимками состава",
-            "content": { "application/json": { "schema": {
-              "type": "object",
-              "properties": {
-                "success": { "type": "boolean", "enum": [true] },
-                "data": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingLockedCircle" } }
-              },
-              "required": ["success", "data"]
-            } } }
-          },
-          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      }
-    },
-    "/api/admin/matching/sessions/{id}/circles/{circleId}/dissolve": {
-      "post": {
-        "tags": ["Admin"],
-        "summary": "Аварийно распустить закреплённый круг целиком",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "circleId", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": {
-          "type": "object",
-          "properties": { "reason": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "Сервер trim-ит строку и отклоняет пустую причину" } },
-          "required": ["reason"]
-        } } } },
-        "responses": {
-          "200": { "description": "success=true: changed=true возвращает весь состав в active; changed=false означает идемпотентный no-op для отсутствующего, уже распущенного или принадлежащего другой сессии круга", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingTransitionSuccess" } } } },
-          "400": { "description": "Trimmed nonblank reason required", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Path session does not exist (session_not_found); отсутствие, другая сессия или уже распущенное состояние самого circle остаётся успешным changed=false", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
@@ -3893,7 +3654,7 @@
                     "error": {
                       "type": "string",
                       "enum": [
-                        "session_frozen",
+                        "session_closed",
                         "stale_state",
                         "participant_locked",
                         "book_mode_unavailable",

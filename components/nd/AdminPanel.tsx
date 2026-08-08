@@ -547,7 +547,7 @@ export default function AdminPanel({
         const messages: Record<string, string> = {
           participant_locked: 'Книга закреплена за участником в текущем матчинге.',
           book_action_forbidden: 'Сначала отмените твёрдый выбор книги в текущем матчинге.',
-          session_frozen: 'Текущая matching-сессия не принимает изменения.',
+          session_closed: 'Текущая matching-сессия не принимает изменения.',
           stale_state: 'Состояние матчинга изменилось. Повторите действие.',
         }
         setUserActionError(messages[data?.error ?? ''] ?? `Не удалось изменить статус книги (код ${res.status}).`)

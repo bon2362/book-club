@@ -709,8 +709,6 @@ export const test = base.extend<E2EHelpers>({
         result as PromiseFulfilledResult<MatchingBooksIdentity>
       ).value)
 
-      // Participants first join the ordinary satisfaction session and set a
-      // global shortlist. Only after that does the admin enable book mode.
       const joinParticipant = async (participant: MatchingBooksIdentity, shortlistedBooks: TestBook[] = books) => {
         const join = await participant.request.post(`/api/matching/sessions/${session.id}/join`, {
           data: { name: participant.name },
@@ -726,17 +724,6 @@ export const test = base.extend<E2EHelpers>({
         if (!rank.ok()) throw new Error(`matchingBooksFixture rank failed: ${rank.status()} ${await rank.text()}`)
       }
       await joinParticipant(participantA)
-
-      const before = await admin.request.get(`/api/matching/state?session=${session.id}&as=${participantA.userId}`)
-      if (!before.ok()) throw new Error(`matchingBooksFixture state failed: ${before.status()} ${await before.text()}`)
-      const { session: stateSession } = await before.json() as { session: { stateVersion: number } }
-      const initialize = await admin.request.post(
-        `/api/admin/matching/sessions/${session.id}/book-admin-actions`,
-        { data: { action: 'initializeBookMode', expectedStateVersion: stateSession.stateVersion } },
-      )
-      if (!initialize.ok()) {
-        throw new Error(`matchingBooksFixture initialize failed: ${initialize.status()} ${await initialize.text()}`)
-      }
 
       let extraIndex = 0
       const addParticipant = async (name: string, shortlistedBooks: TestBook[] = books) => {

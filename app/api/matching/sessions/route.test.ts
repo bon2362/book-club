@@ -73,7 +73,7 @@ describe('POST /api/matching/sessions', () => {
     mockDb.select = jest.fn().mockReturnValue(selectChain)
     const insertChain = {
       values: jest.fn().mockReturnThis(),
-      returning: jest.fn().mockResolvedValue([{ id: 'new-id', name: 'Test', status: 'active' }]),
+      returning: jest.fn().mockResolvedValue([{ id: 'new-id', name: 'Test', status: 'open' }]),
     }
     mockDb.insert = jest.fn().mockReturnValue(insertChain)
     const res = await POST(makeRequest({ name: 'Test session', minGroupSize: 3, maxGroupSize: 4 }))
@@ -97,7 +97,7 @@ describe('POST /api/matching/sessions', () => {
     mockDb.select = jest.fn().mockReturnValue(selectChain)
     const insertChain = {
       values: jest.fn().mockReturnThis(),
-      returning: jest.fn().mockResolvedValue([{ id: 'new-id', name: 'Test', status: 'active' }]),
+      returning: jest.fn().mockResolvedValue([{ id: 'new-id', name: 'Test', status: 'open' }]),
     }
     mockDb.insert = jest.fn().mockReturnValue(insertChain)
 
@@ -136,8 +136,9 @@ describe('GET /api/matching/sessions', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.data).toHaveLength(1)
-    expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).toContain('frozenScenarioJson')
-    expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).toContain('bookModeInitializedAt')
+    expect(json.data[0].status).toBe('open')
+    expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).not.toContain('frozenScenarioJson')
+    expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).not.toContain('bookModeInitializedAt')
     expect(mockDb.select).toHaveBeenCalledWith(expect.not.objectContaining({
       optimizationMode: expect.anything(),
       metricCoverage: expect.anything(),

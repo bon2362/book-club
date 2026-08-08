@@ -3,7 +3,7 @@ import { test, expect } from '../../api-fixtures'
 
 type State = {
   session: { stateVersion: number }
-  bookMode: null | {
+  bookMode: {
     viewerAssignmentBookId: string | null
     books: Array<{ viewerStatus: string; formedAt: string | null }>
   }
@@ -24,25 +24,14 @@ async function action(request: APIRequestContext, sessionId: string, actionName:
 }
 
 test('concurrent thresholds assign a conditional participant exactly once', async ({ matchingApiFixture }) => {
-  // This scenario performs the full six-participant legacy setup before the
-  // concurrent writes. GitHub's production server can need more than the
-  // suite-wide 60s budget for the test body; when that deadline fired the
-  // fixture teardown deleted the identities underneath the in-flight retry,
-  // which surfaced as a misleading 401 instead of a timeout.
   test.setTimeout(120_000)
 
-  const { session, books, participantA, participantB, admin, addParticipant } = matchingApiFixture
+  const { session, books, participantA, participantB, addParticipant } = matchingApiFixture
   const [participantC, participantD, participantE] = await Promise.all([
     addParticipant('Вера Книги E2E'),
     addParticipant('Глеб Книги E2E'),
     addParticipant('Дарья Книги E2E'),
   ])
-
-  const legacyState = await state(participantA.request, session.id)
-  const initialize = await admin.request.post(`/api/admin/matching/sessions/${session.id}/book-admin-actions`, {
-    data: { action: 'initializeBookMode', expectedStateVersion: legacyState.session.stateVersion },
-  })
-  expect(initialize.ok(), await initialize.text()).toBe(true)
 
   await action(participantB.request, session.id, 'setConditional', books[0].id)
   await action(participantB.request, session.id, 'setConditional', books[1].id)
@@ -65,7 +54,7 @@ test('concurrent thresholds assign a conditional participant exactly once', asyn
   ])
 
   const result = await state(participantB.request, session.id)
-  expect([books[0].id, books[1].id]).toContain(result.bookMode?.viewerAssignmentBookId)
-  expect(result.bookMode?.books.filter(book => book.viewerStatus === 'assigned')).toHaveLength(1)
-  expect(result.bookMode?.books.filter(book => book.formedAt !== null)).toHaveLength(1)
+  expect([books[0].id, books[1].id]).toContain(result.bookMode.viewerAssignmentBookId)
+  expect(result.bookMode.books.filter(book => book.viewerStatus === 'assigned')).toHaveLength(1)
+  expect(result.bookMode.books.filter(book => book.formedAt !== null)).toHaveLength(1)
 })

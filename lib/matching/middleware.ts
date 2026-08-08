@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
 import { eq, inArray } from 'drizzle-orm'
+import { isMatchingSessionClosed, MATCHING_OPEN_DB_STATUSES } from './session-status'
 
 export interface MatchingContext {
   userId: string
@@ -27,7 +28,7 @@ export function withMatchingGuards(handler: Handler, options: Options = {}): Han
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // For mutating endpoints, verify active non-frozen session
+    // For mutating endpoints, verify an open session.
     if (mutates) {
       const sessionId = ctx.params.id ?? req.nextUrl.searchParams.get('session')
       if (sessionId) {
@@ -40,7 +41,7 @@ export function withMatchingGuards(handler: Handler, options: Options = {}): Han
         if (!matchSession) {
           return NextResponse.json({ error: 'Session not found' }, { status: 404 })
         }
-        if (matchSession.status === 'frozen' || matchSession.status === 'closed') {
+        if (isMatchingSessionClosed(matchSession.status)) {
           return NextResponse.json({ error: 'Session is closed' }, { status: 409 })
         }
       } else {
@@ -48,7 +49,7 @@ export function withMatchingGuards(handler: Handler, options: Options = {}): Han
         const [activeSession] = await db
           .select({ status: matchingSessions.status })
           .from(matchingSessions)
-          .where(inArray(matchingSessions.status, ['active', 'open']))
+          .where(inArray(matchingSessions.status, [...MATCHING_OPEN_DB_STATUSES]))
           .limit(1)
 
         if (!activeSession) {

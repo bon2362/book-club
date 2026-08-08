@@ -62,8 +62,8 @@ export const AUDITED_TABLES = [
   'book_summaries', 'book_summary_revisions', 'book_summary_helpful_reactions',
   'intro_sections', 'signup_books', 'feedback', 'tag_descriptions',
   'matching_sessions', 'matching_session_participants',
-  'matching_circle_confirmations', 'matching_locked_circles',
-  'matching_locked_circle_members', 'matching_notices', 'matching_events',
+  'matching_book_intents', 'matching_session_book_states',
+  'matching_circles', 'matching_book_assignments', 'matching_notices', 'matching_events',
   'user_merge_events', 'user_identities',
   'verificationToken', 'telegram_preauth_tokens', 'notification_queue',
 ] as const
@@ -173,9 +173,7 @@ FK на `actor_user_id` снят намеренно: `ON DELETE set null` пот
 - Строки с `source='trigger'` подсвечиваются меткой «внесистемное»
 - Клик по строке раскрывает `before`/`after`/`changedFields`/`reason`
 
-## Связь с issue #344
-
-`audit_log` — журнал diff-мутаций («кто/что поменял»). Issue #344 — snapshot-стор вычисленных сценариев матчинга (`frozenScenarioJson`, отдельная таблица). Они связаны через `metadata.stateVersion` в `audit_log`: запись о перестановке рангов содержит версию состояния, по которой можно найти соответствующий снимок сценариев. Не сливаем в одну таблицу — объём и форма разные.
+Сценарные matching-таблицы удалены миграцией `0059_remove_matching_scenarios.sql` и поэтому исключены из `AUDITED_TABLES`; их прежние записи в `audit_log` сохраняются как история.
 
 ## Ключевые файлы
 

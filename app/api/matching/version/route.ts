@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchingSessionParticipants, matchingSessions } from '@/lib/db/schema'
 import { touchAndGetOnlineParticipantRefs } from '@/lib/matching/presence'
+import { normalizeMatchingSessionStatus } from '@/lib/matching/session-status'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -51,5 +52,9 @@ export async function GET(req: NextRequest) {
     online = []
   }
 
-  return NextResponse.json({ version: matchingSession.version, status: matchingSession.status, online })
+  return NextResponse.json({
+    version: matchingSession.version,
+    status: normalizeMatchingSessionStatus(matchingSession.status),
+    online,
+  })
 }

@@ -57,7 +57,7 @@ describe('DELETE /api/matching/books/[bookId]', () => {
   })
 
   it('maps a frozen session to 409', async () => {
-    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_frozen'))
+    mockRunTransition.mockRejectedValue(new MatchingTransitionError('session_closed'))
     expect((await DELETE(makeReq(), { params: { bookId: 'b1' } })).status).toBe(409)
   })
 })

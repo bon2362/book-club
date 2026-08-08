@@ -2,36 +2,28 @@
 
 import { useState } from 'react'
 
-type LifecycleAction = 'initializeBookMode' | 'closeSession' | 'reopenSession'
+type LifecycleAction = 'closeSession' | 'reopenSession'
 
 export default function MatchingBookAdminToolbar({
   sessionId,
   sessionStatus,
   stateVersion,
-  initialized,
   onState,
   onRefresh,
 }: {
   sessionId: string
   sessionStatus: string
   stateVersion: number
-  initialized: boolean
   onState: (state: unknown) => void
   onRefresh: () => Promise<void>
 }) {
   const [pending, setPending] = useState<LifecycleAction | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const action: LifecycleAction = !initialized
-    ? 'initializeBookMode'
-    : sessionStatus === 'closed' ? 'reopenSession' : 'closeSession'
-  const label = action === 'initializeBookMode'
-    ? 'Включить книжный режим'
-    : action === 'closeSession' ? 'Закрыть сессию' : 'Открыть сессию снова'
+  const action: LifecycleAction = sessionStatus === 'closed' ? 'reopenSession' : 'closeSession'
+  const label = action === 'closeSession' ? 'Закрыть сессию' : 'Открыть сессию снова'
 
   async function run() {
-    const destructive = action === 'initializeBookMode'
-      ? 'Включить книжный режим в текущей сессии? Текущие круги и подтверждения будут атомарно перенесены, а сценарный режим станет доступен только для чтения.'
-      : action === 'closeSession' ? 'Закрыть сессию для действий участников?' : null
+    const destructive = action === 'closeSession' ? 'Закрыть сессию для действий участников?' : null
     if (destructive && !window.confirm(destructive)) return
     setPending(action)
     setError(null)
@@ -59,7 +51,7 @@ export default function MatchingBookAdminToolbar({
 
   return (
     <div className="nd-mb-admin-toolbar" data-testid="matching-book-admin-toolbar">
-      <span>{initialized ? 'Административный режим книжной доски' : 'Книжный режим ещё не включён'}</span>
+      <span>Административный режим книжной доски</span>
       <button type="button" disabled={pending !== null} onClick={() => { void run() }}>
         {pending ? 'Подождите…' : label}
       </button>

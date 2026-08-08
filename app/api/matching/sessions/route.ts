@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { matchingSessions } from '@/lib/db/schema'
 import { inArray } from 'drizzle-orm'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { MATCHING_OPEN_DB_STATUSES, normalizeMatchingSessionStatus } from '@/lib/matching/session-status'
 
 interface CreateSessionBody {
   name: string
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   const existing = await db
     .select({ id: matchingSessions.id })
     .from(matchingSessions)
-    .where(inArray(matchingSessions.status, ['active', 'open']))
+    .where(inArray(matchingSessions.status, [...MATCHING_OPEN_DB_STATUSES]))
     .limit(1)
 
   if (existing.length > 0) {
@@ -83,7 +84,6 @@ export async function POST(req: NextRequest) {
           name,
           createdBy: actorId,
           status: 'open',
-          bookModeInitializedAt: new Date(),
           minGroupSize: groupSizeRange.minGroupSize,
           maxGroupSize: groupSizeRange.maxGroupSize,
           deadlineAt,
@@ -117,13 +117,13 @@ export async function GET() {
       maxGroupSize: matchingSessions.maxGroupSize,
       deadlineAt: matchingSessions.deadlineAt,
       createdAt: matchingSessions.createdAt,
-      frozenAt: matchingSessions.frozenAt,
-      frozenScenarioJson: matchingSessions.frozenScenarioJson,
       stateVersion: matchingSessions.stateVersion,
-      bookModeInitializedAt: matchingSessions.bookModeInitializedAt,
     })
     .from(matchingSessions)
     .orderBy(matchingSessions.createdAt)
 
-  return NextResponse.json({ success: true, data: sessions })
+  return NextResponse.json({
+    success: true,
+    data: sessions.map((item) => ({ ...item, status: normalizeMatchingSessionStatus(item.status) })),
+  })
 }

@@ -48,7 +48,7 @@ describe('GET /api/matching/version', () => {
     const res = await GET(makeReq('s1'))
     expect(res.status).toBe(200)
     // presence degrades к [] под mock-db без .update — version/status неизменны
-    expect(await res.json()).toEqual({ version: 7, status: 'active', online: [] })
+    expect(await res.json()).toEqual({ version: 7, status: 'open', online: [] })
   })
 
   it('returns 403 for a non-participant non-admin', async () => {
@@ -56,7 +56,7 @@ describe('GET /api/matching/version', () => {
     const sessionSelect = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 1, status: 'active' }]),
+      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 1, status: 'open' }]),
     }
     const participantSelect = {
       from: jest.fn().mockReturnThis(),
@@ -87,7 +87,7 @@ describe('GET /api/matching/version', () => {
     const sessionSelect = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 3, status: 'frozen' }]),
+      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 3, status: 'closed' }]),
     }
     const participantSelect = {
       from: jest.fn().mockReturnThis(),
@@ -99,7 +99,7 @@ describe('GET /api/matching/version', () => {
       .mockReturnValueOnce(participantSelect)
     const res = await GET(makeReq('s1'))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ version: 3, status: 'frozen', online: [] })
+    expect(await res.json()).toEqual({ version: 3, status: 'closed', online: [] })
   })
 
   it('возвращает непрозрачные online refs и делает heartbeat (#338)', async () => {
@@ -107,7 +107,7 @@ describe('GET /api/matching/version', () => {
     const sessionSelect = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 5, status: 'active' }]),
+      limit: jest.fn().mockResolvedValue([{ id: 's1', version: 5, status: 'open' }]),
     }
     const participantSelect = {
       from: jest.fn().mockReturnThis(),
@@ -128,7 +128,7 @@ describe('GET /api/matching/version', () => {
 
     const res = await GET(makeReq('s1'))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ version: 5, status: 'active', online: ['ref-1', 'ref-2'] })
+    expect(await res.json()).toEqual({ version: 5, status: 'open', online: ['ref-1', 'ref-2'] })
     expect(setWhere).toHaveBeenCalled() // heartbeat выполнен
   })
 })

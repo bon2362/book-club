@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { matchingSessions, matchingSessionParticipants } from '@/lib/db/schema'
 import { bumpSessionState } from './version'
+import { MATCHING_CURRENT_DB_STATUSES } from '../session-status'
 
 /**
  * Сигнализирует «состояние изменилось» для активной сессии участника:
@@ -29,9 +30,9 @@ export async function getActiveMatchingSessionIdForParticipant(userId: string): 
         eq(matchingSessionParticipants.userId, userId),
       ),
     )
-    .where(inArray(matchingSessions.status, ['open', 'active', 'closed', 'frozen']))
+    .where(inArray(matchingSessions.status, [...MATCHING_CURRENT_DB_STATUSES]))
     .orderBy(
-      sql`CASE WHEN ${matchingSessions.status} IN ('open', 'active') THEN 0 ELSE 1 END`,
+      sql`CASE WHEN ${matchingSessions.status} IN ('active', 'open') THEN 0 ELSE 1 END`,
       desc(matchingSessions.createdAt),
     )
     .limit(1)

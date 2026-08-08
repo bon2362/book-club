@@ -64,7 +64,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
 
   async function leave() {
     if (props.viewerAssigned) return
-    if (!window.confirm('Покинуть сессию? Ты выйдешь из расчёта, а твоё подтверждение круга будет снято — при повторном входе круг нужно будет подтвердить заново.')) return
+    if (!window.confirm('Покинуть сессию? Твои текущие книжные решения будут сняты.')) return
     setPending(true); setError(null)
     try {
       const response = await fetch(`/api/matching/sessions/${props.sessionId}/leave`, {
@@ -122,9 +122,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
   const groups = props.bookMode
     ? 'Группы 3–5'
     : props.minGroupSize === props.maxGroupSize ? `Группы по ${props.minGroupSize}` : `Группы ${props.minGroupSize}–${props.maxGroupSize}`
-  const statusLabel = props.sessionStatus === 'active'
-    ? 'активна'
-    : props.sessionStatus === 'open' ? 'открыта' : props.sessionStatus === 'closed' ? 'закрыта' : 'заморожена'
+  const statusLabel = props.sessionStatus === 'open' ? 'открыта' : 'закрыта'
   const viewerParticipant = props.participants.find((participant) => participant.ref === props.viewer.ref)
   const menuParticipants = viewerParticipant
     ? [viewerParticipant, ...props.participants.filter((participant) => participant.ref !== props.viewer.ref)]
@@ -141,8 +139,8 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
             <label style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Макс. <input className="nd-inline-number" aria-label="Максимум участников" type="number" value={maxSize} onChange={(e) => setMaxSize(e.target.value)} style={{ width: 46, border: '1px solid var(--border)', background: 'var(--bg-input)' }} /></label>
             <button type="button" onClick={saveSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: '1px solid var(--text)', background: 'var(--text)', color: 'var(--bg-input)' }}>Сохранить</button>
             <button type="button" onClick={cancelSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)' }}>Отмена</button>
-          </div> : <span className="nd-mx-hdr-groups" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{groups} {props.isAdmin && !props.bookMode && (props.sessionStatus === 'active' || props.sessionStatus === 'open') && <button type="button" aria-label="Изменить размер групп" onClick={() => setEditingSize(true)} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>✎</button>}</span>}
-          <span className="nd-mx-hdr-deadline" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{deadlineText(props.deadlineAt, now)}</span><span className="nd-mx-hdr-status" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: props.sessionStatus === 'active' || props.sessionStatus === 'open' ? 'var(--success)' : 'var(--text-muted)' }}>● {statusLabel}</span>
+          </div> : <span className="nd-mx-hdr-groups" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{groups} {props.isAdmin && !props.bookMode && props.sessionStatus === 'open' && <button type="button" aria-label="Изменить размер групп" onClick={() => setEditingSize(true)} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>✎</button>}</span>}
+          <span className="nd-mx-hdr-deadline" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{deadlineText(props.deadlineAt, now)}</span><span className="nd-mx-hdr-status" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: props.sessionStatus === 'open' ? 'var(--success)' : 'var(--text-muted)' }}>● {statusLabel}</span>
         </div>
         <div className="nd-mx-hdr-r" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {props.viewer.role === 'observer' ? <span className="nd-mx-hdr-observer" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--success)', borderBottom: '1px solid var(--success)' }}>Вы наблюдаете</span> : <span className="nd-mx-hdr-you" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Вы — <strong style={{ color: 'var(--text)' }}>{props.viewer.displayName}</strong></span>}
@@ -160,7 +158,7 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
                 <div className="nd-mx-session-menu-meta">
                   <span>{groups}</span>
                   <span>{deadlineText(props.deadlineAt, now)}</span>
-                  <span className={`nd-mx-session-menu-status${props.sessionStatus === 'active' || props.sessionStatus === 'open' ? ' is-active' : ''}`}>● {statusLabel}</span>
+                  <span className={`nd-mx-session-menu-status${props.sessionStatus === 'open' ? ' is-active' : ''}`}>● {statusLabel}</span>
                   {props.viewer.role === 'observer' && <span className="nd-mx-session-menu-observer">Вы наблюдаете</span>}
                 </div>
                 <div style={{ padding: '0.7rem 0.9rem 0.5rem' }}><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)' }}>Участники · {props.participants.length}</span></div>

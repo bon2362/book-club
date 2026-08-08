@@ -65,9 +65,9 @@ test('submits join with name and refreshes on success', async () => {
 })
 
 test('shows error when join fails', async () => {
-  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, json: async () => ({ error: 'session_frozen' }) })
+  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: false, json: async () => ({ error: 'session_closed' }) })
   render(<MatchingWelcome {...base} />)
   fireEvent.click(screen.getByTestId('welcome-join-button'))
   await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-  expect(screen.getByRole('alert')).toHaveTextContent('session_frozen')
+  expect(screen.getByRole('alert')).toHaveTextContent('session_closed')
 })

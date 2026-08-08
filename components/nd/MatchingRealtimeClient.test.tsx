@@ -1,4 +1,4 @@
-import { act, fireEvent, render, waitFor, screen } from '@testing-library/react'
+import { act, render, waitFor, screen } from '@testing-library/react'
 import MatchingRealtimeClient, { type MatchingPublicState } from './MatchingRealtimeClient'
 
 const refresh = jest.fn()
@@ -34,7 +34,7 @@ describe('MatchingRealtimeClient', () => {
     document.dispatchEvent(new Event('visibilitychange'))
   }
 
-  function respondVersion(version: number, status = 'active', online?: string[]) {
+  function respondVersion(version: number, status = 'open', online?: string[]) {
     fetchMock.mockImplementationOnce((url: string) => {
       if (url.includes('/version')) {
         return Promise.resolve({ ok: true, json: async () => ({ version, status, ...(online ? { online } : {}) }) })
@@ -45,18 +45,23 @@ describe('MatchingRealtimeClient', () => {
 
   function makeInitialState(stateVersion = 1): MatchingPublicState {
     return {
-      session: { name: 'Июль', status: 'active', stateVersion, minGroupSize: 3, maxGroupSize: 4, deadlineAt: null },
-      viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
+      session: { name: 'Июль', status: 'open', stateVersion, minGroupSize: 3, maxGroupSize: 4, deadlineAt: null },
+      viewer: { role: 'active', ref: 'r1' },
       participants: [{ ref: 'r1', displayName: 'Анна', online: false }],
-      scenarios: [],
-      lockedCircles: [],
       notices: [],
-      viewerConfirmedCircleKey: null,
+      bookMode: { initializedAt: '2026-07-13T10:00:00.000Z', viewerAssignmentBookId: null, books: [] },
     }
   }
 
+  function makeRefreshedState(stateVersion: number, displayName: string, status: 'open' | 'closed' = 'open'): MatchingPublicState {
+    const state = makeInitialState(stateVersion)
+    state.session.status = status
+    state.participants[0] = { ...state.participants[0], displayName }
+    return state
+  }
+
   it('applies heartbeat online refs to rendered participant state', async () => {
-    respondVersion(1, 'active', ['r1'])
+    respondVersion(1, 'open', ['r1'])
     render(<MatchingRealtimeClient sessionId="s1" initialState={makeInitialState()} bookTitleById={{}} pollIntervalMs={50_000} />)
     await waitFor(() => expect(screen.getByLabelText('Анна — онлайн')).toBeInTheDocument())
   })
@@ -74,7 +79,7 @@ describe('MatchingRealtimeClient', () => {
     expect(screen.getByTestId('matching-realtime-client')).toBeInTheDocument()
   })
 
-  it('opens initialized sessions on the book tab and keeps scenarios read-only', () => {
+  it('renders the canonical book board without a legacy mode switcher', () => {
     const state = makeInitialState()
     state.bookMode = {
       initializedAt: '2026-07-13T10:00:00.000Z',
@@ -88,46 +93,9 @@ describe('MatchingRealtimeClient', () => {
     }
     respondVersion(1)
     render(<MatchingRealtimeClient sessionId="s1" initialState={state} bookTitleById={{}} pollIntervalMs={50_000} />)
-    expect(screen.getByRole('tab', { name: 'Книги' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByTestId('matching-books-view')).toHaveTextContent('Книга режима')
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.queryByTestId('matching-scenarios-empty')).not.toBeInTheDocument()
-  })
-
-  it('returns an initialized session to books when the viewport enters mobile', () => {
-    let mobile = false
-    const listeners = new Set<(event: MediaQueryListEvent) => void>()
-    Object.defineProperty(window, 'matchMedia', {
-      configurable: true,
-      value: jest.fn().mockImplementation((query: string) => ({
-        get matches() { return mobile },
-        media: query,
-        onchange: null,
-        addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
-        removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
-        dispatchEvent: () => true,
-      })),
-    })
-    const state = makeInitialState()
-    state.bookMode = {
-      initializedAt: '2026-07-13T10:00:00.000Z',
-      viewerAssignmentBookId: null,
-      books: [{
-        bookId: 'b1', title: 'Мобильная книга', author: 'Автор', coverUrl: null,
-        intersectionCount: 0, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',
-        participants: [], circles: [], unplacedParticipantRefs: [],
-        allowedActions: { conditional: true, hard: true, cancelHard: false },
-      }],
-    }
-    respondVersion(1)
-    render(<MatchingRealtimeClient sessionId="s1" initialState={state} bookTitleById={{}} pollIntervalMs={50_000} />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Сценарии' }))
-    expect(screen.getByRole('tab', { name: 'Сценарии' })).toHaveAttribute('aria-selected', 'true')
-
-    mobile = true
-    act(() => listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent)))
-
-    expect(screen.getByRole('tab', { name: 'Книги' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByTestId('matching-books-view')).toHaveTextContent('Мобильная книга')
   })
 
   it('does not fire a state fetch on the first poll when version is unchanged', async () => {
@@ -149,20 +117,13 @@ describe('MatchingRealtimeClient', () => {
     jest.useFakeTimers()
     const stateResponse = {
       ok: true,
-      json: async () => ({
-        session: { status: 'active', stateVersion: 2 },
-        viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
-        scenarios: [],
-        lockedCircles: [],
-        notices: [],
-        participants: [{ ref: 'r1', displayName: 'Анна новая', online: true }],
-      }),
+      json: async () => makeRefreshedState(2, 'Анна новая'),
     }
 
     // First call: /version returns v1 (baseline, no fetch)
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'active', online: ['u1'] }) })
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'open', online: ['u1'] }) })
     // Second call: /version returns v2 (changed)
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'active', online: ['u1'] }) })
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'open', online: ['u1'] }) })
     // Third call: /state fetch
     fetchMock.mockResolvedValueOnce(stateResponse)
 
@@ -216,18 +177,13 @@ describe('MatchingRealtimeClient', () => {
   it('retries the same changed version when personalized state refresh fails', async () => {
     jest.useFakeTimers()
     fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'active' }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'active' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'open' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'open' }) })
       .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'active' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'open' }) })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          session: { status: 'active', stateVersion: 2 },
-          viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
-          scenarios: [], lockedCircles: [], notices: [],
-          participants: [{ ref: 'r1', displayName: 'После retry', online: false }],
-        }),
+        json: async () => makeRefreshedState(2, 'После retry'),
       })
 
     render(
@@ -281,23 +237,16 @@ describe('MatchingRealtimeClient', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
   })
 
-  it('refreshes server props before stopping once the session is frozen', async () => {
+  it('refreshes server props before stopping once the session is closed', async () => {
     jest.useFakeTimers()
     // v1 baseline
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'active', online: ['u1'] }) })
-    // v2 frozen
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'frozen', online: ['u1'] }) })
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 1, status: 'open', online: ['u1'] }) })
+    // v2 closed
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ version: 2, status: 'closed', online: ['u1'] }) })
     // /state fetch after version change
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({
-        session: { status: 'frozen', stateVersion: 2 },
-        viewer: { role: 'active', ref: 'r1', lockedCircleKey: null },
-        scenarios: [],
-        lockedCircles: [],
-        notices: [],
-        participants: [],
-      }),
+      json: async () => ({ ...makeRefreshedState(2, 'Анна', 'closed'), participants: [] }),
     })
 
     render(
@@ -336,26 +285,4 @@ describe('MatchingRealtimeClient', () => {
     expect(screen.getByTestId('matching-notices')).toBeInTheDocument()
   })
 
-  it('renders locked circles when state has them', () => {
-    const stateWithLock = makeInitialState()
-    stateWithLock.lockedCircles = [
-      {
-        circleKey: 'key1',
-        bookId: 'b1',
-        lockedAt: '2026-06-29T10:00:00.000Z',
-        members: [{ ref: 'r1', displayName: 'Анна' }],
-      },
-    ]
-    respondVersion(1)
-    render(
-      <MatchingRealtimeClient
-        sessionId="s1"
-        initialState={stateWithLock}
-        bookTitleById={{ b1: 'Первая книга' }}
-        pollIntervalMs={50_000}
-      />,
-    )
-    expect(screen.getByTestId('matching-locked-circles')).toBeInTheDocument()
-    expect(screen.getByText('Первая книга')).toBeInTheDocument()
-  })
 })

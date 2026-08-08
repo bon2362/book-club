@@ -11,13 +11,10 @@ export function transitionStatus(code: MatchingTransitionErrorCode): number {
       return 404
     case 'participant_missing':
       return 403
-    case 'session_frozen':
+    case 'session_closed':
     case 'stale_state':
     case 'participant_locked':
       return 409
-    case 'cascade_limit':
-      return 500
-    case 'book_mode_unavailable':
     case 'book_action_forbidden':
     case 'invalid_book_action':
       return 409
