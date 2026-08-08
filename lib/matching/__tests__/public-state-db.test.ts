@@ -27,7 +27,7 @@ function fakeDb(results: unknown[][]) {
 test('canonical reader exposes only the book state and hides internal user ids', async () => {
   const session = {
     id: 'session-1', name: 'Июль', status: 'active', stateVersion: 1,
-    minGroupSize: 3, maxGroupSize: 5, deadlineAt: null,
+    deadlineAt: null,
     createdAt: new Date('2026-07-14T10:00:00Z'),
   }
   const participant = {
@@ -40,6 +40,8 @@ test('canonical reader exposes only the book state and hides internal user ids',
 
   expect(state.bookMode).toEqual(expect.objectContaining({ books: [] }))
   expect(state.session.status).toBe('open')
+  expect(state.session).not.toHaveProperty('minGroupSize')
+  expect(state.session).not.toHaveProperty('maxGroupSize')
   expect(state).not.toHaveProperty('scenarios')
   expect(JSON.stringify(state)).not.toContain('viewer-id')
 })
@@ -47,7 +49,7 @@ test('canonical reader exposes only the book state and hides internal user ids',
 test('canonical reader projects the priority rank into book participants', async () => {
   const session = {
     id: 'session-1', name: 'Июль', status: 'open', stateVersion: 1,
-    minGroupSize: 3, maxGroupSize: 5, deadlineAt: null,
+    deadlineAt: null,
     createdAt: new Date('2026-07-14T10:00:00Z'),
   }
   const participant = {

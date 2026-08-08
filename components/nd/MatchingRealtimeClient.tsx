@@ -17,8 +17,6 @@ export interface MatchingPublicState {
     name: string
     status: string
     stateVersion: number
-    minGroupSize: number
-    maxGroupSize: number
     deadlineAt: string | null
   }
   viewer: { role: 'active' | 'observer'; ref: string }
@@ -127,8 +125,6 @@ export default function MatchingRealtimeClient({
         sessionName={state.session.name}
         sessionStatus={state.session.status}
         stateVersion={state.session.stateVersion}
-        minGroupSize={state.session.minGroupSize}
-        maxGroupSize={state.session.maxGroupSize}
         deadlineAt={state.session.deadlineAt}
         viewer={{
           ref: state.viewer.ref,
@@ -141,7 +137,6 @@ export default function MatchingRealtimeClient({
         isAdmin={isAdmin}
         isImpersonating={isImpersonating}
         viewerAssigned={Boolean(state.bookMode.viewerAssignmentBookId)}
-        bookMode
         onSessionRefresh={refreshFullState}
       />
       {isAdmin && !isImpersonating && (
@@ -167,7 +162,6 @@ export default function MatchingRealtimeClient({
           stateVersion={state.session.stateVersion}
           sessionStatus={state.session.status}
           viewerRef={state.viewer.ref}
-          minGroupSize={state.session.minGroupSize}
           bookMode={state.bookMode}
           booksById={resolvedBooksById}
           isAdmin={isAdmin && !isImpersonating}

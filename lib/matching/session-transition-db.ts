@@ -173,14 +173,6 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
         return this.replaceSignup(sessionId, action.userId, action.name, action.contacts, action.bookIds)
       case 'reorder_priorities':
         return this.reorderPriorities(action.userId, action.bookIds)
-      case 'change_group_size': {
-        const updated = await this.tx
-          .update(matchingSessions)
-          .set({ minGroupSize: action.min, maxGroupSize: action.max })
-          .where(eq(matchingSessions.id, sessionId))
-          .returning({ id: matchingSessions.id })
-        return updated.length > 0
-      }
       case 'set_conditional':
       case 'unset_conditional':
       case 'set_hard':

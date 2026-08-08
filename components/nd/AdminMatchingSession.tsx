@@ -14,8 +14,6 @@ interface MatchingSession {
   id: string
   name: string
   status: string
-  minGroupSize: number
-  maxGroupSize: number
   deadlineAt: string | null
   createdAt: string
   stateVersion: number
@@ -121,8 +119,6 @@ export default function AdminMatchingSession() {
 
   // Form state
   const [name, setName] = useState('')
-  const [minGroupSize, setMinGroupSize] = useState(3)
-  const [maxGroupSize, setMaxGroupSize] = useState(3)
   const [deadlineAt, setDeadlineAt] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -305,8 +301,6 @@ export default function AdminMatchingSession() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          minGroupSize,
-          maxGroupSize,
           deadlineAt: deadlineAt || null,
         }),
       })
@@ -314,8 +308,6 @@ export default function AdminMatchingSession() {
       if (!res.ok) throw new Error(json.error ?? 'Ошибка создания')
       setName('')
       setDeadlineAt('')
-      setMinGroupSize(3)
-      setMaxGroupSize(3)
       await load()
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Неизвестная ошибка')
@@ -403,11 +395,6 @@ export default function AdminMatchingSession() {
           </div>
 
           <div style={{ marginTop: '0.6rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', color: 'var(--text-body)' }}>
-            <span>
-              Размер: {selectedSession.minGroupSize === selectedSession.maxGroupSize
-                ? selectedSession.minGroupSize
-                : `${selectedSession.minGroupSize}–${selectedSession.maxGroupSize}`}
-            </span>
             <span>Создана: {new Date(selectedSession.createdAt).toLocaleDateString('ru-RU')}</span>
             {selectedSession.deadlineAt && (
               <span>Дедлайн: {new Date(selectedSession.deadlineAt).toLocaleString('ru-RU')}</span>
@@ -605,39 +592,6 @@ export default function AdminMatchingSession() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
-              Размер группы
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>от</span>
-              <input
-                type="number"
-                min={2}
-                max={10}
-                value={minGroupSize}
-                onChange={e => {
-                  const value = Number(e.target.value)
-                  setMinGroupSize(value)
-                  if (maxGroupSize < value) setMaxGroupSize(value)
-                }}
-                disabled={creating || !!openSession}
-                style={{ ...fieldInput, width: 60 }}
-                data-testid="matching-session-min-group-size"
-              />
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>до</span>
-              <input
-                type="number"
-                min={minGroupSize}
-                max={10}
-                value={maxGroupSize}
-                onChange={e => setMaxGroupSize(Number(e.target.value))}
-                disabled={creating || !!openSession}
-                style={{ ...fieldInput, width: 60 }}
-                data-testid="matching-session-max-group-size"
-              />
-            </div>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 2 }}>
               Дедлайн (опционально)
             </label>
             <input
@@ -652,7 +606,7 @@ export default function AdminMatchingSession() {
           {createError && <p style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{createError}</p>}
           <button
             type="submit"
-            disabled={creating || !name.trim() || !!openSession || maxGroupSize < minGroupSize}
+            disabled={creating || !name.trim() || !!openSession}
             style={{ ...btn, alignSelf: 'flex-start' }}
             data-testid="matching-session-submit"
           >

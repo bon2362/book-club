@@ -2,11 +2,11 @@
 
 ## Книжный matching API
 
-`GET /api/matching/state?session={id}` остаётся единой точкой чтения. После инициализации ответ содержит `bookMode` с книгами viewer, пересечениями, статусами участников, кругами, доступными действиями и занятым слотом. До инициализации `bookMode` равен `null`, поэтому legacy-клиент остаётся совместимым.
+`GET /api/matching/state?session={id}` остаётся единой точкой чтения. Ответ всегда содержит `bookMode` с книгами viewer, пересечениями, статусами участников, кругами, доступными действиями и занятым слотом.
 
-Пользовательские решения отправляются в `POST /api/matching/sessions/{id}/book-actions`: `setConditional`, `unsetConditional`, `setHard`, `cancelHard`. При просмотре за участника администратор передаёт `?as={userId}`: меняется выбор участника, а автором события остаётся администратор; для обычного пользователя параметр запрещён. Администратор использует `POST /api/admin/matching/sessions/{id}/book-admin-actions` для инициализации, назначений, кругов и close/reopen. Обе точки требуют `expectedStateVersion`; конфликт возвращает `409` и свежий state.
+Пользовательские решения отправляются в `POST /api/matching/sessions/{id}/book-actions`: `setConditional`, `unsetConditional`, `setHard`, `cancelHard`. При просмотре за участника администратор передаёт `?as={userId}`: меняется выбор участника, а автором события остаётся администратор; для обычного пользователя параметр запрещён. Администратор использует `POST /api/admin/matching/sessions/{id}/book-admin-actions` для назначений, кругов и close/reopen. Обе точки требуют `expectedStateVersion`; конфликт возвращает `409` и свежий state.
 
-Swagger-описание этих endpoints находится в `public/openapi.json`. Оно документирует transport-контракт, но доменные ограничения — два добровольных твёрдых выбора, один слот и запрет обычного выхода после назначения — применяются серверным transition service и БД.
+Swagger-описание этих endpoints находится в `public/openapi.json`. Оно документирует transport-контракт, а фиксированные пороги формирования (2 окончательных выбора, 3 участника всего) и круги по 3–5 применяются серверным transition service. Настройки размера и `PATCH /api/matching/sessions/{id}` больше нет.
 
 API проекта описан в OpenAPI-файле и доступен через Swagger UI.
 

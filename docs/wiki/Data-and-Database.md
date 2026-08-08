@@ -95,8 +95,6 @@ erDiagram
     matching_sessions {
       text id
       text status
-      integer min_group_size
-      integer max_group_size
       timestamp deadline_at
     }
 

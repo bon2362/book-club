@@ -14,7 +14,7 @@ const mode: MatchingBookModeState = {
 }
 
 const props = {
-  sessionId: 's1', stateVersion: 3, sessionStatus: 'open', viewerRef: 'viewer', minGroupSize: 3,
+  sessionId: 's1', stateVersion: 3, sessionStatus: 'open', viewerRef: 'viewer',
   bookMode: mode, booksById: {}, isAdmin: false, onState: jest.fn(), onRefresh: jest.fn(),
 }
 
@@ -36,7 +36,7 @@ describe('MatchingBooksView commands', () => {
 
     expect(screen.getByRole('button', { name: 'Короче' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('list', { name: 'Как выбрать книгу' })).toHaveTextContent(
-      'вас запишут на первую, на которую соберётся круг (3 человека)',
+      'книга сформируется при 2 окончательных записях и 3 участниках всего; круги — по 3–5 человек',
     )
     expect(screen.getAllByRole('listitem')).toHaveLength(6)
 
@@ -161,7 +161,7 @@ describe('MatchingBooksView commands', () => {
 
     expect(screen.queryByTestId('matching-books-selection')).not.toBeInTheDocument()
     expect(screen.getByText('✓ Вы записаны')).toBeInTheDocument()
-    expect(screen.getByText(/Круг соберётся, когда наберётся 3 человека/)).toBeInTheDocument()
+    expect(screen.getByText(/Книга сформируется при 2 окончательных записях и 3 участниках всего/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))

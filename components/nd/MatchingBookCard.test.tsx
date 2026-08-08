@@ -17,7 +17,6 @@ const book: MatchingBookView = {
 
 const baseProps = {
   viewerRef: 'viewer', viewerAssignmentBookId: null, viewerHardBookId: null,
-  minGroupSize: 3,
   readOnly: false, pendingAction: null, onCommand: jest.fn(), onOpenBook: jest.fn(),
 }
 
@@ -127,12 +126,10 @@ describe('MatchingBookCard', () => {
     expect(screen.getByText('Сначала отмените запись на другой книге.')).toBeInTheDocument()
   })
 
-  it('substitutes the session group size into the waiting note', () => {
+  it('uses the fixed formation threshold in the waiting note', () => {
     const hardBook = { ...book, viewerStatus: 'hard' as const, allowedActions: { conditional: false, hard: false, cancelHard: true } }
-    const { rerender } = render(<MatchingBookCard book={hardBook} {...baseProps} minGroupSize={5} />)
-    expect(screen.getByText('Ждём остальных. Круг соберётся, когда наберётся 5 человек.')).toBeInTheDocument()
-    rerender(<MatchingBookCard book={hardBook} {...baseProps} minGroupSize={3} />)
-    expect(screen.getByText('Ждём остальных. Круг соберётся, когда наберётся 3 человека.')).toBeInTheDocument()
+    render(<MatchingBookCard book={hardBook} {...baseProps} />)
+    expect(screen.getByText('Ждём остальных. Книга сформируется при 2 окончательных записях и 3 участниках всего. Круги — по 3–5 человек.')).toBeInTheDocument()
   })
 
   it('shows admin controls without repeating participant-action copy', () => {

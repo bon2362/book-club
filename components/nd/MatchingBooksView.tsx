@@ -9,13 +9,18 @@ import {
   matchingBookDetail,
   type MatchingBookModeState,
 } from './matching-book-types'
+import {
+  MAX_CIRCLE_SIZE,
+  MIN_CIRCLE_SIZE,
+  MIN_FORMATION_HARD_CHOICES,
+  MIN_FORMATION_TOTAL_CHOICES,
+} from '@/lib/matching/book-partition'
 
 interface Props {
   sessionId: string
   stateVersion: number
   sessionStatus: string
   viewerRef: string
-  minGroupSize: number
   bookMode: MatchingBookModeState
   booksById: Record<string, MatchingBookDetail>
   isAdmin: boolean
@@ -26,20 +31,11 @@ interface Props {
 
 type PendingCommand = { bookId: string; action: MatchingBookCommandAction | MatchingBookAdminAction } | null
 
-function peopleWord(count: number) {
-  const ones = count % 10
-  const tens = count % 100
-  if (ones === 1 && tens !== 11) return 'человек'
-  if (ones >= 2 && ones <= 4 && (tens < 12 || tens > 14)) return 'человека'
-  return 'человек'
-}
-
 export default function MatchingBooksView({
   sessionId,
   stateVersion,
   sessionStatus,
   viewerRef,
-  minGroupSize,
   bookMode,
   booksById,
   isAdmin,
@@ -181,7 +177,7 @@ export default function MatchingBooksView({
                 <li>Выберите книгу, которую будете читать</li>
                 <li>Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки</li>
                 <li>Нажмите на имя участни:цы, чтобы узнать, на какое место он:а поместила книгу</li>
-                <li>{`В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — вас запишут на первую, на которую соберётся круг (${minGroupSize} ${peopleWord(minGroupSize)})`}</li>
+                <li>{`В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — вас запишут на первую, где книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего; круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек`}</li>
                 <li>Можно читать несколько книг одновременно</li>
                 <li>Разные группы могут читать одну и ту же книгу</li>
               </ul>
@@ -228,7 +224,6 @@ export default function MatchingBooksView({
               viewerRef={viewerRef}
               viewerAssignmentBookId={bookMode.viewerAssignmentBookId}
               viewerHardBookId={viewerHardBookId}
-              minGroupSize={minGroupSize}
               readOnly={readOnly}
               adminMode={isAdmin}
               controlsDisabled={pending !== null}

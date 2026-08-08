@@ -787,11 +787,9 @@
               "name": { "type": "string" },
               "status": { "type": "string", "enum": ["open", "closed"] },
               "stateVersion": { "type": "integer" },
-              "minGroupSize": { "type": "integer" },
-              "maxGroupSize": { "type": "integer" },
               "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true }
             },
-            "required": ["name", "status", "stateVersion", "minGroupSize", "maxGroupSize", "deadlineAt"]
+            "required": ["name", "status", "stateVersion", "deadlineAt"]
           },
           "viewer": {
             "type": "object",
@@ -897,14 +895,12 @@
           "id": { "type": "string" },
           "name": { "type": "string" },
           "status": { "type": "string", "enum": ["open", "closed"] },
-          "minGroupSize": { "type": "integer" },
-          "maxGroupSize": { "type": "integer" },
           "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true },
           "createdAt": { "$ref": "#/components/schemas/DateTime" },
           "stateVersion": { "type": "integer" }
         },
         "required": [
-          "id", "name", "status", "minGroupSize", "maxGroupSize", "deadlineAt",
+          "id", "name", "status", "deadlineAt",
           "createdAt", "stateVersion"
         ]
       },
@@ -2114,8 +2110,6 @@
           "type": "object",
           "properties": {
             "name": { "type": "string", "minLength": 1, "pattern": ".*\\S.*", "description": "После trim должна остаться хотя бы одна непробельная буква" },
-            "minGroupSize": { "type": "integer", "minimum": 2, "maximum": 10, "default": 3 },
-            "maxGroupSize": { "type": "integer", "minimum": 2, "maximum": 10 },
             "deadlineAt": { "allOf": [{ "$ref": "#/components/schemas/DateTime" }], "nullable": true }
           },
           "required": ["name"]
@@ -2129,15 +2123,14 @@
                 "type": "object",
                 "properties": {
                   "id": { "type": "string" }, "name": { "type": "string" },
-                  "status": { "type": "string", "enum": ["open"] },
-                  "minGroupSize": { "type": "integer" }, "maxGroupSize": { "type": "integer" }
+                  "status": { "type": "string", "enum": ["open"] }
                 },
-                "required": ["id", "name", "status", "minGroupSize", "maxGroupSize"]
+                "required": ["id", "name", "status"]
               }
             },
             "required": ["success", "data"]
           } } } },
-          "400": { "description": "Invalid JSON, trimmed name, group size or deadline", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "400": { "description": "Invalid JSON, trimmed name or deadline", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "409": { "description": "An active session already exists", "content": { "application/json": { "schema": {
             "type": "object", "properties": { "error": { "type": "string" }, "activeSessionId": { "type": "string" } },
@@ -2381,37 +2374,6 @@
           "400": { "description": "Invalid admin action or expectedStateVersion", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
           "409": { "description": "Stale state or lifecycle conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
-        }
-      }
-    },
-    "/api/matching/sessions/{id}": {
-      "patch": {
-        "tags": ["Admin"],
-        "summary": "Изменить диапазон размера кругов",
-        "security": [{ "sessionCookie": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": {
-          "type": "object",
-          "properties": {
-            "minGroupSize": { "type": "integer", "minimum": 2, "maximum": 10 },
-            "maxGroupSize": { "type": "integer", "minimum": 2, "maximum": 10 }
-          },
-          "required": ["minGroupSize", "maxGroupSize"]
-        } } } },
-        "responses": {
-          "200": { "description": "Размеры сохранены и сценарии пересчитаны", "content": { "application/json": { "schema": {
-            "type": "object",
-            "properties": {
-              "ok": { "type": "boolean", "enum": [true] },
-              "minGroupSize": { "type": "integer" }, "maxGroupSize": { "type": "integer" }
-            },
-            "required": ["ok", "minGroupSize", "maxGroupSize"]
-          } } } },
-          "400": { "description": "Invalid group size range", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "403": { "description": "Forbidden or participant missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "404": { "description": "Session or circle not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "409": { "description": "Frozen/stale/locked session conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "500": { "description": "Cascade limit or unexpected transition failure", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
         }
       }
     },

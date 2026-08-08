@@ -90,11 +90,9 @@ type TestPublishedSummaryOverrides = {
 type MatchingSession = {
   id: string
   name: string
-  minGroupSize: number
-  maxGroupSize: number
 }
 
-type MatchingSessionOverrides = Partial<Pick<MatchingSession, 'name' | 'minGroupSize' | 'maxGroupSize'>>
+type MatchingSessionOverrides = Partial<Pick<MatchingSession, 'name'>>
 
 interface AdminSession {
   email: string
@@ -585,8 +583,6 @@ export const test = base.extend<E2EHelpers>({
       const res = await request.post('/api/test/matching-session', {
         data: {
           name: overrides?.name ?? `E2E Matching ${testInfo.testId}`,
-          minGroupSize: overrides?.minGroupSize ?? 3,
-          maxGroupSize: overrides?.maxGroupSize ?? overrides?.minGroupSize ?? 3,
         },
       })
       if (!res.ok()) {
@@ -612,7 +608,7 @@ export const test = base.extend<E2EHelpers>({
     const createdUsers: Array<{ page: Page; email: string }> = []
 
     try {
-      const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+      const session = await createMatchingSession()
       const books: [TestBook, TestBook] = [
         await createTestBook({ title: `E2E Первый круг ${testInfo.testId}`, author: 'Автор первого круга' }),
         await createTestBook({ title: `E2E Второй круг ${testInfo.testId}`, author: 'Автор второго круга' }),
@@ -694,7 +690,7 @@ export const test = base.extend<E2EHelpers>({
     }
 
     try {
-      const session = await createMatchingSession({ minGroupSize: 3, maxGroupSize: 5 })
+      const session = await createMatchingSession()
       const books = await Promise.all([
         createTestBook({ title: `E2E Книжный круг A ${testInfo.testId}`, author: 'Автор A' }),
         createTestBook({ title: `E2E Книжный круг B ${testInfo.testId}`, author: 'Автор B' }),

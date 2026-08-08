@@ -1,4 +1,12 @@
-import { partitionBookAssignments, planBookFormation, shouldFormBook } from '../book-partition'
+import {
+  MAX_CIRCLE_SIZE,
+  MIN_CIRCLE_SIZE,
+  MIN_FORMATION_HARD_CHOICES,
+  MIN_FORMATION_TOTAL_CHOICES,
+  partitionBookAssignments,
+  planBookFormation,
+  shouldFormBook,
+} from '../book-partition'
 
 function assignments(count: number) {
   return Array.from({ length: count }, (_, index) => ({
@@ -8,6 +16,20 @@ function assignments(count: number) {
 }
 
 describe('partitionBookAssignments', () => {
+  it('uses the fixed product limits for circles and formation', () => {
+    expect({
+      minCircleSize: MIN_CIRCLE_SIZE,
+      maxCircleSize: MAX_CIRCLE_SIZE,
+      minHardChoices: MIN_FORMATION_HARD_CHOICES,
+      minTotalChoices: MIN_FORMATION_TOTAL_CHOICES,
+    }).toEqual({
+      minCircleSize: 3,
+      maxCircleSize: 5,
+      minHardChoices: 2,
+      minTotalChoices: 3,
+    })
+  })
+
   it.each([
     [0, []], [1, []], [2, []],
     [3, [3]], [4, [4]], [5, [5]],

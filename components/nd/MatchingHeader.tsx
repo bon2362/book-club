@@ -7,11 +7,10 @@ import * as Popover from '@radix-ui/react-popover'
 export interface MatchingHeaderParticipant { ref: string; displayName: string; online: boolean }
 export interface MatchingHeaderProps {
   sessionId: string; sessionName: string; sessionStatus: string; stateVersion: number
-  minGroupSize: number; maxGroupSize: number; deadlineAt: string | null
+  deadlineAt: string | null
   viewer: { ref: string; displayName: string; role: 'active' | 'observer' }
   participants: MatchingHeaderParticipant[]; isAdmin: boolean; isImpersonating: boolean
   viewerAssigned?: boolean
-  bookMode?: boolean
   navigate?: (url: string) => void
   onSessionRefresh?: () => void | Promise<void>
 }
@@ -37,9 +36,6 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
   const router = useRouter()
   const [participantsOpen, setParticipantsOpen] = useState(false)
   const [now, setNow] = useState(() => Date.now())
-  const [editingSize, setEditingSize] = useState(false)
-  const [minSize, setMinSize] = useState(String(props.minGroupSize))
-  const [maxSize, setMaxSize] = useState(String(props.maxGroupSize))
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = props.navigate ?? ((url: string) => window.location.assign(url))
@@ -92,36 +88,6 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
     } finally { setPending(false) }
   }
 
-  function cancelSize() {
-    setMinSize(String(props.minGroupSize)); setMaxSize(String(props.maxGroupSize)); setError(null); setEditingSize(false)
-  }
-
-  async function saveSize() {
-    const minGroupSize = Number(minSize); const maxGroupSize = Number(maxSize)
-    if (!Number.isInteger(minGroupSize) || !Number.isInteger(maxGroupSize) || minGroupSize < 2 || maxGroupSize < minGroupSize) {
-      setError('Размеры должны быть целыми: минимум 2, максимум не меньше минимума')
-      return
-    }
-    setPending(true); setError(null)
-    try {
-      const response = await fetch(`/api/matching/sessions/${props.sessionId}`, {
-        method: 'PATCH', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ minGroupSize, maxGroupSize }),
-      })
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({})) as { error?: string }
-        throw new Error(body.error ?? 'Не удалось изменить размер групп')
-      }
-      setEditingSize(false)
-      await props.onSessionRefresh?.()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Не удалось изменить размер групп')
-    } finally { setPending(false) }
-  }
-
-  const groups = props.bookMode
-    ? 'Группы 3–5'
-    : props.minGroupSize === props.maxGroupSize ? `Группы по ${props.minGroupSize}` : `Группы ${props.minGroupSize}–${props.maxGroupSize}`
   const statusLabel = props.sessionStatus === 'open' ? 'открыта' : 'закрыта'
   const viewerParticipant = props.participants.find((participant) => participant.ref === props.viewer.ref)
   const menuParticipants = viewerParticipant
@@ -134,12 +100,6 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
         <div className="nd-mx-hdr-l" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
           <a href="/" aria-label="На каталог" className="nd-back-to-catalog" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>←<span className="nd-mx-hdr-back-text"> Каталог</span></a><span className="nd-mx-hdr-div" style={{ width: 1, height: 22, background: 'var(--border)' }} />
           <h1 className="nd-mx-hdr-title" style={{ margin: 0, fontFamily: 'var(--nd-serif)', fontSize: '1.2rem', fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.1, color: 'var(--text)' }}>{props.sessionName}</h1>
-          {editingSize ? <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <label style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Мин. <input className="nd-inline-number" aria-label="Минимум участников" type="number" value={minSize} onChange={(e) => setMinSize(e.target.value)} style={{ width: 46, border: '1px solid var(--border)', background: 'var(--bg-input)' }} /></label>
-            <label style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Макс. <input className="nd-inline-number" aria-label="Максимум участников" type="number" value={maxSize} onChange={(e) => setMaxSize(e.target.value)} style={{ width: 46, border: '1px solid var(--border)', background: 'var(--bg-input)' }} /></label>
-            <button type="button" onClick={saveSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: '1px solid var(--text)', background: 'var(--text)', color: 'var(--bg-input)' }}>Сохранить</button>
-            <button type="button" onClick={cancelSize} disabled={pending} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)' }}>Отмена</button>
-          </div> : <span className="nd-mx-hdr-groups" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{groups} {props.isAdmin && !props.bookMode && props.sessionStatus === 'open' && <button type="button" aria-label="Изменить размер групп" onClick={() => setEditingSize(true)} style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', border: 0, background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>✎</button>}</span>}
           <span className="nd-mx-hdr-deadline" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{deadlineText(props.deadlineAt, now)}</span><span className="nd-mx-hdr-status" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: props.sessionStatus === 'open' ? 'var(--success)' : 'var(--text-muted)' }}>● {statusLabel}</span>
         </div>
         <div className="nd-mx-hdr-r" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -156,7 +116,6 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
             <Popover.Portal>
               <Popover.Content className="nd-mx-session-menu" role="dialog" aria-label="Участники" sideOffset={8} align="end" style={{ zIndex: 5, width: 264, padding: 0, background: 'var(--bg-input)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-card)', boxShadow: 'var(--shadow-pop)', overflow: 'hidden' }}>
                 <div className="nd-mx-session-menu-meta">
-                  <span>{groups}</span>
                   <span>{deadlineText(props.deadlineAt, now)}</span>
                   <span className={`nd-mx-session-menu-status${props.sessionStatus === 'open' ? ' is-active' : ''}`}>● {statusLabel}</span>
                   {props.viewer.role === 'observer' && <span className="nd-mx-session-menu-observer">Вы наблюдаете</span>}

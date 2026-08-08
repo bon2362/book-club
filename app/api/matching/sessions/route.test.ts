@@ -76,11 +76,11 @@ describe('POST /api/matching/sessions', () => {
       returning: jest.fn().mockResolvedValue([{ id: 'new-id', name: 'Test', status: 'open' }]),
     }
     mockDb.insert = jest.fn().mockReturnValue(insertChain)
-    const res = await POST(makeRequest({ name: 'Test session', minGroupSize: 3, maxGroupSize: 4 }))
+    const res = await POST(makeRequest({ name: 'Test session', minGroupSize: 9, maxGroupSize: 10 }))
     expect(res.status).toBe(201)
-    expect(insertChain.values).toHaveBeenCalledWith(expect.objectContaining({
-      minGroupSize: 3,
-      maxGroupSize: 4,
+    expect(insertChain.values).toHaveBeenCalledWith(expect.not.objectContaining({
+      minGroupSize: expect.anything(),
+      maxGroupSize: expect.anything(),
     }))
     const json = await res.json()
     expect(json.success).toBe(true)
@@ -103,8 +103,6 @@ describe('POST /api/matching/sessions', () => {
 
     const res = await POST(makeRequest({
       name: 'Satisfaction session',
-      minGroupSize: 3,
-      maxGroupSize: 3,
       legacyMode: 'ignored',
     }))
 
@@ -112,7 +110,10 @@ describe('POST /api/matching/sessions', () => {
     expect(insertChain.values).toHaveBeenCalledWith(expect.not.objectContaining({
       legacyMode: expect.anything(),
     }))
-    expect(await res.json()).not.toHaveProperty('data.legacyMode')
+    const json = await res.json()
+    expect(json).not.toHaveProperty('data.legacyMode')
+    expect(json).not.toHaveProperty('data.minGroupSize')
+    expect(json).not.toHaveProperty('data.maxGroupSize')
   })
 })
 
@@ -140,6 +141,8 @@ describe('GET /api/matching/sessions', () => {
     expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).not.toContain('frozenScenarioJson')
     expect(Object.keys((mockDb.select as jest.Mock).mock.calls[0][0])).not.toContain('bookModeInitializedAt')
     expect(mockDb.select).toHaveBeenCalledWith(expect.not.objectContaining({
+      minGroupSize: expect.anything(),
+      maxGroupSize: expect.anything(),
       optimizationMode: expect.anything(),
       metricCoverage: expect.anything(),
     }))

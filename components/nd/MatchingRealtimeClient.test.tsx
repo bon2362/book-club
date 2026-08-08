@@ -45,7 +45,7 @@ describe('MatchingRealtimeClient', () => {
 
   function makeInitialState(stateVersion = 1): MatchingPublicState {
     return {
-      session: { name: 'Июль', status: 'open', stateVersion, minGroupSize: 3, maxGroupSize: 4, deadlineAt: null },
+      session: { name: 'Июль', status: 'open', stateVersion, deadlineAt: null },
       viewer: { role: 'active', ref: 'r1' },
       participants: [{ ref: 'r1', displayName: 'Анна', online: false }],
       notices: [],

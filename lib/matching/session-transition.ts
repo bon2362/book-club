@@ -8,7 +8,6 @@ export type MatchingAction =
   | { type: 'change_status'; userId: string; bookId: string; status: 'reading' | 'read' | null }
   | { type: 'replace_signup'; userId: string; name: string; contacts: string; bookIds: string[] }
   | { type: 'reorder_priorities'; userId: string; bookIds: string[] }
-  | { type: 'change_group_size'; min: number; max: number }
   | { type: 'set_conditional'; userId: string; bookId: string }
   | { type: 'unset_conditional'; userId: string; bookId: string }
   | { type: 'set_hard'; userId: string; bookId: string }
@@ -101,7 +100,6 @@ function participantUserId(action: MatchingAction): string | null {
     case 'admin_unassign_book':
     case 'admin_place_book_assignment':
       return action.userId
-    case 'change_group_size':
     case 'admin_create_book_circle':
     case 'admin_delete_book_circle':
     case 'close_session':
@@ -113,7 +111,7 @@ function participantUserId(action: MatchingAction): string | null {
 function requiresActiveParticipant(action: MatchingAction): boolean {
   return ![
     'self_join', 'admin_add', 'replace_signup', 'reorder_priorities',
-    'change_group_size', 'admin_assign_book', 'admin_unassign_book',
+    'admin_assign_book', 'admin_unassign_book',
     'admin_create_book_circle', 'admin_delete_book_circle',
     'admin_place_book_assignment', 'close_session', 'reopen_session',
   ].includes(action.type)
@@ -136,7 +134,6 @@ function actionEventDraft(
     case 'change_status': return { ...base, bookId: action.bookId, after: { status: action.status } }
     case 'replace_signup': return { ...base, after: { bookIds: action.bookIds, name: action.name } }
     case 'reorder_priorities': return { ...base, after: { bookIds: action.bookIds } }
-    case 'change_group_size': return { ...base, after: { minGroupSize: action.min, maxGroupSize: action.max } }
     case 'set_conditional':
     case 'unset_conditional':
     case 'set_hard':

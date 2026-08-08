@@ -16,8 +16,6 @@ function notAllowed() {
 
 type MatchingSessionOverrides = {
   name?: string
-  minGroupSize?: number
-  maxGroupSize?: number
   deadlineAt?: string | null
 }
 
@@ -71,15 +69,11 @@ export async function POST(req: NextRequest) {
         .values({
           name: overrides.name ?? `E2E Matching ${Date.now().toString(36)}`,
           status: 'open',
-          minGroupSize: overrides.minGroupSize ?? 3,
-          maxGroupSize: overrides.maxGroupSize ?? overrides.minGroupSize ?? 3,
           deadlineAt: overrides.deadlineAt ? new Date(overrides.deadlineAt) : null,
         })
         .returning({
           id: matchingSessions.id,
           name: matchingSessions.name,
-          minGroupSize: matchingSessions.minGroupSize,
-          maxGroupSize: matchingSessions.maxGroupSize,
         })
 
       return NextResponse.json({ session: created }, { status: 201 })

@@ -2,7 +2,7 @@ import { request as playwrightRequest, type APIRequestContext } from '@playwrigh
 import { test as base, expect } from './fixtures'
 
 type TestBook = { id: string; title: string; author: string }
-type Session = { id: string; name: string; minGroupSize: number; maxGroupSize: number }
+type Session = { id: string; name: string }
 
 export type ApiIdentity = {
   email: string
@@ -26,7 +26,7 @@ export const test = base.extend<{ matchingApiFixture: MatchingApiFixture }>({
     const cleanupUsers: Array<{ request: APIRequestContext; email: string }> = []
     const identitySetups: Array<Promise<ApiIdentity>> = []
     const baseURL = String(testInfo.project.use.baseURL)
-    const session = await createMatchingSession({ minGroupSize: 2, maxGroupSize: 2 })
+    const session = await createMatchingSession()
     const books = await Promise.all([
       createTestBook({ title: `API Matching A ${testInfo.testId}`, author: 'API Author A' }),
       createTestBook({ title: `API Matching B ${testInfo.testId}`, author: 'API Author B' }),

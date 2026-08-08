@@ -9,8 +9,6 @@ const SESSION_OPEN = {
   id: 'sess-open',
   name: 'Книжная сессия',
   status: 'open',
-  minGroupSize: 3,
-  maxGroupSize: 5,
   deadlineAt: null,
   createdAt: '2026-07-13T10:00:00Z',
   stateVersion: 4,
@@ -81,6 +79,8 @@ describe('AdminMatchingSession', () => {
     expect(screen.getByTestId('admin-matching-preference-events')).toBeInTheDocument()
     expect(screen.queryByText(/сценари/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/закреплённые круги/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Размер группы')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Размер:/)).not.toBeInTheDocument()
   })
 
   it('reopens a closed session and keeps participant mutation unavailable while closed', async () => {
