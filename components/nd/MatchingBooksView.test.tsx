@@ -24,13 +24,24 @@ describe('MatchingBooksView commands', () => {
     props.onRefresh.mockReset()
   })
 
-  it('uses the approved participant heading and instructions', () => {
+  it('reveals and collapses the participant instructions', () => {
     render(<MatchingBooksView {...props} />)
     expect(screen.getByRole('heading', { name: 'Совпадения по вашим книгам' })).toBeInTheDocument()
-    expect(document.querySelector('.nd-mb-intro-copy-desktop')).toHaveTextContent(
-      'В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах',
+    expect(screen.getByText('Сделайте окончательный выбор, что читать')).toBeInTheDocument()
+    expect(screen.queryByText('Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки')).not.toBeInTheDocument()
+
+    const expand = screen.getByRole('button', { name: 'Подробнее' })
+    expect(expand).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(expand)
+
+    expect(screen.getByRole('button', { name: 'Короче' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('list', { name: 'Как выбрать книгу' })).toHaveTextContent(
+      'вас запишут на первую, на которую соберётся круг (3 человека)',
     )
-    expect(document.querySelector('.nd-mb-intro-copy-mobile')).toHaveTextContent('круг из 3 человек')
+    expect(screen.getAllByRole('listitem')).toHaveLength(6)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Короче' }))
+    expect(screen.queryByRole('list', { name: 'Как выбрать книгу' })).not.toBeInTheDocument()
   })
 
   it('sends a versioned hard command', async () => {

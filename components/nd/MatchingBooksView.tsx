@@ -51,6 +51,7 @@ export default function MatchingBooksView({
   const [pending, setPending] = useState<PendingCommand>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [switchTargetBookId, setSwitchTargetBookId] = useState<string | null>(null)
+  const [instructionsExpanded, setInstructionsExpanded] = useState(false)
   const focusRef = useRef<{ bookId: string; element: HTMLButtonElement } | null>(null)
   const viewerHardBookId = bookMode.books.find((book) => book.viewerStatus === 'hard')?.bookId ?? null
   const viewerSelectedBookId = bookMode.viewerAssignmentBookId
@@ -157,10 +158,36 @@ export default function MatchingBooksView({
         <h2>{isAdmin ? 'Книги сессии' : 'Совпадения по вашим книгам'}</h2>
         {isAdmin ? (
           <p>Здесь можно увидеть и скорректировать актуальные договорённости участников.</p>
-        ) : <>
-          <p className="nd-mb-intro-copy-desktop">{`Выберите одну книгу, которую будете читать. Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки. Нажмите на имя участни:цы, чтобы узнать, на какое место он:а поместила книгу. В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — вас запишут на первую, на которую соберётся круг (${minGroupSize} ${peopleWord(minGroupSize)}).`}</p>
-          <p className="nd-mb-intro-copy-mobile">{`Выберите одну книгу, которую будете читать. В меню кнопки «Записаться ▾» отметьте несколько книг — вас запишут на первую, где соберётся круг из ${minGroupSize} человек.`}</p>
-        </>}
+        ) : (
+          <div className="nd-mb-intro-disclosure">
+            <div className="nd-mb-intro-summary">
+              <span>Сделайте окончательный выбор, что читать</span>
+              <button
+                type="button"
+                className="p-link muted"
+                aria-expanded={instructionsExpanded}
+                aria-controls="matching-book-instructions"
+                onClick={() => setInstructionsExpanded(value => !value)}
+              >
+                {instructionsExpanded ? 'Короче' : 'Подробнее'}
+              </button>
+            </div>
+            {instructionsExpanded && (
+              <ul
+                id="matching-book-instructions"
+                className="nd-mb-intro-details"
+                aria-label="Как выбрать книгу"
+              >
+                <li>Выберите книгу, которую будете читать</li>
+                <li>Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки</li>
+                <li>Нажмите на имя участни:цы, чтобы узнать, на какое место он:а поместила книгу</li>
+                <li>{`В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — вас запишут на первую, на которую соберётся круг (${minGroupSize} ${peopleWord(minGroupSize)})`}</li>
+                <li>Можно читать несколько книг одновременно</li>
+                <li>Разные группы могут читать одну и ту же книгу</li>
+              </ul>
+            )}
+          </div>
+        )}
         {readOnly && !isAdmin && (
           <div className="nd-mb-slot" data-testid="matching-books-readonly">Сессия закрыта — выбор доступен только для просмотра</div>
         )}
