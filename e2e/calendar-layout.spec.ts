@@ -84,6 +84,14 @@ test.describe('Геометрия календаря круга', () => {
       ))
       expect(columnCount).toBeGreaterThanOrEqual(2)
 
+      // Цель под палец: на узком экране стрелки листания должны быть не меньше 44px.
+      const nextDays = page.getByRole('button', { name: 'Следующие дни' })
+      const navBox = await nextDays.boundingBox()
+      expect(navBox).not.toBeNull()
+      const minTarget = viewport.width <= 540 ? 44 : 30
+      expect(navBox!.height).toBeGreaterThanOrEqual(minTarget - 1)
+      expect(navBox!.width).toBeGreaterThanOrEqual(minTarget - 1)
+
       const participants = page.getByRole('heading', { name: 'Круг', exact: true })
       await expect(participants).toBeVisible()
       const participantsBox = await participants.boundingBox()

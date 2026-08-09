@@ -460,4 +460,58 @@ describe('CalendarClient', () => {
     // Профиль говорит Белград — значит 14:00, а не нью-йоркские 08:00.
     expect(screen.getByRole('button', { name: '11 авг. 14:00' })).toBeInTheDocument()
   })
+
+  it('при обрезке по отметкам страница одна, поэтому обе стрелки недели отключены', () => {
+    // Ровно ситуация с телефона: у смотрящего есть отметки, значит обрезка
+    // включена по умолчанию, дней с отметками меньше семи — листать некуда.
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    expect(screen.getByRole('button', { name: 'Предыдущие дни' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Следующие дни' })).toBeDisabled()
+  })
+
+  it('отключённая стрелка выглядит отключённой', () => {
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    const next = screen.getByRole('button', { name: 'Следующие дни' })
+    expect(next).toHaveStyle({ opacity: '0.3', cursor: 'not-allowed' })
+  })
+
+  it('объясняет, что часть дней скрыта обрезкой', () => {
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    expect(screen.getByText('дни без отметок скрыты')).toBeInTheDocument()
+  })
+
+  it('в режиме всех дней подряд листание работает', async () => {
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Все дни подряд' }))
+    })
+
+    const next = screen.getByRole('button', { name: 'Следующие дни' })
+    expect(next).toBeEnabled()
+    expect(screen.queryByText('дни без отметок скрыты')).not.toBeInTheDocument()
+
+    const before = screen.getByRole('button', { name: 'Предыдущие дни' })
+    expect(before).toBeDisabled()
+
+    await act(async () => { fireEvent.click(next) })
+
+    expect(screen.getByRole('button', { name: 'Предыдущие дни' })).toBeEnabled()
+  })
+
+  it('кнопки листания пригодны для пальца на узком экране', () => {
+    ;(window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: query.includes('max-width'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }))
+
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    expect(screen.getByRole('button', { name: 'Следующие дни' })).toHaveStyle({ width: '44px', height: '44px' })
+  })
 })

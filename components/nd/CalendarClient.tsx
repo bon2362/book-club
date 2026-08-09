@@ -177,6 +177,7 @@ export default function CalendarClient({
     return [column]
   })
   const pages = Math.max(1, Math.ceil(shownDayIndexes.length / perPage))
+  const daysHidden = crop && activeDayIndexes.length > 0 && activeDayIndexes.length < 28
   const slotRange: [number, number] = fullDay ? [0, 48] : visibleSlotRange(participants, state.meetings, dayStarts, pageDays, crop, timeZone)
   const upcoming = state.meetings
     .filter((meeting) => meeting.canceledAt === null && new Date(meeting.startsAt) >= new Date(state.now))
@@ -332,9 +333,24 @@ export default function CalendarClient({
         <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 216px', gap: isNarrow ? 20 : 28, alignItems: 'start' }}>
           <section>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-              <button type="button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))} style={navButtonStyle}>‹</button>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-body)' }}>{pageDays.length ? `${formatDay(dayStarts[pageDays[0]], timeZone)} — ${formatDay(dayStarts[pageDays.at(-1)!], timeZone)}` : '—'}</div>
-              <button type="button" disabled={page >= pages - 1} onClick={() => setPage((value) => Math.min(pages - 1, value + 1))} style={navButtonStyle}>›</button>
+              <button
+                type="button"
+                aria-label="Предыдущие дни"
+                disabled={page === 0}
+                onClick={() => setPage((value) => Math.max(0, value - 1))}
+                style={navButtonStyle(page === 0, isNarrow)}
+              >‹</button>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-body)', textAlign: 'center' }}>
+                {pageDays.length ? `${formatDay(dayStarts[pageDays[0]], timeZone)} — ${formatDay(dayStarts[pageDays.at(-1)!], timeZone)}` : '—'}
+                {daysHidden && <span style={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.13em', fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: 2 }}>дни без отметок скрыты</span>}
+              </div>
+              <button
+                type="button"
+                aria-label="Следующие дни"
+                disabled={page >= pages - 1}
+                onClick={() => setPage((value) => Math.min(pages - 1, value + 1))}
+                style={navButtonStyle(page >= pages - 1, isNarrow)}
+              >›</button>
             </div>
             <div style={{ position: 'relative', background: 'var(--bg-input)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-card)', padding: '10px 12px 12px', overflow: 'visible' }}>
               {participants.every((participant) => !participant.marked) && (
@@ -486,14 +502,24 @@ function Toggle({ active, onClick, children }: { active: boolean; onClick: () =>
   return <button type="button" onClick={onClick} style={{ font: 'inherit', fontSize: '0.72rem', padding: '5px 10px', background: active ? 'var(--text)' : 'transparent', border: 'none', cursor: 'pointer', color: active ? 'var(--bg-input)' : 'var(--text-secondary)' }}>{children}</button>
 }
 
-const navButtonStyle = {
-  width: 30,
-  height: 30,
-  border: '1px solid var(--border)',
-  background: 'var(--bg-input)',
-  cursor: 'pointer',
-  borderRadius: 'var(--radius-control)',
-  color: 'var(--text)',
-  fontSize: '0.9rem',
-  lineHeight: 1,
-} as const
+/**
+ * Отключённая стрелка обязана выглядеть отключённой: без этого при обрезке по
+ * отметкам страница одна, обе стрелки мертвы, а на вид живые — тап по ним
+ * читается как поломка. На узком экране цель увеличена до 44px под палец.
+ */
+function navButtonStyle(disabled: boolean, isNarrow: boolean) {
+  const size = isNarrow ? 44 : 30
+  return {
+    width: size,
+    height: size,
+    flex: 'none',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-input)',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.3 : 1,
+    borderRadius: 'var(--radius-control)',
+    color: 'var(--text)',
+    fontSize: '0.9rem',
+    lineHeight: 1,
+  } as const
+}
