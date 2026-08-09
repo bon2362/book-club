@@ -17,6 +17,7 @@ export function initPostHog(): void {
     capture_pageleave: true,
     person_profiles: 'identified_only',
     respect_dnt: true,
+    advanced_disable_flags: true,
   })
   initialized = true
 }

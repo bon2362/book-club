@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useRef, useState } from 'react'
 import type { OverlapResult } from '@/lib/calendar/overlap'
-import { addSlots, SLOT_MINUTES, slotKey } from '@/lib/calendar/slots'
+import { addSlots, slotKey } from '@/lib/calendar/slots'
 
 export interface CalendarColumn {
   day: Date
@@ -16,7 +16,6 @@ export default function CalendarGrid({
   viewerFreeKeys,
   focusRef,
   canEdit,
-  durationMinutes,
   selectedKey,
   isMobile,
   participantCount,
@@ -29,7 +28,6 @@ export default function CalendarGrid({
   viewerFreeKeys: ReadonlySet<string>
   focusRef: string | null
   canEdit: boolean
-  durationMinutes: number
   selectedKey: string | null
   isMobile: boolean
   participantCount: number
@@ -40,7 +38,6 @@ export default function CalendarGrid({
   const [painting, setPainting] = useState(false)
   const drag = useRef<{ mode: 'paint' | 'erase'; touched: Set<string> } | null>(null)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const span = Math.max(1, durationMinutes / SLOT_MINUTES)
   const slots = useMemo(() => {
     const out: number[] = []
     for (let slot = slotRange[0]; slot < slotRange[1]; slot += 1) out.push(slot)
@@ -79,13 +76,6 @@ export default function CalendarGrid({
     drag.current = null
     setPainting(false)
     if (!current || current.touched.size === 0) onCellClick(key)
-  }
-
-  function clickBlock(key: string) {
-    const startsAt = new Date(key)
-    const keys = Array.from({ length: span }, (_, step) => slotKey(addSlots(startsAt, step)))
-    const mode = viewerFreeKeys.has(key) ? 'erase' : 'paint'
-    onPaint(keys, mode)
   }
 
   return (
@@ -144,7 +134,6 @@ export default function CalendarGrid({
                 }}
                 onPointerLeave={() => setHover((current) => current === key ? null : current)}
                 onPointerUp={() => finish(key)}
-                onDoubleClick={() => clickBlock(key)}
                 style={{
                   position: 'relative',
                   height: 'var(--calendar-cell-h, 22px)',

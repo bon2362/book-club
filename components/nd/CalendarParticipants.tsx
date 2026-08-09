@@ -5,11 +5,13 @@ export default function CalendarParticipants({
   viewerRef,
   focusRef,
   onFocus,
+  referenceDate,
 }: {
   participants: CalendarPublicState['participants']
   viewerRef: string | null
   focusRef: string | null
   onFocus: (ref: string | null) => void
+  referenceDate: Date
 }) {
   return (
     <aside>
@@ -43,7 +45,7 @@ export default function CalendarParticipants({
                 <span style={{ minWidth: 0 }}>
                   <span style={{ fontSize: '0.84rem', lineHeight: 1.2 }}>{participant.displayName}{participant.ref === viewerRef ? ' · вы' : ''}</span><br />
                   {participant.marked
-                    ? <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--nd-mono)', whiteSpace: 'nowrap' }}>{participant.timezone ?? 'пояс не указан'}</span>
+                    ? <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--nd-mono)', whiteSpace: 'nowrap' }}>{utcOffsetLabel(participant.timezone, referenceDate)}</span>
                     : <span style={{ fontSize: '0.65rem', color: 'var(--accent)' }}>ещё не отмечался</span>}
                 </span>
               </button>
@@ -53,4 +55,19 @@ export default function CalendarParticipants({
       </ul>
     </aside>
   )
+}
+
+function utcOffsetLabel(timezone: string | null, date: Date) {
+  if (!timezone) return 'пояс не указан'
+  try {
+    const part = new Intl.DateTimeFormat('en', {
+      timeZone: timezone,
+      timeZoneName: 'shortOffset',
+      hour: '2-digit',
+    }).formatToParts(date).find((item) => item.type === 'timeZoneName')?.value
+    if (!part) return timezone
+    return part.replace('GMT', 'UTC')
+  } catch {
+    return timezone
+  }
 }

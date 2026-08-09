@@ -70,7 +70,7 @@ test('участники отмечают общий слот и назнача�
   openMatchingPage,
   dbExec,
 }) => {
-  const { session, books, participantA, getParticipantB, getParticipantC } = matchingBooksFixture
+  const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
   const [participantB, participantC] = await Promise.all([getParticipantB(), getParticipantC()])
   const targetBook = books[0]
 
@@ -95,14 +95,24 @@ test('участники отмечают общий слот и назнача�
     const slug = new URL(calendarUrl).pathname.split('/').pop()
     expect(slug).toBeTruthy()
 
-    const { key } = await firstFutureCell(participantAPage)
-    await markSlot(participantA.request, key)
+    const adminPage = await openMatchingPage(admin)
+    await adminPage.goto(`${new URL(calendarUrl).pathname}?as=${participantA.userId}`)
+    await expect(adminPage.getByTestId('calendar-grid')).toBeVisible()
+
+    const { key, locator } = await firstFutureCell(adminPage)
+    const saveResponsePromise = adminPage.waitForResponse((response) =>
+      response.url().includes('/api/calendar/availability') && response.request().method() === 'PUT',
+    )
+    await locator.click()
+    await expect(adminPage.getByRole('dialog')).toHaveCount(0)
+    const saveResponse = await saveResponsePromise
+    expect(saveResponse.ok(), await saveResponse.text()).toBe(true)
     await markSlot(participantB.request, key)
 
     await participantAPage.reload()
     await expect(participantAPage.locator(`[data-testid="calendar-cell"][data-cell="${key}"]`)).toBeVisible()
 
-    const scheduleResponse = await participantA.request.post(`/api/calendar/${slug}/meetings`, {
+    const scheduleResponse = await admin.request.post(`/api/calendar/${slug}/meetings`, {
       data: { startsAt: key },
     })
     expect(scheduleResponse.ok(), await scheduleResponse.text()).toBe(true)

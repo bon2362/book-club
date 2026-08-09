@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { SessionProvider } from 'next-auth/react'
-import { ScrollHideProvider } from '@/lib/scroll-hide-context'
-import PostHogProvider from '@/components/PostHogProvider'
+import AppProviders from '@/components/AppProviders'
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -47,13 +45,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className="antialiased">
-        <SessionProvider>
-          <PostHogProvider>
-            <ScrollHideProvider>
-              {children}
-            </ScrollHideProvider>
-          </PostHogProvider>
-        </SessionProvider>
+        <AppProviders>{children}</AppProviders>
         <Analytics />
         <SpeedInsights />
       </body>

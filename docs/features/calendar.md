@@ -56,4 +56,8 @@ node --env-file=.env.local scripts/apply-migration.mjs drizzle/0062_calendar.sql
 
 Компоненты находятся в `components/nd/Calendar*.tsx`. Цвета и геометрия используют токены из `app/globals.css`; прозрачные зелёные ступени задаются через `color-mix(in srgb, var(--success) N%, transparent)`.
 
+Обычный клик по свободной клетке сразу сохраняет интервал длительностью `durationMinutes`; подтверждающий popover не нужен для отметки свободного времени. Popover остаётся для просмотра занятости, своей уже отмеченной клетки и назначения встречи. Длительность встречи редактируется select-контролом в шапке и сохраняется через `PATCH /api/calendar/[slug]`.
+
+Публичные страницы `/calendar/[slug]` не монтируют клиентский `SessionProvider`, чтобы не делать лишний `GET /api/auth/session`. PostHog остаётся подключённым для pageview/events, но remote feature flags отключены через `advanced_disable_flags`, чтобы не было фоновых `/flags`-запросов.
+
 Клавиатурная доступность сетки не входит в первую версию и вынесена в issue #537.

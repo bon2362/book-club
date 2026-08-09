@@ -33,7 +33,13 @@ function IdentityTracker() {
   return null
 }
 
-export default function PostHogProvider({ children }: { children: React.ReactNode }) {
+export default function PostHogProvider({
+  children,
+  identifySession = true,
+}: {
+  children: React.ReactNode
+  identifySession?: boolean
+}) {
   useEffect(() => {
     initPostHog()
   }, [])
@@ -43,7 +49,7 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       <Suspense fallback={null}>
         <PageviewTracker />
       </Suspense>
-      <IdentityTracker />
+      {identifySession && <IdentityTracker />}
       {children}
     </>
   )
