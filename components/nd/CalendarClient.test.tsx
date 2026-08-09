@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import CalendarClient from './CalendarClient'
 import type { CalendarPublicState } from '@/lib/calendar/public-state'
+import { detectBrowserTimeZone } from '@/lib/calendar/timezone'
 
 function response(body: unknown, ok = true): Response {
   return { ok, json: () => Promise.resolve(body) } as Response
@@ -134,10 +135,27 @@ function makeCircleState(): CalendarPublicState {
   }
 }
 
+jest.mock('@/lib/calendar/timezone', () => ({
+  ...jest.requireActual('@/lib/calendar/timezone'),
+  detectBrowserTimeZone: jest.fn(),
+}))
+
+const mockDetect = detectBrowserTimeZone as jest.MockedFunction<typeof detectBrowserTimeZone>
+
+/** Анонимный посетитель по публичной ссылке: своего пояса в профиле нет. */
+function makeAnonymousState(): CalendarPublicState {
+  const base = makeCircleState()
+  return {
+    ...base,
+    viewer: { ref: null, canEdit: false, isAdmin: false, actingAsRef: null, timezone: null, timezoneConfirmed: false },
+  }
+}
+
 describe('CalendarClient', () => {
   beforeEach(() => {
     jest.useFakeTimers()
     global.fetch = jest.fn()
+    mockDetect.mockReturnValue('Europe/Belgrade')
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: jest.fn().mockImplementation((query: string) => ({
@@ -383,5 +401,63 @@ describe('CalendarClient', () => {
     expect(lastBody.intervals.map((i: { startsAt: string }) => i.startsAt)).toContain('2026-08-11T14:00:00.000Z')
     // И второй блок не должен пропасть с экрана.
     expect(screen.getByRole('button', { name: '11 авг. 16:00' })).toHaveAttribute('data-free', '1')
+  })
+
+  it('анонимному посетителю рисует сетку в поясе его браузера, а не в UTC', async () => {
+    mockDetect.mockReturnValue('Asia/Tbilisi')
+    ;(global.fetch as jest.Mock).mockResolvedValue(response({}))
+
+    await act(async () => { render(<CalendarClient initialState={makeAnonymousState()} />) })
+
+    // 12:00Z в Тбилиси — 16:00. До починки подпись оставалась серверной, UTC.
+    const cell = document.querySelector('[data-cell="2026-08-11T12:00:00.000Z"]')
+    expect(cell).toHaveAttribute('aria-label', '11 авг. 16:00')
+  })
+
+  it('анонимному показывает выбор пояса, но ничего не сохраняет в профиль', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue(response({}))
+
+    await act(async () => { render(<CalendarClient initialState={makeAnonymousState()} />) })
+
+    expect(screen.getByLabelText('Часовой пояс')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'ВЕРНО' })).not.toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Часовой пояс'), { target: { value: 'Asia/Tbilisi' } })
+    })
+
+    expect(screen.getByRole('button', { name: '11 авг. 16:00' })).toBeInTheDocument()
+    const profileCalls = (global.fetch as jest.Mock).mock.calls
+      .filter(([url]) => String(url).includes('/api/profile/timezone'))
+    expect(profileCalls).toHaveLength(0)
+  })
+
+  it('участнику без сохранённого пояса определяет его и записывает в профиль', async () => {
+    mockDetect.mockReturnValue('Asia/Tbilisi')
+    ;(global.fetch as jest.Mock).mockResolvedValue(response({}))
+    const state = makeCircleState()
+
+    await act(async () => {
+      render(<CalendarClient initialState={{
+        ...state,
+        viewer: { ...state.viewer, timezone: null, timezoneConfirmed: false },
+      }} />)
+    })
+
+    const profileCall = (global.fetch as jest.Mock).mock.calls
+      .find(([url]) => String(url).includes('/api/profile/timezone'))
+    expect(profileCall).toBeDefined()
+    expect(JSON.parse(profileCall![1].body)).toEqual({ timezone: 'Asia/Tbilisi', confirmed: false })
+    expect(screen.getByRole('button', { name: '11 авг. 16:00' })).toBeInTheDocument()
+  })
+
+  it('сохранённый пояс профиля важнее браузерного', async () => {
+    mockDetect.mockReturnValue('America/New_York')
+    ;(global.fetch as jest.Mock).mockResolvedValue(response({}))
+
+    await act(async () => { render(<CalendarClient initialState={makeCircleState()} />) })
+
+    // Профиль говорит Белград — значит 14:00, а не нью-йоркские 08:00.
+    expect(screen.getByRole('button', { name: '11 авг. 14:00' })).toBeInTheDocument()
   })
 })
