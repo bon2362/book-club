@@ -152,17 +152,38 @@ describe('MatchingBookCard', () => {
     expect(screen.getByText('● Ваш круг')).toBeInTheDocument()
   })
 
-  it('shows unplaced participants only after the book has formed', () => {
+  it('shows unplaced participants to the organiser only after the book has formed', () => {
     const assignedBook = {
       ...book,
       participants: [...book.participants, { ref: 'viewer', displayName: 'Евгений', status: 'assigned' as const, rank: 1 }],
       unplacedParticipantRefs: ['viewer'],
     }
-    const { rerender } = render(<MatchingBookCard book={assignedBook} {...baseProps} />)
+    const { rerender } = render(<MatchingBookCard book={assignedBook} {...baseProps} adminMode />)
     expect(screen.queryByText('Без круга: Евгений')).not.toBeInTheDocument()
 
-    rerender(<MatchingBookCard book={{ ...assignedBook, formedAt: '2026-07-14T08:00:00Z' }} {...baseProps} />)
+    rerender(<MatchingBookCard book={{ ...assignedBook, formedAt: '2026-07-14T08:00:00Z' }} {...baseProps} adminMode />)
     expect(screen.getByText('Без круга: Евгений')).toBeInTheDocument()
+  })
+
+  // Composition diagnostics are organiser-only: a participant cannot place anyone into a
+  // circle, so both the warning and its orange accent would be alarm without a remedy.
+  it('hides composition diagnostics from participants', () => {
+    const brokenBook = {
+      ...book,
+      formedAt: '2026-07-14T08:00:00Z',
+      currentViability: 'needs_attention' as const,
+      participants: [...book.participants, { ref: 'viewer', displayName: 'Евгений', status: 'assigned' as const, rank: 1 }],
+      unplacedParticipantRefs: ['viewer'],
+    }
+    const { container, rerender } = render(<MatchingBookCard book={brokenBook} {...baseProps} />)
+    expect(screen.queryByText('Состав требует корректировки')).not.toBeInTheDocument()
+    expect(screen.queryByText('Без круга: Евгений')).not.toBeInTheDocument()
+    expect(container.querySelector('.needs-attention')).not.toBeInTheDocument()
+
+    rerender(<MatchingBookCard book={brokenBook} {...baseProps} adminMode />)
+    expect(screen.getByText('Состав требует корректировки')).toBeInTheDocument()
+    expect(screen.getByText('Без круга: Евгений')).toBeInTheDocument()
+    expect(container.querySelector('.needs-attention')).toBeInTheDocument()
   })
 
   it('emits a hard command from the initiating button', () => {

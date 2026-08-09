@@ -36,6 +36,19 @@ async function bookAction(
   expect(response.ok(), await response.text()).toBe(true)
 }
 
+async function adminBookAction(
+  request: APIRequestContext,
+  sessionId: string,
+  action: 'deleteCircle',
+  payload: Record<string, string>,
+) {
+  const current = await state(request, sessionId)
+  const response = await request.post(`/api/admin/matching/sessions/${sessionId}/book-admin-actions`, {
+    data: { action, ...payload, expectedStateVersion: current.session.stateVersion },
+  })
+  expect(response.ok(), await response.text()).toBe(true)
+}
+
 test.beforeEach(async () => {
   await epic('Матчинг')
   await feature('Книжный режим')
@@ -255,6 +268,40 @@ test('после cutover книга без ранга не возвращает 
   await expect(participantAPage.getByTestId('matching-books-view')).toBeVisible()
   await expect(participantAPage.getByTestId('ranking-gate')).toHaveCount(0)
   await expect(participantAPage.getByTestId(`matching-book-card-${books[0].id}`)).toBeVisible()
+})
+
+test('диагностика состава видна администратору, но не участнику', async ({
+  matchingBooksFixture,
+  openMatchingPage,
+}) => {
+  const { session, books, participantA, getParticipantB, getParticipantC, admin } = matchingBooksFixture
+  const [participantB, participantC] = await Promise.all([getParticipantB(), getParticipantC()])
+  const targetBook = books[0]
+
+  await bookAction(participantC.request, session.id, 'setConditional', targetBook.id)
+  await bookAction(participantA.request, session.id, 'setHard', targetBook.id)
+  await bookAction(participantB.request, session.id, 'setHard', targetBook.id)
+
+  const formed = await state(participantA.request, session.id)
+  const circle = formed.bookMode?.books.find((book) => book.bookId === targetBook.id)?.circles[0]
+  expect(circle, 'книга должна сформировать круг').toBeTruthy()
+
+  // Admin dissolves the circle: assignments survive but nobody is placed, which is exactly
+  // the state both labels describe — and which only the organiser can repair.
+  await adminBookAction(admin.request, session.id, 'deleteCircle', { circleId: circle!.id })
+
+  const participantPage = await openMatchingPage(participantA)
+  await participantPage.goto('/matching')
+  const participantCard = participantPage.getByTestId(`matching-book-card-${targetBook.id}`)
+  await expect(participantCard).toBeVisible()
+  await expect(participantCard).not.toContainText('Состав требует корректировки')
+  await expect(participantCard).not.toContainText('Без круга')
+
+  const adminPage = await openMatchingPage(admin)
+  await adminPage.goto('/matching')
+  const adminCard = adminPage.getByTestId(`matching-book-card-${targetBook.id}`)
+  await expect(adminCard).toContainText('Состав требует корректировки')
+  await expect(adminCard).toContainText('Без круга')
 })
 
 test('администратор вне состава видит union книг и управление, но не participant CTA', async ({
