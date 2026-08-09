@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useRef, useState } from 'react'
 import type { OverlapResult } from '@/lib/calendar/overlap'
 import { addSlots, slotKey } from '@/lib/calendar/slots'
+import { formatInZone } from '@/lib/calendar/timezone'
 
 export interface CalendarColumn {
   day: Date
@@ -19,7 +20,8 @@ export default function CalendarGrid({
   canEdit,
   selectedKey,
   isMobile,
-  participantCount,
+  markedCount,
+  timeZone,
   onPaint,
   onCellClick,
 }: {
@@ -32,7 +34,9 @@ export default function CalendarGrid({
   canEdit: boolean
   selectedKey: string | null
   isMobile: boolean
-  participantCount: number
+  /** Знаменатель шкалы — те, кто хоть что-то отметил. Совпадает со знаменателем правила кандидата. */
+  markedCount: number
+  timeZone: string
   onPaint: (keys: string[], mode: 'paint' | 'erase') => void
   onCellClick: (key: string) => void
 }) {
@@ -95,14 +99,14 @@ export default function CalendarGrid({
         <div key={`gap-head-${index}`} aria-hidden="true" style={{ width: 9 }} />
       ) : (
         <div key={column.day.toISOString()} style={{ textAlign: 'center', paddingBottom: 8, color: 'var(--text-secondary)', fontSize: '0.68rem', lineHeight: 1.25 }}>
-          <span>{formatWeekday(column.day)}</span>
-          <b style={{ display: 'block', color: 'var(--text)', fontSize: '0.9rem' }}>{formatDay(column.day)}</b>
+          <span>{formatWeekday(column.day, timeZone)}</span>
+          <b style={{ display: 'block', color: 'var(--text)', fontSize: '0.9rem' }}>{formatDay(column.day, timeZone)}</b>
         </div>
       ))}
       {slots.map((halfHour) => (
         <Fragment key={`slot-${halfHour}`}>
           <div key={`time-${halfHour}`} style={{ height: 'var(--calendar-cell-h, 22px)', color: 'var(--text-muted)', fontFamily: 'var(--nd-mono)', fontSize: '0.63rem', textAlign: 'right', paddingRight: 8, transform: 'translateY(-0.4em)' }}>
-            {halfHour % 2 === 0 ? formatSlot(addSlots(columns.find((c) => !c.hiddenGap)?.day ?? new Date(), halfHour)) : ''}
+            {halfHour % 2 === 0 ? formatSlot(addSlots(columns.find((c) => !c.hiddenGap)?.day ?? new Date(), halfHour), timeZone) : ''}
           </div>
           {columns.map((column, index) => {
             if (column.hiddenGap) {
@@ -110,28 +114,39 @@ export default function CalendarGrid({
             }
             const key = keyFor(column.day, halfHour)
             const cell = overlap.cells.get(key)
-            const candidate = overlap.candidateStarts.has(key)
             const covered = overlap.candidateCovered.has(key)
             const previousKey = slotKey(addSlots(new Date(key), -1))
             const previousVisible = halfHour > slotRange[0]
             const markedByEditor = markerFreeKeys.has(key)
             const mineStart = markedByEditor && (!previousVisible || !markerFreeKeys.has(previousKey))
+            const focused = Boolean(focusRef)
             const freeCount = focusRef
               ? cell?.freeRefs.includes(focusRef) ? 1 : 0
               : cell?.freeRefs.length ?? 0
-            const ratio = participantCount > 0 ? freeCount / participantCount : 0
-            const tone = ratio === 0
+            // `covered` уже означает «клетка внутри окна, где свободны все отметившиеся»,
+            // поэтому тёмный тон красит всю длительность встречи, а не только её начало.
+            const full = !focused && covered && markedCount > 0
+            const ratio = markedCount > 0 ? freeCount / markedCount : 0
+            const toneName = freeCount === 0 ? 'none' : focused ? 'focus' : full ? 'full' : 'partial'
+            const tone = toneName === 'none'
               ? 'transparent'
-              : candidate || (covered && freeCount === participantCount)
-                ? 'color-mix(in srgb, var(--success) 62%, transparent)'
-                : `color-mix(in srgb, var(--success) ${Math.round(10 + 28 * ratio)}%, transparent)`
+              : toneName === 'focus'
+                ? 'color-mix(in srgb, var(--success) 50%, transparent)'
+                : toneName === 'full'
+                  ? 'color-mix(in srgb, var(--success) 62%, transparent)'
+                  : `color-mix(in srgb, var(--success) ${Math.round(10 + 28 * ratio)}%, transparent)`
             return (
               <button
                 key={key}
                 type="button"
                 data-cell={key}
                 data-testid="calendar-cell"
-                aria-label={`${formatDay(column.day)} ${formatSlot(addSlots(column.day, halfHour))}`}
+                // Тон нельзя проверить через стиль: jsdom не разбирает color-mix и молча
+                // выбрасывает значение, из-за чего любые toHaveStyle-проверки проходят всегда.
+                data-tone={toneName}
+                data-free={freeCount}
+                data-marked={markedCount}
+                aria-label={`${formatDay(column.day, timeZone)} ${formatSlot(addSlots(column.day, halfHour), timeZone)}`}
                 onPointerDown={(event) => begin(key, event.pointerType)}
                 onPointerEnter={() => {
                   setHover(key)
@@ -167,7 +182,7 @@ export default function CalendarGrid({
                     }}
                   />
                 )}
-                {!isMobile && hover === key && candidate && canEdit && (
+                {!isMobile && hover === key && overlap.candidateStarts.has(key) && canEdit && (
                   <span style={{
                     position: 'absolute',
                     left: '50%',
@@ -182,7 +197,7 @@ export default function CalendarGrid({
                     whiteSpace: 'nowrap',
                     boxShadow: 'var(--shadow-pop)',
                   }}>
-                    Назначить встречу на {formatSlot(new Date(key))}
+                    Назначить встречу на {formatSlot(new Date(key), timeZone)}
                   </span>
                 )}
               </button>
@@ -194,14 +209,14 @@ export default function CalendarGrid({
   )
 }
 
-function formatWeekday(day: Date) {
-  return new Intl.DateTimeFormat('ru', { weekday: 'short', timeZone: 'UTC' }).format(day)
+function formatWeekday(day: Date, timeZone: string) {
+  return formatInZone(day, timeZone, { weekday: 'short' })
 }
 
-function formatDay(day: Date) {
-  return new Intl.DateTimeFormat('ru', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(day)
+function formatDay(day: Date, timeZone: string) {
+  return formatInZone(day, timeZone, { day: 'numeric', month: 'short' })
 }
 
-function formatSlot(day: Date) {
-  return new Intl.DateTimeFormat('ru', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(day)
+function formatSlot(day: Date, timeZone: string) {
+  return formatInZone(day, timeZone, { hour: '2-digit', minute: '2-digit' })
 }
