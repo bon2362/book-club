@@ -329,7 +329,7 @@ export default function CalendarClient({
       )}
 
       {(expanded || upcoming.length === 0) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 216px', gap: 28, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 216px', gap: isNarrow ? 20 : 28, alignItems: 'start' }}>
           <section>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
               <button type="button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))} style={navButtonStyle}>‹</button>

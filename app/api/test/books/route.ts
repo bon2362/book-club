@@ -15,6 +15,7 @@ import {
   matchingBookAssignments,
   matchingBookIntents,
   matchingCircles,
+  circleSchedules,
   matchingSessionBookStates,
 } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -93,6 +94,10 @@ export async function DELETE(req: NextRequest) {
     await tx.delete(matchingBookIntents).where(eq(matchingBookIntents.bookId, id))
     await tx.delete(matchingCircles).where(eq(matchingCircles.bookId, id))
     await tx.delete(matchingSessionBookStates).where(eq(matchingSessionBookStates.bookId, id))
+    // circle_schedules ссылается на книгу через restrict, а circle_meetings каскадится
+    // от пространства. Без этой строки книгу, для которой открывали календарь, удалить
+    // нельзя: teardown падает на внешнем ключе и оставляет мусор в общей e2e-ветке.
+    await tx.delete(circleSchedules).where(eq(circleSchedules.bookId, id))
     await tx.delete(books).where(eq(books.id, id))
   })
   return NextResponse.json({ ok: true })
