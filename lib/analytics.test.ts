@@ -37,6 +37,16 @@ describe('initPostHog', () => {
     initPostHog()
     expect(posthog.init).not.toHaveBeenCalled()
   })
+
+  it('initialises without remote feature-flag requests', () => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+
+    initPostHog()
+
+    expect(posthog.init).toHaveBeenCalledWith('phc_test', expect.objectContaining({
+      advanced_disable_flags: true,
+    }))
+  })
 })
 
 describe('identifyUser', () => {

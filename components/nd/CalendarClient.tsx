@@ -124,6 +124,13 @@ export default function CalendarClient({
     .filter((meeting) => meeting.canceledAt !== null || new Date(meeting.startsAt) < new Date(state.now))
     .sort((left, right) => right.startsAt.localeCompare(left.startsAt))
   const selectedCell = selectedKey ? overlap.cells.get(selectedKey) : null
+  const durationOptions = [30, 60, 90, 120, 150, 180]
+
+  function blockKeys(key: string) {
+    const startsAt = new Date(key)
+    const span = Math.max(1, state.durationMinutes / SLOT_MINUTES)
+    return Array.from({ length: span }, (_, step) => addSlots(startsAt, step).toISOString())
+  }
 
   function paint(keys: string[], mode: 'paint' | 'erase') {
     setViewerIntervals((current) => {
@@ -134,6 +141,35 @@ export default function CalendarClient({
       }
       return normalize(next)
     })
+  }
+
+  function toggleBlock(key: string) {
+    paint(blockKeys(key), viewerFreeKeys.has(key) ? 'erase' : 'paint')
+  }
+
+  function handleCellClick(key: string) {
+    if (!state.viewer.canEdit) {
+      setSelectedKey(key)
+      return
+    }
+    const cell = overlap.cells.get(key)
+    const busy = Boolean(cell?.busyRefs.length)
+    if (busy || (viewerFreeKeys.has(key) && overlap.candidateStarts.has(key))) {
+      setSelectedKey(key)
+      return
+    }
+    setSelectedKey(null)
+    toggleBlock(key)
+  }
+
+  async function updateDuration(durationMinutes: number) {
+    setState((current) => ({ ...current, durationMinutes }))
+    const response = await fetch(`/api/calendar/${state.slug}${asQuery}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ durationMinutes }),
+    })
+    if (response.ok) await reloadState()
   }
 
   async function scheduleMeeting(key: string) {
@@ -168,7 +204,18 @@ export default function CalendarClient({
         <div>
           <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '2rem', lineHeight: 1.15, margin: '0 0 6px', fontWeight: 400 }}>{state.book.title}</h1>
           {state.book.author && <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{state.book.author}</div>}
-          <div style={{ marginTop: 10, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Круг {state.position} · встреча {state.durationMinutes} минут</div>
+          <label style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+            <span>Длительность встречи</span>
+            <select
+              aria-label="Длительность встречи"
+              value={state.durationMinutes}
+              disabled={!state.viewer.canEdit}
+              onChange={(event) => void updateDuration(Number(event.target.value))}
+              style={{ font: 'inherit', fontFamily: 'var(--nd-mono)', fontSize: '0.78rem', background: 'var(--bg-input)', border: '1px solid var(--border)', borderBottom: '2px solid var(--border-strong)', padding: '3px 6px', color: 'var(--text)' }}
+            >
+              {durationOptions.map((minutes) => <option key={minutes} value={minutes}>{minutes} мин</option>)}
+            </select>
+          </label>
         </div>
       </header>
       {!state.circleExists && <Banner><b>Круг больше не существует.</b> Состав книги пересобран. Назначенные встречи сохранены, но новые действия здесь недоступны.</Banner>}
@@ -205,12 +252,11 @@ export default function CalendarClient({
                 viewerFreeKeys={viewerFreeKeys}
                 focusRef={focusRef}
                 canEdit={state.viewer.canEdit}
-                durationMinutes={state.durationMinutes}
                 selectedKey={selectedKey}
                 isMobile={false}
                 participantCount={participants.length}
                 onPaint={paint}
-                onCellClick={setSelectedKey}
+                onCellClick={handleCellClick}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--hair-soft)', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--radius-control)', overflow: 'hidden' }}>
@@ -222,7 +268,7 @@ export default function CalendarClient({
             </div>
           </section>
           <section>
-            <CalendarParticipants participants={participants} viewerRef={state.viewer.ref} focusRef={focusRef} onFocus={setFocusRef} />
+            <CalendarParticipants participants={participants} viewerRef={state.viewer.ref} focusRef={focusRef} onFocus={setFocusRef} referenceDate={new Date(state.now)} />
             <CalendarLegend markedCount={overlap.markedRefs.length} />
           </section>
         </div>
@@ -246,7 +292,7 @@ export default function CalendarClient({
           viewerFree={viewerFreeKeys.has(selectedKey)}
           onClose={() => setSelectedKey(null)}
           onSchedule={() => void scheduleMeeting(selectedKey)}
-          onToggleMine={() => paint([selectedKey], viewerFreeKeys.has(selectedKey) ? 'erase' : 'paint')}
+          onToggleMine={() => toggleBlock(selectedKey)}
         />
       )}
     </Shell>

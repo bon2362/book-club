@@ -4,7 +4,7 @@ export default function CalendarLegend({ markedCount }: { markedCount: number })
     <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--hair)', display: 'flex', flexDirection: 'column', gap: 7, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <span style={{ display: 'flex', gap: 2 }}>{scale.map((percent) => <i key={percent} style={{ width: 14, height: 16, background: `color-mix(in srgb, var(--success) ${percent}%, transparent)` }} />)}</span>
-        <span>1 → {Math.max(1, markedCount)} свободны</span>
+        <span>Чем больше участников свободны, тем темнее клетка</span>
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Swatch background="color-mix(in srgb, var(--success) 62%, transparent)" /><span>свободны все — можно назначить</span></div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Swatch mine background="color-mix(in srgb, var(--success) 28%, transparent)" /><span>отмечено вами</span></div>
