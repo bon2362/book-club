@@ -110,6 +110,30 @@ function makeActingAdminState(): CalendarPublicState {
   }
 }
 
+// Круг из четырёх, как на проде: двое отметились, двое не заходили.
+function makeCircleState(): CalendarPublicState {
+  const shared = [{ startsAt: '2026-08-11T12:00:00.000Z', endsAt: '2026-08-11T13:00:00.000Z' }]
+  const person = (ref: string, displayName: string, intervals: { startsAt: string; endsAt: string }[]) => ({
+    ref,
+    displayName,
+    timezone: 'Europe/Belgrade',
+    timezoneConfirmed: true,
+    marked: intervals.length > 0,
+    intervals,
+    busy: [],
+  })
+  return {
+    ...makeState(shared),
+    durationMinutes: 60,
+    participants: [
+      person('viewer', 'Евгений Кошкин', shared),
+      person('vova', 'Vova', shared),
+      person('julia', 'Julia M', []),
+      person('nick', 'Псевдоним', []),
+    ],
+  }
+}
+
 describe('CalendarClient', () => {
   beforeEach(() => {
     jest.useFakeTimers()
@@ -140,7 +164,7 @@ describe('CalendarClient', () => {
 
     render(<CalendarClient initialState={makeState()} />)
 
-    const cell = screen.getByRole('button', { name: '11 авг. 11:00' })
+    const cell = screen.getByRole('button', { name: '11 авг. 13:00' })
     fireEvent.pointerDown(cell, { pointerType: 'mouse' })
     fireEvent.pointerUp(cell)
 
@@ -164,7 +188,7 @@ describe('CalendarClient', () => {
 
     render(<CalendarClient initialState={makeState()} />)
 
-    const cell = screen.getByRole('button', { name: '11 авг. 11:00' })
+    const cell = screen.getByRole('button', { name: '11 авг. 13:00' })
     fireEvent.pointerDown(cell, { pointerType: 'mouse' })
     fireEvent.pointerUp(cell)
 
@@ -189,7 +213,7 @@ describe('CalendarClient', () => {
 
     render(<CalendarClient initialState={makeState([interval])} />)
 
-    const lastCell = screen.getByRole('button', { name: '11 авг. 12:00' })
+    const lastCell = screen.getByRole('button', { name: '11 авг. 14:00' })
     fireEvent.pointerDown(lastCell, { pointerType: 'mouse' })
     fireEvent.pointerUp(lastCell)
 
@@ -282,15 +306,82 @@ describe('CalendarClient', () => {
     Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
   })
 
-  it('shows the acting participant calendar by default in admin acting mode', () => {
+  it('показывает чужие отметки тепловой картой в админском режиме, без наведения', () => {
     render(<CalendarClient initialState={makeActingAdminState()} actingUserId="user-vova" />)
 
-    const vovaCell = screen.getByRole('button', { name: '11 авг. 15:00' })
-    const adminCell = screen.getByRole('button', { name: '11 авг. 12:00' })
+    // Время того, за кого действуем.
+    expect(screen.getByRole('button', { name: '11 авг. 17:00' })).toHaveAttribute('data-tone', 'partial')
+    // Время другого участника обязано быть видно сразу — из-за #547 оно пропадало.
+    expect(screen.getByRole('button', { name: '11 авг. 14:00' })).toHaveAttribute('data-tone', 'partial')
+  })
 
-    expect(vovaCell).toHaveStyle({
-      background: 'color-mix(in srgb, var(--success) 62%, transparent)',
+  it('фильтрует сетку по участнику только после явного наведения', () => {
+    render(<CalendarClient initialState={makeActingAdminState()} actingUserId="user-vova" />)
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /Евгений Кошкин/ }))
+
+    expect(screen.getByRole('button', { name: '11 авг. 14:00' })).toHaveAttribute('data-tone', 'focus')
+    expect(screen.getByRole('button', { name: '11 авг. 17:00' })).toHaveAttribute('data-tone', 'none')
+  })
+
+  it('тёмный тон покрывает всю длительность встречи, а не только её начало', () => {
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    // Пересечение 14:00–15:00 по Белграду при длительности 60 минут — обе клетки.
+    expect(screen.getByRole('button', { name: '11 авг. 14:00' })).toHaveAttribute('data-tone', 'full')
+    expect(screen.getByRole('button', { name: '11 авг. 14:30' })).toHaveAttribute('data-tone', 'full')
+  })
+
+  it('считает шкалу от отметившихся, а не от размера круга', () => {
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    const cell = screen.getByRole('button', { name: '11 авг. 14:00' })
+    // Двое не заходивших в знаменатель не попадают, иначе шкала никогда не дойдёт до максимума.
+    expect(cell).toHaveAttribute('data-marked', '2')
+    expect(cell).toHaveAttribute('data-free', '2')
+  })
+
+  it('подписывает сетку в поясе смотрящего, а не в UTC', () => {
+    render(<CalendarClient initialState={makeCircleState()} />)
+
+    // 12:00Z в Белграде — это 14:00.
+    expect(screen.getByRole('button', { name: '11 авг. 14:00' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '11 авг. 12:00' })).not.toBeInTheDocument()
+  })
+
+  it('не теряет клики, сделанные пока летит сохранение', async () => {
+    let releaseSave: (() => void) | null = null
+    const firstBlockOnly = [{ startsAt: '2026-08-11T11:00:00.000Z', endsAt: '2026-08-11T12:30:00.000Z' }]
+    ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
+      if (String(url).includes('/api/calendar/availability') && init?.method === 'PUT') {
+        return new Promise((resolve) => { releaseSave = () => resolve(response({ ok: true })) })
+      }
+      // Перечитанное состояние знает только про первый блок — второй кликнули позже.
+      return Promise.resolve(response(makeState(firstBlockOnly)))
     })
-    expect(adminCell).toHaveStyle({ background: 'transparent' })
+
+    render(<CalendarClient initialState={makeState()} />)
+
+    const first = screen.getByRole('button', { name: '11 авг. 13:00' })
+    fireEvent.pointerDown(first, { pointerType: 'mouse' })
+    fireEvent.pointerUp(first)
+    await act(async () => { await jest.advanceTimersByTimeAsync(400) })
+
+    // Пока запрос в полёте, пользователь отмечает ещё один слот.
+    const second = screen.getByRole('button', { name: '11 авг. 16:00' })
+    fireEvent.pointerDown(second, { pointerType: 'mouse' })
+    fireEvent.pointerUp(second)
+
+    await act(async () => { releaseSave?.(); await jest.advanceTimersByTimeAsync(0) })
+    await act(async () => { await jest.advanceTimersByTimeAsync(400) })
+
+    const saves = (global.fetch as jest.Mock).mock.calls.filter(([url, init]) => (
+      String(url).includes('/api/calendar/availability') && init?.method === 'PUT'
+    ))
+    const lastBody = JSON.parse(saves.at(-1)![1].body)
+    expect(lastBody.intervals).toHaveLength(2)
+    expect(lastBody.intervals.map((i: { startsAt: string }) => i.startsAt)).toContain('2026-08-11T14:00:00.000Z')
+    // И второй блок не должен пропасть с экрана.
+    expect(screen.getByRole('button', { name: '11 авг. 16:00' })).toHaveAttribute('data-free', '1')
   })
 })

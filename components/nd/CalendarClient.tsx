@@ -11,6 +11,7 @@ import { addInterval, normalize, removeInterval } from '@/lib/calendar/availabil
 import { computeOverlap } from '@/lib/calendar/overlap'
 import { addSlots, enumerateSlots, SLOT_MINUTES, type Interval } from '@/lib/calendar/slots'
 import type { CalendarPublicState } from '@/lib/calendar/public-state'
+import { addLocalDays, formatInZone, localDayKey, resolveViewerTimeZone, startOfLocalDay } from '@/lib/calendar/timezone'
 
 export default function CalendarClient({
   initialState,
@@ -28,6 +29,7 @@ export default function CalendarClient({
   const [expanded, setExpanded] = useState(initialState.meetings.filter((meeting) => meeting.canceledAt === null && new Date(meeting.startsAt) > new Date(initialState.now)).length === 0)
   const [isDesktop, setIsDesktop] = useState(false)
   const [viewerIntervals, setViewerIntervals] = useState<Interval[]>(() => actingParticipant(initialState)?.intervals.map(parseInterval) ?? [])
+  const timeZone = useMemo(() => resolveViewerTimeZone(state.viewer.timezone), [state.viewer.timezone])
   const skipSave = useRef(true)
   const asQuery = actingUserId ? `?as=${encodeURIComponent(actingUserId)}` : ''
 
@@ -44,7 +46,17 @@ export default function CalendarClient({
     return () => query.removeEventListener('change', update)
   }, [])
 
+  // Каждая локальная правка увеличивает editSeq; savedSeq — номер правки, которую
+  // сервер уже подтвердил. Пока они расходятся, у нас есть несохранённые изменения,
+  // и серверный ответ (он отражает состояние на момент отправки, а не текущее)
+  // не имеет права затирать локальные интервалы. Без этого клики, сделанные пока
+  // летит запрос, откатывались назад и терялись.
+  const editSeq = useRef(0)
+  const savedSeq = useRef(0)
+  const hasUnsavedEdits = () => editSeq.current !== savedSeq.current
+
   useEffect(() => {
+    if (hasUnsavedEdits()) return
     const next = actingParticipant(state)?.intervals.map(parseInterval) ?? []
     setViewerIntervals((current) => {
       if (intervalsEqual(current, next)) return current
@@ -59,6 +71,7 @@ export default function CalendarClient({
       return
     }
     const timer = setTimeout(() => {
+      const sending = editSeq.current
       void fetch(`/api/calendar/availability${asQuery}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -68,7 +81,13 @@ export default function CalendarClient({
             endsAt: interval.endsAt.toISOString(),
           })),
         }),
-      }).then(() => reloadState())
+      }).then(() => {
+        savedSeq.current = sending
+        // Пока пользователь дорисовывал, появились более свежие правки — их сохранит
+        // следующий проход, а перечитывать состояние сейчас нельзя: ответ устарел.
+        if (editSeq.current !== sending) return
+        return reloadState()
+      })
     }, 400)
     return () => clearTimeout(timer)
   }, [asQuery, reloadState, state.viewer.canEdit, viewerIntervals])
@@ -106,17 +125,18 @@ export default function CalendarClient({
   }), [busyParticipants, state])
 
   const viewerFreeKeys = useMemo(() => new Set(viewerIntervals.flatMap(enumerateSlots)), [viewerIntervals])
-  const displayFocusRef = focusRef ?? (actingUserId ? state.viewer.actingAsRef : null)
-  const markerFreeKeys = !displayFocusRef || displayFocusRef === state.viewer.actingAsRef ? viewerFreeKeys : new Set<string>()
-  const dayStarts = useMemo(() => buildDayStarts(new Date(state.window.start)), [state.window.start])
+  // Фокус — это фильтр «показать время одного человека», он включается только явно.
+  // Автоматический фокус в админском режиме прятал тепловую карту остальных (#547).
+  const markerFreeKeys = !focusRef || focusRef === state.viewer.actingAsRef ? viewerFreeKeys : new Set<string>()
+  const dayStarts = useMemo(() => buildDayStarts(new Date(state.window.start), timeZone), [state.window.start, timeZone])
   const activeDayIndexes = useMemo(() => {
     const active = new Set<number>()
     for (const participant of participants) {
-      for (const interval of participant.intervals) active.add(dayIndexFor(new Date(interval.startsAt), dayStarts[0]))
+      for (const interval of participant.intervals) active.add(dayIndexFor(new Date(interval.startsAt), dayStarts, timeZone))
     }
-    for (const meeting of state.meetings) active.add(dayIndexFor(new Date(meeting.startsAt), dayStarts[0]))
+    for (const meeting of state.meetings) active.add(dayIndexFor(new Date(meeting.startsAt), dayStarts, timeZone))
     return Array.from(active).filter((index) => index >= 0 && index < 28).sort((a, b) => a - b)
-  }, [participants, state.meetings, dayStarts])
+  }, [participants, state.meetings, dayStarts, timeZone])
 
   const shownDayIndexes = crop && activeDayIndexes.length > 0 ? activeDayIndexes : Array.from({ length: 28 }, (_, index) => index)
   const perPage = 7
@@ -127,7 +147,7 @@ export default function CalendarClient({
     return [column]
   })
   const pages = Math.max(1, Math.ceil(shownDayIndexes.length / perPage))
-  const slotRange: [number, number] = fullDay ? [0, 48] : visibleSlotRange(participants, state.meetings, dayStarts, pageDays, crop)
+  const slotRange: [number, number] = fullDay ? [0, 48] : visibleSlotRange(participants, state.meetings, dayStarts, pageDays, crop, timeZone)
   const upcoming = state.meetings
     .filter((meeting) => meeting.canceledAt === null && new Date(meeting.startsAt) >= new Date(state.now))
     .sort((left, right) => left.startsAt.localeCompare(right.startsAt))
@@ -159,6 +179,7 @@ export default function CalendarClient({
   }
 
   function paint(keys: string[], mode: 'paint' | 'erase') {
+    editSeq.current += 1
     setViewerIntervals((current) => {
       let next = current
       for (const key of keys) {
@@ -253,7 +274,7 @@ export default function CalendarClient({
       {!state.viewer.ref && <Banner>Вы смотрите страницу по ссылке. Видно наложение и встречи; закрашивать своё время могут только участники круга.</Banner>}
       {state.viewer.isAdmin && state.viewer.actingAsRef && <Banner>Админский режим: действия выполняются за выбранного участника. В журнале останется административный actor.</Banner>}
 
-      {upcoming.map((meeting) => <CalendarMeetingCard key={meeting.id} meeting={meeting} bookTitle={state.book.title} canEdit={state.viewer.canEdit} onCancel={() => void cancelMeeting(meeting.id)} />)}
+      {upcoming.map((meeting) => <CalendarMeetingCard key={meeting.id} meeting={meeting} bookTitle={state.book.title} timeZone={timeZone} canEdit={state.viewer.canEdit} onCancel={() => void cancelMeeting(meeting.id)} />)}
 
       {upcoming.length > 0 && (
         <button type="button" onClick={() => setExpanded((value) => !value)} style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--hair)', padding: 0, color: 'var(--text-body)', cursor: 'pointer', margin: '8px 0 16px', font: 'inherit' }}>
@@ -266,7 +287,7 @@ export default function CalendarClient({
           <section>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
               <button type="button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))} style={navButtonStyle}>‹</button>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-body)' }}>{pageDays.length ? `${formatDay(dayStarts[pageDays[0]])} — ${formatDay(dayStarts[pageDays.at(-1)!])}` : '—'}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-body)' }}>{pageDays.length ? `${formatDay(dayStarts[pageDays[0]], timeZone)} — ${formatDay(dayStarts[pageDays.at(-1)!], timeZone)}` : '—'}</div>
               <button type="button" disabled={page >= pages - 1} onClick={() => setPage((value) => Math.min(pages - 1, value + 1))} style={navButtonStyle}>›</button>
             </div>
             <div style={{ position: 'relative', background: 'var(--bg-input)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-card)', padding: '10px 12px 12px', overflow: 'visible' }}>
@@ -282,11 +303,12 @@ export default function CalendarClient({
                 overlap={overlap}
                 viewerFreeKeys={viewerFreeKeys}
                 markerFreeKeys={markerFreeKeys}
-                focusRef={displayFocusRef}
+                focusRef={focusRef}
                 canEdit={state.viewer.canEdit}
                 selectedKey={selectedKey}
                 isMobile={false}
-                participantCount={participants.length}
+                markedCount={overlap.markedRefs.length}
+                timeZone={timeZone}
                 onPaint={paint}
                 onCellClick={handleCellClick}
               />
@@ -303,7 +325,7 @@ export default function CalendarClient({
             <CalendarParticipants
               participants={participants}
               viewerRef={state.viewer.ref}
-              focusRef={displayFocusRef}
+              focusRef={focusRef}
               isDesktop={isDesktop}
               isAdmin={state.viewer.isAdmin}
               onFocus={setFocusRef}
@@ -318,7 +340,7 @@ export default function CalendarClient({
       {past.length > 0 && (
         <details style={{ margin: '18px 0 0' }}>
           <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Уже прошли ({past.length})</summary>
-          <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>{past.map((meeting) => <li key={meeting.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 10px', background: 'var(--surface-soft)', fontSize: '0.82rem', color: 'var(--text-body)' }}>{formatDateTime(new Date(meeting.startsAt))}<span>{meeting.durationMinutes} мин</span></li>)}</ul>
+          <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>{past.map((meeting) => <li key={meeting.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 10px', background: 'var(--surface-soft)', fontSize: '0.82rem', color: 'var(--text-body)' }}>{formatDateTime(new Date(meeting.startsAt), timeZone)}<span>{meeting.durationMinutes} мин</span></li>)}</ul>
         </details>
       )}
 
@@ -328,6 +350,7 @@ export default function CalendarClient({
           cell={selectedCell}
           participants={participants}
           markedCount={overlap.markedRefs.length}
+          timeZone={timeZone}
           canEdit={state.viewer.canEdit}
           canSchedule={overlap.candidateStarts.has(selectedKey)}
           viewerFree={viewerFreeKeys.has(selectedKey)}
@@ -356,16 +379,17 @@ function intervalsEqual(left: Interval[], right: Interval[]) {
   ))
 }
 
-function buildDayStarts(windowStart: Date) {
-  const first = new Date(Date.UTC(windowStart.getUTCFullYear(), windowStart.getUTCMonth(), windowStart.getUTCDate()))
-  return Array.from({ length: 28 }, (_, index) => new Date(first.getTime() + index * 24 * 60 * 60 * 1000))
+function buildDayStarts(windowStart: Date, timeZone: string) {
+  const first = startOfLocalDay(windowStart, timeZone)
+  return Array.from({ length: 28 }, (_, index) => addLocalDays(first, index, timeZone))
 }
 
-function dayIndexFor(date: Date, firstDay: Date) {
-  return Math.floor((Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) - firstDay.getTime()) / (24 * 60 * 60 * 1000))
+function dayIndexFor(date: Date, dayStarts: Date[], timeZone: string) {
+  const key = localDayKey(date, timeZone)
+  return dayStarts.findIndex((dayStart) => localDayKey(dayStart, timeZone) === key)
 }
 
-function visibleSlotRange(participants: CalendarPublicState['participants'], meetings: CalendarPublicState['meetings'], dayStarts: Date[], pageDays: number[], crop: boolean): [number, number] {
+function visibleSlotRange(participants: CalendarPublicState['participants'], meetings: CalendarPublicState['meetings'], dayStarts: Date[], pageDays: number[], crop: boolean, timeZone: string): [number, number] {
   if (!crop) return [20, 42]
   let min = 48
   let max = 0
@@ -374,33 +398,34 @@ function visibleSlotRange(participants: CalendarPublicState['participants'], mee
     for (const interval of participant.intervals) {
       const start = new Date(interval.startsAt)
       const end = new Date(interval.endsAt)
-      const day = dayIndexFor(start, dayStarts[0])
+      const day = dayIndexFor(start, dayStarts, timeZone)
       if (!days.has(day)) continue
-      min = Math.min(min, slotInDay(start))
-      max = Math.max(max, slotInDay(end))
+      min = Math.min(min, slotInDay(start, timeZone))
+      max = Math.max(max, slotInDay(end, timeZone))
     }
   }
   for (const meeting of meetings) {
     const start = new Date(meeting.startsAt)
-    const day = dayIndexFor(start, dayStarts[0])
+    const day = dayIndexFor(start, dayStarts, timeZone)
     if (!days.has(day)) continue
-    min = Math.min(min, slotInDay(start))
-    max = Math.max(max, slotInDay(addSlots(start, meeting.durationMinutes / SLOT_MINUTES)))
+    min = Math.min(min, slotInDay(start, timeZone))
+    max = Math.max(max, slotInDay(addSlots(start, meeting.durationMinutes / SLOT_MINUTES), timeZone))
   }
   if (min >= max) return [20, 42]
   return [Math.max(0, min - 2), Math.min(48, max + 2)]
 }
 
-function slotInDay(date: Date) {
-  return date.getUTCHours() * 2 + Math.floor(date.getUTCMinutes() / 30)
+function slotInDay(date: Date, timeZone: string) {
+  const dayStart = startOfLocalDay(date, timeZone)
+  return Math.round((date.getTime() - dayStart.getTime()) / (SLOT_MINUTES * 60 * 1000))
 }
 
-function formatDay(date: Date) {
-  return new Intl.DateTimeFormat('ru', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(date)
+function formatDay(date: Date, timeZone: string) {
+  return formatInZone(date, timeZone, { day: 'numeric', month: 'short' })
 }
 
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(date)
+function formatDateTime(date: Date, timeZone: string) {
+  return formatInZone(date, timeZone, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
