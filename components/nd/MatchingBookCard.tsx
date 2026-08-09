@@ -153,7 +153,13 @@ export default function MatchingBookCard({
       </div>
 
       {formed && (
-        <MatchingBookCircles circles={book.circles} participants={book.participants} viewerRef={viewerRef} />
+        <MatchingBookCircles
+          circles={book.circles}
+          participants={book.participants}
+          viewerRef={viewerRef}
+          bookId={book.bookId}
+          adminMode={adminMode}
+        />
       )}
       {showCompositionDiagnostics && book.unplacedParticipantRefs.length > 0 && (
         <p className="nd-mb-unplaced">

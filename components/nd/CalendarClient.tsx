@@ -1,0 +1,328 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import CalendarCellPopover from './CalendarCellPopover'
+import CalendarGrid, { type CalendarColumn } from './CalendarGrid'
+import CalendarLegend from './CalendarLegend'
+import CalendarMeetingCard from './CalendarMeetingCard'
+import CalendarParticipants from './CalendarParticipants'
+import CalendarTimezoneBar from './CalendarTimezoneBar'
+import { addInterval, normalize, removeInterval } from '@/lib/calendar/availability-intervals'
+import { computeOverlap } from '@/lib/calendar/overlap'
+import { addSlots, enumerateSlots, SLOT_MINUTES, type Interval } from '@/lib/calendar/slots'
+import type { CalendarPublicState } from '@/lib/calendar/public-state'
+
+export default function CalendarClient({
+  initialState,
+  actingUserId,
+}: {
+  initialState: CalendarPublicState
+  actingUserId?: string
+}) {
+  const [state, setState] = useState(initialState)
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [focusRef, setFocusRef] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const [crop, setCrop] = useState(Boolean(initialState.viewer.ref && initialState.participants.find((p) => p.ref === initialState.viewer.actingAsRef)?.marked))
+  const [fullDay, setFullDay] = useState(false)
+  const [expanded, setExpanded] = useState(initialState.meetings.filter((meeting) => meeting.canceledAt === null && new Date(meeting.startsAt) > new Date(initialState.now)).length === 0)
+  const [viewerIntervals, setViewerIntervals] = useState<Interval[]>(() => actingParticipant(initialState)?.intervals.map(parseInterval) ?? [])
+  const skipSave = useRef(true)
+  const asQuery = actingUserId ? `?as=${encodeURIComponent(actingUserId)}` : ''
+
+  const reloadState = useCallback(async () => {
+    const response = await fetch(`/api/calendar/${state.slug}${asQuery}`)
+    if (response.ok) setState(await response.json())
+  }, [asQuery, state.slug])
+
+  useEffect(() => {
+    setViewerIntervals(actingParticipant(state)?.intervals.map(parseInterval) ?? [])
+  }, [state])
+
+  useEffect(() => {
+    if (!state.viewer.canEdit || skipSave.current) {
+      skipSave.current = false
+      return
+    }
+    const timer = setTimeout(() => {
+      void fetch(`/api/calendar/availability${asQuery}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          intervals: viewerIntervals.map((interval) => ({
+            startsAt: interval.startsAt.toISOString(),
+            endsAt: interval.endsAt.toISOString(),
+          })),
+        }),
+      }).then(() => reloadState())
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [asQuery, reloadState, state.viewer.canEdit, viewerIntervals])
+
+  const participants = useMemo(() => state.participants.map((participant) => (
+    participant.ref === state.viewer.actingAsRef
+      ? { ...participant, intervals: viewerIntervals.map((interval) => ({ startsAt: interval.startsAt.toISOString(), endsAt: interval.endsAt.toISOString() })), marked: viewerIntervals.length > 0 }
+      : participant
+  )), [state.participants, state.viewer.actingAsRef, viewerIntervals])
+
+  const busyParticipants = useMemo(() => participants.map((participant) => ({
+    ref: participant.ref,
+    intervals: participant.intervals.map(parseInterval),
+    busy: participant.busy.map((block) => ({
+      meetingId: `${participant.ref}:${block.startsAt}`,
+      startsAt: new Date(block.startsAt),
+      endsAt: new Date(block.endsAt),
+      bookTitle: block.bookTitle ?? '',
+    })),
+  })), [participants])
+
+  const overlap = useMemo(() => computeOverlap({
+    participants: busyParticipants,
+    window: { start: new Date(state.window.start), end: new Date(state.window.end) },
+    now: new Date(state.now),
+    durationMinutes: state.durationMinutes,
+    circleBusy: state.meetings
+      .filter((meeting) => meeting.canceledAt === null)
+      .map((meeting) => ({
+        meetingId: meeting.id,
+        startsAt: new Date(meeting.startsAt),
+        endsAt: new Date(new Date(meeting.startsAt).getTime() + meeting.durationMinutes * 60 * 1000),
+        bookTitle: state.book.title,
+      })),
+  }), [busyParticipants, state])
+
+  const viewerFreeKeys = useMemo(() => new Set(viewerIntervals.flatMap(enumerateSlots)), [viewerIntervals])
+  const dayStarts = useMemo(() => buildDayStarts(new Date(state.window.start)), [state.window.start])
+  const activeDayIndexes = useMemo(() => {
+    const active = new Set<number>()
+    for (const participant of participants) {
+      for (const interval of participant.intervals) active.add(dayIndexFor(new Date(interval.startsAt), dayStarts[0]))
+    }
+    for (const meeting of state.meetings) active.add(dayIndexFor(new Date(meeting.startsAt), dayStarts[0]))
+    return Array.from(active).filter((index) => index >= 0 && index < 28).sort((a, b) => a - b)
+  }, [participants, state.meetings, dayStarts])
+
+  const shownDayIndexes = crop && activeDayIndexes.length > 0 ? activeDayIndexes : Array.from({ length: 28 }, (_, index) => index)
+  const perPage = 7
+  const pageDays = shownDayIndexes.slice(page * perPage, page * perPage + perPage)
+  const columns: CalendarColumn[] = pageDays.flatMap((dayIndex, index) => {
+    const column = { day: dayStarts[dayIndex] }
+    if (index > 0 && dayIndex - pageDays[index - 1] > 1) return [{ day: dayStarts[dayIndex], hiddenGap: true }, column]
+    return [column]
+  })
+  const pages = Math.max(1, Math.ceil(shownDayIndexes.length / perPage))
+  const slotRange: [number, number] = fullDay ? [0, 48] : visibleSlotRange(participants, state.meetings, dayStarts, pageDays, crop)
+  const upcoming = state.meetings
+    .filter((meeting) => meeting.canceledAt === null && new Date(meeting.startsAt) >= new Date(state.now))
+    .sort((left, right) => left.startsAt.localeCompare(right.startsAt))
+  const past = state.meetings
+    .filter((meeting) => meeting.canceledAt !== null || new Date(meeting.startsAt) < new Date(state.now))
+    .sort((left, right) => right.startsAt.localeCompare(left.startsAt))
+  const selectedCell = selectedKey ? overlap.cells.get(selectedKey) : null
+
+  function paint(keys: string[], mode: 'paint' | 'erase') {
+    setViewerIntervals((current) => {
+      let next = current
+      for (const key of keys) {
+        const interval = { startsAt: new Date(key), endsAt: addSlots(new Date(key), 1) }
+        next = mode === 'paint' ? addInterval(next, interval) : removeInterval(next, interval)
+      }
+      return normalize(next)
+    })
+  }
+
+  async function scheduleMeeting(key: string) {
+    const response = await fetch(`/api/calendar/${state.slug}/meetings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startsAt: key }),
+    })
+    if (response.ok) {
+      setSelectedKey(null)
+      setExpanded(false)
+      await reloadState()
+    }
+  }
+
+  async function cancelMeeting(id: string) {
+    const response = await fetch(`/api/calendar/${state.slug}/meetings/${id}`, { method: 'DELETE' })
+    if (response.ok) {
+      setExpanded(true)
+      await reloadState()
+    }
+  }
+
+  if (state.migrationRequired) {
+    return <Shell><Banner><b>Календарь ещё не включён.</b> Код уже задеплоен, но оператор ещё не применил миграцию БД.</Banner></Shell>
+  }
+
+  return (
+    <Shell>
+      {state.viewer.ref && <CalendarTimezoneBar timezone={state.viewer.timezone} confirmed={state.viewer.timezoneConfirmed} />}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24, borderBottom: '1px solid var(--hair)', paddingBottom: 20, marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '2rem', lineHeight: 1.15, margin: '0 0 6px', fontWeight: 400 }}>{state.book.title}</h1>
+          {state.book.author && <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{state.book.author}</div>}
+          <div style={{ marginTop: 10, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Круг {state.position} · встреча {state.durationMinutes} минут</div>
+        </div>
+      </header>
+      {!state.circleExists && <Banner><b>Круг больше не существует.</b> Состав книги пересобран. Назначенные встречи сохранены, но новые действия здесь недоступны.</Banner>}
+      {!state.viewer.ref && <Banner>Вы смотрите страницу по ссылке. Видно наложение и встречи; закрашивать своё время могут только участники круга.</Banner>}
+      {state.viewer.isAdmin && state.viewer.actingAsRef && <Banner>Админский режим: действия выполняются за выбранного участника. В журнале останется административный actor.</Banner>}
+
+      {upcoming.map((meeting) => <CalendarMeetingCard key={meeting.id} meeting={meeting} bookTitle={state.book.title} canEdit={state.viewer.canEdit} onCancel={() => void cancelMeeting(meeting.id)} />)}
+
+      {upcoming.length > 0 && (
+        <button type="button" onClick={() => setExpanded((value) => !value)} style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--hair)', padding: 0, color: 'var(--text-body)', cursor: 'pointer', margin: '8px 0 16px', font: 'inherit' }}>
+          {expanded ? 'Свернуть календарь' : 'Назначить ещё встречу'}
+        </button>
+      )}
+
+      {(expanded || upcoming.length === 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 216px', gap: 28, alignItems: 'start' }}>
+          <section>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+              <button type="button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))} style={navButtonStyle}>‹</button>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-body)' }}>{pageDays.length ? `${formatDay(dayStarts[pageDays[0]])} — ${formatDay(dayStarts[pageDays.at(-1)!])}` : '—'}</div>
+              <button type="button" disabled={page >= pages - 1} onClick={() => setPage((value) => Math.min(pages - 1, value + 1))} style={navButtonStyle}>›</button>
+            </div>
+            <div style={{ position: 'relative', background: 'var(--bg-input)', border: '1px solid var(--hair)', borderRadius: 'var(--radius-card)', padding: '10px 12px 12px', overflow: 'visible' }}>
+              {participants.every((participant) => !participant.marked) && (
+                <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', border: '1px dashed var(--hair)', borderRadius: 'var(--radius-card)', background: 'var(--surface-soft)', marginBottom: 12 }}>
+                  <b style={{ display: 'block', fontFamily: 'var(--nd-serif)', fontSize: '1.05rem', color: 'var(--text)', fontWeight: 400, marginBottom: 6 }}>Пока никто не отметил своё время</b>
+                  {state.viewer.canEdit ? 'Выберите клетки в сетке. Сохранение идёт автоматически.' : 'Участники круга ещё не заполняли календарь.'}
+                </div>
+              )}
+              <CalendarGrid
+                columns={columns}
+                slotRange={slotRange}
+                overlap={overlap}
+                viewerFreeKeys={viewerFreeKeys}
+                focusRef={focusRef}
+                canEdit={state.viewer.canEdit}
+                durationMinutes={state.durationMinutes}
+                selectedKey={selectedKey}
+                isMobile={false}
+                participantCount={participants.length}
+                onPaint={paint}
+                onCellClick={setSelectedKey}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--hair-soft)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--radius-control)', overflow: 'hidden' }}>
+                  <Toggle active={crop} onClick={() => { setCrop(true); setPage(0) }}>Дни с отметками</Toggle>
+                  <Toggle active={!crop} onClick={() => { setCrop(false); setPage(0) }}>Все дни подряд</Toggle>
+                </div>
+                <button type="button" onClick={() => setFullDay((value) => !value)} style={{ background: 'none', border: 'none', borderBottom: '1px solid var(--hair)', padding: '0 0 1px', color: 'var(--text-secondary)', cursor: 'pointer', font: 'inherit', fontSize: '0.75rem' }}>{fullDay ? 'Свернуть до вечера' : 'Показать сутки'}</button>
+              </div>
+            </div>
+          </section>
+          <section>
+            <CalendarParticipants participants={participants} viewerRef={state.viewer.ref} focusRef={focusRef} onFocus={setFocusRef} />
+            <CalendarLegend markedCount={overlap.markedRefs.length} />
+          </section>
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <details style={{ margin: '18px 0 0' }}>
+          <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Уже прошли ({past.length})</summary>
+          <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0 }}>{past.map((meeting) => <li key={meeting.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 10px', background: 'var(--surface-soft)', fontSize: '0.82rem', color: 'var(--text-body)' }}>{formatDateTime(new Date(meeting.startsAt))}<span>{meeting.durationMinutes} мин</span></li>)}</ul>
+        </details>
+      )}
+
+      {selectedKey && selectedCell && (
+        <CalendarCellPopover
+          slotKey={selectedKey}
+          cell={selectedCell}
+          participants={participants}
+          markedCount={overlap.markedRefs.length}
+          canEdit={state.viewer.canEdit}
+          canSchedule={overlap.candidateStarts.has(selectedKey)}
+          viewerFree={viewerFreeKeys.has(selectedKey)}
+          onClose={() => setSelectedKey(null)}
+          onSchedule={() => void scheduleMeeting(selectedKey)}
+          onToggleMine={() => paint([selectedKey], viewerFreeKeys.has(selectedKey) ? 'erase' : 'paint')}
+        />
+      )}
+    </Shell>
+  )
+}
+
+function actingParticipant(state: CalendarPublicState) {
+  return state.participants.find((participant) => participant.ref === state.viewer.actingAsRef) ?? null
+}
+
+function parseInterval(interval: { startsAt: string; endsAt: string }): Interval {
+  return { startsAt: new Date(interval.startsAt), endsAt: new Date(interval.endsAt) }
+}
+
+function buildDayStarts(windowStart: Date) {
+  const first = new Date(Date.UTC(windowStart.getUTCFullYear(), windowStart.getUTCMonth(), windowStart.getUTCDate()))
+  return Array.from({ length: 28 }, (_, index) => new Date(first.getTime() + index * 24 * 60 * 60 * 1000))
+}
+
+function dayIndexFor(date: Date, firstDay: Date) {
+  return Math.floor((Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) - firstDay.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+function visibleSlotRange(participants: CalendarPublicState['participants'], meetings: CalendarPublicState['meetings'], dayStarts: Date[], pageDays: number[], crop: boolean): [number, number] {
+  if (!crop) return [20, 42]
+  let min = 48
+  let max = 0
+  const days = new Set(pageDays)
+  for (const participant of participants) {
+    for (const interval of participant.intervals) {
+      const start = new Date(interval.startsAt)
+      const end = new Date(interval.endsAt)
+      const day = dayIndexFor(start, dayStarts[0])
+      if (!days.has(day)) continue
+      min = Math.min(min, slotInDay(start))
+      max = Math.max(max, slotInDay(end))
+    }
+  }
+  for (const meeting of meetings) {
+    const start = new Date(meeting.startsAt)
+    const day = dayIndexFor(start, dayStarts[0])
+    if (!days.has(day)) continue
+    min = Math.min(min, slotInDay(start))
+    max = Math.max(max, slotInDay(addSlots(start, meeting.durationMinutes / SLOT_MINUTES)))
+  }
+  if (min >= max) return [20, 42]
+  return [Math.max(0, min - 2), Math.min(48, max + 2)]
+}
+
+function slotInDay(date: Date) {
+  return date.getUTCHours() * 2 + Math.floor(date.getUTCMinutes() / 30)
+}
+
+function formatDay(date: Date) {
+  return new Intl.DateTimeFormat('ru', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(date)
+}
+
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(date)
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return <main style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 32px 96px', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--nd-sans)', minHeight: '100svh', ['--calendar-cell-h' as string]: '22px' }}>{children}</main>
+}
+
+function Banner({ children }: { children: React.ReactNode }) {
+  return <div style={{ padding: '14px 16px', borderLeft: '2px solid var(--accent)', background: 'var(--accent-soft)', fontSize: '0.85rem', color: 'var(--text-body)', marginBottom: 20, borderRadius: 2 }}>{children}</div>
+}
+
+function Toggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" onClick={onClick} style={{ font: 'inherit', fontSize: '0.72rem', padding: '5px 10px', background: active ? 'var(--text)' : 'transparent', border: 'none', cursor: 'pointer', color: active ? 'var(--bg-input)' : 'var(--text-secondary)' }}>{children}</button>
+}
+
+const navButtonStyle = {
+  width: 30,
+  height: 30,
+  border: '1px solid var(--border)',
+  background: 'var(--bg-input)',
+  cursor: 'pointer',
+  borderRadius: 'var(--radius-control)',
+  color: 'var(--text)',
+  fontSize: '0.9rem',
+  lineHeight: 1,
+} as const

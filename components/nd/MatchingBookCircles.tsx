@@ -8,10 +8,14 @@ export default function MatchingBookCircles({
   circles,
   participants,
   viewerRef,
+  bookId,
+  adminMode = false,
 }: {
   circles: MatchingBookCircleView[]
   participants: MatchingBookParticipantView[]
   viewerRef: string
+  bookId?: string
+  adminMode?: boolean
 }) {
   const byRef = new Map(participants.map((participant) => [participant.ref, participant]))
   if (circles.length === 0) return null
@@ -20,6 +24,7 @@ export default function MatchingBookCircles({
     <div className="nd-mb-circles">
       {circles.map((circle, index) => {
         const mine = circle.memberRefs.includes(viewerRef)
+        const calendarVisible = Boolean(bookId) && (mine || adminMode)
         return (
           <section className={`nd-mb-circle${mine ? ' is-mine' : ''}`} key={circle.id} aria-label={`Круг ${index + 1}`}>
             <h4>{circles.length > 1 ? `Круг ${index + 1}` : 'Круг'}{mine ? ' · ваш' : ''}</h4>
@@ -35,6 +40,11 @@ export default function MatchingBookCircles({
                 )
               })}
             </ul>
+            {calendarVisible && (
+              <a href={`/calendar/circle/${bookId}/${circle.position}`} className="nd-mb-calendar-link">
+                Согласовать время
+              </a>
+            )}
           </section>
         )
       })}

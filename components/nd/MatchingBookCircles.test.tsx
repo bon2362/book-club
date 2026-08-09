@@ -36,4 +36,17 @@ describe('MatchingBookCircles', () => {
     const { container } = render(<MatchingBookCircles circles={[]} participants={participants} viewerRef="r1" />)
     expect(container).toBeEmptyDOMElement()
   })
+
+  it('shows the calendar link to a member of their own circle', () => {
+    render(<MatchingBookCircles circles={circles} participants={participants} viewerRef="r1" bookId="book-1" />)
+    const own = screen.getByRole('region', { name: 'Круг 1' })
+    expect(within(own).getByRole('link', { name: 'Согласовать время' })).toHaveAttribute('href', '/calendar/circle/book-1/1')
+    const other = screen.getByRole('region', { name: 'Круг 2' })
+    expect(within(other).queryByRole('link', { name: 'Согласовать время' })).not.toBeInTheDocument()
+  })
+
+  it('shows the calendar link to admin for every circle', () => {
+    render(<MatchingBookCircles circles={circles} participants={participants} viewerRef="r1" bookId="book-1" adminMode />)
+    expect(screen.getAllByRole('link', { name: 'Согласовать время' })).toHaveLength(2)
+  })
 })
