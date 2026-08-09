@@ -35,6 +35,9 @@ export const AUDITED_TABLES = [
   'timelines',
   'timeline_events',
   'timeline_epochs',
+  'user_availability',
+  'circle_schedules',
+  'circle_meetings',
 ] as const
 
 export type AuditedTable = (typeof AUDITED_TABLES)[number]

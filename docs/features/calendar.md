@@ -1,0 +1,59 @@
+# Circle Calendar
+
+Календарь круга помогает участникам согласовать время встречи внутри сайта. Свободное время хранится глобально у пользователя, а страница согласования привязана к конкретному кругу книги.
+
+## Адреса
+
+- Страница: `GET /calendar/[slug]`
+- Resolver из матчинга: `GET /calendar/circle/[bookId]/[position]`
+- Состояние: `GET /api/calendar/[slug]`
+- Свободное время: `PUT /api/calendar/availability`
+- Встречи: `POST /api/calendar/[slug]/meetings`, `DELETE /api/calendar/[slug]/meetings/[id]`
+- Длительность и админский slug: `PATCH /api/calendar/[slug]`
+- Часовой пояс: `PATCH /api/profile/timezone`
+
+Resolver нужен, чтобы не создавать `circle_schedules` внутри read-модели matching. Он лениво создаёт пространство календаря и редиректит на канонический slug.
+
+## Данные
+
+Миграция `drizzle/0062_calendar.sql` добавляет:
+
+- `user.timezone`, `user.timezone_confirmed`;
+- `user_availability` — интервалы свободного времени пользователя;
+- `circle_schedules` — пространство календаря по `session_id + book_id + position`;
+- `circle_meetings` — назначенные и отменённые встречи.
+
+Новые мутабельные таблицы внесены в `AUDITED_TABLES` и получают `audit_capture()` triggers. Все writes идут через `withAuditContext`.
+
+## Логика
+
+Чистые модули лежат в `lib/calendar/`:
+
+- `slots.ts` — получасовая арифметика и окно 28 дней;
+- `availability-intervals.ts` — normalize/add/remove/clamp интервалов;
+- `busy.ts` — вычитание встреч из свободного времени;
+- `overlap.ts` — наложение и правило кандидата;
+- `slug.ts` — транслитерация адресов;
+- `schedule-db.ts` и `public-state.ts` — DB-сборка состояния.
+
+Кандидат на встречу появляется, когда свободны все отметившиеся участники, отметившихся минимум двое, слот не в прошлом, встреча помещается в окно и не пересекается с уже назначенной встречей.
+
+## Production Rollout
+
+Миграция `0062` не применяется автоматически в production. До ручного прогона:
+
+- `GET /api/calendar/[slug]` возвращает состояние с `migrationRequired: true`;
+- мутирующие календарные API отвечают `409 migration_required`;
+- страница `/calendar/[slug]` показывает заглушку вместо 500.
+
+После production-деплоя оператор применяет миграцию:
+
+```bash
+node --env-file=.env.local scripts/apply-migration.mjs drizzle/0062_calendar.sql
+```
+
+## UI
+
+Компоненты находятся в `components/nd/Calendar*.tsx`. Цвета и геометрия используют токены из `app/globals.css`; прозрачные зелёные ступени задаются через `color-mix(in srgb, var(--success) N%, transparent)`.
+
+Клавиатурная доступность сетки не входит в первую версию и вынесена в issue #537.

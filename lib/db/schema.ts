@@ -4,6 +4,8 @@ import {
   doublePrecision,
 } from 'drizzle-orm/pg-core'
 
+const DEFAULT_CIRCLE_MEETING_MINUTES = 60
+
 export const users = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name'),
@@ -16,6 +18,8 @@ export const users = pgTable('user', {
   languages: text('languages'),
   prioritiesSet: boolean('priorities_set').notNull().default(false),
   isAdmin: boolean('is_admin').notNull().default(false),
+  timezone: text('timezone'),
+  timezoneConfirmed: boolean('timezone_confirmed').notNull().default(false),
 }, (t) => ({
   contactEmailLowerUnique: uniqueIndex('user_contact_email_lower_idx')
     .on(sql`lower(${t.contactEmail})`)
@@ -377,6 +381,47 @@ export const matchingBookAssignments = pgTable('matching_book_assignments', {
     'matching_book_assignments_source_check',
     sql`${t.source} IN ('hard', 'conditional', 'admin', 'legacy')`,
   ),
+}))
+
+export const userAvailability = pgTable('user_availability', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  startsAt: timestamp('starts_at', { mode: 'date', withTimezone: true }).notNull(),
+  endsAt: timestamp('ends_at', { mode: 'date', withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  userStartIdx: index('user_availability_user_start_idx').on(t.userId, t.startsAt),
+  orderCheck: check('user_availability_order_check', sql`${t.endsAt} > ${t.startsAt}`),
+}))
+
+export const circleSchedules = pgTable('circle_schedules', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'restrict' }),
+  position: integer('position').notNull(),
+  slug: text('slug').notNull(),
+  durationMinutes: integer('duration_minutes').notNull().default(DEFAULT_CIRCLE_MEETING_MINUTES),
+  createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  slugUniq: uniqueIndex('circle_schedules_slug_uniq').on(t.slug),
+  identityUniq: uniqueIndex('circle_schedules_session_book_position_uniq').on(t.sessionId, t.bookId, t.position),
+  positionCheck: check('circle_schedules_position_check', sql`${t.position} >= 1`),
+  durationCheck: check('circle_schedules_duration_check', sql`${t.durationMinutes} >= 30 AND ${t.durationMinutes} % 30 = 0`),
+}))
+
+export const circleMeetings = pgTable('circle_meetings', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  scheduleId: text('schedule_id').notNull().references(() => circleSchedules.id, { onDelete: 'cascade' }),
+  startsAt: timestamp('starts_at', { mode: 'date', withTimezone: true }).notNull(),
+  durationMinutes: integer('duration_minutes').notNull(),
+  createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
+  canceledAt: timestamp('canceled_at', { mode: 'date', withTimezone: true }),
+  canceledBy: text('canceled_by').references(() => users.id, { onDelete: 'set null' }),
+}, (t) => ({
+  scheduleStartIdx: index('circle_meetings_schedule_start_idx').on(t.scheduleId, t.startsAt),
+  durationCheck: check('circle_meetings_duration_check', sql`${t.durationMinutes} >= 30 AND ${t.durationMinutes} % 30 = 0`),
 }))
 
 export const matchingNotices = pgTable('matching_notices', {
