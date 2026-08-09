@@ -98,6 +98,27 @@ describe('CalendarClient', () => {
     })
   })
 
+  it('removes the whole meeting-duration block when clicking any cell inside it', async () => {
+    const interval = { startsAt: '2026-08-11T11:00:00.000Z', endsAt: '2026-08-11T12:30:00.000Z' }
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/calendar/availability')) return Promise.resolve(response({ ok: true, intervals: [] }))
+      return Promise.resolve(response(makeState()))
+    })
+
+    render(<CalendarClient initialState={makeState([interval])} />)
+
+    const lastCell = screen.getByRole('button', { name: '11 авг. 12:00' })
+    fireEvent.pointerDown(lastCell, { pointerType: 'mouse' })
+    fireEvent.pointerUp(lastCell)
+
+    await act(async () => { await jest.advanceTimersByTimeAsync(400) })
+
+    const save = (global.fetch as jest.Mock).mock.calls.find(([url, init]) => (
+      String(url).includes('/api/calendar/availability') && init?.method === 'PUT'
+    ))
+    expect(JSON.parse(save[1].body)).toEqual({ intervals: [] })
+  })
+
   it('shows editable meeting duration without the circle number and saves changes', async () => {
     ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'PATCH') return Promise.resolve(response({ ok: true, slug: 'dolg-pervye-5000-let-istorii' }))
