@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import type { OverlapResult } from '@/lib/calendar/overlap'
 import { addSlots, SLOT_MINUTES, slotKey } from '@/lib/calendar/slots'
 
@@ -108,7 +108,7 @@ export default function CalendarGrid({
         </div>
       ))}
       {slots.map((halfHour) => (
-        <>
+        <Fragment key={`slot-${halfHour}`}>
           <div key={`time-${halfHour}`} style={{ height: 'var(--calendar-cell-h, 22px)', color: 'var(--text-muted)', fontFamily: 'var(--nd-mono)', fontSize: '0.63rem', textAlign: 'right', paddingRight: 8, transform: 'translateY(-0.4em)' }}>
             {halfHour % 2 === 0 ? formatSlot(addSlots(columns.find((c) => !c.hiddenGap)?.day ?? new Date(), halfHour)) : ''}
           </div>
@@ -193,7 +193,7 @@ export default function CalendarGrid({
               </button>
             )
           })}
-        </>
+        </Fragment>
       ))}
     </div>
   )
