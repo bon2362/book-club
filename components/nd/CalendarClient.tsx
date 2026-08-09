@@ -36,7 +36,12 @@ export default function CalendarClient({
   }, [asQuery, state.slug])
 
   useEffect(() => {
-    setViewerIntervals(actingParticipant(state)?.intervals.map(parseInterval) ?? [])
+    const next = actingParticipant(state)?.intervals.map(parseInterval) ?? []
+    setViewerIntervals((current) => {
+      if (intervalsEqual(current, next)) return current
+      skipSave.current = true
+      return next
+    })
   }, [state])
 
   useEffect(() => {
@@ -254,6 +259,14 @@ function actingParticipant(state: CalendarPublicState) {
 
 function parseInterval(interval: { startsAt: string; endsAt: string }): Interval {
   return { startsAt: new Date(interval.startsAt), endsAt: new Date(interval.endsAt) }
+}
+
+function intervalsEqual(left: Interval[], right: Interval[]) {
+  if (left.length !== right.length) return false
+  return left.every((interval, index) => (
+    interval.startsAt.getTime() === right[index].startsAt.getTime()
+    && interval.endsAt.getTime() === right[index].endsAt.getTime()
+  ))
 }
 
 function buildDayStarts(windowStart: Date) {
