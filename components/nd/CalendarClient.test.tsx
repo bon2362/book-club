@@ -37,10 +37,56 @@ function makeState(intervals: CalendarPublicState['participants'][number]['inter
   }
 }
 
+function makeAdminState(): CalendarPublicState {
+  const myIntervals = [{ startsAt: '2026-08-11T12:00:00.000Z', endsAt: '2026-08-11T13:30:00.000Z' }]
+  return {
+    ...makeState(myIntervals),
+    participants: [
+      {
+        ref: 'vova',
+        adminUserId: 'user-vova',
+        displayName: 'Vova',
+        timezone: 'Europe/Belgrade',
+        timezoneConfirmed: true,
+        marked: false,
+        intervals: [],
+        busy: [],
+      },
+      {
+        ref: 'viewer',
+        adminUserId: 'admin-user',
+        displayName: 'Евгений Кошкин',
+        timezone: 'Europe/Belgrade',
+        timezoneConfirmed: true,
+        marked: true,
+        intervals: myIntervals,
+        busy: [],
+      },
+    ],
+    viewer: {
+      ref: 'viewer',
+      canEdit: true,
+      isAdmin: true,
+      actingAsRef: 'viewer',
+      timezone: 'Europe/Belgrade',
+      timezoneConfirmed: true,
+    },
+  }
+}
+
 describe('CalendarClient', () => {
   beforeEach(() => {
     jest.useFakeTimers()
     global.fetch = jest.fn()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: jest.fn().mockImplementation((query: string) => ({
+        matches: query.includes('hover: hover'),
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      })),
+    })
   })
 
   afterEach(() => {
@@ -151,5 +197,29 @@ describe('CalendarClient', () => {
     const { container } = render(<CalendarClient initialState={makeState([{ startsAt: '2026-08-11T11:00:00.000Z', endsAt: '2026-08-11T12:30:00.000Z' }])} />)
 
     expect(container.querySelectorAll('[data-mine-marker="true"]')).toHaveLength(1)
+  })
+
+  it('does not show the editor marker while previewing another participant', () => {
+    const { container } = render(<CalendarClient initialState={makeAdminState()} />)
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /Vova/i }))
+
+    expect(container.querySelectorAll('[data-mine-marker="true"]')).toHaveLength(0)
+  })
+
+  it('opens an admin acting link when clicking a participant on desktop', () => {
+    const originalLocation = window.location
+    const assign = jest.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, assign },
+    })
+
+    render(<CalendarClient initialState={makeAdminState()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Vova/i }))
+
+    expect(assign).toHaveBeenCalledWith('/calendar/dolg-pervye-5000-let-istorii?as=user-vova')
+    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
   })
 })
