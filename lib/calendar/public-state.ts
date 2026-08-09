@@ -64,13 +64,15 @@ export async function fetchCalendarPublicState(input: {
   requestedUserId?: string | null
   isAdmin?: boolean
   now?: Date
+  /** Внутри уже открытой транзакции уборка не нужна: она откроет вложенную. */
+  skipCleanup?: boolean
 }, db: DbLike = defaultDb): Promise<CalendarPublicState> {
   const now = input.now ?? new Date()
   const window = windowBounds(now)
   const schedule = await resolveScheduleBySlug(input.slug, db)
   if (!schedule) throw new CalendarStateError('schedule_not_found')
 
-  await cleanupPastAvailability(window.start, db)
+  if (!input.skipCleanup) await cleanupPastAvailability(window.start, db)
 
   const actingUserId = input.isAdmin && input.requestedUserId ? input.requestedUserId : input.viewerUserId
   const viewerMember = schedule.members.find((member) => member.userId === actingUserId) ?? null

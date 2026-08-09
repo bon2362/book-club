@@ -42,7 +42,7 @@ export default function CalendarCellPopover({
             <li key={participant.ref} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: '0.78rem', alignItems: 'baseline' }}>
               <span style={{ color: free ? 'var(--text)' : 'var(--text-body)' }}>{participant.displayName}</span>
               <span style={{ fontSize: '0.7rem', color: free ? 'var(--success)' : busy ? 'var(--accent)' : 'var(--text-muted)', fontFamily: 'var(--nd-mono)', textAlign: 'right' }}>
-                {free ? `свободно · ${localTime(date, participant.timezone)}` : busy ? 'занято' : 'нет отметки'}
+                {free ? freeLabel(date, participant.timezone, timeZone) : busy ? 'занято' : 'нет отметки'}
               </span>
             </li>
           )
@@ -84,6 +84,11 @@ function formatDate(date: Date, timeZone: string) {
 
 function formatTime(date: Date, timeZone: string) {
   return formatInZone(date, timeZone, { hour: '2-digit', minute: '2-digit' })
+}
+
+function freeLabel(date: Date, participantZone: string | null, viewerZone: string) {
+  if (!participantZone || participantZone === viewerZone) return 'свободно'
+  return `свободно · ${localTime(date, participantZone)} у себя`
 }
 
 function localTime(date: Date, timezone: string | null) {

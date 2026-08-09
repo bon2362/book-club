@@ -28,6 +28,7 @@ export default function CalendarClient({
   const [fullDay, setFullDay] = useState(false)
   const [expanded, setExpanded] = useState(initialState.meetings.filter((meeting) => meeting.canceledAt === null && new Date(meeting.startsAt) > new Date(initialState.now)).length === 0)
   const [isDesktop, setIsDesktop] = useState(false)
+  const [isNarrow, setIsNarrow] = useState(false)
   const [viewerIntervals, setViewerIntervals] = useState<Interval[]>(() => actingParticipant(initialState)?.intervals.map(parseInterval) ?? [])
   const timeZone = useMemo(() => resolveViewerTimeZone(state.viewer.timezone), [state.viewer.timezone])
   const skipSave = useRef(true)
@@ -41,6 +42,16 @@ export default function CalendarClient({
   useEffect(() => {
     const query = window.matchMedia('(hover: hover) and (pointer: fine)')
     const update = () => setIsDesktop(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+
+  // Ширина, а не тип указателя: на узком экране клетка выше, чтобы в неё можно
+  // было попасть пальцем. Порог тот же 540px, что и на доске матчинга.
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 540px)')
+    const update = () => setIsNarrow(query.matches)
     update()
     query.addEventListener('change', update)
     return () => query.removeEventListener('change', update)
@@ -250,7 +261,7 @@ export default function CalendarClient({
   }
 
   return (
-    <Shell>
+    <Shell cellHeight={isNarrow ? 26 : 22}>
       {state.viewer.ref && <CalendarTimezoneBar timezone={state.viewer.timezone} confirmed={state.viewer.timezoneConfirmed} />}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24, borderBottom: '1px solid var(--hair)', paddingBottom: 20, marginBottom: 24 }}>
         <div>
@@ -428,8 +439,8 @@ function formatDateTime(date: Date, timeZone: string) {
   return formatInZone(date, timeZone, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
-  return <main style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 32px 96px', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--nd-sans)', minHeight: '100svh', ['--calendar-cell-h' as string]: '22px' }}>{children}</main>
+function Shell({ children, cellHeight = 22 }: { children: React.ReactNode; cellHeight?: number }) {
+  return <main style={{ maxWidth: 1080, margin: '0 auto', padding: `28px ${cellHeight === 22 ? 32 : 16}px 96px`, background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--nd-sans)', minHeight: '100svh', ['--calendar-cell-h' as string]: `${cellHeight}px` }}>{children}</main>
 }
 
 function Banner({ children }: { children: React.ReactNode }) {
