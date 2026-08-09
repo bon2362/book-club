@@ -222,4 +222,27 @@ describe('CalendarClient', () => {
     expect(assign).toHaveBeenCalledWith('/calendar/dolg-pervye-5000-let-istorii?as=user-vova')
     Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
   })
+
+  it('uses participant clicks for preview on touch devices', () => {
+    ;(window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: !query.includes('hover: hover'),
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }))
+    const originalLocation = window.location
+    const assign = jest.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, assign },
+    })
+    const { container } = render(<CalendarClient initialState={makeAdminState()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Vova/i }))
+
+    expect(screen.getByText('Нажмите на имя, чтобы увидеть только его время')).toBeInTheDocument()
+    expect(container.querySelectorAll('[data-mine-marker="true"]')).toHaveLength(0)
+    expect(assign).not.toHaveBeenCalled()
+    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
+  })
 })
