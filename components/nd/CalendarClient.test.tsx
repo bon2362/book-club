@@ -125,4 +125,10 @@ describe('CalendarClient', () => {
     expect(screen.getByText('Чем больше участников свободны, тем темнее клетка')).toBeInTheDocument()
     expect(screen.queryByText(/1 →/)).not.toBeInTheDocument()
   })
+
+  it('shows one personal marker for a continuous availability block', () => {
+    const { container } = render(<CalendarClient initialState={makeState([{ startsAt: '2026-08-11T11:00:00.000Z', endsAt: '2026-08-11T12:30:00.000Z' }])} />)
+
+    expect(container.querySelectorAll('[data-mine-marker="true"]')).toHaveLength(1)
+  })
 })
