@@ -74,6 +74,42 @@ function makeAdminState(): CalendarPublicState {
   }
 }
 
+function makeActingAdminState(): CalendarPublicState {
+  return {
+    ...makeAdminState(),
+    participants: [
+      {
+        ref: 'vova',
+        adminUserId: 'user-vova',
+        displayName: 'Vova',
+        timezone: 'Europe/Belgrade',
+        timezoneConfirmed: true,
+        marked: true,
+        intervals: [{ startsAt: '2026-08-11T15:00:00.000Z', endsAt: '2026-08-11T16:00:00.000Z' }],
+        busy: [],
+      },
+      {
+        ref: 'viewer',
+        adminUserId: 'admin-user',
+        displayName: 'Евгений Кошкин',
+        timezone: 'Europe/Belgrade',
+        timezoneConfirmed: true,
+        marked: true,
+        intervals: [{ startsAt: '2026-08-11T12:00:00.000Z', endsAt: '2026-08-11T13:30:00.000Z' }],
+        busy: [],
+      },
+    ],
+    viewer: {
+      ref: 'viewer',
+      canEdit: true,
+      isAdmin: true,
+      actingAsRef: 'vova',
+      timezone: 'Europe/Belgrade',
+      timezoneConfirmed: true,
+    },
+  }
+}
+
 describe('CalendarClient', () => {
   beforeEach(() => {
     jest.useFakeTimers()
@@ -244,5 +280,17 @@ describe('CalendarClient', () => {
     expect(container.querySelectorAll('[data-mine-marker="true"]')).toHaveLength(0)
     expect(assign).not.toHaveBeenCalled()
     Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
+  })
+
+  it('shows the acting participant calendar by default in admin acting mode', () => {
+    render(<CalendarClient initialState={makeActingAdminState()} actingUserId="user-vova" />)
+
+    const vovaCell = screen.getByRole('button', { name: '11 авг. 15:00' })
+    const adminCell = screen.getByRole('button', { name: '11 авг. 12:00' })
+
+    expect(vovaCell).toHaveStyle({
+      background: 'color-mix(in srgb, var(--success) 62%, transparent)',
+    })
+    expect(adminCell).toHaveStyle({ background: 'transparent' })
   })
 })
