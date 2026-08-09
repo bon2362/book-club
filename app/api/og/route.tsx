@@ -1,30 +1,8 @@
 import { ImageResponse } from 'next/og'
-import { fetchBooksWithCovers } from '@/lib/books'
 
 export const runtime = 'nodejs'
 
-const COVER_W = 168
-const COVER_H = 235
-const GAP = 10
-
-function pickRandom<T>(arr: T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, n)
-}
-
 export async function GET() {
-  let coverUrls: string[] = []
-
-  try {
-    const books = await fetchBooksWithCovers()
-    const withCovers = books.filter(b => b.coverUrl)
-    coverUrls = pickRandom(withCovers, 6).map(b => b.coverUrl!)
-  } catch {
-    // fall through to text-only
-  }
-
-  const hasCovers = coverUrls.length >= 3
-
   return new ImageResponse(
     (
       <div
@@ -32,14 +10,13 @@ export async function GET() {
           width: '1200px',
           height: '630px',
           display: 'flex',
-          flexDirection: 'row',
           background: '#F5F0E8',
         }}
       >
         {/* Left panel */}
         <div
           style={{
-            width: hasCovers ? '680px' : '1200px',
+            width: '1200px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -68,7 +45,7 @@ export async function GET() {
               style={{
                 fontFamily: 'serif',
                 fontWeight: 700,
-                fontSize: hasCovers ? '74px' : '88px',
+                fontSize: '88px',
                 lineHeight: 1.05,
                 color: 'var(--text)',
                 letterSpacing: '-0.02em',
@@ -91,8 +68,7 @@ export async function GET() {
                 display: 'flex',
               }}
             >
-              Записывайтесь на совместное чтение
-              {!hasCovers ? ' и обсуждение книг' : ''}
+              Записывайтесь на совместное чтение и обсуждение книг
             </div>
           </div>
 
@@ -109,68 +85,6 @@ export async function GET() {
             slowreading.club
           </div>
         </div>
-
-        {/* Right panel: book covers */}
-        {hasCovers && (
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '32px 32px 32px 24px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                gap: `${GAP}px`,
-              }}
-            >
-              {/* Column 1: covers 0, 2, 4 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: `${GAP}px` }}>
-                {[0, 2, 4].map(i =>
-                  coverUrls[i] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={coverUrls[i]}
-                      alt=""
-                      width={COVER_W}
-                      height={COVER_H}
-                      style={{
-                        objectFit: 'cover',
-                        borderRadius: '3px',
-                        boxShadow: '0 3px 12px rgba(0,0,0,0.2)',
-                      }}
-                    />
-                  ) : null
-                )}
-              </div>
-              {/* Column 2: covers 1, 3, 5 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: `${GAP}px` }}>
-                {[1, 3, 5].map(i =>
-                  coverUrls[i] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={coverUrls[i]}
-                      alt=""
-                      width={COVER_W}
-                      height={COVER_H}
-                      style={{
-                        objectFit: 'cover',
-                        borderRadius: '3px',
-                        boxShadow: '0 3px 12px rgba(0,0,0,0.2)',
-                      }}
-                    />
-                  ) : null
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     ),
     {
