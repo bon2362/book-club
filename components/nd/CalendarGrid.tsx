@@ -14,6 +14,7 @@ export default function CalendarGrid({
   slotRange,
   overlap,
   viewerFreeKeys,
+  markerFreeKeys,
   focusRef,
   canEdit,
   selectedKey,
@@ -26,6 +27,7 @@ export default function CalendarGrid({
   slotRange: [number, number]
   overlap: OverlapResult
   viewerFreeKeys: ReadonlySet<string>
+  markerFreeKeys: ReadonlySet<string>
   focusRef: string | null
   canEdit: boolean
   selectedKey: string | null
@@ -110,10 +112,10 @@ export default function CalendarGrid({
             const cell = overlap.cells.get(key)
             const candidate = overlap.candidateStarts.has(key)
             const covered = overlap.candidateCovered.has(key)
-            const mine = viewerFreeKeys.has(key)
             const previousKey = slotKey(addSlots(new Date(key), -1))
             const previousVisible = halfHour > slotRange[0]
-            const mineStart = mine && (!previousVisible || !viewerFreeKeys.has(previousKey))
+            const markedByEditor = markerFreeKeys.has(key)
+            const mineStart = markedByEditor && (!previousVisible || !markerFreeKeys.has(previousKey))
             const freeCount = focusRef
               ? cell?.freeRefs.includes(focusRef) ? 1 : 0
               : cell?.freeRefs.length ?? 0

@@ -4,19 +4,31 @@ export default function CalendarParticipants({
   participants,
   viewerRef,
   focusRef,
+  isDesktop,
+  isAdmin,
   onFocus,
+  onActAs,
   referenceDate,
 }: {
   participants: CalendarPublicState['participants']
   viewerRef: string | null
   focusRef: string | null
+  isDesktop: boolean
+  isAdmin: boolean
   onFocus: (ref: string | null) => void
+  onActAs: (userId: string) => void
   referenceDate: Date
 }) {
+  const helpText = isDesktop
+    ? isAdmin
+      ? 'Наведите на имя, чтобы увидеть только его время. Нажмите, чтобы править за участника.'
+      : 'Наведите на имя, чтобы увидеть только его время'
+    : 'Нажмите на имя, чтобы увидеть только его время'
+
   return (
     <aside>
       <h3 style={{ margin: '0 0 2px', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.13em', color: 'var(--text-muted)', fontWeight: 600, borderTop: '2px solid var(--success)', paddingTop: 8 }}>Круг</h3>
-      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '6px 0 12px' }}>Нажмите на имя, чтобы увидеть только его время</div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '6px 0 12px' }}>{helpText}</div>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
         {participants.map((participant) => {
           const focused = focusRef === participant.ref
@@ -24,7 +36,19 @@ export default function CalendarParticipants({
             <li key={participant.ref}>
               <button
                 type="button"
-                onClick={() => onFocus(focused ? null : participant.ref)}
+                onMouseEnter={() => {
+                  if (isDesktop) onFocus(participant.ref)
+                }}
+                onMouseLeave={() => {
+                  if (isDesktop) onFocus(null)
+                }}
+                onClick={() => {
+                  if (isDesktop) {
+                    if (isAdmin && participant.adminUserId) onActAs(participant.adminUserId)
+                    return
+                  }
+                  onFocus(focused ? null : participant.ref)
+                }}
                 style={{
                   width: '100%',
                   display: 'flex',

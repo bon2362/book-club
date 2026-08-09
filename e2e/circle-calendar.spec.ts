@@ -154,6 +154,12 @@ test('участники отмечают общий слот и назнача�
     const resaveResponse = await resaveResponsePromise
     expect(resaveResponse.ok(), await resaveResponse.text()).toBe(true)
     await resaveStatePromise
+
+    await expect(adminPage.locator('[data-mine-marker="true"]')).toHaveCount(1)
+    const participantBButton = adminPage.getByRole('button', { name: /Борис Книги E2E/i })
+    await participantBButton.hover()
+    await expect(adminPage.locator('[data-mine-marker="true"]')).toHaveCount(0)
+
     await markSlot(participantB.request, key, 90)
 
     await participantAPage.reload()
@@ -167,6 +173,9 @@ test('участники отмечают общий слот и назнача�
     await participantAPage.reload()
     await expect(participantAPage.getByRole('heading', { name: targetBook.title })).toBeVisible()
     await expect(participantAPage.getByText(`90 минут · ${targetBook.title}`)).toBeVisible()
+
+    await adminPage.getByRole('button', { name: /Борис Книги E2E/i }).click()
+    await expect(adminPage).toHaveURL(new RegExp(`/calendar/${slug}\\?as=${participantB.userId}$`))
   } finally {
     await dbExec('delete from circle_meetings where schedule_id in (select id from circle_schedules where book_id = $1)', [targetBook.id])
     await dbExec('delete from user_availability where user_id = any($1::text[])', [[participantA.userId, participantB.userId]])

@@ -26,6 +26,7 @@ export default function CalendarClient({
   const [crop, setCrop] = useState(Boolean(initialState.viewer.ref && initialState.participants.find((p) => p.ref === initialState.viewer.actingAsRef)?.marked))
   const [fullDay, setFullDay] = useState(false)
   const [expanded, setExpanded] = useState(initialState.meetings.filter((meeting) => meeting.canceledAt === null && new Date(meeting.startsAt) > new Date(initialState.now)).length === 0)
+  const [isDesktop, setIsDesktop] = useState(false)
   const [viewerIntervals, setViewerIntervals] = useState<Interval[]>(() => actingParticipant(initialState)?.intervals.map(parseInterval) ?? [])
   const skipSave = useRef(true)
   const asQuery = actingUserId ? `?as=${encodeURIComponent(actingUserId)}` : ''
@@ -34,6 +35,14 @@ export default function CalendarClient({
     const response = await fetch(`/api/calendar/${state.slug}${asQuery}`)
     if (response.ok) setState(await response.json())
   }, [asQuery, state.slug])
+
+  useEffect(() => {
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const update = () => setIsDesktop(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
 
   useEffect(() => {
     const next = actingParticipant(state)?.intervals.map(parseInterval) ?? []
@@ -97,6 +106,7 @@ export default function CalendarClient({
   }), [busyParticipants, state])
 
   const viewerFreeKeys = useMemo(() => new Set(viewerIntervals.flatMap(enumerateSlots)), [viewerIntervals])
+  const markerFreeKeys = !focusRef || focusRef === state.viewer.actingAsRef ? viewerFreeKeys : new Set<string>()
   const dayStarts = useMemo(() => buildDayStarts(new Date(state.window.start)), [state.window.start])
   const activeDayIndexes = useMemo(() => {
     const active = new Set<number>()
@@ -188,6 +198,10 @@ export default function CalendarClient({
     if (response.ok) await reloadState()
   }
 
+  function actAs(userId: string) {
+    window.location.assign(`/calendar/${state.slug}?as=${encodeURIComponent(userId)}`)
+  }
+
   async function scheduleMeeting(key: string) {
     const response = await fetch(`/api/calendar/${state.slug}/meetings`, {
       method: 'POST',
@@ -266,6 +280,7 @@ export default function CalendarClient({
                 slotRange={slotRange}
                 overlap={overlap}
                 viewerFreeKeys={viewerFreeKeys}
+                markerFreeKeys={markerFreeKeys}
                 focusRef={focusRef}
                 canEdit={state.viewer.canEdit}
                 selectedKey={selectedKey}
@@ -284,7 +299,16 @@ export default function CalendarClient({
             </div>
           </section>
           <section>
-            <CalendarParticipants participants={participants} viewerRef={state.viewer.ref} focusRef={focusRef} onFocus={setFocusRef} referenceDate={new Date(state.now)} />
+            <CalendarParticipants
+              participants={participants}
+              viewerRef={state.viewer.ref}
+              focusRef={focusRef}
+              isDesktop={isDesktop}
+              isAdmin={state.viewer.isAdmin}
+              onFocus={setFocusRef}
+              onActAs={actAs}
+              referenceDate={new Date(state.now)}
+            />
             <CalendarLegend markedCount={overlap.markedRefs.length} />
           </section>
         </div>

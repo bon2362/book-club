@@ -19,6 +19,7 @@ export interface CalendarPublicState {
   now: string
   participants: Array<{
     ref: string
+    adminUserId?: string
     displayName: string
     timezone: string | null
     timezoneConfirmed: boolean
@@ -104,6 +105,7 @@ export async function fetchCalendarPublicState(input: {
     const busy = busyByUser.get(member.userId) ?? []
     return {
       ref: member.ref,
+      ...(input.isAdmin ? { adminUserId: member.userId } : {}),
       displayName: member.displayName,
       timezone: member.timezone,
       timezoneConfirmed: member.timezoneConfirmed,
