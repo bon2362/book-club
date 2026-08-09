@@ -111,6 +111,9 @@ export default function CalendarGrid({
             const candidate = overlap.candidateStarts.has(key)
             const covered = overlap.candidateCovered.has(key)
             const mine = viewerFreeKeys.has(key)
+            const previousKey = slotKey(addSlots(new Date(key), -1))
+            const previousVisible = halfHour > slotRange[0]
+            const mineStart = mine && (!previousVisible || !viewerFreeKeys.has(previousKey))
             const freeCount = focusRef
               ? cell?.freeRefs.includes(focusRef) ? 1 : 0
               : cell?.freeRefs.length ?? 0
@@ -147,9 +150,10 @@ export default function CalendarGrid({
                   padding: 0,
                 }}
               >
-                {mine && (
+                {mineStart && (
                   <span
                     aria-hidden="true"
+                    data-mine-marker="true"
                     style={{
                       position: 'absolute',
                       left: 0,
