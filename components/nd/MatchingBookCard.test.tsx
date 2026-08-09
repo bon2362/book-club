@@ -16,7 +16,7 @@ const book: MatchingBookView = {
 }
 
 const baseProps = {
-  viewerRef: 'viewer', viewerAssignmentBookId: null, viewerHardBookId: null,
+  viewerRef: 'viewer', viewerHasHard: false,
   readOnly: false, pendingAction: null, onCommand: jest.fn(), onOpenBook: jest.fn(),
 }
 
@@ -118,12 +118,12 @@ describe('MatchingBookCard', () => {
     expect(screen.getByRole('button', { name: AUTO_CARET })).toBeInTheDocument()
   })
 
-  it('disables the auto-enroll option when a hard choice sits on another book', () => {
-    render(<MatchingBookCard book={book} {...baseProps} viewerHardBookId="b2" />)
+  it('disables the auto-enroll option when the viewer has any hard choice', () => {
+    render(<MatchingBookCard book={book} {...baseProps} viewerHasHard />)
     expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: AUTO_CARET }))
     expect(screen.getByRole('menuitemcheckbox', { name: AUTO_OPTION })).toBeDisabled()
-    expect(screen.getByText('Сначала отмените запись на другой книге.')).toBeInTheDocument()
+    expect(screen.getByText('Авто-запись недоступна после окончательной записи.')).toBeInTheDocument()
   })
 
   it('uses the fixed formation threshold in the waiting note', () => {
@@ -148,7 +148,7 @@ describe('MatchingBookCard', () => {
   })
 
   it('labels the viewer own circle with the filled circle kicker', () => {
-    render(<MatchingBookCard book={{ ...book, viewerStatus: 'assigned', formedAt: '2026-07-13T10:00:00Z' }} {...baseProps} viewerAssignmentBookId="b1" />)
+    render(<MatchingBookCard book={{ ...book, viewerStatus: 'assigned', formedAt: '2026-07-13T10:00:00Z' }} {...baseProps} />)
     expect(screen.getByText('● Ваш круг')).toBeInTheDocument()
   })
 
@@ -172,15 +172,15 @@ describe('MatchingBookCard', () => {
   })
 
   it('renders an assigned card without technical slot copy', () => {
-    render(<MatchingBookCard book={{ ...book, viewerStatus: 'assigned', formedAt: '2026-07-13T10:00:00Z' }} {...baseProps} viewerAssignmentBookId="b1" />)
+    render(<MatchingBookCard book={{ ...book, viewerStatus: 'assigned', formedAt: '2026-07-13T10:00:00Z' }} {...baseProps} />)
     expect(screen.queryByText(/слот занят/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
   })
 
-  it('marks cards locked by another assignment as dimmed and actionless', () => {
-    render(<MatchingBookCard book={book} {...baseProps} viewerAssignmentBookId="another-book" />)
+  it('keeps other books actionable after an assignment', () => {
+    render(<MatchingBookCard book={book} {...baseProps} />)
     const card = screen.getByTestId('matching-book-card-b1')
-    expect(card).toHaveClass('is-dim')
-    expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
+    expect(card).not.toHaveClass('is-dim')
+    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
   })
 })

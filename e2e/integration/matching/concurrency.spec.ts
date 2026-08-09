@@ -4,7 +4,7 @@ import { test, expect } from '../../api-fixtures'
 type State = {
   session: { stateVersion: number }
   bookMode: {
-    viewerAssignmentBookId: string | null
+    viewerAssignmentBookIds: string[]
     books: Array<{ viewerStatus: string; formedAt: string | null }>
   }
 }
@@ -54,7 +54,8 @@ test('concurrent thresholds assign a conditional participant exactly once', asyn
   ])
 
   const result = await state(participantB.request, session.id)
-  expect([books[0].id, books[1].id]).toContain(result.bookMode.viewerAssignmentBookId)
+  expect(result.bookMode.viewerAssignmentBookIds).toHaveLength(1)
+  expect([books[0].id, books[1].id]).toContain(result.bookMode.viewerAssignmentBookIds[0])
   expect(result.bookMode.books.filter(book => book.viewerStatus === 'assigned')).toHaveLength(1)
   expect(result.bookMode.books.filter(book => book.formedAt !== null)).toHaveLength(1)
 })

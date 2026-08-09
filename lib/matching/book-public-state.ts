@@ -51,12 +51,13 @@ export interface BookModeCircleRow {
 
 export interface PublicBookModeState {
   initializedAt: string
-  viewerAssignmentBookId: string | null
+  mutationsAvailable: boolean
+  viewerAssignmentBookIds: string[]
   adminParticipants?: Array<{
     adminUserId: string
     ref: string
     displayName: string
-    assignmentBookId: string | null
+    assignmentBookIds: string[]
   }>
   books: Array<{
     bookId: string
@@ -104,14 +105,14 @@ function statusFor(input: {
   intents: ReadonlyMap<string, BookModeIntentRow>
   assignments: ReadonlyMap<string, BookModeAssignmentRow>
 }): BookParticipantStatus {
-  const assignment = input.assignments.get(input.userId)
-  if (assignment?.bookId === input.bookId) return 'assigned'
+  if (input.assignments.has(`${input.userId}:${input.bookId}`)) return 'assigned'
   return input.intents.get(`${input.userId}:${input.bookId}`)?.kind ?? 'interest'
 }
 
 export function buildPublicBookModeState(input: {
   initializedAt: Date
   sessionStatus: string
+  multibookReady?: boolean
   viewerUserId: string
   admin: boolean
   books: BookModeBookRow[]
@@ -124,13 +125,15 @@ export function buildPublicBookModeState(input: {
 }): PublicBookModeState {
   const participantById = new Map(input.participants.map(item => [item.userId, item]))
   const intentByUserBook = new Map(input.intents.map(item => [`${item.userId}:${item.bookId}`, item]))
-  const assignmentByUser = new Map(input.assignments.map(item => [item.userId, item]))
-  const hardIntentByUser = new Map(
-    input.intents.filter(item => item.kind === 'hard').map(item => [item.userId, item]),
-  )
+  const assignmentByUserBook = new Map(input.assignments.map(item => [`${item.userId}:${item.bookId}`, item]))
   const interestByUserBook = new Map(input.interests.map(item => [`${item.userId}:${item.bookId}`, item]))
-  const viewerAssignment = assignmentByUser.get(input.viewerUserId) ?? null
-  const viewerHard = input.intents.find(item => item.userId === input.viewerUserId && item.kind === 'hard') ?? null
+  const viewerAssignmentBookIds = new Set(
+    input.assignments.filter(item => item.userId === input.viewerUserId).map(item => item.bookId),
+  )
+  const viewerHardBookIds = new Set(
+    input.intents.filter(item => item.userId === input.viewerUserId && item.kind === 'hard').map(item => item.bookId),
+  )
+  const viewerHasHard = viewerHardBookIds.size > 0
   const viewerBookIds = new Set(
     input.interests.filter(item => item.userId === input.viewerUserId).map(item => item.bookId),
   )
@@ -143,6 +146,7 @@ export function buildPublicBookModeState(input: {
     ))
     : viewerBookIds
   const open = input.sessionStatus === 'open'
+  const mutationsAvailable = input.multibookReady !== false
 
   const books = input.books
     .filter(book => visibleBookIds.has(book.bookId))
@@ -165,7 +169,7 @@ export function buildPublicBookModeState(input: {
             userId,
             bookId: book.bookId,
             intents: intentByUserBook,
-            assignments: assignmentByUser,
+            assignments: assignmentByUserBook,
           }),
           rank: interestByUserBook.get(`${userId}:${book.bookId}`)?.rank ?? null,
           ...(input.admin ? { adminUserId: userId } : {}),
@@ -194,42 +198,34 @@ export function buildPublicBookModeState(input: {
         userId: input.viewerUserId,
         bookId: book.bookId,
         intents: intentByUserBook,
-        assignments: assignmentByUser,
+        assignments: assignmentByUserBook,
       })
-      const viewerFree = !viewerAssignment
-      const isAvailableForBook = (userId: string) => {
-        const assignment = assignmentByUser.get(userId)
-        if (assignment && assignment.bookId !== book.bookId) return false
-        const hardIntent = hardIntentByUser.get(userId)
-        return !hardIntent || hardIntent.bookId === book.bookId
-      }
-      const availableInterestRows = input.interests
-        .filter(item => item.bookId === book.bookId && isAvailableForBook(item.userId))
-      const availableDecisionStatuses = bookParticipantUserIds
-        .filter(isAvailableForBook)
+      const viewerAssignedHere = viewerAssignmentBookIds.has(book.bookId)
+      const bookInterestRows = input.interests.filter(item => item.bookId === book.bookId)
+      const decisionStatuses = bookParticipantUserIds
         .map(userId => statusFor({
           userId,
           bookId: book.bookId,
           intents: intentByUserBook,
-          assignments: assignmentByUser,
+          assignments: assignmentByUserBook,
         }))
-      const finalCount = availableDecisionStatuses.filter(status => status === 'hard' || status === 'assigned').length
-      const conditionalCount = availableDecisionStatuses.filter(status => status === 'conditional').length
+      const finalCount = decisionStatuses.filter(status => status === 'hard' || status === 'assigned').length
+      const conditionalCount = decisionStatuses.filter(status => status === 'conditional').length
       // Adding the viewer's conditional forms the book (and assigns them) only when the
       // real rule holds among the other available intents: ≥2 hard and hard+conditional ≥ 3.
       const otherAvailableStatuses = bookParticipantUserIds
-        .filter(userId => userId !== input.viewerUserId && isAvailableForBook(userId))
+        .filter(userId => userId !== input.viewerUserId)
         .map(userId => statusFor({
           userId,
           bookId: book.bookId,
           intents: intentByUserBook,
-          assignments: assignmentByUser,
+          assignments: assignmentByUserBook,
         }))
       const otherHardCount = otherAvailableStatuses.filter(status => status === 'hard').length
       const otherConditionalCount = otherAvailableStatuses.filter(status => status === 'conditional').length
-      const conditionalWouldAssign = !formed && viewerFree && !viewerHard &&
+      const conditionalWouldAssign = mutationsAvailable && !formed && !viewerAssignedHere && !viewerHasHard &&
         shouldFormBook(otherHardCount, otherConditionalCount + 1)
-      const availableRanks = availableInterestRows
+      const availableRanks = bookInterestRows
         .flatMap(item => item.rank === null ? [] : [item.rank])
 
       return {
@@ -254,9 +250,9 @@ export function buildPublicBookModeState(input: {
         circles,
         unplacedParticipantRefs,
         allowedActions: {
-          conditional: !input.admin && open && viewerFree && !formed && !viewerHard,
-          hard: !input.admin && open && viewerFree && viewerStatus !== 'hard',
-          cancelHard: !input.admin && open && viewerFree && viewerStatus === 'hard',
+          conditional: mutationsAvailable && !input.admin && open && !formed && !viewerAssignedHere && !viewerHasHard,
+          hard: mutationsAvailable && !input.admin && open && !viewerAssignedHere && viewerStatus !== 'hard',
+          cancelHard: mutationsAvailable && !input.admin && open && viewerStatus === 'hard',
         },
         conditionalWouldAssign,
         decisionScore: {
@@ -264,7 +260,7 @@ export function buildPublicBookModeState(input: {
           finalCount,
           conditionalCount,
           viewerOnlyTail: !formed && interestedUserIds.every(userId => userId === input.viewerUserId) ? 1 : 0,
-          hasIntersection: availableInterestRows.some(item => item.userId !== input.viewerUserId) ? 1 : 0,
+          hasIntersection: bookInterestRows.some(item => item.userId !== input.viewerUserId) ? 1 : 0,
           avgRank: availableRanks.length > 0
             ? availableRanks.reduce((sum, rank) => sum + rank, 0) / availableRanks.length
             : null,
@@ -274,8 +270,8 @@ export function buildPublicBookModeState(input: {
       }
     })
     .sort((left, right) => {
-      const leftPinned = left.bookId === viewerAssignment?.bookId ? 2 : left.bookId === viewerHard?.bookId ? 1 : 0
-      const rightPinned = right.bookId === viewerAssignment?.bookId ? 2 : right.bookId === viewerHard?.bookId ? 1 : 0
+      const leftPinned = viewerAssignmentBookIds.has(left.bookId) ? 2 : viewerHardBookIds.has(left.bookId) ? 1 : 0
+      const rightPinned = viewerAssignmentBookIds.has(right.bookId) ? 2 : viewerHardBookIds.has(right.bookId) ? 1 : 0
       const leftAvg = left.decisionScore.avgRank ?? Number.POSITIVE_INFINITY
       const rightAvg = right.decisionScore.avgRank ?? Number.POSITIVE_INFINITY
       const leftWorst = left.decisionScore.worstRank ?? Number.POSITIVE_INFINITY
@@ -299,14 +295,18 @@ export function buildPublicBookModeState(input: {
 
   return {
     initializedAt: input.initializedAt.toISOString(),
-    viewerAssignmentBookId: viewerAssignment?.bookId ?? null,
+    mutationsAvailable,
+    viewerAssignmentBookIds: Array.from(viewerAssignmentBookIds).sort(),
     ...(input.admin ? {
       adminParticipants: input.participants
         .map(participant => ({
           adminUserId: participant.userId,
           ref: participant.publicRef,
           displayName: participant.displayName,
-          assignmentBookId: assignmentByUser.get(participant.userId)?.bookId ?? null,
+          assignmentBookIds: input.assignments
+            .filter(assignment => assignment.userId === participant.userId)
+            .map(assignment => assignment.bookId)
+            .sort(),
         }))
         .sort((left, right) => left.displayName.localeCompare(right.displayName) || left.ref.localeCompare(right.ref)),
     } : {}),

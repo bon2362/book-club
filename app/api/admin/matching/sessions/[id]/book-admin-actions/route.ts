@@ -15,11 +15,11 @@ function parseAction(body: Record<string, unknown>): MatchingAction | null {
   const circleId = typeof body.circleId === 'string' ? body.circleId.trim() : null
   switch (body.action) {
     case 'assign': return userId && bookId ? { type: 'admin_assign_book', userId, bookId } : null
-    case 'unassign': return userId ? { type: 'admin_unassign_book', userId } : null
+    case 'unassign': return userId && bookId ? { type: 'admin_unassign_book', userId, bookId } : null
     case 'removeParticipant': return userId ? { type: 'admin_remove', userId } : null
     case 'createCircle': return bookId ? { type: 'admin_create_book_circle', bookId } : null
     case 'deleteCircle': return circleId ? { type: 'admin_delete_book_circle', circleId } : null
-    case 'place': return userId ? { type: 'admin_place_book_assignment', userId, circleId } : null
+    case 'place': return userId && bookId ? { type: 'admin_place_book_assignment', userId, bookId, circleId } : null
     case 'closeSession': return { type: 'close_session' }
     case 'reopenSession': return { type: 'reopen_session' }
     default: return null

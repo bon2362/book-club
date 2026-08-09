@@ -20,15 +20,11 @@ export type MatchingBookCommandAction =
 interface Props {
   book: MatchingBookView
   viewerRef: string
-  viewerAssignmentBookId: string | null
-  viewerHardBookId: string | null
+  viewerHasHard: boolean
   readOnly: boolean
   adminMode?: boolean
   controlsDisabled?: boolean
   pendingAction: MatchingBookCommandAction | null
-  switchFromBookTitle?: string | null
-  onConfirmSwitch?: (control: HTMLButtonElement) => void
-  onCancelSwitch?: () => void
   onCommand: (action: MatchingBookCommandAction, bookId: string, control: HTMLButtonElement) => void
   onOpenBook: (book: MatchingBookView, control: HTMLButtonElement) => void
   adminControls?: React.ReactNode
@@ -53,15 +49,11 @@ function interestText(count: number) {
 export default function MatchingBookCard({
   book,
   viewerRef,
-  viewerAssignmentBookId,
-  viewerHardBookId,
+  viewerHasHard,
   readOnly,
   adminMode = false,
   controlsDisabled = false,
   pendingAction,
-  switchFromBookTitle = null,
-  onConfirmSwitch,
-  onCancelSwitch,
   onCommand,
   onOpenBook,
   adminControls,
@@ -69,8 +61,6 @@ export default function MatchingBookCard({
   const assignedHere = book.viewerStatus === 'assigned'
   const hardHere = book.viewerStatus === 'hard'
   const conditionalHere = book.viewerStatus === 'conditional'
-  const lockedElsewhere = viewerAssignmentBookId !== null && viewerAssignmentBookId !== book.bookId
-  const hasHardElsewhere = viewerHardBookId !== null && viewerHardBookId !== book.bookId
   const formed = book.formedAt !== null
   // Three mutually-exclusive aggregate groups; the interest group excludes the viewer.
   const enrolledCount = book.participants.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
@@ -108,7 +98,6 @@ export default function MatchingBookCard({
     assignedHere ? 'is-assigned' : '',
     hardHere ? 'is-hard' : '',
     formed ? 'is-formed' : '',
-    lockedElsewhere ? 'is-dim' : '',
     book.currentViability === 'needs_attention' ? 'needs-attention' : '',
     book.intersectionCount === 0 ? 'has-no-overlap' : '',
   ].filter(Boolean).join(' ')
@@ -169,15 +158,7 @@ export default function MatchingBookCard({
       )}
 
       {!adminMode && <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
-        {switchFromBookTitle && onConfirmSwitch && onCancelSwitch ? (
-          <div className="nd-mb-switch-confirm" role="group" aria-label="Подтверждение смены книги">
-            <span>Если записаться на «{book.title}», выбор «{switchFromBookTitle}» будет снят.</span>
-            <div>
-              <button type="button" className="nd-mb-btn is-hard" data-testid="matching-hard-switch-confirm" disabled={controlsDisabled} onClick={(event) => onConfirmSwitch(event.currentTarget)}>Перезаписаться</button>
-              <button type="button" className="nd-mb-btn is-ghost" disabled={controlsDisabled} onClick={onCancelSwitch}>Оставить как есть</button>
-            </div>
-          </div>
-        ) : hardHere ? (
+        {hardHere ? (
           <>
             <strong className="nd-mb-hard-copy">✓ Вы записаны</strong>
             {!readOnly && book.allowedActions.cancelHard && (
@@ -187,7 +168,7 @@ export default function MatchingBookCard({
             )}
             <span className="nd-mb-action-note">{`Ждём остальных. Книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего. Круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек.`}</span>
           </>
-        ) : assignedHere || lockedElsewhere ? null
+        ) : assignedHere ? null
         : readOnly ? (
           <span>Сессия закрыта — выбор доступен только для просмотра</span>
         ) : (
@@ -223,7 +204,7 @@ export default function MatchingBookCard({
                       role="menuitemcheckbox"
                       aria-checked={conditionalHere}
                       className="nd-mb-split-opt"
-                      disabled={pending || controlsDisabled || hasHardElsewhere}
+                      disabled={pending || controlsDisabled || viewerHasHard}
                       onClick={(event) => onCommand(conditionalHere ? 'unsetConditional' : 'setConditional', book.bookId, event.currentTarget)}
                     >
                       <span className={`nd-mb-check${conditionalHere ? ' is-on' : ''}`} aria-hidden="true">{conditionalHere ? '✓' : ''}</span>
@@ -234,8 +215,8 @@ export default function MatchingBookCard({
                       </span>
                     </button>
                     <p className="nd-mb-split-hint">
-                      {hasHardElsewhere
-                        ? 'Сначала отмените запись на другой книге.'
+                      {viewerHasHard
+                        ? 'Авто-запись недоступна после окончательной записи.'
                         : 'Можно отметить несколько книг — запишем в первую, где соберётся круг.'}
                     </p>
                   </div>

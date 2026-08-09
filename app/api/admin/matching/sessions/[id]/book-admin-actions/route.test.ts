@@ -38,6 +38,27 @@ describe('POST book-admin-actions', () => {
     }))
   })
 
+  it('requires and maps the assignment book for unassign and place', async () => {
+    const unassign = await POST(request({
+      action: 'unassign', userId: 'user-1', bookId: 'book-2', expectedStateVersion: 3,
+    }), params)
+    expect(unassign.status).toBe(200)
+    expect(mockTransition).toHaveBeenLastCalledWith(expect.objectContaining({
+      action: { type: 'admin_unassign_book', userId: 'user-1', bookId: 'book-2' },
+    }))
+
+    const place = await POST(request({
+      action: 'place', userId: 'user-1', bookId: 'book-2', circleId: 'circle-1', expectedStateVersion: 3,
+    }), params)
+    expect(place.status).toBe(200)
+    expect(mockTransition).toHaveBeenLastCalledWith(expect.objectContaining({
+      action: { type: 'admin_place_book_assignment', userId: 'user-1', bookId: 'book-2', circleId: 'circle-1' },
+    }))
+
+    expect((await POST(request({ action: 'unassign', userId: 'user-1', expectedStateVersion: 3 }), params)).status).toBe(400)
+    expect((await POST(request({ action: 'place', userId: 'user-1', expectedStateVersion: 3 }), params)).status).toBe(400)
+  })
+
   it('keeps lifecycle commands behind admin auth', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', isAdmin: false } })
     expect((await POST(request({ action: 'closeSession', expectedStateVersion: 3 }), params)).status).toBe(403)

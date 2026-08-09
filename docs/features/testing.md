@@ -147,14 +147,16 @@ Nightly — явная композиция трёх Playwright projects:
 
 | Риск | Nightly-проверка |
 |---|---|
-| conditional/hard/switch/reload | tagged `matching-books.spec.ts` |
+| conditional/hard/multiple hard/reload | tagged `matching-books.spec.ts` |
 | formation и assignment guards | tagged formation golden path |
 | realtime polling | `MatchingRealtimeClient.test.tsx` и книжные browser journeys |
 | admin close/reopen/place/assign | tagged admin lifecycle |
 | focus, responsive, document scroll, formed fill | tagged book-layout tests в `matching-layout.spec.ts` |
 | book board shell, popup, long-sheet close, waiting line и full width | tagged book-layout tests в `matching-layout.spec.ts` |
 | concurrent threshold | `integration/matching/concurrency.spec.ts` |
+| два назначения и очистка авто-записей | `integration/matching/multibook.spec.ts` |
 | destructive scenario-removal migration: active/frozen import and rollback | `integration/matching/scenario-removal-migration.spec.ts` |
+| migration 0061: сохранение данных, новые ключи и audit trigger | `integration/matching/multibook-migration.spec.ts` |
 | actor-aware audit, semantic events, cleanup и heartbeat noise | книжные audit integration tests |
 | assigned/closed/impersonation guards и readable state | `integration/matching/state-guards.spec.ts` |
 | auth modal, welcome и close navigation | matching welcome/book journeys |
@@ -184,12 +186,12 @@ Nightly — явная композиция трёх Playwright projects:
 | `theme.spec.ts` | UI | Переключение темы |
 | `view-mode.spec.ts` | UI | Режимы отображения (сетка/список) |
 | `*-layout.spec.ts` | UI | Доменное CSS-поведение и реальная геометрия |
-| `matching-books.spec.ts` | Матчинг | Условный/твёрдый выбор с reload, атомарная смена книги, очистка условных согласий и формирование при двух hard |
+| `matching-books.spec.ts` | Матчинг | Условный/несколько твёрдых выборов с reload, очистка условных согласий и формирование при двух hard |
 | `matching-layout.spec.ts` | Матчинг / UI | Единая книжная доска без вкладок, desktop/mobile geometry, popup и меню авто-записи |
 
 Matching E2E покрывают книжную доску, popup, выбор с reload, формирование и lifecycle. Каждый тест создаёт собственную открытую сессию и пользователей. Проверки персистентности обязательно делают `page.reload()`.
 
-Книжные спеки запускаются после применения к изолированной Neon-ветке `e2e` миграций `0053_matching_books.sql`, `0059_remove_matching_scenarios.sql` и `0060_remove_matching_group_sizes.sql`. Nightly поддерживает Drizzle-схему до сборки и Playwright; fixtures миграции не применяют. Никогда не переключайте тесты на production URL.
+Книжные спеки запускаются после применения к изолированной Neon-ветке `e2e` миграций `0053_matching_books.sql`, `0059_remove_matching_scenarios.sql`, `0060_remove_matching_group_sizes.sql` и `0061_matching_multibook.sql`. Nightly поддерживает Drizzle-схему до сборки и Playwright; fixtures миграции не применяют. Никогда не переключайте тесты на production URL.
 
 ### Правила написания E2E-тестов
 

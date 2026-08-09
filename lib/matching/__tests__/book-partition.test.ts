@@ -76,8 +76,8 @@ describe('planBookFormation', () => {
     { userId: 'c2', kind: 'conditional' as const },
   ]
 
-  it('assigns every available hard and conditional and clears all their cross-book intents', () => {
-    expect(planBookFormation({ formed: false, intents, assignedUserIds: new Set() })).toEqual({
+  it('assigns every hard and conditional not already assigned to this book', () => {
+    expect(planBookFormation({ formed: false, intents, assignedToBookUserIds: new Set() })).toEqual({
       assignments: [
         { userId: 'h1', source: 'hard' }, { userId: 'h2', source: 'hard' },
         { userId: 'c1', source: 'conditional' }, { userId: 'c2', source: 'conditional' },
@@ -86,11 +86,16 @@ describe('planBookFormation', () => {
     })
   })
 
-  it('excludes occupied users before evaluating the threshold', () => {
-    expect(planBookFormation({ formed: false, intents, assignedUserIds: new Set(['h2']) })).toBeNull()
+  it('excludes users already assigned to this book before evaluating the threshold', () => {
+    expect(planBookFormation({ formed: false, intents, assignedToBookUserIds: new Set(['h2']) })).toBeNull()
+  })
+
+  it('does not exclude a user merely because they are assigned to another book', () => {
+    expect(planBookFormation({ formed: false, intents, assignedToBookUserIds: new Set() })?.assignments)
+      .toContainEqual({ userId: 'h2', source: 'hard' })
   })
 
   it('never reforms a historical formed book', () => {
-    expect(planBookFormation({ formed: true, intents, assignedUserIds: new Set() })).toBeNull()
+    expect(planBookFormation({ formed: true, intents, assignedToBookUserIds: new Set() })).toBeNull()
   })
 })

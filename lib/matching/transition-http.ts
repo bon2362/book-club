@@ -14,6 +14,7 @@ export function transitionStatus(code: MatchingTransitionErrorCode): number {
     case 'session_closed':
     case 'stale_state':
     case 'participant_locked':
+    case 'matching_migration_required':
       return 409
     case 'book_action_forbidden':
     case 'invalid_book_action':

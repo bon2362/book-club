@@ -49,7 +49,7 @@ describe('MatchingRealtimeClient', () => {
       viewer: { role: 'active', ref: 'r1' },
       participants: [{ ref: 'r1', displayName: 'Анна', online: false }],
       notices: [],
-      bookMode: { initializedAt: '2026-07-13T10:00:00.000Z', viewerAssignmentBookId: null, books: [] },
+      bookMode: { initializedAt: '2026-07-13T10:00:00.000Z', viewerAssignmentBookIds: [], books: [] },
     }
   }
 
@@ -83,7 +83,7 @@ describe('MatchingRealtimeClient', () => {
     const state = makeInitialState()
     state.bookMode = {
       initializedAt: '2026-07-13T10:00:00.000Z',
-      viewerAssignmentBookId: null,
+      viewerAssignmentBookIds: [],
       books: [{
         bookId: 'b1', title: 'Книга режима', author: 'Автор', coverUrl: null,
         intersectionCount: 0, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',

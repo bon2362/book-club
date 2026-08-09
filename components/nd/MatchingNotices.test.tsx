@@ -31,6 +31,7 @@ test('renders human messages for each notice kind', () => {
         notice({ id: 'n2', kind: 'confirmation_invalidated', payload: { members: ['Анна', 'Глеб'] } }),
         notice({ id: 'n3', kind: 'circle_locked', payload: {} }),
         notice({ id: 'n4', kind: 'circle_dissolved', payload: {} }),
+        notice({ id: 'n5', kind: 'conditional_intents_cleared', payload: { books: ['Первая', 'Вторая'] } }),
       ]}
     />,
   )
@@ -52,6 +53,16 @@ test('renders safe generic text for notices without name snapshots', () => {
   const statuses = screen.getAllByRole('status')
   expect(statuses[0]).toHaveTextContent('Круг распался. Подтверждение снято — выбери круг заново.')
   expect(statuses[0]).not.toHaveTextContent('()')
+})
+
+test('explains which automatic choices were cleared after a final assignment', () => {
+  render(<MatchingNotices sessionId="s1" notices={[
+    notice({ kind: 'conditional_intents_cleared', payload: { books: ['Первая', 'Вторая'] } }),
+  ]} />)
+
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Авто-записи на «Первая», «Вторая» сняты. На другие книги можно записаться окончательно.',
+  )
 })
 
 test('acks a notice and removes it only after a successful response', async () => {

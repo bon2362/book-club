@@ -50,7 +50,13 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
 
   async lockSession(sessionId: string) {
     const result = await this.tx.execute(sql`
-      SELECT status, state_version AS "stateVersion"
+      SELECT status, state_version AS "stateVersion",
+        EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conrelid = 'matching_book_assignments'::regclass
+            AND conname = 'matching_book_assignments_session_user_book_pk'
+        ) AS "multibookReady"
       FROM matching_sessions
       WHERE id = ${sessionId}
       FOR UPDATE
@@ -58,6 +64,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
     return executeRows<{
       status: string
       stateVersion: number
+      multibookReady: boolean
     }>(result)[0] ?? null
   }
 

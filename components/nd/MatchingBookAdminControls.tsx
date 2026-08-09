@@ -14,19 +14,16 @@ export type MatchingBookAdminAction =
 export interface MatchingBookAdminCommand {
   action: MatchingBookAdminAction
   participant?: MatchingBookParticipantView
-  destinationBookId?: string
   circleId?: string
 }
 
 export default function MatchingBookAdminControls({
   book,
-  books,
   adminParticipants,
   pending,
   onAction,
 }: {
   book: MatchingBookView
-  books: MatchingBookView[]
   adminParticipants: MatchingBookAdminParticipant[]
   pending: boolean
   onAction: (command: MatchingBookAdminCommand) => void
@@ -65,10 +62,10 @@ export default function MatchingBookAdminControls({
               <select value={selectedParticipantId} onChange={(event) => setSelectedParticipantId(event.target.value)} disabled={pending}>
                 <option value="">Выберите…</option>
                 {adminParticipants
-                  .filter((participant) => participant.assignmentBookId !== book.bookId)
+                  .filter((participant) => !participant.assignmentBookIds.includes(book.bookId))
                   .map((participant) => (
                     <option key={participant.adminUserId} value={participant.adminUserId}>
-                      {participant.displayName}{participant.assignmentBookId ? ' · перенос' : ''}
+                      {participant.displayName}
                     </option>
                   ))}
               </select>
@@ -89,7 +86,7 @@ export default function MatchingBookAdminControls({
                 setSelectedParticipantId('')
               }}
             >
-              {adminParticipants.find((participant) => participant.adminUserId === selectedParticipantId)?.assignmentBookId ? 'Перенести сюда' : 'Записать сюда'}
+              Записать сюда
             </button>
             <button
               type="button"
@@ -130,15 +127,6 @@ export default function MatchingBookAdminControls({
                         >
                           <option value="">Без круга</option>
                           {book.circles.map((circle, index) => <option key={circle.id} value={circle.id}>Круг {index + 1}</option>)}
-                        </select>
-                        <select
-                          aria-label={`Перенести ${participant.displayName} в другую книгу`}
-                          value=""
-                          disabled={pending}
-                          onChange={(event) => event.target.value && onAction({ action: 'assign', participant, destinationBookId: event.target.value })}
-                        >
-                          <option value="">Перенести…</option>
-                          {books.filter((candidate) => candidate.bookId !== book.bookId).map((candidate) => <option key={candidate.bookId} value={candidate.bookId}>{candidate.title}</option>)}
                         </select>
                         <button type="button" disabled={pending} onClick={() => onAction({ action: 'unassign', participant })}>Снять</button>
                       </>

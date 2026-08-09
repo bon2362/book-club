@@ -136,7 +136,7 @@ export default function MatchingRealtimeClient({
         participants={state.participants}
         isAdmin={isAdmin}
         isImpersonating={isImpersonating}
-        viewerAssigned={Boolean(state.bookMode.viewerAssignmentBookId)}
+        viewerAssigned={state.bookMode.viewerAssignmentBookIds.length > 0}
         onSessionRefresh={refreshFullState}
       />
       {isAdmin && !isImpersonating && (

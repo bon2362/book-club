@@ -9,19 +9,16 @@ const first: MatchingBookView = {
   circles: [{ id: 'c1', position: 1, memberRefs: ['p1'] }], unplacedParticipantRefs: [],
   allowedActions: { conditional: false, hard: false, cancelHard: false },
 }
-const second = { ...first, bookId: 'b2', title: 'Вторая', participants: [], circles: [] }
-
 describe('MatchingBookAdminControls', () => {
-  it('offers placement, transfer, unassign, circle and removal commands', () => {
+  it('offers independent assignment, placement, unassign, circle and removal commands', () => {
     const onAction = jest.fn()
     jest.spyOn(window, 'confirm').mockReturnValue(true)
-    render(<MatchingBookAdminControls book={first} books={[first, second]} adminParticipants={[
-      { ref: 'p1', displayName: 'Анна', adminUserId: 'u1', assignmentBookId: 'b1' },
-      { ref: 'p2', displayName: 'Борис', adminUserId: 'u2', assignmentBookId: null },
+    render(<MatchingBookAdminControls book={first} adminParticipants={[
+      { ref: 'p1', displayName: 'Анна', adminUserId: 'u1', assignmentBookIds: ['b1'] },
+      { ref: 'p2', displayName: 'Борис', adminUserId: 'u2', assignmentBookIds: ['b2'] },
     ]} pending={false} onAction={onAction} />)
     fireEvent.click(screen.getByRole('button', { name: 'Управлять составом' }))
-    fireEvent.change(screen.getByLabelText('Перенести Анна в другую книгу'), { target: { value: 'b2' } })
-    expect(onAction).toHaveBeenCalledWith(expect.objectContaining({ action: 'assign', destinationBookId: 'b2' }))
+    expect(screen.queryByText(/перенос/i)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Снять' }))
     expect(onAction).toHaveBeenCalledWith(expect.objectContaining({ action: 'unassign' }))
     fireEvent.click(screen.getByRole('button', { name: 'Удалить круг 1' }))

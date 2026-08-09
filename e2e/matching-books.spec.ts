@@ -7,7 +7,7 @@ test.describe.configure({ timeout: 120_000 })
 type BookModeState = {
   session: { stateVersion: number; status: string }
   bookMode: null | {
-    viewerAssignmentBookId: string | null
+    viewerAssignmentBookIds: string[]
     books: Array<{
       bookId: string
       viewerStatus: 'interest' | 'conditional' | 'hard' | 'assigned'
@@ -41,11 +41,11 @@ test.beforeEach(async () => {
   await feature('Книжный режим')
 })
 
-test('условный и твёрдый выбор сохраняются, а смена книги атомарно очищает остальные согласия', { tag: '@matching-golden' }, async ({
+test('условный выбор очищается после окончательной записи, а несколько твёрдых выборов сохраняются', { tag: '@matching-golden' }, async ({
   matchingBooksFixture,
   openMatchingPage,
 }) => {
-  const { session, books, participantA } = matchingBooksFixture
+  const { session, books, participantA, getParticipantB, getParticipantC, addParticipant } = matchingBooksFixture
   const participantAPage = await openMatchingPage(participantA)
   await participantAPage.goto('/matching')
 
@@ -75,19 +75,39 @@ test('условный и твёрдый выбор сохраняются, а �
   expect(afterHard.bookMode?.books.find((book) => book.bookId === books[0].id)?.viewerStatus).toBe('interest')
 
   await firstCard.getByRole('button', { name: 'Записаться', exact: true }).click()
-  await expect(firstCard.getByRole('group', { name: 'Подтверждение смены книги' })).toBeVisible()
-  await expect.poll(() => state(participantA.request, session.id).then(current => current.bookMode?.books.find(book => book.bookId === books[1].id)?.viewerStatus)).toBe('hard')
-  await firstCard.getByRole('button', { name: 'Перезаписаться', exact: true }).click()
   await expect(firstCard).toContainText('✓ Вы записаны')
   await participantAPage.reload()
   await expect(firstCard).toContainText('✓ Вы записаны')
 
   const persisted = await state(participantA.request, session.id)
   expect(persisted.bookMode?.books.find((book) => book.bookId === books[0].id)?.viewerStatus).toBe('hard')
-  expect(persisted.bookMode?.books.find((book) => book.bookId === books[1].id)?.viewerStatus).toBe('interest')
+  expect(persisted.bookMode?.books.find((book) => book.bookId === books[1].id)?.viewerStatus).toBe('hard')
+
+  const [participantB, participantC, participantD] = await Promise.all([
+    getParticipantB(),
+    getParticipantC(),
+    addParticipant('Дарья Multibook Browser E2E'),
+  ])
+  await bookAction(participantC.request, session.id, 'setConditional', books[0].id)
+  await bookAction(participantC.request, session.id, 'setConditional', books[1].id)
+  await bookAction(participantD.request, session.id, 'setConditional', books[1].id)
+  await bookAction(participantB.request, session.id, 'setHard', books[0].id)
+  await bookAction(participantB.request, session.id, 'setHard', books[1].id)
+
+  await participantAPage.reload()
+  await expect(firstCard).toContainText('● Ваш круг')
+  await expect(secondCard).toContainText('● Ваш круг')
+  await expect(participantAPage.getByTestId('matching-books-selection')).toContainText(books[0].title)
+  await expect(participantAPage.getByTestId('matching-books-selection')).toContainText(books[1].title)
+  const formed = await state(participantA.request, session.id)
+  expect(formed.bookMode?.viewerAssignmentBookIds).toEqual(expect.arrayContaining(books.map(book => book.id)))
+
+  const participantCPage = await openMatchingPage(participantC)
+  await participantCPage.goto('/matching')
+  await expect(participantCPage.getByRole('status')).toContainText(`Авто-записи на «${books[1].title}» сняты`)
 })
 
-test('администратор переключает твёрдый выбор просматриваемого участника, а не свой', { tag: '@matching-golden' }, async ({
+test('администратор добавляет твёрдый выбор просматриваемому участнику, а не себе', { tag: '@matching-golden' }, async ({
   matchingBooksFixture,
   openMatchingPage,
   dbExec,
@@ -102,13 +122,12 @@ test('администратор переключает твёрдый выбо�
   const secondCard = adminPage.getByTestId(`matching-book-card-${books[1].id}`)
   await expect(firstCard).toContainText('✓ Вы записаны')
 
-  const switchResponse = adminPage.waitForResponse((response) => (
+  const actionResponse = adminPage.waitForResponse((response) => (
     response.request().method() === 'POST' &&
     response.url().includes(`/api/matching/sessions/${session.id}/book-actions?as=${participantA.userId}`)
   ))
   await secondCard.getByRole('button', { name: 'Записаться', exact: true }).click()
-  await secondCard.getByRole('button', { name: 'Перезаписаться', exact: true }).click()
-  expect((await switchResponse).ok()).toBe(true)
+  expect((await actionResponse).ok()).toBe(true)
 
   await adminPage.reload()
   await expect(secondCard).toContainText('✓ Вы записаны')
@@ -118,17 +137,18 @@ test('администратор переключает твёрдый выбо�
   await expect(participantAPage.getByTestId(`matching-book-card-${books[1].id}`)).toContainText('✓ Вы записаны')
   const persisted = await state(participantA.request, session.id)
   expect(persisted.bookMode?.books.find((book) => book.bookId === books[1].id)?.viewerStatus).toBe('hard')
+  expect(persisted.bookMode?.books.find((book) => book.bookId === books[0].id)?.viewerStatus).toBe('hard')
 
   const [event] = await dbExec(
     `select event_type, actor_user_id, subject_user_id, source, book_id
      from matching_events
-     where session_id = $1 and event_type = 'hard_switched'
+     where session_id = $1 and event_type = 'hard_set' and book_id = $2
      order by occurred_at desc
      limit 1`,
-    [session.id],
+    [session.id, books[1].id],
   )
   expect(event).toMatchObject({
-    event_type: 'hard_switched',
+    event_type: 'hard_set',
     actor_user_id: admin.userId,
     subject_user_id: participantA.userId,
     source: 'admin',
@@ -158,7 +178,7 @@ test('два твёрдых выбора и одно условное форми
     await page.reload()
     await expect(page.getByTestId('matching-books-selection')).toContainText(books[0].title)
     const persisted = await state(participant.request, session.id)
-    expect(persisted.bookMode?.viewerAssignmentBookId).toBe(books[0].id)
+    expect(persisted.bookMode?.viewerAssignmentBookIds).toContain(books[0].id)
     const formed = persisted.bookMode?.books.find((book) => book.bookId === books[0].id)
     expect(formed?.formedAt).not.toBeNull()
     expect(formed?.circles).toHaveLength(1)
@@ -173,8 +193,7 @@ test('два твёрдых выбора и одно условное форми
   })
   expect(leave.status()).toBe(409)
   await participantAPage.reload()
-  await participantAPage.getByRole('button', { name: 'Отменить', exact: true }).click()
-  await expect(participantAPage.getByTestId('matching-books-message')).toContainText('напишите организатору')
+  await expect(participantAPage.getByRole('button', { name: 'Отменить', exact: true })).toHaveCount(0)
   await participantAPage.reload()
   await expect(participantAPage.getByTestId('matching-books-selection')).toContainText(books[0].title)
 })
@@ -208,7 +227,7 @@ test('актуальный шорт-лист меняется live: conditional 
   await participantAPage.reload()
   await expect(participantAPage.getByTestId(`matching-book-card-${extraBook.id}`)).toContainText('✓ Вы записаны')
 
-  await bookAction(participantA.request, session.id, 'cancelHard')
+  await bookAction(participantA.request, session.id, 'cancelHard', extraBook.id)
   current = await state(participantA.request, session.id)
   const leave = await participantA.request.delete(`/api/matching/sessions/${session.id}/leave`, {
     data: { expectedStateVersion: current.session.stateVersion },

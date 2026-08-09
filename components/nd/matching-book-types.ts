@@ -53,7 +53,8 @@ export interface MatchingBookView {
 
 export interface MatchingBookModeState {
   initializedAt: string
-  viewerAssignmentBookId: string | null
+  mutationsAvailable?: boolean
+  viewerAssignmentBookIds: string[]
   books: MatchingBookView[]
   /** Privileged union of all session members; absent from participant DTOs. */
   adminParticipants?: MatchingBookAdminParticipant[]
@@ -63,7 +64,7 @@ export interface MatchingBookAdminParticipant {
   ref: string
   displayName: string
   adminUserId: string
-  assignmentBookId: string | null
+  assignmentBookIds: string[]
 }
 
 export function matchingBookDetail(

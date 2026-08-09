@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -31,6 +31,25 @@ function snapshotNames(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((name): name is string => typeof name === 'string') : []
 }
 
+function executeRows<T>(result: unknown): T[] {
+  if (result && typeof result === 'object' && 'rows' in result) {
+    return (result as { rows: T[] }).rows
+  }
+  return result as T[]
+}
+
+async function isMultibookReady(dbClient: DbClient): Promise<boolean> {
+  const result = await dbClient.execute(sql`
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_constraint
+      WHERE conrelid = 'matching_book_assignments'::regclass
+        AND conname = 'matching_book_assignments_session_user_book_pk'
+    ) AS ready
+  `)
+  return Boolean(executeRows<{ ready: boolean }>(result)[0]?.ready)
+}
+
 function publicNoticePayload(notice: { kind: string; payload: Record<string, unknown> }): Record<string, unknown> {
   if (notice.kind === 'confirmation_invalidated') {
     return { members: snapshotNames(notice.payload.memberDisplayNames) }
@@ -45,6 +64,9 @@ function publicNoticePayload(notice: { kind: string; payload: Record<string, unk
       reason: notice.payload.reason,
     }
   }
+  if (notice.kind === 'conditional_intents_cleared') {
+    return { books: snapshotNames(notice.payload.books) }
+  }
   return {}
 }
 
@@ -52,7 +74,7 @@ export async function fetchMatchingPublicState(
   sessionId: string,
   viewerUserId: string,
   dbClient: DbClient = db,
-  options: { admin?: boolean } = {},
+  options: { admin?: boolean; multibookReady?: boolean } = {},
 ) {
   const [session] = await dbClient.select({
     id: matchingSessions.id,
@@ -63,6 +85,7 @@ export async function fetchMatchingPublicState(
     createdAt: matchingSessions.createdAt,
   }).from(matchingSessions).where(eq(matchingSessions.id, sessionId)).limit(1)
   if (!session) throw new PublicMatchingStateError('session_not_found')
+  const multibookReady = options.multibookReady ?? await isMultibookReady(dbClient)
 
   const participantRows = await dbClient.select({
     userId: matchingSessionParticipants.userId,
@@ -153,6 +176,7 @@ export async function fetchMatchingPublicState(
   const bookMode = buildPublicBookModeState({
     initializedAt: session.createdAt,
     sessionStatus,
+    multibookReady,
     viewerUserId,
     admin: options.admin ?? false,
     books: bookRows,
@@ -173,7 +197,7 @@ export async function fetchMatchingPublicState(
       deadlineAt: session.deadlineAt?.toISOString() ?? null,
     },
     viewer: {
-      role: bookMode.viewerAssignmentBookId ? 'observer' as const : 'active' as const,
+      role: bookMode.viewerAssignmentBookIds.length > 0 ? 'observer' as const : 'active' as const,
       ref: viewer?.publicRef ?? 'admin-viewer',
     },
     participants: participants.map((participant) => ({

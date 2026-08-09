@@ -83,7 +83,7 @@ test('администратор меняет круги, назначения �
   const replacementCircle = recreated.bookMode.books.find((book) => book.bookId === books[0].id)?.circles[0]
   expect(replacementCircle).toBeTruthy()
   await adminAction(admin.request, session.id, participantA.userId, {
-    action: 'place', userId: participantA.userId, circleId: replacementCircle!.id,
+    action: 'place', userId: participantA.userId, bookId: books[0].id, circleId: replacementCircle!.id,
   })
   await participantAPage.reload()
   await expect(participantAPage.getByTestId(`matching-book-card-${books[0].id}`).getByRole('region', { name: 'Круг 1' }))
@@ -97,7 +97,7 @@ test('администратор меняет круги, назначения �
   await expect(participantCPage.getByTestId('matching-books-selection')).toContainText(books[1].title)
 
   await adminAction(admin.request, session.id, participantA.userId, {
-    action: 'unassign', userId: participantB.userId,
+    action: 'unassign', userId: participantB.userId, bookId: books[0].id,
   })
   await participantBPage.goto('/matching')
   await participantBPage.reload()

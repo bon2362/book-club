@@ -52,11 +52,12 @@ test('session-menu leave action respects an existing assignment', () => {
   expect(screen.getByRole('button', { name: 'Покинуть сессию' })).toBeDisabled()
 })
 
-test('shows observer identity and hides leave while impersonating', () => {
+test('keeps the participant identity after assignment and hides leave while impersonating', () => {
   const { rerender } = render(<MatchingHeader {...base} viewer={{ ref: 'safe-a', displayName: 'Анна', role: 'observer' }} />)
-  expect(screen.getByText('Вы наблюдаете')).toBeInTheDocument()
+  expect(screen.getByText(/Вы —/)).toHaveTextContent('Анна')
   fireEvent.click(screen.getByRole('button', { name: /участники и меню сессии/i }))
-  expect(screen.getAllByText('Вы наблюдаете')).toHaveLength(2)
+  expect(screen.queryByText('Вы наблюдаете')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Покинуть сессию' })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: 'Закрыть список участников' }))
   rerender(<MatchingHeader {...base} isAdmin isImpersonating viewer={{ ref: 'safe-a', displayName: 'Анна', role: 'active' }} />)
   const banner = screen.getByTestId('admin-impersonation-banner')

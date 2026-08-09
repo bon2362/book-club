@@ -46,13 +46,14 @@ export default function MatchingBooksView({
   const { openBook } = useBookDetail()
   const [pending, setPending] = useState<PendingCommand>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [switchTargetBookId, setSwitchTargetBookId] = useState<string | null>(null)
   const [instructionsExpanded, setInstructionsExpanded] = useState(false)
   const focusRef = useRef<{ bookId: string; element: HTMLButtonElement } | null>(null)
-  const viewerHardBookId = bookMode.books.find((book) => book.viewerStatus === 'hard')?.bookId ?? null
-  const viewerSelectedBookId = bookMode.viewerAssignmentBookId
-  const selectedBook = booksById[viewerSelectedBookId ?? ''] ?? bookMode.books.find(book => book.bookId === viewerSelectedBookId)
-  const readOnly = sessionStatus === 'closed'
+  const viewerHasHard = bookMode.books.some((book) => book.viewerStatus === 'hard')
+  const selectedBooks = bookMode.viewerAssignmentBookIds
+    .map((bookId) => booksById[bookId] ?? bookMode.books.find((book) => book.bookId === bookId))
+    .filter((book): book is NonNullable<typeof book> => Boolean(book))
+  const mutationsAvailable = bookMode.mutationsAvailable !== false
+  const readOnly = sessionStatus === 'closed' || !mutationsAvailable
   // The read model owns canonical sorting (including catalog-order tie breaking).
   const books = bookMode.books
 
@@ -77,7 +78,6 @@ export default function MatchingBooksView({
       if (!response.ok) throw new Error(bookActionErrorMessage(body.error))
       if (body.state) onState(body.state)
       else await onRefresh()
-      setSwitchTargetBookId(null)
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : 'Не удалось изменить выбор')
     } finally {
@@ -92,22 +92,7 @@ export default function MatchingBooksView({
   }
 
   function command(action: MatchingBookCommandAction, bookId: string, control: HTMLButtonElement) {
-    if (action === 'setHard' && viewerHardBookId && viewerHardBookId !== bookId) {
-      focusRef.current = { bookId, element: control }
-      setSwitchTargetBookId(bookId)
-      requestAnimationFrame(() => {
-        document.querySelector<HTMLElement>(`[data-testid="matching-book-card-${CSS.escape(bookId)}"] [data-testid="matching-hard-switch-confirm"]`)?.focus()
-      })
-      return
-    }
     void performCommand(action, bookId, control)
-  }
-
-  function cancelHardSwitch(bookId: string) {
-    setSwitchTargetBookId(null)
-    requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(`[data-testid="matching-book-card-${CSS.escape(bookId)}"] .nd-mb-btn.is-hard`)?.focus()
-    })
   }
 
   async function adminCommand(bookId: string, command: MatchingBookAdminCommand) {
@@ -120,11 +105,10 @@ export default function MatchingBooksView({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...command,
-          bookId: command.destinationBookId ?? bookId,
+          bookId,
           userId: command.participant?.adminUserId,
           participantRef: command.participant?.ref,
           participant: undefined,
-          destinationBookId: undefined,
           expectedStateVersion: stateVersion,
         }),
       })
@@ -157,7 +141,7 @@ export default function MatchingBooksView({
         ) : (
           <div className="nd-mb-intro-disclosure">
             <div className="nd-mb-intro-summary">
-              <span>Сделайте окончательный выбор, что читать</span>
+              <span>Выбирайте все книги, которые будете читать</span>
               <button
                 type="button"
                 className="p-link muted"
@@ -174,47 +158,37 @@ export default function MatchingBooksView({
                 className="nd-mb-intro-details"
                 aria-label="Как выбрать книгу"
               >
-                <li>Выберите книгу, которую будете читать</li>
+                <li>Выберите все книги, которые будете читать</li>
                 <li>Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки</li>
                 <li>Нажмите на имя участни:цы, чтобы узнать, на какое место он:а поместила книгу</li>
-                <li>{`В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — вас запишут на первую, где книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего; круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек`}</li>
+                <li>{`В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — она действует, пока вы не запишетесь окончательно; книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего; круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек`}</li>
                 <li>Можно читать несколько книг одновременно</li>
                 <li>Разные группы могут читать одну и ту же книгу</li>
               </ul>
             )}
           </div>
         )}
-        {readOnly && !isAdmin && (
-          <div className="nd-mb-slot" data-testid="matching-books-readonly">Сессия закрыта — выбор доступен только для просмотра</div>
+        {readOnly && (!isAdmin || !mutationsAvailable) && (
+          <div className="nd-mb-slot" data-testid="matching-books-readonly">
+            {!mutationsAvailable
+              ? 'Матчинг временно недоступен — обновление базы данных ещё не завершено'
+              : 'Сессия закрыта — выбор доступен только для просмотра'}
+          </div>
         )}
       </header>
-      {viewerSelectedBookId && selectedBook && !isAdmin && (
+      {selectedBooks.length > 0 && !isAdmin && (
         <div className="nd-mb-selection" data-testid="matching-books-selection">
-          <span>Вы записаны на <strong>{selectedBook.title}</strong></span>
-          <button
-            type="button"
-            className="p-link muted"
-            disabled={pending !== null}
-            onClick={(event) => {
-              if (bookMode.viewerAssignmentBookId) {
-                setMessage('Круг уже собрался — отмена затронет остальных, напишите организатору.')
-                return
-              }
-              void performCommand('cancelHard', viewerSelectedBookId, event.currentTarget)
-            }}
-          >
-            {pending?.bookId === viewerSelectedBookId && pending.action === 'cancelHard' ? 'Отменяем…' : 'Отменить'}
-          </button>
+          <span>Вы записаны на <strong>{selectedBooks.map((book) => book.title).join(', ')}</strong></span>
         </div>
       )}
       {message && <div className="nd-mb-message" data-testid="matching-books-message" aria-live="polite">{message}</div>}
       <div className="nd-mb-list">
         {books.map((book, index) => {
           const viewerOnlyTail = !isAdmin && book.intersectionCount === 0 && book.formedAt === null &&
-            book.bookId !== bookMode.viewerAssignmentBookId && book.bookId !== viewerHardBookId
+            !bookMode.viewerAssignmentBookIds.includes(book.bookId) && book.viewerStatus !== 'hard'
           const previous = books[index - 1]
           const previousIsTail = previous && previous.intersectionCount === 0 && previous.formedAt === null &&
-            previous.bookId !== bookMode.viewerAssignmentBookId && previous.bookId !== viewerHardBookId
+            !bookMode.viewerAssignmentBookIds.includes(previous.bookId) && previous.viewerStatus !== 'hard'
           return <div className="nd-mb-list-item" key={book.bookId}>
             {viewerOnlyTail && !previousIsTail && (
               <div className="nd-mb-divider" data-testid="matching-viewer-only-divider">Только в вашем списке</div>
@@ -222,26 +196,19 @@ export default function MatchingBooksView({
             <MatchingBookCard
               book={book}
               viewerRef={viewerRef}
-              viewerAssignmentBookId={bookMode.viewerAssignmentBookId}
-              viewerHardBookId={viewerHardBookId}
+              viewerHasHard={viewerHasHard}
               readOnly={readOnly}
               adminMode={isAdmin}
               controlsDisabled={pending !== null}
               pendingAction={pending?.bookId === book.bookId && ['setConditional', 'unsetConditional', 'setHard', 'cancelHard'].includes(pending.action) ? pending.action as MatchingBookCommandAction : null}
-              switchFromBookTitle={switchTargetBookId === book.bookId
-                ? books.find(item => item.bookId === viewerHardBookId)?.title ?? null
-                : null}
-              onConfirmSwitch={(control) => void performCommand('setHard', book.bookId, control)}
-              onCancelSwitch={() => cancelHardSwitch(book.bookId)}
               onCommand={command}
               onOpenBook={(selected, control) => {
                 focusRef.current = { bookId: selected.bookId, element: control }
                 openBook(matchingBookDetail(selected, booksById[selected.bookId]), [], selected.participants)
               }}
-              adminControls={isAdmin ? (
+              adminControls={isAdmin && mutationsAvailable ? (
                 <MatchingBookAdminControls
                   book={book}
-                  books={books}
                   adminParticipants={bookMode.adminParticipants ?? []}
                   pending={pending !== null}
                   onAction={(command) => adminCommand(book.bookId, command)}
@@ -266,6 +233,8 @@ function bookActionErrorMessage(code?: string) {
       return 'Сейчас изменить выбор нельзя. Обновите страницу, чтобы увидеть актуальное состояние.'
     case 'participant_missing':
       return 'Вы больше не участвуете в этой сессии.'
+    case 'matching_migration_required':
+      return 'Матчинг временно недоступен — обновление базы данных ещё не завершено.'
     default:
       return 'Не удалось изменить выбор. Обновите страницу и попробуйте снова.'
   }

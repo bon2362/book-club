@@ -11,12 +11,12 @@ export type MatchingAction =
   | { type: 'set_conditional'; userId: string; bookId: string }
   | { type: 'unset_conditional'; userId: string; bookId: string }
   | { type: 'set_hard'; userId: string; bookId: string }
-  | { type: 'cancel_hard'; userId: string }
+  | { type: 'cancel_hard'; userId: string; bookId: string }
   | { type: 'admin_assign_book'; userId: string; bookId: string }
-  | { type: 'admin_unassign_book'; userId: string }
+  | { type: 'admin_unassign_book'; userId: string; bookId: string }
   | { type: 'admin_create_book_circle'; bookId: string }
   | { type: 'admin_delete_book_circle'; circleId: string }
-  | { type: 'admin_place_book_assignment'; userId: string; circleId: string | null }
+  | { type: 'admin_place_book_assignment'; userId: string; bookId: string; circleId: string | null }
   | { type: 'close_session' }
   | { type: 'reopen_session' }
 
@@ -29,6 +29,7 @@ export type MatchingTransitionErrorCode =
   | 'circle_not_found'
   | 'book_not_in_shortlist'
   | 'book_action_forbidden'
+  | 'matching_migration_required'
   | 'invalid_book_action'
 
 export class MatchingTransitionError extends Error {
@@ -68,7 +69,7 @@ export type MatchingActionResult = boolean | {
 }
 
 export interface MatchingTransitionStore {
-  lockSession(sessionId: string): Promise<{ status: string; stateVersion: number } | null>
+  lockSession(sessionId: string): Promise<{ status: string; stateVersion: number; multibookReady?: boolean } | null>
   getParticipantRole(sessionId: string, userId: string): Promise<'missing' | 'active' | 'observer'>
   applyAction(
     sessionId: string,
@@ -137,10 +138,12 @@ function actionEventDraft(
     case 'set_conditional':
     case 'unset_conditional':
     case 'set_hard':
+    case 'cancel_hard':
     case 'admin_assign_book':
+    case 'admin_unassign_book':
     case 'admin_create_book_circle': return { ...base, bookId: action.bookId }
     case 'admin_delete_book_circle': return { ...base, metadata: { circleId: action.circleId } }
-    case 'admin_place_book_assignment': return { ...base, metadata: { circleId: action.circleId } }
+    case 'admin_place_book_assignment': return { ...base, bookId: action.bookId, metadata: { circleId: action.circleId } }
     case 'self_join': return { ...base, after: action.name === undefined ? null : { name: action.name } }
     default: return base
   }
@@ -169,12 +172,22 @@ export async function executeMatchingTransition(
   if (input.expectedStateVersion !== undefined && input.expectedStateVersion !== session.stateVersion) {
     throw new MatchingTransitionError('stale_state')
   }
+  const multibookAction = [
+    'set_conditional', 'unset_conditional', 'set_hard', 'cancel_hard',
+    'admin_assign_book', 'admin_unassign_book', 'admin_create_book_circle',
+    'admin_delete_book_circle', 'admin_place_book_assignment',
+  ].includes(input.action.type)
+  if (multibookAction && session.multibookReady === false) {
+    throw new MatchingTransitionError('matching_migration_required')
+  }
 
   const subjectUserId = participantUserId(input.action)
   if (subjectUserId && requiresActiveParticipant(input.action) && !historicalCatalogMutation) {
     const role = await store.getParticipantRole(input.sessionId, subjectUserId)
     if (role === 'missing') throw new MatchingTransitionError('participant_missing')
-    if (role === 'observer') throw new MatchingTransitionError('participant_locked')
+    if (role === 'observer' && input.action.type === 'leave') {
+      throw new MatchingTransitionError('participant_locked')
+    }
   }
 
   const nextStateVersion = session.stateVersion + 1

@@ -36,6 +36,7 @@ export function matchingEventTypeLabel(eventType: string): string {
     case 'replace_signup': return 'Список книг обновлён'
     case 'reorder_priorities': return 'Перестановка приоритетов'
     case 'change_group_size': return 'Изменение размера групп'
+    case 'conditional_intents_cleared': return 'Авто-записи сняты'
     default: return eventType
   }
 }
@@ -179,6 +180,14 @@ export function formatMatchingEvent(event: MatchingEventLike): string {
 
     case 'freeze': {
       return 'сессия зафиксирована'
+    }
+
+    case 'conditional_intents_cleared': {
+      const after = event.after as Record<string, unknown> | null
+      const titles = Array.isArray(after?.bookTitles)
+        ? after.bookTitles.filter((value): value is string => typeof value === 'string').join(', ')
+        : ''
+      return titles || 'авто-записи сняты'
     }
 
     default: {

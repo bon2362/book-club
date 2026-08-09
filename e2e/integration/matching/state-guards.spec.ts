@@ -4,7 +4,7 @@ import { test, expect } from '../../api-fixtures'
 type BookState = {
   session: { stateVersion: number; status: string }
   bookMode: null | {
-    viewerAssignmentBookId: string | null
+    viewerAssignmentBookIds: string[]
     books: Array<{ bookId: string; viewerStatus: string; formedAt: string | null }>
   }
 }
@@ -51,7 +51,7 @@ test('formed assignment guards shortlist removal and leaving the session', async
   await participantAction(participantC.request, session.id, 'setHard', books[0].id)
 
   const assigned = await state(participantA.request, session.id)
-  expect(assigned.bookMode?.viewerAssignmentBookId).toBe(books[0].id)
+  expect(assigned.bookMode?.viewerAssignmentBookIds).toContain(books[0].id)
   expect(assigned.bookMode?.books.find(book => book.bookId === books[0].id)?.formedAt).not.toBeNull()
 
   const removeBook = await participantA.request.delete(`/api/matching/books/${books[0].id}`)
