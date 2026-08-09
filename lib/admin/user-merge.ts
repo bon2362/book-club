@@ -98,22 +98,24 @@ export function resolveCanonicalMatchingMerge(input: {
   const intents: MatchingIntentMergeRow[] = []
 
   for (const sessionId of Array.from(sessionIds)) {
-    const assignment = input.targetAssignments.find(row => row.sessionId === sessionId) ??
-      input.sourceAssignments.find(row => row.sessionId === sessionId)
-    if (assignment) {
-      assignments.push({ ...assignment, userId: input.targetUserId })
-      continue
+    const assignmentsByBook = new Map<string, MatchingAssignmentMergeRow>()
+    for (const row of [
+      ...input.targetAssignments.filter(row => row.sessionId === sessionId),
+      ...input.sourceAssignments.filter(row => row.sessionId === sessionId),
+    ]) {
+      if (!assignmentsByBook.has(row.bookId)) {
+        assignmentsByBook.set(row.bookId, { ...row, userId: input.targetUserId })
+      }
     }
+    assignments.push(...Array.from(assignmentsByBook.values()))
 
     const target = input.targetIntents.filter(row => row.sessionId === sessionId)
     const source = input.sourceIntents.filter(row => row.sessionId === sessionId)
-    const hard = target.find(row => row.kind === 'hard') ?? source.find(row => row.kind === 'hard')
-    if (hard) {
-      intents.push({ ...hard, userId: input.targetUserId })
-      continue
-    }
+    const assignedBookIds = new Set(assignmentsByBook.keys())
+    const candidates = [...target, ...source].filter(row => !assignedBookIds.has(row.bookId))
+    const intentKind = candidates.some(row => row.kind === 'hard') ? 'hard' : 'conditional'
     const byBook = new Map<string, MatchingIntentMergeRow>()
-    for (const row of [...target, ...source]) {
+    for (const row of candidates.filter(row => row.kind === intentKind)) {
       if (!byBook.has(row.bookId)) byBook.set(row.bookId, { ...row, userId: input.targetUserId })
     }
     intents.push(...Array.from(byBook.values()))

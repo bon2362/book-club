@@ -16,10 +16,10 @@ export function shouldFormBook(hardCount: number, conditionalCount: number): boo
 export function planBookFormation(input: {
   formed: boolean
   intents: Array<{ userId: string; kind: 'hard' | 'conditional' }>
-  assignedUserIds: ReadonlySet<string>
+  assignedToBookUserIds: ReadonlySet<string>
 }) {
   if (input.formed) return null
-  const available = input.intents.filter(intent => !input.assignedUserIds.has(intent.userId))
+  const available = input.intents.filter(intent => !input.assignedToBookUserIds.has(intent.userId))
   const hardCount = available.filter(intent => intent.kind === 'hard').length
   if (!shouldFormBook(hardCount, available.length - hardCount)) return null
   return {

@@ -6,7 +6,7 @@ import {
 
 function makeStore(overrides: Partial<MatchingTransitionStore> = {}): MatchingTransitionStore {
   return {
-    lockSession: jest.fn().mockResolvedValue({ status: 'open', stateVersion: 4 }),
+    lockSession: jest.fn().mockResolvedValue({ status: 'open', stateVersion: 4, multibookReady: true }),
     getParticipantRole: jest.fn().mockResolvedValue('active'),
     applyAction: jest.fn().mockResolvedValue(true),
     writeEvents: jest.fn().mockResolvedValue(undefined),
@@ -15,6 +15,30 @@ function makeStore(overrides: Partial<MatchingTransitionStore> = {}): MatchingTr
     ...overrides,
   }
 }
+
+test('blocks book mutations until the multibook migration is installed', async () => {
+  const store = makeStore({
+    lockSession: jest.fn().mockResolvedValue({ status: 'open', stateVersion: 4, multibookReady: false }),
+  })
+
+  await expect(executeMatchingTransition({
+    sessionId: 'session-1', actor,
+    action: { type: 'set_hard', userId: 'user-1', bookId: 'book-1' },
+  }, store)).rejects.toEqual(expect.objectContaining<Partial<MatchingTransitionError>>({
+    code: 'matching_migration_required',
+  }))
+  expect(store.applyAction).not.toHaveBeenCalled()
+})
+
+test('still allows lifecycle actions before the multibook migration is installed', async () => {
+  const store = makeStore({
+    lockSession: jest.fn().mockResolvedValue({ status: 'open', stateVersion: 4, multibookReady: false }),
+  })
+
+  await expect(executeMatchingTransition({
+    sessionId: 'session-1', actor, action: { type: 'close_session' },
+  }, store)).resolves.toEqual({ changed: true, stateVersion: 5 })
+})
 
 const actor = { userId: 'user-1', label: 'Анна', source: 'matching' }
 
@@ -74,12 +98,22 @@ test('checks optimistic state version before applying an action', async () => {
   expect(store.applyAction).not.toHaveBeenCalled()
 })
 
-test('rejects actions from observers without running scenario reconciliation', async () => {
+test('allows an assigned participant to make another book choice', async () => {
   const store = makeStore({ getParticipantRole: jest.fn().mockResolvedValue('observer') })
 
   await expect(executeMatchingTransition({
     sessionId: 'session-1', actor,
-    action: { type: 'change_book', userId: 'user-1', bookId: 'book-1', operation: 'add' },
+    action: { type: 'set_hard', userId: 'user-1', bookId: 'book-2' },
+  }, store)).resolves.toEqual({ changed: true, stateVersion: 5 })
+  expect(store.applyAction).toHaveBeenCalled()
+})
+
+test('still rejects leaving while the participant has an assignment', async () => {
+  const store = makeStore({ getParticipantRole: jest.fn().mockResolvedValue('observer') })
+
+  await expect(executeMatchingTransition({
+    sessionId: 'session-1', actor,
+    action: { type: 'leave', userId: 'user-1' },
   }, store)).rejects.toEqual(expect.objectContaining<Partial<MatchingTransitionError>>({ code: 'participant_locked' }))
   expect(store.applyAction).not.toHaveBeenCalled()
 })

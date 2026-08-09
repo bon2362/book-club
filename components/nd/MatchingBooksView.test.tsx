@@ -4,7 +4,7 @@ import type { MatchingBookModeState } from './matching-book-types'
 
 const mode: MatchingBookModeState = {
   initializedAt: '2026-07-13T10:00:00.000Z',
-  viewerAssignmentBookId: null,
+  viewerAssignmentBookIds: [],
   books: [{
     bookId: 'b1', title: 'Первая', author: 'Автор', coverUrl: null,
     intersectionCount: 1, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',
@@ -27,7 +27,7 @@ describe('MatchingBooksView commands', () => {
   it('reveals and collapses the participant instructions', () => {
     render(<MatchingBooksView {...props} />)
     expect(screen.getByRole('heading', { name: 'Совпадения по вашим книгам' })).toBeInTheDocument()
-    expect(screen.getByText('Сделайте окончательный выбор, что читать')).toBeInTheDocument()
+    expect(screen.getByText('Выбирайте все книги, которые будете читать')).toBeInTheDocument()
     expect(screen.queryByText('Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки')).not.toBeInTheDocument()
 
     const expand = screen.getByRole('button', { name: 'Подробнее' })
@@ -99,6 +99,17 @@ describe('MatchingBooksView commands', () => {
     expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
   })
 
+  it('makes participant and admin controls read-only during the migration window', () => {
+    const maintenanceMode = { ...mode, mutationsAvailable: false }
+    const { rerender } = render(<MatchingBooksView {...props} bookMode={maintenanceMode} />)
+    expect(screen.getByTestId('matching-books-readonly')).toHaveTextContent('обновление базы данных ещё не завершено')
+    expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
+
+    rerender(<MatchingBooksView {...props} isAdmin bookMode={{ ...maintenanceMode, adminParticipants: [] }} />)
+    expect(screen.getByTestId('matching-books-readonly')).toHaveTextContent('обновление базы данных ещё не завершено')
+    expect(screen.queryByRole('button', { name: 'Управлять составом' })).not.toBeInTheDocument()
+  })
+
   it('reconciles a stale command and gives a recoverable message', async () => {
     const canonical = { session: { stateVersion: 4 }, bookMode: mode }
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 409, json: async () => ({ state: canonical }) }) as jest.Mock
@@ -131,7 +142,7 @@ describe('MatchingBooksView commands', () => {
     ])
   })
 
-  it('requires inline confirmation before moving a hard choice', async () => {
+  it('records a second hard choice without replacing the first', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ changed: true }) }) as jest.Mock
     props.onRefresh.mockResolvedValue(undefined)
     const hard = { ...mode.books[0], viewerStatus: 'hard' as const, allowedActions: { conditional: false, hard: false, cancelHard: true } }
@@ -139,13 +150,6 @@ describe('MatchingBooksView commands', () => {
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [hard, target] }} />)
 
     fireEvent.click(screen.getByTestId('matching-book-card-b2').querySelector('.nd-mb-btn.is-hard')!)
-    expect(global.fetch).not.toHaveBeenCalled()
-    expect(screen.getByRole('group', { name: 'Подтверждение смены книги' })).toHaveTextContent('Первая')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Оставить как есть' }))
-    expect(global.fetch).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByTestId('matching-book-card-b2').querySelector('.nd-mb-btn.is-hard')!)
-    fireEvent.click(screen.getByRole('button', { name: 'Перезаписаться' }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
     expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)).toEqual({
@@ -178,15 +182,21 @@ describe('MatchingBooksView commands', () => {
     expect(screen.queryByRole('button', { name: 'Отменить' })).not.toBeInTheDocument()
   })
 
-  it('keeps a formed assignment and directs cancellation to the administrator', () => {
+  it('keeps a formed assignment without offering participant cancellation', () => {
     global.fetch = jest.fn() as jest.Mock
     const assigned = { ...mode.books[0], formedAt: '2026-07-14T10:00:00Z', viewerStatus: 'assigned' as const, allowedActions: { conditional: false, hard: false, cancelHard: false } }
-    render(<MatchingBooksView {...props} bookMode={{ ...mode, viewerAssignmentBookId: 'b1', books: [assigned] }} />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
+    render(<MatchingBooksView {...props} bookMode={{ ...mode, viewerAssignmentBookIds: ['b1'], books: [assigned] }} />)
 
     expect(global.fetch).not.toHaveBeenCalled()
-    expect(screen.getByTestId('matching-books-message')).toHaveTextContent('Круг уже собрался — отмена затронет остальных, напишите организатору.')
+    expect(screen.queryByRole('button', { name: 'Отменить' })).not.toBeInTheDocument()
+  })
+
+  it('summarises every formed book assigned to the viewer', () => {
+    const first = { ...mode.books[0], viewerStatus: 'assigned' as const, formedAt: '2026-07-14T10:00:00Z' }
+    const second = { ...first, bookId: 'b2', title: 'Вторая' }
+    render(<MatchingBooksView {...props} bookMode={{ ...mode, viewerAssignmentBookIds: ['b1', 'b2'], books: [first, second] }} />)
+
+    expect(screen.getByTestId('matching-books-selection')).toHaveTextContent('Вы записаны на Первая, Вторая')
   })
 
   it('renders a single divider before the unpinned viewer-only tail', () => {

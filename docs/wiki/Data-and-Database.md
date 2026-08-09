@@ -209,6 +209,8 @@ erDiagram
 - `0049_restore_matching_presence_audit_filter.sql` — возвращает подавление чистых `last_seen_at` heartbeat-обновлений в глобальном audit log; старые шумовые записи сохраняются как история.
 - `0050_drop_legacy_matching.sql` — удаляет режим coverage, псевдонимы, старые метрики и две legacy matching-таблицы после зелёного production smoke-check.
 - `0059_remove_matching_scenarios.sql` — валидирует и переносит все зафиксированные круги в книжную модель, проверяет точное совпадение составов, переводит статусы в `open | closed` и удаляет сценарные таблицы/колонки вместе с audit-триггерами.
+- `0060_remove_matching_group_sizes.sql` — удаляет неиспользуемые настройки размера групп; правило остаётся фиксированным 3–5.
+- `0061_matching_multibook.sql` — снимает уникальность одной окончательной записи и расширяет ключ назначения до `(session_id, user_id, book_id)`, сохраняя существующие данные и историю аудита. Новые audit-записи назначений получают `entity_id` формата `session:user:book`. Применяется вручную после production-деплоя соответствующего runtime; до её применения runtime переводит книжные мутации в безопасный режим только для чтения.
 - `0051_book_priorities_rank_source.sql` и `0052_backfill_book_ranks.sql` — обязательные ранги книг: добавляют колонку `book_priorities.rank_source` и разово бэкфиллят её (существующие ранги → `manual`, недостающие ранги для активных записей на книги → `auto` в конец по `signed_at`). **Обе требуют ручного прогона оператором на production после деплоя, строго в порядке 0051 → 0052** — не входят в автодеплой Vercel/CI. После однократного прогона повторный запуск не нужен: дальше инвариант поддерживается кодом на лету.
 - `0034_matching_pseudonym_reservations.sql` и `0035_matching_preference_events.sql` — исторические миграции; созданные ими legacy-таблицы удалены в `0050`.
 - `0036_drop_admin_views.sql` — удаление аудит-лога `admin_views` (бесполезный лог impersonation-просмотров).
@@ -227,4 +229,4 @@ erDiagram
 
 `user.last_activity_at` и `user_activity_events`.
 
-Если нужно понять matching, смотреть связку `matching_session_participants` → `matching_book_intents` → `matching_book_assignments` → `matching_circles`, а историю решения — в `matching_events`. Сценарные таблицы и колонки удалены миграцией `0059`; прежний runtime доступен только по git-тегу.
+Если нужно понять matching, смотреть связку `matching_session_participants` → `matching_book_intents` → `matching_book_assignments` → `matching_circles`, а историю решения — в `matching_events`. Один участник может иметь несколько `hard`-намерений и назначений в одной сессии, если книги разные. Сценарные таблицы и колонки удалены миграцией `0059`; прежний runtime доступен только по git-тегу.

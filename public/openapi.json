@@ -717,7 +717,7 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
-          "kind": { "type": "string", "enum": ["confirmation_invalidated", "circle_locked", "circle_dissolved"] },
+          "kind": { "type": "string", "enum": ["confirmation_invalidated", "circle_locked", "circle_dissolved", "conditional_intents_cleared"] },
           "payload": { "type": "object", "additionalProperties": true },
           "createdAt": { "$ref": "#/components/schemas/DateTime" }
         },
@@ -727,7 +727,22 @@
         "type": "object",
         "properties": {
           "initializedAt": { "$ref": "#/components/schemas/DateTime" },
-          "viewerAssignmentBookId": { "type": "string", "nullable": true },
+          "mutationsAvailable": { "type": "boolean", "description": "False during the deploy-to-migration maintenance window; book mutations are temporarily disabled" },
+          "viewerAssignmentBookIds": { "type": "array", "items": { "type": "string" } },
+          "adminParticipants": {
+            "type": "array",
+            "description": "Только privileged admin read model",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ref": { "type": "string" },
+                "displayName": { "type": "string" },
+                "adminUserId": { "type": "string" },
+                "assignmentBookIds": { "type": "array", "items": { "type": "string" } }
+              },
+              "required": ["ref", "displayName", "adminUserId", "assignmentBookIds"]
+            }
+          },
           "books": {
             "type": "array",
             "items": {
@@ -776,7 +791,7 @@
             }
           }
         },
-        "required": ["initializedAt", "viewerAssignmentBookId", "books"]
+        "required": ["initializedAt", "mutationsAvailable", "viewerAssignmentBookIds", "books"]
       },
       "MatchingPublicState": {
         "type": "object",
@@ -821,7 +836,7 @@
               "replace_signup", "reorder_priorities", "change_group_size",
               "book_mode_initialized", "conditional_set", "conditional_unset",
               "hard_set", "hard_switched", "hard_cancelled", "book_formed",
-              "participant_directly_assigned", "admin_book_assigned", "admin_book_transferred",
+              "participant_directly_assigned", "conditional_intents_cleared", "admin_book_assigned", "admin_book_transferred",
               "admin_book_unassigned", "admin_circle_created", "admin_circle_deleted",
               "admin_assignment_placed", "session_open", "session_closed"
             ]
@@ -2326,7 +2341,7 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Изменить выбор книги в книжном режиме",
-        "description": "Условный выбор, окончательный выбор, его смена или отмена. setHard атомарно удаляет все conditional намерения пользователя. Администратор может передать as для действия от имени просматриваемого участника; actor в журнале остаётся администратором.",
+        "description": "Условный выбор, независимая окончательная запись на любое число книг или отмена окончательной записи на конкретную книгу. setHard атомарно удаляет все conditional намерения пользователя, но сохраняет другие hard-записи. Администратор может передать as для действия от имени просматриваемого участника; actor в журнале остаётся администратором.",
         "security": [{ "sessionCookie": [] }],
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
@@ -2336,10 +2351,10 @@
           "type": "object",
           "properties": {
             "action": { "type": "string", "enum": ["setConditional", "unsetConditional", "setHard", "cancelHard"] },
-            "bookId": { "type": "string", "description": "Обязательно кроме cancelHard" },
+            "bookId": { "type": "string", "description": "Обязательно для каждого действия, включая cancelHard" },
             "expectedStateVersion": { "type": "integer", "minimum": 0 }
           },
-          "required": ["action", "expectedStateVersion"]
+          "required": ["action", "bookId", "expectedStateVersion"]
         } } } },
         "responses": {
           "200": { "description": "Выбор сохранён; ответ содержит персонализированный state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchingBookActionResult" } } } },
@@ -2355,7 +2370,7 @@
       "post": {
         "tags": ["Admin"],
         "summary": "Управлять книжным режимом matching-сессии",
-        "description": "Меняет назначения и круги либо закрывает/повторно открывает сессию.",
+        "description": "Независимо добавляет или снимает назначение на конкретную книгу, меняет размещение в её кругах либо закрывает/повторно открывает сессию. Для assign, unassign и place обязательны userId и bookId.",
         "security": [{ "sessionCookie": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": {

@@ -30,10 +30,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     setConditional: { type: 'set_conditional', userId, bookId },
     unsetConditional: { type: 'unset_conditional', userId, bookId },
     setHard: { type: 'set_hard', userId, bookId },
-    cancelHard: { type: 'cancel_hard', userId },
+    cancelHard: { type: 'cancel_hard', userId, bookId },
   }
   const action = actions[body.action]
-  if (!action || (action.type !== 'cancel_hard' && !bookId)) {
+  if (!action || !bookId) {
     return NextResponse.json({ error: 'invalid book action' }, { status: 400 })
   }
 

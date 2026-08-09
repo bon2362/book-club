@@ -308,9 +308,6 @@ export const matchingBookIntents = pgTable('matching_book_intents', {
     columns: [t.sessionId, t.userId],
     foreignColumns: [matchingSessionParticipants.sessionId, matchingSessionParticipants.userId],
   }).onDelete('cascade'),
-  hardUserUniq: uniqueIndex('matching_book_intents_session_user_hard_uniq')
-    .on(t.sessionId, t.userId)
-    .where(sql`${t.kind} = 'hard'`),
   sessionBookKindCreatedIdx: index('matching_book_intents_session_book_kind_created_idx')
     .on(t.sessionId, t.bookId, t.kind, t.createdAt),
   kindCheck: check('matching_book_intents_kind_check', sql`${t.kind} IN ('conditional', 'hard')`),
@@ -356,8 +353,8 @@ export const matchingBookAssignments = pgTable('matching_book_assignments', {
   circleId: text('circle_id'),
 }, (t) => ({
   pk: primaryKey({
-    name: 'matching_book_assignments_session_user_pk',
-    columns: [t.sessionId, t.userId],
+    name: 'matching_book_assignments_session_user_book_pk',
+    columns: [t.sessionId, t.userId, t.bookId],
   }),
   participantFk: foreignKey({
     name: 'matching_book_assignments_session_user_fk',

@@ -50,6 +50,18 @@ describe('POST book-actions', () => {
     }))
   })
 
+  it('maps hard cancellation to a specific book and rejects a missing book', async () => {
+    const response = await POST(request({ action: 'cancelHard', bookId: 'book-1', expectedStateVersion: 2 }), params)
+    expect(response.status).toBe(200)
+    expect(mockTransition).toHaveBeenCalledWith(expect.objectContaining({
+      action: { type: 'cancel_hard', userId: 'user-1', bookId: 'book-1' },
+    }))
+
+    mockTransition.mockClear()
+    expect((await POST(request({ action: 'cancelHard', expectedStateVersion: 2 }), params)).status).toBe(400)
+    expect(mockTransition).not.toHaveBeenCalled()
+  })
+
   it('lets an admin act for an impersonated participant while preserving the admin actor', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', name: 'Организатор', isAdmin: true } })
     const response = await POST(
@@ -98,7 +110,7 @@ describe('POST book-actions', () => {
 
   it('returns canonical state with a stale conflict', async () => {
     mockTransition.mockRejectedValue(new MatchingTransitionError('stale_state'))
-    const response = await POST(request({ action: 'cancelHard', expectedStateVersion: 1 }), params)
+    const response = await POST(request({ action: 'cancelHard', bookId: 'book-1', expectedStateVersion: 1 }), params)
     expect(response.status).toBe(409)
     expect(await response.json()).toEqual(expect.objectContaining({ error: 'stale_state', state: expect.any(Object) }))
   })
@@ -107,7 +119,7 @@ describe('POST book-actions', () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', name: 'Организатор', isAdmin: true } })
     mockTransition.mockRejectedValue(new MatchingTransitionError('stale_state'))
     const response = await POST(
-      request({ action: 'cancelHard', expectedStateVersion: 1 }, '?as=user-2'),
+      request({ action: 'cancelHard', bookId: 'book-1', expectedStateVersion: 1 }, '?as=user-2'),
       params,
     )
 
@@ -121,7 +133,7 @@ describe('POST book-actions', () => {
     mockState.mockRejectedValue(new PublicMatchingStateError('participant_missing'))
 
     const response = await POST(
-      request({ action: 'cancelHard', expectedStateVersion: 1 }, '?as=user-2'),
+      request({ action: 'cancelHard', bookId: 'book-1', expectedStateVersion: 1 }, '?as=user-2'),
       params,
     )
 

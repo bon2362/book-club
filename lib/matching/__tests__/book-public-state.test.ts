@@ -12,6 +12,19 @@ const books = [
 const interest = (userId: string, bookId: string, rank: number | null = 1) => ({ userId, bookId, rank })
 
 describe('buildPublicBookModeState', () => {
+  it('makes the board read-only until the multibook migration is installed', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', multibookReady: false,
+      viewerUserId: 'u1', admin: false, books, participants,
+      interests: [interest('u1', 'b1')], intents: [], assignments: [],
+      formedAtByBookId: new Map(), circles: [],
+    })
+
+    expect(state.mutationsAvailable).toBe(false)
+    expect(state.books[0].allowedActions).toEqual({ conditional: false, hard: false, cancelHard: false })
+    expect(state.books[0].conditionalWouldAssign).toBe(false)
+  })
+
   it('keeps every viewer shortlist book and sorts by intersections', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date('2026-07-13T12:00:00Z'), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
@@ -25,17 +38,23 @@ describe('buildPublicBookModeState', () => {
     expect(state.books.map(book => [book.bookId, book.intersectionCount])).toEqual([['b1', 2], ['b2', 0]])
   })
 
-  it('never exposes raw user ids and pins the viewer assignment', () => {
+  it('never exposes raw user ids and returns every viewer assignment', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
       books, participants,
       interests: [interest('u1', 'b1'), interest('u1', 'b2'), interest('u2', 'b2')],
-      intents: [], assignments: [{ userId: 'u1', bookId: 'b1', circleId: null }],
-      formedAtByBookId: new Map([['b1', new Date('2026-07-13T12:00:00Z')]]), circles: [],
+      intents: [], assignments: [
+        { userId: 'u1', bookId: 'b1', circleId: null },
+        { userId: 'u1', bookId: 'b2', circleId: null },
+      ],
+      formedAtByBookId: new Map([
+        ['b1', new Date('2026-07-13T12:00:00Z')],
+        ['b2', new Date('2026-07-13T12:00:00Z')],
+      ]), circles: [],
     })
-    expect(state.books[0].bookId).toBe('b1')
+    expect(state.viewerAssignmentBookIds).toEqual(['b1', 'b2'])
     expect(JSON.stringify(state)).not.toContain('u1')
-    expect(state.books[0].allowedActions).toEqual({ conditional: false, hard: false, cancelHard: false })
+    expect(state.books.every(book => book.allowedActions.hard === false)).toBe(true)
   })
 
   it('distinguishes historical formation from current viability', () => {
@@ -64,6 +83,7 @@ describe('buildPublicBookModeState', () => {
     expect(participant).not.toHaveProperty('adminParticipants')
     expect(admin.books[0].participants[0]).toHaveProperty('adminUserId', 'u1')
     expect(admin.adminParticipants).toHaveLength(3)
+    expect(admin.adminParticipants?.find(item => item.adminUserId === 'u1')?.assignmentBookIds).toEqual([])
     expect(admin.books[0].allowedActions).toEqual({ conditional: false, hard: false, cancelHard: false })
   })
 
@@ -109,7 +129,7 @@ describe('buildPublicBookModeState', () => {
     expect(state.books.find(book => book.bookId === 'b1')?.participants).toContainEqual(expect.objectContaining({ ref: 'r2', rank: 8 }))
   })
 
-  it('does not let a participant assigned elsewhere improve satisfaction order', () => {
+  it('counts a participant assigned elsewhere directly in satisfaction order', () => {
     const rankedBooks = [...books, { bookId: 'b3', title: 'Третья', author: 'Автор', coverUrl: null, sortOrder: 3 }]
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
@@ -122,7 +142,7 @@ describe('buildPublicBookModeState', () => {
       formedAtByBookId: new Map(), circles: [],
     })
 
-    expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
+    expect(state.books.map(book => book.bookId)).toEqual(['b1', 'b2'])
     expect(state.books.find(book => book.bookId === 'b1')?.participants).toContainEqual(expect.objectContaining({ ref: 'r2', rank: 1 }))
   })
 
@@ -192,6 +212,22 @@ describe('buildPublicBookModeState', () => {
       assignments: [], formedAtByBookId: new Map(), circles: [],
     })
     expect(state.books.find(book => book.bookId === 'b1')!.conditionalWouldAssign).toBe(false)
+  })
+
+  it('allows a hard choice on another book after assignment and per-book hard cancellation', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1'), interest('u1', 'b2')],
+      intents: [{ userId: 'u1', bookId: 'b2', kind: 'hard' }],
+      assignments: [{ userId: 'u1', bookId: 'b1', circleId: null }],
+      formedAtByBookId: new Map([['b1', new Date('2026-07-13T12:00:00Z')]]), circles: [],
+    })
+
+    expect(state.books.find(book => book.bookId === 'b1')?.allowedActions)
+      .toEqual({ conditional: false, hard: false, cancelHard: false })
+    expect(state.books.find(book => book.bookId === 'b2')?.allowedActions)
+      .toEqual({ conditional: false, hard: false, cancelHard: true })
   })
 
   it('exposes two stable circles for a book with six assignments', () => {

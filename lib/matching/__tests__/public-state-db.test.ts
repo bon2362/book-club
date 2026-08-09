@@ -36,7 +36,7 @@ test('canonical reader exposes only the book state and hides internal user ids',
   }
   const db = fakeDb([[session], [participant], [], [], [], [], [], []])
 
-  const state = await fetchMatchingPublicState('session-1', 'viewer-id', db as never)
+  const state = await fetchMatchingPublicState('session-1', 'viewer-id', db as never, { multibookReady: true })
 
   expect(state.bookMode).toEqual(expect.objectContaining({ books: [] }))
   expect(state.session.status).toBe('open')
@@ -67,7 +67,7 @@ test('canonical reader projects the priority rank into book participants', async
     [], [], [], [], [book],
   ])
 
-  const state = await fetchMatchingPublicState('session-1', 'viewer-id', db as never)
+  const state = await fetchMatchingPublicState('session-1', 'viewer-id', db as never, { multibookReady: true })
 
   expect(state.bookMode.books[0].participants).toContainEqual(expect.objectContaining({
     ref: 'viewer-ref', rank: 7,

@@ -23,16 +23,18 @@ describe('admin user merge rules', () => {
     createdAt: new Date('2026-07-01T00:00:00Z'), updatedAt: new Date('2026-07-01T00:00:00Z'),
   })
 
-  it('keeps target canonical assignment and drops all intents in that session', () => {
+  it('unions assignments by book, preferring the target row on duplicates', () => {
     const merged = resolveCanonicalMatchingMerge({
       targetUserId: 'target',
-      targetAssignments: [assignment('target', 'target-book')],
-      sourceAssignments: [assignment('source', 'source-book')],
+      targetAssignments: [assignment('target', 'shared-book'), assignment('target', 'target-book')],
+      sourceAssignments: [assignment('source', 'shared-book'), assignment('source', 'source-book')],
       targetIntents: [intent('target', 'conditional-book', 'conditional')],
       sourceIntents: [intent('source', 'hard-book', 'hard')],
     })
-    expect(merged.assignments.map(row => [row.userId, row.bookId])).toEqual([['target', 'target-book']])
-    expect(merged.intents).toEqual([])
+    expect(merged.assignments.map(row => [row.userId, row.bookId])).toEqual([
+      ['target', 'shared-book'], ['target', 'target-book'], ['target', 'source-book'],
+    ])
+    expect(merged.intents.map(row => [row.bookId, row.kind])).toEqual([['hard-book', 'hard']])
   })
 
   it('moves source canonical assignment when target has none', () => {
@@ -43,21 +45,25 @@ describe('admin user merge rules', () => {
     expect(merged.assignments[0]).toEqual(expect.objectContaining({ userId: 'target', bookId: 'source-book' }))
   })
 
-  it('prefers target hard intent and otherwise moves source hard while clearing conditionals', () => {
-    const targetWins = resolveCanonicalMatchingMerge({
+  it('unions hard intents from both accounts and clears conditionals', () => {
+    const merged = resolveCanonicalMatchingMerge({
       targetUserId: 'target', targetAssignments: [], sourceAssignments: [],
-      targetIntents: [intent('target', 'target-hard', 'hard')],
-      sourceIntents: [intent('source', 'source-hard', 'hard')],
+      targetIntents: [intent('target', 'target-hard', 'hard'), intent('target', 'conditional', 'conditional')],
+      sourceIntents: [intent('source', 'source-hard', 'hard'), intent('source', 'conditional-2', 'conditional')],
     })
-    expect(targetWins.intents.map(row => row.bookId)).toEqual(['target-hard'])
+    expect(merged.intents.map(row => [row.userId, row.bookId, row.kind])).toEqual([
+      ['target', 'target-hard', 'hard'], ['target', 'source-hard', 'hard'],
+    ])
+  })
 
-    const sourceWins = resolveCanonicalMatchingMerge({
+  it('unions conditionals when there is no hard intent and excludes assigned books', () => {
+    const merged = resolveCanonicalMatchingMerge({
       targetUserId: 'target', targetAssignments: [], sourceAssignments: [],
-      targetIntents: [intent('target', 'conditional', 'conditional')],
-      sourceIntents: [intent('source', 'source-hard', 'hard')],
+      targetIntents: [intent('target', 'shared', 'conditional')],
+      sourceIntents: [intent('source', 'shared', 'conditional'), intent('source', 'source-only', 'conditional')],
     })
-    expect(sourceWins.intents.map(row => [row.userId, row.bookId, row.kind])).toEqual([
-      ['target', 'source-hard', 'hard'],
+    expect(merged.intents.map(row => [row.userId, row.bookId, row.kind])).toEqual([
+      ['target', 'shared', 'conditional'], ['target', 'source-only', 'conditional'],
     ])
   })
   it('validates and trims merge requests', () => {

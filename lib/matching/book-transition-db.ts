@@ -3,6 +3,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
+  books,
   matchingBookAssignments,
   matchingBookIntents,
   matchingCircles,
@@ -34,6 +35,9 @@ type BookAction = Extract<MatchingAction, {
     | 'close_session'
     | 'reopen_session'
 }>
+
+type RemovedConditionalBook = { bookId: string; title: string }
+type ConditionalCleanup = Map<string, RemovedConditionalBook[]>
 
 async function requireShortlistBook(tx: DbClient, userId: string, bookId: string) {
   const [signup] = await tx
@@ -69,6 +73,63 @@ async function ensureShortlistBook(tx: DbClient, userId: string, bookId: string)
     .onConflictDoNothing()
 }
 
+async function clearConditionalIntents(
+  tx: DbClient,
+  sessionId: string,
+  userIds: string[],
+  ignoredBookByUser: ReadonlyMap<string, string> = new Map(),
+): Promise<ConditionalCleanup> {
+  if (userIds.length === 0) return new Map()
+  const rows = await tx.select({
+    userId: matchingBookIntents.userId,
+    bookId: matchingBookIntents.bookId,
+    title: books.title,
+  }).from(matchingBookIntents).innerJoin(books, eq(books.id, matchingBookIntents.bookId)).where(and(
+    eq(matchingBookIntents.sessionId, sessionId),
+    eq(matchingBookIntents.kind, 'conditional'),
+    inArray(matchingBookIntents.userId, userIds),
+  ))
+  await tx.delete(matchingBookIntents).where(and(
+    eq(matchingBookIntents.sessionId, sessionId),
+    eq(matchingBookIntents.kind, 'conditional'),
+    inArray(matchingBookIntents.userId, userIds),
+  ))
+  const result: ConditionalCleanup = new Map()
+  for (const row of rows) {
+    if (ignoredBookByUser.get(row.userId) === row.bookId) continue
+    result.set(row.userId, [...(result.get(row.userId) ?? []), { bookId: row.bookId, title: row.title }])
+  }
+  return result
+}
+
+function mergeConditionalCleanup(...cleanups: ConditionalCleanup[]): ConditionalCleanup {
+  const result: ConditionalCleanup = new Map()
+  for (const cleanup of cleanups) {
+    for (const [userId, removed] of Array.from(cleanup.entries())) {
+      const byBook = new Map((result.get(userId) ?? []).map(book => [book.bookId, book]))
+      for (const book of removed) byBook.set(book.bookId, book)
+      result.set(userId, Array.from(byBook.values()).sort((left, right) => left.title.localeCompare(right.title)))
+    }
+  }
+  return result
+}
+
+function cleanupArtifacts(cleanup: ConditionalCleanup, assignedUserIds: ReadonlySet<string>) {
+  const entries = Array.from(cleanup.entries()).filter(([, removed]) => removed.length > 0)
+  return {
+    events: entries.map(([userId, removed]) => ({
+      eventType: 'conditional_intents_cleared',
+      subjectUserId: userId,
+      after: { bookIds: removed.map(book => book.bookId), bookTitles: removed.map(book => book.title) },
+    })),
+    notices: entries.flatMap(([userId, removed]) => assignedUserIds.has(userId) ? [{
+      userId,
+      kind: 'conditional_intents_cleared',
+      payload: { books: removed.map(book => book.title) },
+    }] : []),
+  }
+}
+
 async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: string) {
   await tx.update(matchingBookAssignments)
     .set({ circleId: null })
@@ -102,6 +163,7 @@ async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: 
       .set({ circleId })
       .where(and(
         eq(matchingBookAssignments.sessionId, sessionId),
+        eq(matchingBookAssignments.bookId, bookId),
         inArray(matchingBookAssignments.userId, partitions[index].map(item => item.userId)),
       ))
   }
@@ -113,7 +175,7 @@ async function formBookIfReady(
   bookId: string,
   nextStateVersion: number,
   actor: MatchingTransitionActor,
-): Promise<{ formed: boolean; assignedUserIds: string[] }> {
+): Promise<{ formed: boolean; assignedUserIds: string[]; conditionalCleanup: ConditionalCleanup }> {
   const [formed] = await tx.select({ bookId: matchingSessionBookStates.bookId })
     .from(matchingSessionBookStates)
     .where(and(
@@ -121,7 +183,7 @@ async function formBookIfReady(
       eq(matchingSessionBookStates.bookId, bookId),
     ))
     .limit(1)
-  if (formed) return { formed: false, assignedUserIds: [] }
+  if (formed) return { formed: false, assignedUserIds: [], conditionalCleanup: new Map() }
 
   const intents = await tx.select({
     userId: matchingBookIntents.userId,
@@ -132,13 +194,16 @@ async function formBookIfReady(
   )).orderBy(asc(matchingBookIntents.createdAt), asc(matchingBookIntents.userId))
   const existingAssignments = await tx.select({ userId: matchingBookAssignments.userId })
     .from(matchingBookAssignments)
-    .where(eq(matchingBookAssignments.sessionId, sessionId))
+    .where(and(
+      eq(matchingBookAssignments.sessionId, sessionId),
+      eq(matchingBookAssignments.bookId, bookId),
+    ))
   const plan = planBookFormation({
     formed: false,
     intents,
-    assignedUserIds: new Set(existingAssignments.map(item => item.userId)),
+    assignedToBookUserIds: new Set(existingAssignments.map(item => item.userId)),
   })
-  if (!plan) return { formed: false, assignedUserIds: [] }
+  if (!plan) return { formed: false, assignedUserIds: [], conditionalCleanup: new Map() }
 
   await tx.insert(matchingSessionBookStates).values({
     sessionId,
@@ -159,10 +224,12 @@ async function formBookIfReady(
   const assignedUserIds = plan.clearIntentUserIds
   await tx.delete(matchingBookIntents).where(and(
     eq(matchingBookIntents.sessionId, sessionId),
+    eq(matchingBookIntents.bookId, bookId),
     inArray(matchingBookIntents.userId, assignedUserIds),
   ))
+  const conditionalCleanup = await clearConditionalIntents(tx, sessionId, assignedUserIds)
   await rebuildAutomaticCircles(tx, sessionId, bookId)
-  return { formed: true, assignedUserIds }
+  return { formed: true, assignedUserIds, conditionalCleanup }
 }
 
 export async function applyBookMatchingAction(input: {
@@ -199,6 +266,7 @@ export async function applyBookMatchingAction(input: {
       )).limit(1),
       tx.select({ userId: matchingBookAssignments.userId }).from(matchingBookAssignments).where(and(
         eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, action.userId),
+        eq(matchingBookAssignments.bookId, action.bookId),
       )).limit(1),
       tx.select({ userId: matchingBookIntents.userId }).from(matchingBookIntents).where(and(
         eq(matchingBookIntents.sessionId, sessionId), eq(matchingBookIntents.userId, action.userId),
@@ -211,6 +279,7 @@ export async function applyBookMatchingAction(input: {
     }).onConflictDoNothing().returning({ userId: matchingBookIntents.userId })
     if (!inserted.length) return false
     const outcome = await formBookIfReady(tx, sessionId, action.bookId, nextStateVersion, actor)
+    const cleanup = cleanupArtifacts(outcome.conditionalCleanup, new Set(outcome.assignedUserIds))
     return {
       changed: true,
       events: [
@@ -219,7 +288,9 @@ export async function applyBookMatchingAction(input: {
         ...outcome.assignedUserIds.map(userId => ({
           eventType: 'participant_auto_assigned', subjectUserId: userId, bookId: action.bookId,
         })),
+        ...cleanup.events,
       ],
+      notices: cleanup.notices,
     }
   }
   if (action.type === 'unset_conditional') {
@@ -234,17 +305,22 @@ export async function applyBookMatchingAction(input: {
     const [assignment] = await tx.select({ userId: matchingBookAssignments.userId })
       .from(matchingBookAssignments).where(and(
         eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, action.userId),
+        eq(matchingBookAssignments.bookId, action.bookId),
       )).limit(1)
     if (assignment) throw new MatchingTransitionError('participant_locked')
     const [existing] = await tx.select({ bookId: matchingBookIntents.bookId })
       .from(matchingBookIntents).where(and(
         eq(matchingBookIntents.sessionId, sessionId), eq(matchingBookIntents.userId, action.userId),
+        eq(matchingBookIntents.bookId, action.bookId),
         eq(matchingBookIntents.kind, 'hard'),
       )).limit(1)
-    if (existing?.bookId === action.bookId) return false
-    await tx.delete(matchingBookIntents).where(and(
-      eq(matchingBookIntents.sessionId, sessionId), eq(matchingBookIntents.userId, action.userId),
-    ))
+    if (existing) return false
+    const hardCleanup = await clearConditionalIntents(
+      tx,
+      sessionId,
+      [action.userId],
+      new Map([[action.userId, action.bookId]]),
+    )
     const [formed] = await tx.select({ bookId: matchingSessionBookStates.bookId })
       .from(matchingSessionBookStates).where(and(
         eq(matchingSessionBookStates.sessionId, sessionId), eq(matchingSessionBookStates.bookId, action.bookId),
@@ -259,55 +335,72 @@ export async function applyBookMatchingAction(input: {
         sessionId, userId: action.userId, bookId: action.bookId, kind: 'hard',
       })
       const outcome = await formBookIfReady(tx, sessionId, action.bookId, nextStateVersion, actor)
+      const combinedCleanup = mergeConditionalCleanup(hardCleanup, outcome.conditionalCleanup)
+      const cleanup = cleanupArtifacts(combinedCleanup, new Set(outcome.assignedUserIds))
       return {
         changed: true,
         events: [
-          { eventType: existing ? 'hard_switched' : 'hard_set', subjectUserId: action.userId, bookId: action.bookId },
+          { eventType: 'hard_set', subjectUserId: action.userId, bookId: action.bookId },
           ...(outcome.formed ? [{ eventType: 'book_formed', bookId: action.bookId, after: { assignedUserIds: outcome.assignedUserIds } }] : []),
           ...outcome.assignedUserIds.map(userId => ({
             eventType: 'participant_auto_assigned', subjectUserId: userId, bookId: action.bookId,
           })),
+          ...cleanup.events,
         ],
+        notices: cleanup.notices,
       }
     }
+    const cleanup = cleanupArtifacts(hardCleanup, new Set([action.userId]))
     return {
       changed: true,
       events: [
-        { eventType: existing ? 'hard_switched' : 'hard_set', subjectUserId: action.userId, bookId: action.bookId },
+        { eventType: 'hard_set', subjectUserId: action.userId, bookId: action.bookId },
         { eventType: 'participant_directly_assigned', subjectUserId: action.userId, bookId: action.bookId },
+        ...cleanup.events,
       ],
+      notices: cleanup.notices,
     }
   }
   if (action.type === 'cancel_hard') {
     const deleted = await tx.delete(matchingBookIntents).where(and(
       eq(matchingBookIntents.sessionId, sessionId), eq(matchingBookIntents.userId, action.userId),
+      eq(matchingBookIntents.bookId, action.bookId),
       eq(matchingBookIntents.kind, 'hard'),
     )).returning({ bookId: matchingBookIntents.bookId })
-    return deleted.length ? { changed: true, events: [{ eventType: 'hard_cancelled', subjectUserId: action.userId, bookId: deleted[0].bookId }] } : false
+    return deleted.length ? { changed: true, events: [{ eventType: 'hard_cancelled', subjectUserId: action.userId, bookId: action.bookId }] } : false
   }
   if (action.type === 'admin_assign_book') {
     await ensureShortlistBook(tx, action.userId, action.bookId)
     const [existing] = await tx.select({ bookId: matchingBookAssignments.bookId })
       .from(matchingBookAssignments).where(and(
         eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, action.userId),
+        eq(matchingBookAssignments.bookId, action.bookId),
       )).limit(1)
-    if (existing?.bookId === action.bookId) return false
+    if (existing) return false
     await tx.delete(matchingBookIntents).where(and(
       eq(matchingBookIntents.sessionId, sessionId), eq(matchingBookIntents.userId, action.userId),
+      eq(matchingBookIntents.bookId, action.bookId),
     ))
+    const conditionalCleanup = await clearConditionalIntents(tx, sessionId, [action.userId])
     await tx.insert(matchingBookAssignments).values({
       sessionId, userId: action.userId, bookId: action.bookId, source: 'admin', assignedBy: actor.userId,
-    }).onConflictDoUpdate({
-      target: [matchingBookAssignments.sessionId, matchingBookAssignments.userId],
-      set: { bookId: action.bookId, source: 'admin', assignedBy: actor.userId, assignedAt: new Date(), circleId: null },
     })
-    return { changed: true, events: [{ eventType: existing ? 'admin_book_transferred' : 'admin_book_assigned', subjectUserId: action.userId, bookId: action.bookId, before: existing ?? null }] }
+    const cleanup = cleanupArtifacts(conditionalCleanup, new Set([action.userId]))
+    return {
+      changed: true,
+      events: [
+        { eventType: 'admin_book_assigned', subjectUserId: action.userId, bookId: action.bookId },
+        ...cleanup.events,
+      ],
+      notices: cleanup.notices,
+    }
   }
   if (action.type === 'admin_unassign_book') {
     const deleted = await tx.delete(matchingBookAssignments).where(and(
       eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, action.userId),
+      eq(matchingBookAssignments.bookId, action.bookId),
     )).returning({ bookId: matchingBookAssignments.bookId })
-    return deleted.length ? { changed: true, events: [{ eventType: 'admin_book_unassigned', subjectUserId: action.userId, bookId: deleted[0].bookId }] } : false
+    return deleted.length ? { changed: true, events: [{ eventType: 'admin_book_unassigned', subjectUserId: action.userId, bookId: action.bookId }] } : false
   }
   if (action.type === 'admin_create_book_circle') {
     const existing = await tx.select({ position: matchingCircles.position }).from(matchingCircles)
@@ -342,6 +435,7 @@ export async function applyBookMatchingAction(input: {
   const [assignment] = await tx.select({ bookId: matchingBookAssignments.bookId })
     .from(matchingBookAssignments).where(and(
       eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, action.userId),
+      eq(matchingBookAssignments.bookId, action.bookId),
     )).limit(1)
   if (!assignment) throw new MatchingTransitionError('invalid_book_action')
   if (action.circleId) {
@@ -353,10 +447,12 @@ export async function applyBookMatchingAction(input: {
   const [currentPlacement] = await tx.select({ circleId: matchingBookAssignments.circleId })
     .from(matchingBookAssignments).where(and(
       eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, action.userId),
+      eq(matchingBookAssignments.bookId, action.bookId),
     )).limit(1)
   if (currentPlacement?.circleId === action.circleId) return false
   await tx.update(matchingBookAssignments).set({ circleId: action.circleId }).where(and(
     eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.userId, action.userId),
+    eq(matchingBookAssignments.bookId, action.bookId),
   ))
   return { changed: true, events: [{ eventType: 'admin_assignment_placed', subjectUserId: action.userId, bookId: assignment.bookId, metadata: { circleId: action.circleId } }] }
 }

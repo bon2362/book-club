@@ -59,6 +59,10 @@ describe('matchingEventTypeLabel', () => {
     expect(matchingEventTypeLabel('change_group_size')).toBe('Изменение размера групп')
   })
 
+  it('переводит очистку авто-записей', () => {
+    expect(matchingEventTypeLabel('conditional_intents_cleared')).toBe('Авто-записи сняты')
+  })
+
   it('возвращает исходный код для неизвестного типа', () => {
     expect(matchingEventTypeLabel('unknown_event')).toBe('unknown_event')
   })
@@ -249,6 +253,11 @@ describe('formatMatchingEvent — detail', () => {
     const e = event('freeze')
     expect(formatMatchingEvent(e)).toBeTruthy()
     expect(formatMatchingEvent(e).length).toBeGreaterThan(0)
+  })
+
+  it('conditional_intents_cleared — перечисляет книги', () => {
+    const e = event('conditional_intents_cleared', { after: { bookTitles: ['Первая', 'Вторая'] } })
+    expect(formatMatchingEvent(e)).toBe('Первая, Вторая')
   })
 
   it('неизвестный тип — не падает, возвращает строку', () => {

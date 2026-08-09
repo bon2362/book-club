@@ -31,6 +31,12 @@ function noticeMessage(notice: MatchingNotice): string {
       return 'Круг закреплён — состав собрался полностью.'
     case 'circle_dissolved':
       return 'Администратор распустил круг. Все участники снова участвуют в расчётах.'
+    case 'conditional_intents_cleared': {
+      const books = asNames(notice.payload.books)
+      return books.length > 0
+        ? `Авто-записи на ${books.map((book) => `«${book}»`).join(', ')} сняты. На другие книги можно записаться окончательно.`
+        : 'Авто-записи сняты. На другие книги можно записаться окончательно.'
+    }
     default:
       return 'Состояние матчинга обновилось.'
   }
