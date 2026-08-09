@@ -84,11 +84,18 @@ test.describe('Геометрия календаря круга', () => {
       ))
       expect(columnCount).toBeGreaterThanOrEqual(2)
 
-      const participants = page.getByRole('heading', { name: 'Круг' })
+      const participants = page.getByRole('heading', { name: 'Круг', exact: true })
       await expect(participants).toBeVisible()
       const participantsBox = await participants.boundingBox()
       expect(participantsBox).not.toBeNull()
       expect(participantsBox!.x + participantsBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+
+      // Колонка дня должна оставаться пригодной для попадания пальцем. Пока
+      // раскладка была жёстко двухколоночной, на 393px сайдбар забирал 216px и
+      // день сжимался примерно до 13px — сетка формально помещалась в экран,
+      // но пользоваться ей было нельзя.
+      const dayColumnWidth = (gridBox!.width - 52) / 7
+      expect(dayColumnWidth).toBeGreaterThan(30)
 
       if (viewport.width <= 540) {
         // На узком экране состав круга уезжает под сетку, а не встаёт колонкой рядом.

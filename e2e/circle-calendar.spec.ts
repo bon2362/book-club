@@ -180,7 +180,7 @@ test('участники отмечают общий слот и назнача�
   }
 })
 
-test('админский режим по умолчанию показывает календарь выбранного участника', async ({
+test('админский режим показывает отметки всех участников круга', async ({
   matchingBooksFixture,
   openMatchingPage,
   dbExec,
@@ -218,8 +218,16 @@ test('админский режим по умолчанию показывает
     const adminPage = await openMatchingPage(admin)
     await adminPage.goto(`${new URL(calendarUrl).pathname}?as=${participantB.userId}`)
     await expect(adminPage.getByTestId('calendar-grid')).toBeVisible()
-    await expect(adminPage.locator(`[data-testid="calendar-cell"][data-cell="${key}"]`)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    // Отметка участника A обязана быть видна, хотя действуем за участника B:
+    // автоматический фокус на выбранном участнике прятал чужие отметки (#547),
+    // и это откатили в #548. Тон проверяем по data-tone, а не по цвету: фон
+    // задан через color-mix, и сравнение вычисленного значения хрупко.
+    const foreignCell = adminPage.locator(`[data-testid="calendar-cell"][data-cell="${key}"]`)
+    await expect(foreignCell).toHaveAttribute('data-tone', 'partial')
+    await expect(foreignCell).toHaveAttribute('data-free', '1')
+    // Свой уголок не рисуется: участник B это время не отмечал.
     await expect(adminPage.locator('[data-mine-marker="true"]')).toHaveCount(0)
+
   } finally {
     await dbExec('delete from user_availability where user_id = any($1::text[])', [[participantA.userId, participantB.userId]])
     await dbExec('delete from circle_schedules where book_id = $1', [targetBook.id])
