@@ -106,7 +106,8 @@ export default function CalendarClient({
   }), [busyParticipants, state])
 
   const viewerFreeKeys = useMemo(() => new Set(viewerIntervals.flatMap(enumerateSlots)), [viewerIntervals])
-  const markerFreeKeys = !focusRef || focusRef === state.viewer.actingAsRef ? viewerFreeKeys : new Set<string>()
+  const displayFocusRef = focusRef ?? (actingUserId ? state.viewer.actingAsRef : null)
+  const markerFreeKeys = !displayFocusRef || displayFocusRef === state.viewer.actingAsRef ? viewerFreeKeys : new Set<string>()
   const dayStarts = useMemo(() => buildDayStarts(new Date(state.window.start)), [state.window.start])
   const activeDayIndexes = useMemo(() => {
     const active = new Set<number>()
@@ -281,7 +282,7 @@ export default function CalendarClient({
                 overlap={overlap}
                 viewerFreeKeys={viewerFreeKeys}
                 markerFreeKeys={markerFreeKeys}
-                focusRef={focusRef}
+                focusRef={displayFocusRef}
                 canEdit={state.viewer.canEdit}
                 selectedKey={selectedKey}
                 isMobile={false}
@@ -302,7 +303,7 @@ export default function CalendarClient({
             <CalendarParticipants
               participants={participants}
               viewerRef={state.viewer.ref}
-              focusRef={focusRef}
+              focusRef={displayFocusRef}
               isDesktop={isDesktop}
               isAdmin={state.viewer.isAdmin}
               onFocus={setFocusRef}

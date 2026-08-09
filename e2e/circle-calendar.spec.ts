@@ -173,11 +173,54 @@ test('участники отмечают общий слот и назнача�
     await participantAPage.reload()
     await expect(participantAPage.getByRole('heading', { name: targetBook.title })).toBeVisible()
     await expect(participantAPage.getByText(`90 минут · ${targetBook.title}`)).toBeVisible()
-
-    await adminPage.getByRole('button', { name: /Борис Книги E2E/i }).click()
-    await expect(adminPage).toHaveURL(new RegExp(`/calendar/${slug}\\?as=${participantB.userId}$`))
   } finally {
     await dbExec('delete from circle_meetings where schedule_id in (select id from circle_schedules where book_id = $1)', [targetBook.id])
+    await dbExec('delete from user_availability where user_id = any($1::text[])', [[participantA.userId, participantB.userId]])
+    await dbExec('delete from circle_schedules where book_id = $1', [targetBook.id])
+  }
+})
+
+test('админский режим по умолчанию показывает календарь выбранного участника', async ({
+  matchingBooksFixture,
+  openMatchingPage,
+  dbExec,
+}) => {
+  const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
+  const [participantB, participantC] = await Promise.all([getParticipantB(), getParticipantC()])
+  const targetBook = books[0]
+
+  try {
+    await bookAction(participantA.request, session.id, 'setHard', targetBook.id)
+    await bookAction(participantB.request, session.id, 'setHard', targetBook.id)
+    await bookAction(participantC.request, session.id, 'setConditional', targetBook.id)
+
+    const formed = await state(participantA.request, session.id)
+    const formedBook = formed.bookMode?.books.find((book) => book.bookId === targetBook.id)
+    expect(formedBook?.formedAt).not.toBeNull()
+    expect(formedBook?.circles[0].position).toBe(1)
+
+    const participantAPage = await openMatchingPage(participantA)
+    await participantAPage.goto('/matching')
+    const calendarLink = participantAPage
+      .getByTestId(`matching-book-card-${targetBook.id}`)
+      .getByRole('link', { name: 'Согласовать время' })
+    await calendarLink.click()
+    await expect(participantAPage.getByTestId('calendar-grid')).toBeVisible()
+    const calendarUrl = participantAPage.url()
+    const slug = new URL(calendarUrl).pathname.split('/').pop()
+    if (!slug) {
+      throw new Error(`Calendar slug not found in URL: ${calendarUrl}`)
+    }
+
+    const { key } = await firstFutureCell(participantAPage)
+    await markSlot(participantA.request, key, 90)
+
+    const adminPage = await openMatchingPage(admin)
+    await adminPage.goto(`${new URL(calendarUrl).pathname}?as=${participantB.userId}`)
+    await expect(adminPage.getByTestId('calendar-grid')).toBeVisible()
+    await expect(adminPage.locator(`[data-testid="calendar-cell"][data-cell="${key}"]`)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expect(adminPage.locator('[data-mine-marker="true"]')).toHaveCount(0)
+  } finally {
     await dbExec('delete from user_availability where user_id = any($1::text[])', [[participantA.userId, participantB.userId]])
     await dbExec('delete from circle_schedules where book_id = $1', [targetBook.id])
   }
