@@ -61,12 +61,20 @@ export function formatInZone(
   return new Intl.DateTimeFormat('ru', { ...options, timeZone }).format(instant)
 }
 
-/** Пояс смотрящего: сохранённый в профиле, иначе определённый браузером, иначе UTC. */
-export function resolveViewerTimeZone(stored: string | null | undefined): string {
-  if (stored) return stored
+/** Пояс браузера или null, если среда его не сообщает. */
+export function detectBrowserTimeZone(): string | null {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null
   } catch {
-    return 'UTC'
+    return null
   }
+}
+
+/**
+ * Пояс смотрящего: сохранённый в профиле, иначе определённый браузером, иначе UTC.
+ * Вызывать только на клиенте после монтирования: на сервере браузерная ветка
+ * вернёт пояс сервера, и гидратация уже не перепишет отрисованные подписи.
+ */
+export function resolveViewerTimeZone(stored: string | null | undefined): string {
+  return stored || detectBrowserTimeZone() || 'UTC'
 }

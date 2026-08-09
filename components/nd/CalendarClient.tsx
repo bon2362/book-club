@@ -11,7 +11,7 @@ import { addInterval, normalize, removeInterval } from '@/lib/calendar/availabil
 import { computeOverlap } from '@/lib/calendar/overlap'
 import { addSlots, enumerateSlots, SLOT_MINUTES, type Interval } from '@/lib/calendar/slots'
 import type { CalendarPublicState } from '@/lib/calendar/public-state'
-import { addLocalDays, formatInZone, localDayKey, resolveViewerTimeZone, startOfLocalDay } from '@/lib/calendar/timezone'
+import { addLocalDays, detectBrowserTimeZone, formatInZone, localDayKey, startOfLocalDay } from '@/lib/calendar/timezone'
 
 export default function CalendarClient({
   initialState,
@@ -30,7 +30,8 @@ export default function CalendarClient({
   const [isDesktop, setIsDesktop] = useState(false)
   const [isNarrow, setIsNarrow] = useState(false)
   const [viewerIntervals, setViewerIntervals] = useState<Interval[]>(() => actingParticipant(initialState)?.intervals.map(parseInterval) ?? [])
-  const timeZone = useMemo(() => resolveViewerTimeZone(state.viewer.timezone), [state.viewer.timezone])
+  const [timeZone, setTimeZone] = useState(state.viewer.timezone ?? 'UTC')
+  const [tzConfirmed, setTzConfirmed] = useState(state.viewer.timezoneConfirmed)
   const skipSave = useRef(true)
   const asQuery = actingUserId ? `?as=${encodeURIComponent(actingUserId)}` : ''
 
@@ -46,6 +47,24 @@ export default function CalendarClient({
     query.addEventListener('change', update)
     return () => query.removeEventListener('change', update)
   }, [])
+
+  // Пояс браузера определяется только на клиенте: на сервере Intl вернёт пояс
+  // сервера (UTC), и анонимный посетитель навсегда остался бы с UTC-сеткой.
+  useEffect(() => {
+    if (state.viewer.timezone) {
+      setTimeZone(state.viewer.timezone)
+      return
+    }
+    const detected = detectBrowserTimeZone()
+    if (!detected) return
+    setTimeZone(detected)
+    if (!state.viewer.ref) return
+    void fetch('/api/profile/timezone', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timezone: detected, confirmed: false }),
+    })
+  }, [state.viewer.ref, state.viewer.timezone])
 
   // Ширина, а не тип указателя: на узком экране клетка выше, чтобы в неё можно
   // было попасть пальцем. Порог тот же 540px, что и на доске матчинга.
@@ -221,6 +240,17 @@ export default function CalendarClient({
     toggleBlock(key)
   }
 
+  async function changeTimeZone(zone: string, confirmed: boolean) {
+    setTimeZone(zone)
+    setTzConfirmed(confirmed)
+    if (!state.viewer.ref) return
+    await fetch('/api/profile/timezone', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timezone: zone, confirmed }),
+    })
+  }
+
   async function updateDuration(durationMinutes: number) {
     setState((current) => ({ ...current, durationMinutes }))
     const response = await fetch(`/api/calendar/${state.slug}${asQuery}`, {
@@ -262,7 +292,12 @@ export default function CalendarClient({
 
   return (
     <Shell cellHeight={isNarrow ? 26 : 22}>
-      {state.viewer.ref && <CalendarTimezoneBar timezone={state.viewer.timezone} confirmed={state.viewer.timezoneConfirmed} />}
+      <CalendarTimezoneBar
+        value={timeZone}
+        confirmed={tzConfirmed}
+        canPersist={Boolean(state.viewer.ref)}
+        onChange={changeTimeZone}
+      />
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24, borderBottom: '1px solid var(--hair)', paddingBottom: 20, marginBottom: 24 }}>
         <div>
           <h1 style={{ fontFamily: 'var(--nd-serif)', fontSize: '2rem', lineHeight: 1.15, margin: '0 0 6px', fontWeight: 400 }}>{state.book.title}</h1>
