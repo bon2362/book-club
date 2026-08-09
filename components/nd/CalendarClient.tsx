@@ -126,10 +126,25 @@ export default function CalendarClient({
   const selectedCell = selectedKey ? overlap.cells.get(selectedKey) : null
   const durationOptions = [30, 60, 90, 120, 150, 180]
 
+  function durationSpan() {
+    return Math.max(1, state.durationMinutes / SLOT_MINUTES)
+  }
+
   function blockKeys(key: string) {
     const startsAt = new Date(key)
-    const span = Math.max(1, state.durationMinutes / SLOT_MINUTES)
-    return Array.from({ length: span }, (_, step) => addSlots(startsAt, step).toISOString())
+    return Array.from({ length: durationSpan() }, (_, step) => addSlots(startsAt, step).toISOString())
+  }
+
+  function containingBlockKeys(key: string) {
+    const span = durationSpan()
+    for (const interval of normalize(viewerIntervals)) {
+      const keys = enumerateSlots(interval)
+      const index = keys.indexOf(key)
+      if (index === -1) continue
+      const blockStart = Math.floor(index / span) * span
+      return keys.slice(blockStart, blockStart + span)
+    }
+    return blockKeys(key)
   }
 
   function paint(keys: string[], mode: 'paint' | 'erase') {
@@ -144,7 +159,8 @@ export default function CalendarClient({
   }
 
   function toggleBlock(key: string) {
-    paint(blockKeys(key), viewerFreeKeys.has(key) ? 'erase' : 'paint')
+    const mode = viewerFreeKeys.has(key) ? 'erase' : 'paint'
+    paint(mode === 'erase' ? containingBlockKeys(key) : blockKeys(key), mode)
   }
 
   function handleCellClick(key: string) {

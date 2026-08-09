@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page } from '@playwright/test'
+import type { APIRequestContext, Page, Response as PlaywrightResponse } from '@playwright/test'
 import { epic, feature } from 'allure-js-commons'
 import { test, expect } from './fixtures'
 
@@ -51,13 +51,37 @@ async function firstFutureCell(page: Page) {
   }
 }
 
-async function markSlot(request: APIRequestContext, key: string) {
+async function markSlot(request: APIRequestContext, key: string, durationMinutes = 60) {
   const startsAt = new Date(key)
-  const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000)
+  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000)
   const response = await request.put('/api/calendar/availability', {
     data: { intervals: [{ startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }] },
   })
   expect(response.ok(), await response.text()).toBe(true)
+}
+
+function addMinutes(key: string, minutes: number) {
+  return new Date(new Date(key).getTime() + minutes * 60 * 1000).toISOString()
+}
+
+function waitForCalendarState(page: Page, slug: string) {
+  return page.waitForResponse((response) =>
+    response.url().includes(`/api/calendar/${slug}`) && response.request().method() === 'GET',
+  )
+}
+
+function isAvailabilityPut(response: PlaywrightResponse) {
+  return response.url().includes('/api/calendar/availability') && response.request().method() === 'PUT'
+}
+
+function isAvailabilityClear(response: PlaywrightResponse) {
+  if (!isAvailabilityPut(response)) return false
+  try {
+    const body = response.request().postDataJSON() as { intervals?: unknown[] }
+    return Array.isArray(body.intervals) && body.intervals.length === 0
+  } catch {
+    return false
+  }
 }
 
 test.beforeEach(async () => {
@@ -93,21 +117,44 @@ test('участники отмечают общий слот и назнача�
     await expect(participantAPage.getByTestId('calendar-grid')).toBeVisible()
     const calendarUrl = participantAPage.url()
     const slug = new URL(calendarUrl).pathname.split('/').pop()
-    expect(slug).toBeTruthy()
+    if (!slug) {
+      throw new Error(`Calendar slug not found in URL: ${calendarUrl}`)
+    }
+
+    const durationResponse = await admin.request.patch(`/api/calendar/${slug}`, {
+      data: { durationMinutes: 90 },
+    })
+    expect(durationResponse.ok(), await durationResponse.text()).toBe(true)
 
     const adminPage = await openMatchingPage(admin)
     await adminPage.goto(`${new URL(calendarUrl).pathname}?as=${participantA.userId}`)
     await expect(adminPage.getByTestId('calendar-grid')).toBeVisible()
+    await expect(adminPage.getByLabel('Длительность встречи')).toHaveValue('90')
 
     const { key, locator } = await firstFutureCell(adminPage)
-    const saveResponsePromise = adminPage.waitForResponse((response) =>
-      response.url().includes('/api/calendar/availability') && response.request().method() === 'PUT',
-    )
+    const saveStatePromise = waitForCalendarState(adminPage, slug)
+    const saveResponsePromise = adminPage.waitForResponse(isAvailabilityPut)
     await locator.click()
     await expect(adminPage.getByRole('dialog')).toHaveCount(0)
     const saveResponse = await saveResponsePromise
     expect(saveResponse.ok(), await saveResponse.text()).toBe(true)
-    await markSlot(participantB.request, key)
+    await saveStatePromise
+
+    const eraseStatePromise = waitForCalendarState(adminPage, slug)
+    const eraseResponsePromise = adminPage.waitForResponse(isAvailabilityClear)
+    await adminPage.locator(`[data-testid="calendar-cell"][data-cell="${addMinutes(key, 60)}"]`).click()
+    const eraseResponse = await eraseResponsePromise
+    expect(eraseResponse.ok(), await eraseResponse.text()).toBe(true)
+    await expect(eraseResponse.json()).resolves.toMatchObject({ intervals: [] })
+    await eraseStatePromise
+
+    const resaveStatePromise = waitForCalendarState(adminPage, slug)
+    const resaveResponsePromise = adminPage.waitForResponse(isAvailabilityPut)
+    await locator.click()
+    const resaveResponse = await resaveResponsePromise
+    expect(resaveResponse.ok(), await resaveResponse.text()).toBe(true)
+    await resaveStatePromise
+    await markSlot(participantB.request, key, 90)
 
     await participantAPage.reload()
     await expect(participantAPage.locator(`[data-testid="calendar-cell"][data-cell="${key}"]`)).toBeVisible()
@@ -119,7 +166,7 @@ test('участники отмечают общий слот и назнача�
 
     await participantAPage.reload()
     await expect(participantAPage.getByRole('heading', { name: targetBook.title })).toBeVisible()
-    await expect(participantAPage.getByText(`60 минут · ${targetBook.title}`)).toBeVisible()
+    await expect(participantAPage.getByText(`90 минут · ${targetBook.title}`)).toBeVisible()
   } finally {
     await dbExec('delete from circle_meetings where schedule_id in (select id from circle_schedules where book_id = $1)', [targetBook.id])
     await dbExec('delete from user_availability where user_id = any($1::text[])', [[participantA.userId, participantB.userId]])
