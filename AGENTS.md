@@ -23,6 +23,10 @@ git fetch origin main
 git worktree add ../book-club-коротко-о-чём -b fix/коротко-о-чём origin/main
 cd ../book-club-коротко-о-чём            # имя ветки и папки в kebab-case
 ln -s ../book-club/node_modules node_modules   # свежий worktree без зависимостей — иначе lint/tsc/test не стартуют
+# Только если в этом worktree будешь гонять E2E — env-файлы гитигнорятся и лежат
+# лишь в основном чекауте (см. «E2E в свежем worktree» ниже):
+ln -s ../book-club/.env.local .env.local
+ln -s ../book-club/.env.test.local .env.test.local
 # ... делаешь изменения, локально lint/typecheck проходят ...
 git commit -am "тип: что"                 # Husky запустит lint-staged + secretlint
 git push -u origin fix/коротко-о-чём
@@ -159,6 +163,17 @@ Husky pre-commit запускает `lint-staged` перед каждым ком
 **Изоляция от прод-БД (КРИТИЧНО).** E2E пишут только в изолированную Neon-ветку `e2e`; любая мутация — через фикстуру из `e2e/fixtures.ts` с cleanup в teardown, существующие прод-данные не редактируются.
 
 Детали (3 слоя защиты, тест-режим) и гочи написания тестов — `docs/features/testing.md`. Самые частые грабли, расписанные там: live-locators и кнопки-тогглы (`.first()`, не `.nth(1)`), `role="status"`×`@dnd-kit`, ContactsForm-оверлей перехватывает клики, OOM при нескольких dev-серверах, `session.user.id` в session callback, `createTestBook`-фикстура. **Пишешь или правишь Playwright-тест — сперва прочитай этот файл.**
+
+**E2E в свежем worktree: два симлинка обязательны.** Env-файлы попадают под `.gitignore` (`.env*.local`), поэтому в новом worktree их нет, и падение выглядит не как «нет файла», а как две разные ошибки, каждая из которых уводит в сторону:
+
+```bash
+ln -s ../book-club/.env.local .env.local            # иначе: «Invalid environment variables» на старте dev-сервера
+ln -s ../book-club/.env.test.local .env.test.local  # иначе: «E2E database guard» — подставится ПРОД-URL
+```
+
+Второй файл важнее: `playwright.config.ts` берёт из `.env.test.local` `DATABASE_URL` изолированной Neon-ветки и маркеры безопасности, форвардя их в `webServer.env` поверх `.env.local`. Без него страж (`lib/e2e-database-guard.ts`) корректно отказывается стартовать, но причина по тексту ошибки неочевидна. Симлинки безопасны: `.env*.local` в `.gitignore`, в коммит не попадут.
+
+**Порт 3000 может быть занят чужим проектом.** Playwright по умолчанию переиспользует уже запущенный сервер (`reuseExistingServer` вне CI), поэтому тесты молча бьются в чужое приложение и падают с 404 на `/api/test/*`. Не гаси чужой сервер — подними свой: `PLAYWRIGHT_PORT=3100 npm run test:e2e:focused -- <spec>`.
 
 ### UI Layout Tests
 CSS-поведение (скрытие/позиционирование/анимации) — обязателен `boundingBox()`-тест в соответствующем доменном `e2e/*-layout.spec.ts`. **UI-задачу нельзя коммитить без focused-прогона затронутого теста**, но запускать layout других доменов локально не требуется. Субагенты запускают lint/typecheck/Jest и focused E2E; один координатор выполняет полный финальный gate один раз. Как писать проверки — `docs/features/testing.md`.
