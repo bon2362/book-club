@@ -62,6 +62,10 @@ export default function MatchingBookCard({
   const hardHere = book.viewerStatus === 'hard'
   const conditionalHere = book.viewerStatus === 'conditional'
   const formed = book.formedAt !== null
+  // Composition diagnostics (viability warning, unplaced list) are actionable only for the
+  // organiser: a participant cannot place people into circles, so the warning would be an
+  // alarm without a remedy. Unplaced assignments are themselves an admin-made state.
+  const showCompositionDiagnostics = adminMode && formed
   // Three mutually-exclusive aggregate groups; the interest group excludes the viewer.
   const enrolledCount = book.participants.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
   const conditionalCount = book.participants.filter((participant) => participant.status === 'conditional').length
@@ -98,7 +102,7 @@ export default function MatchingBookCard({
     assignedHere ? 'is-assigned' : '',
     hardHere ? 'is-hard' : '',
     formed ? 'is-formed' : '',
-    book.currentViability === 'needs_attention' ? 'needs-attention' : '',
+    showCompositionDiagnostics && book.currentViability === 'needs_attention' ? 'needs-attention' : '',
     book.intersectionCount === 0 ? 'has-no-overlap' : '',
   ].filter(Boolean).join(' ')
 
@@ -142,7 +146,7 @@ export default function MatchingBookCard({
               )}
             </div>
           )}
-          {formed && book.currentViability === 'needs_attention' && (
+          {showCompositionDiagnostics && book.currentViability === 'needs_attention' && (
             <div className="nd-mb-viability">Состав требует корректировки</div>
           )}
         </div>
@@ -151,7 +155,7 @@ export default function MatchingBookCard({
       {formed && (
         <MatchingBookCircles circles={book.circles} participants={book.participants} viewerRef={viewerRef} />
       )}
-      {formed && book.unplacedParticipantRefs.length > 0 && (
+      {showCompositionDiagnostics && book.unplacedParticipantRefs.length > 0 && (
         <p className="nd-mb-unplaced">
           Без круга: {book.unplacedParticipantRefs.map((ref) => book.participants.find((p) => p.ref === ref)?.displayName ?? ref).join(', ')}
         </p>

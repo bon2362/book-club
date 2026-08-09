@@ -1,4 +1,4 @@
-import { shouldFormBook } from './book-partition'
+import { MAX_CIRCLE_SIZE, MIN_CIRCLE_SIZE, shouldFormBook } from './book-partition'
 
 export type BookIntentKind = 'conditional' | 'hard'
 export type BookParticipantStatus = 'interest' | BookIntentKind | 'assigned'
@@ -192,8 +192,9 @@ export function buildPublicBookModeState(input: {
         .flatMap(item => participantById.get(item.userId)?.publicRef ?? [])
       const formedAt = input.formedAtByBookId.get(book.bookId) ?? null
       const formed = formedAt !== null
-      const viable = formed && bookAssignments.length >= 3 && unplacedParticipantRefs.length === 0 &&
-        circles.length > 0 && circles.every(circle => circle.memberRefs.length >= 3 && circle.memberRefs.length <= 5)
+      const viable = formed && bookAssignments.length >= MIN_CIRCLE_SIZE && unplacedParticipantRefs.length === 0 &&
+        circles.length > 0 && circles.every(circle =>
+          circle.memberRefs.length >= MIN_CIRCLE_SIZE && circle.memberRefs.length <= MAX_CIRCLE_SIZE)
       const viewerStatus = statusFor({
         userId: input.viewerUserId,
         bookId: book.bookId,
