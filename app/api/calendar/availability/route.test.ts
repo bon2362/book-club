@@ -31,9 +31,20 @@ function session(isAdmin = false) {
   }
 }
 
+// Роут обрезает интервалы по окну, которое начинается «сейчас», а даты в тестах
+// зашиты абсолютно. Без замороженного времени набор проходил только до
+// 2026-08-10T10:00Z, а потом валил CI на любом PR. Время фиксируем явно.
+const FROZEN_NOW = new Date('2026-08-10T08:00:00.000Z')
+
 describe('/api/calendar/availability', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] })
+    jest.setSystemTime(FROZEN_NOW)
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   it('requires authentication', async () => {
