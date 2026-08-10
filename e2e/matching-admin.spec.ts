@@ -74,7 +74,10 @@ test('администратор меняет круги, назначения �
   })
   await participantAPage.goto('/matching')
   await participantAPage.reload()
-  await expect(participantAPage.getByTestId(`matching-book-card-${books[0].id}`)).toContainText('Без круга')
+  // Участнику список «Без круга: …» не показывают — это админская диагностика; у него исчезает
+  // сам блок круга. Ниже, после пересоздания и размещения, тот же регион проверяется на возврат.
+  await expect(participantAPage.getByTestId(`matching-book-card-${books[0].id}`)
+    .getByRole('region', { name: 'Круг 1' })).toHaveCount(0)
 
   await adminAction(admin.request, session.id, participantA.userId, {
     action: 'createCircle', bookId: books[0].id,
