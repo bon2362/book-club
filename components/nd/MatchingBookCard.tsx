@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import CoverImage from './CoverImage'
 import MatchingBookCircles from './MatchingBookCircles'
-import type { MatchingBookView } from './matching-book-types'
+import { hasOtherBookParticipants, type MatchingBookView } from './matching-book-types'
 import {
   MAX_CIRCLE_SIZE,
   MIN_CIRCLE_SIZE,
@@ -62,6 +62,7 @@ export default function MatchingBookCard({
   const hardHere = book.viewerStatus === 'hard'
   const conditionalHere = book.viewerStatus === 'conditional'
   const formed = book.formedAt !== null
+  const hasPeers = hasOtherBookParticipants(book, viewerRef)
   // Composition diagnostics (viability warning, unplaced list) are actionable only for the
   // organiser: a participant cannot place people into circles, so the warning would be an
   // alarm without a remedy. Unplaced assignments are themselves an admin-made state.
@@ -103,7 +104,7 @@ export default function MatchingBookCard({
     hardHere ? 'is-hard' : '',
     formed ? 'is-formed' : '',
     showCompositionDiagnostics && book.currentViability === 'needs_attention' ? 'needs-attention' : '',
-    book.intersectionCount === 0 ? 'has-no-overlap' : '',
+    !hasPeers ? 'has-no-overlap' : '',
   ].filter(Boolean).join(' ')
 
   return (
@@ -167,7 +168,7 @@ export default function MatchingBookCard({
         </p>
       )}
 
-      {!adminMode && <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
+      {!adminMode && (hasPeers || hardHere || conditionalHere) && <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
         {hardHere ? (
           <>
             <strong className="nd-mb-hard-copy">✓ Вы записаны</strong>
@@ -179,7 +180,21 @@ export default function MatchingBookCard({
             <span className="nd-mb-action-note">{`Ждём остальных. Книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего. Круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек.`}</span>
           </>
         ) : assignedHere ? null
-        : readOnly ? (
+        : !hasPeers && conditionalHere ? (
+          <>
+            <span className="nd-mb-auto-note">Авто-запись включена</span>
+            {!readOnly && book.allowedActions.conditional && (
+              <button
+                type="button"
+                className="nd-mb-btn is-ghost"
+                disabled={pending || controlsDisabled}
+                onClick={(event) => onCommand('unsetConditional', book.bookId, event.currentTarget)}
+              >
+                {pendingAction === 'unsetConditional' ? 'Отменяем…' : 'Отменить авто-запись'}
+              </button>
+            )}
+          </>
+        ) : readOnly ? (
           <span>Сессия закрыта — выбор доступен только для просмотра</span>
         ) : (
           <>
