@@ -1,6 +1,13 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { userActivityEvents, userIdentities, users } from '@/lib/db/schema'
+import {
+  applyLoginPersonProperties,
+  trackAuthSucceeded,
+  trackIdentityConflict,
+  type AuthLinkedBy,
+  type LoginPersonProperties,
+} from '@/lib/auth-analytics'
 
 export const IDENTITY_PROVIDERS = ['google', 'email', 'telegram'] as const
 
@@ -37,9 +44,13 @@ export interface ResolvedIdentityUser {
 }
 
 export class IdentityConflictError extends Error {
-  constructor(message: string) {
+  /** Аккаунт, за которым уже закреплена identity. Нужен для события identity_conflict. */
+  readonly existingUserId: string | null
+
+  constructor(message: string, existingUserId: string | null = null) {
     super(message)
     this.name = 'IdentityConflictError'
+    this.existingUserId = existingUserId
   }
 }
 
@@ -129,6 +140,77 @@ async function findIdentityUserId(
     ))
     .limit(1)
   return rows[0]?.userId ?? null
+}
+
+/**
+ * Reads the data needed for PostHog person properties on a successful login.
+ * Deliberately excludes email (see `LoginPersonProperties` / privacy note in
+ * lib/auth-analytics.ts) — only name, telegram username, connected providers,
+ * account age and admin flag are collected.
+ */
+async function fetchLoginPersonProperties(tx: IdentityDb, userId: string): Promise<LoginPersonProperties> {
+  const [userRow] = await tx
+    .select({ name: users.name, createdAt: users.createdAt, isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  const identityRows = await tx
+    .select({ provider: userIdentities.provider, telegramUsername: userIdentities.telegramUsername })
+    .from(userIdentities)
+    .where(eq(userIdentities.userId, userId))
+
+  const providers = Array.from(new Set(identityRows.map((row) => row.provider)))
+  const telegramUsername = identityRows.find((row) => row.telegramUsername)?.telegramUsername ?? null
+
+  return {
+    name: userRow?.name ?? null,
+    telegramUsername,
+    providers,
+    createdAt: userRow?.createdAt ?? null,
+    isAdmin: userRow?.isAdmin ?? false,
+  }
+}
+
+/**
+ * Common tail of a successful `resolveOrCreateUserFromIdentity` resolution:
+ * reads the resolved user row, reports `auth_succeeded` + person properties
+ * to PostHog (best-effort, never throws), and returns the resolved user.
+ */
+interface PendingLoginAnalytics {
+  userId: string
+  provider: IdentityProvider
+  isNew: boolean
+  linkedBy: AuthLinkedBy
+  person: LoginPersonProperties | null
+}
+
+async function finalizeLoginSuccess(
+  tx: IdentityDb,
+  userId: string,
+  provider: IdentityProvider,
+  isNew: boolean,
+  linkedBy: AuthLinkedBy,
+): Promise<{ user: ResolvedIdentityUser; analytics: PendingLoginAnalytics }> {
+  const user = await selectResolvedUser(tx, userId, isNew)
+  let person: LoginPersonProperties | null = null
+  try {
+    person = await fetchLoginPersonProperties(tx, userId)
+  } catch (error) {
+    console.error('Failed to load login person properties for PostHog', error)
+  }
+  return { user, analytics: { userId, provider, isNew, linkedBy, person } }
+}
+
+/**
+ * Отправка событий входа в PostHog. Вызывается ТОЛЬКО после коммита
+ * транзакции: обращение к сети внутри открытой транзакции Postgres держало бы
+ * её на всё время HTTP-запроса. Best-effort — вход не должен зависеть от аналитики.
+ */
+async function reportLoginSuccess(analytics: PendingLoginAnalytics): Promise<void> {
+  const { userId, provider, isNew, linkedBy, person } = analytics
+  await trackAuthSucceeded(userId, provider, isNew, linkedBy)
+  if (person) await applyLoginPersonProperties(userId, person)
 }
 
 async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean): Promise<ResolvedIdentityUser> {
@@ -295,13 +377,14 @@ export async function linkVerifiedIdentityToUser(
   profile: IdentityProfile = {},
   client: IdentityDb = db
 ): Promise<ResolvedIdentityUser> {
-  return withIdentityTransaction(async (tx) => {
+  try {
+    return await withIdentityTransaction(async (tx) => {
     const normalizedProvider = normalizeIdentityProvider(provider)
     const normalizedProviderAccountId = normalizeProviderAccountId(normalizedProvider, providerAccountId)
     const now = profile.now ?? new Date()
     const existingIdentityUserId = await findIdentityUserId(tx, normalizedProvider, normalizedProviderAccountId)
     if (existingIdentityUserId && existingIdentityUserId !== userId) {
-      throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
+      throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`, existingIdentityUserId)
     }
 
     if (existingIdentityUserId === userId) {
@@ -318,12 +401,20 @@ export async function linkVerifiedIdentityToUser(
 
     const racedIdentityUserId = await findIdentityUserId(tx, normalizedProvider, normalizedProviderAccountId)
     if (racedIdentityUserId !== userId) {
-      throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`)
+      throw new IdentityConflictError(`Identity ${normalizedProvider}:${normalizedProviderAccountId} is already linked to another user`, racedIdentityUserId)
     }
     await updateOwnedIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
     await updateUserCache(tx, userId, normalizedProvider, profile, now)
     return selectResolvedUser(tx, userId, false)
-  }, client)
+    }, client)
+  } catch (error) {
+    // Конфликт identity = человек, скорее всего, случайно завёл второй аккаунт.
+    // Событие шлём после отката транзакции, снаружи неё.
+    if (error instanceof IdentityConflictError) {
+      await trackIdentityConflict(normalizeIdentityProvider(provider), userId, error.existingUserId)
+    }
+    throw error
+  }
 }
 
 export async function resolveOrCreateUserFromIdentity(
@@ -331,7 +422,7 @@ export async function resolveOrCreateUserFromIdentity(
   providerAccountId: string,
   profile: IdentityProfile = {}
 ): Promise<ResolvedIdentityUser> {
-  return withIdentityTransaction(async (tx) => {
+  const { user, analytics } = await withIdentityTransaction(async (tx) => {
     const normalizedProvider = normalizeIdentityProvider(provider)
     const normalizedProviderAccountId = normalizeProviderAccountId(normalizedProvider, providerAccountId)
     const now = profile.now ?? new Date()
@@ -343,7 +434,7 @@ export async function resolveOrCreateUserFromIdentity(
       const userId = existingIdentityUserId
       await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
       await updateUserCache(tx, userId, normalizedProvider, profile, now)
-      return selectResolvedUser(tx, userId, false)
+      return finalizeLoginSuccess(tx, userId, normalizedProvider, false, 'identity')
     }
 
     const linkedByEmailUserId = canLinkByEmail(normalizedProvider, profile, email)
@@ -370,6 +461,11 @@ export async function resolveOrCreateUserFromIdentity(
     }
 
     const identityUserId = await upsertIdentity(tx, userId, normalizedProvider, normalizedProviderAccountId, profile, now)
-    return selectResolvedUser(tx, identityUserId, isNew && identityUserId === userId)
+    const resolvedIsNew = isNew && identityUserId === userId
+    const linkedBy: AuthLinkedBy = resolvedIsNew ? 'new' : linkedByEmailUserId ? 'email' : 'identity'
+    return finalizeLoginSuccess(tx, identityUserId, normalizedProvider, resolvedIsNew, linkedBy)
   })
+
+  await reportLoginSuccess(analytics)
+  return user
 }

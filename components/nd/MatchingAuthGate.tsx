@@ -51,7 +51,7 @@ export default function MatchingAuthGate() {
       <p style={{ margin: '0.55rem 0 0', fontFamily: 'var(--nd-serif)', fontSize: '0.95rem', lineHeight: 1.5, color: 'var(--text-body)' }}>
         Войдите, чтобы участвовать в подборе
       </p>
-      <AuthModal isOpen onClose={() => router.push('/')} callbackUrl="/matching" />
+      <AuthModal isOpen onClose={() => router.push('/')} callbackUrl="/matching" entryPoint="matching_gate" />
     </main>
   )
 }

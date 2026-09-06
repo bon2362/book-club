@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { trackAccountsMerged } from '@/lib/auth-analytics'
 import { auth } from '@/lib/auth'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 import {
@@ -42,6 +43,11 @@ export async function POST(req: NextRequest) {
         actorUserId: session.user.id ?? null,
       }),
     )
+
+    // После коммита транзакции: событие о слиянии дублей — владельцу нужно
+    // понимать масштаб проблемы вторых аккаунтов. Best-effort, вне транзакции.
+    const movedTotal = Object.values(result.movedCounts).reduce((sum, value) => sum + value, 0)
+    await trackAccountsMerged(result.targetUserId, result.sourceUserId, movedTotal, session.user.id ?? null)
 
     return NextResponse.json({ ok: true, result })
   } catch (error) {
