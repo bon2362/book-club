@@ -3,12 +3,15 @@
 import { useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { PersonalBookStatus } from '@/lib/signup-books'
+import { track } from '@/lib/analytics'
 
 interface Props {
   book: BookWithCover
   isSelected: boolean
   onToggle: (book: BookWithCover) => void
   personalStatus?: PersonalBookStatus | null
+  /** Порядковый номер строки в списке, с 1. Уходит в аналитику выбора книг. */
+  position?: number
 }
 
 function extractYear(date: string): string {
@@ -26,7 +29,7 @@ function formatSignupCount(n: number): string {
 const sans = 'var(--nd-sans), system-ui, sans-serif'
 const serif = 'var(--nd-serif), Georgia, serif'
 
-export default function BookRow({ book, isSelected, onToggle, personalStatus }: Props) {
+export default function BookRow({ book, isSelected, onToggle, personalStatus, position }: Props) {
   const [hovered, setHovered] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
   const isReading = book.status === 'reading'
@@ -68,6 +71,12 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
           {book.summaryCount > 0 && (
             <a
               href={`/books/${book.slug ?? book.id}/summaries`}
+              onClick={() => track('book_summaries_opened', {
+                book_id: book.id,
+                summary_count: book.summaryCount,
+                position,
+                view: 'table',
+              })}
               style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', textDecoration: 'none', borderBottom: '1px solid var(--accent)' }}
             >
               ✦ {book.summaryCount === 1 ? 'Саммари' : `${book.summaryCount} саммари`}
@@ -103,6 +112,12 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus }: 
               href={book.link}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => track('book_text_opened', {
+                book_id: book.id,
+                book_title: book.name,
+                position,
+                view: 'table',
+              })}
               style={{ fontFamily: sans, fontSize: '0.7rem', color: 'var(--text)', textDecoration: 'none', borderBottom: '1px solid var(--border-strong)' }}
             >
               Читать

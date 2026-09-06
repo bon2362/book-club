@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { bookPriorities, books as booksTable, users } from '@/lib/db/schema'
 import { eq, asc, inArray } from 'drizzle-orm'
 import { bestEffortRecordUserActivity, buildUserActivityDedupeKey } from '@/lib/user-activity'
+import { trackPrioritiesUpdated } from '@/lib/book-analytics'
 import {
   broadcastActiveMatchingStateChangeForParticipant,
   getActiveMatchingSessionIdForParticipant,
@@ -112,6 +113,9 @@ export async function PUT(req: NextRequest) {
     dedupeKey: buildUserActivityDedupeKey(['api', 'priorities_updated', userId, JSON.stringify(validBookIds)]),
     metadata: { booksCount: validBookIds.length },
   })
+  // Fired after both the audit-context transaction and runMatchingTransition
+  // have already committed — never from inside an open DB transaction.
+  await trackPrioritiesUpdated(userId, validBookIds.length)
 
   revalidatePath('/admin')
   if (!activeSessionId) await broadcastActiveMatchingStateChangeForParticipant(userId)

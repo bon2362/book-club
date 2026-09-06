@@ -11,8 +11,10 @@ import {
   getActiveMatchingSessionIdForParticipant,
 } from '@/lib/matching/realtime/state-change'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
+import { trackPrioritiesUpdated } from '@/lib/book-analytics'
 
 jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }))
+jest.mock('@/lib/book-analytics', () => ({ trackPrioritiesUpdated: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/audit/with-audit-context', () => ({
   withAuditContext: (_ctx: unknown, fn: (tx: unknown) => unknown) => fn(jest.requireMock('@/lib/db').db),
@@ -41,6 +43,7 @@ const mockRecordUserActivity = activityModule.bestEffortRecordUserActivity as je
 const mockBroadcastMatchingStateChange = broadcastActiveMatchingStateChangeForParticipant as jest.Mock
 const mockGetActiveSessionId = getActiveMatchingSessionIdForParticipant as jest.Mock
 const mockRunMatchingTransition = runMatchingTransition as jest.Mock
+const mockTrackPrioritiesUpdated = trackPrioritiesUpdated as jest.Mock
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -176,6 +179,7 @@ describe('PUT /api/priorities', () => {
       metadata: { booksCount: 2 },
     }))
     expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1')
+    expect(mockTrackPrioritiesUpdated).toHaveBeenCalledWith('user-1', 2)
   })
 
   it('при активной сессии пишет событие предпочтений с упорядоченным списком книг', async () => {
@@ -212,5 +216,6 @@ describe('PUT /api/priorities', () => {
       }),
     )
     expect(db.insert).not.toHaveBeenCalled()
+    expect(mockTrackPrioritiesUpdated).toHaveBeenCalledWith('user-1', 2)
   })
 })

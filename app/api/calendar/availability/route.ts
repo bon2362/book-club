@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { and, eq, gte, lt } from 'drizzle-orm'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { trackCalendarSlotsMarked } from '@/lib/book-analytics'
 import { clampToWindow, normalize } from '@/lib/calendar/availability-intervals'
 import { isMissingCalendarSchemaError } from '@/lib/calendar/public-state'
 import { isSlotAligned, windowBounds, type Interval } from '@/lib/calendar/slots'
@@ -56,6 +57,11 @@ export async function PUT(req: NextRequest) {
         })))
       }
     }, db)
+    // Fired after the audit-context transaction has committed, never from
+    // inside it. Availability is stored globally per user (see
+    // docs/features/calendar.md), so there is no circle/book id to attach
+    // here — only the number of intervals the person marked.
+    await trackCalendarSlotsMarked(targetUserId, next.length)
     return NextResponse.json({
       ok: true,
       intervals: next.map((interval) => ({

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { PersonalBookStatus } from '@/lib/signup-books'
+import { track } from '@/lib/analytics'
 import CoverImage from './CoverImage'
 
 interface Props {
@@ -10,6 +11,10 @@ interface Props {
   isSelected: boolean
   onToggle: (book: BookWithCover) => void
   personalStatus?: PersonalBookStatus | null
+  /** Порядковый номер карточки в текущем списке (с 1) — для аналитики. */
+  position?: number
+  /** Вызывается один раз при первом разворачивании описания книги — для аналитики. */
+  onDescriptionExpand?: (bookId: string) => void
 }
 
 function extractYear(date: string): string {
@@ -36,7 +41,7 @@ function parseRecommendationLink(raw: string): { text: string; url: string } | n
   return { text, url }
 }
 
-export default function BookCard({ book, isSelected, onToggle, personalStatus }: Props) {
+export default function BookCard({ book, isSelected, onToggle, personalStatus, position, onDescriptionExpand }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
   const [descHovered, setDescHovered] = useState(false)
@@ -59,6 +64,25 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
   const hasExpandable = isLongDescription
   const isReading = book.status === 'reading'
   const isRead = book.status === 'read'
+
+  function handleDescriptionToggle() {
+    const next = !descExpanded
+    setDescExpanded(next)
+    if (next) {
+      try {
+        track('book_card_expanded', {
+          book_id: book.id,
+          book_title: book.name,
+          tags: book.tags,
+          position,
+          is_mobile: false,
+        })
+        onDescriptionExpand?.(book.id)
+      } catch {
+        // Аналитика не должна ломать интерфейс.
+      }
+    }
+  }
 
   return (
     <article
@@ -124,6 +148,13 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
           <a
             href={`/books/${book.slug ?? book.id}/summaries`}
             aria-label={`${book.summaryCount} саммари клуба`}
+            onClick={() => {
+              try {
+                track('book_summaries_opened', { book_id: book.id, summary_count: book.summaryCount })
+              } catch {
+                // Аналитика не должна ломать интерфейс.
+              }
+            }}
             style={{
               position: 'absolute',
               left: '0.5rem',
@@ -411,6 +442,13 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               href={book.link}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                try {
+                  track('book_text_opened', { book_id: book.id, book_title: book.name })
+                } catch {
+                  // Аналитика не должна ломать интерфейс.
+                }
+              }}
               style={{
                 fontFamily: 'var(--nd-sans), system-ui, sans-serif',
                 fontSize: '0.7rem',
@@ -430,7 +468,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
         <div style={{ margin: '0.5rem 0.75rem 0' }}>
           {book.description && (
             <p
-              onClick={hasExpandable ? () => setDescExpanded(e => !e) : undefined}
+              onClick={hasExpandable ? handleDescriptionToggle : undefined}
               onMouseEnter={hasExpandable ? () => setDescHovered(true) : undefined}
               onMouseLeave={hasExpandable ? () => setDescHovered(false) : undefined}
               style={{
@@ -454,7 +492,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
           )}
           {hasExpandable && (
             <button
-              onClick={() => setDescExpanded(e => !e)}
+              onClick={handleDescriptionToggle}
               style={{
                 background: 'none',
                 border: 'none',

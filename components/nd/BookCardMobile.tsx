@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import type { PersonalBookStatus } from '@/lib/signup-books'
+import { track } from '@/lib/analytics'
 import CoverImage from './CoverImage'
 
 interface Props {
@@ -10,6 +11,10 @@ interface Props {
   isSelected: boolean
   onToggle: (book: BookWithCover) => void
   personalStatus?: PersonalBookStatus | null
+  /** Порядковый номер карточки в текущем списке (с 1) — для аналитики. */
+  position?: number
+  /** Вызывается один раз при первом разворачивании описания книги — для аналитики. */
+  onDescriptionExpand?: (bookId: string) => void
 }
 
 function extractYear(date: string): string {
@@ -37,7 +42,7 @@ function parseRecommendationLink(raw: string): { text: string; url: string } | n
 
 const SUBMITTED_BY_MEMBER_LABEL = 'Эта книга предложена участни:цей клуба'
 
-export default function BookCardMobile({ book, isSelected, onToggle, personalStatus }: Props) {
+export default function BookCardMobile({ book, isSelected, onToggle, personalStatus, position, onDescriptionExpand }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
   const [signupTooltip, setSignupTooltip] = useState(false)
@@ -58,6 +63,25 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const isReading = book.status === 'reading'
   const isRead = book.status === 'read'
+
+  function handleDescriptionToggle() {
+    const next = !descExpanded
+    setDescExpanded(next)
+    if (next) {
+      try {
+        track('book_card_expanded', {
+          book_id: book.id,
+          book_title: book.name,
+          tags: book.tags,
+          position,
+          is_mobile: true,
+        })
+        onDescriptionExpand?.(book.id)
+      } catch {
+        // Аналитика не должна ломать интерфейс.
+      }
+    }
+  }
 
   return (
     // Корневой <div> (а не <article>), чтобы глобальный e2e-селектор
@@ -93,6 +117,13 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
             <a
               href={`/books/${book.slug ?? book.id}/summaries`}
               aria-label={`${book.summaryCount} саммари клуба`}
+              onClick={() => {
+                try {
+                  track('book_summaries_opened', { book_id: book.id, summary_count: book.summaryCount })
+                } catch {
+                  // Аналитика не должна ломать интерфейс.
+                }
+              }}
               style={{
                 position: 'absolute',
                 left: 4,
@@ -328,7 +359,7 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
       {book.description && (
         <>
           <p
-            onClick={isLongDescription ? () => setDescExpanded(v => !v) : undefined}
+            onClick={isLongDescription ? handleDescriptionToggle : undefined}
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: 12.5,
@@ -350,7 +381,7 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
           </p>
           {isLongDescription && (
             <button
-              onClick={() => setDescExpanded(v => !v)}
+              onClick={handleDescriptionToggle}
               style={{
                 background: 'none',
                 border: 'none',
@@ -474,6 +505,13 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
             href={book.link}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              try {
+                track('book_text_opened', { book_id: book.id, book_title: book.name })
+              } catch {
+                // Аналитика не должна ломать интерфейс.
+              }
+            }}
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: 10.5,
