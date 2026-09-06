@@ -10,6 +10,7 @@ import { IdentityAwareDrizzleAdapter } from '@/lib/auth-adapter'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
 import { IdentityConflictError, linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { trackAuthFailed } from '@/lib/auth-analytics'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
@@ -34,8 +35,12 @@ function normalizeAuthProvider(provider: string) {
   return provider === 'resend' ? 'email' : provider
 }
 
-function handleIdentitySyncError(error: unknown): void {
-  if (error instanceof IdentityConflictError) throw error
+function handleIdentitySyncError(error: unknown, userId?: string | null, provider?: string): void {
+  if (error instanceof IdentityConflictError) {
+    // Вход не состоится: identity занята другим аккаунтом (типичный симптом дубля).
+    void trackAuthFailed(userId, provider ?? 'unknown', 'identity_conflict')
+    throw error
+  }
   console.error('Failed to sync user identity during sign-in', error)
 }
 
@@ -141,7 +146,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               metadata: { source: 'auth-sign-in' },
             })
           } catch (error) {
-            handleIdentitySyncError(error)
+            handleIdentitySyncError(error, userId, provider)
           }
         } else if (provider === 'email' && user.email) {
           try {
@@ -165,7 +170,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               })
             }
           } catch (error) {
-            handleIdentitySyncError(error)
+            handleIdentitySyncError(error, userId, provider)
           }
         }
       }
@@ -205,7 +210,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             existing.push(...identityUserRows)
           }
         }
-        if (existing.length === 0) return null
+        if (existing.length === 0) {
+          // Сессия ссылается на пользователя, которого нет в БД (удалён/не создан) — вход не состоится.
+          void trackAuthFailed(userId, (token.provider as string | undefined) ?? 'unknown', 'user_not_found')
+          return null
+        }
         token.isAdmin = existing[0].isAdmin
         token.contactEmail = existing[0].contactEmail
         const contactEmail = existing[0].contactEmail ?? email

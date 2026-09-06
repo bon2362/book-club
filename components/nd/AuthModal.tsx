@@ -22,9 +22,11 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   callbackUrl?: string
+  /** Откуда открыли модалку (пробрасывается в `auth_attempt`/`auth_abandoned` как `entry_point`). */
+  entryPoint?: string
 }
 
-export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
+export default function AuthModal({ isOpen, onClose, callbackUrl, entryPoint = 'unknown' }: Props) {
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
@@ -34,6 +36,24 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
   const [tgState, setTgState] = useState<'idle' | 'waiting'>('idle')
   const tgTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const [rememberedProvider, setRememberedProvider] = useState<RememberedAuthProvider | null>(null)
+  // Последний способ входа, который пробовали в этом открытии модалки — уходит в auth_abandoned.
+  const lastProviderRef = useRef<'telegram' | 'google' | 'email' | null>(null)
+
+  function handleClose() {
+    // Письмо отправлено — человек ушёл в почту, а не бросил вход.
+    // Считать это отказом нельзя: иначе auth_abandoned будет стрелять почти
+    // на каждой отправке ссылки и воронка «сколько людей бросили» соврёт.
+    if (magicState !== 'sent') {
+      track('auth_abandoned', {
+        entry_point: entryPoint,
+        last_provider: lastProviderRef.current ?? undefined,
+      })
+    }
+    onClose()
+  }
+
+  const handleCloseRef = useRef(handleClose)
+  handleCloseRef.current = handleClose
 
   // Bot-login: открываем бота с nonce и опрашиваем сервер, пока вебхук не привяжет вход.
   // Куку ставит ответ на наш poll — т.е. в ЭТОМ браузере (а не во встроенном браузере Telegram).
@@ -41,7 +61,8 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
     if (!BOT_NAME) return
     const nonce = crypto.randomUUID()
     window.open(`https://t.me/${BOT_NAME}?start=${nonce}`, '_blank')
-    track('auth_attempt', { provider: 'telegram' })
+    lastProviderRef.current = 'telegram'
+    track('auth_attempt', { provider: 'telegram', entry_point: entryPoint })
     setTgState('waiting')
     const started = Date.now()
     if (tgTimer.current) clearInterval(tgTimer.current)
@@ -68,7 +89,8 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
     e.preventDefault()
     if (!email.trim()) return
     setMagicState('loading')
-    track('auth_attempt', { provider: 'email' })
+    lastProviderRef.current = 'email'
+    track('auth_attempt', { provider: 'email', entry_point: entryPoint })
     try {
       const res = await signIn('resend', {
         email: email.trim(),
@@ -88,10 +110,10 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
 
   // Close on Escape
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function handleKeyDown(e: KeyboardEvent) { if (e.key === 'Escape') handleCloseRef.current() }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -141,7 +163,7 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
   }
 
   function handleOverlay(e: React.MouseEvent<HTMLDivElement>) {
-    if (e.target === e.currentTarget) onClose()
+    if (e.target === e.currentTarget) handleClose()
   }
 
   return (
@@ -174,7 +196,7 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
       >
         {/* Close */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="Закрыть"
           style={{
             position: 'absolute',
@@ -325,7 +347,8 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
               {rememberedProvider === 'google' && renderRememberedBadge({ top: '-0.65rem', right: '0.75rem' })}
               <button
                 onClick={() => {
-                  track('auth_attempt', { provider: 'google' })
+                  lastProviderRef.current = 'google'
+                  track('auth_attempt', { provider: 'google', entry_point: entryPoint })
                   signIn('google', callbackUrl ? { callbackUrl } : undefined)
                 }}
                 style={{

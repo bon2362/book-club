@@ -21,6 +21,7 @@ jest.mock('posthog-js', () => ({
 beforeEach(() => {
   __resetForTesting()
   jest.clearAllMocks()
+  window.localStorage.clear()
 })
 
 describe('initPostHog', () => {
@@ -47,6 +48,19 @@ describe('initPostHog', () => {
       advanced_disable_flags: true,
     }))
   })
+
+  it('enables exception autocapture (error tracking) without session replay', () => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+
+    initPostHog()
+
+    expect(posthog.init).toHaveBeenCalledWith('phc_test', expect.objectContaining({
+      capture_exceptions: true,
+    }))
+    const config = (posthog.init as jest.Mock).mock.calls[0][1]
+    expect(config).not.toHaveProperty('disable_session_recording', false)
+    expect(config).not.toHaveProperty('session_recording')
+  })
 })
 
 describe('identifyUser', () => {
@@ -64,6 +78,70 @@ describe('identifyUser', () => {
     identifyUser('regular-user-uuid')
     identifyUser('regular-user-uuid')
     expect(posthog.identify).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('identifyUser — duplicate account detector', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+    initPostHog()
+  })
+
+  it('does not send account_duplicate_suspected when identifying the same user again', () => {
+    identifyUser('user-a', 'telegram')
+    identifyUser('user-a', 'telegram')
+
+    expect(posthog.capture).not.toHaveBeenCalledWith('account_duplicate_suspected', expect.anything())
+  })
+
+  it('sends exactly one account_duplicate_suspected event with both ids and providers when the user changes', () => {
+    identifyUser('user-a', 'telegram')
+    identifyUser('user-b', 'google')
+
+    expect(posthog.capture).toHaveBeenCalledTimes(1)
+    expect(posthog.capture).toHaveBeenCalledWith('account_duplicate_suspected', {
+      previous_user_id: 'user-a',
+      new_user_id: 'user-b',
+      previous_provider: 'telegram',
+      new_provider: 'google',
+    })
+  })
+
+  it('does not send the event after logout followed by sign-in as the same user', () => {
+    identifyUser('user-a', 'telegram')
+    resetIdentity()
+    identifyUser('user-a', 'telegram')
+
+    expect(posthog.capture).not.toHaveBeenCalledWith('account_duplicate_suspected', expect.anything())
+  })
+
+  it('sends the event after logout followed by sign-in as a different user', () => {
+    identifyUser('user-a', 'telegram')
+    resetIdentity()
+    identifyUser('user-b', 'google')
+
+    expect(posthog.capture).toHaveBeenCalledWith('account_duplicate_suspected', {
+      previous_user_id: 'user-a',
+      new_user_id: 'user-b',
+      previous_provider: 'telegram',
+      new_provider: 'google',
+    })
+  })
+
+  it('does not throw when localStorage is unavailable and still identifies the user', () => {
+    const getItemSpy = jest.spyOn(window.localStorage.__proto__, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    const setItemSpy = jest.spyOn(window.localStorage.__proto__, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+
+    expect(() => identifyUser('user-a', 'telegram')).not.toThrow()
+    expect(posthog.identify).toHaveBeenCalledWith('user-a')
+    expect(posthog.capture).not.toHaveBeenCalledWith('account_duplicate_suspected', expect.anything())
+
+    getItemSpy.mockRestore()
+    setItemSpy.mockRestore()
   })
 })
 

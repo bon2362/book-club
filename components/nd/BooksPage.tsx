@@ -120,6 +120,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const selectedBooksRef = useRef(selectedBooks)
   const saveSelectionQueueRef = useRef<Promise<void>>(Promise.resolve())
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [authModalEntryPoint, setAuthModalEntryPoint] = useState<'header' | 'submit_book' | 'book_signup'>('header')
   const [showContactsForm, setShowContactsForm] = useState(false)
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
   const [showPriorityHint, setShowPriorityHint] = useState(false)
@@ -167,6 +168,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       localStorage.setItem('submitIntent', '1')
       setSubmitIntent(true)
       track('auth_modal_opened', { trigger: 'submit_book' })
+      setAuthModalEntryPoint('submit_book')
       setAuthModalOpen(true)
     }
   }
@@ -226,6 +228,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     if (!isLoggedIn) {
       setPendingBook(book)
       track('auth_modal_opened', { trigger: 'book_signup' })
+      setAuthModalEntryPoint('book_signup')
       setAuthModalOpen(true)
       return
     }
@@ -326,7 +329,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     <>
       <Header
         onEditProfile={isLoggedIn ? () => setProfileDrawerOpen(true) : undefined}
-        onSignIn={!isLoggedIn ? () => setAuthModalOpen(true) : undefined}
+        onSignIn={!isLoggedIn ? () => { setAuthModalEntryPoint('header'); setAuthModalOpen(true) } : undefined}
         onSubmitBook={handleSubmitBookClick}
         onWhatIsThis={!aboutVisible ? handleWhatIsThis : undefined}
         isAdmin={isAdmin}
@@ -585,7 +588,11 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       `}</style>
 
       {authModalOpen && (
-        <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          entryPoint={authModalEntryPoint}
+        />
       )}
       {submitFormOpen && (
         <SubmitBookForm
