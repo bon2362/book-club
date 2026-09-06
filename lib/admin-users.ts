@@ -26,6 +26,7 @@ export interface AdminUserSummary {
   createdAt: string | null
   languages: string[]
   booksCount: number
+  readingBooks: string[]
   isAdmin: boolean
 }
 
@@ -88,7 +89,15 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummary[]> {
       })
       .from(users)
       .orderBy(asc(users.name), asc(users.contactEmail)),
-    db.select({ userId: signupBooks.userId, activityAt: signupBooks.signedAt }).from(signupBooks),
+    db
+      .select({
+        userId: signupBooks.userId,
+        activityAt: signupBooks.signedAt,
+        personalStatus: signupBooks.personalStatus,
+        bookName: books.title,
+      })
+      .from(signupBooks)
+      .leftJoin(books, eq(signupBooks.bookId, books.id)),
     db
       .select({
         userId: userIdentities.userId,
@@ -123,13 +132,19 @@ export function buildAdminUserSummaries(
     languages: string | null
     isAdmin?: boolean | null
   }[],
-  signupRows: { userId: string; activityAt?: Date }[],
+  signupRows: { userId: string; activityAt?: Date; personalStatus?: string | null; bookName?: string | null }[],
   identityRows: { userId: string; provider: string; lastSeenAt: Date }[] = [],
   activityRows: { userId: string; type: string; occurredAt: Date }[] = []
 ): AdminUserSummary[] {
   const counts = new Map<string, number>()
+  const readingBooks = new Map<string, string[]>()
   for (const row of signupRows) {
     counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1)
+    if (row.personalStatus === 'reading' && row.bookName) {
+      const booksForUser = readingBooks.get(row.userId) ?? []
+      booksForUser.push(row.bookName)
+      readingBooks.set(row.userId, booksForUser)
+    }
   }
   const latestProviders = new Map<string, { provider: string; lastSeenAt: Date }>()
   for (const row of identityRows) {
@@ -159,6 +174,7 @@ export function buildAdminUserSummaries(
     createdAt: dateToIso(row.createdAt),
     languages: parseLanguages(row.languages),
     booksCount: counts.get(row.id) ?? 0,
+    readingBooks: readingBooks.get(row.id) ?? [],
     isAdmin: row.isAdmin ?? false,
   }))
 }

@@ -135,6 +135,7 @@ const mockAdminUsers = [
     createdAt: '2025-12-01T10:00:00.000Z',
     languages: ['ru'],
     booksCount: 1,
+    readingBooks: ['Книга A'],
     isAdmin: false,
   },
   {
@@ -149,6 +150,7 @@ const mockAdminUsers = [
     createdAt: new Date().toISOString(),
     languages: ['en'],
     booksCount: 3,
+    readingBooks: [],
     isAdmin: false,
   },
 ]
@@ -990,6 +992,9 @@ describe('AdminPanel — Участники таб', () => {
     expect(within(rows[1]).getByText('Новый участник')).toBeInTheDocument()
     expect(within(rows[1]).getByLabelText(/Пользователь заходил на сайт/)).toBeInTheDocument()
     expect(screen.getByText('New')).toBeInTheDocument()
+    expect(within(rows[2]).getByText('Старый участник')).toBeInTheDocument()
+    expect(within(rows[2]).getByText('Читает')).toBeInTheDocument()
+    expect(rows[2]).toHaveAttribute('data-reading-state', 'reading')
   })
 })
 
