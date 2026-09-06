@@ -1,9 +1,28 @@
+import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-signup@test.invalid'
 const TEST_NAME = 'E2E Signup User'
 const TEST_CONTACT = '@e2e_test_user'
+
+// Сохранение профиля идёт через POST /api/signup — он пишет пользователя,
+// список книг, аудит и активность, а тестовая БД (ветка Neon) удалённая,
+// поэтому каждый запрос внутри идёт по сети. Локально ответ занимает 4-6 секунд,
+// то есть ровно на границе дефолтных 5 секунд Playwright: тест падал не из-за
+// продукта, а из-за того, что ждал строго дефолт. Ждём закрытия формы явно.
+//
+// Дожидаться закрытия обязательно: пока форма открыта, её оверлей перехватывает
+// клики по карточкам книг (см. docs/features/testing.md).
+const PROFILE_SAVE_TIMEOUT = 30_000
+
+async function saveProfile(page: Page, name: string, contact: string) {
+  await expect(page.getByLabel(/имя/i)).toBeVisible()
+  await page.getByLabel(/имя/i).fill(name)
+  await page.getByLabel(/telegram/i).fill(contact)
+  await page.getByRole('button', { name: /сохранить/i }).click()
+  await expect(page.getByLabel(/имя/i)).not.toBeVisible({ timeout: PROFILE_SAVE_TIMEOUT })
+}
 
 test.beforeEach(async () => {
   await epic('Авторизация')
@@ -30,15 +49,7 @@ test('новый пользователь заполняет профиль и �
   await page.goto('/')
 
   // При первом входе автоматически открывается форма профиля (ContactsForm)
-  await expect(page.getByLabel(/имя/i)).toBeVisible()
-
-  // Заполняем профиль
-  await page.getByLabel(/имя/i).fill(TEST_NAME)
-  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
-  await page.getByRole('button', { name: /сохранить/i }).click()
-
-  // Форма профиля закрылась
-  await expect(page.getByLabel(/имя/i)).not.toBeVisible()
+  await saveProfile(page, TEST_NAME, TEST_CONTACT)
 
   await page.reload()
   await page.waitForLoadState('networkidle')
@@ -60,7 +71,7 @@ test('новый пользователь заполняет профиль и �
   // Записываемся именно на свою книгу — ищем её карточку по уникальному title
   const ourBook = page.locator('article').filter({ hasText: book.title })
   await ourBook.getByRole('button', { name: /хочу читать/i }).click()
-  await expect(ourBook.getByRole('button', { name: /вы записаны/i })).toBeVisible()
+  await expect(ourBook.getByRole('button', { name: /в вашем списке/i })).toBeVisible()
 
   await expect.poll(async () => {
     const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(TEST_EMAIL)}`)).json()
@@ -74,11 +85,7 @@ test('повторный submit заменяет список книг, а не 
   const book3 = await createTestBook({ title: `E2E Signup C ${test.info().testId}` })
 
   await page.goto('/')
-  await expect(page.getByLabel(/имя/i)).toBeVisible()
-  await page.getByLabel(/имя/i).fill(TEST_NAME)
-  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
-  await page.getByRole('button', { name: /сохранить/i }).click()
-  await expect(page.getByLabel(/имя/i)).not.toBeVisible()
+  await saveProfile(page, TEST_NAME, TEST_CONTACT)
 
   const card1 = page.locator('article').filter({ hasText: book1.title })
   const card2 = page.locator('article').filter({ hasText: book2.title })
@@ -92,7 +99,7 @@ test('повторный submit заменяет список книг, а не 
     return (userState.signupBookIds as string[]).sort()
   }).toEqual([book1.id, book2.id].sort())
 
-  await card2.getByRole('button', { name: /вы записаны/i }).click()
+  await card2.getByRole('button', { name: /в вашем списке/i }).click()
   await card3.getByRole('button', { name: /хочу читать/i }).click()
 
   await expect.poll(async () => {
@@ -101,8 +108,8 @@ test('повторный submit заменяет список книг, а не 
   }).toEqual([book1.id, book3.id].sort())
 
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await expect(card1.getByRole('button', { name: /вы записаны/i })).toBeVisible()
-  await expect(card3.getByRole('button', { name: /вы записаны/i })).toBeVisible()
+  await expect(card1.getByRole('button', { name: /в вашем списке/i })).toBeVisible()
+  await expect(card3.getByRole('button', { name: /в вашем списке/i })).toBeVisible()
 
   const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(TEST_EMAIL)}`)).json()
   expect((userState.signupBookIds as string[]).sort()).toEqual([book1.id, book3.id].sort())
@@ -113,11 +120,7 @@ test('приоритеты сохраняются и после reload чита�
   const book3 = await createTestBook({ title: `E2E Prio B ${test.info().testId}` })
 
   await page.goto('/')
-  await expect(page.getByLabel(/имя/i)).toBeVisible()
-  await page.getByLabel(/имя/i).fill(TEST_NAME)
-  await page.getByLabel(/telegram/i).fill(TEST_CONTACT)
-  await page.getByRole('button', { name: /сохранить/i }).click()
-  await expect(page.getByLabel(/имя/i)).not.toBeVisible()
+  await saveProfile(page, TEST_NAME, TEST_CONTACT)
 
   const card1 = page.locator('article').filter({ hasText: book1.title })
   const card3 = page.locator('article').filter({ hasText: book3.title })

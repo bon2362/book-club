@@ -87,7 +87,7 @@ test.describe('админка — пользователи и фидбеки', (
 
     page.on('dialog', dialog => dialog.accept())
     const bookPill = page.getByRole('dialog').locator('span').filter({ hasText: bookBTitle }).first()
-    await bookPill.getByTitle('Снять запись').click()
+    await bookPill.getByTitle('Убрать из списка').click()
 
     await expect.poll(async () => {
       const state = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(userEmail)}`)).json()

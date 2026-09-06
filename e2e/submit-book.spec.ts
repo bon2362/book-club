@@ -151,11 +151,11 @@ test('одобрение заявки автоматически записыв�
     await waitAndCloseContactsForm(page)
 
     const book = page.locator('article').filter({ hasText: title })
-    await expect(book.getByRole('button', { name: /записан/i })).toBeVisible({ timeout: 10000 })
+    await expect(book.getByRole('button', { name: /в вашем списке/i })).toBeVisible({ timeout: 10000 })
 
     await page.reload()
     await page.waitForLoadState('networkidle')
-    await expect(book.getByRole('button', { name: /записан/i })).toBeVisible({ timeout: 10000 })
+    await expect(book.getByRole('button', { name: /в вашем списке/i })).toBeVisible({ timeout: 10000 })
 
     const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(userEmail)}`)).json()
     expect(userState.signupBooks).toContain(title)
