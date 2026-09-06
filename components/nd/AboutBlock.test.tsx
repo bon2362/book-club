@@ -3,6 +3,13 @@
  */
 import { render, screen, fireEvent } from '@testing-library/react'
 import AboutBlock from './AboutBlock'
+import { track } from '@/lib/analytics'
+
+jest.mock('@/lib/analytics', () => ({
+  track: jest.fn(),
+}))
+
+const mockedTrack = track as jest.Mock
 
 const header = {
   title: 'Что это',
@@ -21,6 +28,10 @@ function renderBlock(overrides: { onClose?: () => void } = {}) {
 }
 
 describe('nd/AboutBlock', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it('renders the block with L1 text and eyebrow', () => {
     renderBlock()
     expect(screen.getByRole('region', { name: 'Читательские круги' })).toBeInTheDocument()
@@ -127,5 +138,36 @@ describe('nd/AboutBlock', () => {
     const region = screen.getByRole('region', { name: 'Читательские круги' })
     fireEvent.keyDown(region, { key: 'Enter' })
     expect(screen.getByText('Как это устроено?')).toBeInTheDocument()
+  })
+
+  it('opening a section sends about_section_opened with its title and index', () => {
+    renderBlock()
+    fireEvent.click(screen.getByText('Подробнее ↓'))
+    const btn = screen.getByRole('button', { name: /Для кого это\?/ })
+    fireEvent.click(btn)
+    expect(mockedTrack).toHaveBeenCalledTimes(1)
+    expect(mockedTrack).toHaveBeenCalledWith('about_section_opened', { section_title: 'Для кого это?', section_index: 1 })
+  })
+
+  it('closing a section (clicking it again) does not send another event', () => {
+    renderBlock()
+    fireEvent.click(screen.getByText('Подробнее ↓'))
+    const btn = screen.getByRole('button', { name: /Как это устроено\?/ })
+    fireEvent.click(btn)
+    expect(mockedTrack).toHaveBeenCalledTimes(1)
+    fireEvent.click(btn)
+    expect(mockedTrack).toHaveBeenCalledTimes(1)
+  })
+
+  it('switching to another section sends only one event, for the newly opened section', () => {
+    renderBlock()
+    fireEvent.click(screen.getByText('Подробнее ↓'))
+    const btn1 = screen.getByRole('button', { name: /Как это устроено\?/ })
+    const btn2 = screen.getByRole('button', { name: /Чем это не является\?/ })
+    fireEvent.click(btn1)
+    expect(mockedTrack).toHaveBeenCalledTimes(1)
+    fireEvent.click(btn2)
+    expect(mockedTrack).toHaveBeenCalledTimes(2)
+    expect(mockedTrack).toHaveBeenLastCalledWith('about_section_opened', { section_title: 'Чем это не является?', section_index: 3 })
   })
 })

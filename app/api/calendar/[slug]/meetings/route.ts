@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { trackCircleMeetingScheduled } from '@/lib/book-analytics'
 import { computeOverlap } from '@/lib/calendar/overlap'
 import { fetchCalendarPublicState, isMissingCalendarSchemaError } from '@/lib/calendar/public-state'
 import { slotKey } from '@/lib/calendar/slots'
@@ -90,8 +91,12 @@ export async function POST(req: NextRequest, { params }: Params) {
         durationMinutes: state.durationMinutes,
         createdBy: viewerUserId,
       }).returning({ id: circleMeetings.id })
-      return row
+      return { ...row, markedParticipantsCount: overlap.markedRefs.length }
     }, db)
+
+    // Fired after the audit-context transaction (and its row lock) has
+    // committed — never from inside it.
+    await trackCircleMeetingScheduled(viewerUserId, schedule.id, created.markedParticipantsCount)
 
     return NextResponse.json({ ok: true, id: created.id }, { status: 201 })
   } catch (error) {

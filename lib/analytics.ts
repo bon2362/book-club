@@ -1,6 +1,6 @@
 import posthog from 'posthog-js'
 
-type EventProps = Record<string, string | number | boolean | undefined | null>
+type EventProps = Record<string, string | number | boolean | undefined | null | string[]>
 
 let initialized = false
 let currentIdentity: string | null = null

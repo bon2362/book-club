@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { track } from '@/lib/analytics'
 import {
   assignEpochLanes,
   createViewportTransform,
@@ -122,6 +123,11 @@ export default function TimelineView({ timeline, isAdmin = false }: Props) {
     return timeline.filterTypeIds.length === 0 ? allIds : new Set(timeline.filterTypeIds)
   })
   const [epochsEnabled, setEpochsEnabled] = useState(timeline.epochsVisible)
+
+  useEffect(() => {
+    track('timeline_opened', { timeline_slug: timeline.slug, timeline_id: timeline.id })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeline.slug])
 
   const libraryEvents = useMemo(() => timeline.libraryEvents.map((event) => ({
     ...event,

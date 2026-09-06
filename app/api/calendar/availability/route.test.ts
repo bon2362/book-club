@@ -5,13 +5,16 @@ import { NextRequest } from 'next/server'
 import { PUT } from './route'
 import { auth } from '@/lib/auth'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { trackCalendarSlotsMarked } from '@/lib/book-analytics'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/audit/with-audit-context', () => ({ withAuditContext: jest.fn() }))
 jest.mock('@/lib/db', () => ({ db: {} }))
+jest.mock('@/lib/book-analytics', () => ({ trackCalendarSlotsMarked: jest.fn().mockResolvedValue(undefined) }))
 
 const mockAuth = auth as jest.Mock
 const mockWithAuditContext = withAuditContext as jest.MockedFunction<typeof withAuditContext>
+const mockTrackCalendarSlotsMarked = trackCalendarSlotsMarked as jest.Mock
 
 function request(body: unknown, query = ''): NextRequest {
   return new NextRequest(`http://localhost/api/calendar/availability${query}`, {
@@ -105,5 +108,18 @@ describe('/api/calendar/availability', () => {
       { startsAt: '2026-08-10T10:00:00.000Z', endsAt: '2026-08-10T11:30:00.000Z' },
     ])
     expect(mockWithAuditContext).toHaveBeenCalled()
+    expect(mockTrackCalendarSlotsMarked).toHaveBeenCalledWith('user-1', 1)
+  })
+
+  it('does not send analytics when the save fails', async () => {
+    mockAuth.mockResolvedValue(session(false))
+    mockWithAuditContext.mockRejectedValue(new Error('db is down'))
+
+    const res = await PUT(request({
+      intervals: [{ startsAt: '2026-08-10T10:00:00.000Z', endsAt: '2026-08-10T11:00:00.000Z' }],
+    }))
+
+    expect(res.status).toBe(500)
+    expect(mockTrackCalendarSlotsMarked).not.toHaveBeenCalled()
   })
 })

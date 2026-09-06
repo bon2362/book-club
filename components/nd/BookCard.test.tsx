@@ -4,11 +4,18 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import BookCard from './BookCard'
 import type { BookWithCover } from '@/lib/books-with-covers'
+import { track } from '@/lib/analytics'
 
 jest.mock('./CoverImage', () => ({
   __esModule: true,
   default: () => <div data-testid="cover-image" />,
 }))
+
+jest.mock('@/lib/analytics', () => ({
+  track: jest.fn(),
+}))
+
+const mockTrack = track as jest.Mock
 
 const book: BookWithCover = {
   id: '1',
@@ -28,6 +35,10 @@ const book: BookWithCover = {
 }
 
 describe('nd/BookCard', () => {
+  beforeEach(() => {
+    mockTrack.mockClear()
+  })
+
   it('renders book title and author', () => {
     render(<BookCard book={book} isSelected={false} onToggle={() => {}} />)
     expect(screen.getByText('Сапиенс')).toBeInTheDocument()
@@ -165,5 +176,56 @@ describe('nd/BookCard', () => {
     render(<BookCard book={book} isSelected={false} onToggle={() => {}} />)
     // book.date = '1/1/2011' → должен отображаться '2011'
     expect(screen.getByText('2011')).toBeInTheDocument()
+  })
+
+  it('шлёт book_card_expanded с id, тегами и позицией только при разворачивании, не при сворачивании', () => {
+    const longBook = { ...book, description: 'А'.repeat(121) }
+    const onDescriptionExpand = jest.fn()
+    render(
+      <BookCard
+        book={longBook}
+        isSelected={false}
+        onToggle={() => {}}
+        position={3}
+        onDescriptionExpand={onDescriptionExpand}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /читать далее/i }))
+    expect(mockTrack).toHaveBeenCalledTimes(1)
+    expect(mockTrack).toHaveBeenCalledWith('book_card_expanded', {
+      book_id: longBook.id,
+      book_title: longBook.name,
+      tags: ['история', 'наука'],
+      position: 3,
+      is_mobile: false,
+    })
+    expect(onDescriptionExpand).toHaveBeenCalledWith(longBook.id)
+
+    mockTrack.mockClear()
+    onDescriptionExpand.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: /свернуть/i }))
+    expect(mockTrack).not.toHaveBeenCalled()
+    expect(onDescriptionExpand).not.toHaveBeenCalled()
+  })
+
+  it('шлёт book_text_opened с id и названием при клике на ссылку "читать"', () => {
+    const bookWithLink = { ...book, link: 'https://example.com/book' }
+    render(<BookCard book={bookWithLink} isSelected={false} onToggle={() => {}} />)
+    fireEvent.click(screen.getByRole('link', { name: 'читать' }))
+    expect(mockTrack).toHaveBeenCalledWith('book_text_opened', {
+      book_id: bookWithLink.id,
+      book_title: bookWithLink.name,
+    })
+  })
+
+  it('шлёт book_summaries_opened с id и количеством саммари при клике на ссылку саммари', () => {
+    const bookWithSummaries = { ...book, slug: 'dolgoe-otstuplenie', summaryCount: 3 }
+    render(<BookCard book={bookWithSummaries} isSelected={false} onToggle={() => {}} />)
+    fireEvent.click(screen.getByRole('link', { name: /3 саммари клуба/i }))
+    expect(mockTrack).toHaveBeenCalledWith('book_summaries_opened', {
+      book_id: bookWithSummaries.id,
+      summary_count: 3,
+    })
   })
 })

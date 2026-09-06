@@ -7,8 +7,10 @@ import { auth } from '@/lib/auth'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
 import { fetchCalendarPublicState } from '@/lib/calendar/public-state'
 import { resolveScheduleBySlug } from '@/lib/calendar/schedule-db'
+import { trackCircleMeetingScheduled } from '@/lib/book-analytics'
 
 jest.mock('@/lib/auth', () => ({ auth: jest.fn() }))
+jest.mock('@/lib/book-analytics', () => ({ trackCircleMeetingScheduled: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/lib/calendar/public-state', () => ({
   fetchCalendarPublicState: jest.fn(),
   isMissingCalendarSchemaError: (error: unknown) => (error as { code?: string })?.code === '42P01',
@@ -21,6 +23,7 @@ const mockAuth = auth as jest.Mock
 const mockResolve = resolveScheduleBySlug as jest.Mock
 const mockState = fetchCalendarPublicState as jest.Mock
 const mockWithAuditContext = withAuditContext as jest.Mock
+const mockTrackCircleMeetingScheduled = trackCircleMeetingScheduled as jest.Mock
 
 const SLUG = 'zarya-vsego'
 const DAY = '2026-08-11T'
@@ -112,6 +115,24 @@ describe('POST /api/calendar/[slug]/meetings', () => {
       durationMinutes: 60,
       createdBy: 'user-1',
     }))
+    // Двое отметившихся ('a' и 'b') свободны на этом слоте — see state().
+    expect(mockTrackCircleMeetingScheduled).toHaveBeenCalledWith('user-1', 'schedule-1', 2)
+  })
+
+  it('не шлёт аналитику, если строка встречи не создана', async () => {
+    const spy = insertSpy()
+    runInTransaction(spy.insert)
+    mockState.mockResolvedValue(state({
+      participants: [
+        { ref: 'a', intervals: [{ startsAt: `${DAY}14:00:00.000Z`, endsAt: `${DAY}16:00:00.000Z` }], busy: [] },
+        { ref: 'b', intervals: [{ startsAt: `${DAY}18:00:00.000Z`, endsAt: `${DAY}19:00:00.000Z` }], busy: [] },
+      ],
+    }))
+
+    const res = await POST(request(`${DAY}14:00:00.000Z`), { params: { slug: SLUG } })
+
+    expect(res.status).toBe(409)
+    expect(mockTrackCircleMeetingScheduled).not.toHaveBeenCalled()
   })
 
   it('перепроверяет правило кандидата на сервере и отклоняет слот без полного пересечения', async () => {

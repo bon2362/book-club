@@ -2,6 +2,7 @@
 
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import { bodyToParagraphs } from '@/lib/intro-format'
+import { track } from '@/lib/analytics'
 
 export interface AboutBlockHandle {
   openAccordion: () => void
@@ -165,7 +166,12 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
   }
 
   function handleSectionToggle(idx: number) {
-    setOpenSection(prev => (prev === idx ? null : idx))
+    const isOpening = openSection !== idx
+    setOpenSection(isOpening ? idx : null)
+    if (isOpening) {
+      const section = sections[idx]
+      if (section) track('about_section_opened', { section_title: section.title, section_index: idx })
+    }
   }
 
   const borderColor = isAccordionOpen ? 'var(--text-muted)' : isHovered ? 'var(--text-muted)' : 'var(--border)'

@@ -5,6 +5,7 @@ import { getPublishedSummariesForBook } from '@/lib/book-summaries'
 import SummaryAuthorSwitcher from '@/components/nd/SummaryAuthorSwitcher'
 import SummaryArticle from '@/components/nd/SummaryArticle'
 import SummaryToc from '@/components/nd/SummaryToc'
+import SummariesOpenedTracker from '@/components/nd/SummariesOpenedTracker'
 import { extractH2Headings } from '@/lib/summary-toc'
 import { buildAuthorSlugs, estimateReadingMinutes, selectSummaryIndex } from '@/lib/summary-view'
 import { getSummaryHelpfulCount } from '@/lib/summary-helpful'
@@ -59,6 +60,7 @@ export default async function BookSummariesPage({
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      <SummariesOpenedTracker bookSlug={book.slug ?? book.id} summaryCount={summaries.length} />
       <div className={`summary-page${hasToc ? ' summary-page--with-toc' : ''}`}>
         {hasToc && <SummaryToc headings={toc} />}
         <div className="summary-page__col">

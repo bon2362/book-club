@@ -128,6 +128,13 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const [submitFormOpen, setSubmitFormOpen] = useState(false)
   const [submitIntent, setSubmitIntent] = useState(false)
   const [feedbackFormOpen, setFeedbackFormOpen] = useState(false)
+  // id-шники книг, чьи описания разворачивали в этой сессии страницы — нужно
+  // для аналитики expanded_before на book_signup/book_unsignup (см. task).
+  const [expandedBookIds, setExpandedBookIds] = useState<Set<string>>(new Set())
+
+  function handleDescriptionExpand(bookId: string) {
+    setExpandedBookIds(prev => (prev.has(bookId) ? prev : new Set(prev).add(bookId)))
+  }
 
   function enqueueSaveSelection(name: string, contacts: string, booksList: string[]): Promise<void> {
     const nextSave = saveSelectionQueueRef.current
@@ -214,6 +221,12 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const hasReadBooks = useMemo(() => books.some(b => b.status === 'read'), [books])
   const hasNewBooks = useMemo(() => books.some(b => b.isNew), [books])
 
+  // Порядковый номер (с 1) книги в текущем отображаемом списке — для аналитики.
+  function getBookPosition(bookId: string): number | undefined {
+    const idx = filteredBooks.findIndex(b => b.id === bookId)
+    return idx === -1 ? undefined : idx + 1
+  }
+
   // Per-book personal reading status from SSR (reflects state at page load).
   // reading/read → catalog shows a soft label instead of the signup toggle.
   const personalStatusMap = useMemo(() => {
@@ -244,7 +257,13 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       ? [...currentSelection, book.id]
       : currentSelection.filter(id => id !== book.id)
 
-    track(isAdding ? 'book_signup' : 'book_unsignup', { bookName: book.name })
+    track(isAdding ? 'book_signup' : 'book_unsignup', {
+      bookName: book.name,
+      book_id: book.id,
+      tags: book.tags,
+      position: getBookPosition(book.id),
+      expanded_before: expandedBookIds.has(book.id),
+    })
     selectedBooksRef.current = next
     setSelectedBooks(next)
 
@@ -287,7 +306,14 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     const next = isAdding
       ? [...original, bookId]
       : original.filter(id => id !== bookId)
-    track(isAdding ? 'book_signup' : 'book_unsignup', { bookId, bookName: book?.name })
+    track(isAdding ? 'book_signup' : 'book_unsignup', {
+      bookId,
+      bookName: book?.name,
+      book_id: bookId,
+      tags: book?.tags,
+      position: getBookPosition(bookId),
+      expanded_before: expandedBookIds.has(bookId),
+    })
     selectedBooksRef.current = next
     setSelectedBooks(next)
     try {
@@ -495,8 +521,16 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
               {viewMode === 'grid' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
                   <SubmitBookCard onClick={handleSubmitBookClick} />
-                  {filteredBooks.map(book => (
-                    <BookCard key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
+                  {filteredBooks.map((book, index) => (
+                    <BookCard
+                      key={book.id}
+                      book={book}
+                      isSelected={selectedBooks.includes(book.id)}
+                      onToggle={handleToggle}
+                      personalStatus={personalStatusMap.get(book.id) ?? null}
+                      position={index + 1}
+                      onDescriptionExpand={handleDescriptionExpand}
+                    />
                   ))}
                 </div>
               ) : (
@@ -522,8 +556,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                         </button>
                       </td>
                     </tr>
-                    {filteredBooks.map(book => (
-                      <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
+                    {filteredBooks.map((book, index) => (
+                      <BookRow key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} position={index + 1} />
                     ))}
                   </tbody>
                 </table>
@@ -531,8 +565,16 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             </div>
             <div className="catalog-mobile" data-testid="catalog-mobile">
               <SubmitBookCard onClick={handleSubmitBookClick} />
-              {filteredBooks.map(book => (
-                <BookCardMobile key={book.id} book={book} isSelected={selectedBooks.includes(book.id)} onToggle={handleToggle} personalStatus={personalStatusMap.get(book.id) ?? null} />
+              {filteredBooks.map((book, index) => (
+                <BookCardMobile
+                  key={book.id}
+                  book={book}
+                  isSelected={selectedBooks.includes(book.id)}
+                  onToggle={handleToggle}
+                  personalStatus={personalStatusMap.get(book.id) ?? null}
+                  position={index + 1}
+                  onDescriptionExpand={handleDescriptionExpand}
+                />
               ))}
             </div>
           </>
