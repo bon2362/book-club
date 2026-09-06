@@ -43,7 +43,12 @@ test.describe('Home submit book CTA layout', () => {
       author: 'Layout Author',
       description: 'A submitted book used to prove the source badge stays inside the mobile viewport.',
     })
-    await dbExec('update books set source = $1 where id = $2', ['submission', book.id])
+    // Тег и статус «сейчас читаем» сдвигают бейдж в правую часть строки —
+    // именно в этой позиции подсказка раньше уезжала за край экрана.
+    await dbExec(
+      'update books set source = $1, tags = $2::jsonb, reading_status = $3 where id = $4',
+      ['submission', JSON.stringify(['Путинизм']), 'reading', book.id],
+    )
 
     await page.goto('/')
     await page.waitForLoadState('networkidle')
@@ -51,6 +56,11 @@ test.describe('Home submit book CTA layout', () => {
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
 
     const submittedBadge = page.getByTestId('catalog-mobile').locator('[aria-label="Эта книга предложена участни:цей клуба"]')
+    const badgeBox = await submittedBadge.boundingBox()
+    expect(badgeBox).not.toBeNull()
+    // Страховка от «зелёного по случайности»: если бейдж окажется у левого
+    // края, тест перестанет проверять переполнение.
+    expect(badgeBox!.x).toBeGreaterThan(page.viewportSize()!.width / 2)
     await submittedBadge.click()
 
     const tooltip = page.getByTestId('catalog-mobile').getByTestId('submitted-book-tooltip')
