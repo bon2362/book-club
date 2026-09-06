@@ -107,7 +107,7 @@ export async function fetchMatchingPublicState(
     online: isOnline(participant.lastSeenAt),
   }))
 
-  const [notices, interests, intents, assignments, formedRows, circleRows] = await Promise.all([
+  const [notices, interests, intents, assignments, formedRows, circleRows, readingRows] = await Promise.all([
     dbClient.select({
       id: matchingNotices.id,
       kind: matchingNotices.kind,
@@ -147,7 +147,17 @@ export async function fetchMatchingPublicState(
       bookId: matchingCircles.bookId,
       position: matchingCircles.position,
     }).from(matchingCircles).where(eq(matchingCircles.sessionId, sessionId)),
+    dbClient.select({ bookId: signupBooks.bookId })
+      .from(signupBooks)
+      .innerJoin(books, eq(books.id, signupBooks.bookId))
+      .where(and(
+        eq(signupBooks.userId, viewerUserId),
+        eq(signupBooks.personalStatus, 'reading'),
+        eq(books.visibility, 'published'),
+      )),
   ])
+
+  const viewerReadingBookIds = readingRows.map((item) => item.bookId)
 
   const bookIds = Array.from(new Set([
     ...interests.map((item) => item.bookId),
@@ -155,6 +165,7 @@ export async function fetchMatchingPublicState(
     ...assignments.map((item) => item.bookId),
     ...formedRows.map((item) => item.bookId),
     ...circleRows.map((item) => item.bookId),
+    ...viewerReadingBookIds,
   ]))
   const bookRows = bookIds.length > 0 ? await dbClient.select({
     bookId: books.id,
@@ -186,6 +197,7 @@ export async function fetchMatchingPublicState(
     assignments,
     formedAtByBookId: new Map(formedRows.map((item) => [item.bookId, item.formedAt])),
     circles: circleRows,
+    viewerReadingBookIds,
   })
 
   const viewer = participants.find((participant) => participant.userId === viewerUserId)

@@ -40,6 +40,8 @@ export interface MatchingBookView {
   allowedActions: MatchingBookAllowedActions
   /** Server-computed: setting the viewer's conditional here would immediately form and assign. */
   conditionalWouldAssign?: boolean
+  /** 'reading' — вьюер читает книгу сейчас; такие книги вне подбора. */
+  viewerPersonalStatus?: 'reading' | null
   /** Optional catalog fields let the shared detail sheet work in admin union mode. */
   bookSlug?: string | null
   description?: string
@@ -90,4 +92,34 @@ export function matchingBookDetail(
 /** Includes interest, conditional, hard and assigned peers, not just shortlist counts. */
 export function hasOtherBookParticipants(book: MatchingBookView, viewerRef: string): boolean {
   return book.participants.some((participant) => participant.ref !== viewerRef)
+}
+
+/**
+ * Tail books sit below the divider because a participant cannot act on them right now:
+ * either there is no one else to match with yet ("waiting"), or the viewer is currently
+ * reading the book so it is intentionally excluded from matching ("reading"). A book the
+ * viewer is reading is always tail, even if it has peers or has already formed — the
+ * server keeps its allowedActions all false, but the tail placement itself is a UI concern.
+ */
+export function isTailBook(
+  book: MatchingBookView,
+  viewerRef: string,
+  viewerAssignmentBookIds: string[],
+): boolean {
+  if (book.viewerPersonalStatus === 'reading') return true
+  return !hasOtherBookParticipants(book, viewerRef) && book.formedAt === null &&
+    !viewerAssignmentBookIds.includes(book.bookId) && book.viewerStatus !== 'hard'
+}
+
+/**
+ * Card-local mirror of isTailBook's "waiting" branch: a card never receives
+ * viewerAssignmentBookIds directly, but book.viewerStatus === 'assigned' is set exactly
+ * when the book is in that list (see lib/matching/book-public-state.ts), so it is an
+ * equivalent check here.
+ */
+export function tailReason(book: MatchingBookView, viewerRef: string): 'waiting' | 'reading' | null {
+  if (book.viewerPersonalStatus === 'reading') return 'reading'
+  const waiting = !hasOtherBookParticipants(book, viewerRef) && book.formedAt === null &&
+    book.viewerStatus !== 'assigned' && book.viewerStatus !== 'hard'
+  return waiting ? 'waiting' : null
 }

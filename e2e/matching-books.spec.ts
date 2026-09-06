@@ -304,6 +304,59 @@ test('диагностика состава видна администрато�
   await expect(adminCard).toContainText('Без круга')
 })
 
+test('книга в статусе «читаю сейчас» уезжает в хвост с меткой и возвращается в подбор', async ({
+  matchingBooksFixture,
+  openMatchingPage,
+}) => {
+  const { books, participantA, getParticipantB } = matchingBooksFixture
+  const targetBook = books[0]
+  const page = await openMatchingPage(participantA)
+  const card = page.getByTestId(`matching-book-card-${targetBook.id}`)
+
+  // A peer also shortlists the book, so it has an intersection — proving the
+  // "reading" tail placement is not merely a "no one else picked it" case.
+  await getParticipantB()
+
+  const setReading = await participantA.request.patch(`/api/signup-books/${targetBook.id}/status`, {
+    data: { status: 'reading' },
+  })
+  expect(setReading.ok(), await setReading.text()).toBe(true)
+
+  await page.goto('/matching')
+  await expect(card).toBeVisible()
+  const reason = card.getByTestId('matching-book-tail-reason')
+  await expect(reason).toHaveAttribute('data-reason', 'reading')
+  await expect(reason).toContainText('ЧИТАЮ СЕЙЧАС')
+  await expect(reason).toContainText('Пока читаете, книга не участвует в подборе')
+  await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
+  await expect(card.getByRole('button', { name: 'Автоматическая запись, если соберётся круг' })).toHaveCount(0)
+  const divider = page.getByTestId('matching-tail-divider')
+  await expect(divider).toContainText('Записаться пока нельзя')
+
+  // Persistence: a reload must not lose the "reading" placement or its label.
+  await page.reload()
+  await expect(card).toBeVisible()
+  await expect(reason).toHaveAttribute('data-reason', 'reading')
+  await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
+
+  const returnButton = card.getByTestId('matching-return-to-matching')
+  await expect(returnButton).toBeVisible()
+  const returnResponse = page.waitForResponse((response) => (
+    response.url().includes(`/api/signup-books/${targetBook.id}/status`) &&
+    response.request().method() === 'PATCH'
+  ))
+  await returnButton.click()
+  expect((await returnResponse).ok()).toBe(true)
+  await expect(card.getByTestId('matching-book-tail-reason')).toHaveCount(0)
+  await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toBeVisible()
+
+  // Persistence again: the return to matching must survive a reload too.
+  await page.reload()
+  await expect(card).toBeVisible()
+  await expect(card.getByTestId('matching-book-tail-reason')).toHaveCount(0)
+  await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toBeVisible()
+})
+
 test('администратор вне состава видит union книг и управление, но не participant CTA', async ({
   matchingBooksFixture,
   openMatchingPage,

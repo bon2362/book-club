@@ -245,4 +245,45 @@ describe('MatchingBookCard', () => {
     expect(card).not.toHaveClass('is-dim')
     expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
   })
+
+  it('shows a waiting-reason label for a no-overlap book instead of enrollment', () => {
+    const solo = { ...book, intersectionCount: 0, participants: [] }
+    render(<MatchingBookCard book={solo} {...baseProps} />)
+    const label = screen.getByTestId('matching-book-tail-reason')
+    expect(label).toHaveAttribute('data-reason', 'waiting')
+    expect(label).toHaveTextContent('ЖДЁМ ДРУГИХ')
+    expect(label).toHaveTextContent('Когда кто-то ещё выберет — можно будет записаться')
+    expect(screen.queryByRole('button', { name: 'Вернуть в подбор' })).not.toBeInTheDocument()
+  })
+
+  it('shows a reading-reason label and return button even with peers, hiding enrollment', () => {
+    const reading: MatchingBookView = { ...book, viewerPersonalStatus: 'reading', allowedActions: { conditional: false, hard: false, cancelHard: false } }
+    render(<MatchingBookCard book={reading} {...baseProps} />)
+    const label = screen.getByTestId('matching-book-tail-reason')
+    expect(label).toHaveAttribute('data-reason', 'reading')
+    expect(label).toHaveTextContent('ЧИТАЮ СЕЙЧАС')
+    expect(label).toHaveTextContent('Пока читаете, книга не участвует в подборе')
+    expect(screen.getByTestId('matching-return-to-matching')).toHaveTextContent('Вернуть в подбор')
+    expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
+  })
+
+  it('calls onReturnToMatching when the return button is clicked', () => {
+    const onReturnToMatching = jest.fn()
+    const reading: MatchingBookView = { ...book, viewerPersonalStatus: 'reading', allowedActions: { conditional: false, hard: false, cancelHard: false } }
+    render(<MatchingBookCard book={reading} {...baseProps} onReturnToMatching={onReturnToMatching} />)
+    fireEvent.click(screen.getByTestId('matching-return-to-matching'))
+    expect(onReturnToMatching).toHaveBeenCalledWith('b1', expect.any(HTMLButtonElement))
+  })
+
+  it('hides the return button when read-only', () => {
+    const reading: MatchingBookView = { ...book, viewerPersonalStatus: 'reading', allowedActions: { conditional: false, hard: false, cancelHard: false } }
+    render(<MatchingBookCard book={reading} {...baseProps} readOnly />)
+    expect(screen.queryByTestId('matching-return-to-matching')).not.toBeInTheDocument()
+  })
+
+  it('hides the tail-reason label from admins', () => {
+    const solo = { ...book, intersectionCount: 0, participants: [] }
+    render(<MatchingBookCard book={solo} {...baseProps} adminMode adminControls={<button>Управлять составом</button>} />)
+    expect(screen.queryByTestId('matching-book-tail-reason')).not.toBeInTheDocument()
+  })
 })

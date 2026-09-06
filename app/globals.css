@@ -508,6 +508,9 @@
 .nd-mb-circle li { display: flex; align-items: center; gap: 0.5rem; color: var(--text-body); font-size: 0.83rem; }
 .nd-mb-circle li .nd-mb-avatar { width: 22px; height: 22px; flex-basis: 22px; margin-left: 0; font-size: 0.58rem; }
 .nd-mb-circle.is-mine li { color: var(--success); }
+.nd-mb-tail-reason { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem 0.6rem; margin-top: 0.85rem; }
+.nd-mb-tail-reason-label { color: var(--text-muted); font: 700 0.6rem/1 var(--nd-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.nd-mb-tail-reason-note { flex-basis: 100%; margin: 0; color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
 .nd-mb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; margin-top: 0.85rem; color: var(--text-muted); font-size: 0.75rem; }
 .nd-mb-action-note { flex-basis: 100%; color: var(--text-muted); line-height: 1.45; }
 .nd-mb-switch-confirm { display: grid; flex-basis: 100%; gap: 0.65rem; padding-left: 0.7rem; border-left: 3px solid var(--accent); color: var(--text-body); line-height: 1.45; }
