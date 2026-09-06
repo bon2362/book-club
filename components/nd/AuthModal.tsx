@@ -228,7 +228,7 @@ export default function AuthModal({ isOpen, onClose, callbackUrl }: Props) {
             lineHeight: 1.5,
           }}
         >
-          войдите, чтобы записаться на книги
+          войдите, чтобы добавлять книги в список
         </p>
 
         {rememberedProvider && (

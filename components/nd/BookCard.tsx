@@ -18,12 +18,10 @@ function extractYear(date: string): string {
 }
 
 function formatSignupCount(n: number): string {
-  const lastTwo = n % 100
   const lastOne = n % 10
-  if (lastTwo >= 11 && lastTwo <= 19) return `${n} человек записались`
-  if (lastOne === 1) return `${n} человек записался`
-  if (lastOne >= 2 && lastOne <= 4) return `${n} человека записались`
-  return `${n} человек записались`
+  const lastTwo = n % 100
+  if (lastOne === 1 && lastTwo !== 11) return `${n} хочет читать`
+  return `${n} хотят читать`
 }
 
 const DESCRIPTION_CLAMP_THRESHOLD = 120
@@ -573,7 +571,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus }:
               transition: 'background 0.15s, color 0.15s',
             }}
           >
-            {isSelected ? '✓ Вы записаны' : 'Хочу читать'}
+            {isSelected ? '✓ В вашем списке' : 'Хочу читать'}
           </button>
         )}
       </div>

@@ -181,9 +181,9 @@ function CoSignups({ others, adminNamesByDisplayName = null }: { others: BookPar
         whiteSpace: 'nowrap',
         marginTop: '0.12rem',
       }}
-      title={`Тоже записались: ${names.join(', ')}`}
+      title={`Тоже хотят читать: ${names.join(', ')}`}
     >
-      <span style={{ opacity: 0.7 }}>тоже записались: </span>
+      <span style={{ opacity: 0.7 }}>тоже хотят читать: </span>
       <span style={{ color: 'var(--text-secondary)' }}>{names.join(' · ')}</span>
     </div>
   )

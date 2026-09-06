@@ -229,7 +229,7 @@ E2E **никогда не пишут в прод-БД**. Четыре слоя �
 - `playwright.config.ts` сам прокидывает `NEXTAUTH_TEST_MODE=true` в `webServer.env`. Ручной `NEXTAUTH_TEST_MODE=true npx next dev` нужен **только** если уже запущен dev-сервер без флага (тогда `reuseExistingServer: true` его переиспользует). Лучше остановить старый dev-сервер и дать Playwright поднять свой.
 - **OOM на машинах с малой памятью:** держать запущенным только один dev server. Несколько параллельных процессов (Next.js + Chrome) при нехватке памяти вызывают OOM kill сервера.
 - **`session.user.id`** надо явно ставить в `session` callback (`session.user.id = token.sub`) — иначе API-эндпоинты с `auth()` вернут 401.
-- **Live locators и кнопки-тогглы:** после клика кнопка «Хочу читать» меняется на «Записан» — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика снова используй `.first()` (не `.nth(1)`), предварительно дождавшись появления «Записан».
+- **Live locators и кнопки-тогглы:** после клика кнопка «Хочу читать» меняется на «✓ В вашем списке» — локатор `getByRole('button', { name: /хочу читать/i })` пересчитывается. Для второго клика снова используй `.first()` (не `.nth(1)`), предварительно дождавшись появления «В вашем списке».
 - **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для своих тостов/статусов использовать `data-testid`.
 - **Telegram auth:** при изменении auth/telegram цепочки — гонять `e2e/telegram-auth.spec.ts`. Тест использует `/api/test/session` с `telegramUsername` и `provider: 'telegram-preauth'` — отдельный mock endpoint не нужен.
 

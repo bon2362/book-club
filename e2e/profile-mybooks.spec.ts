@@ -47,7 +47,7 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     await expect(dialog).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Мои книги' })).toBeVisible()
 
-    // Initially all three are in "записал:ась"
+    // Initially all three are in "хочу читать"
     await expect(dialog.locator('[data-testid="section-signup"]')).toBeVisible()
     await expect(dialog.locator('[data-testid="priority-book-row"]')).toHaveCount(3)
     await expect(dialog.locator('[data-testid="section-reading"]')).toHaveCount(0)
@@ -89,7 +89,7 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     await expect(dialog2.locator('[data-testid="section-read"] [data-book-id="' + bookC.id + '"]')).toBeVisible()
   })
 
-  test('возврат книги из «Читаю» в «Записал:ась» ставит её в конец без приоритета', async ({ page, createTestBook }) => {
+  test('возврат книги из «Читаю» в «Хочу читать» ставит её в конец без приоритета', async ({ page, createTestBook }) => {
     const b1 = await createTestBook({ title: 'E2E Rank 1' })
     const b2 = await createTestBook({ title: 'E2E Rank 2' })
 
@@ -120,7 +120,7 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     await dialog.locator('[data-testid="status-option-reading"]').click()
     await page.waitForLoadState('networkidle')
 
-    // Move b1 back to "Записал:ась"
+    // Move b1 back to "Хочу читать"
     await dialog.locator(`[data-testid="section-reading"] [data-book-id="${b1.id}"]`).click()
     await dialog.locator('[data-testid="status-option-null"]').click()
     await page.waitForLoadState('networkidle')

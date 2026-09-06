@@ -116,7 +116,7 @@ const LANGUAGES_EXTRA = [
 ]
 
 const STATUS_LABEL: Record<'null' | 'reading' | 'read', string> = {
-  null: 'Записал:ась',
+  null: 'Хочу читать',
   reading: 'Читаю',
   read: 'Прочитал:а',
 }
@@ -673,7 +673,7 @@ export default function ProfileDrawer({
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  // ── Unsubscribe / re-subscribe (× in записал:ась) ──
+  // ── Unsubscribe / re-subscribe (× in «Хочу читать») ──
   async function handleToggle(bookId: string) {
     const book = books.find(b => b.id === bookId)
     const bookName = book?.name ?? 'книгу'
@@ -687,8 +687,8 @@ export default function ProfileDrawer({
     try {
       await onToggleBook(bookId)
       const msg = wasUnsubscribed
-        ? `Вы успешно записались на «${bookName}»`
-        : `Вы успешно отписались от «${bookName}»`
+        ? `«${bookName}» добавлена в ваш список`
+        : `«${bookName}» убрана из вашего списка`
       setToast({ message: msg, type: 'success' })
     } catch {
       setLocalUnsubscribed(prev => {
@@ -697,7 +697,7 @@ export default function ProfileDrawer({
         else next.delete(bookId)
         return next
       })
-      const msg = wasUnsubscribed ? 'Не удалось записаться' : 'Не удалось отписаться'
+      const msg = wasUnsubscribed ? 'Не удалось добавить книгу' : 'Не удалось убрать книгу'
       setToast({ message: msg, type: 'error' })
     }
   }
@@ -762,14 +762,14 @@ export default function ProfileDrawer({
     let nextOrder = priorityOrder
     let nextUnranked = unrankedBooks
     if (prev === null && newStatus !== null) {
-      // leaving "записал:ась" — drop from priorityOrder and unranked
+      // leaving "хочу читать" — drop from priorityOrder and unranked
       nextOrder = priorityOrder.filter(id => id !== bookId)
       nextUnranked = new Set(unrankedBooks)
       nextUnranked.delete(bookId)
       setPriorityOrder(nextOrder)
       setUnrankedBooks(nextUnranked)
     } else if (prev !== null && newStatus === null) {
-      // returning to "записал:ась" — append to end, mark unranked
+      // returning to "хочу читать" — append to end, mark unranked
       nextOrder = [...priorityOrder, bookId]
       nextUnranked = new Set(unrankedBooks)
       nextUnranked.add(bookId)
@@ -781,7 +781,7 @@ export default function ProfileDrawer({
 
     try {
       await patchStatus(bookId, newStatus)
-      // If we modified the "записал:ась" set and user already had priorities set,
+      // If we modified the "хочу читать" set and user already had priorities set,
       // re-save priorities so the server-side rank list stays consistent with what
       // the user sees. We exclude unranked books to preserve "no priority" semantics.
       if (prioritiesSet && prev === null && newStatus !== null) {
@@ -1186,7 +1186,7 @@ export default function ProfileDrawer({
               <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
                 {!hasAnyBook && prioritiesLoaded ? (
                   <div style={{ padding: '24px 16px', color: 'var(--text-muted)', fontSize: 14, textAlign: 'center' }}>
-                    Ты пока не записал:ась ни на одну книгу
+                    Вы пока не добавили ни одной книги
                   </div>
                 ) : (
                   <>
@@ -1213,10 +1213,10 @@ export default function ProfileDrawer({
                       </section>
                     )}
 
-                    {/* Секция «Записал:ась» */}
+                    {/* Секция «Хочу читать» */}
                     {priorityOrder.length > 0 && (
                       <section data-testid="section-signup">
-                        <div style={subsectionHeader}>Записал:ась</div>
+                        <div style={subsectionHeader}>Хочу читать</div>
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                           <SortableContext items={priorityOrder} strategy={verticalListSortingStrategy}>
                             {priorityOrder.map((bookId, index) => {

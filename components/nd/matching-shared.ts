@@ -1,7 +1,7 @@
 export function personalStatusLabel(personalStatus: string | null): string {
   if (personalStatus === 'reading') return 'Читаю сейчас'
   if (personalStatus === 'read') return 'Прочитал:а'
-  return 'Записал:ась'
+  return 'Хочу читать'
 }
 
 export function interestLabel(rank: number | null, personalStatus: string | null): string {
