@@ -2854,7 +2854,16 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "type": "object"
+                        "type": "object",
+                        "properties": {
+                          "readingBooks": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Книги пользователя с личным статусом reading"
+                          }
+                        }
                       }
                     }
                   },

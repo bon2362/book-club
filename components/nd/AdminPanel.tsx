@@ -159,6 +159,13 @@ const newUserBadge: React.CSSProperties = {
   background: 'var(--accent)',
 }
 
+const readingBadge: React.CSSProperties = {
+  ...adminBadge,
+  border: '1px solid var(--success)',
+  background: 'var(--bg-tag-green)',
+  color: 'var(--success)',
+}
+
 const fieldLabel: React.CSSProperties = {
   fontFamily: 'var(--nd-sans), system-ui, sans-serif',
   fontSize: '0.65rem',
@@ -1066,18 +1073,22 @@ export default function AdminPanel({
                 )}
                 {filteredAdminUsers.map(u => {
                   const telegram = u.telegramDisplay || '—'
+                  const isReading = u.readingBooks.length > 0
+                  const rowBackground = isReading ? 'var(--bg-tag-green)' : 'transparent'
                   return (
                     <tr
                       key={u.id}
+                      data-reading-state={isReading ? 'reading' : 'idle'}
                       onClick={() => openUserDrawer(u.id)}
-                      style={{ cursor: 'pointer', transition: 'background 0.1s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                      style={{ cursor: 'pointer', transition: 'background 0.1s', background: rowBackground }}
+                      onMouseEnter={e => { e.currentTarget.style.background = isReading ? 'var(--bg-tag-green)' : 'var(--bg-elevated)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = rowBackground }}
                     >
                       <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? 'var(--text)' : 'var(--text-muted)' }}>{u.booksCount}</td>
                       <td style={{ ...cell, fontWeight: 700 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                           {u.name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                          {isReading && <span style={readingBadge}>Читает</span>}
                           {u.isAdmin && <span style={adminBadge}>Admin</span>}
                           {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
                         </span>

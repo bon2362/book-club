@@ -40,9 +40,10 @@ describe('admin-users aggregations', () => {
     ]
 
     const result = buildAdminUserSummaries(users, [
-      { userId: 'u1', activityAt: new Date('2026-01-04T10:00:00Z') },
-      { userId: 'u1', activityAt: new Date('2026-01-03T10:00:00Z') },
-      { userId: 'missing', activityAt: new Date('2026-01-05T10:00:00Z') },
+      { userId: 'u1', activityAt: new Date('2026-01-04T10:00:00Z'), personalStatus: 'reading', bookName: 'Книга A' },
+      { userId: 'u1', activityAt: new Date('2026-01-03T10:00:00Z'), personalStatus: 'read', bookName: 'Книга B' },
+      { userId: 'u1', activityAt: new Date('2026-01-02T10:00:00Z'), personalStatus: 'reading', bookName: 'Книга C' },
+      { userId: 'missing', activityAt: new Date('2026-01-05T10:00:00Z'), personalStatus: 'reading', bookName: 'Неизвестная' },
     ], [
       { userId: 'u1', provider: 'email', lastSeenAt: new Date('2026-01-01T10:00:00Z') },
       { userId: 'u1', provider: 'telegram', lastSeenAt: new Date('2026-01-02T10:00:00Z') },
@@ -58,13 +59,14 @@ describe('admin-users aggregations', () => {
         name: 'Анна',
         email: 'anna@test.com',
         languages: ['ru', 'en'],
-        booksCount: 2,
+        booksCount: 3,
         isAdmin: true,
         telegramDisplay: '@anna_contact',
         authProvider: 'telegram',
         lastActivityAt: '2026-01-06T10:00:00.000Z',
         lastActivityType: 'site_visit',
         createdAt: '2026-01-01T09:00:00.000Z',
+        readingBooks: ['Книга A', 'Книга C'],
       }),
       expect.objectContaining({
         id: 'u2',
@@ -76,6 +78,7 @@ describe('admin-users aggregations', () => {
         lastActivityAt: null,
         lastActivityType: null,
         createdAt: '2026-01-03T10:00:00.000Z',
+        readingBooks: [],
       }),
     ])
   })
