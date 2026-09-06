@@ -424,7 +424,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                 {isLoggedIn && selectedBooks.length > 0 && (
                   <div style={{ position: 'relative', display: 'inline-block' }} className="tooltip-wrap">
                     <button onClick={() => setShowMyBooks(v => !v)} style={chipStyle(showMyBooks)}>
-                      {showMyBooks ? '✓ Записал:ась' : 'Записал:ась'}
+                      {showMyBooks ? '✓ Хочу читать' : 'Хочу читать'}
                     </button>
                     <span className="tooltip-text" style={{
                       position: 'absolute',
@@ -441,7 +441,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                       opacity: 0,
                       transition: 'opacity 0.15s',
                     }}>
-                      Книги, на которые вы записались
+                      Книги из вашего списка
                     </span>
                   </div>
                 )}

@@ -299,11 +299,11 @@ export default function MatchingBookDetailModal({
               {book.author}{meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
             </p>
 
-            {/* п.7: «Кто записался» поднято наверх — первое, что видит человек */}
+            {/* п.7: «Кто хочет читать» поднято наверх — первое, что видит человек */}
             {chips.length > 0 && (
               <div className="nd-mx-sheet-participants" style={{ marginBottom: '0.85rem' }}>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-                  Записались на книгу:
+                  Хотят читать:
                 </div>
                 <div className="flex flex-wrap" style={{ gap: '0.3rem 0' }}>
                   {chips.map((p) => (
@@ -453,7 +453,7 @@ export default function MatchingBookDetailModal({
                   borderRadius: 'var(--radius-control)',
                 }}
               >
-                <option value="">Записал:ась</option>
+                <option value="">Хочу читать</option>
                 <option value="reading">Читаю сейчас</option>
                 <option value="read">Прочитал:а</option>
               </select>

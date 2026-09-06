@@ -71,9 +71,9 @@ test.describe('Обязательный ранг у каждой записи (m
     expect(rankBadgeTextAfterReload).toBe(rankBadgeText)
   })
 
-  test('возврат книги из «Читаю» в «Записал:ась» восстанавливает ранг в конце списка после reload', async ({ page, createTestBook }) => {
+  test('возврат книги из «Читаю» в «Хочу читать» восстанавливает ранг в конце списка после reload', async ({ page, createTestBook }) => {
     // b1 is signed up first (rank 1) and later moved to "Читаю" then back to
-    // "Записал:ась"; b2/b3/b4 keep the top-3 slots occupied so the restored
+    // "Хочу читать"; b2/b3/b4 keep the top-3 slots occupied so the restored
     // b1 lands at rank 4 — past the medal-emoji rendering, a plain digit.
     const b1 = await createTestBook({ title: `E2E Mandatory Rank A ${test.info().testId}` })
     const b2 = await createTestBook({ title: `E2E Mandatory Rank B ${test.info().testId}` })
@@ -131,7 +131,7 @@ test.describe('Обязательный ранг у каждой записи (m
     const dialog2 = page.getByRole('dialog', { name: /личный кабинет/i })
     await expect(dialog2).toBeVisible()
 
-    // b1 is back in "Записал:ась", at the end of the list, with a numeric rank —
+    // b1 is back in "Хочу читать", at the end of the list, with a numeric rank —
     // not the "—" placeholder that meant "no priority" under the old model.
     const signupRows = dialog2.locator('[data-testid="section-signup"] [data-testid="priority-book-row"]')
     await expect(signupRows).toHaveCount(4)

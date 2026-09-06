@@ -127,11 +127,11 @@ function BookStatusChip({
       >
         {bookName}
       </button>
-      <button onClick={onRemove} title="Снять запись" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
+      <button onClick={onRemove} title="Убрать из списка" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0 0.4rem' }}>×</button>
       {isMenuOpen && (
         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--bg-input)', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10, minWidth: 160, borderRadius: 2 }}>
           {([
-            { value: null, label: 'Записал:ась' },
+            { value: null, label: 'Хочу читать' },
             { value: 'reading', label: 'Читаю' },
             { value: 'read', label: 'Прочитал:а' },
           ] as { value: PersonalBookStatus; label: string }[]).map(opt => (
@@ -419,11 +419,11 @@ export default function AdminUserDrawer({
                   </span>
                 </div>
 
-                {/* Под-секция: Записал:ась */}
+                {/* Под-секция: Хочу читать */}
                 {sortedNullBooks.length > 0 && (
                   <div style={{ marginBottom: '0.75rem' }}>
                     <div style={{ fontFamily: sans, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                      Записал:ась
+                      Хочу читать
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                       {sortedNullBooks.map(row => {

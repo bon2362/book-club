@@ -60,10 +60,10 @@ test('тост появляется после второй книги', async (
   const bookButtons = page.getByRole('button', { name: /хочу читать/i })
   await bookButtons.first().click()
   // Ждём подтверждения что первая книга добавлена, прежде чем кликать следующую
-  await expect(page.getByRole('button', { name: /вы записаны/i }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /в вашем списке/i }).first()).toBeVisible()
   await expect(page.getByTestId('priority-hint-toast')).not.toBeVisible()
 
-  // После первого клика кнопка стала "Вы записаны", поэтому .first() снова указывает на следующую книгу
+  // После первого клика кнопка стала "В вашем списке", поэтому .first() снова указывает на следующую книгу
   await bookButtons.first().click()
   await expect(page.getByTestId('priority-hint-toast')).toBeVisible()
   await expect(page.getByTestId('priority-hint-toast')).toContainText('приоритет')
@@ -74,7 +74,7 @@ test('кнопка ✕ закрывает тост', async ({ page }) => {
 
   const bookButtons = page.getByRole('button', { name: /хочу читать/i })
   await bookButtons.first().click()
-  await expect(page.getByRole('button', { name: /вы записаны/i }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /в вашем списке/i }).first()).toBeVisible()
   await bookButtons.first().click()
   await expect(page.getByTestId('priority-hint-toast')).toBeVisible()
 
@@ -87,7 +87,7 @@ test('кнопка «Открыть» закрывает тост и откры�
 
   const bookButtons = page.getByRole('button', { name: /хочу читать/i })
   await bookButtons.first().click()
-  await expect(page.getByRole('button', { name: /вы записаны/i }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /в вашем списке/i }).first()).toBeVisible()
   await bookButtons.first().click()
   await expect(page.getByTestId('priority-hint-toast')).toBeVisible()
 
@@ -119,7 +119,7 @@ test('тост не показывается повторно если флаг 
 
   const bookButtons = page.getByRole('button', { name: /хочу читать/i })
   await bookButtons.first().click()
-  await expect(page.getByRole('button', { name: /вы записаны/i }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /в вашем списке/i }).first()).toBeVisible()
   await bookButtons.first().click()
 
   await expect(page.getByTestId('priority-hint-toast')).not.toBeVisible()
