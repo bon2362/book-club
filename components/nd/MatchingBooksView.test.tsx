@@ -199,14 +199,67 @@ describe('MatchingBooksView commands', () => {
     expect(screen.getByTestId('matching-books-selection')).toHaveTextContent('Вы записаны на Первая, Вторая')
   })
 
-  it('renders a single divider before the unpinned viewer-only tail', () => {
+  it('renders a single divider before the unpinned tail', () => {
     const personalA = { ...mode.books[0], bookId: 'b2', title: 'Личная A', intersectionCount: 0, participants: [] }
     const personalB = { ...mode.books[0], bookId: 'b3', title: 'Личная B', intersectionCount: 0, participants: [] }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], personalA, personalB] }} />)
 
-    expect(screen.getAllByTestId('matching-viewer-only-divider')).toHaveLength(1)
-    const divider = screen.getByTestId('matching-viewer-only-divider')
+    expect(screen.getAllByTestId('matching-tail-divider')).toHaveLength(1)
+    const divider = screen.getByTestId('matching-tail-divider')
+    expect(divider).toHaveTextContent('Записаться пока нельзя')
+    expect(divider).toHaveTextContent('Эти книги остаются в вашем списке, но в подборе не участвуют.')
     const firstPersonalCard = screen.getByTestId('matching-book-card-b2')
     expect(divider.compareDocumentPosition(firstPersonalCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('sends a reading book to the tail with a reading-reason label, even with peers', () => {
+    const reading = {
+      ...mode.books[0],
+      bookId: 'b2',
+      title: 'Читаю сейчас',
+      viewerPersonalStatus: 'reading' as const,
+      allowedActions: { conditional: false, hard: false, cancelHard: false },
+    }
+    render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], reading] }} />)
+
+    expect(screen.getAllByTestId('matching-tail-divider')).toHaveLength(1)
+    const card = screen.getByTestId('matching-book-card-b2')
+    const label = card.querySelector('[data-testid="matching-book-tail-reason"]')
+    expect(label).toHaveAttribute('data-reason', 'reading')
+    expect(label).toHaveTextContent('ЧИТАЮ СЕЙЧАС')
+  })
+
+  it('labels a no-overlap book waiting for others', () => {
+    const personal = { ...mode.books[0], bookId: 'b2', title: 'Личная', intersectionCount: 0, participants: [] }
+    render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [personal] }} />)
+
+    const label = screen.getByTestId('matching-book-tail-reason')
+    expect(label).toHaveAttribute('data-reason', 'waiting')
+    expect(label).toHaveTextContent('ЖДЁМ ДРУГИХ')
+  })
+
+  it('returns a reading book to matching via a status PATCH', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) }) as jest.Mock
+    props.onRefresh.mockResolvedValue(undefined)
+    const reading = {
+      ...mode.books[0],
+      bookId: 'b2',
+      title: 'Читаю сейчас',
+      viewerPersonalStatus: 'reading' as const,
+      allowedActions: { conditional: false, hard: false, cancelHard: false },
+    }
+    render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [reading] }} />)
+
+    fireEvent.click(screen.getByTestId('matching-return-to-matching'))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      '/api/signup-books/b2/status',
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: null }),
+      }),
+    ))
+    expect(props.onRefresh).toHaveBeenCalled()
   })
 })

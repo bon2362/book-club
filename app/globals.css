@@ -449,9 +449,26 @@
 .nd-mb-intro p { max-width: 64ch; margin: 0.3rem 0 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; }
 .nd-mb-intro-disclosure { max-width: 64ch; margin-top: 0.3rem; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; }
 .nd-mb-intro-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.6rem; }
-.nd-mb-intro-summary .p-link { color: var(--accent); border-color: var(--accent); font-size: 0.72rem; }
-.nd-mb-intro-details { margin: 0.55rem 0 0; padding-left: 1.15rem; animation: nd-mb-intro-reveal 160ms ease-out; }
-.nd-mb-intro-details li + li { margin-top: 0.28rem; }
+/* Подчёркивание рисуем текстовой декорацией, а не border-bottom: на мобильном
+   кнопка растягивается до тап-таргета 44px и рамка уезжает от текста вниз. */
+.nd-mb-intro-summary .p-link.muted {
+  color: var(--accent);
+  border-bottom: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  font-size: 0.85rem;
+}
+.nd-mb-intro-summary .p-link.muted:hover { color: var(--text); }
+.nd-mb-intro-details {
+  margin: 0.55rem 0 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+  color: var(--text);
+  font-size: 0.9rem;
+  animation: nd-mb-intro-reveal 160ms ease-out;
+}
+.nd-mb-intro-details li + li { margin-top: 0.55rem; }
 .nd-mb-intro-details li::marker { color: var(--accent); }
 @keyframes nd-mb-intro-reveal {
   from { opacity: 0; transform: translateY(-0.2rem); }
@@ -508,6 +525,9 @@
 .nd-mb-circle li { display: flex; align-items: center; gap: 0.5rem; color: var(--text-body); font-size: 0.83rem; }
 .nd-mb-circle li .nd-mb-avatar { width: 22px; height: 22px; flex-basis: 22px; margin-left: 0; font-size: 0.58rem; }
 .nd-mb-circle.is-mine li { color: var(--success); }
+.nd-mb-tail-reason { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem 0.6rem; margin-top: 0.85rem; }
+.nd-mb-tail-reason-label { color: var(--text-muted); font: 700 0.6rem/1 var(--nd-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.nd-mb-tail-reason-note { flex-basis: 100%; margin: 0; color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
 .nd-mb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; margin-top: 0.85rem; color: var(--text-muted); font-size: 0.75rem; }
 .nd-mb-action-note { flex-basis: 100%; color: var(--text-muted); line-height: 1.45; }
 .nd-mb-switch-confirm { display: grid; flex-basis: 100%; gap: 0.65rem; padding-left: 0.7rem; border-left: 3px solid var(--accent); color: var(--text-body); line-height: 1.45; }

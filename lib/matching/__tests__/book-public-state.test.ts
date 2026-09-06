@@ -17,7 +17,7 @@ describe('buildPublicBookModeState', () => {
       initializedAt: new Date(), sessionStatus: 'open', multibookReady: false,
       viewerUserId: 'u1', admin: false, books, participants,
       interests: [interest('u1', 'b1')], intents: [], assignments: [],
-      formedAtByBookId: new Map(), circles: [],
+      formedAtByBookId: new Map(), circles: [], viewerReadingBookIds: [],
     })
 
     expect(state.mutationsAvailable).toBe(false)
@@ -254,5 +254,51 @@ describe('buildPublicBookModeState', () => {
     const viewerCircles = b1.circles.filter(circle => circle.memberRefs.includes('r1'))
     expect(viewerCircles).toHaveLength(1)
     expect(b1.currentViability).toBe('viable')
+  })
+
+  it('surfaces a book the viewer is currently reading, blocks all actions and sends it to the tail', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1', 1), interest('u2', 'b1', 1), interest('u3', 'b1', 1)],
+      intents: [], assignments: [], formedAtByBookId: new Map(), circles: [],
+      viewerReadingBookIds: ['b2'],
+    })
+    expect(state.books.map(book => book.bookId)).toEqual(['b1', 'b2'])
+    const b2 = state.books.find(book => book.bookId === 'b2')!
+    expect(b2.viewerPersonalStatus).toBe('reading')
+    expect(b2.allowedActions).toEqual({ conditional: false, hard: false, cancelHard: false })
+    expect(b2.conditionalWouldAssign).toBe(false)
+    const b1 = state.books.find(book => book.bookId === 'b1')!
+    expect(b1.viewerPersonalStatus).toBeNull()
+  })
+
+  it('keeps the reading book at the tail even when other participants would otherwise form it', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1', 1), interest('u1', 'b2', 1)],
+      intents: [
+        { userId: 'u2', bookId: 'b2', kind: 'hard' },
+        { userId: 'u3', bookId: 'b2', kind: 'hard' },
+      ],
+      assignments: [], formedAtByBookId: new Map(), circles: [],
+      viewerReadingBookIds: ['b2'],
+    })
+    expect(state.books.map(book => book.bookId)).toEqual(['b1', 'b2'])
+    const b2 = state.books.find(book => book.bookId === 'b2')!
+    expect(b2.viewerPersonalStatus).toBe('reading')
+    expect(b2.allowedActions.conditional).toBe(false)
+    expect(b2.conditionalWouldAssign).toBe(false)
+  })
+
+  it('does not add the viewer personal reading list to the admin projection', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: true,
+      books, participants,
+      interests: [], intents: [], assignments: [], formedAtByBookId: new Map(), circles: [],
+      viewerReadingBookIds: ['b1', 'b2'],
+    })
+    expect(state.books).toEqual([])
   })
 })
