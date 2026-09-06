@@ -7,7 +7,7 @@ import MatchingBookAdminControls, { type MatchingBookAdminAction, type MatchingB
 import type { MatchingBookDetail } from './MatchingBookDetailModal'
 import {
   matchingBookDetail,
-  hasOtherBookParticipants,
+  isTailBook,
   type MatchingBookModeState,
 } from './matching-book-types'
 import {
@@ -30,7 +30,7 @@ interface Props {
   onRefresh: () => Promise<void>
 }
 
-type PendingCommand = { bookId: string; action: MatchingBookCommandAction | MatchingBookAdminAction } | null
+type PendingCommand = { bookId: string; action: MatchingBookCommandAction | MatchingBookAdminAction | 'returnToMatching' } | null
 
 export default function MatchingBooksView({
   sessionId,
@@ -94,6 +94,33 @@ export default function MatchingBooksView({
 
   function command(action: MatchingBookCommandAction, bookId: string, control: HTMLButtonElement) {
     void performCommand(action, bookId, control)
+  }
+
+  async function returnToMatching(bookId: string, control: HTMLButtonElement) {
+    if (pending) return
+    focusRef.current = { bookId, element: control }
+    setPending({ action: 'returnToMatching', bookId })
+    setMessage(null)
+    try {
+      const response = await fetch(`/api/signup-books/${bookId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: null }),
+      })
+      const body = await response.json().catch(() => ({})) as { error?: string }
+      if (!response.ok) throw new Error(body.error ?? 'Не удалось вернуть книгу в подбор')
+      await onRefresh()
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : 'Не удалось вернуть книгу в подбор')
+    } finally {
+      setPending(null)
+      requestAnimationFrame(() => {
+        const previous = focusRef.current
+        if (!previous) return
+        if (previous.element.isConnected) previous.element.focus()
+        else document.querySelector<HTMLElement>(`[data-testid="matching-book-card-${CSS.escape(previous.bookId)}"] button`)?.focus()
+      })
+    }
   }
 
   async function adminCommand(bookId: string, command: MatchingBookAdminCommand) {
@@ -185,16 +212,14 @@ export default function MatchingBooksView({
       {message && <div className="nd-mb-message" data-testid="matching-books-message" aria-live="polite">{message}</div>}
       <div className="nd-mb-list">
         {books.map((book, index) => {
-          const viewerOnlyTail = !isAdmin && !hasOtherBookParticipants(book, viewerRef) && book.formedAt === null &&
-            !bookMode.viewerAssignmentBookIds.includes(book.bookId) && book.viewerStatus !== 'hard'
+          const tailBook = !isAdmin && isTailBook(book, viewerRef, bookMode.viewerAssignmentBookIds)
           const previous = books[index - 1]
-          const previousIsTail = previous && !hasOtherBookParticipants(previous, viewerRef) && previous.formedAt === null &&
-            !bookMode.viewerAssignmentBookIds.includes(previous.bookId) && previous.viewerStatus !== 'hard'
+          const previousIsTail = previous && !isAdmin && isTailBook(previous, viewerRef, bookMode.viewerAssignmentBookIds)
           return <div className="nd-mb-list-item" key={book.bookId}>
-            {viewerOnlyTail && !previousIsTail && (
-              <div data-testid="matching-viewer-only-divider">
-                <h3 className="nd-mb-divider">Пока только в вашем списке</h3>
-                <p className="nd-mb-divider-note">Когда кто-то ещё выберет эти книги, на них можно будет записаться.</p>
+            {tailBook && !previousIsTail && (
+              <div data-testid="matching-tail-divider">
+                <h3 className="nd-mb-divider">Записаться пока нельзя</h3>
+                <p className="nd-mb-divider-note">Эти книги остаются в вашем списке, но в подборе не участвуют.</p>
               </div>
             )}
             <MatchingBookCard
@@ -205,7 +230,9 @@ export default function MatchingBooksView({
               adminMode={isAdmin}
               controlsDisabled={pending !== null}
               pendingAction={pending?.bookId === book.bookId && ['setConditional', 'unsetConditional', 'setHard', 'cancelHard'].includes(pending.action) ? pending.action as MatchingBookCommandAction : null}
+              returnPending={pending?.bookId === book.bookId && pending.action === 'returnToMatching'}
               onCommand={command}
+              onReturnToMatching={returnToMatching}
               onOpenBook={(selected, control) => {
                 focusRef.current = { bookId: selected.bookId, element: control }
                 openBook(matchingBookDetail(selected, booksById[selected.bookId]), [], selected.participants)

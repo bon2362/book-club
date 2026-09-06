@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import CoverImage from './CoverImage'
 import MatchingBookCircles from './MatchingBookCircles'
-import { hasOtherBookParticipants, type MatchingBookView } from './matching-book-types'
+import { hasOtherBookParticipants, tailReason, type MatchingBookView } from './matching-book-types'
 import {
   MAX_CIRCLE_SIZE,
   MIN_CIRCLE_SIZE,
@@ -28,6 +28,19 @@ interface Props {
   onCommand: (action: MatchingBookCommandAction, bookId: string, control: HTMLButtonElement) => void
   onOpenBook: (book: MatchingBookView, control: HTMLButtonElement) => void
   adminControls?: React.ReactNode
+  /** Return a currently-reading book to matching (PATCH /api/signup-books/<id>/status). */
+  onReturnToMatching?: (bookId: string, control: HTMLButtonElement) => void
+  returnPending?: boolean
+}
+
+const TAIL_REASON_LABEL: Record<'waiting' | 'reading', string> = {
+  waiting: 'ЖДЁМ ДРУГИХ',
+  reading: 'ЧИТАЮ СЕЙЧАС',
+}
+
+const TAIL_REASON_NOTE: Record<'waiting' | 'reading', string> = {
+  waiting: 'Когда кто-то ещё выберет — можно будет записаться',
+  reading: 'Пока читаете, книга не участвует в подборе',
 }
 
 function usesSingularForm(count: number) {
@@ -57,12 +70,16 @@ export default function MatchingBookCard({
   onCommand,
   onOpenBook,
   adminControls,
+  onReturnToMatching,
+  returnPending = false,
 }: Props) {
   const assignedHere = book.viewerStatus === 'assigned'
   const hardHere = book.viewerStatus === 'hard'
   const conditionalHere = book.viewerStatus === 'conditional'
   const formed = book.formedAt !== null
   const hasPeers = hasOtherBookParticipants(book, viewerRef)
+  const isReading = book.viewerPersonalStatus === 'reading'
+  const reason = !adminMode ? tailReason(book, viewerRef) : null
   // Composition diagnostics (viability warning, unplaced list) are actionable only for the
   // organiser: a participant cannot place people into circles, so the warning would be an
   // alarm without a remedy. Unplaced assignments are themselves an admin-made state.
@@ -168,7 +185,25 @@ export default function MatchingBookCard({
         </p>
       )}
 
-      {!adminMode && (hasPeers || hardHere || conditionalHere) && <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
+      {reason && (
+        <div className="nd-mb-tail-reason" data-testid="matching-book-tail-reason" data-reason={reason}>
+          <span className="nd-mb-tail-reason-label">{TAIL_REASON_LABEL[reason]}</span>
+          <p className="nd-mb-tail-reason-note">{TAIL_REASON_NOTE[reason]}</p>
+          {reason === 'reading' && !readOnly && (
+            <button
+              type="button"
+              className="nd-mb-btn is-ghost"
+              disabled={pending || controlsDisabled || returnPending}
+              data-testid="matching-return-to-matching"
+              onClick={(event) => onReturnToMatching?.(book.bookId, event.currentTarget)}
+            >
+              {returnPending ? 'Возвращаем…' : 'Вернуть в подбор'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {!adminMode && !isReading && (hasPeers || hardHere || conditionalHere) && <div className="nd-mb-actions" aria-busy={pending || controlsDisabled}>
         {hardHere ? (
           <>
             <strong className="nd-mb-hard-copy">✓ Вы записаны</strong>

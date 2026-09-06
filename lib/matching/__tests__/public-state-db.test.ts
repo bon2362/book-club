@@ -34,7 +34,7 @@ test('canonical reader exposes only the book state and hides internal user ids',
     userId: 'viewer-id', publicRef: 'viewer-ref', joinedAt: new Date('2026-01-01'),
     lastSeenAt: null, name: null,
   }
-  const db = fakeDb([[session], [participant], [], [], [], [], [], []])
+  const db = fakeDb([[session], [participant], [], [], [], [], [], [], []])
 
   const state = await fetchMatchingPublicState('session-1', 'viewer-id', db as never, { multibookReady: true })
 
@@ -64,7 +64,7 @@ test('canonical reader projects the priority rank into book participants', async
   const db = fakeDb([
     [session], [participant], [],
     [{ userId: 'viewer-id', bookId: 'book-1', rank: 7 }],
-    [], [], [], [], [book],
+    [], [], [], [], [], [book],
   ])
 
   const state = await fetchMatchingPublicState('session-1', 'viewer-id', db as never, { multibookReady: true })
@@ -73,4 +73,32 @@ test('canonical reader projects the priority rank into book participants', async
     ref: 'viewer-ref', rank: 7,
   }))
   expect(db.selectedKeys).toContainEqual(expect.arrayContaining(['userId', 'bookId', 'rank']))
+})
+
+test('canonical reader surfaces a book the viewer is currently reading in the tail', async () => {
+  const session = {
+    id: 'session-1', name: 'Июль', status: 'open', stateVersion: 1,
+    deadlineAt: null,
+    createdAt: new Date('2026-07-14T10:00:00Z'),
+  }
+  const participant = {
+    userId: 'viewer-id', publicRef: 'viewer-ref', joinedAt: new Date('2026-01-01'),
+    lastSeenAt: null, name: 'Анна',
+  }
+  const readingBook = {
+    bookId: 'book-reading', bookSlug: 'book-reading', title: 'Читаю сейчас', author: 'Автор', coverUrl: null,
+    sortOrder: 1, description: '', pages: null, publishedDate: '', textUrl: '',
+    whyRead: null, recommendationLink: null, tags: [],
+  }
+  const db = fakeDb([
+    [session], [participant], [], [], [], [], [], [], [{ bookId: 'book-reading' }], [readingBook],
+  ])
+
+  const state = await fetchMatchingPublicState('session-1', 'viewer-id', db as never, { multibookReady: true })
+
+  expect(state.bookMode.books).toHaveLength(1)
+  expect(state.bookMode.books[0]).toEqual(expect.objectContaining({
+    bookId: 'book-reading', viewerPersonalStatus: 'reading',
+    allowedActions: { conditional: false, hard: false, cancelHard: false },
+  }))
 })
