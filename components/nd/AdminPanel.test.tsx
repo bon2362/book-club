@@ -993,8 +993,14 @@ describe('AdminPanel — Участники таб', () => {
     expect(within(rows[1]).getByLabelText(/Пользователь заходил на сайт/)).toBeInTheDocument()
     expect(screen.getByText('New')).toBeInTheDocument()
     expect(within(rows[2]).getByText('Старый участник')).toBeInTheDocument()
-    expect(within(rows[2]).getByText('Читает')).toBeInTheDocument()
     expect(rows[2]).toHaveAttribute('data-reading-state', 'reading')
+    expect(screen.queryByText('Читает')).not.toBeInTheDocument()
+
+    fireEvent.mouseEnter(rows[2])
+    expect(within(rows[2]).getByText('Читает')).toBeInTheDocument()
+
+    fireEvent.mouseLeave(rows[2])
+    expect(screen.queryByText('Читает')).not.toBeInTheDocument()
   })
 })
 

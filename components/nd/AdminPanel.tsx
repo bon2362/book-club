@@ -321,6 +321,7 @@ export default function AdminPanel({
   const [adminUsersLoaded, setAdminUsersLoaded] = useState(false)
   const [userSearch, setUserSearch] = useState('')
   const [userSort, setUserSort] = useState<{ key: UserSortKey; dir: 'asc' | 'desc' }>({ key: 'lastActivityAt', dir: 'desc' })
+  const [hoveredReadingUserId, setHoveredReadingUserId] = useState<string | null>(null)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [selectedAdminUser, setSelectedAdminUser] = useState<AdminUserDetails | null>(null)
   const [userDrawerLoading, setUserDrawerLoading] = useState(false)
@@ -1074,6 +1075,7 @@ export default function AdminPanel({
                 {filteredAdminUsers.map(u => {
                   const telegram = u.telegramDisplay || '—'
                   const isReading = u.readingBooks.length > 0
+                  const showReadingBadge = hoveredReadingUserId === u.id
                   const rowBackground = isReading ? 'var(--bg-tag-green)' : 'transparent'
                   return (
                     <tr
@@ -1081,14 +1083,20 @@ export default function AdminPanel({
                       data-reading-state={isReading ? 'reading' : 'idle'}
                       onClick={() => openUserDrawer(u.id)}
                       style={{ cursor: 'pointer', transition: 'background 0.1s', background: rowBackground }}
-                      onMouseEnter={e => { e.currentTarget.style.background = isReading ? 'var(--bg-tag-green)' : 'var(--bg-elevated)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = rowBackground }}
+                      onMouseEnter={e => {
+                        if (isReading) setHoveredReadingUserId(u.id)
+                        e.currentTarget.style.background = isReading ? 'var(--bg-tag-green)' : 'var(--bg-elevated)'
+                      }}
+                      onMouseLeave={e => {
+                        if (isReading) setHoveredReadingUserId(current => current === u.id ? null : current)
+                        e.currentTarget.style.background = rowBackground
+                      }}
                     >
                       <td style={{ ...cell, textAlign: 'right', fontWeight: u.booksCount > 0 ? 700 : 400, color: u.booksCount > 0 ? 'var(--text)' : 'var(--text-muted)' }}>{u.booksCount}</td>
                       <td style={{ ...cell, fontWeight: 700 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                           {u.name || <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                          {isReading && <span style={readingBadge}>Читает</span>}
+                          {showReadingBadge && <span style={readingBadge}>Читает</span>}
                           {u.isAdmin && <span style={adminBadge}>Admin</span>}
                           {isNewUser(u.createdAt) && <span style={newUserBadge}>New</span>}
                         </span>
