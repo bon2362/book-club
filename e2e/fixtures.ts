@@ -318,6 +318,26 @@ async function patchIntroSection(
   }
 }
 
+
+/**
+ * Смена сессии через /api/test/session ставит новую cookie. Но если в этот
+ * момент в браузере открыта страница приложения, её SessionProvider фоново
+ * запрашивает /api/auth/session, а NextAuth отвечает на такой запрос
+ * перевыпущенной cookie СТАРОЙ сессии. Поздний ответ затирает только что
+ * установленную — и тест продолжает работать под прежним пользователем.
+ * Симптом коварный: первый же запрос после логина отвечает верно, а
+ * следующий — уже от старого пользователя (так падал book-summaries:
+ * /admin молча редиректил на главную).
+ *
+ * Поэтому перед сменой сессии уводим страницу с приложения: на about:blank
+ * фоновых запросов нет и затирать cookie некому. Тесты после логина всё
+ * равно делают goto/reload — им это ничего не ломает.
+ */
+async function parkPageBeforeSessionSwitch(page: Page): Promise<void> {
+  if (page.url() === 'about:blank') return
+  await page.goto('about:blank')
+}
+
 export const test = base.extend<E2EHelpers>({
   context: async ({ context }, use) => {
     for (const pattern of POSTHOG_PATTERNS) {
@@ -441,6 +461,7 @@ export const test = base.extend<E2EHelpers>({
       const index = count++
       const email = overrides?.email ?? `e2e-${testInfo.testId}-user-${index}@test.invalid`
       const name = overrides?.name ?? `E2E User ${index} ${testInfo.testId}`
+      await parkPageBeforeSessionSwitch(page)
       const res = await page.request.post('/api/test/session', {
         data: { email, name, isAdmin: false },
       })
@@ -458,6 +479,7 @@ export const test = base.extend<E2EHelpers>({
     const login: E2EHelpers['loginAsAdmin'] = async (overrides) => {
       const email = overrides?.email ?? `e2e-${testInfo.testId}-admin@test.invalid`
       const name = overrides?.name ?? `E2E Admin ${testInfo.testId}`
+      await parkPageBeforeSessionSwitch(page)
       const res = await page.request.post('/api/test/session', {
         data: { email, name, isAdmin: true },
       })
