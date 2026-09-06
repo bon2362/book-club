@@ -116,7 +116,7 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
         {/* Колонка меты */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Строка бейджей */}
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4, position: 'relative' }}>
             {book.tags[0] && (
               <span
                 style={{
@@ -222,30 +222,32 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
                   <line x1="4.2" y1="11.6" x2="7.8" y2="11.6" />
                   <line x1="4.8" y1="12.9" x2="7.2" y2="12.9" />
                 </svg>
-                {submittedTooltip && (
-                  <div
-                    id="mobile-submitted-book-tooltip"
-                    data-testid="submitted-book-tooltip"
-                    role="tooltip"
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      background: 'var(--text)',
-                      color: 'var(--bg)',
-                      fontFamily: 'var(--nd-sans), system-ui, sans-serif',
-                      fontSize: '0.65rem',
-                      lineHeight: 1.3,
-                      padding: '0.3rem 0.5rem',
-                      width: 'max-content',
-                      maxWidth: 'min(18rem, calc(100vw - 2rem))',
-                      pointerEvents: 'none',
-                      zIndex: 10,
-                    }}
-                  >
-                    {SUBMITTED_BY_MEMBER_LABEL}
-                  </div>
-                )}
+              </div>
+            )}
+            {/* Тултип якорится к строке бейджей, а не к самому бейджу: бейдж
+                едет вправо вслед за тегом и статусом, и привязка к нему
+                выносила подсказку за правый край экрана. */}
+            {submittedTooltip && (
+              <div
+                id="mobile-submitted-book-tooltip"
+                data-testid="submitted-book-tooltip"
+                role="tooltip"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  right: 0,
+                  background: 'var(--text)',
+                  color: 'var(--bg)',
+                  fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                  fontSize: '0.65rem',
+                  lineHeight: 1.3,
+                  padding: '0.3rem 0.5rem',
+                  pointerEvents: 'none',
+                  zIndex: 10,
+                }}
+              >
+                {SUBMITTED_BY_MEMBER_LABEL}
               </div>
             )}
             {/* Счётчик — прижат вправо */}
