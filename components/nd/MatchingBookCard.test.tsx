@@ -26,6 +26,47 @@ const AUTO_OPTION = 'Запишите меня автоматически, ес�
 describe('MatchingBookCard', () => {
   beforeEach(() => { baseProps.onCommand.mockClear(); baseProps.onOpenBook.mockClear() })
 
+  it('hides new enrollment for a viewer-only book while keeping its details accessible', () => {
+    const solo = { ...book, intersectionCount: 0, participants: [
+      { ref: 'viewer', displayName: 'Вы', status: 'interest' as const, rank: 1 },
+    ] }
+    const { container } = render(<MatchingBookCard book={solo} {...baseProps} />)
+    expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: AUTO_CARET })).not.toBeInTheDocument()
+    expect(container.querySelector('.nd-mb-actions')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Открыть книгу «Патриот»' }))
+    expect(baseProps.onOpenBook).toHaveBeenCalledWith(solo, expect.any(HTMLButtonElement))
+  })
+
+  it.each(['interest', 'conditional', 'hard', 'assigned'] as const)(
+    'allows enrollment with another %s participant even without shortlist intersections', (status) => {
+      render(<MatchingBookCard book={{ ...book, intersectionCount: 0, participants: [
+        { ref: 'peer', displayName: 'Другой участник', status, rank: null },
+      ] }} {...baseProps} />)
+      expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+    },
+  )
+
+  it('keeps cancellation of a hard choice after the last peer disappears', () => {
+    render(<MatchingBookCard book={{ ...book, intersectionCount: 0, participants: [],
+      viewerStatus: 'hard', allowedActions: { hard: false, conditional: false, cancelHard: true },
+    }} {...baseProps} />)
+    expect(screen.getByText('✓ Вы записаны')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
+    expect(baseProps.onCommand).toHaveBeenCalledWith('cancelHard', 'b1', expect.any(HTMLButtonElement))
+  })
+
+  it('keeps only auto-enroll cancellation after the last peer disappears', () => {
+    render(<MatchingBookCard book={{ ...book, intersectionCount: 0, participants: [],
+      viewerStatus: 'conditional',
+    }} {...baseProps} />)
+    expect(screen.getByText('Авто-запись включена')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: AUTO_CARET })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Отменить авто-запись' }))
+    expect(baseProps.onCommand).toHaveBeenCalledWith('unsetConditional', 'b1', expect.any(HTMLButtonElement))
+  })
+
   it('renders the three mutually-exclusive aggregate groups as buttons', () => {
     render(<MatchingBookCard book={book} {...baseProps} />)
     expect(screen.getByRole('button', { name: '1 уже записал:ась' })).toBeInTheDocument()

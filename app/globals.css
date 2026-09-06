@@ -464,6 +464,7 @@
 .nd-mb-list { display: flex; flex-direction: column; gap: 1rem; }
 .nd-mb-list-item { display: grid; gap: 1rem; }
 .nd-mb-divider { padding-top: 0.8rem; border-top: 1px solid var(--hair); color: var(--text-muted); font: 700 0.6rem/1 var(--nd-sans); letter-spacing: 0.14em; text-transform: uppercase; }
+.nd-mb-divider-note { margin-top: 0.5rem; color: var(--text-muted); font: 400 0.8rem/1.45 var(--nd-sans); }
 .nd-mb-card { position: relative; padding: 1.05rem 1.15rem; border-radius: var(--radius-card); background: var(--bg-input); box-shadow: var(--shadow-card); }
 .nd-mb-card.is-hard { box-shadow: var(--shadow-card), inset 3px 0 0 var(--accent); }
 .nd-mb-card.is-formed { background: var(--bg-tag-green); box-shadow: var(--shadow-card), inset 3px 0 0 var(--success); }

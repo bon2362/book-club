@@ -8,7 +8,7 @@ const mode: MatchingBookModeState = {
   books: [{
     bookId: 'b1', title: 'Первая', author: 'Автор', coverUrl: null,
     intersectionCount: 1, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',
-    participants: [{ ref: 'viewer', displayName: 'Я', status: 'interest', rank: 1 }], circles: [], unplacedParticipantRefs: [],
+    participants: [{ ref: 'viewer', displayName: 'Я', status: 'interest', rank: 1 }, { ref: 'peer', displayName: 'Другой', status: 'interest', rank: 1 }], circles: [], unplacedParticipantRefs: [],
     allowedActions: { conditional: true, hard: true, cancelHard: false },
   }],
 }
@@ -200,8 +200,8 @@ describe('MatchingBooksView commands', () => {
   })
 
   it('renders a single divider before the unpinned viewer-only tail', () => {
-    const personalA = { ...mode.books[0], bookId: 'b2', title: 'Личная A', intersectionCount: 0 }
-    const personalB = { ...mode.books[0], bookId: 'b3', title: 'Личная B', intersectionCount: 0 }
+    const personalA = { ...mode.books[0], bookId: 'b2', title: 'Личная A', intersectionCount: 0, participants: [] }
+    const personalB = { ...mode.books[0], bookId: 'b3', title: 'Личная B', intersectionCount: 0, participants: [] }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], personalA, personalB] }} />)
 
     expect(screen.getAllByTestId('matching-viewer-only-divider')).toHaveLength(1)

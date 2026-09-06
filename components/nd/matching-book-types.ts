@@ -86,3 +86,8 @@ export function matchingBookDetail(
     tags: book.tags ?? fallback?.tags ?? [],
   }
 }
+
+/** Includes interest, conditional, hard and assigned peers, not just shortlist counts. */
+export function hasOtherBookParticipants(book: MatchingBookView, viewerRef: string): boolean {
+  return book.participants.some((participant) => participant.ref !== viewerRef)
+}

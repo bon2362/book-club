@@ -7,6 +7,7 @@ import MatchingBookAdminControls, { type MatchingBookAdminAction, type MatchingB
 import type { MatchingBookDetail } from './MatchingBookDetailModal'
 import {
   matchingBookDetail,
+  hasOtherBookParticipants,
   type MatchingBookModeState,
 } from './matching-book-types'
 import {
@@ -184,14 +185,17 @@ export default function MatchingBooksView({
       {message && <div className="nd-mb-message" data-testid="matching-books-message" aria-live="polite">{message}</div>}
       <div className="nd-mb-list">
         {books.map((book, index) => {
-          const viewerOnlyTail = !isAdmin && book.intersectionCount === 0 && book.formedAt === null &&
+          const viewerOnlyTail = !isAdmin && !hasOtherBookParticipants(book, viewerRef) && book.formedAt === null &&
             !bookMode.viewerAssignmentBookIds.includes(book.bookId) && book.viewerStatus !== 'hard'
           const previous = books[index - 1]
-          const previousIsTail = previous && previous.intersectionCount === 0 && previous.formedAt === null &&
+          const previousIsTail = previous && !hasOtherBookParticipants(previous, viewerRef) && previous.formedAt === null &&
             !bookMode.viewerAssignmentBookIds.includes(previous.bookId) && previous.viewerStatus !== 'hard'
           return <div className="nd-mb-list-item" key={book.bookId}>
             {viewerOnlyTail && !previousIsTail && (
-              <div className="nd-mb-divider" data-testid="matching-viewer-only-divider">Только в вашем списке</div>
+              <div data-testid="matching-viewer-only-divider">
+                <h3 className="nd-mb-divider">Пока только в вашем списке</h3>
+                <p className="nd-mb-divider-note">Когда кто-то ещё выберет эти книги, на них можно будет записаться.</p>
+              </div>
             )}
             <MatchingBookCard
               book={book}
