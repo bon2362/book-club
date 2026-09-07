@@ -81,7 +81,7 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
           {sessionName}
         </h1>
         <p style={{ margin: '0.55rem 0 0', fontFamily: 'var(--nd-serif)', fontSize: '0.95rem', lineHeight: 1.5, color: 'var(--text-body)' }}>
-          Ты видишь, что хотят читать остальные. После того как все подтвердят круг, страница остаётся доступна для наблюдения.
+          Входя в этот раздел, ты поделишься своими предпочтениями по книгам и увидишь предпочтения других.
         </p>
 
         {/* Real name disclosure */}
@@ -94,8 +94,8 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
           }}
         >
           <p style={{ margin: 0, fontSize: '0.84rem', lineHeight: 1.5, color: 'var(--text-body)' }}>
-            <strong style={{ color: 'var(--text)' }}>Реальные имена видны всем участникам.</strong>{' '}
-            Это нужно, чтобы составить группы и общаться через Telegram. Твоё имя будет отображаться рядом с твоими книгами и кругами.
+            <strong style={{ color: 'var(--text)' }}>Твоё имя будет видно остальным присоединившимся.</strong>{' '}
+            Это нужно, чтобы составить группы и общаться через Telegram.
           </p>
         </div>
 
@@ -139,9 +139,6 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
         >
           {joining ? 'Входим…' : 'Войти'}
         </button>
-        <p style={{ margin: '0.55rem 0 0', textAlign: 'center', fontSize: '0.72rem', lineHeight: 1.45, color: 'var(--text-muted)' }}>
-          После входа твои книги начинают влиять на сценарии.
-        </p>
       </section>
     </main>
   )
