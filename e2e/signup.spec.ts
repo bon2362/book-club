@@ -1,28 +1,11 @@
-import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
+import { saveProfile } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-signup@test.invalid'
 const TEST_NAME = 'E2E Signup User'
 const TEST_CONTACT = '@e2e_test_user'
 
-// Сохранение профиля идёт через POST /api/signup — он пишет пользователя,
-// список книг, аудит и активность, а тестовая БД (ветка Neon) удалённая,
-// поэтому каждый запрос внутри идёт по сети. Локально ответ занимает 4-6 секунд,
-// то есть ровно на границе дефолтных 5 секунд Playwright: тест падал не из-за
-// продукта, а из-за того, что ждал строго дефолт. Ждём закрытия формы явно.
-//
-// Дожидаться закрытия обязательно: пока форма открыта, её оверлей перехватывает
-// клики по карточкам книг (см. docs/features/testing.md).
-const PROFILE_SAVE_TIMEOUT = 30_000
-
-async function saveProfile(page: Page, name: string, contact: string) {
-  await expect(page.getByLabel(/имя/i)).toBeVisible()
-  await page.getByLabel(/имя/i).fill(name)
-  await page.getByLabel(/telegram/i).fill(contact)
-  await page.getByRole('button', { name: /сохранить/i }).click()
-  await expect(page.getByLabel(/имя/i)).not.toBeVisible({ timeout: PROFILE_SAVE_TIMEOUT })
-}
 
 test.beforeEach(async () => {
   await epic('Авторизация')
