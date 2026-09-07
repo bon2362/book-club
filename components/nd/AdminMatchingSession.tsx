@@ -80,6 +80,10 @@ function statusRu(status: string): string {
   return status
 }
 
+function formatBookTitles(titles: string[]): string {
+  return titles.map((title) => `«${title}»`).join(', ')
+}
+
 // How many events to reveal per "show more" click.
 const EVENTS_PAGE_SIZE = 10
 
@@ -494,17 +498,17 @@ export default function AdminMatchingSession() {
                         </a>
                         {p.choices.hard.length > 0 && (
                           <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
-                            Запись: {p.choices.hard.join(', ')}
+                            Запись: {formatBookTitles(p.choices.hard)}
                           </div>
                         )}
                         {p.choices.conditional.length > 0 && (
                           <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
-                            Авто-запись: {p.choices.conditional.join(', ')}
+                            Авто-запись: {formatBookTitles(p.choices.conditional)}
                           </div>
                         )}
                         {p.choices.assigned.length > 0 && (
                           <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--success)', marginTop: 2 }}>
-                            В круге: {p.choices.assigned.join(', ')}
+                            В круге: {formatBookTitles(p.choices.assigned)}
                           </div>
                         )}
                       </td>
