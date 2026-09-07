@@ -33,6 +33,11 @@ interface Participant {
   joinedAt: string
   name: string | null
   role: 'active' | 'observer'
+  choices: {
+    hard: string[]
+    conditional: string[]
+    assigned: string[]
+  }
 }
 
 interface AllUser {
@@ -487,6 +492,21 @@ export default function AdminMatchingSession() {
                         >
                           {p.name ?? p.userId.slice(0, 12) + '…'}
                         </a>
+                        {p.choices.hard.length > 0 && (
+                          <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            Запись: {p.choices.hard.join(', ')}
+                          </div>
+                        )}
+                        {p.choices.conditional.length > 0 && (
+                          <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            Авто-запись: {p.choices.conditional.join(', ')}
+                          </div>
+                        )}
+                        {p.choices.assigned.length > 0 && (
+                          <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--success)', marginTop: 2 }}>
+                            В круге: {p.choices.assigned.join(', ')}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '3px 8px', color: 'var(--text-secondary)' }}>
                         <span style={{

@@ -54,6 +54,24 @@ test.beforeEach(async () => {
   await feature('Книжный режим')
 })
 
+test('админ видит записи и авто-записи участников в таблице сессии', async ({
+  matchingBooksFixture,
+  openMatchingPage,
+}) => {
+  const { session, books, participantA, admin, getParticipantB } = matchingBooksFixture
+  const participantB = await getParticipantB()
+
+  await bookAction(participantA.request, session.id, 'setHard', books[0].id)
+  await bookAction(participantB.request, session.id, 'setConditional', books[1].id)
+
+  const adminPage = await openMatchingPage(admin)
+  await adminPage.goto('/admin')
+  await adminPage.getByTestId('admin-tab-matching').click()
+
+  await expect(adminPage.getByText(`Запись: ${books[0].title}`)).toBeVisible()
+  await expect(adminPage.getByText(`Авто-запись: ${books[1].title}`)).toBeVisible()
+})
+
 test('условный выбор очищается после окончательной записи, а несколько твёрдых выборов сохраняются', { tag: '@matching-golden' }, async ({
   matchingBooksFixture,
   openMatchingPage,

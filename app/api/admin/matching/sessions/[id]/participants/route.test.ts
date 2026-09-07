@@ -34,6 +34,16 @@ function participantsSelect(rows: unknown[]) {
 function lockedSelect(rows: unknown[]) {
   const chain: Record<string, unknown> = {
     from: () => chain,
+    innerJoin: () => chain,
+    where: () => Promise.resolve(rows),
+  }
+  return chain
+}
+
+function bookChoicesSelect(rows: unknown[]) {
+  const chain: Record<string, unknown> = {
+    from: () => chain,
+    innerJoin: () => chain,
     where: () => Promise.resolve(rows),
   }
   return chain
@@ -57,7 +67,8 @@ describe('GET /api/admin/matching/sessions/[id]/participants', () => {
         { userId: 'user-1', publicRef: 'ref-1', joinSource: 'self', joinedAt: new Date(), name: 'Анна' },
         { userId: 'user-2', publicRef: 'ref-2', joinSource: 'admin', joinedAt: new Date(), name: 'Борис' },
       ]))
-      .mockReturnValueOnce(lockedSelect([{ userId: 'user-2' }]))
+      .mockReturnValueOnce(lockedSelect([{ userId: 'user-2', title: 'Книга' }]))
+      .mockReturnValueOnce(bookChoicesSelect([]))
 
     const res = await GET(new NextRequest('http://localhost/x'), params)
     expect(res.status).toBe(200)
@@ -67,6 +78,35 @@ describe('GET /api/admin/matching/sessions/[id]/participants', () => {
       expect.objectContaining({ userId: 'user-2', name: 'Борис', joinSource: 'admin', role: 'observer' }),
     ])
     expect(body.online).toEqual(['user-1'])
+  })
+
+  it('returns each participant’s hard, conditional, and assigned book titles', async () => {
+    mockDb.select
+      .mockReturnValueOnce(participantsSelect([
+        { userId: 'user-1', publicRef: 'ref-1', joinSource: 'self', joinedAt: new Date(), name: 'Анна' },
+      ]))
+      .mockReturnValueOnce(bookChoicesSelect([
+        { userId: 'user-1', title: 'Над пропастью во ржи' },
+      ]))
+      .mockReturnValueOnce(bookChoicesSelect([
+        { userId: 'user-1', kind: 'hard', title: 'Моби Дик' },
+        { userId: 'user-1', kind: 'conditional', title: 'Сто лет одиночества' },
+      ]))
+
+    const res = await GET(new NextRequest('http://localhost/x'), params)
+    const body = await res.json()
+
+    expect(body.data).toEqual([
+      expect.objectContaining({
+        userId: 'user-1',
+        role: 'observer',
+        choices: {
+          hard: ['Моби Дик'],
+          conditional: ['Сто лет одиночества'],
+          assigned: ['Над пропастью во ржи'],
+        },
+      }),
+    ])
   })
 })
 

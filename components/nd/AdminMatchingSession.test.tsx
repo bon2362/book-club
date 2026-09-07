@@ -29,6 +29,16 @@ const PARTICIPANTS = [{
   joinedAt: '2026-06-01T11:00:00Z',
   name: 'Иван Петров',
   role: 'active' as const,
+  choices: { hard: [], conditional: [], assigned: [] },
+}]
+
+const PARTICIPANTS_WITH_CHOICES = [{
+  ...PARTICIPANTS[0],
+  choices: {
+    hard: ['Моби Дик'],
+    conditional: ['Сто лет одиночества'],
+    assigned: ['Над пропастью во ржи'],
+  },
 }]
 
 const EVENTS = [{
@@ -105,5 +115,21 @@ describe('AdminMatchingSession', () => {
         body: JSON.stringify({ action: 'reopenSession', expectedStateVersion: 5 }),
       }),
     ))
+  })
+
+  it('shows a participant’s current book choices below their name', async () => {
+    mockFetch({
+      '/api/matching/sessions': { data: [SESSION_OPEN] },
+      '/api/admin/matching/sessions/sess-open/participants': { data: PARTICIPANTS_WITH_CHOICES, online: [] },
+      '/api/admin/matching/preference-events': { events: [] },
+      '/api/admin/users': { data: [] },
+    })
+
+    render(<AdminMatchingSession />)
+
+    await screen.findByText('Иван Петров')
+    expect(screen.getByText('Запись: Моби Дик')).toBeInTheDocument()
+    expect(screen.getByText('Авто-запись: Сто лет одиночества')).toBeInTheDocument()
+    expect(screen.getByText('В круге: Над пропастью во ржи')).toBeInTheDocument()
   })
 })

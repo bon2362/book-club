@@ -78,7 +78,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | PUT | `/api/admin/books/reorder` | Обновить порядок книг. |
 | GET | `/api/admin/matching/preference-events` | Аналитика matching из смыслового журнала `matching_events`. |
 | POST | `/api/admin/matching/sessions/{id}/book-admin-actions` | Управлять книжными назначениями, кругами и lifecycle сессии. |
-| GET/POST | `/api/admin/matching/sessions/{id}/participants` | Получить роли/online или принудительно добавить участника. |
+| GET/POST | `/api/admin/matching/sessions/{id}/participants` | Получить роли, online и текущие книжные договорённости участника или принудительно добавить участника. |
 | DELETE | `/api/admin/matching/sessions/{id}/participants/{userId}` | Удалить активного участника. |
 | GET | `/api/admin/feedback` | Фидбек-сообщения. |
 | GET/PATCH/DELETE | `/api/admin/submissions` | Модерация заявок. |

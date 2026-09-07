@@ -927,9 +927,20 @@
           "joinSource": { "type": "string", "enum": ["self", "admin"] },
           "joinedAt": { "$ref": "#/components/schemas/DateTime" },
           "name": { "type": "string", "nullable": true },
-          "role": { "type": "string", "enum": ["active", "observer"] }
+          "role": { "type": "string", "enum": ["active", "observer"] },
+          "choices": { "$ref": "#/components/schemas/AdminMatchingParticipantChoices" }
         },
-        "required": ["userId", "publicRef", "joinSource", "joinedAt", "name", "role"]
+        "required": ["userId", "publicRef", "joinSource", "joinedAt", "name", "role", "choices"]
+      },
+      "AdminMatchingParticipantChoices": {
+        "type": "object",
+        "description": "Текущие договорённости участника; обычные книги личного списка сюда не входят.",
+        "properties": {
+          "hard": { "type": "array", "items": { "type": "string" } },
+          "conditional": { "type": "array", "items": { "type": "string" } },
+          "assigned": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["hard", "conditional", "assigned"]
       },
       "AdminMatchingParticipantsResponse": {
         "type": "object",
@@ -2396,7 +2407,7 @@
       "get": {
         "tags": ["Admin"],
         "summary": "Получить участников matching-сессии",
-        "description": "Возвращает реальные имена, joinSource, active/observer и отдельный список online public refs.",
+        "description": "Возвращает реальные имена, joinSource, active/observer, текущие окончательные/автоматические записи и назначения в круг, а также отдельный список online public refs.",
         "security": [{ "sessionCookie": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
