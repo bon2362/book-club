@@ -54,23 +54,34 @@ export default async function AdminSitemapPage() {
             <section key={g} style={{ marginBottom: '1.5rem' }}>
               <h2 style={{ ...micro, marginBottom: '0.5rem' }}>{g}</h2>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, borderTop: '1px solid var(--border)' }}>
-                {grouped.get(g)!.map((route) => (
-                  <li key={route} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <Link
-                      href={route}
-                      style={{
-                        display: 'block',
-                        padding: '0.55rem 0',
-                        color: 'var(--text)',
-                        textDecoration: 'none',
-                        fontFamily: 'var(--nd-mono, monospace)',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      {route}
-                    </Link>
-                  </li>
-                ))}
+                {grouped.get(g)!.map((route) => {
+                  // Динамические маршруты вида /books/[bookSlug]/summaries — это шаблоны,
+                  // а не адреса: переходить по ним некуда. App Router к тому же вовсе
+                  // не поддерживает такой href в <Link> и роняет всю страницу целиком
+                  // ("Dynamic href found in <Link>"), поэтому показываем их текстом.
+                  const isTemplate = route.includes('[')
+                  const rowStyle = {
+                    display: 'block',
+                    padding: '0.55rem 0',
+                    color: isTemplate ? 'var(--text-muted)' : 'var(--text)',
+                    textDecoration: 'none',
+                    fontFamily: 'var(--nd-mono, monospace)',
+                    fontSize: '0.9rem',
+                  } as const
+                  return (
+                    <li key={route} style={{ borderBottom: '1px solid var(--border)' }}>
+                      {isTemplate ? (
+                        <span style={rowStyle} title="Шаблон динамического маршрута — открывается с конкретным параметром">
+                          {route}
+                        </span>
+                      ) : (
+                        <Link href={route} style={rowStyle}>
+                          {route}
+                        </Link>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             </section>
           ))}
