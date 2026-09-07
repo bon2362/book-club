@@ -26,7 +26,7 @@ test('pre-fills the name input with initialName', () => {
 
 test('shows disclosure about real names', () => {
   render(<MatchingWelcome {...base} />)
-  expect(screen.getByText(/реальные имена видны всем участникам/i)).toBeInTheDocument()
+  expect(screen.getByText(/твоё имя будет видно остальным присоединившимся/i)).toBeInTheDocument()
   expect(screen.getByText(/составить группы и общаться через Telegram/i)).toBeInTheDocument()
 })
 
