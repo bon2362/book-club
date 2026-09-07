@@ -59,6 +59,13 @@ test('условный выбор очищается после окончате
   openMatchingPage,
 }) => {
   const { session, books, participantA, getParticipantB, getParticipantC, addParticipant } = matchingBooksFixture
+  // Since #559 the enrollment controls appear only when someone else is interested in the same
+  // book, so the peers who later form the circles join the shortlist before the viewer acts.
+  const [participantB, participantC, participantD] = await Promise.all([
+    getParticipantB(),
+    getParticipantC(),
+    addParticipant('Дарья Multibook Browser E2E'),
+  ])
   const participantAPage = await openMatchingPage(participantA)
   await participantAPage.goto('/matching')
 
@@ -96,11 +103,6 @@ test('условный выбор очищается после окончате
   expect(persisted.bookMode?.books.find((book) => book.bookId === books[0].id)?.viewerStatus).toBe('hard')
   expect(persisted.bookMode?.books.find((book) => book.bookId === books[1].id)?.viewerStatus).toBe('hard')
 
-  const [participantB, participantC, participantD] = await Promise.all([
-    getParticipantB(),
-    getParticipantC(),
-    addParticipant('Дарья Multibook Browser E2E'),
-  ])
   await bookAction(participantC.request, session.id, 'setConditional', books[0].id)
   await bookAction(participantC.request, session.id, 'setConditional', books[1].id)
   await bookAction(participantD.request, session.id, 'setConditional', books[1].id)
@@ -125,7 +127,10 @@ test('администратор добавляет твёрдый выбор п
   openMatchingPage,
   dbExec,
 }) => {
-  const { session, books, participantA, admin } = matchingBooksFixture
+  const { session, books, participantA, admin, getParticipantB } = matchingBooksFixture
+  // Since #559 enrollment is offered only on books somebody else is interested in, so a peer
+  // shortlists both books before the admin enrolls the viewed participant into the second one.
+  await getParticipantB()
   const participantAPage = await openMatchingPage(participantA)
   const adminPage = await openMatchingPage(admin)
   await bookAction(participantA.request, session.id, 'setHard', books[0].id)
