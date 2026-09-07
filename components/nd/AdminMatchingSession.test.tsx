@@ -128,8 +128,8 @@ describe('AdminMatchingSession', () => {
     render(<AdminMatchingSession />)
 
     await screen.findByText('Иван Петров')
-    expect(screen.getByText('Запись: Моби Дик')).toBeInTheDocument()
-    expect(screen.getByText('Авто-запись: Сто лет одиночества')).toBeInTheDocument()
-    expect(screen.getByText('В круге: Над пропастью во ржи')).toBeInTheDocument()
+    expect(screen.getByText('Запись: «Моби Дик»')).toBeInTheDocument()
+    expect(screen.getByText('Авто-запись: «Сто лет одиночества»')).toBeInTheDocument()
+    expect(screen.getByText('В круге: «Над пропастью во ржи»')).toBeInTheDocument()
   })
 })

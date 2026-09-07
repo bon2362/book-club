@@ -68,8 +68,8 @@ test('админ видит записи и авто-записи участни
   await adminPage.goto('/admin')
   await adminPage.getByTestId('admin-tab-matching').click()
 
-  await expect(adminPage.getByText(`Запись: ${books[0].title}`)).toBeVisible()
-  await expect(adminPage.getByText(`Авто-запись: ${books[1].title}`)).toBeVisible()
+  await expect(adminPage.getByText(`Запись: «${books[0].title}»`)).toBeVisible()
+  await expect(adminPage.getByText(`Авто-запись: «${books[1].title}»`)).toBeVisible()
 })
 
 test('условный выбор очищается после окончательной записи, а несколько твёрдых выборов сохраняются', { tag: '@matching-golden' }, async ({
