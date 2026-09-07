@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { matchingBookAssignments, matchingSessionParticipants, users } from '@/lib/db/schema'
+import { books, matchingBookAssignments, matchingBookIntents, matchingSessionParticipants, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { transitionError } from '@/lib/matching/transition-http'
@@ -31,13 +31,28 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .where(eq(matchingSessionParticipants.sessionId, sessionId))
     .orderBy(matchingSessionParticipants.joinedAt)
 
-  const assignmentRows = await db.select({ userId: matchingBookAssignments.userId })
-    .from(matchingBookAssignments)
-    .where(eq(matchingBookAssignments.sessionId, sessionId))
+  const [assignmentRows, intentRows] = await Promise.all([
+    db.select({ userId: matchingBookAssignments.userId, title: books.title })
+      .from(matchingBookAssignments)
+      .innerJoin(books, eq(matchingBookAssignments.bookId, books.id))
+      .where(eq(matchingBookAssignments.sessionId, sessionId)),
+    db.select({ userId: matchingBookIntents.userId, kind: matchingBookIntents.kind, title: books.title })
+      .from(matchingBookIntents)
+      .innerJoin(books, eq(matchingBookIntents.bookId, books.id))
+      .where(eq(matchingBookIntents.sessionId, sessionId)),
+  ])
   const assignedUserIds = new Set(assignmentRows.map((row) => row.userId))
+  const choicesByUserId = new Map(participants.map((participant) => [participant.userId, {
+    hard: [] as string[],
+    conditional: [] as string[],
+    assigned: [] as string[],
+  }]))
+  for (const row of assignmentRows) choicesByUserId.get(row.userId)?.assigned.push(row.title)
+  for (const row of intentRows) choicesByUserId.get(row.userId)?.[row.kind].push(row.title)
   const data = participants.map((participant) => ({
     ...participant,
     role: assignedUserIds.has(participant.userId) ? ('observer' as const) : ('active' as const),
+    choices: choicesByUserId.get(participant.userId)!,
   }))
 
   // Онлайн-статус — best-effort: если колонка last_seen_at ещё не накатана, не падаем.
