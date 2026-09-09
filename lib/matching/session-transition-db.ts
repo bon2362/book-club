@@ -96,7 +96,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       'set_conditional', 'unset_conditional', 'set_hard',
       'cancel_hard', 'admin_assign_book', 'admin_unassign_book',
       'admin_create_book_circle', 'admin_delete_book_circle',
-      'admin_place_book_assignment', 'close_session', 'reopen_session',
+      'admin_place_book_assignment', 'admin_release_circle', 'admin_return_circle', 'close_session', 'reopen_session',
     ].includes(action.type)) {
       return applyBookMatchingAction({
         tx: this.tx,
@@ -189,6 +189,8 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       case 'admin_create_book_circle':
       case 'admin_delete_book_circle':
       case 'admin_place_book_assignment':
+      case 'admin_release_circle':
+      case 'admin_return_circle':
       case 'close_session':
       case 'reopen_session':
         return false

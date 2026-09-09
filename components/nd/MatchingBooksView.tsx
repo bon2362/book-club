@@ -54,7 +54,8 @@ export default function MatchingBooksView({
     .map((bookId) => booksById[bookId] ?? bookMode.books.find((book) => book.bookId === bookId))
     .filter((book): book is NonNullable<typeof book> => Boolean(book))
   const mutationsAvailable = bookMode.mutationsAvailable !== false
-  const readOnly = sessionStatus === 'closed' || !mutationsAvailable
+  const viewerCompleted = bookMode.viewerCompleted === true
+  const readOnly = sessionStatus === 'closed' || !mutationsAvailable || viewerCompleted
   // The read model owns canonical sorting (including catalog-order tie breaking).
   const books = bookMode.books
 
@@ -198,7 +199,9 @@ export default function MatchingBooksView({
         )}
         {readOnly && (!isAdmin || !mutationsAvailable) && (
           <div className="nd-mb-slot" data-testid="matching-books-readonly">
-            {!mutationsAvailable
+            {viewerCompleted
+              ? 'Ваш подбор завершён: остальные книги доступны только для просмотра'
+              : !mutationsAvailable
               ? 'Матчинг временно недоступен — обновление базы данных ещё не завершено'
               : 'Сессия закрыта — выбор доступен только для просмотра'}
           </div>
@@ -206,7 +209,7 @@ export default function MatchingBooksView({
       </header>
       {selectedBooks.length > 0 && !isAdmin && (
         <div className="nd-mb-selection" data-testid="matching-books-selection">
-          <span>Вы записаны на <strong>{selectedBooks.map((book) => book.title).join(', ')}</strong></span>
+          <span>{viewerCompleted ? 'Вы читаете ' : 'Вы записаны на '}<strong>{selectedBooks.map((book) => book.title).join(', ')}</strong></span>
         </div>
       )}
       {message && <div className="nd-mb-message" data-testid="matching-books-message" aria-live="polite">{message}</div>}

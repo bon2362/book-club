@@ -92,6 +92,7 @@ export async function fetchMatchingPublicState(
     publicRef: matchingSessionParticipants.publicRef,
     joinedAt: matchingSessionParticipants.joinedAt,
     lastSeenAt: matchingSessionParticipants.lastSeenAt,
+    completedAt: matchingSessionParticipants.completedAt,
     name: users.name,
   }).from(matchingSessionParticipants)
     .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
@@ -198,6 +199,7 @@ export async function fetchMatchingPublicState(
     formedAtByBookId: new Map(formedRows.map((item) => [item.bookId, item.formedAt])),
     circles: circleRows,
     viewerReadingBookIds,
+    completedUserIds: new Set(participantRows.filter(item => item.completedAt !== null).map(item => item.userId)),
   })
 
   const viewer = participants.find((participant) => participant.userId === viewerUserId)

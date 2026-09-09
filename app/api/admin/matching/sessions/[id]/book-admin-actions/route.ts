@@ -20,6 +20,8 @@ function parseAction(body: Record<string, unknown>): MatchingAction | null {
     case 'createCircle': return bookId ? { type: 'admin_create_book_circle', bookId } : null
     case 'deleteCircle': return circleId ? { type: 'admin_delete_book_circle', circleId } : null
     case 'place': return userId && bookId ? { type: 'admin_place_book_assignment', userId, bookId, circleId } : null
+    case 'releaseCircle': return circleId ? { type: 'admin_release_circle', circleId } : null
+    case 'returnCircle': return circleId ? { type: 'admin_return_circle', circleId } : null
     case 'closeSession': return { type: 'close_session' }
     case 'reopenSession': return { type: 'reopen_session' }
     default: return null

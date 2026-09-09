@@ -12,6 +12,45 @@ const books = [
 const interest = (userId: string, bookId: string, rank: number | null = 1) => ({ userId, bookId, rank })
 
 describe('buildPublicBookModeState', () => {
+  it('excludes completed members from other participants but preserves their released circle', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1'), interest('u2', 'b1'), interest('u3', 'b1')],
+      intents: [],
+      assignments: [
+        { userId: 'u1', bookId: 'b1', circleId: 'circle-1' },
+        { userId: 'u2', bookId: 'b1', circleId: 'circle-1' },
+        { userId: 'u3', bookId: 'b1', circleId: 'circle-1' },
+      ],
+      formedAtByBookId: new Map([['b1', new Date()]]),
+      circles: [{ id: 'circle-1', bookId: 'b1', position: 1 }],
+      completedUserIds: new Set(['u2', 'u3']),
+    })
+
+    const book = state.books.find(item => item.bookId === 'b1')!
+    expect(book.intersectionCount).toBe(0)
+    expect(book.participants.map(participant => participant.ref)).toEqual(['r1'])
+    expect(book.circles[0].memberRefs).toEqual(['r1', 'r2', 'r3'])
+  })
+
+  it('locks the completed viewer and keeps their assigned reading book above the tail', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [interest('u1', 'b1'), interest('u1', 'b2'), interest('u2', 'b2')],
+      intents: [], assignments: [{ userId: 'u1', bookId: 'b1', circleId: 'circle-1' }],
+      formedAtByBookId: new Map([['b1', new Date()]]),
+      circles: [{ id: 'circle-1', bookId: 'b1', position: 1 }],
+      viewerReadingBookIds: ['b1'], completedUserIds: new Set(['u1']),
+    })
+
+    expect(state.viewerCompleted).toBe(true)
+    expect(state.books.map(book => book.bookId)[0]).toBe('b1')
+    expect(state.books.find(book => book.bookId === 'b1')?.allowedActions)
+      .toEqual({ conditional: false, hard: false, cancelHard: false })
+  })
+
   it('makes the board read-only until the multibook migration is installed', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', multibookReady: false,

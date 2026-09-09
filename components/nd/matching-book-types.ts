@@ -17,6 +17,7 @@ export interface MatchingBookCircleView {
   id: string
   position: number
   memberRefs: string[]
+  memberDisplayNames?: Record<string, string>
 }
 
 export interface MatchingBookAllowedActions {
@@ -56,6 +57,7 @@ export interface MatchingBookView {
 export interface MatchingBookModeState {
   initializedAt: string
   mutationsAvailable?: boolean
+  viewerCompleted?: boolean
   viewerAssignmentBookIds: string[]
   books: MatchingBookView[]
   /** Privileged union of all session members; absent from participant DTOs. */
@@ -67,6 +69,7 @@ export interface MatchingBookAdminParticipant {
   displayName: string
   adminUserId: string
   assignmentBookIds: string[]
+  completed?: boolean
 }
 
 export function matchingBookDetail(
