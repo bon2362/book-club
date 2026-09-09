@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { and, asc, eq, inArray, isNotNull, isNull, notInArray, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -448,6 +448,9 @@ export async function applyBookMatchingAction(input: {
     if (members.length === 0) throw new MatchingTransitionError('invalid_book_action')
     const userIds = members.map(member => member.userId)
     const now = new Date()
+    // The DB guard normally protects an assigned book from becoming "reading".
+    // This marker exists only for this audited admin transaction.
+    await tx.execute(sql`select set_config('app.matching_release_circle', 'on', true)`)
     await tx.update(matchingSessionParticipants).set({ completedAt: now, completedCircleId: circle.id }).where(and(
       eq(matchingSessionParticipants.sessionId, sessionId), inArray(matchingSessionParticipants.userId, userIds),
     ))
