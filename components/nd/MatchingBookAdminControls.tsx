@@ -10,6 +10,8 @@ export type MatchingBookAdminAction =
   | 'createCircle'
   | 'deleteCircle'
   | 'place'
+  | 'releaseCircle'
+  | 'returnCircle'
 
 export interface MatchingBookAdminCommand {
   action: MatchingBookAdminAction
@@ -42,18 +44,27 @@ export default function MatchingBookAdminControls({
           <div className="nd-mb-admin-circles">
             <button type="button" disabled={pending} onClick={() => onAction({ action: 'createCircle' })}>+ Создать круг</button>
             {book.circles.map((circle, index) => (
-              <button
-                type="button"
-                key={circle.id}
-                disabled={pending}
-                onClick={() => {
-                  if (window.confirm(`Удалить круг ${index + 1}? Участники останутся назначенными без круга.`)) {
-                    onAction({ action: 'deleteCircle', circleId: circle.id })
-                  }
-                }}
-              >
-                Удалить круг {index + 1}
-              </button>
+              <span key={circle.id}>
+                {circle.memberRefs.length > 0 && circle.memberRefs.every(ref => adminParticipants.find(item => item.ref === ref)?.completed) ? (
+                  <button type="button" disabled={pending} onClick={() => onAction({ action: 'returnCircle', circleId: circle.id })}>Вернуть в подбор</button>
+                ) : (
+                  <button type="button" disabled={pending} onClick={() => {
+                    const names = circle.memberRefs.map(ref => adminParticipants.find(item => item.ref === ref)?.displayName ?? ref).join(', ')
+                    if (window.confirm(`Отправить читать: ${names}?`)) onAction({ action: 'releaseCircle', circleId: circle.id })
+                  }}>Отправить читать</button>
+                )}
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    if (window.confirm(`Удалить круг ${index + 1}? Участники останутся назначенными без круга.`)) {
+                      onAction({ action: 'deleteCircle', circleId: circle.id })
+                    }
+                  }}
+                >
+                  Удалить круг {index + 1}
+                </button>
+              </span>
             ))}
           </div>
           <div className="nd-mb-admin-add">

@@ -37,6 +37,8 @@ export function matchingEventTypeLabel(eventType: string): string {
     case 'reorder_priorities': return 'Перестановка приоритетов'
     case 'change_group_size': return 'Изменение размера групп'
     case 'conditional_intents_cleared': return 'Авто-записи сняты'
+    case 'circle_released': return 'Круг отправлен читать'
+    case 'circle_returned': return 'Круг возвращён в подбор'
     default: return eventType
   }
 }

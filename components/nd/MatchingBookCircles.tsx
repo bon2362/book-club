@@ -31,11 +31,12 @@ export default function MatchingBookCircles({
             <ul>
               {circle.memberRefs.map((ref) => {
                 const participant = byRef.get(ref)
-                if (!participant) return null
+                const displayName = participant?.displayName ?? circle.memberDisplayNames?.[ref]
+                if (!displayName) return null
                 return (
                   <li key={ref}>
-                    <span className="nd-mb-avatar" aria-hidden="true">{initial(participant.displayName)}</span>
-                    <span>{ref === viewerRef ? 'Вы' : participant.displayName}</span>
+                    <span className="nd-mb-avatar" aria-hidden="true">{initial(displayName)}</span>
+                    <span>{ref === viewerRef ? 'Вы' : displayName}</span>
                   </li>
                 )
               })}

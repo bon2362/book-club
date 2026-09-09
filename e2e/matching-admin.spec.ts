@@ -50,6 +50,31 @@ test.beforeEach(async () => {
   await feature('Администрирование книжных кругов')
 })
 
+test('администратор отправляет круг читать и возвращает его после reload', { tag: '@matching-golden' }, async ({
+  matchingBooksFixture,
+  openMatchingPage,
+}) => {
+  const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
+  const [participantB, participantC] = await Promise.all([getParticipantB(), getParticipantC()])
+  const participantPage = await openMatchingPage(participantA)
+
+  await participantAction(participantB.request, session.id, books[0].id, 'setConditional')
+  await participantAction(participantA.request, session.id, books[0].id, 'setHard')
+  await participantAction(participantC.request, session.id, books[0].id, 'setHard')
+  const formed = await getState(admin.request, session.id)
+  const circle = formed.bookMode.books.find((book) => book.bookId === books[0].id)?.circles[0]
+  expect(circle).toBeTruthy()
+
+  await adminAction(admin.request, session.id, participantA.userId, { action: 'releaseCircle', circleId: circle!.id })
+  await participantPage.reload()
+  await expect(participantPage.getByTestId('matching-books-view')).toContainText('Ваш подбор завершён')
+  await expect(participantPage.getByTestId('matching-books-selection')).toContainText(books[0].title)
+
+  await adminAction(admin.request, session.id, participantA.userId, { action: 'returnCircle', circleId: circle!.id })
+  await participantPage.reload()
+  await expect(participantPage.getByTestId('matching-books-view')).not.toContainText('Ваш подбор завершён')
+})
+
 test('администратор меняет круги, назначения и lifecycle с сохранением после reload', { tag: '@matching-golden' }, async ({
   matchingBooksFixture,
   openMatchingPage,

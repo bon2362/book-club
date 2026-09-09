@@ -289,6 +289,8 @@ export const matchingSessionParticipants = pgTable('matching_session_participant
   // Heartbeat присутствия (#338): обновляется при опросе /api/matching/version.
   // Телеметрия — audit_capture пропускает чисто last_seen_at-апдейты (миграция 0042).
   lastSeenAt: timestamp('last_seen_at', { mode: 'date' }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { mode: 'date' }),
+  completedCircleId: text('completed_circle_id').references(() => matchingCircles.id, { onDelete: 'set null' }),
 }, (t) => ({
   pk: primaryKey({ columns: [t.sessionId, t.userId] }),
   sessionPublicRefUniq: uniqueIndex('matching_session_participants_session_public_ref_idx').on(t.sessionId, t.publicRef),

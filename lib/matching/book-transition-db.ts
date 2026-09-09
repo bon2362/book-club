@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull, notInArray, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -8,6 +8,7 @@ import {
   matchingBookIntents,
   matchingCircles,
   matchingSessionBookStates,
+  matchingSessionParticipants,
   matchingSessions,
   signupBooks,
 } from '@/lib/db/schema'
@@ -32,6 +33,8 @@ type BookAction = Extract<MatchingAction, {
     | 'admin_create_book_circle'
     | 'admin_delete_book_circle'
     | 'admin_place_book_assignment'
+    | 'admin_release_circle'
+    | 'admin_return_circle'
     | 'close_session'
     | 'reopen_session'
 }>
@@ -131,16 +134,18 @@ function cleanupArtifacts(cleanup: ConditionalCleanup, assignedUserIds: Readonly
 }
 
 async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: string) {
-  await tx.update(matchingBookAssignments)
-    .set({ circleId: null })
-    .where(and(
-      eq(matchingBookAssignments.sessionId, sessionId),
-      eq(matchingBookAssignments.bookId, bookId),
-    ))
-  await tx.delete(matchingCircles).where(and(
-    eq(matchingCircles.sessionId, sessionId),
-    eq(matchingCircles.bookId, bookId),
-  ))
+  const released = await tx.select({ circleId: matchingSessionParticipants.completedCircleId })
+    .from(matchingSessionParticipants)
+    .where(and(eq(matchingSessionParticipants.sessionId, sessionId), isNotNull(matchingSessionParticipants.completedCircleId)))
+  const preservedCircleIds = Array.from(new Set(released.flatMap(item => item.circleId ? [item.circleId] : [])))
+  const rebuildWhere = preservedCircleIds.length > 0
+    ? and(eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.bookId, bookId), or(isNull(matchingBookAssignments.circleId), notInArray(matchingBookAssignments.circleId, preservedCircleIds)))
+    : and(eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.bookId, bookId))
+  await tx.update(matchingBookAssignments).set({ circleId: null }).where(rebuildWhere)
+  const circleWhere = preservedCircleIds.length > 0
+    ? and(eq(matchingCircles.sessionId, sessionId), eq(matchingCircles.bookId, bookId), notInArray(matchingCircles.id, preservedCircleIds))
+    : and(eq(matchingCircles.sessionId, sessionId), eq(matchingCircles.bookId, bookId))
+  await tx.delete(matchingCircles).where(circleWhere)
 
   const assignments = await tx.select({
     userId: matchingBookAssignments.userId,
@@ -148,6 +153,7 @@ async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: 
   }).from(matchingBookAssignments).where(and(
     eq(matchingBookAssignments.sessionId, sessionId),
     eq(matchingBookAssignments.bookId, bookId),
+    ...(preservedCircleIds.length > 0 ? [or(isNull(matchingBookAssignments.circleId), notInArray(matchingBookAssignments.circleId, preservedCircleIds))] : []),
   ))
 
   const partitions = partitionBookAssignments(assignments)
@@ -157,7 +163,7 @@ async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: 
       id: circleId,
       sessionId,
       bookId,
-      position: index + 1,
+      position: preservedCircleIds.length + index + 1,
     })
     await tx.update(matchingBookAssignments)
       .set({ circleId })
@@ -430,6 +436,51 @@ export async function applyBookMatchingAction(input: {
     ))
     await tx.delete(matchingCircles).where(eq(matchingCircles.id, action.circleId))
     return { changed: true, events: [{ eventType: 'admin_circle_deleted', bookId: circle.bookId, metadata: { circleId: action.circleId } }] }
+  }
+  if (action.type === 'admin_release_circle') {
+    const [circle] = await tx.select({ id: matchingCircles.id, bookId: matchingCircles.bookId }).from(matchingCircles).where(and(
+      eq(matchingCircles.sessionId, sessionId), eq(matchingCircles.id, action.circleId),
+    )).limit(1)
+    if (!circle) throw new MatchingTransitionError('invalid_book_action')
+    const members = await tx.select({ userId: matchingBookAssignments.userId }).from(matchingBookAssignments).where(and(
+      eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.circleId, circle.id),
+    ))
+    if (members.length === 0) throw new MatchingTransitionError('invalid_book_action')
+    const userIds = members.map(member => member.userId)
+    const now = new Date()
+    await tx.update(matchingSessionParticipants).set({ completedAt: now, completedCircleId: circle.id }).where(and(
+      eq(matchingSessionParticipants.sessionId, sessionId), inArray(matchingSessionParticipants.userId, userIds),
+    ))
+    for (const userId of userIds) {
+      await tx.update(signupBooks).set({ personalStatus: 'reading', personalStatusUpdatedAt: now }).where(and(
+        eq(signupBooks.userId, userId), eq(signupBooks.bookId, circle.bookId),
+      ))
+      await tx.delete(bookPriorities).where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, circle.bookId)))
+    }
+    return { changed: true, events: [{ eventType: 'circle_released', bookId: circle.bookId, after: { circleId: circle.id, userIds } }] }
+  }
+  if (action.type === 'admin_return_circle') {
+    const [circle] = await tx.select({ id: matchingCircles.id, bookId: matchingCircles.bookId }).from(matchingCircles).where(and(
+      eq(matchingCircles.sessionId, sessionId), eq(matchingCircles.id, action.circleId),
+    )).limit(1)
+    if (!circle) throw new MatchingTransitionError('invalid_book_action')
+    const members = await tx.select({ userId: matchingSessionParticipants.userId }).from(matchingSessionParticipants).where(and(
+      eq(matchingSessionParticipants.sessionId, sessionId), eq(matchingSessionParticipants.completedCircleId, circle.id),
+    ))
+    if (members.length === 0) return false
+    const userIds = members.map(member => member.userId)
+    await tx.update(matchingSessionParticipants).set({ completedAt: null, completedCircleId: null }).where(and(
+      eq(matchingSessionParticipants.sessionId, sessionId), inArray(matchingSessionParticipants.userId, userIds),
+    ))
+    for (const userId of userIds) {
+      const [signup] = await tx.select({ personalStatus: signupBooks.personalStatus }).from(signupBooks).where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, circle.bookId))).limit(1)
+      if (signup?.personalStatus === 'reading') {
+        await tx.update(signupBooks).set({ personalStatus: null, personalStatusUpdatedAt: new Date() }).where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, circle.bookId)))
+        const ranks = await tx.select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank }).from(bookPriorities).where(eq(bookPriorities.userId, userId))
+        await tx.insert(bookPriorities).values({ userId, bookId: circle.bookId, rank: nextRank(ranks), rankSource: 'auto' }).onConflictDoNothing()
+      }
+    }
+    return { changed: true, events: [{ eventType: 'circle_returned', bookId: circle.bookId, after: { circleId: circle.id, userIds } }] }
   }
 
   const [assignment] = await tx.select({ bookId: matchingBookAssignments.bookId })
