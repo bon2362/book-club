@@ -24,6 +24,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       publicRef: matchingSessionParticipants.publicRef,
       joinSource: matchingSessionParticipants.joinSource,
       joinedAt: matchingSessionParticipants.joinedAt,
+      completedAt: matchingSessionParticipants.completedAt,
       name: users.name,
     })
     .from(matchingSessionParticipants)

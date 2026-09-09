@@ -212,6 +212,32 @@ describe('MatchingBooksView commands', () => {
     expect(divider.compareDocumentPosition(firstPersonalCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  it('drops the tail dividers for a completed viewer and states the real reason on cards', () => {
+    // The banner already says the подбор is over; per-run dividers only repeated it, and
+    // the card footer claimed a closed session while the session is still open.
+    const personalA = { ...mode.books[0], bookId: 'b2', title: 'Личная A', intersectionCount: 0, participants: [] }
+    const reading = {
+      ...mode.books[0],
+      bookId: 'b3',
+      title: 'Читаю сейчас',
+      viewerPersonalStatus: 'reading' as const,
+      allowedActions: { conditional: false, hard: false, cancelHard: false },
+    }
+    render(<MatchingBooksView {...props} bookMode={{
+      ...mode,
+      viewerCompleted: true,
+      books: [mode.books[0], personalA, reading],
+    }} />)
+
+    expect(screen.queryAllByTestId('matching-tail-divider')).toHaveLength(0)
+    expect(screen.queryByText('Записаться пока нельзя')).not.toBeInTheDocument()
+    expect(screen.getByTestId('matching-books-readonly'))
+      .toHaveTextContent('Ваш подбор завершён: остальные книги доступны только для просмотра')
+    expect(screen.getByTestId('matching-book-card-b1'))
+      .toHaveTextContent('Ваш подбор завершён — книга доступна только для просмотра')
+    expect(screen.queryByText('Сессия закрыта — выбор доступен только для просмотра')).not.toBeInTheDocument()
+  })
+
   it('sends a reading book to the tail with a reading-reason label, even with peers', () => {
     const reading = {
       ...mode.books[0],

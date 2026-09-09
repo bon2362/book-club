@@ -66,9 +66,16 @@ test('администратор отправляет круг читать и �
   expect(circle).toBeTruthy()
 
   await adminAction(admin.request, session.id, participantA.userId, { action: 'releaseCircle', circleId: circle!.id })
+  // openMatchingPage only signs the identity in; the page itself is still about:blank,
+  // so it has to be navigated before reload() can prove anything persisted.
+  await participantPage.goto('/matching')
   await participantPage.reload()
   await expect(participantPage.getByTestId('matching-books-view')).toContainText('Ваш подбор завершён')
   await expect(participantPage.getByTestId('matching-books-selection')).toContainText(books[0].title)
+  // The banner is the only read-only explanation: no repeated "Записаться пока нельзя"
+  // headings, and no card claiming the session is closed while it is still open.
+  await expect(participantPage.getByTestId('matching-tail-divider')).toHaveCount(0)
+  await expect(participantPage.getByTestId('matching-books-view')).not.toContainText('Сессия закрыта')
 
   await adminAction(admin.request, session.id, participantA.userId, { action: 'returnCircle', circleId: circle!.id })
   await participantPage.reload()

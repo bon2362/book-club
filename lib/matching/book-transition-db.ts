@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { and, asc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -12,8 +12,8 @@ import {
   matchingSessions,
   signupBooks,
 } from '@/lib/db/schema'
-import { nextRank } from './rank-assignment'
-import { partitionBookAssignments, planBookFormation } from './book-partition'
+import { compactRanks, nextRank } from './rank-assignment'
+import { planBookFormation, planCircleRebuild } from './book-partition'
 import {
   MatchingTransitionError,
   type MatchingAction,
@@ -133,44 +133,82 @@ function cleanupArtifacts(cleanup: ConditionalCleanup, assignedUserIds: Readonly
   }
 }
 
-async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: string) {
-  const released = await tx.select({ circleId: matchingSessionParticipants.completedCircleId })
-    .from(matchingSessionParticipants)
-    .where(and(eq(matchingSessionParticipants.sessionId, sessionId), isNotNull(matchingSessionParticipants.completedCircleId)))
-  const preservedCircleIds = Array.from(new Set(released.flatMap(item => item.circleId ? [item.circleId] : [])))
-  const rebuildWhere = preservedCircleIds.length > 0
-    ? and(eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.bookId, bookId), or(isNull(matchingBookAssignments.circleId), notInArray(matchingBookAssignments.circleId, preservedCircleIds)))
-    : and(eq(matchingBookAssignments.sessionId, sessionId), eq(matchingBookAssignments.bookId, bookId))
-  await tx.update(matchingBookAssignments).set({ circleId: null }).where(rebuildWhere)
-  const circleWhere = preservedCircleIds.length > 0
-    ? and(eq(matchingCircles.sessionId, sessionId), eq(matchingCircles.bookId, bookId), notInArray(matchingCircles.id, preservedCircleIds))
-    : and(eq(matchingCircles.sessionId, sessionId), eq(matchingCircles.bookId, bookId))
-  await tx.delete(matchingCircles).where(circleWhere)
+/**
+ * Removes a book from the viewer's ranked list and closes the gap.
+ *
+ * Every other path that takes a book out of matching compacts the remaining ranks
+ * (`changeStatus`, the catalog routes); deleting the row alone leaves holes in the
+ * numbering the participant sees.
+ */
+async function detachBookFromPriorities(tx: DbClient, userId: string, bookId: string) {
+  const deleted = await tx.delete(bookPriorities)
+    .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, bookId)))
+    .returning({ bookId: bookPriorities.bookId })
+  if (deleted.length === 0) return
+  const remaining = await tx.select({ bookId: bookPriorities.bookId, rank: bookPriorities.rank })
+    .from(bookPriorities)
+    .where(eq(bookPriorities.userId, userId))
+  for (const row of compactRanks(remaining)) {
+    await tx.update(bookPriorities)
+      .set({ rank: row.rank, updatedAt: new Date() })
+      .where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, row.bookId)))
+  }
+}
 
+async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: string) {
+  const circles = await tx.select({ id: matchingCircles.id, position: matchingCircles.position })
+    .from(matchingCircles)
+    .where(and(eq(matchingCircles.sessionId, sessionId), eq(matchingCircles.bookId, bookId)))
   const assignments = await tx.select({
     userId: matchingBookAssignments.userId,
+    circleId: matchingBookAssignments.circleId,
     assignedAt: matchingBookAssignments.assignedAt,
   }).from(matchingBookAssignments).where(and(
     eq(matchingBookAssignments.sessionId, sessionId),
     eq(matchingBookAssignments.bookId, bookId),
-    ...(preservedCircleIds.length > 0 ? [or(isNull(matchingBookAssignments.circleId), notInArray(matchingBookAssignments.circleId, preservedCircleIds))] : []),
   ))
+  const completed = await tx.select({ userId: matchingSessionParticipants.userId })
+    .from(matchingSessionParticipants)
+    .where(and(
+      eq(matchingSessionParticipants.sessionId, sessionId),
+      isNotNull(matchingSessionParticipants.completedAt),
+    ))
 
-  const partitions = partitionBookAssignments(assignments)
-  for (let index = 0; index < partitions.length; index++) {
+  const plan = planCircleRebuild({
+    circles,
+    assignments,
+    completedUserIds: new Set(completed.map(item => item.userId)),
+  })
+
+  // Detach before deleting: assignments reference circles by foreign key.
+  if (plan.detachedUserIds.length > 0) {
+    await tx.update(matchingBookAssignments).set({ circleId: null }).where(and(
+      eq(matchingBookAssignments.sessionId, sessionId),
+      eq(matchingBookAssignments.bookId, bookId),
+      inArray(matchingBookAssignments.userId, plan.detachedUserIds),
+    ))
+  }
+  if (plan.removedCircleIds.length > 0) {
+    await tx.delete(matchingCircles).where(and(
+      eq(matchingCircles.sessionId, sessionId),
+      eq(matchingCircles.bookId, bookId),
+      inArray(matchingCircles.id, plan.removedCircleIds),
+    ))
+  }
+  for (const partition of plan.partitions) {
     const circleId = randomUUID()
     await tx.insert(matchingCircles).values({
       id: circleId,
       sessionId,
       bookId,
-      position: preservedCircleIds.length + index + 1,
+      position: partition.position,
     })
     await tx.update(matchingBookAssignments)
       .set({ circleId })
       .where(and(
         eq(matchingBookAssignments.sessionId, sessionId),
         eq(matchingBookAssignments.bookId, bookId),
-        inArray(matchingBookAssignments.userId, partitions[index].map(item => item.userId)),
+        inArray(matchingBookAssignments.userId, partition.userIds),
       ))
   }
 }
@@ -191,13 +229,22 @@ async function formBookIfReady(
     .limit(1)
   if (formed) return { formed: false, assignedUserIds: [], conditionalCleanup: new Map() }
 
+  // Participants released to reading are out of matching: their leftover intents on other
+  // books must not push those books over the formation threshold, and must never pull them
+  // into a fresh circle they cannot see or act on.
   const intents = await tx.select({
     userId: matchingBookIntents.userId,
     kind: matchingBookIntents.kind,
-  }).from(matchingBookIntents).where(and(
-    eq(matchingBookIntents.sessionId, sessionId),
-    eq(matchingBookIntents.bookId, bookId),
-  )).orderBy(asc(matchingBookIntents.createdAt), asc(matchingBookIntents.userId))
+  }).from(matchingBookIntents)
+    .innerJoin(matchingSessionParticipants, and(
+      eq(matchingSessionParticipants.sessionId, matchingBookIntents.sessionId),
+      eq(matchingSessionParticipants.userId, matchingBookIntents.userId),
+    ))
+    .where(and(
+      eq(matchingBookIntents.sessionId, sessionId),
+      eq(matchingBookIntents.bookId, bookId),
+      isNull(matchingSessionParticipants.completedAt),
+    )).orderBy(asc(matchingBookIntents.createdAt), asc(matchingBookIntents.userId))
   const existingAssignments = await tx.select({ userId: matchingBookAssignments.userId })
     .from(matchingBookAssignments)
     .where(and(
@@ -458,7 +505,7 @@ export async function applyBookMatchingAction(input: {
       await tx.update(signupBooks).set({ personalStatus: 'reading', personalStatusUpdatedAt: now }).where(and(
         eq(signupBooks.userId, userId), eq(signupBooks.bookId, circle.bookId),
       ))
-      await tx.delete(bookPriorities).where(and(eq(bookPriorities.userId, userId), eq(bookPriorities.bookId, circle.bookId)))
+      await detachBookFromPriorities(tx, userId, circle.bookId)
     }
     return { changed: true, events: [{ eventType: 'circle_released', bookId: circle.bookId, after: { circleId: circle.id, userIds } }] }
   }
