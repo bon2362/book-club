@@ -28,6 +28,71 @@ export function planBookFormation(input: {
   }
 }
 
+export interface CircleRebuildPlan {
+  /** Circles left untouched: every member has already left matching. */
+  preservedCircleIds: string[]
+  /** Circles to delete before re-partitioning. */
+  removedCircleIds: string[]
+  /** Assignments that must lose their circle_id because their circle is going away. */
+  detachedUserIds: string[]
+  /** Freshly numbered circles, continuing after the highest preserved position. */
+  partitions: Array<{ position: number; userIds: string[] }>
+}
+
+/**
+ * Decides what automatic circle rebuilding may touch for a single book.
+ *
+ * A circle whose members have all been released to reading is preserved as-is: its
+ * position keeps addressing the calendar page (`/calendar/circle/<bookId>/<position>`),
+ * and its members are never mixed with newcomers. Everything else is rebuilt.
+ *
+ * Both inputs are scoped to one book, so positions here never interact with another book's
+ * circles — an earlier session-wide implementation shifted unrelated books' positions and
+ * could collide with a preserved position, which the unique index rejects.
+ */
+export function planCircleRebuild(input: {
+  circles: ReadonlyArray<{ id: string; position: number }>
+  assignments: ReadonlyArray<PartitionAssignment & { circleId: string | null }>
+  completedUserIds: ReadonlySet<string>
+}): CircleRebuildPlan {
+  const membersByCircleId = new Map<string, string[]>()
+  for (const assignment of input.assignments) {
+    if (assignment.circleId === null) continue
+    membersByCircleId.set(assignment.circleId, [
+      ...(membersByCircleId.get(assignment.circleId) ?? []),
+      assignment.userId,
+    ])
+  }
+
+  const preserved = input.circles.filter((circle) => {
+    const members = membersByCircleId.get(circle.id) ?? []
+    return members.length > 0 && members.every(userId => input.completedUserIds.has(userId))
+  })
+  const preservedCircleIds = new Set(preserved.map(circle => circle.id))
+  const removedCircleIds = input.circles
+    .filter(circle => !preservedCircleIds.has(circle.id))
+    .map(circle => circle.id)
+
+  const detachedUserIds = input.assignments
+    .filter(assignment => assignment.circleId !== null && !preservedCircleIds.has(assignment.circleId))
+    .map(assignment => assignment.userId)
+
+  // Released participants are out of matching: they are never re-partitioned, even when the
+  // circle they sat in is gone. Their assignment simply stays unplaced.
+  const rebuildable = input.assignments.filter(assignment => !input.completedUserIds.has(assignment.userId))
+  const highestPreservedPosition = preserved.reduce((max, circle) => Math.max(max, circle.position), 0)
+
+  return {
+    preservedCircleIds: preserved.map(circle => circle.id),
+    removedCircleIds,
+    detachedUserIds,
+    partitions: partitionBookAssignments(rebuildable).map((partition, index) => ({
+      position: highestPreservedPosition + index + 1,
+      userIds: partition.map(item => item.userId),
+    })),
+  }
+}
+
 /**
  * Deterministically distributes assignments into the smallest possible number
  * of balanced circles whose automatic target size is three to five people.

@@ -33,6 +33,8 @@ interface Participant {
   joinedAt: string
   name: string | null
   role: 'active' | 'observer'
+  /** Set when the organiser released this participant's circle to reading. Absent on responses from an older deploy. */
+  completedAt?: string | null
   choices: {
     hard: string[]
     conditional: string[]
@@ -478,6 +480,7 @@ export default function AdminMatchingSession() {
               <tbody>
                 {participants.map(p => {
                   const isObserver = p.role === 'observer'
+                  const isReleased = Boolean(p.completedAt)
                   const isOnline = onlinePublicRefs.has(p.publicRef)
                   return (
                     <tr key={p.userId} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -508,7 +511,7 @@ export default function AdminMatchingSession() {
                         )}
                         {p.choices.assigned.length > 0 && (
                           <div style={{ fontSize: '0.68rem', fontWeight: 400, color: 'var(--success)', marginTop: 2 }}>
-                            В круге: {formatBookTitles(p.choices.assigned)}
+                            {`${isReleased ? 'Читает' : 'В круге'}: ${formatBookTitles(p.choices.assigned)}`}
                           </div>
                         )}
                       </td>
@@ -521,11 +524,17 @@ export default function AdminMatchingSession() {
                         </span>
                       </td>
                       <td style={{ padding: '3px 8px' }}>
-                        <span style={{
-                          ...microLabel,
-                          color: isObserver ? 'var(--text-muted)' : 'var(--success)',
-                        }}>
-                          {isObserver ? 'наблюдатель' : 'активный'}
+                        <span
+                          data-testid={isReleased ? 'admin-participant-released' : undefined}
+                          title={isReleased && p.completedAt
+                            ? `Отправлен:а читать ${new Date(p.completedAt).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                            : undefined}
+                          style={{
+                            ...microLabel,
+                            color: isReleased ? 'var(--accent)' : isObserver ? 'var(--text-muted)' : 'var(--success)',
+                          }}
+                        >
+                          {isReleased ? 'читает' : isObserver ? 'наблюдатель' : 'активный'}
                         </span>
                       </td>
                       <td style={{ padding: '3px 8px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>

@@ -5,6 +5,7 @@ import {
   MIN_FORMATION_TOTAL_CHOICES,
   partitionBookAssignments,
   planBookFormation,
+  planCircleRebuild,
   shouldFormBook,
 } from '../book-partition'
 
@@ -97,5 +98,82 @@ describe('planBookFormation', () => {
 
   it('never reforms a historical formed book', () => {
     expect(planBookFormation({ formed: true, intents, assignedToBookUserIds: new Set() })).toBeNull()
+  })
+})
+
+describe('planCircleRebuild', () => {
+  const at = (minutes: number) => new Date(Date.UTC(2026, 8, 9, 12, minutes))
+  const assignment = (userId: string, circleId: string | null, minutes: number) =>
+    ({ userId, circleId, assignedAt: at(minutes) })
+
+  it('preserves a circle whose members have all been released and keeps its position', () => {
+    const plan = planCircleRebuild({
+      circles: [{ id: 'released', position: 1 }],
+      assignments: [
+        assignment('a', 'released', 1),
+        assignment('b', 'released', 2),
+        assignment('c', 'released', 3),
+        assignment('new1', null, 4),
+        assignment('new2', null, 5),
+        assignment('new3', null, 6),
+      ],
+      completedUserIds: new Set(['a', 'b', 'c']),
+    })
+
+    expect(plan.preservedCircleIds).toEqual(['released'])
+    expect(plan.removedCircleIds).toEqual([])
+    expect(plan.detachedUserIds).toEqual([])
+    expect(plan.partitions).toEqual([{ position: 2, userIds: ['new1', 'new2', 'new3'] }])
+  })
+
+  it('numbers new circles after the highest preserved position, not by preserved count', () => {
+    // Regression: numbering by count collided with a preserved circle that was not first,
+    // and the (session, book, position) unique index rejected the insert.
+    const plan = planCircleRebuild({
+      circles: [{ id: 'gone', position: 1 }, { id: 'released', position: 2 }],
+      assignments: [
+        assignment('a', 'released', 1),
+        assignment('b', 'released', 2),
+        assignment('c', 'released', 3),
+        assignment('x', 'gone', 4),
+        assignment('y', 'gone', 5),
+        assignment('z', 'gone', 6),
+      ],
+      completedUserIds: new Set(['a', 'b', 'c']),
+    })
+
+    expect(plan.preservedCircleIds).toEqual(['released'])
+    expect(plan.removedCircleIds).toEqual(['gone'])
+    expect(plan.detachedUserIds).toEqual(['x', 'y', 'z'])
+    expect(plan.partitions).toEqual([{ position: 3, userIds: ['x', 'y', 'z'] }])
+  })
+
+  it('never mixes a released participant into a rebuilt circle', () => {
+    const plan = planCircleRebuild({
+      circles: [{ id: 'mixed', position: 1 }],
+      assignments: [
+        assignment('released', 'mixed', 1),
+        assignment('x', 'mixed', 2),
+        assignment('y', 'mixed', 3),
+        assignment('z', 'mixed', 4),
+      ],
+      completedUserIds: new Set(['released']),
+    })
+
+    expect(plan.preservedCircleIds).toEqual([])
+    expect(plan.partitions).toEqual([{ position: 1, userIds: ['x', 'y', 'z'] }])
+    expect(plan.partitions.flatMap(partition => partition.userIds)).not.toContain('released')
+  })
+
+  it('rebuilds everything when nobody has been released', () => {
+    const plan = planCircleRebuild({
+      circles: [{ id: 'old', position: 1 }],
+      assignments: [assignment('x', 'old', 1), assignment('y', 'old', 2), assignment('z', 'old', 3)],
+      completedUserIds: new Set(),
+    })
+
+    expect(plan.preservedCircleIds).toEqual([])
+    expect(plan.removedCircleIds).toEqual(['old'])
+    expect(plan.partitions).toEqual([{ position: 1, userIds: ['x', 'y', 'z'] }])
   })
 })

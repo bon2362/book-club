@@ -215,9 +215,11 @@ export default function MatchingBooksView({
       {message && <div className="nd-mb-message" data-testid="matching-books-message" aria-live="polite">{message}</div>}
       <div className="nd-mb-list">
         {books.map((book, index) => {
-          const tailBook = !isAdmin && isTailBook(book, viewerRef, bookMode.viewerAssignmentBookIds)
+          // A completed participant cannot act on anything, so the "can't sign up yet"
+          // divider would only repeat the banner above — once per run of tail books.
+          const tailBook = !isAdmin && !viewerCompleted && isTailBook(book, viewerRef, bookMode.viewerAssignmentBookIds)
           const previous = books[index - 1]
-          const previousIsTail = previous && !isAdmin && isTailBook(previous, viewerRef, bookMode.viewerAssignmentBookIds)
+          const previousIsTail = previous && !isAdmin && !viewerCompleted && isTailBook(previous, viewerRef, bookMode.viewerAssignmentBookIds)
           return <div className="nd-mb-list-item" key={book.bookId}>
             {tailBook && !previousIsTail && (
               <div data-testid="matching-tail-divider">
@@ -230,6 +232,7 @@ export default function MatchingBooksView({
               viewerRef={viewerRef}
               viewerHasHard={viewerHasHard}
               readOnly={readOnly}
+              readOnlyNote={viewerCompleted ? 'Ваш подбор завершён — книга доступна только для просмотра' : undefined}
               adminMode={isAdmin}
               controlsDisabled={pending !== null}
               pendingAction={pending?.bookId === book.bookId && ['setConditional', 'unsetConditional', 'setHard', 'cancelHard'].includes(pending.action) ? pending.action as MatchingBookCommandAction : null}

@@ -22,6 +22,8 @@ interface Props {
   viewerRef: string
   viewerHasHard: boolean
   readOnly: boolean
+  /** Overrides the read-only footer copy; the default names a closed session. */
+  readOnlyNote?: string
   adminMode?: boolean
   controlsDisabled?: boolean
   pendingAction: MatchingBookCommandAction | null
@@ -64,6 +66,7 @@ export default function MatchingBookCard({
   viewerRef,
   viewerHasHard,
   readOnly,
+  readOnlyNote,
   adminMode = false,
   controlsDisabled = false,
   pendingAction,
@@ -230,7 +233,7 @@ export default function MatchingBookCard({
             )}
           </>
         ) : readOnly ? (
-          <span>Сессия закрыта — выбор доступен только для просмотра</span>
+          <span>{readOnlyNote ?? 'Сессия закрыта — выбор доступен только для просмотра'}</span>
         ) : (
           <>
             {book.allowedActions.hard && (showAuto ? (

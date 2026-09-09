@@ -117,6 +117,25 @@ describe('AdminMatchingSession', () => {
     ))
   })
 
+  it('marks a participant whose circle was released to reading', async () => {
+    mockFetch({
+      '/api/matching/sessions': { data: [SESSION_OPEN] },
+      '/api/admin/matching/sessions/sess-open/participants': {
+        data: [{ ...PARTICIPANTS_WITH_CHOICES[0], completedAt: '2026-09-09T19:00:00.000Z' }],
+        online: [],
+      },
+      '/api/admin/matching/preference-events': { events: [] },
+      '/api/admin/users': { data: [] },
+    })
+
+    render(<AdminMatchingSession />)
+
+    await screen.findByText('Иван Петров')
+    expect(screen.getByTestId('admin-participant-released')).toHaveTextContent('читает')
+    expect(screen.getByText('Читает: «Над пропастью во ржи»')).toBeInTheDocument()
+    expect(screen.queryByText('В круге: «Над пропастью во ржи»')).not.toBeInTheDocument()
+  })
+
   it('shows a participant’s current book choices below their name', async () => {
     mockFetch({
       '/api/matching/sessions': { data: [SESSION_OPEN] },
