@@ -11,6 +11,8 @@ export interface MatchingBookParticipantView {
   rank: number | null
   /** Present only in the privileged admin read model. */
   adminUserId?: string
+  /** Admin read model only: the organiser released this participant to reading. */
+  completed?: boolean
 }
 
 export interface MatchingBookCircleView {

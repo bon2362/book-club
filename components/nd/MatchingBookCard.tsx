@@ -88,9 +88,12 @@ export default function MatchingBookCard({
   // alarm without a remedy. Unplaced assignments are themselves an admin-made state.
   const showCompositionDiagnostics = adminMode && formed
   // Three mutually-exclusive aggregate groups; the interest group excludes the viewer.
-  const enrolledCount = book.participants.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
-  const conditionalCount = book.participants.filter((participant) => participant.status === 'conditional').length
-  const interestCount = book.participants.filter((participant) => participant.status === 'interest' && participant.ref !== viewerRef).length
+  // Released participants reach this list only in adminMode, and they no longer count
+  // toward the formation threshold — so they must not inflate the counters either.
+  const counted = book.participants.filter((participant) => !participant.completed)
+  const enrolledCount = counted.filter((participant) => participant.status === 'hard' || participant.status === 'assigned').length
+  const conditionalCount = counted.filter((participant) => participant.status === 'conditional').length
+  const interestCount = counted.filter((participant) => participant.status === 'interest' && participant.ref !== viewerRef).length
   const conditionalWouldAssign = book.conditionalWouldAssign ?? false
   const pending = pendingAction !== null
   // Auto-enroll (the soft "conditional") lives behind the record button's caret.

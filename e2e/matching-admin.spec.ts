@@ -7,7 +7,11 @@ test.describe.configure({ timeout: 120_000 })
 type PublicState = {
   session: { stateVersion: number; status: 'open' | 'closed' }
   bookMode: {
-    books: Array<{ bookId: string; circles: Array<{ id: string }> }>
+    books: Array<{
+      bookId: string
+      circles: Array<{ id: string }>
+      participants: Array<{ ref: string; completed?: boolean }>
+    }>
   }
 }
 
@@ -76,6 +80,12 @@ test('администратор отправляет круг читать и �
   // headings, and no card claiming the session is closed while it is still open.
   await expect(participantPage.getByTestId('matching-tail-divider')).toHaveCount(0)
   await expect(participantPage.getByTestId('matching-books-view')).not.toContainText('Сессия закрыта')
+
+  // The organiser keeps a handle on released members: composition controls read this list.
+  const released = await getState(admin.request, session.id)
+  const releasedBook = released.bookMode.books.find((book) => book.bookId === books[0].id)!
+  expect(releasedBook.participants).toHaveLength(3)
+  expect(releasedBook.participants.filter((participant) => participant.completed)).toHaveLength(3)
 
   await adminAction(admin.request, session.id, participantA.userId, { action: 'returnCircle', circleId: circle!.id })
   await participantPage.reload()
