@@ -40,7 +40,7 @@ Resolver нужен, чтобы не создавать `circle_schedules` вн�
 
 ## Production Rollout
 
-Миграция `0062` не применяется автоматически в production. До ручного прогона:
+Миграция `0062_calendar.sql` не применяется автоматически в production. До ручного прогона:
 
 - `GET /api/calendar/[slug]` возвращает состояние с `migrationRequired: true`;
 - мутирующие календарные API отвечают `409 migration_required`;
