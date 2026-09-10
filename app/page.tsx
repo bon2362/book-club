@@ -11,6 +11,7 @@ import SiteVisitTracker from '@/components/nd/SiteVisitTracker'
 import AuthErrorBanner from '@/components/nd/AuthErrorBanner'
 import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
 import { MATCHING_OPEN_DB_STATUSES } from '@/lib/matching/session-status'
+import { resolveMatchingStripSessionId } from '@/lib/matching/strip-visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,17 +69,11 @@ export default async function Home() {
   const initialAboutVisible = cookieStore.get('about_dismissed')?.value !== 'true'
   const initialViewMode = cookieStore.get('book_view_mode')?.value === 'list' ? 'list' : 'grid'
   const initialShowRead = cookieStore.get('show_read')?.value === 'true'
-  const dismissedSessionId = cookieStore.get('matching_strip_dismissed')?.value ?? null
-  const hasSessionCookie = Boolean(
-    cookieStore.get('authjs.session-token')?.value
-      ?? cookieStore.get('__Secure-authjs.session-token')?.value
-  )
-  const openMatchingSessionId = session?.user?.id && hasSessionCookie
-    ? openSessionRows[0]?.id ?? null
-    : null
-  const matchingStripSessionId = openMatchingSessionId && openMatchingSessionId !== dismissedSessionId
-    ? openMatchingSessionId
-    : null
+  const matchingStripSessionId = resolveMatchingStripSessionId({
+    viewerUserId: session?.user?.id,
+    openSessionId: openSessionRows[0]?.id,
+    dismissedSessionId: cookieStore.get('matching_strip_dismissed')?.value ?? null,
+  })
 
   return (
     <>
