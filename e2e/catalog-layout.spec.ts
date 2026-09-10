@@ -6,6 +6,40 @@ test.beforeEach(async () => {
   await feature('Состояния интерфейса')
 })
 
+test.describe('Matching strip layout', () => {
+  test('on mobile the strip fits the viewport, hides close and stays between header and intro', async ({
+    page,
+    createMatchingSession,
+    loginAsUser,
+  }) => {
+    await createMatchingSession()
+    await loginAsUser()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/')
+
+    const strip = page.locator('.nd-matching-strip')
+    const close = strip.getByRole('button', { name: 'Скрыть полосу матчинга' })
+    const cta = strip.getByRole('link', { name: /перейти в матчинг/i })
+    const intro = page.getByRole('region', { name: 'Читательские круги' })
+    const [headerBox, stripBox, ctaBox, introBox] = await Promise.all([
+      page.locator('header').first().boundingBox(),
+      strip.boundingBox(),
+      cta.boundingBox(),
+      intro.boundingBox(),
+    ])
+
+    expect(headerBox).not.toBeNull()
+    expect(stripBox).not.toBeNull()
+    expect(ctaBox).not.toBeNull()
+    expect(introBox).not.toBeNull()
+    await expect(close).toHaveCount(0)
+    expect(ctaBox!.height).toBeGreaterThanOrEqual(44)
+    expect(stripBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height - 1)
+    expect(stripBox!.y + stripBox!.height).toBeLessThanOrEqual(introBox!.y + 1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+  })
+})
+
 test.describe('Home submit book CTA layout', () => {
   test('submit book button is compact on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })

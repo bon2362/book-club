@@ -4,22 +4,30 @@ import { auth } from '@/lib/auth'
 import { fetchBooksWithCovers } from '@/lib/books'
 import { getAllSignups } from '@/lib/signup-books'
 import { db } from '@/lib/db'
-import { tagDescriptions, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { matchingSessions, tagDescriptions, users } from '@/lib/db/schema'
+import { eq, inArray } from 'drizzle-orm'
 import BooksPage from '@/components/nd/BooksPage'
 import SiteVisitTracker from '@/components/nd/SiteVisitTracker'
 import AuthErrorBanner from '@/components/nd/AuthErrorBanner'
 import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
+import { MATCHING_OPEN_DB_STATUSES } from '@/lib/matching/session-status'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  const [session, books, signups, tagDescs, intro] = await Promise.all([
+  const cookieStore = await cookies()
+  const [session, books, signups, tagDescs, intro, openSessionRows] = await Promise.all([
     auth(),
     fetchBooksWithCovers(),
     getAllSignups().catch(() => []),
     db.select().from(tagDescriptions).catch(() => []),
     getIntroData({ onlyPublished: true }).catch(() => ({ header: null, sections: [] })),
+    db
+      .select({ id: matchingSessions.id })
+      .from(matchingSessions)
+      .where(inArray(matchingSessions.status, [...MATCHING_OPEN_DB_STATUSES]))
+      .limit(1)
+      .catch(() => []),
   ])
 
   const introHeader = intro.header ?? { title: DEFAULT_HEADER.title, body: DEFAULT_HEADER.body }
@@ -57,16 +65,26 @@ export default async function Home() {
 
   // Читаем UI-настройки из cookie на сервере, чтобы первый кадр уже был
   // в нужном состоянии и не дёргался после гидратации (CLS).
-  const cookieStore = await cookies()
   const initialAboutVisible = cookieStore.get('about_dismissed')?.value !== 'true'
   const initialViewMode = cookieStore.get('book_view_mode')?.value === 'list' ? 'list' : 'grid'
   const initialShowRead = cookieStore.get('show_read')?.value === 'true'
+  const dismissedSessionId = cookieStore.get('matching_strip_dismissed')?.value ?? null
+  const hasSessionCookie = Boolean(
+    cookieStore.get('authjs.session-token')?.value
+      ?? cookieStore.get('__Secure-authjs.session-token')?.value
+  )
+  const openMatchingSessionId = session?.user?.id && hasSessionCookie
+    ? openSessionRows[0]?.id ?? null
+    : null
+  const matchingStripSessionId = openMatchingSessionId && openMatchingSessionId !== dismissedSessionId
+    ? openMatchingSessionId
+    : null
 
   return (
     <>
       {session?.user?.id && <SiteVisitTracker />}
       <Suspense fallback={null}><AuthErrorBanner /></Suspense>
-      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} initialAboutVisible={initialAboutVisible} initialViewMode={initialViewMode} initialShowRead={initialShowRead} />
+      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} initialAboutVisible={initialAboutVisible} initialViewMode={initialViewMode} initialShowRead={initialShowRead} matchingStripSessionId={matchingStripSessionId} />
     </>
   )
 }

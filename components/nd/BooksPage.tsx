@@ -8,6 +8,7 @@ import type { UserSignup, PersonalBookStatus } from '@/lib/signup-books'
 import { searchBooks } from '@/lib/search'
 import { bookMatchesAuthor, getUniqueAuthors } from '@/lib/authors'
 import Header from './Header'
+import MatchingStrip from './MatchingStrip'
 import BookCard from './BookCard'
 import BookRow from './BookRow'
 import BookCardMobile from './BookCardMobile'
@@ -34,6 +35,7 @@ interface Props {
   initialAboutVisible: boolean
   initialViewMode: 'grid' | 'list'
   initialShowRead: boolean
+  matchingStripSessionId?: string | null
 }
 
 // Пишем UI-настройку в cookie (не localStorage), чтобы сервер видел её до
@@ -60,7 +62,7 @@ async function saveProfile(name: string, contacts: string) {
   if (!res.ok) throw new Error(`Profile save failed: ${res.status}`)
 }
 
-export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections, initialAboutVisible, initialViewMode, initialShowRead }: Props) {
+export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections, initialAboutVisible, initialViewMode, initialShowRead, matchingStripSessionId = null }: Props) {
   const { data: session } = useSession()
   const { isHidden } = useScrollHide()
   const isLoggedIn = !!session?.user?.id
@@ -68,6 +70,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const contactEmail = getUserContactEmail(session?.user)
 
   const [aboutVisible, setAboutVisible] = useState(initialAboutVisible)
+  const [matchingStripVisible, setMatchingStripVisible] = useState(matchingStripSessionId !== null)
   const aboutRef = useRef<AboutBlockHandle>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(initialViewMode)
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -88,6 +91,11 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   function handleCloseAbout() {
     setPrefCookie('about_dismissed', 'true')
     setAboutVisible(false)
+  }
+
+  function handleCloseMatchingStrip() {
+    setMatchingStripVisible(false)
+    if (matchingStripSessionId) setPrefCookie('matching_strip_dismissed', matchingStripSessionId)
   }
 
   function handleWhatIsThis() {
@@ -361,6 +369,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
         isAdmin={isAdmin}
         displayName={effectiveUser?.name}
       />
+
+      {matchingStripVisible && <MatchingStrip onClose={handleCloseMatchingStrip} />}
 
       {/* About */}
       {aboutVisible && (

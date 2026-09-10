@@ -1612,3 +1612,90 @@ body {
        он схлопывается по контенту и sticky не может «путешествовать». */
   }
 }
+/* ── Полоса матчинга на главной ──────────────────────────────────────── */
+.nd-matching-strip {
+  background: var(--bg-tint);
+  border-bottom: 1px solid var(--hair);
+  border-left: 3px solid var(--accent);
+}
+.nd-matching-strip__in {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: .85rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.nd-matching-strip__body { flex: 1; min-width: 0; }
+.nd-matching-strip__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  font-family: var(--nd-sans);
+  font-size: .6rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-hover);
+}
+.nd-matching-strip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.nd-matching-strip__title {
+  margin: .3rem 0 0;
+  font-family: var(--nd-serif);
+  font-size: 1.05rem;
+  line-height: 1.3;
+  color: var(--text);
+}
+.nd-matching-strip__cta {
+  flex-shrink: 0;
+  padding: 0 0 2px;
+  border-bottom: 1px solid var(--accent-line);
+  color: var(--accent-hover);
+  font: 600 .8rem/1.4 var(--nd-sans);
+  text-decoration: none;
+  transition: color .15s ease, border-color .15s ease;
+}
+.nd-matching-strip__cta:hover { color: var(--text); border-bottom-color: var(--text-muted); }
+.nd-matching-strip__cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.nd-matching-strip__close {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+.nd-matching-strip__close:hover { color: var(--text-secondary); }
+
+@media (max-width: 540px) {
+  .nd-matching-strip__in {
+    padding: .5rem .9rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+  .nd-matching-strip__title { font-size: 1rem; }
+  .nd-matching-strip__cta {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .nd-matching-strip__close { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nd-matching-strip__cta { transition: none; }
+}
