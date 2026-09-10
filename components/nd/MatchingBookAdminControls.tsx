@@ -124,7 +124,9 @@ export default function MatchingBookAdminControls({
               const currentCircle = book.circles.find((circle) => circle.memberRefs.includes(participant.ref))?.id ?? ''
               return (
                 <li key={participant.ref}>
-                  <span className="nd-mb-admin-name">{participant.displayName}</span>
+                  <span className="nd-mb-admin-name">
+                    {participant.completed ? `${participant.displayName} · читает` : participant.displayName}
+                  </span>
                   <div className="nd-mb-admin-actions">
                     {assigned ? (
                       <>

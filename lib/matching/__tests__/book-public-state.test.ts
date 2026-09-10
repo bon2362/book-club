@@ -34,6 +34,35 @@ describe('buildPublicBookModeState', () => {
     expect(book.circles[0].memberRefs).toEqual(['r1', 'r2', 'r3'])
   })
 
+  it('keeps released members in the admin composition, flagged and out of the counters', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'admin-1', admin: true,
+      books, participants,
+      interests: [interest('u1', 'b1'), interest('u2', 'b1'), interest('u3', 'b1'), interest('u2', 'b2')],
+      intents: [],
+      assignments: [
+        { userId: 'u1', bookId: 'b1', circleId: 'circle-1' },
+        { userId: 'u2', bookId: 'b1', circleId: 'circle-1' },
+        { userId: 'u3', bookId: 'b1', circleId: 'circle-1' },
+      ],
+      formedAtByBookId: new Map([['b1', new Date()]]),
+      circles: [{ id: 'circle-1', bookId: 'b1', position: 1 }],
+      completedUserIds: new Set(['u2', 'u3']),
+    })
+
+    // The organiser addresses composition controls through book.participants: hiding the
+    // released members there left them visible in the circle but impossible to act on.
+    const book = state.books.find(item => item.bookId === 'b1')!
+    expect(book.participants.map(participant => participant.ref).sort()).toEqual(['r1', 'r2', 'r3'])
+    expect(book.participants.filter(participant => participant.completed).map(participant => participant.ref).sort())
+      .toEqual(['r2', 'r3'])
+    expect(book.participants.find(participant => participant.ref === 'r1')?.completed).toBe(false)
+
+    // An unformed book still shows the organiser only the people who can actually form it.
+    const other = state.books.find(item => item.bookId === 'b2')!
+    expect(other.participants.filter(participant => !participant.completed)).toHaveLength(0)
+  })
+
   it('locks the completed viewer and keeps their assigned reading book above the tail', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,

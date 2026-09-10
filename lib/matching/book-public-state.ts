@@ -84,6 +84,8 @@ export interface PublicBookModeState {
       status: BookParticipantStatus
       rank: number | null
       adminUserId?: string
+      /** Admin read model only: this participant was released to reading. */
+      completed?: boolean
     }>
     circles: Array<{
       id: string
@@ -131,7 +133,12 @@ export function buildPublicBookModeState(input: {
 }): PublicBookModeState {
   const completedUserIds = input.completedUserIds ?? new Set<string>()
   const viewerCompleted = completedUserIds.has(input.viewerUserId)
-  const isVisibleParticipant = (userId: string) => userId === input.viewerUserId || !completedUserIds.has(userId)
+  // Released participants disappear from *other participants'* aggregates, never from the
+  // organiser's: composition controls (снять, переложить в круг) address book.participants,
+  // so hiding them there would leave the organiser with no handle on the people they see
+  // sitting in a circle.
+  const isVisibleParticipant = (userId: string) =>
+    input.admin || userId === input.viewerUserId || !completedUserIds.has(userId)
   const participantById = new Map(input.participants.map(item => [item.userId, item]))
   const intentByUserBook = new Map(input.intents.map(item => [`${item.userId}:${item.bookId}`, item]))
   const assignmentByUserBook = new Map(input.assignments.map(item => [`${item.userId}:${item.bookId}`, item]))
@@ -182,7 +189,7 @@ export function buildPublicBookModeState(input: {
             assignments: assignmentByUserBook,
           }),
           rank: interestByUserBook.get(`${userId}:${book.bookId}`)?.rank ?? null,
-          ...(input.admin ? { adminUserId: userId } : {}),
+          ...(input.admin ? { adminUserId: userId, completed: completedUserIds.has(userId) } : {}),
         }]
       }).sort((left, right) => left.displayName.localeCompare(right.displayName) || left.ref.localeCompare(right.ref))
       const bookAssignments = input.assignments.filter(item => item.bookId === book.bookId)
