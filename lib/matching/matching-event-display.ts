@@ -39,6 +39,7 @@ export function matchingEventTypeLabel(eventType: string): string {
     case 'conditional_intents_cleared': return 'Авто-записи сняты'
     case 'circle_released': return 'Круг отправлен читать'
     case 'circle_returned': return 'Круг возвращён в подбор'
+    case 'participant_returned_to_matching': return 'Возвращён:а в подбор'
     default: return eventType
   }
 }

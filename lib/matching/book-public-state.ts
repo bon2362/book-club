@@ -92,6 +92,8 @@ export interface PublicBookModeState {
       position: number
       memberRefs: string[]
       memberDisplayNames?: Record<string, string>
+      /** The organiser sent this circle off to read. */
+      released?: boolean
     }>
     unplacedParticipantRefs: string[]
     viewerPersonalStatus: 'reading' | null
@@ -130,8 +132,10 @@ export function buildPublicBookModeState(input: {
   circles: BookModeCircleRow[]
   viewerReadingBookIds?: string[]
   completedUserIds?: ReadonlySet<string>
+  releasedCircleIds?: ReadonlySet<string>
 }): PublicBookModeState {
   const completedUserIds = input.completedUserIds ?? new Set<string>()
+  const releasedCircleIds = input.releasedCircleIds ?? new Set<string>()
   const viewerCompleted = completedUserIds.has(input.viewerUserId)
   // Released participants disappear from *other participants'* aggregates, never from the
   // organiser's: composition controls (снять, переложить в круг) address book.participants,
@@ -210,6 +214,9 @@ export function buildPublicBookModeState(input: {
           position: circle.position,
           memberRefs,
           ...(Object.keys(memberDisplayNames).length > 0 ? { memberDisplayNames } : {}),
+          // Released is a fact about the circle, not about who currently sits in matching:
+          // returning one member so they can pick a second book leaves the circle released.
+          ...(releasedCircleIds.has(circle.id) ? { released: true } : {}),
         }
       })
       const unplacedParticipantRefs = bookAssignments

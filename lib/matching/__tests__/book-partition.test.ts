@@ -117,6 +117,7 @@ describe('planCircleRebuild', () => {
         assignment('new2', null, 5),
         assignment('new3', null, 6),
       ],
+      releasedCircleIds: new Set(['released']),
       completedUserIds: new Set(['a', 'b', 'c']),
     })
 
@@ -139,6 +140,7 @@ describe('planCircleRebuild', () => {
         assignment('y', 'gone', 5),
         assignment('z', 'gone', 6),
       ],
+      releasedCircleIds: new Set(['released']),
       completedUserIds: new Set(['a', 'b', 'c']),
     })
 
@@ -157,6 +159,7 @@ describe('planCircleRebuild', () => {
         assignment('y', 'mixed', 3),
         assignment('z', 'mixed', 4),
       ],
+      releasedCircleIds: new Set(),
       completedUserIds: new Set(['released']),
     })
 
@@ -169,11 +172,41 @@ describe('planCircleRebuild', () => {
     const plan = planCircleRebuild({
       circles: [{ id: 'old', position: 1 }],
       assignments: [assignment('x', 'old', 1), assignment('y', 'old', 2), assignment('z', 'old', 3)],
+      releasedCircleIds: new Set(),
       completedUserIds: new Set(),
     })
 
     expect(plan.preservedCircleIds).toEqual([])
     expect(plan.removedCircleIds).toEqual(['old'])
     expect(plan.partitions).toEqual([{ position: 1, userIds: ['x', 'y', 'z'] }])
+  })
+})
+
+describe('planCircleRebuild after one member returns to matching', () => {
+  const at = (minutes: number) => new Date(Date.UTC(2026, 8, 10, 12, minutes))
+  const assignment = (userId: string, circleId: string | null, minutes: number) =>
+    ({ userId, circleId, assignedAt: at(minutes) })
+
+  it('keeps the reading circle intact when a member is back picking a second book', () => {
+    // The organiser returned "b" so they can choose another book. Their reading circle is
+    // still a reading circle: preservation follows releasedCircleIds, not who is completed.
+    const plan = planCircleRebuild({
+      circles: [{ id: 'released', position: 1 }],
+      assignments: [
+        assignment('a', 'released', 1),
+        assignment('b', 'released', 2),
+        assignment('c', 'released', 3),
+        assignment('new1', null, 4),
+        assignment('new2', null, 5),
+        assignment('new3', null, 6),
+      ],
+      releasedCircleIds: new Set(['released']),
+      completedUserIds: new Set(['a', 'c']),
+    })
+
+    expect(plan.preservedCircleIds).toEqual(['released'])
+    expect(plan.detachedUserIds).toEqual([])
+    expect(plan.partitions).toEqual([{ position: 2, userIds: ['new1', 'new2', 'new3'] }])
+    expect(plan.partitions.flatMap(partition => partition.userIds)).not.toContain('b')
   })
 })

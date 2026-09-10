@@ -93,6 +93,7 @@ export async function fetchMatchingPublicState(
     joinedAt: matchingSessionParticipants.joinedAt,
     lastSeenAt: matchingSessionParticipants.lastSeenAt,
     completedAt: matchingSessionParticipants.completedAt,
+    completedCircleId: matchingSessionParticipants.completedCircleId,
     name: users.name,
   }).from(matchingSessionParticipants)
     .leftJoin(users, eq(matchingSessionParticipants.userId, users.id))
@@ -200,6 +201,7 @@ export async function fetchMatchingPublicState(
     circles: circleRows,
     viewerReadingBookIds,
     completedUserIds: new Set(participantRows.filter(item => item.completedAt !== null).map(item => item.userId)),
+    releasedCircleIds: new Set(participantRows.flatMap(item => item.completedCircleId ? [item.completedCircleId] : [])),
   })
 
   const viewer = participants.find((participant) => participant.userId === viewerUserId)

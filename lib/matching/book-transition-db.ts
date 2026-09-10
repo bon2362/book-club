@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import {
   bookPriorities,
@@ -35,6 +35,7 @@ type BookAction = Extract<MatchingAction, {
     | 'admin_place_book_assignment'
     | 'admin_release_circle'
     | 'admin_return_circle'
+    | 'admin_return_participant'
     | 'close_session'
     | 'reopen_session'
 }>
@@ -167,17 +168,18 @@ async function rebuildAutomaticCircles(tx: DbClient, sessionId: string, bookId: 
     eq(matchingBookAssignments.sessionId, sessionId),
     eq(matchingBookAssignments.bookId, bookId),
   ))
-  const completed = await tx.select({ userId: matchingSessionParticipants.userId })
-    .from(matchingSessionParticipants)
-    .where(and(
-      eq(matchingSessionParticipants.sessionId, sessionId),
-      isNotNull(matchingSessionParticipants.completedAt),
-    ))
+  const participantStates = await tx.select({
+    userId: matchingSessionParticipants.userId,
+    completedAt: matchingSessionParticipants.completedAt,
+    completedCircleId: matchingSessionParticipants.completedCircleId,
+  }).from(matchingSessionParticipants)
+    .where(eq(matchingSessionParticipants.sessionId, sessionId))
 
   const plan = planCircleRebuild({
     circles,
     assignments,
-    completedUserIds: new Set(completed.map(item => item.userId)),
+    releasedCircleIds: new Set(participantStates.flatMap(item => item.completedCircleId ? [item.completedCircleId] : [])),
+    completedUserIds: new Set(participantStates.flatMap(item => item.completedAt !== null ? [item.userId] : [])),
   })
 
   // Detach before deleting: assignments reference circles by foreign key.
@@ -508,6 +510,27 @@ export async function applyBookMatchingAction(input: {
       await detachBookFromPriorities(tx, userId, circle.bookId)
     }
     return { changed: true, events: [{ eventType: 'circle_released', bookId: circle.bookId, after: { circleId: circle.id, userIds } }] }
+  }
+  if (action.type === 'admin_return_participant') {
+    // Returns one member of a released circle to matching so they can pick a second book.
+    // Their reading book and the circle itself stay exactly as they are: only the "out of
+    // matching" marker is lifted. completed_circle_id is deliberately kept — it is what
+    // keeps the reading circle safe from automatic re-partitioning.
+    const [participant] = await tx.select({ completedAt: matchingSessionParticipants.completedAt })
+      .from(matchingSessionParticipants).where(and(
+        eq(matchingSessionParticipants.sessionId, sessionId),
+        eq(matchingSessionParticipants.userId, action.userId),
+      )).limit(1)
+    if (!participant) throw new MatchingTransitionError('invalid_book_action')
+    if (participant.completedAt === null) return false
+    await tx.update(matchingSessionParticipants).set({ completedAt: null }).where(and(
+      eq(matchingSessionParticipants.sessionId, sessionId),
+      eq(matchingSessionParticipants.userId, action.userId),
+    ))
+    return {
+      changed: true,
+      events: [{ eventType: 'participant_returned_to_matching', subjectUserId: action.userId }],
+    }
   }
   if (action.type === 'admin_return_circle') {
     const [circle] = await tx.select({ id: matchingCircles.id, bookId: matchingCircles.bookId }).from(matchingCircles).where(and(

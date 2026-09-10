@@ -22,6 +22,7 @@ function parseAction(body: Record<string, unknown>): MatchingAction | null {
     case 'place': return userId && bookId ? { type: 'admin_place_book_assignment', userId, bookId, circleId } : null
     case 'releaseCircle': return circleId ? { type: 'admin_release_circle', circleId } : null
     case 'returnCircle': return circleId ? { type: 'admin_return_circle', circleId } : null
+    case 'returnParticipant': return userId ? { type: 'admin_return_participant', userId } : null
     case 'closeSession': return { type: 'close_session' }
     case 'reopenSession': return { type: 'reopen_session' }
     default: return null
