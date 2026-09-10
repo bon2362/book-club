@@ -163,3 +163,26 @@ test('renders the canonical open status label', () => {
   render(<MatchingHeader {...base} />)
   expect(screen.getByText('● открыта')).toBeInTheDocument()
 })
+
+test('counts only participants still choosing books, not those released to reading', () => {
+  // Число в шапке читают как «сколько людей ещё может попасть в круг», поэтому
+  // отправленные читать в него не входят — они своё решение уже приняли.
+  const participants = [
+    { ref: 'safe-a', displayName: 'Анна', online: true },
+    { ref: 'safe-b', displayName: 'Борис', online: false },
+    { ref: 'safe-c', displayName: 'Вера', online: false, completed: true },
+    { ref: 'safe-d', displayName: 'Галина', online: false, completed: true },
+  ]
+  render(<MatchingHeader {...base} participants={participants} />)
+
+  const trigger = screen.getByRole('button', { name: /участники и меню сессии/i })
+  expect(trigger).toHaveAccessibleName('Участники и меню сессии: 2')
+  expect(trigger).toHaveTextContent('2')
+
+  fireEvent.click(trigger)
+  const dialog = screen.getByRole('dialog', { name: 'Участники' })
+  expect(dialog).toHaveTextContent('Участники · 2')
+  expect(dialog).toHaveTextContent('Анна')
+  expect(dialog).not.toHaveTextContent('Вера')
+  expect(dialog).not.toHaveTextContent('Галина')
+})

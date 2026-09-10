@@ -82,6 +82,10 @@ test('администратор отправляет круг читать и �
   await expect(participantPage.getByTestId('matching-tail-divider')).toHaveCount(0)
   await expect(participantPage.getByTestId('matching-books-view')).not.toContainText('Сессия закрыта')
 
+  // Счётчик в шапке — про тех, кто ещё выбирает: выпущенный круг из него уходит.
+  await expect(participantPage.getByRole('button', { name: /Участники и меню сессии/ }))
+    .toHaveAccessibleName('Участники и меню сессии: 0')
+
   // The organiser keeps a handle on released members: composition controls read this list.
   const released = await getState(admin.request, session.id)
   const releasedBook = released.bookMode.books.find((book) => book.bookId === books[0].id)!

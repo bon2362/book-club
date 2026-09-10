@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Popover from '@radix-ui/react-popover'
 
-export interface MatchingHeaderParticipant { ref: string; displayName: string; online: boolean }
+export interface MatchingHeaderParticipant { ref: string; displayName: string; online: boolean; completed?: boolean }
 export interface MatchingHeaderProps {
   sessionId: string; sessionName: string; sessionStatus: string; stateVersion: number
   deadlineAt: string | null
@@ -89,10 +89,14 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
   }
 
   const statusLabel = props.sessionStatus === 'open' ? 'открыта' : 'закрыта'
-  const viewerParticipant = props.participants.find((participant) => participant.ref === props.viewer.ref)
+  // Счётчик и список — про тех, кто ещё выбирает книги. Отправленные читать своё решение
+  // приняли и в подборе не участвуют, поэтому раздувать ими число участников было бы
+  // враньём: по нему судят, сколько людей ещё может попасть в круг.
+  const activeParticipants = props.participants.filter((participant) => !participant.completed)
+  const viewerParticipant = activeParticipants.find((participant) => participant.ref === props.viewer.ref)
   const menuParticipants = viewerParticipant
-    ? [viewerParticipant, ...props.participants.filter((participant) => participant.ref !== props.viewer.ref)]
-    : props.participants
+    ? [viewerParticipant, ...activeParticipants.filter((participant) => participant.ref !== props.viewer.ref)]
+    : activeParticipants
   return <>
     {props.isImpersonating && <div data-testid="admin-impersonation-banner" style={{ padding: '0.45rem 1.3rem', borderBottom: '1px solid var(--border)', color: 'var(--status-warn)' }}>👁 Просмотр за {props.viewer.displayName}<a href="/admin?tab=matching" style={{ float: 'right', color: 'inherit' }}>← вернуться в админку</a></div>}
     <header data-testid="matching-header" className="nd-mx-hdr" style={{ padding: '0.7rem 1.3rem', borderBottom: '1px solid var(--border-strong)', background: 'var(--bg)' }}>
@@ -106,11 +110,11 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
           <span className="nd-mx-hdr-you" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Вы — <strong style={{ color: 'var(--text)' }}>{props.viewer.displayName}</strong></span>
           <Popover.Root open={participantsOpen} onOpenChange={setParticipantsOpen}>
             <Popover.Trigger asChild>
-              <button type="button" className="nd-mx-session-menu-trigger" aria-label={`Участники и меню сессии: ${props.participants.length}`} style={{ display: 'flex', alignItems: 'center', border: 0, background: 'transparent' }}>
+              <button type="button" className="nd-mx-session-menu-trigger" aria-label={`Участники и меню сессии: ${activeParticipants.length}`} style={{ display: 'flex', alignItems: 'center', border: 0, background: 'transparent' }}>
                 <span className="nd-mx-hdr-menu-icon" aria-hidden="true"><span /><span /><span /></span>
-                {props.participants.slice(0, 5).map((participant, index) => <span key={participant.ref} className="nd-mx-hdr-av" aria-label={`${participant.displayName} — ${participant.online ? 'онлайн' : 'не в сети'}`} style={{ marginLeft: index ? -8 : 0, width: 28, height: 28, borderRadius: '50%', background: 'var(--chip-bg)', boxShadow: '0 0 0 2px var(--bg)', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.66rem', fontFamily: 'var(--nd-sans)' }}>{participant.displayName[0]}</span>)}
-                {props.participants.length > 5 && <span className="nd-mx-hdr-av" style={{ marginLeft: -8, width: 28, height: 28, borderRadius: '50%', background: 'var(--bg)', color: 'var(--text-muted)', border: '1px solid var(--hair)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.6rem', fontFamily: 'var(--nd-sans)' }}>+{props.participants.length - 5}</span>}
-                <span className="nd-mx-hdr-participant-count" style={{ marginLeft: 6, fontFamily: 'var(--nd-sans)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{props.participants.length}</span>
+                {activeParticipants.slice(0, 5).map((participant, index) => <span key={participant.ref} className="nd-mx-hdr-av" aria-label={`${participant.displayName} — ${participant.online ? 'онлайн' : 'не в сети'}`} style={{ marginLeft: index ? -8 : 0, width: 28, height: 28, borderRadius: '50%', background: 'var(--chip-bg)', boxShadow: '0 0 0 2px var(--bg)', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.66rem', fontFamily: 'var(--nd-sans)' }}>{participant.displayName[0]}</span>)}
+                {activeParticipants.length > 5 && <span className="nd-mx-hdr-av" style={{ marginLeft: -8, width: 28, height: 28, borderRadius: '50%', background: 'var(--bg)', color: 'var(--text-muted)', border: '1px solid var(--hair)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.6rem', fontFamily: 'var(--nd-sans)' }}>+{activeParticipants.length - 5}</span>}
+                <span className="nd-mx-hdr-participant-count" style={{ marginLeft: 6, fontFamily: 'var(--nd-sans)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{activeParticipants.length}</span>
               </button>
             </Popover.Trigger>
             <Popover.Portal>
@@ -119,11 +123,11 @@ export default function MatchingHeader(props: MatchingHeaderProps) {
                   <span>{deadlineText(props.deadlineAt, now)}</span>
                   <span className={`nd-mx-session-menu-status${props.sessionStatus === 'open' ? ' is-active' : ''}`}>● {statusLabel}</span>
                 </div>
-                <div style={{ padding: '0.7rem 0.9rem 0.5rem' }}><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)' }}>Участники · {props.participants.length}</span></div>
+                <div style={{ padding: '0.7rem 0.9rem 0.5rem' }}><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)' }}>Участники · {activeParticipants.length}</span></div>
                 <div className="nd-mx-session-menu-participants">
                   {menuParticipants.map((participant, index) => <div key={participant.ref} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0.9rem' }} className={`nd-matching-popover-row${index >= 6 ? ' nd-mx-session-menu-overflow-row' : ''}`}><span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: participant.online ? 'var(--status-ok)' : 'var(--text-muted)', opacity: participant.online ? 1 : 0.4 }} /><span style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.85rem', color: participant.ref === props.viewer.ref ? 'var(--text)' : 'var(--text-body)', fontWeight: participant.ref === props.viewer.ref ? 700 : 400 }}>{participant.displayName}{participant.ref === props.viewer.ref && <span className="nd-mx-session-menu-viewer"> · вы</span>}</span></div>)}
                 </div>
-                {props.participants.length > 6 && <div className="nd-mx-session-menu-tail">…и ещё {props.participants.length - 6}</div>}
+                {activeParticipants.length > 6 && <div className="nd-mx-session-menu-tail">…и ещё {activeParticipants.length - 6}</div>}
                 {!props.isAdmin && !props.isImpersonating && <button type="button" className="nd-mx-session-menu-leave" onClick={leave} disabled={pending || props.viewerAssigned} title={props.viewerAssigned ? 'Назначенный участник не может выйти самостоятельно' : undefined}>{pending ? 'Подождите…' : 'Покинуть сессию'}</button>}
                 <Popover.Close aria-label="Закрыть список участников" className="nd-matching-popover-close" style={{ display: 'block', width: '100%', textAlign: 'left', marginTop: 0, borderTop: '1px solid var(--hair-soft)', borderLeft: 0, borderRight: 0, borderBottom: 0, background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'var(--nd-sans)', fontSize: '0.8rem', padding: '0.55rem 0.9rem', cursor: 'pointer', transition: 'color 0.15s ease' }}>Закрыть</Popover.Close>
               </Popover.Content>
