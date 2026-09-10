@@ -13,8 +13,12 @@ import { captureServerEvent, setPersonProperties } from '@/lib/posthog-server'
  * not add it.
  */
 
-/** How the user in `auth_succeeded` ended up resolved to this account. */
-export type AuthLinkedBy = 'identity' | 'email' | 'new'
+/**
+ * How the user in `auth_succeeded` ended up resolved to this account.
+ * `adapter` — вход через Google или ссылку из письма: пользователя нашёл или создал
+ * адаптер NextAuth, identity мы лишь до-связали (см. колбэк signIn в lib/auth.ts).
+ */
+export type AuthLinkedBy = 'identity' | 'email' | 'new' | 'adapter'
 
 export async function trackAuthSucceeded(
   distinctId: string,

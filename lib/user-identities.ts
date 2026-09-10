@@ -213,6 +213,17 @@ async function reportLoginSuccess(analytics: PendingLoginAnalytics): Promise<voi
   if (person) await applyLoginPersonProperties(userId, person)
 }
 
+/**
+ * Свойства персоны для PostHog вне контекста логин-транзакции. Нужны пути входа
+ * через адаптер NextAuth (Google, ссылка из письма): там пользователь уже создан
+ * адаптером, а событие входа и свойства отправляет колбэк signIn.
+ *
+ * PRIVACY: email не читается и не возвращается — см. `LoginPersonProperties`.
+ */
+export async function loadLoginPersonProperties(userId: string): Promise<LoginPersonProperties> {
+  return fetchLoginPersonProperties(db, userId)
+}
+
 async function selectResolvedUser(tx: IdentityDb, userId: string, isNew: boolean): Promise<ResolvedIdentityUser> {
   const rows = await tx
     .select({
