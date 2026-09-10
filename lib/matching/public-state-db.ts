@@ -107,6 +107,7 @@ export async function fetchMatchingPublicState(
     publicRef: participant.publicRef,
     displayName: displayNames.get(participant.userId) ?? 'Без имени',
     online: isOnline(participant.lastSeenAt),
+    completed: participant.completedAt !== null,
   }))
 
   const [notices, interests, intents, assignments, formedRows, circleRows, readingRows] = await Promise.all([
@@ -220,6 +221,7 @@ export async function fetchMatchingPublicState(
       ref: participant.publicRef,
       displayName: participant.displayName,
       online: participant.online,
+      completed: participant.completed,
     })),
     notices: notices.map((notice) => ({
       id: notice.id,
