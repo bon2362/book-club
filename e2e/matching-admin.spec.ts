@@ -216,3 +216,72 @@ test('администратор меняет круги, назначения �
     name: 'Записаться', exact: true,
   })).toBeVisible()
 })
+
+test('админская вкладка матчинга показывает спрос по книгам и сохраняет подвкладку после reload', { tag: '@matching-golden' }, async ({
+  matchingBooksFixture,
+  openMatchingPage,
+}) => {
+  const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
+  const [participantB] = await Promise.all([getParticipantB(), getParticipantC()])
+
+  // Обе книги держат в «Хочу читать» трое активных: A — окончательно записан:а на первую,
+  // B — авто-запись на неё же, C — только список. До формирования круга не хватает второй hard.
+  await participantAction(participantA.request, session.id, books[0].id, 'setHard')
+  await participantAction(participantB.request, session.id, books[0].id, 'setConditional')
+
+  const page = await openMatchingPage(admin)
+  await page.goto('/admin?tab=matching')
+
+  const demand = page.getByTestId('admin-matching-demand')
+  await expect(page.getByTestId('admin-matching-tab-demand')).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByTestId('admin-matching-session-bar')).toContainText(session.name)
+  await expect(page.getByTestId('admin-matching-summary-activeParticipants')).toHaveText('3')
+
+  const firstBook = demand.locator(`[data-book-id="${books[0].id}"]`)
+  const secondBook = demand.locator(`[data-book-id="${books[1].id}"]`)
+  await expect(firstBook).toBeVisible()
+  await expect(secondBook).toBeVisible()
+  // Первая книга выше: у неё ранги лучше; записи на порядок влияют только после рангов.
+  const order = await demand.getByTestId('admin-demand-book').evaluateAll(
+    (cards) => cards.map((card) => card.getAttribute('data-book-id')),
+  )
+  expect(order.indexOf(books[0].id)).toBeLessThan(order.indexOf(books[1].id))
+  await expect(firstBook.getByTestId('admin-demand-person')).toHaveCount(3)
+  await expect(firstBook.locator('[data-testid="admin-demand-person"][data-status="signed_up"]')).toContainText(participantA.name)
+  await expect(firstBook.locator('[data-testid="admin-demand-person"][data-status="conditional"]')).toContainText(participantB.name)
+  await expect(firstBook.locator('[data-testid="admin-demand-person"][data-status="wishlist"]')).toHaveCount(1)
+  await expect(demand.getByRole('button')).toHaveCount(0)
+
+  // Доп. метрики — во всплывающей подсказке: скрыта, пока заголовок не в фокусе.
+  const tooltip = firstBook.getByRole('tooltip')
+  await expect(tooltip).toBeHidden()
+  await firstBook.locator('[aria-describedby]').focus()
+  await expect(tooltip).toBeVisible()
+  await expect(tooltip).toContainText('Записались')
+
+  // Подвкладка живёт в URL и переживает перезагрузку.
+  await page.getByTestId('admin-matching-tab-people').click()
+  await expect(page).toHaveURL(/sub=people/)
+  await page.reload()
+  const people = page.getByTestId('admin-matching-people')
+  await expect(page.getByTestId('admin-matching-tab-people')).toHaveAttribute('aria-selected', 'true')
+  const rowA = people.getByTestId('admin-participant-row').filter({ hasText: participantA.name })
+  await expect(rowA).toBeVisible()
+
+  // Ручное добавление свёрнуто вместе с предупреждением; «убрать» проявляется по наведению.
+  await expect(page.getByTestId('admin-add-disclosure-warning')).toHaveCount(0)
+  const remove = rowA.getByTestId('admin-participant-remove')
+  await expect(remove).toHaveCSS('opacity', '0')
+  await rowA.hover()
+  await expect(remove).toHaveCSS('opacity', '1')
+
+  // Полный список книг участника — по раскрытию строки.
+  await rowA.getByTestId('admin-participant-books-toggle').click()
+  await expect(people.getByTestId('admin-participant-books')).toContainText(`«${books[1].title}»`)
+
+  await page.getByTestId('admin-matching-tab-log').click()
+  const log = page.getByTestId('admin-matching-log')
+  await expect(log.getByTestId('admin-matching-preference-events')).toContainText('Окончательная запись')
+  await expect(log).not.toContainText('hard_set')
+  await expect(log.getByTestId('admin-matching-event-totals')).toHaveCount(0)
+})
