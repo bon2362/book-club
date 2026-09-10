@@ -1,319 +1,618 @@
 ---
-title: 'Координация по книгам в админке Matching'
+title: 'Админская координация Matching по книгам'
 type: 'feature'
 created: '2026-09-10'
+updated: '2026-09-10'
 status: 'ready-for-dev'
-baseline_commit: 'a762353b'
+baseline_commit: '9e185fe'
 context:
   - 'docs/features/matching.md'
   - 'docs/wiki/Group-Matching-Mode.md'
   - 'components/nd/AdminMatchingSession.tsx'
-  - 'app/api/admin/matching/sessions/[id]/participants/route.ts'
-  - 'lib/matching/book-public-state.ts'
-  - 'lib/matching/book-partition.ts'
-  - 'historical: lib/matching/scenarios.ts at c78d48d'
-stepsCompleted: [1, 2, 3, 4]
+  - 'app/api/admin/matching/**'
+  - 'lib/matching/**'
+  - 'design handoff: /Users/ekoshkin/Downloads/design_handoff_matching_admin/*'
 tech_stack:
   - 'Next.js 14 App Router / TypeScript'
   - 'React client components'
   - 'Drizzle ORM / Neon Postgres'
   - 'Jest + React Testing Library'
-  - 'Playwright focused E2E for admin workflow if layout or persistence behavior changes'
+  - 'Playwright focused E2E for admin workflow and tabs if implementation changes UI flow'
 files_to_modify:
   - 'lib/matching/coordination-radar.ts'
   - 'lib/matching/__tests__/coordination-radar.test.ts'
   - 'app/api/admin/matching/sessions/[id]/coordination/route.ts'
   - 'app/api/admin/matching/sessions/[id]/coordination/route.test.ts'
-  - 'components/nd/AdminMatchingBookCoordination.tsx'
-  - 'components/nd/AdminMatchingBookCoordination.test.tsx'
   - 'components/nd/AdminMatchingSession.tsx'
   - 'components/nd/AdminMatchingSession.test.tsx'
+  - 'components/nd/AdminMatchingSessionBar.tsx'
+  - 'components/nd/AdminMatchingSummary.tsx'
+  - 'components/nd/AdminMatchingBookDemand.tsx'
+  - 'components/nd/AdminMatchingParticipantsTab.tsx'
+  - 'components/nd/AdminMatchingLogTab.tsx'
+  - 'lib/matching/matching-event-display.ts'
   - 'docs/features/matching.md'
   - 'docs/wiki/Group-Matching-Mode.md'
 code_patterns:
   - 'Admin-only reads start with auth() and return 403 for non-admin users.'
-  - 'Matching admin state is loaded from AdminMatchingSession via fetch() for the selected session.'
   - 'Pure matching calculations live under lib/matching/ and get focused Jest tests.'
-  - 'Participant-facing public state hides completed participants, but admin read models may include them when they are needed for controls.'
   - 'Matching UI uses semantic tokens from app/globals.css, not raw colors.'
+  - 'Design handoff files are references, not source code to copy.'
 test_patterns:
   - 'Pure logic tests in lib/matching/__tests__/*.test.ts.'
   - 'Route handler tests mock auth and db query chains next to the route.'
   - 'Component tests mock fetch and assert rendered copy/actions with React Testing Library.'
+  - 'Focused Playwright E2E is expected if tabs, collapsible controls, or admin flow behavior change.'
 ---
 
-# Координация по книгам в админке Matching
+# Quick Tech Spec: Админская координация Matching по книгам
 
-<frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
+**Status:** ready-for-dev  
+**Created:** 2026-09-10  
+**Updated:** 2026-09-10  
+**Owner:** admin / matching coordination  
+**Baseline:** PR #559 + последующие изменения Matching, уточнение границ PR #588, дизайнерский handoff package `design_handoff_matching_admin`
 
-## Intent
+## 1. Goal
 
-**Problem:** Администратор видит участников сессии и их уже сделанные matching-выборы, но не видит удобной книжной картины спроса: какие книги одновременно есть в списках «Хочу читать» у нескольких активных участников, как сильны эти пересечения по рангам и кто из людей уже записался, включил авто-запись или пока только держит книгу в списке. Из-за этого координатор собирает эту информацию вручную или внешним ИИ и затем транслирует её в чат.
+Сделать в админке Matching рабочий экран координации: админ должен быстро видеть, по каким книгам среди активных участников есть достаточный спрос, кто уже записался, кто только держит книгу в списке «Хочу читать», какие ранги у этой книги у разных участников, и кто из этих участников уже читает какую-то книгу.
 
-**Approach:** Под существующей таблицей «Участники» добавить read-only блок «Координация по книгам». Блок показывает только книги, где минимум три активных участника текущей сессии держат книгу в «Хочу читать» с `personal_status IS NULL`. Сортировка строится по силе пересечений и рангов, а окончательные и автоматические записи показываются как контекст после показателей интереса. Блок не даёт автоматических рекомендаций и не меняет механику формирования кругов.
+Фича нужна как read-only радар для координатора. Она не должна рекомендовать конкретные действия участникам, автоматически менять приоритеты людей или влиять на правила формирования кругов.
 
-## Boundaries & Constraints
+Одновременно нужно привести админский экран Matching к структуре, предложенной дизайнером: компактная верхняя зона с выбором сессии, сводка по текущей сессии и вкладки с тремя перспективами: спрос по книгам, участники, журнал.
 
-**Always:** Считать координаторский радар только для админки; не показывать его обычным участникам; включать только активных участников текущей сессии с `completed_at IS NULL`; включать книгу в блок только при трёх и более активных shortlist-пересечениях; считать интерес по `signup_books.personal_status IS NULL`; показывать у участника любые текущие книги со статусом `reading` справочно, независимо от текущей matching-сессии; показывать сформированные книги, но не использовать факт сформированного круга в сортировке; использовать только read-only запросы; сохранить текущую таблицу «Участники» и её действия.
+## 2. Primary Use Case
 
-**Ask First:** Любое расширение за пределы read-only радара: автоматические рекомендации координатору, подсказки конкретных действий, учёт `reading` в сортировке или score, изменение правил формирования книги, замена текущей таблицы участников вместо добавления отдельного блока, либо любые мутации в новом coordination endpoint.
+Админ запускает или ведёт matching-сессию. В сессии есть активные участники, которые ещё выбирают книги. Некоторые книги уже собрали записи, но пока не набрали устойчивый круг. Админ открывает админку Matching и смотрит перспективу по книгам:
 
-**Never:** Не возвращать пользовательский экран сценариев; не показывать новый блок не-админам; не считать выпущенных читать участников как активный спрос; не учитывать `read` и `reading` как активный интерес по конкретной книге; не использовать число собранных кругов как часть score; не добавлять новую таблицу БД или миграцию для read-only расчёта.
+- какие книги есть минимум у трёх активных участников в списке «Хочу читать»;
+- кто из этих людей уже записался на книгу;
+- у кого книга только в потенциальном списке;
+- какие ранги поставили участники;
+- кто из этих людей уже читает какую-то другую книгу;
+- есть ли по книге уже сформированные круги.
 
-## Core Product Rules
+После этого админ сам решает, что написать в чате участникам. Интерфейс только показывает агрегированную информацию.
 
-- Блок называется «Координация по книгам» и располагается под существующей таблицей «Участники» в админке Matching.
-- Текущая таблица участников остаётся отдельным блоком: добавление/удаление участника, источник вступления, роль, дата вступления, текущие записи и ссылка `/matching?as={userId}` сохраняются в прежнем workflow.
-- Книга попадает в радар, если минимум три активных участника текущей сессии добавили её в «Хочу читать» и по этой книге у них `signup_books.personal_status IS NULL`.
-- Уже сформированные книги показываются наравне с остальными, потому что одна книга может собрать несколько кругов.
-- Участники с `matching_session_participants.completed_at IS NOT NULL` исключаются из расчёта активного спроса.
-- Если активный участник читает любую другую книгу (`signup_books.personal_status = 'reading'`), эти названия показываются рядом с ним как справка. Эта справка не влияет на score.
-- Если подходящих книг нет, блок показывает тихую строку: «Пока нет книг с тремя активными пересечениями».
+## 3. Design Handoff Reference
 
-## Coordination Metrics
+Дизайнерский пакет находится здесь:
 
-Для каждой книги вернуть агрегаты:
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/HANDOFF.md`
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/README.md`
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/app.jsx`
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/sections.jsx`
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/demand-data.jsx`
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/data-admin.jsx`
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/admin.css`
+- `/Users/ekoshkin/Downloads/design_handoff_matching_admin/Админка - матчинг.html`
 
-- `interestedCount` — сколько активных участников держат книгу в «Хочу читать» и могут участвовать в подборе по этой книге;
-- `topThreeCount` — сколько из них поставили книгу на места 1-3;
-- `avgRank` — средний ранг среди участников с известным рангом;
-- `worstRank` — худший известный ранг;
-- `unrankedCount` — сколько строк интереса не имеют ранга; ожидаемо редко из-за обязательных рангов, но старые/краевые данные не должны ломать расчёт;
-- `hardCount` — сколько активных участников сделали окончательную запись на эту книгу;
-- `conditionalCount` — сколько активных участников включили авто-запись;
-- `assignedCount` — сколько активных участников уже назначены в круг по этой книге. Этот счётчик показывается справочно и не участвует в сортировке.
+Эти файлы — визуальный и продуктовый handoff, а не исходники для прямого копирования. Реализация должна быть написана в существующей архитектуре Next.js-проекта, с текущими компонентами, API, типами, тестами и дизайн-токенами проекта.
 
-Сортировка книг:
+Главные идеи из handoff, которые нужно учесть:
 
-1. больше `interestedCount`;
-2. больше `topThreeCount`;
-3. ниже `avgRank`, `null` считать хуже любого числового значения;
-4. ниже `worstRank`, `null` считать хуже любого числового значения;
-5. больше `hardCount`;
-6. больше `conditionalCount`;
-7. стабильный tie-breaker по названию книги и `bookId`.
+- компактная строка выбора сессии вместо тяжёлой верхней композиции;
+- сводка по текущей сессии сразу под выбором сессии;
+- вкладки `Спрос по книгам`, `Участники`, `Журнал`;
+- `Спрос по книгам` — первая и основная перспектива;
+- участники и журнал остаются доступны, но не смешиваются с перспективой книг;
+- форма ручного добавления участника свернута и раскрывается по действию админа;
+- журнал событий становится компактнее: фильтры видны, сводка типов событий свернута;
+- дизайн использует сухую административную подачу: таблицы, тонкие линии, минимум декоративности.
 
-Записи идут после пересечений и рангов намеренно: задача блока — показать силу общего книжного интереса, а не «почти сформированные» книги.
+## 4. Non-Goals
 
-## Participant Display Rules
+Не делать в этой задаче:
 
-Внутри книги показывать участников, которые вошли в `interestedCount`. Для каждого участника:
+- пользовательский интерфейс для обычных участников;
+- автоматические рекомендации участникам;
+- автоперезапись, автоперенос или автоматическое изменение записей;
+- изменение алгоритма формирования кругов;
+- изменение статуса книг или участников из нового блока спроса;
+- учёт статуса `reading` в сортировке или score;
+- отдельную новую математику «сценариев» как обязательную модель принятия решения.
 
+Старая логика «сценариев» может быть полезна как исторический источник идей, но новая фича должна оставаться проще: агрегировать спрос по книгам и показывать состав заинтересованных людей.
+
+## 5. Definitions
+
+**Активный участник сессии** — запись участника текущей matching-сессии, у которой `completed_at IS NULL`.
+
+**Интерес к книге** — книга есть у активного участника в потенциальном списке «Хочу читать». На текущей модели это записи `signup_books` с `personal_status IS NULL`.
+
+**Запись на книгу** — финальное решение участника на странице Matching. Использовать существующую модель записей текущей системы, не подменять её потенциальным списком.
+
+**Книга в спросе** — книга, у которой минимум три активных участника текущей сессии имеют эту книгу в списке «Хочу читать».
+
+**Ранг** — место книги в списке участника. Чем меньше число, тем выше интерес. Если ранга нет, показывать это явно и сортировать такой ранг хуже ранжированных значений.
+
+**Читает сейчас** — у участника есть любая книга в статусе `reading`. Это справочная информация для админа, она не влияет на сортировку.
+
+## 6. Product Rules
+
+### 6.1 Admin-only
+
+Новая перспектива доступна только в админке. Обычные участники не должны видеть агрегированную информацию о чужих списках и статусах.
+
+### 6.2 Current session only
+
+Все расчёты спроса строятся только по выбранной matching-сессии.
+
+Учитывать только активных участников выбранной сессии: `completed_at IS NULL`. Участники, которые уже завершили участие в выборе, не должны попадать в расчёт пересечений.
+
+### 6.3 Minimum threshold
+
+В списке `Спрос по книгам` показывать только книги, у которых есть минимум три заинтересованных активных участника.
+
+Если таких книг нет, показать тихую строку:
+
+> Пока нет книг с тремя активными пересечениями
+
+### 6.4 Formed circles do not affect ranking
+
+Если по книге уже есть сформированные круги, это нужно показывать. По одной книге может быть больше одного круга.
+
+Сам факт существования круга не должен влиять на сортировку. Цель экрана — помочь координировать тех, кто ещё выбирает, а не продвигать уже сформированные книги.
+
+### 6.5 Reading status is reference-only
+
+Если участник уже читает какую-то книгу, показать это рядом с участником. Не важно, появилась эта книга из текущей matching-сессии, прошлой сессии или вне Matching.
+
+Статус `reading` не входит в score и не влияет на сортировку книг. Он нужен только как контекст для админа.
+
+### 6.6 No recommendations
+
+Интерфейс не формулирует подсказки вроде «напишите этим людям», «попросите участника X перейти на книгу Y» или «лучший кандидат». Он показывает данные, а решение и коммуникация остаются за админом.
+
+## 7. Admin UI Structure
+
+Целевая структура экрана `/admin?tab=matching`:
+
+1. Верхняя строка выбора сессии.
+2. Сводка по выбранной сессии.
+3. Вкладки:
+   - `Спрос по книгам`;
+   - `Участники`;
+   - `Журнал`.
+
+`Спрос по книгам` должен быть вкладкой по умолчанию для выбранной matching-сессии.
+
+Желательно синхронизировать выбранную под-вкладку с URL:
+
+- `/admin?tab=matching&sub=demand`
+- `/admin?tab=matching&sub=people`
+- `/admin?tab=matching&sub=log`
+
+Если параметр `sub` отсутствует или неизвестен, открывать `demand`.
+
+### 7.1 Session bar
+
+Верхняя строка должна заменить текущую громоздкую комбинацию списка сессий и выбранной карточки сессии.
+
+Нужные данные:
+
+- название сессии;
+- статус: открыта / закрыта;
+- дедлайн;
+- число активных участников;
+- действие открытия меню сессии.
+
+Создание новой сессии убрать из постоянного потока экрана. Оно должно быть доступно из меню сессии или другого вторичного действия. Если уже есть открытая сессия, создание новой по-прежнему должно быть заблокировано существующим правилом.
+
+### 7.2 Session summary
+
+Под строкой сессии показать компактную сводку из шести чисел:
+
+- активных участников;
+- записались;
+- в кругах;
+- читают;
+- книг в спросе;
+- кругов сформировано.
+
+Названия можно уточнить в интерфейсе, но смысл метрик должен сохраниться.
+
+### 7.3 Sub-tabs
+
+Под-вкладки должны быть визуально спокойными и читаться как административная навигация внутри Matching.
+
+Состояния:
+
+- active;
+- hover;
+- focus-visible;
+- disabled/loading, если данные ещё грузятся.
+
+## 8. Book Demand Tab
+
+Пользовательское название вкладки: `Спрос по книгам`.
+
+Рабочее название в коде может быть `coordination` или `bookDemand`, но в UI использовать формулировку про спрос, потому что она точнее описывает read-only радар.
+
+### 8.1 Included books
+
+Для каждой книги:
+
+- собрать активных участников текущей сессии, у которых книга есть в списке «Хочу читать»;
+- исключить книги, у которых таких участников меньше трёх;
+- включать книги, даже если по ним уже есть один или несколько сформированных кругов;
+- показывать сформированные круги как справочную информацию.
+
+### 8.2 Book-level metrics
+
+Для каждой книги рассчитать:
+
+- `interestedCount` — сколько активных участников держат книгу в списке «Хочу читать»;
+- `topThreeCount` — сколько из них поставили книгу в топ-3;
+- `avgRank` — средний ранг среди участников, у которых ранг есть;
+- `worstRank` — худший ранг среди участников, у которых ранг есть;
+- `unrankedCount` — сколько участников без ранга;
+- `hardCount` — сколько участников уже финально записались на книгу;
+- `conditionalCount` — сколько участников включили авто-запись / условную готовность, если такая модель есть в текущем коде;
+- `assignedCount` — сколько участников уже находятся в сформированном круге по этой книге;
+- `formedCircleCount` — сколько кругов уже сформировано по книге.
+
+Метрики `assignedCount` и `formedCircleCount` показываются справочно и не участвуют в сортировке.
+
+### 8.3 Sorting
+
+Сортировать книги так:
+
+1. `interestedCount` по убыванию;
+2. `topThreeCount` по убыванию;
+3. `avgRank` по возрастанию, пустые значения в конец;
+4. `worstRank` по возрастанию, пустые значения в конец;
+5. `hardCount` по убыванию;
+6. `conditionalCount` по убыванию;
+7. `title` по алфавиту;
+8. `bookId` как стабильный финальный tie-breaker.
+
+Статус `reading`, число сформированных кругов и факт попадания книги в круг не участвуют в сортировке.
+
+### 8.4 Book card layout
+
+Для каждой книги показывать карточку или строку с одним основным столбцом.
+
+Видимые элементы:
+
+- название книги;
+- badge с количеством кругов, если `formedCircleCount > 0`;
+- компактная строка агрегатов: сколько заинтересованных, сколько в топ-3, средний ранг;
+- список заинтересованных участников.
+
+Автор книги в этой перспективе не обязателен. Если реализация оставляет автора, он должен быть вторичным и не конкурировать с названием.
+
+Дополнительные метрики вроде худшего ранга, числа без ранга, числа финальных записей и числа людей в кругах можно показывать во всплывающей подсказке на заголовке книги. Подсказка должна открываться не только hover, но и с клавиатуры через focus.
+
+### 8.5 Participant rows inside book
+
+Участники внутри книги показываются списком. Для каждого участника:
+
+- ранг книги у этого участника;
 - имя;
-- ранг в формате `#2` или `без ранга`;
-- статус по этой книге: `в круге`, `записался`, `авто-запись`, `в списке`;
-- `readingNowTitles`, если у человека есть любые книги в статусе `reading`.
+- текущий статус по этой книге;
+- если участник читает другую книгу, показать это отдельной тихой строкой под именем.
 
-Приоритет статуса на одной книге:
+Статусы по книге:
 
-1. `в круге`, если есть `matching_book_assignments` по этой книге;
-2. `записался`, если есть `matching_book_intents.kind = 'hard'`;
-3. `авто-запись`, если есть `matching_book_intents.kind = 'conditional'`;
-4. `в списке`, если есть только `signup_books` + `book_priorities`.
+- `в круге` — участник уже назначен в круг по этой книге;
+- `записался` — участник финально записался на книгу, но ещё не в круге;
+- `авто-запись` — участник включил авто-запись / условную готовность, если такая модель есть;
+- `в списке` — книга только в потенциальном списке «Хочу читать».
 
-Порядок людей внутри книги: ниже ранг выше; затем статус в порядке `в круге`, `записался`, `авто-запись`, `в списке`; затем имя. Этот порядок делает список сканируемым, но не влияет на score книги.
+Приоритет отображения статуса: `в круге` → `записался` → `авто-запись` → `в списке`.
 
-## UX Shape
+## 9. Participants Tab
 
-Блок размещается под таблицей участников и перед журналом событий, чтобы координатор сначала видел состав людей, потом книжную картину, потом историю действий.
+Вкладка `Участники` должна сохранить текущие административные возможности:
 
-Верх блока:
+- видеть участников выбранной сессии;
+- видеть имя, роль, источник, дату вступления;
+- добавлять участника вручную;
+- убирать участника из сессии, когда это разрешено текущими правилами;
+- открыть Matching от имени участника через существующую ссылку `/matching?as=<userId>`.
 
-- заголовок «Координация по книгам»;
-- короткая подпись: «Книги, которые есть в списках минимум у трёх активных участников. Сортировка — по силе пересечений и рангам.»;
-- кнопка обновления, аналогичная refresh у участников.
+Рекомендуемый порядок колонок:
 
-Карточка/строка книги:
+1. Имя;
+2. Роль;
+3. Источник;
+4. Вступил;
+5. действие.
 
-- название и автор;
-- строка агрегатов: `5 в списках · топ-3: 4 · средний ранг 2.6 · худший 5 · 1 записался · 1 авто · 1 в круге`;
-- раскрытый или компактный список участников. Первый вариант реализации может показывать список сразу, потому что блок админский и количество участников обычно небольшое.
+Список книг участника не должен загромождать основной вид вкладки. При этом нельзя полностью потерять возможность админа понять выбор конкретного участника. Если при реализации удаляется текущий видимый список книг под именем, нужно сохранить доступ к этой информации другим способом: например через раскрытие строки, детальный просмотр или переход в Matching от имени участника.
 
-Пример участника:
+Источник участия показывать человеческими словами:
 
-`#2 Светлана · в списке · читает сейчас: «Другая книга»`
+- `сам` — участник присоединился сам;
+- `админ` — участника добавил админ.
 
-Если `readingNowTitles` содержит несколько книг, показывать `читает сейчас: «A», «B»`. Если список станет длинным, это можно позже свернуть до счётчика, но в первом варианте лучше отдавать координатору фактические названия.
+Исправить существующую опечатку `Admininstrator`, если она есть в текущем интерфейсе или данных отображения.
 
-## Data Contract
+Кнопка удаления должна быть доступна при наведении и при `focus-within`, чтобы её можно было использовать с клавиатуры.
 
-Предпочтительный endpoint: `GET /api/admin/matching/sessions/[id]/coordination`.
+Форма ручного добавления участника должна быть свернута под действием `+ Добавить участника вручную`. Предупреждение о ручном добавлении показывать внутри раскрытого блока, а не постоянно на экране.
 
-Ответ:
+Если сессия закрыта, мутабельные действия должны быть недоступны по тем же правилам, что сейчас.
+
+## 10. Journal Tab
+
+Вкладка `Журнал` использует текущий журнал событий Matching.
+
+Сохранить существующий endpoint:
+
+- `GET /api/admin/matching/preference-events`
+
+Сохранить лимит первичной загрузки 100 событий и дозагрузку пачками по 10, если так сейчас устроено.
+
+Фильтры журнала показывать в одну строку, насколько это возможно на текущей ширине.
+
+Кнопку сброса фильтров показывать только когда активен хотя бы один фильтр.
+
+Сводку по типам событий сделать свернутой под действием вроде `сводка по типам событий`. Большая стена chip-элементов не должна занимать основной экран по умолчанию.
+
+Все типы событий должны проходить через общий label helper. Если сейчас часть событий показывается raw-ключами, добавить человекочитаемые подписи минимум для:
+
+- `hard_set`;
+- `admin_book_assigned`;
+- `participant_auto_assigned`;
+- `admin_circle_created`;
+- `book_formed`;
+- `admin_assignment_placed`;
+- `admin_book_unassigned`;
+- `participant_directly_assigned`.
+
+## 11. Data Contract
+
+Добавить admin-only endpoint для расчёта спроса по книгам:
+
+- `GET /api/admin/matching/sessions/[id]/coordination`
+
+Название endpoint можно оставить `coordination`, даже если вкладка в UI называется `Спрос по книгам`. Это подчёркивает, что endpoint обслуживает координаторский read-only радар, а не пользовательскую рекомендацию.
+
+### 11.1 Response shape
+
+Примерный контракт:
 
 ```ts
-interface MatchingCoordinationResponse {
-  success: true
-  data: {
-    sessionId: string
-    generatedAt: string
-    books: CoordinationBook[]
-  }
-}
-
-interface CoordinationBook {
-  bookId: string
-  title: string
-  author: string
-  coverUrl: string | null
-  metrics: {
-    interestedCount: number
-    topThreeCount: number
-    avgRank: number | null
-    worstRank: number | null
-    unrankedCount: number
-    hardCount: number
-    conditionalCount: number
-    assignedCount: number
-  }
-  participants: CoordinationParticipant[]
-}
-
-interface CoordinationParticipant {
-  userId: string
-  publicRef: string
-  name: string
-  rank: number | null
-  status: 'assigned' | 'hard' | 'conditional' | 'interest'
-  readingNowTitles: string[]
-}
+type MatchingCoordinationResponse = {
+  session: {
+    id: string;
+    title: string;
+    status: 'open' | 'closed';
+    deadlineAt: string | null;
+  };
+  summary: {
+    activeParticipants: number;
+    signedUpParticipants: number;
+    assignedParticipants: number;
+    readingParticipants: number;
+    demandedBooks: number;
+    formedCircles: number;
+  };
+  books: Array<{
+    bookId: string;
+    title: string;
+    author: string | null;
+    interestedCount: number;
+    topThreeCount: number;
+    avgRank: number | null;
+    worstRank: number | null;
+    unrankedCount: number;
+    hardCount: number;
+    conditionalCount: number;
+    assignedCount: number;
+    formedCircleCount: number;
+    participants: Array<{
+      userId: string;
+      name: string;
+      rank: number | null;
+      status: 'assigned' | 'signed_up' | 'conditional' | 'wishlist';
+      assignedCircleId: string | null;
+      readingNow: Array<{
+        bookId: string;
+        title: string;
+      }>;
+    }>;
+  }>;
+};
 ```
 
-Не-админ получает `403`. Несуществующая сессия возвращает `404`, чтобы отличить ошибку id от пустой координации.
+Если в текущей модели нет отдельного статуса `conditional`, не вводить новую БД-сущность ради него. Вернуть `conditionalCount: 0` и не показывать статус `авто-запись`, либо связать его с уже существующим флагом, если он есть.
 
-## Code Map
+### 11.2 Auth and access
 
-- `components/nd/AdminMatchingSession.tsx` — текущий экран админки Matching; добавить загрузку coordination state для выбранной сессии и отрендерить новый блок под таблицей участников.
-- `components/nd/AdminMatchingBookCoordination.tsx` — новый client component для read-only блока, чтобы не раздувать `AdminMatchingSession.tsx`.
-- `app/api/admin/matching/sessions/[id]/participants/route.ts` — источник текущего participants workflow; не заменять, использовать как соседний паттерн admin auth и загрузки choices.
-- `app/api/admin/matching/sessions/[id]/coordination/route.ts` — новый read-only route handler.
-- `lib/matching/coordination-radar.ts` — чистый расчёт метрик, фильтрации и сортировки по входным rows; не завязывать на React или Drizzle.
-- `lib/matching/book-public-state.ts` — источник актуальных правил: completed participants исключаются из participant-facing агрегатов, `reading` перекрывает действие по книге, assignments/intents дают статусы.
-- `lib/matching/book-partition.ts` — источник порогов формирования; новый блок не меняет эти пороги, но может использовать названия констант в тестах/документации при необходимости.
-- Historical `lib/matching/scenarios.ts` at `c78d48d` — использовать как reference для score fields: `strongInterestCount`, `avgRank`, `worstRank`, `unrankedCount`; не переносить старый scenario-set UI и beam-search.
-- `docs/features/matching.md` и `docs/wiki/Group-Matching-Mode.md` — обновить после реализации, потому что меняется admin workflow.
+Endpoint должен быть доступен только админам.
 
-## Data Query Plan
+Неавторизованный пользователь получает текущий стандартный ответ проекта для unauthenticated admin API.
 
-Route handler должен собрать:
+Авторизованный не-админ получает текущий стандартный ответ проекта для forbidden admin API.
 
-- участников выбранной сессии из `matching_session_participants` + `users`, включая `publicRef`, `completedAt`, `joinedAt`;
-- shortlist rows из `signup_books` по `userId` активных участников, только опубликованные книги, только `personal_status IS NULL` для расчёта радара;
-- ранги из `book_priorities` для тех же пар `userId/bookId`;
-- reading context из `signup_books.personal_status = 'reading'` по тем же активным участникам, с названиями опубликованных книг;
-- intents из `matching_book_intents` текущей сессии;
-- assignments из `matching_book_assignments` текущей сессии;
-- book metadata из `books`.
+## 12. Implementation Notes
 
-Фильтр активного участника для радара: `completedAt === null`. Observer/assigned role не должен сам по себе исключать человека: в текущей модели назначение на одну книгу не мешает выбирать другие. Исключение — человек, отправленный читать (`completed_at`), потому что он уже не находится в активном выборе.
+### 12.1 Calculation module
 
-## I/O & Edge-Case Matrix
+Вынести расчёт спроса в чистую функцию, чтобы её можно было тестировать без UI.
 
-| Scenario | Input / State | Expected Output / Behavior | Error Handling |
-|----------|---------------|---------------------------|----------------|
-| Сильное пересечение | 4 активных участника держат книгу в shortlist, ранги 1/2/2/5 | Книга попадает в блок; `interestedCount=4`, `topThreeCount=3`, `avgRank=2.5`, `worstRank=5` | Нет ошибки |
-| Недостаточно пересечений | Только 2 активных участника держат книгу в shortlist | Книга не попадает в блок | Если ни одной книги нет, показать тихую строку |
-| Reading по этой книге | У активного участника книга в `signup_books` со статусом `reading` | Эта пара не входит в `interestedCount`; книга может остаться в блоке за счёт других людей | Reading title показывается у участника в других книгах |
-| Reading другая книга | У участника есть другая книга `personal_status='reading'` | У участника показывается `читает сейчас: «...»`; score не меняется | Нет ошибки |
-| Выпущенный участник | `completed_at IS NOT NULL` | Участник исключён из радара и reading context блока | Существующая таблица участников продолжает показывать его как `читает` |
-| Уже сформированная книга | По книге есть assignments/circles | Книга всё равно показывается, если есть минимум 3 активных shortlist-пересечения; `assignedCount` справочный | Assignments не участвуют в сортировке |
-| Равные метрики | Две книги имеют одинаковые counts и ranks | Стабильный порядок по title, затем bookId | Нет случайного дрожания UI |
-| Не-админ | Пользователь без `isAdmin` вызывает endpoint | `403 Forbidden` | UI не вызывает endpoint вне админки |
+Рекомендуемые файлы:
 
-</frozen-after-approval>
+- `lib/matching/coordination-radar.ts` — расчёт книг, метрик и сортировки;
+- `lib/matching/coordination-radar.test.ts` — unit-тесты расчёта.
 
-## Implementation Tasks
+Если в проекте уже есть более подходящая структура для matching-логики, использовать её.
 
-- [ ] Task 1: Add pure coordination calculation.
-  - File: `lib/matching/coordination-radar.ts`
-  - Action: Define input row types, output DTO types, filtering, status derivation, metrics and sorting.
-  - Notes: Keep this module DB-free. Treat `null` ranks as unranked; exclude `personal_status !== null` from active interest; exclude completed participants from all radar candidates.
+### 12.2 Admin UI components
 
-- [ ] Task 2: Cover calculation behavior with focused unit tests.
-  - File: `lib/matching/__tests__/coordination-radar.test.ts`
-  - Action: Test three-person threshold, ranking metrics, sort order, reading context, completed exclusion, formed/assigned display without sort influence and stable tie-breaks.
-  - Notes: Include a regression case where a formed book and an unformed book have equal interest/rank metrics; formed status must not decide order.
+Текущий большой компонент админского Matching лучше разделить на несколько небольших компонентов.
 
-- [ ] Task 3: Add admin read-only endpoint.
-  - File: `app/api/admin/matching/sessions/[id]/coordination/route.ts`
-  - Action: Check `auth()` admin, load rows with Drizzle, call `buildMatchingCoordinationRadar`, return `{ success: true, data }`.
-  - Notes: Follow the auth and JSON style of `participants/route.ts`. Do not wrap in `runMatchingTransition` because this endpoint does not mutate state.
+Рекомендуемая декомпозиция:
 
-- [ ] Task 4: Add route tests.
-  - File: `app/api/admin/matching/sessions/[id]/coordination/route.test.ts`
-  - Action: Assert 403 for non-admin; assert DB rows are mapped through pure calculation; assert empty result is returned successfully for sessions with no qualifying books.
-  - Notes: Use existing route test mocking style under `app/api/admin/matching/sessions/[id]/participants/route.test.ts`.
+- `components/nd/AdminMatchingSessionBar.tsx` — строка выбора сессии;
+- `components/nd/AdminMatchingSummary.tsx` — шесть сводных метрик;
+- `components/nd/AdminMatchingBookDemand.tsx` — вкладка `Спрос по книгам`;
+- `components/nd/AdminMatchingParticipantsTab.tsx` — вкладка `Участники`;
+- `components/nd/AdminMatchingLogTab.tsx` — вкладка `Журнал`.
 
-- [ ] Task 5: Build read-only coordination component.
-  - File: `components/nd/AdminMatchingBookCoordination.tsx`
-  - Action: Render loading, error, empty state, refresh, sorted book cards and participant rows.
-  - Notes: Use project tokens and compact admin styling. Display the exact empty copy: «Пока нет книг с тремя активными пересечениями».
+Названия файлов можно скорректировать под текущий код, но не оставлять всё в одном чрезмерно большом компоненте, если это затруднит поддержку.
 
-- [ ] Task 6: Mount the block in admin session view.
-  - File: `components/nd/AdminMatchingSession.tsx`
-  - Action: Load coordination data when `selectedSessionId` changes; place the component under the participants table and before event analytics; refresh it after participant add/remove and session change.
-  - Notes: Keep existing participants table behavior intact. The block is visible for selected open and closed sessions, but the data is read-only.
+### 12.3 Existing participants functionality
 
-- [ ] Task 7: Add component integration tests.
-  - Files: `components/nd/AdminMatchingBookCoordination.test.tsx`, `components/nd/AdminMatchingSession.test.tsx`
-  - Action: Assert rendered metrics, participant statuses, reading context, empty copy and fetch path for the selected session.
-  - Notes: Existing `AdminMatchingSession.test.tsx` mocks fetch by URL substring; extend carefully to avoid collisions with participants endpoint.
+При переносе таблицы участников во вкладку важно сохранить текущие возможности. Особенно:
 
-- [ ] Task 8: Update documentation.
-  - Files: `docs/features/matching.md`, `docs/wiki/Group-Matching-Mode.md`
-  - Action: Document the new admin coordination block, data filters, sorting and non-recommendation boundary.
-  - Notes: Wiki update is required because the owner/admin workflow changes.
+- ручное добавление участника;
+- удаление участника;
+- дата вступления;
+- роль;
+- источник;
+- вход в Matching под именем участника.
 
-## Acceptance Criteria
+Списки книг под участниками можно убрать из основного вида только если остаётся понятный способ получить эту информацию.
 
-- [ ] AC 1: Given an admin opens a matching session with at least one book held in «Хочу читать» by three active participants, when the admin views the Matching admin panel, then the «Координация по книгам» block shows that book with interested count, top-3 count, average rank, worst rank, hard count, conditional count and assigned count.
-- [ ] AC 2: Given a book is held by only two active participants, when the coordination endpoint is called, then the book is omitted from the response.
-- [ ] AC 3: Given no books meet the three-active-intersections threshold, when the admin views the block, then it shows «Пока нет книг с тремя активными пересечениями».
-- [ ] AC 4: Given one active participant has another book with `personal_status='reading'`, when their row appears under a coordination book, then the row shows `читает сейчас: «...»` without changing the book score or sort order.
-- [ ] AC 5: Given a participant has `completed_at IS NOT NULL`, when coordination data is calculated, then that participant is excluded from book eligibility, metrics and participant rows.
-- [ ] AC 6: Given a book already has one or more assignments/circles, when it still has three active shortlist intersections, then it appears in the block and shows assigned participants, while assignment/circle presence does not move it above a stronger unassigned book.
-- [ ] AC 7: Given two books differ by intersection count and rank quality, when they are rendered, then the order follows interested count, top-3 count, average rank, worst rank, hard count, conditional count, then stable title/bookId tie-break.
-- [ ] AC 8: Given a non-admin requests `GET /api/admin/matching/sessions/[id]/coordination`, when the route runs, then it returns `403` and no coordination data.
+### 12.4 Existing journal functionality
 
-## Testing Strategy
+При переносе журнала во вкладку сохранить существующие фильтры и загрузку событий. Задача — сделать журнал компактнее, а не урезать его.
 
-**Unit:** `lib/matching/__tests__/coordination-radar.test.ts` must carry most logic coverage: threshold, exclusions, rank metrics, status priority and sorting.
+### 12.5 Design tokens
 
-**Route:** `app/api/admin/matching/sessions/[id]/coordination/route.test.ts` should verify admin authorization and that route-level DB rows are passed into the pure calculation with the right filters.
+Реализация должна соблюдать дизайн-систему проекта:
 
-**Component:** `components/nd/AdminMatchingBookCoordination.test.tsx` should verify visible admin copy and metric formatting. `AdminMatchingSession.test.tsx` should verify the block is mounted under participants and fetches the selected session endpoint.
+- цвета только через `var(--...)` или существующие token-классы;
+- не переносить raw hex, raw rgba и другие literal color значения из прототипа;
+- геометрию брать из существующих токенов проекта;
+- тени и радиусы использовать только там, где это разрешено текущими правилами Matching/admin UI;
+- доступность интерактивных элементов проверять через hover и keyboard focus.
 
-**E2E:** Required only if implementation changes layout behavior enough to need browser geometry confidence. A read-only admin block can usually be covered by component + route tests; if the UI uses collapsible cards or responsive layout with nontrivial wrapping, add a focused Playwright check in `e2e/matching-admin.spec.ts`.
+Если для реализации реально не хватает семантического токена, добавить его в `app/globals.css` осознанно и использовать в компонентах только через токен.
 
-## Dependencies
+## 13. Suggested Work Plan
 
-- Existing matching tables and migrations through `0064`.
-- Existing admin auth via `auth()`.
-- Existing mandatory rank invariant for active shortlist books; unranked handling remains defensive.
-- No new external services, env vars or database migrations.
+1. Прочитать текущие документы по Matching и админке:
+   - `docs/features/matching.md`;
+   - `docs/features/admin-panel.md`, если он есть;
+   - релевантные тесты Matching.
+2. Найти текущий admin Matching component и API:
+   - `components/nd/AdminMatchingSession.tsx` или актуальный файл;
+   - `app/api/admin/matching/**`;
+   - `lib/matching/**`.
+3. Реализовать чистый расчёт спроса по книгам.
+4. Покрыть расчёт unit-тестами:
+   - исключение completed participants;
+   - порог три заинтересованных;
+   - сортировка по пересечениям и рангам;
+   - formed circles не влияют на сортировку;
+   - reading status возвращается, но не влияет на сортировку;
+   - несколько кругов по одной книге показываются корректно;
+   - unranked значения сортируются хуже ранжированных.
+5. Добавить admin-only endpoint `GET /api/admin/matching/sessions/[id]/coordination`.
+6. Покрыть endpoint route-тестами:
+   - admin получает данные;
+   - non-admin не получает данные;
+   - session id фильтрует расчёт;
+   - пустое состояние возвращает пустой список книг.
+7. Перестроить admin Matching UI на session bar, summary и sub-tabs.
+8. Реализовать вкладку `Спрос по книгам` по данным нового endpoint.
+9. Перенести существующие участники и журнал во вкладки без потери текущих административных возможностей.
+10. Добавить недостающие label-и событий журнала.
+11. Обновить техническую документацию и wiki, если меняется admin workflow.
+12. Запустить проверки.
 
-## Risks & Design Notes
+## 14. Acceptance Criteria
 
-- **Meaning drift:** The block must not read as a recommendation engine. Keep labels factual: «в списках», «топ-3», «записался», «авто-запись», «читает сейчас».
-- **Double-counting assigned readers:** A person assigned to the same book still has an assignment status, but active demand should come from shortlist rows with `personal_status IS NULL`. Do not let `matching_book_assignments` alone make a book eligible.
-- **Completed participants:** Admin read models sometimes include completed participants for controls. This block is different: it is a coordination radar for people still in choice, so completed participants are excluded.
-- **Historical scenario math:** Old scenario code is useful for score vocabulary and edge cases, not for direct UI revival. Do not reintroduce beam-search or scenario-set cards.
-- **Admin component size:** `AdminMatchingSession.tsx` is already large. Put rendering for the new block in a separate component and keep data loading glue in the session component.
+### Data
 
-## Verification Before PR
+- В расчёт попадают только активные участники выбранной сессии.
+- Книга показывается только если она есть минимум у трёх активных участников в списке «Хочу читать».
+- Книги с уже сформированными кругами остаются в списке.
+- Количество сформированных кругов по книге показывается, включая случай больше одного круга.
+- Статус `reading` участника показывается рядом с участником как справочная информация.
+- Статус `reading` не влияет на сортировку.
+- Книги сортируются по правилам из раздела 8.3.
+- Если подходящих книг нет, показана строка: `Пока нет книг с тремя активными пересечениями`.
 
-Before committing implementation, report:
+### UI
 
-- `E2E: нужен / не нужен — [причина]`
-- `Wiki: нужна — меняется admin workflow Matching`
+- В админском Matching есть компактная строка выбора сессии.
+- Под строкой сессии есть сводка по выбранной сессии.
+- Есть вкладки `Спрос по книгам`, `Участники`, `Журнал`.
+- `Спрос по книгам` открывается по умолчанию.
+- Вкладка `Спрос по книгам` не содержит мутабельных действий.
+- По каждой книге видны заинтересованные участники, ранги и статусы.
+- Дополнительные book-level метрики доступны без перегруза основного вида.
+- Вкладка `Участники` сохраняет текущие административные действия.
+- Ручное добавление участника свернуто по умолчанию.
+- Вкладка `Журнал` сохраняет фильтры и события, но показывает сводку типов событий свернуто.
+- Raw event keys не должны быть видны пользователю, если для них можно задать label.
 
-Run at minimum:
+### Access
 
-- `npm run lint`
-- `npm run typecheck`
-- `npm test -- --runInBand` or a targeted Jest set plus full Jest if touched shared matching calculation
-- focused E2E only if the implementation introduces nontrivial browser layout or flow behavior
+- Новый endpoint доступен только админам.
+- Обычные пользователи не видят агрегированный спрос по чужим спискам.
 
-## Spec Change Log
+### Documentation
 
-- 2026-09-10 — Initial review draft based on product brainstorming after PR #559 and current `origin/main` at `a762353b`.
+- `docs/features/matching.md` обновлён, если меняется техническое устройство Matching admin.
+- `docs/wiki/` обновлён, потому что меняется admin workflow.
+
+## 15. Tests and Verification
+
+Перед коммитом обязательно:
+
+- `npm run lint`;
+- `npm run typecheck`;
+- релевантные unit-тесты;
+- route-тесты нового endpoint.
+
+E2E нужен, если реализация меняет условный рендер, вкладки, свернутые блоки, доступность action-кнопок или существующий покрытый UI-flow. Для этой задачи E2E, скорее всего, нужен, потому что меняется структура админского UI и появляется новая вкладочная навигация.
+
+Если добавляется или меняется Playwright-тест, перед этим прочитать `docs/features/testing.md`.
+
+## 16. Risks and Edge Cases
+
+### Потеря текущей информации по участникам
+
+Дизайн предлагает убрать списки книг из основной таблицы участников. Это улучшает чистоту экрана, но может удалить существующую полезную возможность: быстро посмотреть полный список книг конкретного участника, включая книги ниже порога трёх пересечений. При реализации нужно сохранить доступ к этой информации через раскрытие строки, детальный просмотр или переход в Matching от имени участника.
+
+### Двойной счёт записавшихся и назначенных
+
+Один и тот же участник может быть одновременно заинтересован, записан и назначен в круг. Метрики должны считать людей, а не записи. Статус в строке участника должен показывать самое сильное состояние по приоритету из раздела 8.5.
+
+### Несколько кругов по одной книге
+
+Не считать книгу «закрытой» только потому, что один круг уже сформирован. По одной книге может быть несколько кругов, и это надо показывать.
+
+### Возвращённые участники
+
+Если участник уже был отправлен читать книгу, а потом возвращён в matching-сессию, он снова активен для расчётов, если `completed_at IS NULL`. Его текущая читаемая книга должна показываться как `readingNow`.
+
+### Участник читает книгу вне текущей сессии
+
+`readingNow` должен учитывать текущий статус чтения участника в целом, а не только книги текущей matching-сессии.
+
+### Неясные ранги
+
+Если часть участников не имеет ранга по книге, средний и худший ранг считать только по известным рангам, а `unrankedCount` показывать отдельно.
+
+### Старые сценарии
+
+Если разработчик смотрит историю старой логики сценариев, нужно использовать её только как источник знаний о противоречиях и edge cases. Не возвращать сценарии как пользовательскую модель интерфейса.
+
+## 17. Ask First
+
+Нужно спросить пользователя перед такими изменениями:
+
+- добавлять автоматические рекомендации координатору;
+- показывать подсказки конкретных действий участникам или администратору;
+- учитывать `reading` в сортировке или score;
+- менять правила формирования кругов;
+- добавлять мутации в новый coordination endpoint;
+- полностью удалять возможность админа увидеть полный список книг конкретного участника;
+- менять пользовательский интерфейс `/matching` для обычных участников;
+- менять БД-схему, если расчёт можно сделать на существующих данных.
+
+## 18. Handoff Prompt for Implementation Agent
+
+Реализуй админскую перспективу координации Matching по книгам по этой спецификации и с учётом дизайнерского handoff package `/Users/ekoshkin/Downloads/design_handoff_matching_admin`.
+
+Смысл фичи: дать админу read-only радар спроса по книгам среди активных участников текущей matching-сессии. Показывать только книги с минимум тремя активными пересечениями в списках «Хочу читать», сортировать по числу пересечений и качеству рангов, показывать статусы участников по книге и их текущие `reading`-книги как справочный контекст. Не добавлять рекомендации и не менять правила формирования кругов.
+
+Одновременно перестрой `/admin?tab=matching` в структуру из handoff: session bar, summary, вкладки `Спрос по книгам`, `Участники`, `Журнал`. Сохрани текущие возможности управления участниками и журнала событий. Используй handoff как визуальный и продуктовый референс, но не копируй прототипный CSS буквально: в проекте разрешены только дизайн-токены.
