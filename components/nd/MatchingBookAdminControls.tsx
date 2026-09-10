@@ -12,6 +12,7 @@ export type MatchingBookAdminAction =
   | 'place'
   | 'releaseCircle'
   | 'returnCircle'
+  | 'returnParticipant'
 
 export interface MatchingBookAdminCommand {
   action: MatchingBookAdminAction
@@ -45,7 +46,7 @@ export default function MatchingBookAdminControls({
             <button type="button" disabled={pending} onClick={() => onAction({ action: 'createCircle' })}>+ Создать круг</button>
             {book.circles.map((circle, index) => (
               <span key={circle.id}>
-                {circle.memberRefs.length > 0 && circle.memberRefs.every(ref => adminParticipants.find(item => item.ref === ref)?.completed) ? (
+                {circle.released ? (
                   <button type="button" disabled={pending} onClick={() => onAction({ action: 'returnCircle', circleId: circle.id })}>Вернуть в подбор</button>
                 ) : (
                   <button type="button" disabled={pending} onClick={() => {
@@ -128,6 +129,15 @@ export default function MatchingBookAdminControls({
                     {participant.completed ? `${participant.displayName} · читает` : participant.displayName}
                   </span>
                   <div className="nd-mb-admin-actions">
+                    {participant.completed && (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => onAction({ action: 'returnParticipant', participant })}
+                      >
+                        Вернуть в подбор
+                      </button>
+                    )}
                     {assigned ? (
                       <>
                         <select

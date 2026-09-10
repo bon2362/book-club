@@ -7,9 +7,10 @@ test.describe.configure({ timeout: 120_000 })
 type PublicState = {
   session: { stateVersion: number; status: 'open' | 'closed' }
   bookMode: {
+    viewerCompleted?: boolean
     books: Array<{
       bookId: string
-      circles: Array<{ id: string }>
+      circles: Array<{ id: string; memberRefs: string[]; released?: boolean }>
       participants: Array<{ ref: string; completed?: boolean }>
     }>
   }
@@ -90,6 +91,50 @@ test('администратор отправляет круг читать и �
   await adminAction(admin.request, session.id, participantA.userId, { action: 'returnCircle', circleId: circle!.id })
   await participantPage.reload()
   await expect(participantPage.getByTestId('matching-books-view')).not.toContainText('Ваш подбор завершён')
+})
+
+test('администратор возвращает одного читателя в подбор, не разбирая круг', { tag: '@matching-golden' }, async ({
+  matchingBooksFixture,
+  openMatchingPage,
+}) => {
+  const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
+  const [participantB, participantC] = await Promise.all([getParticipantB(), getParticipantC()])
+  const participantPage = await openMatchingPage(participantA)
+
+  await participantAction(participantB.request, session.id, books[0].id, 'setConditional')
+  await participantAction(participantA.request, session.id, books[0].id, 'setHard')
+  await participantAction(participantC.request, session.id, books[0].id, 'setHard')
+  const formed = await getState(admin.request, session.id)
+  const circle = formed.bookMode.books.find((book) => book.bookId === books[0].id)?.circles[0]
+  expect(circle).toBeTruthy()
+  await adminAction(admin.request, session.id, participantA.userId, { action: 'releaseCircle', circleId: circle!.id })
+
+  // Читает первую книгу, но хочет выбрать ещё одну: возвращаем в подбор его одного.
+  await adminAction(admin.request, session.id, participantA.userId, {
+    action: 'returnParticipant', userId: participantA.userId,
+  })
+  await participantPage.goto('/matching')
+  await participantPage.reload()
+  await expect(participantPage.getByTestId('matching-books-view')).not.toContainText('Ваш подбор завершён')
+
+  // Вторая книга снова доступна для записи, и запись проходит.
+  await participantAction(participantA.request, session.id, books[1].id, 'setHard')
+  const after = await getState(admin.request, session.id)
+  const readingBook = after.bookMode.books.find((book) => book.bookId === books[0].id)!
+  expect(readingBook.circles).toHaveLength(1)
+  expect(readingBook.circles[0].id).toBe(circle!.id)
+  expect(readingBook.circles[0].memberRefs).toHaveLength(3)
+  expect(readingBook.circles[0].released).toBe(true)
+
+  // Остальные участники круга по-прежнему вне подбора.
+  const stillReleased = after.bookMode.books
+    .find((book) => book.bookId === books[0].id)!.participants.filter((item) => item.completed)
+  expect(stillReleased).toHaveLength(2)
+
+  // Запись на вторую книгу видна на её карточке; в строке сверху перечислены назначения,
+  // а круг по второй книге ещё не собрался, поэтому там по-прежнему только читаемая книга.
+  await participantPage.reload()
+  await expect(participantPage.getByTestId(`matching-book-card-${books[1].id}`)).toContainText('Вы записаны')
 })
 
 test('администратор меняет круги, назначения и lifecycle с сохранением после reload', { tag: '@matching-golden' }, async ({

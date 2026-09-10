@@ -63,6 +63,40 @@ describe('buildPublicBookModeState', () => {
     expect(other.participants.filter(participant => !participant.completed)).toHaveLength(0)
   })
 
+  it('marks a released circle so the organiser keeps the return action after a partial return', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'admin-1', admin: true,
+      books, participants,
+      interests: [interest('u1', 'b1'), interest('u2', 'b1'), interest('u3', 'b1')],
+      intents: [],
+      assignments: [
+        { userId: 'u1', bookId: 'b1', circleId: 'circle-1' },
+        { userId: 'u2', bookId: 'b1', circleId: 'circle-1' },
+        { userId: 'u3', bookId: 'b1', circleId: 'circle-1' },
+      ],
+      formedAtByBookId: new Map([['b1', new Date()]]),
+      circles: [{ id: 'circle-1', bookId: 'b1', position: 1 }],
+      // u2 was returned to matching to pick a second book; the circle is still released.
+      completedUserIds: new Set(['u1', 'u3']),
+      releasedCircleIds: new Set(['circle-1']),
+    })
+
+    expect(state.books.find(item => item.bookId === 'b1')!.circles[0].released).toBe(true)
+  })
+
+  it('leaves a plain circle unmarked', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'admin-1', admin: true,
+      books, participants,
+      interests: [interest('u1', 'b1')], intents: [],
+      assignments: [{ userId: 'u1', bookId: 'b1', circleId: 'circle-1' }],
+      formedAtByBookId: new Map([['b1', new Date()]]),
+      circles: [{ id: 'circle-1', bookId: 'b1', position: 1 }],
+    })
+
+    expect(state.books.find(item => item.bookId === 'b1')!.circles[0].released).toBeUndefined()
+  })
+
   it('locks the completed viewer and keeps their assigned reading book above the tail', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,

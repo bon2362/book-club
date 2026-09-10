@@ -20,6 +20,8 @@ export interface MatchingBookCircleView {
   position: number
   memberRefs: string[]
   memberDisplayNames?: Record<string, string>
+  /** The organiser sent this circle off to read. */
+  released?: boolean
 }
 
 export interface MatchingBookAllowedActions {

@@ -19,6 +19,7 @@ export type MatchingAction =
   | { type: 'admin_place_book_assignment'; userId: string; bookId: string; circleId: string | null }
   | { type: 'admin_release_circle'; circleId: string }
   | { type: 'admin_return_circle'; circleId: string }
+  | { type: 'admin_return_participant'; userId: string }
   | { type: 'close_session' }
   | { type: 'reopen_session' }
 
@@ -102,6 +103,7 @@ function participantUserId(action: MatchingAction): string | null {
     case 'admin_assign_book':
     case 'admin_unassign_book':
     case 'admin_place_book_assignment':
+    case 'admin_return_participant':
       return action.userId
     case 'admin_create_book_circle':
     case 'admin_delete_book_circle':
@@ -119,7 +121,7 @@ function requiresActiveParticipant(action: MatchingAction): boolean {
     'admin_assign_book', 'admin_unassign_book',
     'admin_create_book_circle', 'admin_delete_book_circle',
     'admin_place_book_assignment', 'close_session', 'reopen_session',
-    'admin_release_circle', 'admin_return_circle',
+    'admin_release_circle', 'admin_return_circle', 'admin_return_participant',
   ].includes(action.type)
 }
 
@@ -150,6 +152,7 @@ function actionEventDraft(
     case 'admin_delete_book_circle': return { ...base, metadata: { circleId: action.circleId } }
     case 'admin_release_circle': return { ...base, metadata: { circleId: action.circleId } }
     case 'admin_return_circle': return { ...base, metadata: { circleId: action.circleId } }
+    case 'admin_return_participant': return base
     case 'admin_place_book_assignment': return { ...base, bookId: action.bookId, metadata: { circleId: action.circleId } }
     case 'self_join': return { ...base, after: action.name === undefined ? null : { name: action.name } }
     default: return base
@@ -183,7 +186,7 @@ export async function executeMatchingTransition(
     'set_conditional', 'unset_conditional', 'set_hard', 'cancel_hard',
     'admin_assign_book', 'admin_unassign_book', 'admin_create_book_circle',
     'admin_delete_book_circle', 'admin_place_book_assignment',
-    'admin_release_circle', 'admin_return_circle',
+    'admin_release_circle', 'admin_return_circle', 'admin_return_participant',
   ].includes(input.action.type)
   if (multibookAction && session.multibookReady === false) {
     throw new MatchingTransitionError('matching_migration_required')
