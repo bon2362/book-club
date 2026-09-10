@@ -63,6 +63,25 @@ describe('matchingEventTypeLabel', () => {
     expect(matchingEventTypeLabel('conditional_intents_cleared')).toBe('Авто-записи сняты')
   })
 
+  it.each([
+    ['hard_set', 'Окончательная запись'],
+    ['hard_cancelled', 'Запись отменена'],
+    ['conditional_set', 'Авто-запись'],
+    ['conditional_unset', 'Авто-запись снята'],
+    ['book_formed', 'Круг сформирован'],
+    ['participant_auto_assigned', 'Авто-назначение'],
+    ['participant_directly_assigned', 'Прямое назначение'],
+    ['admin_book_assigned', 'Книга назначена'],
+    ['admin_book_unassigned', 'Назначение снято'],
+    ['admin_assignment_placed', 'Назначение размещено'],
+    ['admin_circle_created', 'Круг создан админом'],
+    ['admin_circle_deleted', 'Круг удалён админом'],
+    ['session_closed', 'Сессия закрыта'],
+    ['session_open', 'Сессия открыта снова'],
+  ])('переводит книжное событие %s без сырого ключа', (eventType, label) => {
+    expect(matchingEventTypeLabel(eventType)).toBe(label)
+  })
+
   it('возвращает исходный код для неизвестного типа', () => {
     expect(matchingEventTypeLabel('unknown_event')).toBe('unknown_event')
   })

@@ -50,9 +50,33 @@ Database guard `guard_current_matching_signup_binding()` продолжает б
 
 Matching использует санкционированный «мягкий дашборд» и только токены из `app/globals.css`: `--shadow-card`, `--radius-card`, `--radius-control`, `--surface-soft`. Геометрию карточек и mobile sheet проверяет `e2e/matching-layout.spec.ts`.
 
+## Админка: вкладка «Матчинг»
+
+`/admin?tab=matching` собирает `AdminMatchingSession` из небольших компонентов: `AdminMatchingSessionBar` (строка сессии, меню «Сессии (N)» с закрытием по выбору, Esc и клику вне, форма `AdminMatchingNewSessionForm` за пунктом «+ Новая сессия»), `AdminMatchingSummary` (шесть чисел), подвкладки `AdminMatchingBookDemand` · `AdminMatchingParticipantsTab` · `AdminMatchingLogTab`. Общие типы и стили — `components/nd/admin-matching-shared.ts`. Подвкладка синхронизирована с `?sub=demand|people|log` через `router.replace`; неизвестное или пустое значение открывает `demand`. `AdminPanel.selectView` снимает `sub`, когда админ уходит на другую вкладку. Ответы по уже не выбранной сессии отбрасываются по `selectedSessionIdRef`, чтобы переключение не смешивало данные.
+
+Визуально вкладка следует handoff `design_handoff_matching_admin` (сухая административная подача), но только на токенах: псевдосостояния, которые не выражаются inline-стилем, заданы Tailwind-классами из токенов — `hover:bg-surface-soft` (токен `--surface-soft` проброшен в `tailwind.config.ts`), `group-hover`/`group-focus-within:opacity-100` у «убрать», `group-hover`/`group-focus-visible:flex` у подсказки с метриками книги, общий `focusRing` для клавиатурного фокуса.
+
+**Спрос по книгам** — read-only радар координатора. `GET /api/admin/matching/sessions/{id}/coordination` (только админ, 403 иначе, 404 для неизвестной сессии) читает участников сессии, их `signup_books` (`personal_status IS NULL` — «Хочу читать» с рангом из `book_priorities`; `'reading'` — справочно, по любой книге), `matching_book_intents`, `matching_book_assignments` и `matching_circles` и отдаёт всё в чистую функцию `buildCoordinationRadar` (`lib/matching/coordination-radar.ts`):
+
+- считаются только активные участники (`completed_at IS NULL`), книга попадает в выдачу при `DEMAND_MIN_INTERESTED = 3` заинтересованных;
+- статус человека по книге — самое сильное состояние: `assigned` (назначение на эту книгу) → `signed_up` (hard) → `conditional` → `wishlist`. `hardCount`/`conditionalCount`/`assignedCount` считают людей по этому статусу, поэтому один человек не попадает в два счётчика (записавшийся на уже сформированную книгу получает назначение без hard-строки и считается в `assignedCount`);
+- `topThreeCount` — ранги `1…TOP_RANK_LIMIT (3)`; `avgRank`/`worstRank` — только по известным рангам, `unrankedCount` — отдельно;
+- сортировка: `interestedCount ↓`, `topThreeCount ↓`, `avgRank ↑`, `worstRank ↑` (null в конец), `hardCount ↓`, `conditionalCount ↓`, название, `bookId`. `formedCircleCount`, `assignedCount` и `readingNow` в сортировке не участвуют — это закреплено тестами;
+- люди внутри книги: ранг ↑ (null в конец) → статус → имя;
+- `summary`: `activeParticipants`, `signedUpParticipants` (есть hard хотя бы на одну книгу), `assignedParticipants` (есть назначение), `readingParticipants` (есть книга в `reading`), `demandedBooks`, `formedCircles` (все круги сессии).
+
+Экран ничего не рекомендует и не содержит мутаций; правила формирования кругов не меняются.
+
+**Участники** — таблица «Имя · Роль · Источник · Вступил · действие». Списки книг под именем убраны из основного вида, но кнопка «книги ▾» раскрывает строку с полным выбором: `GET …/participants` дополнительно отдаёт `wishlist` (весь ранжированный «Хочу читать», включая книги без пересечений) и `readingNow`. Ручное добавление свёрнуто вместе с предупреждением о раскрытии имени, «убрать» видно на hover и `focus-within` и спрашивает `window.confirm`. Мутации — только в открытой сессии.
+
+**Журнал** — прежний `GET /api/admin/matching/preference-events` (лимит 100, «показать ещё» по 10), фильтры в одну строку, «Сбросить» при активном фильтре, сводка по типам свёрнута. Все книжные типы (`hard_set`, `book_formed`, `admin_book_assigned`, `session_closed` и др.) имеют подписи в `matchingEventTypeLabel`.
+
+Проверки: `lib/matching/__tests__/coordination-radar.test.ts`, `app/api/admin/matching/sessions/[id]/coordination/route.test.ts`, `components/nd/AdminMatchingSession.test.tsx`, E2E «админская вкладка матчинга показывает спрос по книгам…» в `e2e/matching-admin.spec.ts` (вкладки, `?sub=` после `reload()`, подсказка по фокусу, «убрать» по наведению).
+
 ## HTTP и конкурентность
 
 - `GET /api/matching/state?session={id}` — обязательное книжное public state;
+- `GET /api/admin/matching/sessions/{id}/coordination` — read-only спрос по книгам для админки;
 - `POST /api/matching/sessions/{id}/book-actions` — `setConditional`, `unsetConditional`, `setHard`, `cancelHard`;
 - `POST /api/admin/matching/sessions/{id}/book-admin-actions` — назначения на конкретную книгу, круги, `closeSession`, `reopenSession`; `unassign` и `place` требуют `bookId`;
 - `GET /api/matching/version` — версия, статус и online refs для polling;

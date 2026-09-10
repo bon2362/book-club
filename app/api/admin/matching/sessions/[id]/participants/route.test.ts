@@ -49,6 +49,16 @@ function bookChoicesSelect(rows: unknown[]) {
   return chain
 }
 
+function personalListSelect(rows: unknown[]) {
+  const chain: Record<string, unknown> = {
+    from: () => chain,
+    innerJoin: () => chain,
+    leftJoin: () => chain,
+    where: () => Promise.resolve(rows),
+  }
+  return chain
+}
+
 describe('GET /api/admin/matching/sessions/[id]/participants', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -69,6 +79,7 @@ describe('GET /api/admin/matching/sessions/[id]/participants', () => {
       ]))
       .mockReturnValueOnce(lockedSelect([{ userId: 'user-2', title: 'Книга' }]))
       .mockReturnValueOnce(bookChoicesSelect([]))
+      .mockReturnValueOnce(personalListSelect([]))
 
     const res = await GET(new NextRequest('http://localhost/x'), params)
     expect(res.status).toBe(200)
@@ -92,6 +103,7 @@ describe('GET /api/admin/matching/sessions/[id]/participants', () => {
         { userId: 'user-1', kind: 'hard', title: 'Моби Дик' },
         { userId: 'user-1', kind: 'conditional', title: 'Сто лет одиночества' },
       ]))
+      .mockReturnValueOnce(personalListSelect([]))
 
     const res = await GET(new NextRequest('http://localhost/x'), params)
     const body = await res.json()
@@ -107,6 +119,32 @@ describe('GET /api/admin/matching/sessions/[id]/participants', () => {
         },
       }),
     ])
+  })
+
+  it('returns the full ranked wishlist and current reading books of each participant', async () => {
+    mockDb.select
+      .mockReturnValueOnce(participantsSelect([
+        { userId: 'user-1', publicRef: 'ref-1', joinSource: 'self', joinedAt: new Date(), name: 'Анна' },
+        { userId: 'user-2', publicRef: 'ref-2', joinSource: 'self', joinedAt: new Date(), name: 'Борис' },
+      ]))
+      .mockReturnValueOnce(lockedSelect([]))
+      .mockReturnValueOnce(bookChoicesSelect([]))
+      .mockReturnValueOnce(personalListSelect([
+        { userId: 'user-1', title: 'Третья', personalStatus: null, rank: 3 },
+        { userId: 'user-1', title: 'Без ранга', personalStatus: null, rank: null },
+        { userId: 'user-1', title: 'Первая', personalStatus: null, rank: 1 },
+        { userId: 'user-1', title: 'Уроки химии', personalStatus: 'reading', rank: null },
+      ]))
+
+    const body = await (await GET(new NextRequest('http://localhost/x'), params)).json()
+
+    expect(body.data[0].wishlist).toEqual([
+      { title: 'Первая', rank: 1 },
+      { title: 'Третья', rank: 3 },
+      { title: 'Без ранга', rank: null },
+    ])
+    expect(body.data[0].readingNow).toEqual(['Уроки химии'])
+    expect(body.data[1]).toMatchObject({ wishlist: [], readingNow: [] })
   })
 })
 

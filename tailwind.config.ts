@@ -15,6 +15,7 @@ const config: Config = {
         "bg-elevated":   "var(--bg-elevated)",
         "bg-input":      "var(--bg-input)",
         "bg-tag":        "var(--bg-tag)",
+        "surface-soft":  "var(--surface-soft)",
         text:            "var(--text)",
         "text-secondary":"var(--text-secondary)",
         "text-muted":    "var(--text-muted)",

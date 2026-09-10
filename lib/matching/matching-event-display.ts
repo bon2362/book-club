@@ -40,6 +40,21 @@ export function matchingEventTypeLabel(eventType: string): string {
     case 'circle_released': return 'Круг отправлен читать'
     case 'circle_returned': return 'Круг возвращён в подбор'
     case 'participant_returned_to_matching': return 'Возвращён:а в подбор'
+    // Книжная модель: записи, формирование, назначения и lifecycle сессии.
+    case 'hard_set': return 'Окончательная запись'
+    case 'hard_cancelled': return 'Запись отменена'
+    case 'conditional_set': return 'Авто-запись'
+    case 'conditional_unset': return 'Авто-запись снята'
+    case 'book_formed': return 'Круг сформирован'
+    case 'participant_auto_assigned': return 'Авто-назначение'
+    case 'participant_directly_assigned': return 'Прямое назначение'
+    case 'admin_book_assigned': return 'Книга назначена'
+    case 'admin_book_unassigned': return 'Назначение снято'
+    case 'admin_assignment_placed': return 'Назначение размещено'
+    case 'admin_circle_created': return 'Круг создан админом'
+    case 'admin_circle_deleted': return 'Круг удалён админом'
+    case 'session_closed': return 'Сессия закрыта'
+    case 'session_open': return 'Сессия открыта снова'
     default: return eventType
   }
 }

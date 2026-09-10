@@ -917,6 +917,8 @@ export default function AdminPanel({
     setView(nextView)
     const params = new URLSearchParams(searchParamsString)
     params.set('tab', nextView)
+    // `sub` — подвкладка матчинга; на других вкладках она ничего не значит.
+    if (nextView !== 'matching') params.delete('sub')
     router.replace(`${pathname}?${params.toString()}`, { scroll: false })
   }
 

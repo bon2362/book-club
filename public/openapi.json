@@ -928,9 +928,76 @@
           "joinedAt": { "$ref": "#/components/schemas/DateTime" },
           "name": { "type": "string", "nullable": true },
           "role": { "type": "string", "enum": ["active", "observer"] },
-          "choices": { "$ref": "#/components/schemas/AdminMatchingParticipantChoices" }
+          "completedAt": { "$ref": "#/components/schemas/DateTime", "nullable": true, "description": "Когда круг участника отправлен читать; null — участник ещё выбирает." },
+          "choices": { "$ref": "#/components/schemas/AdminMatchingParticipantChoices" },
+          "wishlist": {
+            "type": "array",
+            "description": "Полный личный список «Хочу читать» по возрастанию ранга; rank = null — без ранга.",
+            "items": { "type": "object", "properties": { "title": { "type": "string" }, "rank": { "type": "integer", "nullable": true } }, "required": ["title", "rank"] }
+          },
+          "readingNow": { "type": "array", "description": "Книги в статусе reading — из любого источника.", "items": { "type": "string" } }
         },
-        "required": ["userId", "publicRef", "joinSource", "joinedAt", "name", "role", "choices"]
+        "required": ["userId", "publicRef", "joinSource", "joinedAt", "name", "role", "choices", "wishlist", "readingNow"]
+      },
+      "AdminMatchingCoordinationParticipant": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string" },
+          "name": { "type": "string" },
+          "rank": { "type": "integer", "nullable": true },
+          "status": { "type": "string", "enum": ["assigned", "signed_up", "conditional", "wishlist"], "description": "Самое сильное состояние по книге: в круге → записался → авто-запись → в списке." },
+          "assignedCircleId": { "type": "string", "nullable": true },
+          "readingNow": { "type": "array", "items": { "type": "object", "properties": { "bookId": { "type": "string" }, "title": { "type": "string" } }, "required": ["bookId", "title"] } }
+        },
+        "required": ["userId", "name", "rank", "status", "assignedCircleId", "readingNow"]
+      },
+      "AdminMatchingCoordinationBook": {
+        "type": "object",
+        "properties": {
+          "bookId": { "type": "string" },
+          "title": { "type": "string" },
+          "author": { "type": "string", "nullable": true },
+          "interestedCount": { "type": "integer" },
+          "topThreeCount": { "type": "integer" },
+          "avgRank": { "type": "number", "nullable": true },
+          "worstRank": { "type": "integer", "nullable": true },
+          "unrankedCount": { "type": "integer" },
+          "hardCount": { "type": "integer", "description": "Записались окончательно, но ещё не в круге по этой книге." },
+          "conditionalCount": { "type": "integer" },
+          "assignedCount": { "type": "integer" },
+          "formedCircleCount": { "type": "integer" },
+          "participants": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingCoordinationParticipant" } }
+        },
+        "required": ["bookId", "title", "author", "interestedCount", "topThreeCount", "avgRank", "worstRank", "unrankedCount", "hardCount", "conditionalCount", "assignedCount", "formedCircleCount", "participants"]
+      },
+      "AdminMatchingCoordinationResponse": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "status": { "type": "string", "enum": ["open", "closed"] },
+              "deadlineAt": { "$ref": "#/components/schemas/DateTime", "nullable": true }
+            },
+            "required": ["id", "title", "status", "deadlineAt"]
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "activeParticipants": { "type": "integer" },
+              "signedUpParticipants": { "type": "integer" },
+              "assignedParticipants": { "type": "integer" },
+              "readingParticipants": { "type": "integer" },
+              "demandedBooks": { "type": "integer" },
+              "formedCircles": { "type": "integer" }
+            },
+            "required": ["activeParticipants", "signedUpParticipants", "assignedParticipants", "readingParticipants", "demandedBooks", "formedCircles"]
+          },
+          "books": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingCoordinationBook" } }
+        },
+        "required": ["session", "summary", "books"]
       },
       "AdminMatchingParticipantChoices": {
         "type": "object",
@@ -2403,11 +2470,25 @@
         }
       }
     },
+    "/api/admin/matching/sessions/{id}/coordination": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Спрос по книгам в matching-сессии (радар координатора)",
+        "description": "Read-only, только администраторы. Книги, которые держат в «Хочу читать» (signup_books.personal_status IS NULL) минимум трое активных участников сессии (completed_at IS NULL), с метриками рангов, статусами участников по книге и справочными reading-книгами. Сортировка: interestedCount ↓, topThreeCount ↓, avgRank ↑, worstRank ↑ (null в конец), hardCount ↓, conditionalCount ↓, title, bookId. Сформированные круги и reading на порядок не влияют.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Сводка сессии и книги в спросе", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdminMatchingCoordinationResponse" } } } },
+          "403": { "description": "Forbidden", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "Session not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
     "/api/admin/matching/sessions/{id}/participants": {
       "get": {
         "tags": ["Admin"],
         "summary": "Получить участников matching-сессии",
-        "description": "Возвращает реальные имена, joinSource, active/observer, текущие окончательные/автоматические записи и назначения в круг, а также отдельный список online public refs.",
+        "description": "Возвращает реальные имена, joinSource, active/observer, текущие окончательные/автоматические записи и назначения в круг, полный ранжированный список «Хочу читать» и книги в статусе reading, а также отдельный список online public refs.",
         "security": [{ "sessionCookie": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
