@@ -54,7 +54,6 @@ test.describe('Matching canonical book board layout', () => {
     const record = card.getByRole('button', { name: 'Записаться', exact: true })
     const caret = card.getByRole('button', { name: 'Автоматическая запись, если соберётся круг' })
     const viewports = [{ width: 1280, height: 900 }, { width: 390, height: 844 }]
-    const soloHeights: number[] = []
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
@@ -75,7 +74,6 @@ test.describe('Matching canonical book board layout', () => {
       expect(dividerBox!.y + dividerBox!.height).toBeLessThanOrEqual(cardBox!.y)
       expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(viewport.width + 1)
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
-      soloHeights.push(cardBox!.height)
     }
 
     const peer = await addParticipant('Overlap peer', [books[0]])
@@ -83,8 +81,20 @@ test.describe('Matching canonical book board layout', () => {
       await page.setViewportSize(viewport)
       await page.reload()
       await expect(record).toBeVisible()
-      const cardBox = await card.boundingBox()
-      expect(cardBox!.height).toBeGreaterThan(soloHeights[viewports.indexOf(viewport)] + 20)
+      // Карточка обменивает блок причины хвоста на блок записи, поэтому её высота — не
+      // показатель: на десктопе она вырастает на полтора пикселя, на 390px наоборот
+      // становится ниже (двухстрочная причина «ЖДЁМ ДРУГИХ» там выше кнопки). Прежняя
+      // проверка «выросла минимум на 20px» была написана до появления блока причины и с
+      // тех пор проверяла только устаревшее допущение. Смысл — в том, что управление
+      // записью реально появилось внутри карточки и занимает место, а причина ушла.
+      const [cardBox, recordBox] = await Promise.all([card.boundingBox(), record.boundingBox()])
+      expect(recordBox!.height).toBeGreaterThan(24)
+      expect(recordBox!.y).toBeGreaterThanOrEqual(cardBox!.y)
+      expect(recordBox!.y + recordBox!.height).toBeLessThanOrEqual(cardBox!.y + cardBox!.height)
+      expect(recordBox!.x + recordBox!.width).toBeLessThanOrEqual(cardBox!.x + cardBox!.width + 1)
+      await expect(card.locator('.nd-mb-actions')).toHaveCount(1)
+      await expect(card.getByTestId('matching-book-tail-reason')).toHaveCount(0)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
       const otherCard = page.getByTestId(`matching-book-card-${books[1].id}`)
       await expect(otherCard.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
     }
