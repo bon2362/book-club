@@ -9,8 +9,8 @@ import { Resend as ResendClient } from 'resend'
 import { IdentityAwareDrizzleAdapter } from '@/lib/auth-adapter'
 import { authorizeGoogleOneTap } from '@/lib/auth.google-one-tap'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
-import { IdentityConflictError, linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
-import { trackAuthFailed } from '@/lib/auth-analytics'
+import { IdentityConflictError, linkIdentityToUser, loadLoginPersonProperties, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { applyLoginPersonProperties, trackAuthFailed, trackAuthSucceeded } from '@/lib/auth-analytics'
 
 const FROM = 'Долгое наступление <noreply@slowreading.club>'
 
@@ -27,6 +27,31 @@ async function bootstrapAdminFromEnv(userId: string, email?: string | null) {
 
   await db.update(users).set({ isAdmin: true }).where(eq(users.id, userId))
   return true
+}
+
+/** Окно, внутри которого аккаунт считается созданным этим же входом. */
+const NEW_ACCOUNT_WINDOW_MS = 2 * 60 * 1000
+
+/**
+ * Вход через Google или ссылку из письма идёт мимо `resolveOrCreateUserFromIdentity`:
+ * пользователя создаёт или находит адаптер NextAuth, а identity мы лишь до-связываем.
+ * Поэтому такой вход не отправлял ни `auth_succeeded`, ни свойства персоны — в PostHog
+ * эти способы выглядели как «ими никто не входит», а человек оставался безымянным.
+ *
+ * Вызывать только из колбэка signIn: та же `linkVerifiedIdentityToUser` используется,
+ * когда человек добавляет способ входа в профиле, и это не вход.
+ *
+ * Best-effort: аналитика не должна ломать вход.
+ */
+async function reportAdapterSignIn(userId: string, provider: string, now: Date): Promise<void> {
+  try {
+    const person = await loadLoginPersonProperties(userId)
+    const isNewUser = !!person.createdAt && now.getTime() - person.createdAt.getTime() < NEW_ACCOUNT_WINDOW_MS
+    await trackAuthSucceeded(userId, provider, isNewUser, 'adapter')
+    await applyLoginPersonProperties(userId, person)
+  } catch (error) {
+    console.error('Failed to report adapter sign-in to analytics', error)
+  }
 }
 
 function normalizeAuthProvider(provider: string) {
@@ -145,6 +170,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               now,
               metadata: { source: 'auth-sign-in' },
             })
+            await reportAdapterSignIn(userId, provider, now)
           } catch (error) {
             handleIdentitySyncError(error, userId, provider)
           }
@@ -159,6 +185,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 now,
                 metadata: { source: 'auth-sign-in' },
               })
+              await reportAdapterSignIn(userId, provider, now)
             } else {
               await resolveOrCreateUserFromIdentity('email', user.email, {
                 email: user.email,

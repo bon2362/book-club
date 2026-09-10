@@ -37,6 +37,13 @@ jest.mock('@/lib/user-identities', () => ({
   },
   linkIdentityToUser: jest.fn(),
   resolveOrCreateUserFromIdentity: jest.fn(),
+  loadLoginPersonProperties: jest.fn(),
+}))
+
+jest.mock('@/lib/auth-analytics', () => ({
+  trackAuthFailed: jest.fn(),
+  trackAuthSucceeded: jest.fn(),
+  applyLoginPersonProperties: jest.fn(),
 }))
 
 jest.mock('next-auth/providers/google', () => ({
@@ -82,7 +89,8 @@ jest.mock('next-auth', () => ({
 import NextAuth from 'next-auth'
 import { db } from '@/lib/db'
 import { bestEffortRecordUserActivity } from '@/lib/user-activity'
-import { IdentityConflictError, linkIdentityToUser, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { IdentityConflictError, linkIdentityToUser, loadLoginPersonProperties, resolveOrCreateUserFromIdentity } from '@/lib/user-identities'
+import { applyLoginPersonProperties, trackAuthSucceeded } from '@/lib/auth-analytics'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('@/lib/auth')
@@ -146,6 +154,91 @@ beforeEach(() => {
     id: 'identity-user',
     email: 'identity@test.com',
     name: 'Identity',
+  })
+})
+
+// ── аналитика входа через адаптер NextAuth ───────────────────────────────────
+// Google и ссылка из письма идут мимо resolveOrCreateUserFromIdentity: пользователя
+// создаёт/находит адаптер, а identity мы лишь до-связываем. Раньше этот путь не
+// отправлял ни auth_succeeded, ни свойства персоны — в PostHog такие входы
+// выглядели как «этим способом никто не входит», а человек оставался безымянным.
+describe('signIn callback: аналитика входа через Google и почту', () => {
+  const signInCallback = () => getConfig().callbacks.signIn
+  const person = {
+    name: 'Google User',
+    telegramUsername: null,
+    providers: ['google'],
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    isAdmin: false,
+  }
+
+  beforeEach(() => {
+    mockDbUpdate();
+    (loadLoginPersonProperties as jest.Mock).mockResolvedValue(person)
+  })
+
+  it('отправляет auth_succeeded и свойства персоны при входе через Google', async () => {
+    await signInCallback()({
+      user: { id: 'google-user-uuid', email: 'g@test.com', name: 'Google User' },
+      account: { provider: 'google', providerAccountId: 'google-123' },
+    })
+
+    expect(trackAuthSucceeded).toHaveBeenCalledWith('google-user-uuid', 'google', false, 'adapter')
+    expect(applyLoginPersonProperties).toHaveBeenCalledWith('google-user-uuid', person)
+  })
+
+  it('отправляет auth_succeeded при входе по ссылке из письма', async () => {
+    await signInCallback()({
+      user: { id: 'email-user-uuid', email: 'magic@test.com', name: 'Magic User' },
+      account: { provider: 'resend' },
+    })
+
+    expect(trackAuthSucceeded).toHaveBeenCalledWith('email-user-uuid', 'email', false, 'adapter')
+    expect(applyLoginPersonProperties).toHaveBeenCalledWith('email-user-uuid', person)
+  })
+
+  it('помечает вход как регистрацию, если аккаунт создан только что', async () => {
+    (loadLoginPersonProperties as jest.Mock).mockResolvedValue({ ...person, createdAt: new Date() })
+
+    await signInCallback()({
+      user: { id: 'fresh-uuid', email: 'fresh@test.com', name: 'Fresh' },
+      account: { provider: 'google', providerAccountId: 'google-fresh' },
+    })
+
+    expect(trackAuthSucceeded).toHaveBeenCalledWith('fresh-uuid', 'google', true, 'adapter')
+  })
+
+  it('не ломает вход, если отправка аналитики упала', async () => {
+    (trackAuthSucceeded as jest.Mock).mockRejectedValueOnce(new Error('posthog down'))
+
+    const result = await signInCallback()({
+      user: { id: 'google-user-uuid', email: 'g@test.com', name: 'Google User' },
+      account: { provider: 'google', providerAccountId: 'google-123' },
+    })
+
+    expect(result).toBe(true)
+  })
+
+  it('не отправляет auth_succeeded на pre-send фазе magic link', async () => {
+    await signInCallback()({
+      user: { email: 'not-yet@test.com' },
+      account: { provider: 'resend' },
+      email: { verificationRequest: true },
+    })
+
+    expect(trackAuthSucceeded).not.toHaveBeenCalled()
+    expect(applyLoginPersonProperties).not.toHaveBeenCalled()
+  })
+
+  it('не отправляет auth_succeeded, если привязка identity упала конфликтом', async () => {
+    (linkIdentityToUser as jest.Mock).mockRejectedValueOnce(new IdentityConflictError('busy'))
+
+    await expect(signInCallback()({
+      user: { id: 'google-user-uuid', email: 'g@test.com', name: 'Google User' },
+      account: { provider: 'google', providerAccountId: 'google-123' },
+    })).rejects.toThrow(IdentityConflictError)
+
+    expect(trackAuthSucceeded).not.toHaveBeenCalled()
   })
 })
 
