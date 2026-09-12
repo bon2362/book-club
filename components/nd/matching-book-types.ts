@@ -97,8 +97,8 @@ export function matchingBookDetail(
 }
 
 /** Includes interest, conditional, hard and assigned peers, not just shortlist counts. */
-export function hasOtherBookParticipants(book: MatchingBookView, viewerRef: string): boolean {
-  return book.participants.some((participant) => participant.ref !== viewerRef)
+export function hasEnoughBookParticipantsToEnroll(book: MatchingBookView, viewerRef: string): boolean {
+  return book.participants.filter((participant) => participant.ref !== viewerRef).length >= 2
 }
 
 /**
@@ -114,7 +114,7 @@ export function isTailBook(
   viewerAssignmentBookIds: string[],
 ): boolean {
   if (book.viewerPersonalStatus === 'reading') return true
-  return !hasOtherBookParticipants(book, viewerRef) && book.formedAt === null &&
+  return !hasEnoughBookParticipantsToEnroll(book, viewerRef) && book.formedAt === null &&
     !viewerAssignmentBookIds.includes(book.bookId) && book.viewerStatus !== 'hard'
 }
 
@@ -126,7 +126,7 @@ export function isTailBook(
  */
 export function tailReason(book: MatchingBookView, viewerRef: string): 'waiting' | 'reading' | null {
   if (book.viewerPersonalStatus === 'reading') return 'reading'
-  const waiting = !hasOtherBookParticipants(book, viewerRef) && book.formedAt === null &&
+  const waiting = !hasEnoughBookParticipantsToEnroll(book, viewerRef) && book.formedAt === null &&
     book.viewerStatus !== 'assigned' && book.viewerStatus !== 'hard'
   return waiting ? 'waiting' : null
 }

@@ -39,13 +39,22 @@ describe('MatchingBookCard', () => {
   })
 
   it.each(['interest', 'conditional', 'hard', 'assigned'] as const)(
-    'allows enrollment with another %s participant even without shortlist intersections', (status) => {
+    'keeps enrollment unavailable with only one other %s participant', (status) => {
       render(<MatchingBookCard book={{ ...book, intersectionCount: 0, participants: [
         { ref: 'peer', displayName: 'Другой участник', status, rank: null },
       ] }} {...baseProps} />)
-      expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Записаться' })).not.toBeInTheDocument()
+      expect(screen.getByTestId('matching-book-tail-reason')).toHaveAttribute('data-reason', 'waiting')
     },
   )
+
+  it('allows enrollment when two other participants have the book', () => {
+    render(<MatchingBookCard book={{ ...book, intersectionCount: 0, participants: [
+      { ref: 'first-peer', displayName: 'Первый участник', status: 'interest', rank: null },
+      { ref: 'second-peer', displayName: 'Второй участник', status: 'conditional', rank: null },
+    ] }} {...baseProps} />)
+    expect(screen.getByRole('button', { name: 'Записаться' })).toBeInTheDocument()
+  })
 
   it('keeps cancellation of a hard choice after the last peer disappears', () => {
     render(<MatchingBookCard book={{ ...book, intersectionCount: 0, participants: [],
@@ -252,7 +261,7 @@ describe('MatchingBookCard', () => {
     const label = screen.getByTestId('matching-book-tail-reason')
     expect(label).toHaveAttribute('data-reason', 'waiting')
     expect(label).toHaveTextContent('ЖДЁМ ДРУГИХ')
-    expect(label).toHaveTextContent('Когда кто-то ещё выберет — можно будет записаться')
+    expect(label).toHaveTextContent('Когда книга будет в списках минимум у трёх участников — можно будет записаться')
     expect(screen.queryByRole('button', { name: 'Вернуть в подбор' })).not.toBeInTheDocument()
   })
 

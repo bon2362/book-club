@@ -8,7 +8,11 @@ const mode: MatchingBookModeState = {
   books: [{
     bookId: 'b1', title: 'Первая', author: 'Автор', coverUrl: null,
     intersectionCount: 1, formedAt: null, currentViability: 'unformed', viewerStatus: 'interest',
-    participants: [{ ref: 'viewer', displayName: 'Я', status: 'interest', rank: 1 }, { ref: 'peer', displayName: 'Другой', status: 'interest', rank: 1 }], circles: [], unplacedParticipantRefs: [],
+    participants: [
+      { ref: 'viewer', displayName: 'Я', status: 'interest', rank: 1 },
+      { ref: 'first-peer', displayName: 'Первый другой', status: 'interest', rank: 1 },
+      { ref: 'second-peer', displayName: 'Второй другой', status: 'interest', rank: 2 },
+    ], circles: [], unplacedParticipantRefs: [],
     allowedActions: { conditional: true, hard: true, cancelHard: false },
   }],
 }
