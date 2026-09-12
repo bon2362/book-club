@@ -1,4 +1,5 @@
 import type { MatchingBookCircleView, MatchingBookParticipantView } from './matching-book-types'
+import { track } from '@/lib/analytics'
 
 function initial(name: string) {
   return name.trim().charAt(0).toLocaleUpperCase('ru') || '•'
@@ -42,7 +43,16 @@ export default function MatchingBookCircles({
               })}
             </ul>
             {calendarVisible && (
-              <a href={`/calendar/circle/${bookId}/${circle.position}`} className="nd-mb-calendar-link">
+              <a
+                href={`/calendar/circle/${bookId}/${circle.position}`}
+                className="nd-mb-calendar-link"
+                onClick={() => track('matching_calendar_link_clicked', {
+                  book_id: bookId ?? null,
+                  circle_position: circle.position,
+                  is_mine: mine,
+                  admin_mode: adminMode,
+                })}
+              >
                 Согласовать время
               </a>
             )}

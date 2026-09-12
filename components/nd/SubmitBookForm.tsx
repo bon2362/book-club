@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { track } from '@/lib/analytics'
 
 interface Props {
@@ -64,8 +64,17 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
   const [coverUrl, setCoverUrl] = useState('')
   const [whyRead, setWhyRead] = useState('')
 
+  // Сколько полей человек успел заполнить перед тем, как закрыть форму.
+  // Через ref, чтобы не пересоздавать обработчик закрытия на каждую букву.
+  const filledFieldsRef = useRef(0)
+  filledFieldsRef.current = [title, author, pages, publishedDate, textUrl, description, coverUrl, whyRead]
+    .filter(value => value.trim()).length
+
   const handleClose = useCallback(() => {
     if (status === 'submitting') return
+    if (status !== 'success') {
+      track('submit_book_form_dismissed', { filled_fields: filledFieldsRef.current })
+    }
     onClose()
   }, [status, onClose])
 
@@ -92,6 +101,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
       setCoverUrl('')
       setWhyRead('')
     } else {
+      track('submit_book_form_opened', { prefilled_author: Boolean(initialAuthor) })
       if (initialAuthor) setAuthor(initialAuthor)
     }
   }, [isOpen, initialAuthor])
@@ -111,6 +121,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
     if (!author.trim()) newErrors.author = 'Обязательное поле'
     if (!whyRead.trim()) newErrors.whyRead = 'Обязательное поле'
     if (Object.keys(newErrors).length > 0) {
+      track('submit_book_form_invalid', { missing: Object.keys(newErrors) })
       setErrors(newErrors)
       return
     }
@@ -135,6 +146,7 @@ export default function SubmitBookForm({ isOpen, onClose, initialAuthor }: Props
       track('book_submission')
       setStatus('success')
     } catch {
+      track('submit_book_form_failed')
       setStatus('error')
     }
   }

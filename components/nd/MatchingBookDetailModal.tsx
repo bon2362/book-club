@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { track } from '@/lib/analytics'
 import type { CSSProperties } from 'react'
 import CoverImage from './CoverImage'
 import { parseRecommendationLink, withAdminName } from './matching-shared'
@@ -182,6 +183,7 @@ export default function MatchingBookDetailModal({
   }
 
   async function handleWriteSummary() {
+    track('matching_write_summary_clicked', { book_id: book.bookId })
     setSummaryBusy(true)
     try {
       const res = await fetch(`/api/summaries/by-book/${book.bookId}`, { method: 'POST' })

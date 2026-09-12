@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { track } from '@/lib/analytics'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -36,9 +37,16 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
   const [joining, setJoining] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Экран знакомства предупреждает, что имя увидят другие. Разница между
+  // «показан» и «вступил» — сколько людей передумали на этом шаге.
+  useEffect(() => {
+    track('matching_welcome_shown', { session_id: sessionId })
+  }, [sessionId])
+
   async function handleJoin() {
     const trimmed = name.trim()
     if (!trimmed) {
+      track('matching_welcome_join_failed', { session_id: sessionId, reason: 'name_required' })
       setError('Введите имя')
       return
     }
@@ -52,8 +60,10 @@ export default function MatchingWelcome({ sessionId, sessionName, initialName }:
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json.error ?? 'Не удалось войти в сессию')
+      track('matching_welcome_joined', { session_id: sessionId, name_changed: trimmed !== initialName.trim() })
       router.refresh()
     } catch (event) {
+      track('matching_welcome_join_failed', { session_id: sessionId, reason: 'request_failed' })
       setError(event instanceof Error ? event.message : 'Не удалось войти в сессию')
     } finally {
       setJoining(false)

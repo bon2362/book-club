@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { track } from '@/lib/analytics'
 import SummaryMarkdown from './SummaryMarkdown'
 import type { MatchingInstructions as MatchingInstructionsData } from '@/lib/matching/instructions-content'
 
@@ -18,7 +19,7 @@ export default function MatchingInstructions({ instructions }: { instructions: M
             className="p-link muted"
             aria-expanded={expanded}
             aria-controls="matching-book-instructions"
-            onClick={() => setExpanded(value => !value)}
+            onClick={() => { track(expanded ? 'matching_instructions_collapsed' : 'matching_instructions_expanded'); setExpanded(value => !value) }}
           >
             {expanded ? instructions.collapseLabel : instructions.expandLabel}
           </button>
