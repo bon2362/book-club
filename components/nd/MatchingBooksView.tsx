@@ -4,18 +4,14 @@ import { useRef, useState } from 'react'
 import { useBookDetail } from './BookDetailProvider'
 import MatchingBookCard, { type MatchingBookCommandAction } from './MatchingBookCard'
 import MatchingBookAdminControls, { type MatchingBookAdminAction, type MatchingBookAdminCommand } from './MatchingBookAdminControls'
+import MatchingInstructions from './MatchingInstructions'
 import type { MatchingBookDetail } from './MatchingBookDetailModal'
 import {
   matchingBookDetail,
   isTailBook,
   type MatchingBookModeState,
 } from './matching-book-types'
-import {
-  MAX_CIRCLE_SIZE,
-  MIN_CIRCLE_SIZE,
-  MIN_FORMATION_HARD_CHOICES,
-  MIN_FORMATION_TOTAL_CHOICES,
-} from '@/lib/matching/book-partition'
+import { DEFAULT_MATCHING_INSTRUCTIONS, type MatchingInstructions as MatchingInstructionsData } from '@/lib/matching/instructions-content'
 
 interface Props {
   sessionId: string
@@ -28,6 +24,7 @@ interface Props {
   mutationUserId?: string
   onState: (state: unknown) => void
   onRefresh: () => Promise<void>
+  instructions?: MatchingInstructionsData
 }
 
 type PendingCommand = { bookId: string; action: MatchingBookCommandAction | MatchingBookAdminAction | 'returnToMatching' } | null
@@ -43,11 +40,11 @@ export default function MatchingBooksView({
   mutationUserId,
   onState,
   onRefresh,
+  instructions = DEFAULT_MATCHING_INSTRUCTIONS,
 }: Props) {
   const { openBook } = useBookDetail()
   const [pending, setPending] = useState<PendingCommand>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [instructionsExpanded, setInstructionsExpanded] = useState(false)
   const focusRef = useRef<{ bookId: string; element: HTMLButtonElement } | null>(null)
   const viewerHasHard = bookMode.books.some((book) => book.viewerStatus === 'hard')
   const selectedBooks = bookMode.viewerAssignmentBookIds
@@ -164,39 +161,10 @@ export default function MatchingBooksView({
   return (
     <div className="nd-mb-view" data-testid="matching-books-view" aria-busy={pending !== null}>
       <header className="nd-mb-intro">
-        <h2>{isAdmin ? 'Книги сессии' : 'Совпадения по вашим книгам'}</h2>
+        {isAdmin ? <h2>Книги сессии</h2> : <MatchingInstructions instructions={instructions} />}
         {isAdmin ? (
           <p>Здесь можно увидеть и скорректировать актуальные договорённости участников.</p>
-        ) : (
-          <div className="nd-mb-intro-disclosure">
-            <div className="nd-mb-intro-summary">
-              <span>Выбирайте все книги, которые будете читать</span>
-              <button
-                type="button"
-                className="p-link muted"
-                aria-expanded={instructionsExpanded}
-                aria-controls="matching-book-instructions"
-                onClick={() => setInstructionsExpanded(value => !value)}
-              >
-                {instructionsExpanded ? 'Короче' : 'Подробнее'}
-              </button>
-            </div>
-            {instructionsExpanded && (
-              <ul
-                id="matching-book-instructions"
-                className="nd-mb-intro-details"
-                aria-label="Как выбрать книгу"
-              >
-                <li>Выберите все книги, которые будете читать</li>
-                <li>Книги отсортированы по степени интереса участни:ц, добавивших их в свои списки</li>
-                <li>Нажмите на имя участни:цы, чтобы узнать, на какое место он:а поместила книгу</li>
-                <li>{`В меню кнопки «Записаться ▾» можно включить авто-запись сразу на нескольких книгах — она действует, пока вы не запишетесь окончательно; книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего; круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек`}</li>
-                <li>Можно читать несколько книг одновременно</li>
-                <li>Разные группы могут читать одну и ту же книгу</li>
-              </ul>
-            )}
-          </div>
-        )}
+        ) : null}
         {readOnly && (!isAdmin || !mutationsAvailable) && (
           <div className="nd-mb-slot" data-testid="matching-books-readonly">
             {viewerCompleted

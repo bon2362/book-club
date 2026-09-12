@@ -52,6 +52,12 @@ Matching использует санкционированный «мягкий 
 
 ## Админка: вкладка «Матчинг»
 
+### Общая инструкция для участни:ц
+
+Верхний блок книжной доски (`MatchingInstructions` в `MatchingBooksView`) больше не хранит текст в коде. Одна глобальная запись `matching_instructions` содержит заголовок, подзаголовок, подписи раскрывающей ссылки и `body_markdown`. `app/matching/page.tsx` читает её на сервере и передаёт в `MatchingRealtimeClient`; Markdown рендерит общий `SummaryMarkdown`. Пока ручная миграция `drizzle/0065_matching_instructions.sql` не применена, `getMatchingInstructions()` возвращает безопасный прежний текст из `DEFAULT_MATCHING_INSTRUCTIONS`.
+
+Редактор расположен вверху `/admin?tab=matching` (`AdminMatchingInstructions`): Markdown-панель, предпросмотр и явная кнопка сохранения. `GET`/`PUT /api/admin/matching/instructions` доступны только администратору; PUT проходит через `withAuditContext`, обновляет `matching_instructions` и вызывает `revalidatePath('/matching')`. Таблица внесена в `AUDITED_TABLES`, а миграция создаёт audit trigger. Проверки: unit/API и focused E2E в `e2e/matching-admin.spec.ts` с reload обеих страниц.
+
 `/admin?tab=matching` собирает `AdminMatchingSession` из небольших компонентов: `AdminMatchingSessionBar` (строка сессии, меню «Сессии (N)» с закрытием по выбору, Esc и клику вне, форма `AdminMatchingNewSessionForm` за пунктом «+ Новая сессия»), `AdminMatchingSummary` (шесть чисел), подвкладки `AdminMatchingBookDemand` · `AdminMatchingParticipantsTab` · `AdminMatchingLogTab`. Общие типы и стили — `components/nd/admin-matching-shared.ts`. Подвкладка синхронизирована с `?sub=demand|people|log` через `router.replace`; неизвестное или пустое значение открывает `demand`. `AdminPanel.selectView` снимает `sub`, когда админ уходит на другую вкладку. Ответы по уже не выбранной сессии отбрасываются по `selectedSessionIdRef`, чтобы переключение не смешивало данные.
 
 Визуально вкладка следует handoff `design_handoff_matching_admin` (сухая административная подача), но только на токенах: псевдосостояния, которые не выражаются inline-стилем, заданы Tailwind-классами из токенов — `hover:bg-surface-soft` (токен `--surface-soft` проброшен в `tailwind.config.ts`), `group-hover`/`group-focus-within:opacity-100` у «убрать», `group-hover`/`group-focus-visible:flex` у подсказки с метриками книги, общий `focusRing` для клавиатурного фокуса.

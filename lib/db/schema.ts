@@ -221,6 +221,16 @@ export const introSections = pgTable('intro_sections', {
   kindIdx: index('intro_sections_kind_sort_idx').on(t.kind, t.sortOrder),
 }))
 
+export const matchingInstructions = pgTable('matching_instructions', {
+  id:            text('id').primaryKey(),
+  title:         text('title').notNull(),
+  lead:          text('lead').notNull(),
+  expandLabel:   text('expand_label').notNull(),
+  collapseLabel: text('collapse_label').notNull(),
+  bodyMarkdown:  text('body_markdown').notNull(),
+  updatedAt:     timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+})
+
 export const notificationQueue = pgTable('notification_queue', {
   id:           text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userName:     text('user_name').notNull(),

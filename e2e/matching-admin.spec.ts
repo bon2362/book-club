@@ -55,6 +55,40 @@ test.beforeEach(async () => {
   await feature('Администрирование книжных кругов')
 })
 
+test('администратор сохраняет общую Markdown-инструкцию, видимую участни:це после reload', { tag: '@matching-golden' }, async ({
+  matchingBooksFixture,
+  openMatchingPage,
+}) => {
+  const { admin, participantA } = matchingBooksFixture
+  const originalResponse = await admin.request.get('/api/admin/matching/instructions')
+  expect(originalResponse.ok(), await originalResponse.text()).toBe(true)
+  const original = await originalResponse.json()
+
+  try {
+    const adminPage = await openMatchingPage(admin)
+    await adminPage.goto('/admin?tab=matching')
+    const editor = adminPage.getByTestId('admin-matching-instructions')
+    await expect(editor).toBeVisible()
+    await editor.getByRole('textbox', { name: 'Заголовок', exact: true }).fill('Как выбрать книги')
+    await editor.getByLabel('Инструкция в Markdown').fill('- Можно читать несколько книг\n- У групп может быть общая книга')
+    const saved = adminPage.waitForResponse((response) => response.url().includes('/api/admin/matching/instructions') && response.request().method() === 'PUT')
+    await editor.getByRole('button', { name: 'Сохранить' }).click()
+    expect((await saved).ok()).toBe(true)
+
+    await adminPage.reload()
+    await expect(adminPage.getByTestId('admin-matching-instructions').getByRole('textbox', { name: 'Заголовок', exact: true })).toHaveValue('Как выбрать книги')
+
+    const participantPage = await openMatchingPage(participantA)
+    await participantPage.goto('/matching')
+    await participantPage.reload()
+    await expect(participantPage.getByRole('heading', { name: 'Как выбрать книги' })).toBeVisible()
+    await participantPage.getByRole('button', { name: 'Подробнее' }).click()
+    await expect(participantPage.getByRole('list')).toContainText('Можно читать несколько книг')
+  } finally {
+    await admin.request.put('/api/admin/matching/instructions', { data: original })
+  }
+})
+
 test('администратор отправляет круг читать и возвращает его после reload', { tag: '@matching-golden' }, async ({
   matchingBooksFixture,
   openMatchingPage,

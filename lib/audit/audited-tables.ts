@@ -13,6 +13,7 @@ export const AUDITED_TABLES = [
   'book_summary_revisions',
   'book_summary_helpful_reactions',
   'intro_sections',
+  'matching_instructions',
   'signup_books',
   'feedback',
   'tag_descriptions',

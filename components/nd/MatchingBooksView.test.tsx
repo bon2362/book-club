@@ -1,5 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import MatchingBooksView from './MatchingBooksView'
+
+jest.mock('./SummaryMarkdown', () => ({
+  __esModule: true,
+  default: ({ markdown }: { markdown: string }) => <div>{markdown}</div>,
+}))
 import type { MatchingBookModeState } from './matching-book-types'
 
 const mode: MatchingBookModeState = {
@@ -39,10 +44,9 @@ describe('MatchingBooksView commands', () => {
     fireEvent.click(expand)
 
     expect(screen.getByRole('button', { name: 'Короче' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('list', { name: 'Как выбрать книгу' })).toHaveTextContent(
+    expect(screen.getByLabelText('Как выбрать книгу')).toHaveTextContent(
       'книга сформируется при 2 окончательных записях и 3 участниках всего; круги — по 3–5 человек',
     )
-    expect(screen.getAllByRole('listitem')).toHaveLength(6)
 
     fireEvent.click(screen.getByRole('button', { name: 'Короче' }))
     expect(screen.queryByRole('list', { name: 'Как выбрать книгу' })).not.toBeInTheDocument()
