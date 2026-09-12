@@ -5,6 +5,11 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import AdminPanel from './AdminPanel'
 
+jest.mock('./SummaryMarkdown', () => ({
+  __esModule: true,
+  default: ({ markdown }: { markdown: string }) => <div>{markdown}</div>,
+}))
+
 const mockRouterReplace = jest.fn()
 const mockRouterPush = jest.fn()
 const mockRouterRefresh = jest.fn()

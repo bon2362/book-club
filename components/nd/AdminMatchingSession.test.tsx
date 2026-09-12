@@ -5,6 +5,11 @@ import React from 'react'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import AdminMatchingSession from './AdminMatchingSession'
 
+jest.mock('./SummaryMarkdown', () => ({
+  __esModule: true,
+  default: ({ markdown }: { markdown: string }) => <div>{markdown}</div>,
+}))
+
 const mockReplace = jest.fn()
 let mockSearch = 'tab=matching'
 

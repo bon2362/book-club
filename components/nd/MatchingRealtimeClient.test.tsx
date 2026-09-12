@@ -1,6 +1,11 @@
 import { act, render, waitFor, screen } from '@testing-library/react'
 import MatchingRealtimeClient, { type MatchingPublicState } from './MatchingRealtimeClient'
 
+jest.mock('./SummaryMarkdown', () => ({
+  __esModule: true,
+  default: ({ markdown }: { markdown: string }) => <div>{markdown}</div>,
+}))
+
 const refresh = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 

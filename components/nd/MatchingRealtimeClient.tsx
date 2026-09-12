@@ -11,6 +11,7 @@ import MatchingBooksView from './MatchingBooksView'
 import MatchingBookAdminToolbar from './MatchingBookAdminToolbar'
 import type { MatchingBookModeState } from './matching-book-types'
 import type { MatchingBookDetail } from './MatchingBookDetailModal'
+import { DEFAULT_MATCHING_INSTRUCTIONS, type MatchingInstructions } from '@/lib/matching/instructions-content'
 
 export interface MatchingPublicState {
   session: {
@@ -35,6 +36,7 @@ interface Props {
   isImpersonating?: boolean
   impersonatedUserId?: string
   viewerDisplayName?: string
+  instructions?: MatchingInstructions
 }
 
 export default function MatchingRealtimeClient({
@@ -47,6 +49,7 @@ export default function MatchingRealtimeClient({
   isImpersonating = false,
   impersonatedUserId,
   viewerDisplayName,
+  instructions = DEFAULT_MATCHING_INSTRUCTIONS,
 }: Props) {
   const router = useRouter()
   const resolvedBooksById = booksById ?? Object.fromEntries(Object.entries(bookTitleById).map(([bookId, title]) => [bookId, {
@@ -168,6 +171,7 @@ export default function MatchingRealtimeClient({
           mutationUserId={impersonatedUserId}
           onState={applyCanonicalState}
           onRefresh={refreshFullState}
+          instructions={instructions}
         />
       </MatchingWorkspace>
     </div>

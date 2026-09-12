@@ -7,6 +7,7 @@ import AdminMatchingSummary from './AdminMatchingSummary'
 import AdminMatchingBookDemand from './AdminMatchingBookDemand'
 import AdminMatchingParticipantsTab from './AdminMatchingParticipantsTab'
 import AdminMatchingLogTab from './AdminMatchingLogTab'
+import AdminMatchingInstructions from './AdminMatchingInstructions'
 import {
   MATCHING_SUB_TABS,
   focusRing,
@@ -248,6 +249,8 @@ export default function AdminMatchingSession() {
     <div data-testid="admin-matching" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.82rem', padding: '1.2rem 0' }}>
       {loading && sessions.length === 0 && <p style={quietText}>Загрузка…</p>}
       {error && <p style={{ ...quietText, color: 'var(--accent)' }}>{error}</p>}
+
+      <AdminMatchingInstructions />
 
       {!loading && sessions.length === 0 && !newSessionOpen && (
         <div style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>

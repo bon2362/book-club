@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { matchingSessionParticipants, matchingSessions, users } from '@/lib/db/schema'
 import { fetchCatalogWithPersonalData } from '@/lib/matching/personal-list'
 import { fetchMatchingPublicState } from '@/lib/matching/public-state-db'
+import { getMatchingInstructions } from '@/lib/matching/instructions'
 import MatchingWelcome from '@/components/nd/MatchingWelcome'
 import MatchingAuthGate from '@/components/nd/MatchingAuthGate'
 import MatchingBoardProvider from '@/components/nd/MatchingBoardProvider'
@@ -62,10 +63,13 @@ export default async function MatchingPage({ searchParams }: { searchParams: { a
     return <MatchingWelcome sessionId={currentSession.id} sessionName={currentSession.name} initialName={userRow?.name ?? ''} />
   }
 
-  const personalBooks = await fetchCatalogWithPersonalData(viewerUserId)
-  const publicState = await fetchMatchingPublicState(currentSession.id, viewerUserId, undefined, {
+  const [personalBooks, publicState, instructions] = await Promise.all([
+    fetchCatalogWithPersonalData(viewerUserId),
+    fetchMatchingPublicState(currentSession.id, viewerUserId, undefined, {
     admin: isAdmin && !impersonatedUserId,
-  })
+    }),
+    getMatchingInstructions(),
+  ])
   const booksById = Object.fromEntries(personalBooks.map((book) => [book.bookId, book]))
 
   return (
@@ -84,6 +88,7 @@ export default async function MatchingPage({ searchParams }: { searchParams: { a
           isImpersonating={Boolean(impersonatedUserId)}
           impersonatedUserId={impersonatedUserId ?? undefined}
           viewerDisplayName={isAdmin && !impersonatedUserId ? authSession.user.name ?? 'Организатор' : undefined}
+          instructions={instructions}
         />
       </BookDetailProvider>
     </MatchingBoardProvider>
