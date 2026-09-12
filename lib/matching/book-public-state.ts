@@ -298,7 +298,8 @@ export function buildPublicBookModeState(input: {
           conditionalCount,
           tailRank: viewerIsReadingHere && !viewerCompleted
             ? 2
-            : !formed && interestedUserIds.every(userId => userId === input.viewerUserId) ? 1 : 0,
+            : !formed && !viewerAssignedHere && viewerStatus !== 'hard' &&
+              bookParticipantUserIds.filter(userId => userId !== input.viewerUserId).length < 2 ? 1 : 0,
           hasIntersection: bookInterestRows.some(item => item.userId !== input.viewerUserId) ? 1 : 0,
           avgRank: availableRanks.length > 0
             ? availableRanks.reduce((sum, rank) => sum + rank, 0) / availableRanks.length
