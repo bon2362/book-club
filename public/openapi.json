@@ -945,7 +945,7 @@
           "userId": { "type": "string" },
           "name": { "type": "string" },
           "rank": { "type": "integer", "nullable": true },
-          "status": { "type": "string", "enum": ["assigned", "signed_up", "conditional", "wishlist"], "description": "Самое сильное состояние по книге: в круге → записался → авто-запись → в списке." },
+          "status": { "type": "string", "enum": ["assigned", "book_assigned", "signed_up", "conditional", "wishlist"], "description": "Самое сильное состояние по книге: в круге → назначен на книгу без круга → записался → авто-запись → в списке." },
           "assignedCircleId": { "type": "string", "nullable": true },
           "readingNow": { "type": "array", "items": { "type": "object", "properties": { "bookId": { "type": "string" }, "title": { "type": "string" } }, "required": ["bookId", "title"] } }
         },
@@ -964,7 +964,7 @@
           "unrankedCount": { "type": "integer" },
           "hardCount": { "type": "integer", "description": "Записались окончательно, но ещё не в круге по этой книге." },
           "conditionalCount": { "type": "integer" },
-          "assignedCount": { "type": "integer" },
+          "assignedCount": { "type": "integer", "description": "Участники, размещённые в конкретном круге по книге; назначения без круга не входят." },
           "formedCircleCount": { "type": "integer" },
           "participants": { "type": "array", "items": { "$ref": "#/components/schemas/AdminMatchingCoordinationParticipant" } }
         },

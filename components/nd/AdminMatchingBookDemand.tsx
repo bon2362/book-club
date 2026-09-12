@@ -11,6 +11,7 @@ import { focusRing, hintText, quietText } from './admin-matching-shared'
 
 const STATUS_LABEL: Record<CoordinationParticipantStatus, string> = {
   assigned: 'в круге',
+  book_assigned: 'назначен',
   signed_up: 'записался',
   conditional: 'авто-запись',
   wishlist: 'в списке',
@@ -18,6 +19,7 @@ const STATUS_LABEL: Record<CoordinationParticipantStatus, string> = {
 
 const STATUS_COLOR: Record<CoordinationParticipantStatus, string> = {
   assigned: 'var(--success)',
+  book_assigned: 'var(--accent)',
   signed_up: 'var(--text)',
   conditional: 'var(--accent)',
   wishlist: 'var(--text-muted)',

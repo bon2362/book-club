@@ -101,6 +101,22 @@ describe('buildCoordinationRadar', () => {
     ])
   })
 
+  it('keeps a direct book assignment out of the formed-circle status and count', () => {
+    const radar = buildCoordinationRadar(input({
+      participants: FIVE.slice(0, 3),
+      wishlist: [wish('u1', 'a', 1), wish('u2', 'a', 2), wish('u3', 'a', 3)],
+      // Админ может назначить книгу до создания или размещения круга: circleId тогда null.
+      assignments: [{ userId: 'u1', bookId: 'a', circleId: null }],
+    }))
+
+    expect(radar.books[0]).toMatchObject({ assignedCount: 0 })
+    expect(radar.books[0].participants.find((person) => person.userId === 'u1')).toMatchObject({
+      status: 'book_assigned',
+      assignedCircleId: null,
+    })
+    expect(radar.summary.assignedParticipants).toBe(0)
+  })
+
   it('sorts by interest, top-three count, average and worst rank, then decisions and title', () => {
     const people = ['u1', 'u2', 'u3', 'u4'].map((id) => participant(id))
     const radar = buildCoordinationRadar(input({

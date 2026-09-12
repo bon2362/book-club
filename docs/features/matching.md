@@ -59,11 +59,11 @@ Matching использует санкционированный «мягкий 
 **Спрос по книгам** — read-only радар координатора. `GET /api/admin/matching/sessions/{id}/coordination` (только админ, 403 иначе, 404 для неизвестной сессии) читает участников сессии, их `signup_books` (`personal_status IS NULL` — «Хочу читать» с рангом из `book_priorities`; `'reading'` — справочно, по любой книге), `matching_book_intents`, `matching_book_assignments` и `matching_circles` и отдаёт всё в чистую функцию `buildCoordinationRadar` (`lib/matching/coordination-radar.ts`):
 
 - считаются только активные участники (`completed_at IS NULL`), книга попадает в выдачу при `DEMAND_MIN_INTERESTED = 3` заинтересованных;
-- статус человека по книге — самое сильное состояние: `assigned` (назначение на эту книгу) → `signed_up` (hard) → `conditional` → `wishlist`. `hardCount`/`conditionalCount`/`assignedCount` считают людей по этому статусу, поэтому один человек не попадает в два счётчика (записавшийся на уже сформированную книгу получает назначение без hard-строки и считается в `assignedCount`);
+- статус человека по книге — самое сильное состояние: `assigned` (в конкретном круге) → `book_assigned` (назначен на книгу, но ещё без круга) → `signed_up` (hard) → `conditional` → `wishlist`. `assignedCount` и `assignedParticipants` считают только людей с конкретным `circleId`; прямое админское назначение без круга показывается честно как «назначен» и в эти счётчики не входит. `hardCount` и `conditionalCount` по-прежнему считают людей по одному самому сильному статусу;
 - `topThreeCount` — ранги `1…TOP_RANK_LIMIT (3)`; `avgRank`/`worstRank` — только по известным рангам, `unrankedCount` — отдельно;
 - сортировка: `interestedCount ↓`, `topThreeCount ↓`, `avgRank ↑`, `worstRank ↑` (null в конец), `hardCount ↓`, `conditionalCount ↓`, название, `bookId`. `formedCircleCount`, `assignedCount` и `readingNow` в сортировке не участвуют — это закреплено тестами;
 - люди внутри книги: ранг ↑ (null в конец) → статус → имя;
-- `summary`: `activeParticipants`, `signedUpParticipants` (есть hard хотя бы на одну книгу), `assignedParticipants` (есть назначение), `readingParticipants` (есть книга в `reading`), `demandedBooks`, `formedCircles` (все круги сессии).
+- `summary`: `activeParticipants`, `signedUpParticipants` (есть hard хотя бы на одну книгу), `assignedParticipants` (есть назначение в конкретном круге), `readingParticipants` (есть книга в `reading`), `demandedBooks`, `formedCircles` (все круги сессии).
 
 Экран ничего не рекомендует и не содержит мутаций; правила формирования кругов не меняются.
 
@@ -71,7 +71,7 @@ Matching использует санкционированный «мягкий 
 
 **Журнал** — прежний `GET /api/admin/matching/preference-events` (лимит 100, «показать ещё» по 10), фильтры в одну строку, «Сбросить» при активном фильтре, сводка по типам свёрнута. Все книжные типы (`hard_set`, `book_formed`, `admin_book_assigned`, `session_closed` и др.) имеют подписи в `matchingEventTypeLabel`.
 
-Проверки: `lib/matching/__tests__/coordination-radar.test.ts`, `app/api/admin/matching/sessions/[id]/coordination/route.test.ts`, `components/nd/AdminMatchingSession.test.tsx`, E2E «админская вкладка матчинга показывает спрос по книгам…» в `e2e/matching-admin.spec.ts` (вкладки, `?sub=` после `reload()`, подсказка по фокусу, «убрать» по наведению).
+Проверки: `lib/matching/__tests__/coordination-radar.test.ts`, `app/api/admin/matching/sessions/[id]/coordination/route.test.ts`, `components/nd/AdminMatchingSession.test.tsx`, E2E «админская вкладка матчинга показывает спрос по книгам…» в `e2e/matching-admin.spec.ts` (вкладки, `?sub=` после `reload()`, подсказка по фокусу, «убрать» по наведению) и layout-проверка tooltip на desktop/mobile в `e2e/matching-layout.spec.ts`.
 
 ## HTTP и конкурентность
 
