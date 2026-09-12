@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { track } from '@/lib/analytics'
 
 const STORAGE_KEY = 'matching-rank-nudge-dismissed'
 
@@ -22,6 +23,7 @@ export default function MatchingRankNudge({ show }: Props) {
   }, [show])
 
   const dismiss = useCallback(() => {
+    track('matching_rank_nudge_dismissed')
     setVisible(false)
     try {
       sessionStorage.setItem(STORAGE_KEY, '1')

@@ -107,6 +107,49 @@ Do Not Track.
 **Автозахват кликов** включён и пишет все нажатия, но значение полей (что выбрали в фильтре, что ввели в поиск)
 PostHog намеренно скрывает. Поэтому для фильтров и поиска заведены отдельные события выше.
 
+### Матчинг
+
+Действия матчинга пишутся в нашу базу (`matching_events`) и **дублируются в PostHog с сервера** — в том же
+месте, сразу после коммита транзакции. Имя события — `matching_<тип действия>`, например
+`matching_self_join` (вступил), `matching_set_hard` (окончательная запись), `matching_set_conditional`
+(авто-запись), `matching_hard_cancelled`, `matching_leave`, `matching_reorder_priorities`,
+`matching_book_formed` (собрался круг), `matching_circle_released` (круг отправлен читать). Свойства:
+`session_id`, `book_id`, `source`, `performed_by` (`self` — сам участник, `other` — администратор за
+участника, `system` — без человека). Снимки имён и списки книг из журнала в PostHog **не отправляются**.
+Действия без конкретного человека (например, собравшийся круг) идут от имени сессии и профиль не создают.
+
+Клиентские события — там, где сервер ничего не узнаёт:
+
+| Событие | На какой вопрос отвечает |
+| --- | --- |
+| `matching_welcome_shown` / `matching_welcome_joined` | Главная точка отвала: сколько людей увидели экран знакомства (где сказано, что имя увидят другие) и сколько вступили |
+| `matching_welcome_join_failed` | Вступление не удалось (`reason`: `name_required`, `request_failed`) |
+| `matching_book_detail_opened` | Открыли карточку книги |
+| `matching_write_summary_clicked` | Нажали «Написать саммари» из карточки книги |
+| `matching_unavailable_books_expanded` / `matching_unavailable_books_collapsed` | Раскрывают ли раздел «Записаться пока нельзя» |
+| `matching_instructions_expanded` / `matching_instructions_collapsed` | Читают ли инструкцию «Как выбрать книгу» |
+| `matching_notice_dismissed` | Закрыли уведомление (`kind` — какое) |
+| `matching_rank_nudge_dismissed` | Закрыли подсказку о приоритетах |
+| `matching_calendar_link_clicked` | Нажали «Согласовать время» у своего круга |
+
+Воронка матчинга: `matching_strip_clicked` → `matching_welcome_shown` → `matching_welcome_joined` →
+`matching_set_hard` → `matching_book_formed` → `matching_calendar_link_clicked` → `calendar_slots_marked`
+→ `circle_meeting_scheduled`.
+
+### Формы: открыли, но не отправили
+
+| Событие | На какой вопрос отвечает |
+| --- | --- |
+| `contacts_form_shown` / `contacts_form_dismissed` | Первичный профиль открывается сам у каждого нового пользователя. `dismissed` — закрыли, не сохранив: `via` (крестик, фон, Escape), `had_input` (успели ли что-то ввести), `is_first_time` |
+| `contacts_form_error` | Ошибка при сохранении профиля (`reason`: `name_required`, `save_failed`) |
+| `submit_book_form_opened` / `submit_book_form_dismissed` | Открыли форму «Предложить книгу» и закрыли без отправки; `filled_fields` — сколько полей успели заполнить |
+| `submit_book_form_invalid` / `submit_book_form_failed` | Не заполнили обязательные поля (`missing`) или отправка не прошла |
+| `feedback_form_opened` / `feedback_form_dismissed` | Открыли обратную связь и закрыли без отправки (`had_message`) |
+| `feedback_email_prompt_shown` / `feedback_form_failed` | Форма попросила указать email; отправка не прошла |
+
+Воронки: `contacts_form_shown` → `contacts_saved`; `submit_book_clicked` → `submit_book_form_opened` →
+`book_submission`; `feedback_form_opened` → `feedback_sent`.
+
 Воронка входа: `auth_modal_opened` → `auth_attempt` → (для почты: `auth_email_link_sent`) → `auth_succeeded`.
 
 Свойство `linked_by` у `auth_succeeded` говорит, как система опознала человека: `identity` — по уже

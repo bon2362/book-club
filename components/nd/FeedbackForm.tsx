@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { track } from '@/lib/analytics'
 import type { UserSignup } from '@/lib/signup-books'
 
@@ -44,8 +44,18 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
   const [name, setName] = useState(currentUser?.name ?? '')
   const [email, setEmail] = useState(userEmail ?? '')
 
+  const hadMessageRef = useRef(false)
+  hadMessageRef.current = Boolean(message.trim())
+
+  useEffect(() => {
+    if (isOpen) track('feedback_form_opened')
+  }, [isOpen])
+
   const handleClose = useCallback(() => {
     if (status === 'submitting') return
+    if (status !== 'success') {
+      track('feedback_form_dismissed', { had_message: hadMessageRef.current })
+    }
     onClose()
   }, [status, onClose])
 
@@ -84,6 +94,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
       track('feedback_sent')
       setStatus('success')
     } catch {
+      track('feedback_form_failed')
       setStatus('error')
     }
   }
@@ -94,6 +105,7 @@ export default function FeedbackForm({ isOpen, onClose, currentUser, userEmail }
 
     if (!email.trim()) {
       if (status !== 'needs-email-confirm') {
+        track('feedback_email_prompt_shown')
         setStatus('needs-email-confirm')
         return
       }

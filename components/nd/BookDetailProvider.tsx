@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useState } from 'react'
+import { track } from '@/lib/analytics'
 import { useRouter } from 'next/navigation'
 import type { CatalogBook } from '@/lib/matching/personal-list'
 import { addToList, patchPriorities, patchStatus, removeFromList } from '@/lib/matching/personal-list-mutations'
@@ -51,6 +52,7 @@ export default function BookDetailProvider({
   const [open, setOpen] = useState<{ book: MatchingBookDetail; chips: BookParticipant[]; matchingParticipants?: MatchingBookParticipantView[] } | null>(null)
 
   const openBook = useCallback((book: MatchingBookDetail, chips: BookParticipant[], matchingParticipants?: MatchingBookParticipantView[]) => {
+    track('matching_book_detail_opened', { book_id: book.bookId })
     setOpen({ book, chips, matchingParticipants })
   }, [])
 

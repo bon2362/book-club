@@ -14,6 +14,7 @@ import {
   users,
 } from '@/lib/db/schema'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import { reportMatchingEvents } from '@/lib/matching-analytics'
 import { upsertSignupByBookIds } from '@/lib/signup-books'
 import { buildMatchingEventRows } from './matching-events'
 import { nextRank } from './rank-assignment'
@@ -46,6 +47,8 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
   constructor(
     private readonly tx: DbClient,
     private readonly actor: MatchingTransitionActor,
+    /** Сюда складываются записанные события — для отправки в аналитику после коммита. */
+    private readonly writtenEvents: MatchingEventDraft[] = [],
   ) {}
 
   async lockSession(sessionId: string) {
@@ -476,6 +479,7 @@ class DrizzleMatchingTransitionStore implements MatchingTransitionStore {
       events,
     })
     await this.tx.insert(matchingEvents).values(rows)
+    this.writtenEvents.push(...events)
   }
 
   async writeNotices(sessionId: string, notices: MatchingNoticeDraft[]): Promise<void> {
@@ -502,7 +506,11 @@ export async function runMatchingTransition(input: {
   expectedStateVersion?: number
   action: MatchingAction
 }): Promise<{ changed: boolean; stateVersion: number }> {
-  return withAuditContext(
+  // События копятся во время транзакции и уходят в PostHog только после коммита:
+  // сетевой запрос внутри открытой транзакции держал бы её на всё время ответа,
+  // а при откате в аналитику попало бы то, чего в базе не случилось.
+  const writtenEvents: MatchingEventDraft[] = []
+  const result = await withAuditContext(
     {
       actorUserId: input.actor.userId,
       actorLabel: input.actor.label,
@@ -510,7 +518,9 @@ export async function runMatchingTransition(input: {
     },
     async (tx) => executeMatchingTransition(
       input,
-      new DrizzleMatchingTransitionStore(tx, input.actor),
+      new DrizzleMatchingTransitionStore(tx, input.actor, writtenEvents),
     ),
   )
+  await reportMatchingEvents(input.sessionId, input.actor, writtenEvents)
+  return result
 }

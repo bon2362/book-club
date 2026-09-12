@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { track } from '@/lib/analytics'
 import { useRouter } from 'next/navigation'
 
 export interface MatchingNotice {
@@ -94,7 +95,7 @@ export default function MatchingNotices({ sessionId, notices }: MatchingNoticesP
           <button
             type="button"
             className="p-btn ghost sm"
-            onClick={() => ack(notice.id)}
+            onClick={() => { track('matching_notice_dismissed', { kind: notice.kind }); ack(notice.id) }}
             disabled={pending.has(notice.id)}
             style={{ flexShrink: 0, opacity: pending.has(notice.id) ? 0.6 : 1 }}
           >

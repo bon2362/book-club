@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { track } from '@/lib/analytics'
 
 interface Props {
@@ -17,16 +17,38 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
   const [contacts, setContacts] = useState(defaultContacts)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const isFirstTime = !defaultName
+
+  // Форма открывается сама у каждого нового пользователя — это обязательный шаг.
+  // Без событий не видно, сколько людей закрыли её, так и не заполнив.
+  useEffect(() => {
+    track('contacts_form_shown', { is_first_time: isFirstTime })
+  }, [isFirstTime])
+
+  function dismiss(via: 'escape' | 'overlay' | 'close_button') {
+    track('contacts_form_dismissed', {
+      is_first_time: isFirstTime,
+      via,
+      had_input: Boolean(name.trim() || contacts.trim()),
+    })
+    onClose()
+  }
+  const dismissRef = useRef(dismiss)
+  dismissRef.current = dismiss
 
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function handleKeyDown(e: KeyboardEvent) { if (e.key === 'Escape') dismissRef.current('escape') }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) { setError('Введите имя'); return }
+    if (!name.trim()) {
+      track('contacts_form_error', { reason: 'name_required', is_first_time: isFirstTime })
+      setError('Введите имя')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -34,6 +56,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
       track('contacts_saved', { isFirstTime: !defaultName })
       onClose()
     } catch {
+      track('contacts_form_error', { reason: 'save_failed', is_first_time: isFirstTime })
       setError('Что-то пошло не так, попробуйте снова')
     } finally {
       setLoading(false)
@@ -90,7 +113,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
         justifyContent: 'center',
         padding: '1rem',
       }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => { if (e.target === e.currentTarget) dismiss('overlay') }}
     >
       <div
         style={{
@@ -104,7 +127,7 @@ export default function ContactsForm({ defaultName = '', defaultContacts = '', t
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => dismiss('close_button')}
           aria-label="Закрыть"
           style={{
             position: 'absolute',

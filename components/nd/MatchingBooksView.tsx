@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { track } from '@/lib/analytics'
 import { useBookDetail } from './BookDetailProvider'
 import CoverImage from './CoverImage'
 import MatchingBookCard, { type MatchingBookCommandAction } from './MatchingBookCard'
@@ -230,7 +231,7 @@ export default function MatchingBooksView({
               aria-expanded={tailExpanded}
               aria-controls="matching-tail-panel"
               data-testid="matching-tail-toggle"
-              onClick={() => setTailExpanded((expanded) => !expanded)}
+              onClick={() => { track(tailExpanded ? 'matching_unavailable_books_collapsed' : 'matching_unavailable_books_expanded', { count: tailBooks.length }); setTailExpanded((expanded) => !expanded) }}
             >
               <span className="nd-mb-tail-spines" aria-hidden="true">
                 {tailBooks.slice(0, 3).map((book) => (
