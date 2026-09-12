@@ -91,6 +91,8 @@ test.describe('Matching canonical book board layout', () => {
       await expect(page.getByRole('tab')).toHaveCount(0)
       await expect(page.getByText('Сценарии', { exact: true })).toHaveCount(0)
       await expect(page.getByTestId('matching-header').getByText(/Группы? (по )?\d/)).toHaveCount(0)
+      await page.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }).click()
+      await expect(card).toBeVisible()
 
       const [boardBox, cardBox] = await Promise.all([board.boundingBox(), card.boundingBox()])
       expect(boardBox).not.toBeNull()
@@ -110,6 +112,38 @@ test.describe('Matching canonical book board layout', () => {
     }
   })
 
+  test('unavailable books stay collapsed and the tail toggle works on desktop and mobile', async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    const { books, participantA } = matchingBooksFixture
+    const page = await openMatchingPage(participantA)
+    const card = page.getByTestId(`matching-book-card-${books[0].id}`)
+    const toggle = page.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' })
+
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport)
+      await page.goto('/matching')
+
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      await expect(card).toHaveCount(0)
+      const toggleBox = await toggle.boundingBox()
+      expect(toggleBox).not.toBeNull()
+      expect(toggleBox!.height).toBeGreaterThanOrEqual(44)
+      expect(toggleBox!.x + toggleBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+
+      await toggle.focus()
+      await page.keyboard.press('Enter')
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+      await expect(card).toBeVisible()
+
+      await page.keyboard.press('Space')
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      await expect(card).toHaveCount(0)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+    }
+  })
+
   test('books need two other participants before showing enrollment and preserve existing choices when demand disappears', async ({
     matchingBooksFixture,
     openMatchingPage,
@@ -120,11 +154,14 @@ test.describe('Matching canonical book board layout', () => {
     const card = page.getByTestId(`matching-book-card-${books[0].id}`)
     const record = card.getByRole('button', { name: 'Записаться', exact: true })
     const caret = card.getByRole('button', { name: 'Автоматическая запись, если соберётся круг' })
+    const tailToggle = page.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' })
     const viewports = [{ width: 1280, height: 900 }, { width: 390, height: 844 }]
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
       await page.goto('/matching')
+      await expect(card).toHaveCount(0)
+      await tailToggle.click()
       await expect(card).toBeVisible()
       await expect(record).toHaveCount(0)
       await expect(caret).toHaveCount(0)
@@ -135,10 +172,11 @@ test.describe('Matching canonical book board layout', () => {
       const reason = card.getByTestId('matching-book-tail-reason')
       await expect(reason).toHaveAttribute('data-reason', 'waiting')
       await expect(reason).toContainText('ЖДЁМ ДРУГИХ')
-      const [cardBox, dividerBox] = await Promise.all([card.boundingBox(), divider.boundingBox()])
+      const note = divider.locator('.nd-mb-divider-note')
+      const [cardBox, noteBox] = await Promise.all([card.boundingBox(), note.boundingBox()])
       expect(cardBox).not.toBeNull()
-      expect(dividerBox).not.toBeNull()
-      expect(dividerBox!.y + dividerBox!.height).toBeLessThanOrEqual(cardBox!.y)
+      expect(noteBox).not.toBeNull()
+      expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(cardBox!.y)
       expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(viewport.width + 1)
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
     }
@@ -149,6 +187,7 @@ test.describe('Matching canonical book board layout', () => {
       await page.reload()
       await expect(record).toHaveCount(0)
       await expect(caret).toHaveCount(0)
+      await tailToggle.click()
       await expect(card.getByTestId('matching-book-tail-reason')).toHaveAttribute('data-reason', 'waiting')
     }
 
@@ -189,6 +228,7 @@ test.describe('Matching canonical book board layout', () => {
     await page.reload()
     await expect(record).toHaveCount(0)
     await expect(caret).toHaveCount(0)
+    await tailToggle.click()
     await expect(card).toContainText('Авто-запись включена')
     const cancelAutoResponse = page.waitForResponse(response => response.url().includes('/book-actions') && response.request().method() === 'POST')
     await card.getByRole('button', { name: 'Отменить авто-запись' }).click()
@@ -210,6 +250,7 @@ test.describe('Matching canonical book board layout', () => {
     const removeSecondAgain = await secondPeer.request.delete(`/api/matching/books/${books[0].id}`)
     expect(removeSecondAgain.ok(), await removeSecondAgain.text()).toBe(true)
     await page.reload()
+    await tailToggle.click()
     await expect(card).toContainText('✓ Вы записаны')
     const cancelHardResponse = page.waitForResponse(response => response.url().includes('/book-actions') && response.request().method() === 'POST')
     await card.getByRole('button', { name: 'Отменить', exact: true }).click()
@@ -236,15 +277,18 @@ test.describe('Matching canonical book board layout', () => {
     const secondBook = page.getByTestId(`matching-book-card-${books[1].id}`)
     const divider = page.getByTestId('matching-tail-divider')
     await expect(secondBook.getByRole('button', { name: 'Записаться', exact: true })).toBeVisible()
+    await expect(firstBook).toHaveCount(0)
+    await divider.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }).click()
     await expect(firstBook.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
-    const [firstBox, secondBox, dividerBox] = await Promise.all([
-      firstBook.boundingBox(), secondBook.boundingBox(), divider.boundingBox(),
+    const note = divider.locator('.nd-mb-divider-note')
+    const [firstBox, secondBox, noteBox] = await Promise.all([
+      firstBook.boundingBox(), secondBook.boundingBox(), note.boundingBox(),
     ])
     expect(firstBox).not.toBeNull()
     expect(secondBox).not.toBeNull()
-    expect(dividerBox).not.toBeNull()
-    expect(secondBox!.y + secondBox!.height).toBeLessThanOrEqual(dividerBox!.y)
-    expect(dividerBox!.y + dividerBox!.height).toBeLessThanOrEqual(firstBox!.y)
+    expect(noteBox).not.toBeNull()
+    expect(secondBox!.y + secondBox!.height).toBeLessThanOrEqual(noteBox!.y)
+    expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(firstBox!.y)
   })
 
   test('mobile book sheet stays in the viewport and restores focus', async ({

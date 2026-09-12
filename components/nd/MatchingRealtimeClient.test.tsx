@@ -1,4 +1,4 @@
-import { act, render, waitFor, screen } from '@testing-library/react'
+import { act, fireEvent, render, waitFor, screen } from '@testing-library/react'
 import MatchingRealtimeClient, { type MatchingPublicState } from './MatchingRealtimeClient'
 
 jest.mock('./SummaryMarkdown', () => ({
@@ -98,6 +98,8 @@ describe('MatchingRealtimeClient', () => {
     }
     respondVersion(1)
     render(<MatchingRealtimeClient sessionId="s1" initialState={state} bookTitleById={{}} pollIntervalMs={50_000} />)
+    expect(screen.getByTestId('matching-books-view')).not.toHaveTextContent('Книга режима')
+    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
     expect(screen.getByTestId('matching-books-view')).toHaveTextContent('Книга режима')
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.queryByTestId('matching-scenarios-empty')).not.toBeInTheDocument()
