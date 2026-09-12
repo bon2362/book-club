@@ -291,6 +291,35 @@ test.describe('Matching canonical book board layout', () => {
     expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(firstBox!.y)
   })
 
+  test('«Вы записаны» и «Отменить» стоят на одной линии на десктопе и мобильном', async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    const { books, participantA, addParticipant } = matchingBooksFixture
+    await addParticipant('First peer for alignment', [books[1]])
+    await addParticipant('Second peer for alignment', [books[1]])
+    const page = await openMatchingPage(participantA)
+    await page.goto('/matching')
+
+    const card = page.getByTestId(`matching-book-card-${books[1].id}`)
+    const hardResponse = page.waitForResponse(response => response.url().includes('/book-actions') && response.request().method() === 'POST')
+    await card.getByRole('button', { name: 'Записаться', exact: true }).click()
+    expect((await hardResponse).ok()).toBe(true)
+
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport)
+      await page.reload()
+      const label = card.locator('.nd-mb-hard-copy')
+      const cancel = card.getByRole('button', { name: 'Отменить', exact: true })
+      await expect(cancel).toBeVisible()
+      const [labelBox, cancelBox] = await Promise.all([label.boundingBox(), cancel.boundingBox()])
+      const labelCenter = labelBox!.y + labelBox!.height / 2
+      const cancelCenter = cancelBox!.y + cancelBox!.height / 2
+      expect(Math.abs(labelCenter - cancelCenter)).toBeLessThanOrEqual(2)
+      expect(labelBox!.height).toBeLessThan(cancelBox!.height)
+    }
+  })
+
   test('mobile book sheet stays in the viewport and restores focus', async ({
     matchingBooksFixture,
     openMatchingPage,

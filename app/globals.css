@@ -617,7 +617,8 @@
   .nd-mb-circles { grid-template-columns: minmax(0, 1fr); }
   .nd-mb-actions { align-items: stretch; }
   .nd-mb-actions .nd-mb-btn { flex: 1 1 100%; min-height: 44px; }
-  .nd-mb-actions .nd-mb-btn.is-ghost { flex: 0 0 auto; align-self: flex-start; }
+  .nd-mb-actions .nd-mb-btn.is-ghost { flex: 0 0 auto; align-self: center; }
+  .nd-mb-actions .nd-mb-hard-copy, .nd-mb-actions .nd-mb-auto-note { align-self: center; }
   .nd-mb-actions .nd-mb-split { flex: 1 1 100%; }
   .nd-mb-split-bar { display: flex; }
   .nd-mb-actions .nd-mb-split-main { flex: 1 1 auto; }
