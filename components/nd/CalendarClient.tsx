@@ -12,6 +12,7 @@ import { computeOverlap } from '@/lib/calendar/overlap'
 import { addSlots, enumerateSlots, SLOT_MINUTES, type Interval } from '@/lib/calendar/slots'
 import type { CalendarPublicState } from '@/lib/calendar/public-state'
 import { addLocalDays, detectBrowserTimeZone, formatInZone, localDayKey, startOfLocalDay } from '@/lib/calendar/timezone'
+import { track } from '@/lib/analytics'
 
 export default function CalendarClient({
   initialState,
@@ -242,6 +243,8 @@ export default function CalendarClient({
   }
 
   async function changeTimeZone(zone: string, confirmed: boolean) {
+    // Автоопределение пояса при первом заходе сюда не попадает — только действие человека.
+    track('calendar_timezone_changed', { timezone: zone, confirmed, changed: zone !== timeZone })
     setTimeZone(zone)
     setTzConfirmed(confirmed)
     if (!state.viewer.ref) return

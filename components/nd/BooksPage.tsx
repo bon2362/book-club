@@ -114,6 +114,17 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   function handleSetViewMode(mode: 'grid' | 'list') {
     setViewMode(mode)
     setPrefCookie('book_view_mode', mode)
+    track('catalog_view_changed', { mode })
+  }
+
+  // Автозахват PostHog намеренно скрывает содержимое полей, поэтому по нему
+  // видно только «кто-то что-то выбрал в фильтре». Отправляем выбранное значение
+  // сами — и вместе с ним число найденных книг, чтобы видеть бесплодные фильтры.
+  const pendingFilterRef = useRef<{ filter: string; value: string } | null>(null)
+  const filteredCountRef = useRef(0)
+
+  function trackFilterChange(filter: string, value: string) {
+    pendingFilterRef.current = { filter, value }
   }
 
   const [query, setQuery] = useState('')
@@ -176,7 +187,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     }
   }, [isLoggedIn, submitIntent])
 
-  function handleSubmitBookClick() {
+  function handleSubmitBookClick(entryPoint: 'header' | 'catalog_card' | 'catalog_table' = 'header') {
+    track('submit_book_clicked', { entry_point: entryPoint, is_logged_in: isLoggedIn })
     if (isLoggedIn) {
       setSubmitFormOpen(true)
     } else {
@@ -225,6 +237,35 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     if (showNew) result = result.filter(b => b.isNew)
     return result
   }, [books, query, filterTag, filterAuthor, showRead, showMyBooks, showNew, selectedBooks])
+
+  filteredCountRef.current = filteredBooks.length
+
+  // Событие о фильтре шлём после пересчёта списка: только тогда известно,
+  // сколько книг осталось после выбора.
+  useEffect(() => {
+    const pending = pendingFilterRef.current
+    if (!pending) return
+    pendingFilterRef.current = null
+    track('catalog_filter_changed', {
+      filter: pending.filter,
+      value: pending.value,
+      results_count: filteredBooks.length,
+    })
+  }, [filteredBooks])
+
+  // Поиск: одно событие после паузы, а не на каждую букву.
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (!trimmed) return
+    const timer = setTimeout(() => {
+      track('catalog_searched', {
+        query: trimmed,
+        query_length: trimmed.length,
+        results_count: filteredCountRef.current,
+      })
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [query])
 
   const hasReadBooks = useMemo(() => books.some(b => b.status === 'read'), [books])
   const hasNewBooks = useMemo(() => books.some(b => b.isNew), [books])
@@ -362,9 +403,9 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   return (
     <>
       <Header
-        onEditProfile={isLoggedIn ? () => setProfileDrawerOpen(true) : undefined}
+        onEditProfile={isLoggedIn ? () => { track('profile_opened', { source: 'header' }); setProfileDrawerOpen(true) } : undefined}
         onSignIn={!isLoggedIn ? () => { setAuthModalEntryPoint('header'); setAuthModalOpen(true) } : undefined}
-        onSubmitBook={handleSubmitBookClick}
+        onSubmitBook={() => handleSubmitBookClick('header')}
         onWhatIsThis={!aboutVisible ? handleWhatIsThis : undefined}
         isAdmin={isAdmin}
         displayName={effectiveUser?.name}
@@ -445,24 +486,24 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
 
           {/* Row 2: два селекта + чипсы (на мобиле чипсы переносятся вниз) */}
           <div className="filters-row2" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <select className="filters-select-tag" value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: '130px' }}>
+            <select className="filters-select-tag" value={filterTag} onChange={e => { setFilterTag(e.target.value); trackFilterChange('tag', e.target.value || 'все') }} style={{ ...selectStyle, flex: 1, minWidth: '130px' }}>
               <option value="">Тема: все</option>
               {allTags.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <select className="filters-select-author" value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} style={{ ...selectStyle, flex: 1, minWidth: '130px' }}>
+            <select className="filters-select-author" value={filterAuthor} onChange={e => { setFilterAuthor(e.target.value); trackFilterChange('author', e.target.value || 'все') }} style={{ ...selectStyle, flex: 1, minWidth: '130px' }}>
               <option value="">Автор: все</option>
               {allAuthors.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
             {(hasNewBooks || (isLoggedIn && selectedBooks.length > 0) || hasReadBooks) && (
               <>
                 {hasNewBooks && (
-                  <button onClick={() => setShowNew(v => !v)} style={chipStyle(showNew)}>
+                  <button onClick={() => { trackFilterChange('new', String(!showNew)); setShowNew(v => !v) }} style={chipStyle(showNew)}>
                     {showNew ? '✓ Новинки' : 'Новинки'}
                   </button>
                 )}
                 {isLoggedIn && selectedBooks.length > 0 && (
                   <div style={{ position: 'relative', display: 'inline-block' }} className="tooltip-wrap">
-                    <button onClick={() => setShowMyBooks(v => !v)} style={chipStyle(showMyBooks)}>
+                    <button onClick={() => { trackFilterChange('my_books', String(!showMyBooks)); setShowMyBooks(v => !v) }} style={chipStyle(showMyBooks)}>
                       {showMyBooks ? '✓ Хочу читать' : 'Хочу читать'}
                     </button>
                     <span className="tooltip-text" style={{
@@ -486,7 +527,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                 )}
                 {hasReadBooks && (
                   <button
-                    onClick={() => setShowRead(v => { const next = !v; setPrefCookie('show_read', String(next)); return next })}
+                    onClick={() => { trackFilterChange('read', String(!showRead)); setShowRead(v => { const next = !v; setPrefCookie('show_read', String(next)); return next }) }}
                     style={chipStyle(showRead)}
                   >
                     {showRead ? '✓ Прочитанные' : 'Прочитанные'}
@@ -530,7 +571,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             <div className="catalog-desktop" data-testid="catalog-desktop">
               {viewMode === 'grid' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
-                  <SubmitBookCard onClick={handleSubmitBookClick} />
+                  <SubmitBookCard onClick={() => handleSubmitBookClick('catalog_card')} />
                   {filteredBooks.map((book, index) => (
                     <BookCard
                       key={book.id}
@@ -549,7 +590,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
                     <tr style={{ borderBottom: '2px solid var(--border-strong)', background: 'var(--bg)' }}>
                       <td colSpan={6} style={{ padding: '0.75rem 0.75rem' }}>
                         <button
-                          onClick={handleSubmitBookClick}
+                          onClick={() => handleSubmitBookClick('catalog_table')}
                           style={{
                             background: 'var(--text)',
                             border: 'none',
@@ -574,7 +615,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
               )}
             </div>
             <div className="catalog-mobile" data-testid="catalog-mobile">
-              <SubmitBookCard onClick={handleSubmitBookClick} />
+              <SubmitBookCard onClick={() => handleSubmitBookClick('catalog_card')} />
               {filteredBooks.map((book, index) => (
                 <BookCardMobile
                   key={book.id}
@@ -720,7 +761,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
             Кстати, в личном кабинете можно расставить книги по приоритету
           </p>
           <button
-            onClick={() => { setShowPriorityHint(false); setProfileDrawerOpen(true) }}
+            onClick={() => { setShowPriorityHint(false); track('profile_opened', { source: 'priority_hint' }); setProfileDrawerOpen(true) }}
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',
               fontSize: '0.7rem',

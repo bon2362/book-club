@@ -140,12 +140,16 @@ describe('nd/AboutBlock', () => {
     expect(screen.getByText('Как это устроено?')).toBeInTheDocument()
   })
 
+  // Раскрытие самого блока шлёт своё событие, поэтому здесь считаем только
+  // события о разделах: тест проверяет, что раздел даёт ровно одно событие.
+  const sectionEvents = () => mockedTrack.mock.calls.filter(([event]) => event === 'about_section_opened')
+
   it('opening a section sends about_section_opened with its title and index', () => {
     renderBlock()
     fireEvent.click(screen.getByText('Подробнее ↓'))
     const btn = screen.getByRole('button', { name: /Для кого это\?/ })
     fireEvent.click(btn)
-    expect(mockedTrack).toHaveBeenCalledTimes(1)
+    expect(sectionEvents()).toHaveLength(1)
     expect(mockedTrack).toHaveBeenCalledWith('about_section_opened', { section_title: 'Для кого это?', section_index: 1 })
   })
 
@@ -154,9 +158,9 @@ describe('nd/AboutBlock', () => {
     fireEvent.click(screen.getByText('Подробнее ↓'))
     const btn = screen.getByRole('button', { name: /Как это устроено\?/ })
     fireEvent.click(btn)
-    expect(mockedTrack).toHaveBeenCalledTimes(1)
+    expect(sectionEvents()).toHaveLength(1)
     fireEvent.click(btn)
-    expect(mockedTrack).toHaveBeenCalledTimes(1)
+    expect(sectionEvents()).toHaveLength(1)
   })
 
   it('switching to another section sends only one event, for the newly opened section', () => {
@@ -165,9 +169,30 @@ describe('nd/AboutBlock', () => {
     const btn1 = screen.getByRole('button', { name: /Как это устроено\?/ })
     const btn2 = screen.getByRole('button', { name: /Чем это не является\?/ })
     fireEvent.click(btn1)
-    expect(mockedTrack).toHaveBeenCalledTimes(1)
+    expect(sectionEvents()).toHaveLength(1)
     fireEvent.click(btn2)
-    expect(mockedTrack).toHaveBeenCalledTimes(2)
+    expect(sectionEvents()).toHaveLength(2)
     expect(mockedTrack).toHaveBeenLastCalledWith('about_section_opened', { section_title: 'Чем это не является?', section_index: 3 })
+  })
+
+  it('«Подробнее» sends about_block_expanded, «Свернуть» — about_block_collapsed', () => {
+    renderBlock()
+    fireEvent.click(screen.getByText('Подробнее ↓'))
+    expect(mockedTrack).toHaveBeenCalledWith('about_block_expanded', { source: 'more_button' })
+    fireEvent.click(screen.getByText('Свернуть ↑'))
+    expect(mockedTrack).toHaveBeenCalledWith('about_block_collapsed', { source: 'more_button' })
+  })
+
+  it('clicking the block itself sends about_block_expanded with source block', () => {
+    renderBlock()
+    fireEvent.click(screen.getByRole('region', { name: 'Читательские круги' }))
+    expect(mockedTrack).toHaveBeenCalledWith('about_block_expanded', { source: 'block' })
+  })
+
+  it('closing the block sends about_block_closed and says whether it was expanded', () => {
+    renderBlock()
+    fireEvent.click(screen.getByText('Подробнее ↓'))
+    fireEvent.click(screen.getByTitle('Скрыть'))
+    expect(mockedTrack).toHaveBeenCalledWith('about_block_closed', { was_expanded: true })
   })
 })

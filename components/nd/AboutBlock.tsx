@@ -143,17 +143,26 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
     },
   }))
 
+  // Раскрытие блока «о проекте» — самый ранний признак интереса к клубу:
+  // человек ещё ничего не выбрал, но захотел прочитать, что это такое.
+  function trackAccordion(isOpening: boolean, source: 'block' | 'more_button') {
+    track(isOpening ? 'about_block_expanded' : 'about_block_collapsed', { source })
+  }
+
   function handleBlockClick() {
     if (isAccordionOpen) {
+      trackAccordion(false, 'block')
       setIsAccordionOpen(false)
       setOpenSection(null)
     } else {
+      trackAccordion(true, 'block')
       setIsAccordionOpen(true)
     }
   }
 
   function handleMoreClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation()
+    trackAccordion(!isAccordionOpen, 'more_button')
     setIsAccordionOpen(v => {
       if (v) setOpenSection(null)
       return !v
@@ -162,6 +171,7 @@ const AboutBlock = forwardRef<AboutBlockHandle, AboutBlockProps>(function AboutB
 
   function handleCloseClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation()
+    track('about_block_closed', { was_expanded: isAccordionOpen })
     onClose()
   }
 

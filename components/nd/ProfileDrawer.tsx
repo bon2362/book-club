@@ -21,6 +21,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { getUserContactEmail } from '@/lib/user-email'
+import { track } from '@/lib/analytics'
 
 declare global {
   interface Window {
@@ -613,12 +614,14 @@ export default function ProfileDrawer({
   // пока Telegram не появится в способах входа. Куку/виджет не используем (iOS-safe).
   function startTelegramLink() {
     if (!TELEGRAM_BOT_NAME) return
+    track('profile_identity_link_started', { provider: 'telegram' })
     setTgLinkState('waiting')
     fetch('/api/account/identities/telegram/link-start', { method: 'POST' })
       .then(r => r.ok ? r.json() : null)
       .then((data: { nonce?: string } | null) => {
         if (!data?.nonce) {
           setTgLinkState('idle')
+          track('profile_identity_link_failed', { provider: 'telegram', reason: 'start_failed' })
           setToast({ message: 'Не удалось начать привязку', type: 'error' })
           return
         }
@@ -629,6 +632,7 @@ export default function ProfileDrawer({
           if (Date.now() - started > 120000) {
             if (tgLinkTimer.current) clearInterval(tgLinkTimer.current)
             setTgLinkState('idle')
+            track('profile_identity_link_failed', { provider: 'telegram', reason: 'timeout' })
             setToast({ message: 'Не удалось привязать. Проверьте сообщение в боте.', type: 'error' })
             return
           }
@@ -642,6 +646,7 @@ export default function ProfileDrawer({
               if (tgLinkTimer.current) clearInterval(tgLinkTimer.current)
               setAuthIdentities(methods)
               setTgLinkState('idle')
+              track('profile_identity_linked', { provider: 'telegram' })
               setToast({ message: 'Telegram привязан', type: 'success' })
             }
           } catch { /* keep polling */ }
@@ -649,6 +654,7 @@ export default function ProfileDrawer({
       })
       .catch(() => {
         setTgLinkState('idle')
+        track('profile_identity_link_failed', { provider: 'telegram', reason: 'start_request_failed' })
         setToast({ message: 'Не удалось начать привязку', type: 'error' })
       })
   }
@@ -673,6 +679,12 @@ export default function ProfileDrawer({
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
+  // Клик по книге в профиле открывает меню статуса. Считаем только открытие.
+  function handleBookRowTap(bookId: string) {
+    if (openMenuBookId !== bookId) track('profile_book_clicked', { book_id: bookId, tab: activeTab })
+    setOpenMenuBookId(prev => prev === bookId ? null : bookId)
+  }
+
   // ── Unsubscribe / re-subscribe (× in «Хочу читать») ──
   async function handleToggle(bookId: string) {
     const book = books.find(b => b.id === bookId)
@@ -686,6 +698,7 @@ export default function ProfileDrawer({
     })
     try {
       await onToggleBook(bookId)
+      track(wasUnsubscribed ? 'profile_book_restored' : 'profile_book_removed', { book_id: bookId, book_title: bookName })
       const msg = wasUnsubscribed
         ? `«${bookName}» добавлена в ваш список`
         : `«${bookName}» убрана из вашего списка`
@@ -729,6 +742,12 @@ export default function ProfileDrawer({
     const oldIndex = priorityOrder.indexOf(active.id as string)
     const newIndex = priorityOrder.indexOf(over.id as string)
     const newOrder = arrayMove(priorityOrder, oldIndex, newIndex)
+    track('profile_books_reordered', {
+      book_id: String(active.id),
+      from_position: oldIndex + 1,
+      to_position: newIndex + 1,
+      count: newOrder.length,
+    })
     setPriorityOrder(newOrder)
     // user manually placed books — clear unranked flag for all books in newOrder
     setUnrankedBooks(new Set())
@@ -750,6 +769,11 @@ export default function ProfileDrawer({
       setOpenMenuBookId(null)
       return
     }
+    track('profile_book_status_changed', {
+      book_id: bookId,
+      from: prev ?? 'want_to_read',
+      to: newStatus ?? 'want_to_read',
+    })
 
     // Optimistic update
     const now = new Date().toISOString()
@@ -850,6 +874,7 @@ export default function ProfileDrawer({
     const next = current.includes(code)
       ? current.filter(c => c !== code)
       : [...current, code]
+    track('profile_language_toggled', { language: code, enabled: !current.includes(code), count: next.length })
     setLanguages(next)
     setLanguagesNeverSaved(false)
     if (langDebounceRef.current) clearTimeout(langDebounceRef.current)
@@ -868,7 +893,13 @@ export default function ProfileDrawer({
   }
 
   async function handleDeleteAccount() {
-    if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) return
+    // Подтверждённое удаление стирает профиль PostHog вместе со всеми событиями
+    // (право на забвение, lib/posthog-server.ts) — событие о нём тоже исчезло бы.
+    // Поэтому пишем только передумавших: они в аналитике остаются.
+    if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) {
+      track('account_deletion_cancelled')
+      return
+    }
     try {
       await onDeleteAccount()
     } catch {
@@ -899,6 +930,7 @@ export default function ProfileDrawer({
   async function handleLinkGoogle() {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
     if (!clientId || linkingGoogle) return
+    track('profile_identity_link_started', { provider: 'google' })
     setLinkingGoogle(true)
     setLinkingError('')
 
@@ -933,6 +965,7 @@ export default function ProfileDrawer({
                   return [identity, ...others]
                 })
               }
+              track('profile_identity_linked', { provider: 'google' })
               setToast({ message: 'Google привязан к вашему профилю', type: 'success' })
               resolve()
             } catch (error) {
@@ -949,6 +982,7 @@ export default function ProfileDrawer({
         })
       })
     } catch (error) {
+      track('profile_identity_link_failed', { provider: 'google', reason: error instanceof Error ? error.message : 'unknown' })
       const message = error instanceof Error && error.message === 'identity_conflict'
         ? 'Этот Google уже привязан к другому профилю. Напишите организатору, чтобы объединить аккаунты.'
         : 'Не удалось привязать Google. Попробуйте ещё раз.'
@@ -964,6 +998,7 @@ export default function ProfileDrawer({
     const email = linkEmail.trim()
     if (!email || linkingEmail) return
 
+    track('profile_identity_link_started', { provider: 'email' })
     setLinkingEmail(true)
     setLinkingError('')
     setLinkEmailSent(false)
@@ -979,8 +1014,10 @@ export default function ProfileDrawer({
         throw new Error(body.error === 'Invalid email' ? 'invalid_email' : 'link_failed')
       }
       setLinkEmailSent(true)
+      track('profile_identity_link_email_sent')
       setToast({ message: 'Письмо для привязки отправлено', type: 'success' })
     } catch (error) {
+      track('profile_identity_link_failed', { provider: 'email', reason: error instanceof Error ? error.message : 'unknown' })
       const message = error instanceof Error && error.message === 'invalid_email'
         ? 'Введите корректный email.'
         : 'Не удалось отправить письмо. Попробуйте ещё раз.'
@@ -1144,7 +1181,7 @@ export default function ProfileDrawer({
             return (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => { if (tab !== activeTab) track('profile_tab_opened', { tab }); setActiveTab(tab) }}
                 style={{
                   flex: 1,
                   padding: '0.75rem 0.5rem',
@@ -1205,7 +1242,7 @@ export default function ProfileDrawer({
                               author={book.author}
                               current="reading"
                               isMenuOpen={openMenuBookId === bookId}
-                              onRowTap={() => setOpenMenuBookId(prev => prev === bookId ? null : bookId)}
+                              onRowTap={() => handleBookRowTap(bookId)}
                               onStatusChange={s => handleStatusChange(bookId, s)}
                             />
                           )
@@ -1233,7 +1270,7 @@ export default function ProfileDrawer({
                                   author={book.author}
                                   isUnsubscribed={localUnsubscribed.has(bookId)}
                                   isMenuOpen={openMenuBookId === bookId}
-                                  onRowTap={() => setOpenMenuBookId(prev => prev === bookId ? null : bookId)}
+                                  onRowTap={() => handleBookRowTap(bookId)}
                                   onToggle={() => handleToggle(bookId)}
                                   onStatusChange={s => handleStatusChange(bookId, s)}
                                 />
@@ -1259,7 +1296,7 @@ export default function ProfileDrawer({
                               author={book.author}
                               current="read"
                               isMenuOpen={openMenuBookId === bookId}
-                              onRowTap={() => setOpenMenuBookId(prev => prev === bookId ? null : bookId)}
+                              onRowTap={() => handleBookRowTap(bookId)}
                               onStatusChange={s => handleStatusChange(bookId, s)}
                             />
                           )

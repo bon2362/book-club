@@ -21,7 +21,12 @@ export default function MatchingStrip({ onClose }: MatchingStripProps) {
         <Link className="nd-matching-strip__cta" href="/matching" onClick={() => track('matching_strip_clicked', { source: 'home' })}>
           Перейти в матчинг <span aria-hidden="true">→</span>
         </Link>
-        <button className="nd-matching-strip__close" type="button" onClick={onClose} aria-label="Скрыть полосу матчинга">
+        <button
+          className="nd-matching-strip__close"
+          type="button"
+          onClick={() => { track('matching_strip_dismissed', { source: 'home' }); onClose() }}
+          aria-label="Скрыть полосу матчинга"
+        >
           <span aria-hidden="true">×</span>
         </button>
       </div>
