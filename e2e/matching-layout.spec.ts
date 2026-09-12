@@ -34,6 +34,46 @@ test.describe('Matching canonical book board layout', () => {
     }
   })
 
+  test('раскрытая строка участника держит книги под строкой и по одной в строке', async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    const { admin, participantA, getParticipantB } = matchingBooksFixture
+    await getParticipantB()
+    const page = await openMatchingPage(admin)
+
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport)
+      await page.goto('/admin?tab=matching&sub=people')
+
+      const people = page.getByTestId('admin-matching-people')
+      const row = people.getByTestId('admin-participant-row').filter({ hasText: participantA.name })
+      await expect(row).toBeVisible()
+      await row.click()
+      await expect(row).toHaveAttribute('aria-expanded', 'true')
+
+      const panel = people.getByTestId('admin-participant-books')
+      const rowBox = (await row.boundingBox())!
+      const panelBox = (await panel.boundingBox())!
+      // Панель — продолжение строки: ниже неё и с отступом слева под вертикальной линейкой.
+      expect(panelBox.y).toBeGreaterThanOrEqual(rowBox.y + rowBox.height - 1)
+      expect(panelBox.x).toBeGreaterThan(rowBox.x)
+
+      // Каждая книга занимает свою строку: у соседних позиций разные y.
+      const items = panel.locator('[data-group="want"] li')
+      await expect(items).toHaveCount(2)
+      const first = (await items.nth(0).boundingBox())!
+      const second = (await items.nth(1).boundingBox())!
+      expect(second.y).toBeGreaterThanOrEqual(first.y + first.height - 1)
+
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+
+      // Повторный клик сворачивает.
+      await row.click()
+      await expect(people.getByTestId('admin-participant-books')).toHaveCount(0)
+    }
+  })
+
   test('one book board without mode tabs fits desktop and mobile', { tag: '@matching-golden' }, async ({
     matchingBooksFixture,
     openMatchingPage,

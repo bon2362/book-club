@@ -275,9 +275,22 @@ test('админская вкладка матчинга показывает с
   await rowA.hover()
   await expect(remove).toHaveCSS('opacity', '1')
 
-  // Полный список книг участника — по раскрытию строки.
-  await rowA.getByTestId('admin-participant-books-toggle').click()
-  await expect(people.getByTestId('admin-participant-books')).toContainText(`«${books[1].title}»`)
+  // Имя осталось ссылкой в матчинг от лица участника (клик по нему строку не раскрывает —
+  // это проверяет юнит-тест, здесь клик увёл бы со страницы).
+  await expect(rowA.getByTestId('admin-participant-nameslot').getByRole('link'))
+    .toHaveAttribute('href', /\/matching\?as=/)
+  await expect(people.getByTestId('admin-participant-books')).toHaveCount(0)
+
+  // Полный список книг участника — по клику в саму строку, книгами по группам.
+  await rowA.click()
+  await expect(rowA).toHaveAttribute('aria-expanded', 'true')
+  const booksPanel = people.getByTestId('admin-participant-books')
+  await expect(booksPanel.locator('[data-testid="admin-participant-book-group"][data-group="want"]'))
+    .toContainText(books[1].title)
+  await expect(booksPanel.locator('[data-testid="admin-participant-book-group"][data-group="hard"]'))
+    .toContainText(books[0].title)
+  // Названия идут без кавычек — каждая книга на своей строке.
+  await expect(booksPanel).not.toContainText('«')
 
   await page.getByTestId('admin-matching-tab-log').click()
   const log = page.getByTestId('admin-matching-log')

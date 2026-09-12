@@ -67,10 +67,6 @@ export function participantDisplayName(participant: { userId: string; name: stri
   return participant.name ?? `${participant.userId.slice(0, 12)}…`
 }
 
-export function formatBookTitles(titles: string[]): string {
-  return titles.map((title) => `«${title}»`).join(', ')
-}
-
 export function formatShortDateTime(value: string): string {
   return new Date(value).toLocaleString('ru-RU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
