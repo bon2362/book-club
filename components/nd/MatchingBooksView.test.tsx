@@ -173,7 +173,7 @@ describe('MatchingBooksView commands', () => {
 
     expect(screen.queryByTestId('matching-books-selection')).not.toBeInTheDocument()
     expect(screen.getByText('✓ Вы записаны')).toBeInTheDocument()
-    expect(screen.getByText(/Книга сформируется при 2 окончательных записях и 3 участниках всего/)).toBeInTheDocument()
+    expect(screen.getByText('Ждём, пока наберётся три человека')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
@@ -207,7 +207,7 @@ describe('MatchingBooksView commands', () => {
     expect(screen.getByTestId('matching-books-selection')).toHaveTextContent('Вы записаны на Первая, Вторая')
   })
 
-  it('renders a single divider before the unpinned tail', () => {
+  it('keeps the unavailable books collapsed until the participant opens the section', () => {
     const personalA = { ...mode.books[0], bookId: 'b2', title: 'Личная A', intersectionCount: 0, participants: [] }
     const personalB = { ...mode.books[0], bookId: 'b3', title: 'Личная B', intersectionCount: 0, participants: [] }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], personalA, personalB] }} />)
@@ -215,9 +215,21 @@ describe('MatchingBooksView commands', () => {
     expect(screen.getAllByTestId('matching-tail-divider')).toHaveLength(1)
     const divider = screen.getByTestId('matching-tail-divider')
     expect(divider).toHaveTextContent('Записаться пока нельзя')
-    expect(divider).toHaveTextContent('Эти книги остаются в вашем списке, но в подборе не участвуют.')
+    expect(divider).toHaveTextContent('2 книги')
+    const toggle = screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByTestId('matching-book-card-b2')).not.toBeInTheDocument()
+
+    fireEvent.click(toggle)
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
     const firstPersonalCard = screen.getByTestId('matching-book-card-b2')
+    expect(firstPersonalCard).toBeVisible()
     expect(divider.compareDocumentPosition(firstPersonalCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByTestId('matching-book-card-b2')).not.toBeInTheDocument()
   })
 
   it('drops the tail dividers for a completed viewer and states the real reason on cards', () => {
@@ -257,6 +269,7 @@ describe('MatchingBooksView commands', () => {
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], reading] }} />)
 
     expect(screen.getAllByTestId('matching-tail-divider')).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
     const card = screen.getByTestId('matching-book-card-b2')
     const label = card.querySelector('[data-testid="matching-book-tail-reason"]')
     expect(label).toHaveAttribute('data-reason', 'reading')
@@ -267,6 +280,7 @@ describe('MatchingBooksView commands', () => {
     const personal = { ...mode.books[0], bookId: 'b2', title: 'Личная', intersectionCount: 0, participants: [] }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [personal] }} />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
     const label = screen.getByTestId('matching-book-tail-reason')
     expect(label).toHaveAttribute('data-reason', 'waiting')
     expect(label).toHaveTextContent('ЖДЁМ ДРУГИХ')
@@ -284,6 +298,7 @@ describe('MatchingBooksView commands', () => {
     }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [reading] }} />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
     fireEvent.click(screen.getByTestId('matching-return-to-matching'))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(

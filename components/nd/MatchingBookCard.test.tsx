@@ -176,10 +176,10 @@ describe('MatchingBookCard', () => {
     expect(screen.getByText('Авто-запись недоступна после окончательной записи.')).toBeInTheDocument()
   })
 
-  it('uses the fixed formation threshold in the waiting note', () => {
+  it('shows the waiting note after enrolling', () => {
     const hardBook = { ...book, viewerStatus: 'hard' as const, allowedActions: { conditional: false, hard: false, cancelHard: true } }
     render(<MatchingBookCard book={hardBook} {...baseProps} />)
-    expect(screen.getByText('Ждём остальных. Книга сформируется при 2 окончательных записях и 3 участниках всего. Круги — по 3–5 человек.')).toBeInTheDocument()
+    expect(screen.getByText('Ждём, пока наберётся три человека')).toBeInTheDocument()
   })
 
   it('shows admin controls without repeating participant-action copy', () => {

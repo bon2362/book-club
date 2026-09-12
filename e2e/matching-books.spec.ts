@@ -346,6 +346,9 @@ test('книга в статусе «читаю сейчас» уезжает в
   expect(setReading.ok(), await setReading.text()).toBe(true)
 
   await page.goto('/matching')
+  await expect(card).toHaveCount(0)
+  const toggle = page.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' })
+  await toggle.click()
   await expect(card).toBeVisible()
   const reason = card.getByTestId('matching-book-tail-reason')
   await expect(reason).toHaveAttribute('data-reason', 'reading')
@@ -358,6 +361,8 @@ test('книга в статусе «читаю сейчас» уезжает в
 
   // Persistence: a reload must not lose the "reading" placement or its label.
   await page.reload()
+  await expect(card).toHaveCount(0)
+  await page.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }).click()
   await expect(card).toBeVisible()
   await expect(reason).toHaveAttribute('data-reason', 'reading')
   await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
