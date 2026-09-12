@@ -4,12 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import CoverImage from './CoverImage'
 import MatchingBookCircles from './MatchingBookCircles'
 import { hasEnoughBookParticipantsToEnroll, tailReason, type MatchingBookView } from './matching-book-types'
-import {
-  MAX_CIRCLE_SIZE,
-  MIN_CIRCLE_SIZE,
-  MIN_FORMATION_HARD_CHOICES,
-  MIN_FORMATION_TOTAL_CHOICES,
-} from '@/lib/matching/book-partition'
 
 export type MatchingBookCommandAction =
   | 'setConditional'
@@ -218,7 +212,7 @@ export default function MatchingBookCard({
                 {pendingAction === 'cancelHard' ? 'Отменяем…' : 'Отменить'}
               </button>
             )}
-            <span className="nd-mb-action-note">{`Ждём остальных. Книга сформируется при ${MIN_FORMATION_HARD_CHOICES} окончательных записях и ${MIN_FORMATION_TOTAL_CHOICES} участниках всего. Круги — по ${MIN_CIRCLE_SIZE}–${MAX_CIRCLE_SIZE} человек.`}</span>
+            <span className="nd-mb-action-note">Ждём, пока наберётся три человека</span>
           </>
         ) : assignedHere ? null
         : !hasPeers && conditionalHere ? (
