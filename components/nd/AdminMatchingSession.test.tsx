@@ -226,6 +226,16 @@ describe('AdminMatchingSession', () => {
     expect(await screen.findByTestId('admin-matching-demand')).toBeInTheDocument()
   })
 
+  it('opens the global instructions editor as its own matching sub-tab', async () => {
+    mockSearch = 'tab=matching&sub=instructions'
+    mockFetch(openSessionHandlers())
+    render(<AdminMatchingSession />)
+
+    expect(await screen.findByTestId('admin-matching-tab-instructions')).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByTestId('admin-matching-instructions')).toBeInTheDocument()
+    expect(screen.queryByTestId('admin-matching-session-bar')).not.toBeInTheDocument()
+  })
+
   it('keeps participant administration on the people tab', async () => {
     mockSearch = 'tab=matching&sub=people'
     jest.spyOn(window, 'confirm').mockReturnValue(true)

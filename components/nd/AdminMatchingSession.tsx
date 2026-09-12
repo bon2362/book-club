@@ -239,7 +239,8 @@ export default function AdminMatchingSession() {
     document.getElementById(`admin-matching-tab-${next.id}`)?.focus()
   }
 
-  const tabCounts: Record<MatchingSubTab, number | null> = {
+  const tabCounts: Record<MatchingSubTab, number | null | undefined> = {
+    instructions: undefined,
     demand: coordination ? coordination.books.length : null,
     people: participantsLoading && participants.length === 0 ? null : participants.length,
     log: eventsLoading && events.length === 0 ? null : events.length,
@@ -249,8 +250,6 @@ export default function AdminMatchingSession() {
     <div data-testid="admin-matching" style={{ fontFamily: 'var(--nd-sans)', fontSize: '0.82rem', padding: '1.2rem 0' }}>
       {loading && sessions.length === 0 && <p style={quietText}>Загрузка…</p>}
       {error && <p style={{ ...quietText, color: 'var(--accent)' }}>{error}</p>}
-
-      <AdminMatchingInstructions />
 
       {!loading && sessions.length === 0 && !newSessionOpen && (
         <div style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
@@ -267,7 +266,7 @@ export default function AdminMatchingSession() {
         </div>
       )}
 
-      {selectedSession && (
+      {selectedSession && subTab !== 'instructions' && (
         <>
           <AdminMatchingSessionBar
             sessions={sessions}
@@ -291,8 +290,7 @@ export default function AdminMatchingSession() {
         />
       )}
 
-      {selectedSession && (
-        <>
+      <>
           <div role="tablist" aria-label="Разделы матчинга" style={{ display: 'flex', gap: 22, flexWrap: 'wrap', margin: '18px 0 16px' }}>
             {MATCHING_SUB_TABS.map((tab, index) => {
               const active = tab.id === subTab
@@ -314,9 +312,7 @@ export default function AdminMatchingSession() {
                   data-testid={`admin-matching-tab-${tab.id}`}
                 >
                   {tab.label}
-                  <span style={{ fontFamily: 'var(--nd-mono)', fontSize: '0.7rem', marginLeft: '0.35rem', color: 'var(--text-muted)' }}>
-                    {count ?? '…'}
-                  </span>
+                  {count !== undefined && <span style={{ fontFamily: 'var(--nd-mono)', fontSize: '0.7rem', marginLeft: '0.35rem', color: 'var(--text-muted)' }}>{count ?? '…'}</span>}
                 </button>
               )
             })}
@@ -327,14 +323,15 @@ export default function AdminMatchingSession() {
             id={`admin-matching-panel-${subTab}`}
             aria-labelledby={`admin-matching-tab-${subTab}`}
           >
-            {subTab === 'demand' && (
+            {subTab === 'instructions' && <AdminMatchingInstructions />}
+            {subTab === 'demand' && selectedSession && (
               <AdminMatchingBookDemand
                 books={coordination?.books ?? null}
                 loading={coordinationLoading}
                 error={coordinationError}
               />
             )}
-            {subTab === 'people' && (
+            {subTab === 'people' && selectedSession && (
               <AdminMatchingParticipantsTab
                 participants={participants}
                 onlinePublicRefs={onlinePublicRefs}
@@ -348,7 +345,7 @@ export default function AdminMatchingSession() {
                 onRefresh={() => { loadParticipants(selectedSession.id); loadCoordination(selectedSession.id) }}
               />
             )}
-            {subTab === 'log' && (
+            {subTab === 'log' && selectedSession && (
               <AdminMatchingLogTab
                 key={selectedSession.id}
                 events={events}
@@ -358,8 +355,7 @@ export default function AdminMatchingSession() {
               />
             )}
           </div>
-        </>
-      )}
+      </>
     </div>
   )
 }
