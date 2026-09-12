@@ -112,9 +112,9 @@ test('администратор отправляет круг читать и �
   await participantPage.reload()
   await expect(participantPage.getByTestId('matching-books-view')).toContainText('Ваш подбор завершён')
   await expect(participantPage.getByTestId('matching-books-selection')).toContainText(books[0].title)
-  // The banner is the only read-only explanation: no repeated "Записаться пока нельзя"
-  // headings, and no card claiming the session is closed while it is still open.
-  await expect(participantPage.getByTestId('matching-tail-divider')).toHaveCount(0)
+  // The banner is the only read-only explanation: no unavailable-books shelf
+  // and no card claiming the session is closed while it is still open.
+  await expect(participantPage.getByTestId('matching-tail-group')).toHaveCount(0)
   await expect(participantPage.getByTestId('matching-books-view')).not.toContainText('Сессия закрыта')
 
   // Счётчик в шапке — про тех, кто ещё выбирает: выпущенный круг из него уходит.

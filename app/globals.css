@@ -69,6 +69,7 @@
 
   /* Тёплая разделительная линия (мягче холодного --border #E5E5E5) */
   --hair:            #ECE3D4;
+  --hair-strong:     #E0D4BE;
   /* Очень светлая линия для строк ВНУТРИ карточки (слабее --hair) */
   --hair-soft:       #F1EADD;
   /* Тёплая акцентная линия — отчёркивание круга читателей на accent-soft карточке */
@@ -480,21 +481,21 @@
 .nd-mb-selection { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 1rem; padding: 0.65rem 0.8rem; border-left: 3px solid var(--success); background: var(--bg-input); color: var(--success); font-size: 0.82rem; }
 .nd-mb-list { display: flex; flex-direction: column; gap: 1rem; }
 .nd-mb-list-item { display: grid; gap: 1rem; }
-.nd-mb-tail { border-top: 1px solid var(--hair); }
-.nd-mb-tail-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; gap: 1rem; padding: 0.8rem 0; border: 0; background: transparent; color: var(--text-muted); text-align: left; cursor: pointer; transition: color 160ms ease, background-color 160ms ease; }
-.nd-mb-tail-toggle:hover { color: var(--text-secondary); background: var(--surface-soft); }
+.nd-mb-tail-toggle { display: flex; align-items: center; width: 100%; min-height: 44px; gap: 0.9rem; padding: 0.9rem 1rem; border: 1px dashed var(--hair); border-radius: var(--radius-card); background: transparent; color: var(--text); text-align: left; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; }
+.nd-mb-tail-toggle:hover { border-color: var(--hair-strong); background: var(--surface-soft); }
 .nd-mb-tail-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.nd-mb-divider { display: block; color: currentColor; font: 700 0.6rem/1 var(--nd-sans); letter-spacing: 0.14em; text-transform: uppercase; }
-.nd-mb-tail-count { display: block; margin-top: 0.35rem; color: var(--text-secondary); font: 400 0.8rem/1.2 var(--nd-sans); letter-spacing: normal; text-transform: none; }
-.nd-mb-tail-action { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 0.35rem; color: var(--accent); font: 600 0.78rem/1 var(--nd-sans); }
-.nd-mb-tail-chevron { width: 1rem; height: 1rem; transition: transform 160ms ease; }
-.nd-mb-tail-toggle[aria-expanded="true"] .nd-mb-tail-chevron { transform: rotate(180deg); }
-.nd-mb-divider-note { margin-top: 0.5rem; color: var(--text-muted); font: 400 0.8rem/1.45 var(--nd-sans); }
-.nd-mb-tail-books { display: grid; gap: 1rem; margin-top: 1rem; animation: nd-mb-tail-reveal 160ms ease-out; }
-@keyframes nd-mb-tail-reveal {
-  from { opacity: 0; transform: translateY(-0.2rem); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.nd-mb-tail-spines { display: flex; flex: 0 0 auto; }
+.nd-mb-tail-spine { position: relative; width: 30px; height: 44px; margin-left: -10px; overflow: hidden; outline: 3px solid var(--bg); border-radius: var(--radius-sm); box-shadow: var(--shadow-cover); }
+.nd-mb-tail-spine:first-child { margin-left: 0; }
+.nd-mb-tail-copy { min-width: 0; flex: 1; }
+.nd-mb-tail-copy strong { display: block; color: var(--text-body); font: 600 0.88rem/1.3 var(--nd-sans); }
+.nd-mb-tail-copy span { display: block; margin-top: 2px; color: var(--text-muted); font: 400 0.8rem/1.3 var(--nd-sans); }
+.nd-mb-tail-chev { flex: 0 0 auto; color: var(--accent); font-size: 0.8rem; transition: transform 180ms ease; }
+.nd-mb-tail-toggle[aria-expanded="true"] .nd-mb-tail-chev { transform: rotate(180deg); }
+.nd-mb-tail-panel { display: flex; flex-direction: column; gap: 0.9rem; margin-top: 0.9rem; }
+.nd-mb-tail-panel[hidden] { display: none; }
+.nd-mb-tail-note { margin: 0; color: var(--text-muted); font: 400 0.8rem/1.45 var(--nd-sans); }
+.nd-mb-card.is-tail { opacity: 0.78; }
 .nd-mb-card { position: relative; padding: 1.05rem 1.15rem; border-radius: var(--radius-card); background: var(--bg-input); box-shadow: var(--shadow-card); }
 .nd-mb-card.is-hard { box-shadow: var(--shadow-card), inset 3px 0 0 var(--accent); }
 .nd-mb-card.is-formed { background: var(--bg-tag-green); box-shadow: var(--shadow-card), inset 3px 0 0 var(--success); }
@@ -598,15 +599,14 @@
 .nd-mx-board-cap:has(.nd-mx-workspace.is-document) { height: auto !important; min-height: 0 !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .nd-mb-card, .nd-mb-btn, .nd-mb-intro-details, .nd-mb-tail-toggle, .nd-mb-tail-chevron, .nd-mb-tail-books { transition: none !important; animation: none !important; }
+  .nd-mb-card, .nd-mb-btn, .nd-mb-intro-details, .nd-mb-tail-toggle, .nd-mb-tail-chev { transition: none !important; animation: none !important; }
 }
 
 @media (max-width: 540px) {
   .nd-mb-view { padding: 0.35rem 0 2.5rem; }
   .nd-mb-intro-summary .p-link { display: inline-flex; align-items: center; min-height: 44px; }
   .nd-mb-list { gap: 0.85rem; }
-  .nd-mb-tail-toggle { padding: 0.75rem 0.7rem; }
-  .nd-mb-tail-action { font-size: 0.82rem; }
+  .nd-mb-tail-toggle { padding: 0.75rem 0.8rem; }
   .nd-mb-card { padding: 0.9rem 0.95rem; }
   .nd-mb-cover { width: 56px; height: 80px; flex-basis: 56px; }
   .nd-mb-head { gap: 0.8rem; }

@@ -347,7 +347,7 @@ test('книга в статусе «читаю сейчас» уезжает в
 
   await page.goto('/matching')
   await expect(card).toHaveCount(0)
-  const toggle = page.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' })
+  const toggle = page.getByTestId('matching-tail-toggle')
   await toggle.click()
   await expect(card).toBeVisible()
   const reason = card.getByTestId('matching-book-tail-reason')
@@ -356,13 +356,13 @@ test('книга в статусе «читаю сейчас» уезжает в
   await expect(reason).toContainText('Пока читаете, книга не участвует в подборе')
   await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
   await expect(card.getByRole('button', { name: 'Автоматическая запись, если соберётся круг' })).toHaveCount(0)
-  const divider = page.getByTestId('matching-tail-divider')
-  await expect(divider).toContainText('Записаться пока нельзя')
+  const tailGroup = page.getByTestId('matching-tail-group')
+  await expect(tailGroup).toContainText('На эти книги пока записаться нельзя')
 
   // Persistence: a reload must not lose the "reading" placement or its label.
   await page.reload()
   await expect(card).toHaveCount(0)
-  await page.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }).click()
+  await page.getByTestId('matching-tail-toggle').click()
   await expect(card).toBeVisible()
   await expect(reason).toHaveAttribute('data-reason', 'reading')
   await expect(card.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)

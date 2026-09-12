@@ -27,6 +27,7 @@ interface Props {
   /** Return a currently-reading book to matching (PATCH /api/signup-books/<id>/status). */
   onReturnToMatching?: (bookId: string, control: HTMLButtonElement) => void
   returnPending?: boolean
+  className?: string
 }
 
 const TAIL_REASON_LABEL: Record<'waiting' | 'reading', string> = {
@@ -69,6 +70,7 @@ export default function MatchingBookCard({
   adminControls,
   onReturnToMatching,
   returnPending = false,
+  className: additionalClassName = '',
 }: Props) {
   const assignedHere = book.viewerStatus === 'assigned'
   const hardHere = book.viewerStatus === 'hard'
@@ -122,6 +124,7 @@ export default function MatchingBookCard({
     formed ? 'is-formed' : '',
     showCompositionDiagnostics && book.currentViability === 'needs_attention' ? 'needs-attention' : '',
     !hasPeers ? 'has-no-overlap' : '',
+    additionalClassName,
   ].filter(Boolean).join(' ')
 
   return (
