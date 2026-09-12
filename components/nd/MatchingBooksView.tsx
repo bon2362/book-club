@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useBookDetail } from './BookDetailProvider'
+import CoverImage from './CoverImage'
 import MatchingBookCard, { type MatchingBookCommandAction } from './MatchingBookCard'
 import MatchingBookAdminControls, { type MatchingBookAdminAction, type MatchingBookAdminCommand } from './MatchingBookAdminControls'
 import MatchingInstructions from './MatchingInstructions'
@@ -165,7 +166,7 @@ export default function MatchingBooksView({
     return <div className="nd-mb-empty" data-testid="matching-books-empty">В вашем списке пока нет книг для матчинга.</div>
   }
 
-  function renderBook(book: MatchingBookModeState['books'][number]) {
+  function renderBook(book: MatchingBookModeState['books'][number], isTail = false) {
     return <div className="nd-mb-list-item" key={book.bookId}>
       <MatchingBookCard
         book={book}
@@ -177,6 +178,7 @@ export default function MatchingBooksView({
         controlsDisabled={pending !== null}
         pendingAction={pending?.bookId === book.bookId && ['setConditional', 'unsetConditional', 'setHard', 'cancelHard'].includes(pending.action) ? pending.action as MatchingBookCommandAction : null}
         returnPending={pending?.bookId === book.bookId && pending.action === 'returnToMatching'}
+        className={isTail ? 'is-tail' : undefined}
         onCommand={command}
         onReturnToMatching={returnToMatching}
         onOpenBook={(selected, control) => {
@@ -219,46 +221,41 @@ export default function MatchingBooksView({
       )}
       {message && <div className="nd-mb-message" data-testid="matching-books-message" aria-live="polite">{message}</div>}
       <div className="nd-mb-list">
-        {activeBooks.map(renderBook)}
+        {activeBooks.map((book) => renderBook(book))}
         {tailBooks.length > 0 && (
-          <section className="nd-mb-tail" data-testid="matching-tail-divider">
+          <section className="nd-mb-tail" data-testid="matching-tail-group">
             <button
               type="button"
               className="nd-mb-tail-toggle"
               aria-expanded={tailExpanded}
-              aria-controls="matching-tail-books"
-              aria-label={`${tailExpanded ? 'Скрыть' : 'Показать'} книги, на которые пока нельзя записаться`}
+              aria-controls="matching-tail-panel"
+              data-testid="matching-tail-toggle"
               onClick={() => setTailExpanded((expanded) => !expanded)}
             >
-              <span>
-                <span className="nd-mb-divider">Записаться пока нельзя</span>
-                <span className="nd-mb-tail-count">{formatBookCount(tailBooks.length)}</span>
+              <span className="nd-mb-tail-spines" aria-hidden="true">
+                {tailBooks.slice(0, 3).map((book) => (
+                  <span className="nd-mb-tail-spine" data-testid="matching-tail-spine" key={book.bookId}>
+                    <CoverImage coverUrl={book.coverUrl} title={book.title} author={book.author} />
+                  </span>
+                ))}
               </span>
-              <span className="nd-mb-tail-action" aria-hidden="true">
-                {tailExpanded ? 'Скрыть книги' : 'Показать книги'}
-                <svg className="nd-mb-tail-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>
+              <span className="nd-mb-tail-copy">
+                <strong>На эти книги пока записаться нельзя</strong>
+                <span>Ждём, пока их добавят другие участники</span>
               </span>
+              <span className="nd-mb-tail-chev" aria-hidden="true">▾</span>
             </button>
-            <p className="nd-mb-divider-note">Эти книги остаются в вашем списке, но в подборе не участвуют.</p>
-            <div className="nd-mb-tail-books" id="matching-tail-books" hidden={!tailExpanded}>{tailExpanded && tailBooks.map(renderBook)}</div>
+            <div className="nd-mb-tail-panel" id="matching-tail-panel" hidden={!tailExpanded}>
+              {tailExpanded && <>
+                <p className="nd-mb-tail-note">Книги остаются в вашем списке. Как только они появятся минимум у трёх участников, здесь можно будет записаться.</p>
+                {tailBooks.map((book) => renderBook(book, true))}
+              </>}
+            </div>
           </section>
         )}
       </div>
     </div>
   )
-}
-
-function formatBookCount(count: number) {
-  const lastTwoDigits = count % 100
-  const lastDigit = count % 10
-  const word = lastTwoDigits >= 11 && lastTwoDigits <= 14
-    ? 'книг'
-    : lastDigit === 1
-      ? 'книга'
-      : lastDigit >= 2 && lastDigit <= 4
-        ? 'книги'
-        : 'книг'
-  return `${count} ${word}`
 }
 
 function bookActionErrorMessage(code?: string) {

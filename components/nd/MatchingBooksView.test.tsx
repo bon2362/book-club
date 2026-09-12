@@ -210,22 +210,27 @@ describe('MatchingBooksView commands', () => {
   it('keeps the unavailable books collapsed until the participant opens the section', () => {
     const personalA = { ...mode.books[0], bookId: 'b2', title: 'Личная A', intersectionCount: 0, participants: [] }
     const personalB = { ...mode.books[0], bookId: 'b3', title: 'Личная B', intersectionCount: 0, participants: [] }
-    render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], personalA, personalB] }} />)
+    const personalC = { ...mode.books[0], bookId: 'b4', title: 'Личная C', intersectionCount: 0, participants: [] }
+    const personalD = { ...mode.books[0], bookId: 'b5', title: 'Личная D', intersectionCount: 0, participants: [] }
+    render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], personalA, personalB, personalC, personalD] }} />)
 
-    expect(screen.getAllByTestId('matching-tail-divider')).toHaveLength(1)
-    const divider = screen.getByTestId('matching-tail-divider')
-    expect(divider).toHaveTextContent('Записаться пока нельзя')
-    expect(divider).toHaveTextContent('2 книги')
-    const toggle = screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' })
+    const group = screen.getByTestId('matching-tail-group')
+    expect(group).toHaveTextContent('На эти книги пока записаться нельзя')
+    expect(group).toHaveTextContent('Ждём, пока их добавят другие участники')
+    expect(group).not.toHaveTextContent('2 книги')
+    expect(screen.getAllByTestId('matching-tail-spine')).toHaveLength(3)
+    const toggle = screen.getByTestId('matching-tail-toggle')
     expect(toggle).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByTestId('matching-book-card-b2')).not.toBeInTheDocument()
+    expect(screen.queryByText('Книги остаются в вашем списке. Как только они появятся минимум у трёх участников, здесь можно будет записаться.')).not.toBeInTheDocument()
 
     fireEvent.click(toggle)
 
     expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Книги остаются в вашем списке. Как только они появятся минимум у трёх участников, здесь можно будет записаться.')).toBeVisible()
     const firstPersonalCard = screen.getByTestId('matching-book-card-b2')
     expect(firstPersonalCard).toBeVisible()
-    expect(divider.compareDocumentPosition(firstPersonalCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(group.compareDocumentPosition(firstPersonalCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
     fireEvent.click(toggle)
     expect(toggle).toHaveAttribute('aria-expanded', 'false')
@@ -249,8 +254,8 @@ describe('MatchingBooksView commands', () => {
       books: [mode.books[0], personalA, reading],
     }} />)
 
-    expect(screen.queryAllByTestId('matching-tail-divider')).toHaveLength(0)
-    expect(screen.queryByText('Записаться пока нельзя')).not.toBeInTheDocument()
+    expect(screen.queryAllByTestId('matching-tail-group')).toHaveLength(0)
+    expect(screen.queryByText('На эти книги пока записаться нельзя')).not.toBeInTheDocument()
     expect(screen.getByTestId('matching-books-readonly'))
       .toHaveTextContent('Ваш подбор завершён: остальные книги доступны только для просмотра')
     expect(screen.getByTestId('matching-book-card-b1'))
@@ -268,8 +273,8 @@ describe('MatchingBooksView commands', () => {
     }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [mode.books[0], reading] }} />)
 
-    expect(screen.getAllByTestId('matching-tail-divider')).toHaveLength(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
+    expect(screen.getAllByTestId('matching-tail-group')).toHaveLength(1)
+    fireEvent.click(screen.getByTestId('matching-tail-toggle'))
     const card = screen.getByTestId('matching-book-card-b2')
     const label = card.querySelector('[data-testid="matching-book-tail-reason"]')
     expect(label).toHaveAttribute('data-reason', 'reading')
@@ -280,7 +285,7 @@ describe('MatchingBooksView commands', () => {
     const personal = { ...mode.books[0], bookId: 'b2', title: 'Личная', intersectionCount: 0, participants: [] }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [personal] }} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
+    fireEvent.click(screen.getByTestId('matching-tail-toggle'))
     const label = screen.getByTestId('matching-book-tail-reason')
     expect(label).toHaveAttribute('data-reason', 'waiting')
     expect(label).toHaveTextContent('ЖДЁМ ДРУГИХ')
@@ -298,7 +303,7 @@ describe('MatchingBooksView commands', () => {
     }
     render(<MatchingBooksView {...props} bookMode={{ ...mode, books: [reading] }} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
+    fireEvent.click(screen.getByTestId('matching-tail-toggle'))
     fireEvent.click(screen.getByTestId('matching-return-to-matching'))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(

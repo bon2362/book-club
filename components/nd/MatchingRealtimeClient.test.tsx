@@ -99,7 +99,7 @@ describe('MatchingRealtimeClient', () => {
     respondVersion(1)
     render(<MatchingRealtimeClient sessionId="s1" initialState={state} bookTitleById={{}} pollIntervalMs={50_000} />)
     expect(screen.getByTestId('matching-books-view')).not.toHaveTextContent('Книга режима')
-    fireEvent.click(screen.getByRole('button', { name: 'Показать книги, на которые пока нельзя записаться' }))
+    fireEvent.click(screen.getByTestId('matching-tail-toggle'))
     expect(screen.getByTestId('matching-books-view')).toHaveTextContent('Книга режима')
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.queryByTestId('matching-scenarios-empty')).not.toBeInTheDocument()
