@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import CoverImage from './CoverImage'
 import MatchingBookCircles from './MatchingBookCircles'
-import { hasOtherBookParticipants, tailReason, type MatchingBookView } from './matching-book-types'
+import { hasEnoughBookParticipantsToEnroll, tailReason, type MatchingBookView } from './matching-book-types'
 import {
   MAX_CIRCLE_SIZE,
   MIN_CIRCLE_SIZE,
@@ -41,7 +41,7 @@ const TAIL_REASON_LABEL: Record<'waiting' | 'reading', string> = {
 }
 
 const TAIL_REASON_NOTE: Record<'waiting' | 'reading', string> = {
-  waiting: 'Когда кто-то ещё выберет — можно будет записаться',
+  waiting: 'Когда книга будет в списках минимум у трёх участников — можно будет записаться',
   reading: 'Пока читаете, книга не участвует в подборе',
 }
 
@@ -80,7 +80,7 @@ export default function MatchingBookCard({
   const hardHere = book.viewerStatus === 'hard'
   const conditionalHere = book.viewerStatus === 'conditional'
   const formed = book.formedAt !== null
-  const hasPeers = hasOtherBookParticipants(book, viewerRef)
+  const hasPeers = hasEnoughBookParticipantsToEnroll(book, viewerRef)
   const isReading = book.viewerPersonalStatus === 'reading'
   const reason = !adminMode ? tailReason(book, viewerRef) : null
   // Composition diagnostics (viability warning, unplaced list) are actionable only for the

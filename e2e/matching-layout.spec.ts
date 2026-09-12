@@ -110,7 +110,7 @@ test.describe('Matching canonical book board layout', () => {
     }
   })
 
-  test('viewer-only books hide enrollment and preserve existing choices when overlap disappears', async ({
+  test('books need two other participants before showing enrollment and preserve existing choices when demand disappears', async ({
     matchingBooksFixture,
     openMatchingPage,
   }) => {
@@ -143,7 +143,16 @@ test.describe('Matching canonical book board layout', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
     }
 
-    const peer = await addParticipant('Overlap peer', [books[0]])
+    const peer = await addParticipant('First overlap peer', [books[0]])
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport)
+      await page.reload()
+      await expect(record).toHaveCount(0)
+      await expect(caret).toHaveCount(0)
+      await expect(card.getByTestId('matching-book-tail-reason')).toHaveAttribute('data-reason', 'waiting')
+    }
+
+    const secondPeer = await addParticipant('Second overlap peer', [books[0]])
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
       await page.reload()
@@ -175,6 +184,8 @@ test.describe('Matching canonical book board layout', () => {
 
     const remove = await peer.request.delete(`/api/matching/books/${books[0].id}`)
     expect(remove.ok(), await remove.text()).toBe(true)
+    const removeSecond = await secondPeer.request.delete(`/api/matching/books/${books[0].id}`)
+    expect(removeSecond.ok(), await removeSecond.text()).toBe(true)
     await page.reload()
     await expect(record).toHaveCount(0)
     await expect(caret).toHaveCount(0)
@@ -188,12 +199,16 @@ test.describe('Matching canonical book board layout', () => {
 
     const add = await peer.request.post('/api/matching/books', { data: { bookId: books[0].id } })
     expect(add.ok(), await add.text()).toBe(true)
+    const addSecond = await secondPeer.request.post('/api/matching/books', { data: { bookId: books[0].id } })
+    expect(addSecond.ok(), await addSecond.text()).toBe(true)
     await page.reload()
     const hardResponse = page.waitForResponse(response => response.url().includes('/book-actions') && response.request().method() === 'POST')
     await record.click()
     expect((await hardResponse).ok()).toBe(true)
     const removeAgain = await peer.request.delete(`/api/matching/books/${books[0].id}`)
     expect(removeAgain.ok(), await removeAgain.text()).toBe(true)
+    const removeSecondAgain = await secondPeer.request.delete(`/api/matching/books/${books[0].id}`)
+    expect(removeSecondAgain.ok(), await removeSecondAgain.text()).toBe(true)
     await page.reload()
     await expect(card).toContainText('✓ Вы записаны')
     const cancelHardResponse = page.waitForResponse(response => response.url().includes('/book-actions') && response.request().method() === 'POST')
