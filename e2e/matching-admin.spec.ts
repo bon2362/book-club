@@ -66,7 +66,7 @@ test('администратор сохраняет общую Markdown-инст
 
   try {
     const adminPage = await openMatchingPage(admin)
-    await adminPage.goto('/admin?tab=matching')
+    await adminPage.goto('/admin?tab=matching&sub=instructions')
     const editor = adminPage.getByTestId('admin-matching-instructions')
     await expect(editor).toBeVisible()
     await editor.getByRole('textbox', { name: 'Заголовок', exact: true }).fill('Как выбрать книги')
@@ -76,6 +76,7 @@ test('администратор сохраняет общую Markdown-инст
     expect((await saved).ok()).toBe(true)
 
     await adminPage.reload()
+    await expect(adminPage.getByTestId('admin-matching-tab-instructions')).toHaveAttribute('aria-selected', 'true')
     await expect(adminPage.getByTestId('admin-matching-instructions').getByRole('textbox', { name: 'Заголовок', exact: true })).toHaveValue('Как выбрать книги')
 
     const participantPage = await openMatchingPage(participantA)
