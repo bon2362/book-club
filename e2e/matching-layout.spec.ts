@@ -221,6 +221,32 @@ test.describe('Matching canonical book board layout', () => {
     await expect(page.getByRole('dialog', { name: books[0].title })).toBeVisible()
   })
 
+  test('keeps every card with enrollment above the single waiting section', async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    const { books, participantA, addParticipant } = matchingBooksFixture
+    await addParticipant('One peer for first book', [books[0]])
+    await addParticipant('First peer for second book', [books[1]])
+    await addParticipant('Second peer for second book', [books[1]])
+    const page = await openMatchingPage(participantA)
+    await page.goto('/matching')
+
+    const firstBook = page.getByTestId(`matching-book-card-${books[0].id}`)
+    const secondBook = page.getByTestId(`matching-book-card-${books[1].id}`)
+    const divider = page.getByTestId('matching-tail-divider')
+    await expect(secondBook.getByRole('button', { name: 'Записаться', exact: true })).toBeVisible()
+    await expect(firstBook.getByRole('button', { name: 'Записаться', exact: true })).toHaveCount(0)
+    const [firstBox, secondBox, dividerBox] = await Promise.all([
+      firstBook.boundingBox(), secondBook.boundingBox(), divider.boundingBox(),
+    ])
+    expect(firstBox).not.toBeNull()
+    expect(secondBox).not.toBeNull()
+    expect(dividerBox).not.toBeNull()
+    expect(secondBox!.y + secondBox!.height).toBeLessThanOrEqual(dividerBox!.y)
+    expect(dividerBox!.y + dividerBox!.height).toBeLessThanOrEqual(firstBox!.y)
+  })
+
   test('mobile book sheet stays in the viewport and restores focus', async ({
     matchingBooksFixture,
     openMatchingPage,

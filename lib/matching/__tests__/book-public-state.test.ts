@@ -259,7 +259,7 @@ describe('buildPublicBookModeState', () => {
     expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
   })
 
-  it('keeps the viewer-only books in one tail even when one is conditional', () => {
+  it('keeps books below the enrollment threshold in one tail even when one is conditional', () => {
     const state = buildPublicBookModeState({
       initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
       books, participants,
@@ -269,6 +269,20 @@ describe('buildPublicBookModeState', () => {
       ],
       intents: [{ userId: 'u1', bookId: 'b1', kind: 'conditional' }], assignments: [],
       formedAtByBookId: new Map(), circles: [],
+    })
+
+    expect(state.books.map(book => book.bookId)).toEqual(['b1', 'b2'])
+  })
+
+  it('places books with only one other participant after books open for enrollment', () => {
+    const state = buildPublicBookModeState({
+      initializedAt: new Date(), sessionStatus: 'open', viewerUserId: 'u1', admin: false,
+      books, participants,
+      interests: [
+        interest('u1', 'b1', 1), interest('u2', 'b1', 1),
+        interest('u1', 'b2', 3), interest('u2', 'b2', 5), interest('u3', 'b2', 6),
+      ],
+      intents: [], assignments: [], formedAtByBookId: new Map(), circles: [],
     })
 
     expect(state.books.map(book => book.bookId)).toEqual(['b2', 'b1'])
