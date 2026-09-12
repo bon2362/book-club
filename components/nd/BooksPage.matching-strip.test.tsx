@@ -80,6 +80,7 @@ describe('BooksPage matching strip', () => {
 
     expect(screen.queryByText('Идёт матчинг')).not.toBeInTheDocument()
     expect(document.cookie).toContain('matching_strip_dismissed=session-42')
+    expect(mockTrack).toHaveBeenCalledWith('matching_strip_dismissed', { source: 'home' })
   })
 
   it('links to matching and records the strip click', () => {

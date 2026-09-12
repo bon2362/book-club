@@ -37,7 +37,12 @@ jest.mock('./auth-provider-memory', () => ({
 
 jest.mock('./Header', () => ({
   __esModule: true,
-  default: () => <header data-testid="header" />,
+  default: ({ onEditProfile, onSubmitBook }: { onEditProfile?: () => void; onSubmitBook?: () => void }) => (
+    <header data-testid="header">
+      {onEditProfile && <button onClick={onEditProfile}>header-profile</button>}
+      {onSubmitBook && <button onClick={onSubmitBook}>header-submit</button>}
+    </header>
+  ),
 }))
 jest.mock('./BookRow', () => ({
   __esModule: true,
@@ -61,7 +66,7 @@ jest.mock('./SubmitBookForm', () => ({
 }))
 jest.mock('./SubmitBookCard', () => ({
   __esModule: true,
-  default: () => <button data-testid="submit-book-card" />,
+  default: ({ onClick }: { onClick: () => void }) => <button data-testid="submit-book-card" onClick={onClick} />,
 }))
 jest.mock('./Footer', () => ({
   __esModule: true,
@@ -186,5 +191,82 @@ describe('BooksPage book choice analytics', () => {
         })
       )
     })
+  })
+
+  it('выбор темы в фильтре шлёт catalog_filter_changed со значением и числом найденных книг', async () => {
+    const { container } = renderPage()
+
+    const tagSelect = container.querySelector('.filters-select-tag') as HTMLSelectElement
+    fireEvent.change(tagSelect, { target: { value: 'история' } })
+
+    await waitFor(() => {
+      expect(mockTrack).toHaveBeenCalledWith('catalog_filter_changed', {
+        filter: 'tag',
+        value: 'история',
+        results_count: 1,
+      })
+    })
+  })
+
+  it('сброс фильтра записывается как «все»', async () => {
+    const { container } = renderPage()
+    const tagSelect = container.querySelector('.filters-select-tag') as HTMLSelectElement
+
+    fireEvent.change(tagSelect, { target: { value: 'история' } })
+    fireEvent.change(tagSelect, { target: { value: '' } })
+
+    await waitFor(() => {
+      expect(mockTrack).toHaveBeenCalledWith('catalog_filter_changed', expect.objectContaining({ filter: 'tag', value: 'все' }))
+    })
+  })
+
+  it('поиск шлёт одно событие с запросом после паузы, а не на каждую букву', async () => {
+    renderPage()
+    const search = screen.getByPlaceholderText('Поиск по названию или автору…')
+
+    fireEvent.change(search, { target: { value: 'Са' } })
+    fireEvent.change(search, { target: { value: 'Сапи' } })
+    fireEvent.change(search, { target: { value: 'Сапиенс' } })
+
+    await waitFor(() => {
+      expect(mockTrack).toHaveBeenCalledWith('catalog_searched', {
+        query: 'Сапиенс',
+        query_length: 7,
+        results_count: 1,
+      })
+    }, { timeout: 2000 })
+    const searches = mockTrack.mock.calls.filter(([event]) => event === 'catalog_searched')
+    expect(searches).toHaveLength(1)
+  })
+
+  it('поиск по несуществующей книге сообщает ноль результатов', async () => {
+    renderPage()
+    fireEvent.change(screen.getByPlaceholderText('Поиск по названию или автору…'), { target: { value: 'Капитал' } })
+
+    await waitFor(() => {
+      expect(mockTrack).toHaveBeenCalledWith('catalog_searched', expect.objectContaining({ query: 'Капитал', results_count: 0 }))
+    }, { timeout: 2000 })
+  })
+
+  it('переключение вида шлёт catalog_view_changed', () => {
+    renderPage()
+    fireEvent.click(screen.getByTitle('Переключить в таблицу'))
+    expect(mockTrack).toHaveBeenCalledWith('catalog_view_changed', { mode: 'list' })
+  })
+
+  it('«Предложить книгу» в шапке и в каталоге различаются местом нажатия', () => {
+    renderPage()
+
+    fireEvent.click(screen.getByText('header-submit'))
+    expect(mockTrack).toHaveBeenCalledWith('submit_book_clicked', { entry_point: 'header', is_logged_in: true })
+
+    fireEvent.click(screen.getAllByTestId('submit-book-card')[0])
+    expect(mockTrack).toHaveBeenCalledWith('submit_book_clicked', { entry_point: 'catalog_card', is_logged_in: true })
+  })
+
+  it('клик по имени в шапке шлёт profile_opened', () => {
+    renderPage()
+    fireEvent.click(screen.getByText('header-profile'))
+    expect(mockTrack).toHaveBeenCalledWith('profile_opened', { source: 'header' })
   })
 })
