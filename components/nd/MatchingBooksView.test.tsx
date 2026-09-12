@@ -173,7 +173,7 @@ describe('MatchingBooksView commands', () => {
 
     expect(screen.queryByTestId('matching-books-selection')).not.toBeInTheDocument()
     expect(screen.getByText('✓ Вы записаны')).toBeInTheDocument()
-    expect(screen.getByText(/Книга сформируется при 2 окончательных записях и 3 участниках всего/)).toBeInTheDocument()
+    expect(screen.getByText('Ждём, пока наберётся три человека')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Отменить' }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
