@@ -239,13 +239,23 @@ describe('AdminMatchingSession', () => {
     expect(within(people).getByText('активный')).toBeInTheDocument()
     expect(within(people).getByText('наблюдатель')).toBeInTheDocument()
 
-    // Book lists are no longer inline, but one click reveals the full choice of a participant.
-    expect(screen.queryByText('Запись: «Моби Дик»')).not.toBeInTheDocument()
-    fireEvent.click(within(people).getAllByTestId('admin-participant-books-toggle')[0])
+    // Книги раскрываются кликом по строке и разложены по группам, книга на строку.
+    expect(screen.queryByTestId('admin-participant-books')).not.toBeInTheDocument()
+    const firstRow = within(people).getAllByTestId('admin-participant-row')[0]
+    fireEvent.click(within(firstRow).getByTestId('admin-participant-nameslot'))
+    expect(screen.queryByTestId('admin-participant-books')).not.toBeInTheDocument()
+    fireEvent.click(firstRow)
+    expect(firstRow).toHaveAttribute('aria-expanded', 'true')
     const books = within(people).getByTestId('admin-participant-books')
-    expect(books).toHaveTextContent('Хочу читать: #1 «Моби Дик», #2 «Редкая книга»')
-    expect(books).toHaveTextContent('Запись: «Моби Дик»')
-    expect(books).toHaveTextContent('Авто-запись: «Сто лет одиночества»')
+    const groups = within(books).getAllByTestId('admin-participant-book-group')
+    expect(groups.map((group) => group.dataset.group)).toEqual(['want', 'hard', 'conditional'])
+    expect(groups[0]).toHaveTextContent('Хочу читать')
+    expect(within(groups[0]).getAllByRole('listitem').map((item) => item.textContent))
+      .toEqual(['#1Моби Дик', '#2Редкая книга'])
+    expect(groups[1]).toHaveTextContent('Записался:ась')
+    expect(groups[2]).toHaveTextContent('Авто-запись')
+    expect(groups[2]).toHaveTextContent('Сто лет одиночества')
+    expect(books).not.toHaveTextContent('«')
 
     // Manual add is collapsed together with its warning.
     expect(screen.queryByTestId('admin-add-disclosure-warning')).not.toBeInTheDocument()
@@ -279,9 +289,12 @@ describe('AdminMatchingSession', () => {
     const people = await screen.findByTestId('admin-matching-people')
     await within(people).findByText('Мария Орлова')
     expect(within(people).getByTestId('admin-participant-released')).toHaveTextContent('читает')
-    fireEvent.click(within(people).getByTestId('admin-participant-books-toggle'))
-    expect(within(people).getByTestId('admin-participant-books')).toHaveTextContent('Читает: «Над пропастью во ржи»')
-    expect(within(people).getByTestId('admin-participant-books')).not.toHaveTextContent('В круге:')
+    fireEvent.click(within(people).getByTestId('admin-participant-row'))
+    const releasedBooks = within(people).getByTestId('admin-participant-books')
+    expect(within(releasedBooks).getByTestId('admin-participant-book-group')).toHaveAttribute('data-group', 'assigned')
+    expect(releasedBooks).toHaveTextContent('Читает')
+    expect(releasedBooks).toHaveTextContent('Над пропастью во ржи')
+    expect(releasedBooks).not.toHaveTextContent('В круге')
   })
 
   it('reopens a closed session and keeps participant mutation unavailable while closed', async () => {
