@@ -231,15 +231,20 @@ test.describe('Matching canonical book board layout', () => {
     expect(remove.ok(), await remove.text()).toBe(true)
     const removeSecond = await secondPeer.request.delete(`/api/matching/books/${books[0].id}`)
     expect(removeSecond.ok(), await removeSecond.text()).toBe(true)
+    // Below the threshold the card sits on the collapsed shelf again (#597), so every check after a
+    // reload opens the shelf first — otherwise "not visible" assertions pass on a hidden card.
     await page.reload()
+    await tailToggle.click()
+    await expect(card).toBeVisible()
     await expect(record).toHaveCount(0)
     await expect(caret).toHaveCount(0)
-    await tailToggle.click()
     await expect(card).toContainText('Авто-запись включена')
     const cancelAutoResponse = page.waitForResponse(response => response.url().includes('/book-actions') && response.request().method() === 'POST')
     await card.getByRole('button', { name: 'Отменить авто-запись' }).click()
     expect((await cancelAutoResponse).ok()).toBe(true)
     await page.reload()
+    await tailToggle.click()
+    await expect(card).toBeVisible()
     await expect(card.getByText('Авто-запись включена')).toHaveCount(0)
     await expect(record).toHaveCount(0)
 
@@ -262,6 +267,8 @@ test.describe('Matching canonical book board layout', () => {
     await card.getByRole('button', { name: 'Отменить', exact: true }).click()
     expect((await cancelHardResponse).ok()).toBe(true)
     await page.reload()
+    await tailToggle.click()
+    await expect(card).toBeVisible()
     await expect(card.getByText('✓ Вы записаны')).toHaveCount(0)
     await expect(record).toHaveCount(0)
     await card.getByRole('button', { name: `Открыть книгу «${books[0].title}»` }).click()
@@ -334,6 +341,8 @@ test.describe('Matching canonical book board layout', () => {
     const page = await openMatchingPage(participantA)
     await page.setViewportSize({ width: 393, height: 852 })
     await page.goto('/matching')
+    // The viewer is alone, so the book is on the unavailable-books shelf, collapsed by default (#597).
+    await page.getByTestId('matching-tail-toggle').click()
 
     const trigger = page.getByRole('button', { name: `Открыть книгу «${books[0].title}»` })
     await trigger.focus()
@@ -359,8 +368,9 @@ test.describe('Matching canonical book board layout', () => {
     matchingBooksFixture,
     openMatchingPage,
   }) => {
-    const { books, participantA, getParticipantB } = matchingBooksFixture
-    await getParticipantB()
+    const { books, participantA, getParticipantB, getParticipantC } = matchingBooksFixture
+    // Enrollment controls need two other interested participants since #593.
+    await Promise.all([getParticipantB(), getParticipantC()])
     const page = await openMatchingPage(participantA)
 
     for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {

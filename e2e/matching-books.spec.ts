@@ -65,11 +65,25 @@ test('админ видит записи и авто-записи участни
   await bookAction(participantB.request, session.id, 'setConditional', books[1].id)
 
   const adminPage = await openMatchingPage(admin)
-  await adminPage.goto('/admin')
-  await adminPage.getByTestId('admin-tab-matching').click()
+  // Since #592 the participant's books live on the «Участники» sub-tab, grouped per kind and
+  // revealed by clicking the row; the old inline «Запись: «…»» lines are gone.
+  await adminPage.goto('/admin?tab=matching&sub=people')
+  const people = adminPage.getByTestId('admin-matching-people')
+  const booksPanel = people.getByTestId('admin-participant-books')
 
-  await expect(adminPage.getByText(`Запись: «${books[0].title}»`)).toBeVisible()
-  await expect(adminPage.getByText(`Авто-запись: «${books[1].title}»`)).toBeVisible()
+  const rowA = people.getByTestId('admin-participant-row').filter({ hasText: participantA.name })
+  await rowA.click()
+  await expect(rowA).toHaveAttribute('aria-expanded', 'true')
+  await expect(booksPanel.locator('[data-testid="admin-participant-book-group"][data-group="hard"]'))
+    .toContainText(books[0].title)
+  await rowA.click()
+  await expect(booksPanel).toHaveCount(0)
+
+  const rowB = people.getByTestId('admin-participant-row').filter({ hasText: participantB.name })
+  await rowB.click()
+  await expect(rowB).toHaveAttribute('aria-expanded', 'true')
+  await expect(booksPanel.locator('[data-testid="admin-participant-book-group"][data-group="conditional"]'))
+    .toContainText(books[1].title)
 })
 
 test('условный выбор очищается после окончательной записи, а несколько твёрдых выборов сохраняются', { tag: '@matching-golden' }, async ({
@@ -145,10 +159,10 @@ test('администратор добавляет твёрдый выбор п
   openMatchingPage,
   dbExec,
 }) => {
-  const { session, books, participantA, admin, getParticipantB } = matchingBooksFixture
-  // Since #559 enrollment is offered only on books somebody else is interested in, so a peer
-  // shortlists both books before the admin enrolls the viewed participant into the second one.
-  await getParticipantB()
+  const { session, books, participantA, admin, getParticipantB, getParticipantC } = matchingBooksFixture
+  // Since #593 enrollment is offered only on books at least two other participants are interested
+  // in, so two peers shortlist both books before the admin enrolls the viewed participant.
+  await Promise.all([getParticipantB(), getParticipantC()])
   const participantAPage = await openMatchingPage(participantA)
   const adminPage = await openMatchingPage(admin)
   await bookAction(participantA.request, session.id, 'setHard', books[0].id)
@@ -290,6 +304,9 @@ test('после cutover книга без ранга не возвращает 
   await participantAPage.reload()
   await expect(participantAPage.getByTestId('matching-books-view')).toBeVisible()
   await expect(participantAPage.getByTestId('ranking-gate')).toHaveCount(0)
+  // The viewer is alone in the session, so the book waits on the unavailable-books shelf,
+  // which is collapsed by default since #597.
+  await participantAPage.getByTestId('matching-tail-toggle').click()
   await expect(participantAPage.getByTestId(`matching-book-card-${books[0].id}`)).toBeVisible()
 })
 
@@ -331,14 +348,15 @@ test('книга в статусе «читаю сейчас» уезжает в
   matchingBooksFixture,
   openMatchingPage,
 }) => {
-  const { books, participantA, getParticipantB } = matchingBooksFixture
+  const { books, participantA, getParticipantB, getParticipantC } = matchingBooksFixture
   const targetBook = books[0]
   const page = await openMatchingPage(participantA)
   const card = page.getByTestId(`matching-book-card-${targetBook.id}`)
 
-  // A peer also shortlists the book, so it has an intersection — proving the
-  // "reading" tail placement is not merely a "no one else picked it" case.
-  await getParticipantB()
+  // Two peers also shortlist the book, so it clears the enrollment threshold (#593) — proving
+  // the "reading" tail placement is not merely a "not enough others picked it" case, and that
+  // after the return the book lands in the main list with enrollment available.
+  await Promise.all([getParticipantB(), getParticipantC()])
 
   const setReading = await participantA.request.patch(`/api/signup-books/${targetBook.id}/status`, {
     data: { status: 'reading' },
