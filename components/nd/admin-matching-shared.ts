@@ -51,16 +51,17 @@ export interface CoordinationData {
   books: CoordinationBook[]
 }
 
-export type MatchingSubTab = 'demand' | 'people' | 'log'
+export type MatchingSubTab = 'instructions' | 'demand' | 'people' | 'log'
 
 export const MATCHING_SUB_TABS: ReadonlyArray<{ id: MatchingSubTab; label: string }> = [
+  { id: 'instructions', label: 'Инструкция' },
   { id: 'demand', label: 'Спрос по книгам' },
   { id: 'people', label: 'Участники' },
   { id: 'log', label: 'Журнал' },
 ]
 
 export function parseMatchingSubTab(value: string | null): MatchingSubTab {
-  return value === 'people' || value === 'log' ? value : 'demand'
+  return value === 'instructions' || value === 'people' || value === 'log' ? value : 'demand'
 }
 
 export function participantDisplayName(participant: { userId: string; name: string | null }): string {
