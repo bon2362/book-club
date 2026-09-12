@@ -7,6 +7,33 @@ test.beforeEach(async () => {
 })
 
 test.describe('Matching canonical book board layout', () => {
+  test('admin demand metrics tooltip stays inside the viewport', { tag: '@matching-golden' }, async ({
+    matchingBooksFixture,
+    openMatchingPage,
+  }) => {
+    const { books, admin, getParticipantB, getParticipantC } = matchingBooksFixture
+    await Promise.all([getParticipantB(), getParticipantC()])
+    const page = await openMatchingPage(admin)
+
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport)
+      await page.goto('/admin?tab=matching')
+
+      const card = page.locator(`[data-testid="admin-demand-book"][data-book-id="${books[0].id}"]`)
+      const trigger = card.locator('[aria-describedby]')
+      await expect(trigger).toBeVisible()
+      await trigger.focus()
+
+      const tooltip = card.getByRole('tooltip')
+      await expect(tooltip).toBeVisible()
+      const tooltipBox = await tooltip.boundingBox()
+      expect(tooltipBox).not.toBeNull()
+      expect(tooltipBox!.x).toBeGreaterThanOrEqual(0)
+      expect(tooltipBox!.x + tooltipBox!.width).toBeLessThanOrEqual(viewport.width + 1)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+    }
+  })
+
   test('one book board without mode tabs fits desktop and mobile', { tag: '@matching-golden' }, async ({
     matchingBooksFixture,
     openMatchingPage,
