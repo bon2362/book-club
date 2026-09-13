@@ -1,3 +1,17 @@
-export const dynamic='force-dynamic'
-import { NextRequest,NextResponse } from 'next/server';import { auth } from '@/lib/auth';import { loadCollectionPageData,serializeCollection } from '@/lib/collections/repo';import { collectionErrorResponse,viewerFromSession } from '@/lib/collections/http'
-export async function GET(_req:NextRequest,{params}:{params:{slugOrId:string}}){try{const data=await loadCollectionPageData(params.slugOrId,viewerFromSession(await auth()));if(!data)return NextResponse.json({error:'not_found'},{status:404});return NextResponse.json({collection:serializeCollection(data.record),books:data.books})}catch(error){return collectionErrorResponse(error)}}
+export const dynamic = 'force-dynamic'
+
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { loadCollectionPageData, serializeCollection } from '@/lib/collections/repo'
+import { collectionErrorResponse, viewerFromSession } from '@/lib/collections/http'
+
+export async function GET(_req: NextRequest, { params }: { params: { slugOrId: string } }) {
+  try {
+    const session = await auth()
+    const data = await loadCollectionPageData(params.slugOrId, viewerFromSession(session))
+    if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    return NextResponse.json({ collection: serializeCollection(data.record), books: data.books })
+  } catch (error) {
+    return collectionErrorResponse(error)
+  }
+}
