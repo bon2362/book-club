@@ -235,7 +235,7 @@ export default function CollectionPageClient({ collection, books, viewer, signup
         </div>
 
         {/* Значения сетки те же, что в каталоге (BooksPage): minmax(220px, 1fr), gap 1.5rem. */}
-        <div className="collection-books" style={{ maxWidth: 1180, margin: '0 auto', padding: '0 1.5rem 44px' }}>
+        <div className="collection-books" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 1.5rem 44px' }}>
           <div
             className="catalog-desktop"
             style={{
