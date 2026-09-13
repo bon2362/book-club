@@ -6,6 +6,7 @@ import { windowBounds, type Interval } from '@/lib/calendar/slots'
 import { db as defaultDb } from '@/lib/db'
 import { books, circleMeetings, circleSchedules, matchingBookAssignments, matchingCircles, userAvailability, users } from '@/lib/db/schema'
 import { resolveScheduleBySlug } from '@/lib/calendar/schedule-db'
+import { isMissingRelationError } from '@/lib/db/errors'
 
 type DbLike = typeof defaultDb
 
@@ -51,12 +52,7 @@ export class CalendarStateError extends Error {
   }
 }
 
-export function isMissingCalendarSchemaError(error: unknown): boolean {
-  const code = typeof error === 'object' && error !== null && 'code' in error
-    ? (error as { code?: unknown }).code
-    : null
-  return code === '42P01' || String((error as Error)?.message ?? '').includes('does not exist')
-}
+export const isMissingCalendarSchemaError = isMissingRelationError
 
 export async function fetchCalendarPublicState(input: {
   slug: string
