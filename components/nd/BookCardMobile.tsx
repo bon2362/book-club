@@ -5,6 +5,7 @@ import type { BookWithCover } from '@/lib/books-with-covers'
 import type { PersonalBookStatus } from '@/lib/signup-books'
 import { track } from '@/lib/analytics'
 import CoverImage from './CoverImage'
+import { useDescriptionOverflow } from './useDescriptionOverflow'
 
 interface Props {
   book: BookWithCover
@@ -62,7 +63,13 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
     return () => document.removeEventListener('pointerdown', onDocPointer)
   }, [submittedTooltip])
 
-  const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
+  const descriptionRef = useRef<HTMLParagraphElement | null>(null)
+  const isLongDescription = useDescriptionOverflow(
+    descriptionRef,
+    book.description,
+    descExpanded,
+    book.description.length > DESCRIPTION_CLAMP_THRESHOLD,
+  )
   const isReading = !ignoreClubStatus && book.status === 'reading'
   const isRead = !ignoreClubStatus && book.status === 'read'
 
@@ -361,6 +368,7 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
       {book.description && (
         <>
           <p
+            ref={descriptionRef}
             onClick={isLongDescription ? handleDescriptionToggle : undefined}
             style={{
               fontFamily: 'var(--nd-sans), system-ui, sans-serif',

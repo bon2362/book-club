@@ -33,8 +33,8 @@ function OrderLine({ index, hidden }: { index: number; hidden: boolean }) {
       style={{
         display: 'flex',
         gap: 8,
-        borderTop: '1px solid var(--border-strong)',
-        padding: '6px 0 9px',
+        padding: '0 0 7px',
+        minHeight: 20,
         fontFamily: 'var(--nd-mono)',
         fontSize: 11,
         color: 'var(--text-muted)',
@@ -161,12 +161,14 @@ export default function CollectionPageClient({ collection, books, viewer, signup
         isAdmin={viewer.isAdmin}
         displayName={signupState?.name}
       />
-      <main className="collection-page" style={{ maxWidth: 760, margin: '0 auto', padding: '0 26px 44px' }}>
+      <main className="collection-page">
+        {/* Текст читают — колонка 760 px. Книги просматривают — сетка шире, как в каталоге. */}
+        <div className="collection-hero" style={{ maxWidth: 760, margin: '0 auto', padding: '0 26px' }}>
         {viewer.canEdit && collection.status !== 'published' && (
           <CollectionStatusBanner status={collection.status} reason={collection.moderationReason} />
         )}
 
-        <section style={{ padding: '34px 0 20px', borderBottom: '1px solid var(--border-strong)' }}>
+        <section style={{ padding: '34px 0 20px' }}>
           <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
             <span style={{ ...eyebrow, color: 'var(--accent)' }}>Подборка</span>
             <span style={{ ...eyebrow, color: 'var(--text-muted)' }}>{textsCount(books.length)}</span>
@@ -192,7 +194,19 @@ export default function CollectionPageClient({ collection, books, viewer, signup
             <SummaryMarkdown markdown={collection.descriptionMarkdown} />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginTop: 22, flexWrap: 'wrap' }}>
+          <div
+            data-testid="collection-byline"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              marginTop: 22,
+              paddingTop: 18,
+              borderTop: '1px solid var(--border)',
+              flexWrap: 'wrap',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <AuthorAvatar name={collection.displayName || '?'} size={28} />
               <div>
@@ -218,25 +232,35 @@ export default function CollectionPageClient({ collection, books, viewer, signup
         </section>
 
         {error && <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 14 }}>{error}</p>}
-
-        <div
-          className="catalog-desktop"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(206px, 1fr))', gap: 20, paddingTop: 22 }}
-        >
-          {books.map(({ book, hiddenFromCatalog }, index) => (
-            <div key={book.id} data-testid="collection-item" style={{ display: 'flex', flexDirection: 'column' }}>
-              <OrderLine index={index} hidden={hiddenFromCatalog} />
-              <BookCard {...cardProps(book, index)} />
-            </div>
-          ))}
         </div>
-        <div className="catalog-mobile">
-          {books.map(({ book, hiddenFromCatalog }, index) => (
-            <div key={book.id} data-testid="collection-item-mobile">
-              <OrderLine index={index} hidden={hiddenFromCatalog} />
-              <BookCardMobile {...cardProps(book, index)} />
-            </div>
-          ))}
+
+        {/* Значения сетки те же, что в каталоге (BooksPage): minmax(220px, 1fr), gap 1.5rem. */}
+        <div className="collection-books" style={{ maxWidth: 1180, margin: '0 auto', padding: '0 1.5rem 44px' }}>
+          <div
+            className="catalog-desktop"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+              gap: '1.5rem',
+              alignItems: 'stretch',
+              paddingTop: 22,
+            }}
+          >
+            {books.map(({ book, hiddenFromCatalog }, index) => (
+              <div key={book.id} data-testid="collection-item" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <OrderLine index={index} hidden={hiddenFromCatalog} />
+                <BookCard {...cardProps(book, index)} />
+              </div>
+            ))}
+          </div>
+          <div className="catalog-mobile">
+            {books.map(({ book, hiddenFromCatalog }, index) => (
+              <div key={book.id} data-testid="collection-item-mobile">
+                <OrderLine index={index} hidden={hiddenFromCatalog} />
+                <BookCardMobile {...cardProps(book, index)} />
+              </div>
+            ))}
+          </div>
         </div>
       </main>
 

@@ -5,6 +5,7 @@ import type { BookWithCover } from '@/lib/books-with-covers'
 import type { PersonalBookStatus } from '@/lib/signup-books'
 import { track } from '@/lib/analytics'
 import CoverImage from './CoverImage'
+import { useDescriptionOverflow } from './useDescriptionOverflow'
 
 interface Props {
   book: BookWithCover
@@ -31,6 +32,7 @@ function formatSignupCount(n: number): string {
   return `${n} хотят читать`
 }
 
+/** Только догадка до первого замера: кнопку «Читать далее» решает фактическое переполнение. */
 const DESCRIPTION_CLAMP_THRESHOLD = 120
 const SUBMITTED_BY_MEMBER_LABEL = 'Эта книга предложена участни:цей клуба'
 
@@ -62,7 +64,13 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus, p
     return () => document.removeEventListener('pointerdown', onDocPointer)
   }, [submittedTooltip])
 
-  const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
+  const descriptionRef = useRef<HTMLParagraphElement | null>(null)
+  const isLongDescription = useDescriptionOverflow(
+    descriptionRef,
+    book.description,
+    descExpanded,
+    book.description.length > DESCRIPTION_CLAMP_THRESHOLD,
+  )
   const hasExpandable = isLongDescription
   const isReading = !ignoreClubStatus && book.status === 'reading'
   const isRead = !ignoreClubStatus && book.status === 'read'
@@ -91,6 +99,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus, p
       style={{
         display: 'flex',
         flexDirection: 'column',
+        // В обёртке с номером (страница подборки) карточка тянется на всю высоту ряда.
+        flex: 1,
         border: isReading ? '2px solid #C0603A' : isRead ? '1px solid #C8C8C8' : '1px solid #E5E5E5',
         background: isRead ? '#F7F7F7' : '#fff',
         position: 'relative',
@@ -470,6 +480,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus, p
         <div style={{ margin: '0.5rem 0.75rem 0' }}>
           {book.description && (
             <p
+              ref={descriptionRef}
               onClick={hasExpandable ? handleDescriptionToggle : undefined}
               onMouseEnter={hasExpandable ? () => setDescHovered(true) : undefined}
               onMouseLeave={hasExpandable ? () => setDescHovered(false) : undefined}

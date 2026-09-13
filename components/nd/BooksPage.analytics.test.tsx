@@ -90,6 +90,19 @@ jest.mock('./AboutBlock', () => {
 const mockSession = useSession as jest.Mock
 const mockTrack = track as jest.Mock
 
+// jsdom не раскладывает текст, а «Читать далее» появляется только при фактическом переполнении
+// описания — подставляем размеры, при которых оно обрезано.
+let descriptionSizeSpies: jest.SpyInstance[] = []
+beforeEach(() => {
+  descriptionSizeSpies = [
+    jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(120),
+    jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60),
+  ]
+})
+afterEach(() => {
+  descriptionSizeSpies.forEach((spy) => spy.mockRestore())
+})
+
 const book: BookWithCover = {
   id: 'book-1',
   name: 'Сапиенс',
