@@ -311,6 +311,8 @@ interface E2EHelpers {
   createTestTimeline: (overrides?: TestTimelineOverrides) => Promise<TestTimeline>
   createTestCollection: (input: TestCollectionInput) => Promise<TestCollection>
   trackCollection: (id: string) => void
+  /** Выставляет collections_home_block_enabled и возвращает прежнее значение в teardown. */
+  setHomeCollectionsBlock: (enabled: boolean) => Promise<void>
 
   /**
    * Префикс имён для админских сценариев Timeline. Всё, что тест заведёт через
@@ -355,6 +357,28 @@ async function parkPageBeforeSessionSwitch(page: Page): Promise<void> {
 }
 
 export const test = base.extend<E2EHelpers>({
+  setHomeCollectionsBlock: async ({ dbExec }, use) => {
+    const rows = await dbExec("select value from site_settings where id = 'collections_home_block_enabled'") as Array<{ value: unknown }>
+    const original = rows[0]?.value
+    let touched = false
+
+    await use(async (enabled) => {
+      touched = true
+      await dbExec(
+        `insert into site_settings (id, value, updated_at) values ('collections_home_block_enabled', $1::jsonb, now())
+         on conflict (id) do update set value = excluded.value, updated_at = now()`,
+        [JSON.stringify(enabled)],
+      )
+    })
+
+    if (!touched) return
+    if (original === undefined) {
+      await dbExec("delete from site_settings where id = 'collections_home_block_enabled'")
+    } else {
+      await dbExec("update site_settings set value = $1::jsonb where id = 'collections_home_block_enabled'", [JSON.stringify(original)])
+    }
+    await dbExec("delete from audit_log where entity_type = 'site_settings' and entity_id = 'collections_home_block_enabled' and occurred_at > now() - interval '1 hour' and source = 'trigger'")
+  },
   createTestCollection: async ({ dbExec }, use, testInfo) => {
     let count = 0
     const register = (id: string) => {
