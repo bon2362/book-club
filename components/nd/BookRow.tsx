@@ -120,7 +120,7 @@ export default function BookRow({ book, isSelected, onToggle, personalStatus, po
               })}
               style={{ fontFamily: sans, fontSize: '0.7rem', color: 'var(--text)', textDecoration: 'none', borderBottom: '1px solid var(--border-strong)' }}
             >
-              Читать
+              Текст
             </a>
           )}
         </div>
