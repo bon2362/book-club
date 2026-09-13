@@ -1713,3 +1713,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nd-matching-strip__cta { transition: none; }
 }
+@media (max-width: 720px) {
+  .admin-collections-grid { grid-template-columns: 1fr !important; }
+  .admin-collections-list { border-right: none !important; border-bottom: 1px solid var(--border-strong); }
+}

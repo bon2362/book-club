@@ -16,6 +16,7 @@ import AdminBooksCatalog, { type CatalogParticipant } from './AdminBooksCatalog'
 import AdminMatchingSession from './AdminMatchingSession'
 import AdminAuditLog from './AdminAuditLog'
 import AdminTimelinePanel from './timeline/admin/AdminTimelinePanel'
+import AdminCollectionsPanel from './AdminCollectionsPanel'
 
 interface Submission {
   id: string
@@ -82,13 +83,13 @@ interface Props {
   catalogCount: number
 }
 
-type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'summaries' | 'feedback' | 'intro' | 'matching' | 'timeline' | 'audit'
+type View = 'users' | 'catalog' | 'tags' | 'submissions' | 'summaries' | 'collections' | 'feedback' | 'intro' | 'matching' | 'timeline' | 'audit'
 type SubmissionFilter = 'all' | 'pending' | 'approved' | 'rejected'
 type SummaryFilter = 'all' | 'draft' | 'pending' | 'published' | 'rejected'
 type FeedbackFilter = 'all' | 'registered' | 'anonymous'
 type UserSortKey = 'name' | 'telegram' | 'books' | 'languages' | 'lastActivityAt' | 'createdAt'
 
-const ADMIN_VIEWS: View[] = ['users', 'catalog', 'tags', 'submissions', 'summaries', 'feedback', 'intro', 'matching', 'timeline', 'audit']
+const ADMIN_VIEWS: View[] = ['users', 'catalog', 'tags', 'submissions', 'summaries', 'collections', 'feedback', 'intro', 'matching', 'timeline', 'audit']
 const READ_SUBMISSIONS_STORAGE_KEY = 'admin_read_submission_ids'
 const READ_FEEDBACK_STORAGE_KEY = 'admin_read_feedback_ids'
 
@@ -332,6 +333,8 @@ export default function AdminPanel({
   const statusRequestIdRef = useRef(0)
   const statusAbortRef = useRef<AbortController | null>(null)
   const [view, setView] = useState<View>(() => parseAdminView(tabParam))
+  const [collectionsCount, setCollectionsCount] = useState(0)
+  const initialCollectionId = searchParams.get('collection')
   // Generic transient status message used by various admin actions (e.g. delete-user errors).
   const [syncMsg, setSyncMsg] = useState('')
   const [tagDescEdits, setTagDescEdits] = useState<Record<string, string>>(() => {
@@ -373,6 +376,14 @@ export default function AdminPanel({
       router.replace(`${pathname}?${params.toString()}`, { scroll: false })
     }
   }, [pathname, router, searchParamsString, tabParam])
+
+  useEffect(() => {
+    Promise.resolve().then(() => fetch('/api/admin/collections')).then(async response => {
+      if (!response.ok) return
+      const { queue } = await response.json()
+      setCollectionsCount(queue.pending.length + queue.changed.length)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/admin/submissions')
@@ -1001,6 +1012,9 @@ export default function AdminPanel({
           <button style={tabStyle(view === 'summaries')} onClick={() => selectView('summaries')}>
             Саммари ({summaries.length})
           </button>
+          <button style={tabStyle(view === 'collections')} onClick={() => selectView('collections')} data-testid="admin-tab-collections">
+            Подборки <CountBadge count={collectionsCount} />
+          </button>
           <button style={tabStyle(view === 'feedback')} onClick={() => selectView('feedback')}>
             Фидбеки ({feedbackItems.length})
             <CountBadge count={feedbackNotificationCount} />
@@ -1026,6 +1040,8 @@ export default function AdminPanel({
         {view === 'timeline' && <AdminTimelinePanel />}
 
         {view === 'audit' && <AdminAuditLog />}
+
+        {view === 'collections' && <AdminCollectionsPanel initialSelectedId={initialCollectionId} onCountChange={setCollectionsCount} />}
 
         {view === 'catalog' && <AdminBooksCatalog participantsByBookId={participantsByBookId} />}
 
