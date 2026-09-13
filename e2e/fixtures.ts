@@ -208,6 +208,20 @@ type TestTimeline = {
 
 type TestTimelineOverrides = Partial<Pick<TestTimeline, 'title' | 'description' | 'published'>>
 
+type TestCollectionInput = {
+  authorUserId: string
+  bookIds: string[]
+  status?: 'draft' | 'pending' | 'published' | 'rejected' | 'hidden'
+  title?: string
+  displayName?: string
+  description?: string
+  reason?: string | null
+  reviewedBookIds?: string[]
+  editedAfterReview?: boolean
+}
+
+type TestCollection = { id: string; slug: string | null; title: string; url: string }
+
 /**
  * Область имён для строк, которые тест создаёт САМ — через админский интерфейс
  * или админский API. Идентификаторы там выдаёт продукт, поэтому уборка идёт по
@@ -295,6 +309,8 @@ interface E2EHelpers {
    * are never touched.
    */
   createTestTimeline: (overrides?: TestTimelineOverrides) => Promise<TestTimeline>
+  createTestCollection: (input: TestCollectionInput) => Promise<TestCollection>
+  trackCollection: (id: string) => void
 
   /**
    * Префикс имён для админских сценариев Timeline. Всё, что тест заведёт через
@@ -339,6 +355,38 @@ async function parkPageBeforeSessionSwitch(page: Page): Promise<void> {
 }
 
 export const test = base.extend<E2EHelpers>({
+  createTestCollection: async ({ dbExec }, use, testInfo) => {
+    let count = 0
+    const register = (id: string) => {
+      // Cleanup executes LIFO: delete collection first, then its audit rows.
+      dbExec.registerCleanup(`delete from audit_log where entity_type in ('book_collections', 'book_collection_items') and (entity_id = $1 or before->>'collection_id' = $1 or after->>'collection_id' = $1)`, [id])
+      dbExec.registerCleanup('delete from book_collections where id = $1', [id])
+    }
+    const create: E2EHelpers['createTestCollection'] = async (input) => {
+      const suffix = `${testInfo.testId.slice(0, 6)}${Math.random().toString(36).slice(2, 8)}${count++}`
+      const id = `__e2e_collection_${suffix}__`
+      const status = input.status ?? 'published'
+      const hasSlug = status === 'published' || status === 'hidden'
+      const slug = hasSlug ? `e2e-podborka-${suffix}`.toLowerCase().replace(/[^a-z0-9-]/g, '-') : null
+      const title = input.title ?? `E2E подборка ${suffix}`
+      const displayName = input.displayName ?? 'E2E Автор'
+      const description = input.description ?? 'Подборка, созданная E2E-фикстурой.'
+      const hourAgo = new Date(Date.now() - 60 * 60_000)
+      const minuteAgo = new Date(Date.now() - 60_000)
+      const reviewed = hasSlug ? JSON.stringify({ title, descriptionMarkdown: description, displayName, bookIds: input.reviewedBookIds ?? input.bookIds }) : null
+      await dbExec(`insert into book_collections (id, slug, author_user_id, display_name, title, description_markdown, status, moderation_reason, submitted_at, edited_at, published_at, reviewed_at, reviewed_snapshot) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb)`, [id, slug, input.authorUserId, displayName, title, description, status, input.reason ?? null, status === 'draft' ? null : hourAgo, input.editedAfterReview ? minuteAgo : null, hasSlug ? hourAgo : null, hasSlug ? hourAgo : null, reviewed])
+      for (let index = 0; index < input.bookIds.length; index++) await dbExec('insert into book_collection_items (id, collection_id, book_id, position) values ($1, $2, $3, $4)', [`${id}_item_${index}`, id, input.bookIds[index], index + 1])
+      register(id)
+      return { id, slug, title, url: `/collections/${slug ?? id}` }
+    }
+    await use(create)
+  },
+  trackCollection: async ({ dbExec }, use) => {
+    await use((id) => {
+      dbExec.registerCleanup(`delete from audit_log where entity_type in ('book_collections', 'book_collection_items') and (entity_id = $1 or before->>'collection_id' = $1 or after->>'collection_id' = $1)`, [id])
+      dbExec.registerCleanup('delete from book_collections where id = $1', [id])
+    })
+  },
   context: async ({ context }, use) => {
     for (const pattern of POSTHOG_PATTERNS) {
       await context.route(pattern, (route) => route.abort())
