@@ -9,7 +9,7 @@ import { withAuditContext } from '@/lib/audit/with-audit-context'
 import { runMatchingTransition } from '@/lib/matching/session-transition-db'
 import { transitionError } from '@/lib/matching/transition-http'
 
-export type AuthSession = { user: { id: string; name?: string | null; contactEmail?: string | null; email?: string | null } }
+export type AuthSession = { user: { id: string; name?: string | null; contactEmail?: string | null; email?: string | null; isAdmin?: boolean | null } }
 export interface SignupSelectionInput { name: string; contacts: string; selectedBookIds: string[] }
 export async function saveSignupSelection(session: AuthSession, input: SignupSelectionInput): Promise<NextResponse> {
   const pgUserId=session.user.id; const {name,contacts,selectedBookIds}=input; const activeSessionId=await getActiveMatchingSessionIdForParticipant(pgUserId); const auditCtx={actorUserId:pgUserId,actorLabel:session.user.name??session.user.contactEmail??null,source:'signup' as const}; let result
