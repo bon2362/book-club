@@ -1260,10 +1260,36 @@
         "required": [
           "rejectionReason"
         ]
+      },
+      "CollectionSnapshot": {
+        "type": "object",
+        "required": ["title", "descriptionMarkdown", "displayName", "bookIds"],
+        "properties": {"title":{"type":"string","maxLength":120},"descriptionMarkdown":{"type":"string","maxLength":5000},"displayName":{"type":"string","maxLength":60},"bookIds":{"type":"array","items":{"type":"string"},"maxItems":50}}
+      },
+      "CollectionError": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {"error":{"type":"string"},"issues":{"type":"array","items":{"type":"string"}}}
+      },
+      "CollectionListItem": {"type":"object","properties":{"id":{"type":"string"},"slug":{"type":"string"},"title":{"type":"string"},"textsCount":{"type":"integer"}}},
+      "MyCollectionItem": {"type":"object","properties":{"id":{"type":"string"},"slug":{"type":"string","nullable":true},"title":{"type":"string"},"status":{"type":"string"}}},
+      "SerializedCollection": {"allOf":[{"$ref":"#/components/schemas/CollectionSnapshot"},{"type":"object","properties":{"id":{"type":"string"},"status":{"type":"string"},"slug":{"type":"string","nullable":true}}}]},
+      "AdminCollectionQueue": {"type":"object","properties":{"pending":{"type":"array","items":{"$ref":"#/components/schemas/SerializedCollection"}},"changed":{"type":"array","items":{"$ref":"#/components/schemas/SerializedCollection"}},"published":{"type":"array","items":{"$ref":"#/components/schemas/SerializedCollection"}},"rejectedOrHidden":{"type":"array","items":{"$ref":"#/components/schemas/SerializedCollection"}}}},
+      "CollectionBookSearchResult": {"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"},"author":{"type":"string"},"year":{"type":"string"}}}
       }
-    }
-  },
+    },
   "paths": {
+    "/api/collections": {"get":{"tags":["Public"],"summary":"Список опубликованных подборок","responses":{"200":{"description":"OK"}}}},
+    "/api/collections/{slugOrId}": {"get":{"tags":["Public"],"parameters":[{"name":"slugOrId","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK"},"404":{"description":"Не найдено"}}}},
+    "/api/collections/book-search": {"get":{"tags":["Public"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"},"401":{"description":"Unauthorized"}}}},
+    "/api/me/collections": {"get":{"tags":["Collections"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}},"post":{"tags":["Collections"],"security":[{"sessionCookie":[]}],"responses":{"201":{"description":"Created"}}}},
+    "/api/me/collections/{id}": {"patch":{"tags":["Collections"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}},"delete":{"tags":["Collections"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}}},
+    "/api/me/collections/{id}/submit": {"post":{"tags":["Collections"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}}},
+    "/api/signup-books/{bookId}": {"post":{"tags":["Collections"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}},"delete":{"tags":["Collections"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}}},
+    "/api/admin/collections": {"get":{"tags":["Admin"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}}},
+    "/api/admin/collections/{id}": {"get":{"tags":["Admin"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}},"patch":{"tags":["Admin"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}},"delete":{"tags":["Admin"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}}},
+    "/api/admin/collections/{id}/actions": {"post":{"tags":["Admin"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}}},
+    "/api/admin/collections/settings": {"get":{"tags":["Admin"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}},"patch":{"tags":["Admin"],"security":[{"sessionCookie":[]}],"responses":{"200":{"description":"OK"}}}},
     "/api/books": {
       "get": {
         "tags": [
