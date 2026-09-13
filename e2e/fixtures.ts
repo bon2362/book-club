@@ -395,11 +395,43 @@ export const test = base.extend<E2EHelpers>({
       const title = input.title ?? `E2E подборка ${suffix}`
       const displayName = input.displayName ?? 'E2E Автор'
       const description = input.description ?? 'Подборка, созданная E2E-фикстурой.'
-      const hourAgo = new Date(Date.now() - 60 * 60_000)
-      const minuteAgo = new Date(Date.now() - 60_000)
-      const reviewed = hasSlug ? JSON.stringify({ title, descriptionMarkdown: description, displayName, bookIds: input.reviewedBookIds ?? input.bookIds }) : null
-      await dbExec(`insert into book_collections (id, slug, author_user_id, display_name, title, description_markdown, status, moderation_reason, submitted_at, edited_at, published_at, reviewed_at, reviewed_snapshot) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb)`, [id, slug, input.authorUserId, displayName, title, description, status, input.reason ?? null, status === 'draft' ? null : hourAgo, input.editedAfterReview ? minuteAgo : null, hasSlug ? hourAgo : null, hasSlug ? hourAgo : null, reviewed])
-      for (let index = 0; index < input.bookIds.length; index++) await dbExec('insert into book_collection_items (id, collection_id, book_id, position) values ($1, $2, $3, $4)', [`${id}_item_${index}`, id, input.bookIds[index], index + 1])
+      // Время передаём строкой ISO в UTC — так пишет drizzle. Объект Date драйвер записал бы
+      // в локальном поясе машины, а колонки timestamp без пояса хранят его как есть: при +02:00
+      // «правка минуту назад» оказывалась на два часа в будущем и переживала «Правка проверена».
+      const utcAgo = (ms: number) => new Date(Date.now() - ms).toISOString()
+      const hourAgo = utcAgo(60 * 60_000)
+      const minuteAgo = utcAgo(60_000)
+      const reviewed = hasSlug
+        ? JSON.stringify({ title, descriptionMarkdown: description, displayName, bookIds: input.reviewedBookIds ?? input.bookIds })
+        : null
+
+      await dbExec(
+        `insert into book_collections
+           (id, slug, author_user_id, display_name, title, description_markdown, status, moderation_reason,
+            submitted_at, edited_at, published_at, reviewed_at, reviewed_snapshot)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)`,
+        [
+          id,
+          slug,
+          input.authorUserId,
+          displayName,
+          title,
+          description,
+          status,
+          input.reason ?? null,
+          status === 'draft' ? null : hourAgo,
+          input.editedAfterReview ? minuteAgo : null,
+          hasSlug ? hourAgo : null,
+          hasSlug ? hourAgo : null,
+          reviewed,
+        ],
+      )
+      for (let index = 0; index < input.bookIds.length; index++) {
+        await dbExec(
+          'insert into book_collection_items (id, collection_id, book_id, position) values ($1, $2, $3, $4)',
+          [`${id}_item_${index}`, id, input.bookIds[index], index + 1],
+        )
+      }
       register(id)
       return { id, slug, title, url: `/collections/${slug ?? id}` }
     }
