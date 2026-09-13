@@ -1,6 +1,11 @@
 import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
+// Без контактов у пользователя главная сама открывает ContactsForm, и её оверлей
+// перехватывает клики по полосе. Открывается она после гидрации, поэтому тест
+// падал не всегда — только когда JS успевал загрузиться раньше клика.
+const withContacts = () => ({ telegramUsername: `e2e_strip_${Math.random().toString(36).slice(2, 10)}` })
+
 test.beforeEach(async () => {
   await epic('UI')
   await feature('Вход в матчинг с главной')
@@ -12,7 +17,7 @@ test('вошедший участник видит полосу открытог
   loginAsUser,
 }) => {
   await createMatchingSession()
-  await loginAsUser()
+  await loginAsUser(withContacts())
   await page.goto('/')
 
   const strip = page.locator('.nd-matching-strip')
@@ -36,7 +41,7 @@ test('новый сезон возвращает полосу, даже если
   loginAsUser,
 }) => {
   const first = await createMatchingSession()
-  await loginAsUser()
+  await loginAsUser(withContacts())
   await page.goto('/')
 
   const strip = page.locator('.nd-matching-strip')
@@ -63,7 +68,7 @@ test('гость и вошедший участник при закрытой с
   await expect(page.locator('.nd-matching-strip')).toHaveCount(0)
 
   await dbExec('update matching_sessions set status = $1 where id = $2', ['closed', session.id])
-  await loginAsUser()
+  await loginAsUser(withContacts())
   await page.goto('/')
   await expect(page.locator('.nd-matching-strip')).toHaveCount(0)
 })

@@ -249,7 +249,7 @@ interface E2EHelpers {
    * Log in as a regular user with a unique email derived from the test id.
    * Session is deleted automatically in teardown.
    */
-  loginAsUser: (overrides?: { email?: string; name?: string }) => Promise<AdminSession>
+  loginAsUser: (overrides?: { email?: string; name?: string; telegramUsername?: string }) => Promise<AdminSession>
 
   /**
    * Log in as an admin with a unique email derived from the test id.
@@ -567,7 +567,7 @@ export const test = base.extend<E2EHelpers>({
       const name = overrides?.name ?? `E2E User ${index} ${testInfo.testId}`
       await parkPageBeforeSessionSwitch(page)
       const res = await page.request.post('/api/test/session', {
-        data: { email, name, isAdmin: false },
+        data: { email, name, isAdmin: false, telegramUsername: overrides?.telegramUsername },
       })
       if (!res.ok()) {
         throw new Error(`/api/test/session failed: ${res.status()} ${await res.text()}`)
