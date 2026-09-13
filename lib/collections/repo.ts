@@ -5,10 +5,10 @@ import { fetchBooksByIds, type BookWithCover } from '@/lib/books'
 import { slugifyTitle, uniqueSlug } from '@/lib/slug'
 import { CollectionError } from './errors'
 import { canEditCollection, canViewCollection, collectionSortAt, normalizeBookIds, planAdminAction, planContentSave, planSubmit, validateCollectionContent } from './rules'
-import type { AdminCollectionAction, CollectionBookSearchResult, CollectionListItem, CollectionRecord, CollectionSnapshot, CollectionStatus, CollectionViewer, EditorBook, MyCollectionItem } from './types'
+import type { AdminCollectionAction, CollectionBookSearchResult, CollectionListItem, CollectionRecord, CollectionSnapshot, CollectionStatus, CollectionViewer, EditorBook, MyCollectionItem, SerializedCollection } from './types'
 
 type DbLike = typeof db; type Row = typeof bookCollections.$inferSelect
-export function serializeCollection(record: CollectionRecord) { const iso=(date:Date|null)=>date?.toISOString()??null; return {...record,submittedAt:iso(record.submittedAt),editedAt:iso(record.editedAt),publishedAt:iso(record.publishedAt),reviewedAt:iso(record.reviewedAt),createdAt:record.createdAt.toISOString(),updatedAt:record.updatedAt.toISOString()} }
+export function serializeCollection(record: CollectionRecord): SerializedCollection { const iso=(date:Date|null)=>date?.toISOString()??null; return {...record,submittedAt:iso(record.submittedAt),editedAt:iso(record.editedAt),publishedAt:iso(record.publishedAt),reviewedAt:iso(record.reviewedAt),createdAt:record.createdAt.toISOString(),updatedAt:record.updatedAt.toISOString()} }
 const toRecord = (row: Row, bookIds: string[]): CollectionRecord => ({ ...row, status: row.status as CollectionStatus, reviewedSnapshot: row.reviewedSnapshot as CollectionSnapshot | null, bookIds })
 async function records(client: DbLike, rows: Row[]) { const ids = rows.map(row => row.id); const items = ids.length ? await client.select({ collectionId: bookCollectionItems.collectionId, bookId: bookCollectionItems.bookId }).from(bookCollectionItems).where(inArray(bookCollectionItems.collectionId, ids)).orderBy(asc(bookCollectionItems.collectionId), asc(bookCollectionItems.position)) : []; return rows.map(row => toRecord(row, items.filter(item => item.collectionId === row.id).map(item => item.bookId))) }
 export async function loadCollectionById(id: string, client: DbLike = db) { const rows = await client.select().from(bookCollections).where(eq(bookCollections.id, id)).limit(1); return rows.length ? (await records(client, rows))[0] : null }

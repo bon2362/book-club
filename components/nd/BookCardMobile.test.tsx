@@ -52,6 +52,12 @@ describe('nd/BookCardMobile', () => {
     expect(onToggle).toHaveBeenCalledWith(book)
   })
 
+  it('ignoreClubStatus убирает метки статуса клуба', () => {
+    render(<BookCardMobile book={{ ...book, status: 'reading' }} isSelected={false} onToggle={() => {}} ignoreClubStatus />)
+    expect(screen.queryByText('Прочитано')).toBeNull()
+    expect(screen.queryByText('Сейчас читаем')).toBeNull()
+  })
+
   it('разворачивает и сворачивает описание кнопкой', () => {
     const longBook = { ...book, description: 'А'.repeat(121) }
     render(<BookCardMobile book={longBook} isSelected={false} onToggle={() => {}} />)

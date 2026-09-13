@@ -1441,6 +1441,40 @@
         }
       }
     },
+    "/api/og/collections/{slug}": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Open Graph PNG image for a published collection",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PNG image",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Collection is unavailable; redirect to the default Open Graph image"
+          }
+        }
+      }
+    },
     "/api/auth/telegram/callback": {
       "get": {
         "tags": [

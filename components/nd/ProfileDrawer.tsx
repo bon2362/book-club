@@ -22,6 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { getUserContactEmail } from '@/lib/user-email'
 import { track } from '@/lib/analytics'
+import ProfileCollectionsTab from './ProfileCollectionsTab'
 
 declare global {
   interface Window {
@@ -66,7 +67,7 @@ interface Props {
   onToggleBook: (bookId: string) => Promise<void>
 }
 
-type Tab = 'signup' | 'submitted' | 'profile'
+type Tab = 'signup' | 'submitted' | 'collections' | 'profile'
 type AuthIdentityProvider = 'google' | 'email' | 'telegram'
 type AuthIdentity = {
   provider: AuthIdentityProvider
@@ -1171,11 +1172,12 @@ export default function ProfileDrawer({
           </button>
         </div>
 
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          {(['signup', 'submitted', 'profile'] as Tab[]).map(tab => {
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0, overflowX: 'auto' }}>
+          {(['signup', 'submitted', 'collections', 'profile'] as Tab[]).map(tab => {
             const labels: Record<Tab, string> = {
               signup: 'Мои книги',
               submitted: 'Предложил:а',
+              collections: 'Подборки',
               profile: 'Профиль',
             }
             return (
@@ -1196,6 +1198,7 @@ export default function ProfileDrawer({
                   cursor: 'pointer',
                   transition: 'color 0.15s, border-color 0.15s',
                   textAlign: 'center',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {labels[tab]}
@@ -1404,6 +1407,7 @@ export default function ProfileDrawer({
           )}
 
           {/* ── Tab: Профиль ── */}
+          {activeTab === 'collections' && <ProfileCollectionsTab />}
           {activeTab === 'profile' && (
             <div style={{ padding: '1.25rem 1.5rem' }}>
               <div style={{ marginBottom: '1.5rem' }}>
