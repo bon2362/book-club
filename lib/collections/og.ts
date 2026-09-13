@@ -1,0 +1,4 @@
+export const OG_COLORS={bg:'#F9F5EE',text:'#111111',muted:'#999999',accent:'#C0603A',border:'#E5E5E5',coverFallback:'#EDE5D8'} as const
+const allowed=new Set(['image/png','image/jpeg'])
+export async function fetchCoverDataUrl(url:string|null,timeoutMs=2500,fetchImpl:typeof fetch=fetch):Promise<string|null>{if(!url)return null;const c=new AbortController();const t=setTimeout(()=>c.abort(),timeoutMs);try{const r=await fetchImpl(url,{signal:c.signal});const type=(r.headers.get('content-type')??'').split(';')[0].trim().toLowerCase();if(!r.ok||!allowed.has(type))return null;return `data:${type};base64,${Buffer.from(await r.arrayBuffer()).toString('base64')}`}catch{return null}finally{clearTimeout(t)}}
+export const authorInitials=(author:string)=>author.split(/[\s,]+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('')
