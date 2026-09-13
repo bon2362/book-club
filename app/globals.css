@@ -1799,3 +1799,104 @@ body {
   .collection-editor { padding: 16px 14px 40px !important; }
   .collection-title-input { font-size: 21px !important; }
 }
+
+/* 404 «Вырванная страница» (app/not-found.tsx).
+   Палитра локальная для этого экрана и в канон не выносится (хендофф design_handoff_404):
+   тупиковый экран намеренно выбивается из редакторского стиля. Рваный край — CSS-маска
+   из двух слоёв: полукружия + заливка остальной ширины (без второго слоя контент исчезает). */
+.nf {
+  --nf-ink: #17171A;
+  --nf-cream: #F7F0E2;
+  --nf-tomato: #E0492A;
+  --nf-teal: #12645E;
+  --nf-teal-ink: #BFE0DA;
+  --nf-brand: #EAF5F2;
+  --nf-dim: #7FB6AD;
+  --nf-chapter: #8FC4BC;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  background: var(--nf-teal);
+  color: var(--nf-ink);
+}
+.nf-prev { padding: 44px 52px 52px; display: flex; flex-direction: column; }
+.nf-brand { font: 700 19px/1.2 var(--nd-serif); color: var(--nf-brand); }
+.nf-brand small { margin-left: 9px; font: 400 11px/1 var(--nd-sans); color: var(--nf-dim); }
+.nf-chapter { margin-top: 46px; font: 400 10px/1 var(--nd-mono); text-transform: uppercase; letter-spacing: 0.18em; color: var(--nf-chapter); }
+.nf-lines { margin-top: 22px; display: flex; flex-direction: column; gap: 13px; opacity: 0.3; }
+.nf-lines i { display: block; height: 9px; background: var(--nf-teal-ink); }
+.nf-lines i:nth-child(3n) { width: 71%; }
+.nf-lines i:nth-child(4n) { width: 88%; }
+.nf-lines i:nth-child(7n) { width: 54%; }
+.nf-pagenum { margin-top: auto; padding-top: 22px; font: 400 13px/1 var(--nd-serif); color: var(--nf-dim); }
+.nf-torn {
+  background: var(--nf-cream);
+  padding: 0 80px 0 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  -webkit-mask:
+    radial-gradient(circle 14px at 0 14px, transparent 98%, #000 100%) 0 0 / 28px 28px repeat-y,
+    linear-gradient(#000, #000) 27px 0 / calc(100% - 27px) 100% no-repeat;
+  mask:
+    radial-gradient(circle 14px at 0 14px, transparent 98%, #000 100%) 0 0 / 28px 28px repeat-y,
+    linear-gradient(#000, #000) 27px 0 / calc(100% - 27px) 100% no-repeat;
+}
+.nf-num { font: 700 196px/0.8 var(--nd-serif); letter-spacing: -0.055em; color: var(--nf-tomato); }
+.nf-title { margin: 20px 0 0; font: 700 42px/1.06 var(--nd-serif); letter-spacing: -0.02em; color: var(--nf-ink); }
+.nf-actions { margin-top: 38px; display: flex; }
+.nf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 20px;
+  border: 2px solid var(--nf-ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--nf-ink);
+  font: 400 11px/1 var(--nd-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.nf-btn span { font: 400 13px/1 var(--nd-mono); }
+.nf-btn:hover { background: var(--nf-ink); color: var(--nf-cream); }
+.nf-btn:focus-visible { outline: 2px solid var(--nf-tomato); outline-offset: 2px; }
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nf-prev { padding: 36px 32px 44px; }
+  .nf-torn { padding: 0 44px 0 48px; }
+  .nf-num { font-size: 140px; }
+  .nf-title { font-size: 34px; }
+}
+
+@media (max-width: 767px) {
+  .nf { display: flex; flex-direction: column; }
+  .nf-prev { flex: 0 0 auto; padding: calc(env(safe-area-inset-top) + 20px) 22px 0; }
+  .nf-brand { font-size: 16px; }
+  .nf-brand small, .nf-pagenum { display: none; }
+  .nf-chapter { margin-top: 20px; }
+  .nf-lines { margin-top: 16px; gap: 11px; }
+  .nf-lines i { height: 8px; }
+  .nf-lines i:nth-child(7n) { width: 100%; }
+  .nf-lines i:nth-child(3n) { width: 70%; }
+  .nf-lines i:nth-child(n+8) { display: none; }
+  .nf-torn {
+    flex: 1;
+    margin-top: 26px;
+    padding: 40px 26px calc(env(safe-area-inset-bottom) + 34px);
+    justify-content: flex-start;
+    -webkit-mask:
+      radial-gradient(circle 13px at 13px 0, transparent 98%, #000 100%) 0 0 / 26px 26px repeat-x,
+      linear-gradient(#000, #000) 0 25px / 100% calc(100% - 25px) no-repeat;
+    mask:
+      radial-gradient(circle 13px at 13px 0, transparent 98%, #000 100%) 0 0 / 26px 26px repeat-x,
+      linear-gradient(#000, #000) 0 25px / 100% calc(100% - 25px) no-repeat;
+  }
+  .nf-num { font-size: 104px; line-height: 0.82; letter-spacing: -0.05em; }
+  .nf-title { margin-top: 14px; font-size: 28px; line-height: 1.1; letter-spacing: -0.015em; }
+  .nf-actions { margin-top: auto; padding-top: 34px; }
+  .nf-btn { width: 100%; justify-content: center; padding: 16px 20px; font-size: 12px; }
+}
