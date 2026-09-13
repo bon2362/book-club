@@ -29,7 +29,7 @@ test('на телефоне тексты идут одной колонкой, �
   expect(number.y + number.height).toBeLessThanOrEqual(card.y + 1)
 })
 
-test('на десктопе 1180 px: четыре карточки в ряд шириной как в каталоге, одной высоты, описание в колонке 760 px', async ({ page, loginAsUser, createTestBook, createTestCollection }) => {
+test('на широком десктопе (1440 px): четыре карточки в ряд шириной как в каталоге, одной высоты, описание в колонке 760 px', async ({ page, loginAsUser, createTestBook, createTestCollection }) => {
   const books = [
     await createTestBook(),
     // Длинное название делает одну карточку выше остальных — ряд должен выровняться по ней.
@@ -40,7 +40,7 @@ test('на десктопе 1180 px: четыре карточки в ряд ш�
   const author = await loginAsUser()
   const collection = await createTestCollection({ authorUserId: author.userId, bookIds: books.map((book) => book.id) })
 
-  await page.setViewportSize({ width: 1180, height: 900 })
+  await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/')
   const catalogCard = (await page.getByTestId('catalog-desktop').locator('article').first().boundingBox())!
 
