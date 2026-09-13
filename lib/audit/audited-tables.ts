@@ -39,6 +39,9 @@ export const AUDITED_TABLES = [
   'user_availability',
   'circle_schedules',
   'circle_meetings',
+  'book_collections',
+  'book_collection_items',
+  'site_settings',
 ] as const
 
 export type AuditedTable = (typeof AUDITED_TABLES)[number]
