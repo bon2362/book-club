@@ -10,7 +10,7 @@
 - **Approved-заявки** — при approval в `/api/admin/submissions/:id` создаётся `books` row с `source='submission'`, `visibility='published'` (см. `lib/book-publish.ts`).
 - **Обложки** — `cover_url` хранится прямо на `books`. Загружается админом при создании/редактировании.
 - **CoverImage** — client component (`components/nd/CoverImage.tsx`); показывает обложку если задан `coverUrl`, при ошибке загрузки показывает инициалы автора (`onError`).
-- **BookCard** — раскрытие/скрытие описаний длиннее 120 символов.
+- **BookCard / BookCardMobile** — кнопка «Читать далее» появляется, только если описание фактически обрезано (`scrollHeight > clientHeight`, пересчёт через `ResizeObserver`, хук `components/nd/useDescriptionOverflow.ts`). Порог в 120 символов — лишь догадка до первого замера: сколько текста влезает в строки, зависит от ширины колонки.
 - **Красивые URL саммари** — nullable и уникальный `books.slug` назначается администратором при первой модерации саммари. Он используется в `/books/{slug}/summaries` и `/books/{slug}/my-summary/edit`; UUID-маршруты остаются fallback для старых ссылок и периода до первой модерации.
 - **Числа приоритета** — отображаются из `book_priorities` по `book_id`; пока пользователь не выставил приоритеты — `—`.
 

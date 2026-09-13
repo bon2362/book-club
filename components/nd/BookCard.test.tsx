@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { render, screen, fireEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent } from '@testing-library/react'
 import BookCard from './BookCard'
 import type { BookWithCover } from '@/lib/books-with-covers'
 import { track } from '@/lib/analytics'
@@ -16,6 +16,13 @@ jest.mock('@/lib/analytics', () => ({
 }))
 
 const mockTrack = track as jest.Mock
+
+// jsdom не раскладывает текст: scrollHeight и clientHeight всегда 0. Подставляем размеры абзаца,
+// чтобы описание «не влезало» (scroll > client) или «влезало».
+function mockDescriptionOverflow(overflows: boolean) {
+  jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(overflows ? 120 : 60)
+  jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60)
+}
 
 const book: BookWithCover = {
   id: '1',
@@ -37,6 +44,10 @@ const book: BookWithCover = {
 describe('nd/BookCard', () => {
   beforeEach(() => {
     mockTrack.mockClear()
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
   it('renders book title and author', () => {
@@ -95,13 +106,45 @@ describe('nd/BookCard', () => {
     expect(screen.queryByText('Сейчас читаем')).toBeNull()
   })
 
-  it('показывает кнопку "Читать далее" для описания длиннее 120 символов', () => {
+  it('показывает кнопку "Читать далее", когда описание не влезает в три строки', () => {
+    mockDescriptionOverflow(true)
     const longBook = { ...book, description: 'А'.repeat(121) }
     render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
     expect(screen.getByRole('button', { name: /читать далее/i })).toBeInTheDocument()
   })
 
+  it('не показывает "Читать далее", если описание длиннее 120 символов, но влезло', () => {
+    mockDescriptionOverflow(false)
+    const longBook = { ...book, description: 'А'.repeat(121) }
+    render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
+    expect(screen.queryByRole('button', { name: /читать далее/i })).not.toBeInTheDocument()
+  })
+
+  it('пересчитывает "Читать далее", когда меняется ширина карточки', () => {
+    let onResize: () => void = () => {}
+    const originalResizeObserver = global.ResizeObserver
+    global.ResizeObserver = class {
+      constructor(callback: () => void) { onResize = callback }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver
+
+    try {
+      mockDescriptionOverflow(false)
+      render(<BookCard book={{ ...book, description: 'А'.repeat(121) }} isSelected={false} onToggle={() => {}} />)
+      expect(screen.queryByRole('button', { name: /читать далее/i })).not.toBeInTheDocument()
+
+      mockDescriptionOverflow(true)
+      act(() => onResize())
+      expect(screen.getByRole('button', { name: /читать далее/i })).toBeInTheDocument()
+    } finally {
+      global.ResizeObserver = originalResizeObserver
+    }
+  })
+
   it('подсвечивает кнопку "Читать далее" при наведении на длинное описание', () => {
+    mockDescriptionOverflow(true)
     const longDescription = 'А'.repeat(121)
     const longBook = { ...book, description: longDescription }
     render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
@@ -118,6 +161,7 @@ describe('nd/BookCard', () => {
   })
 
   it('разворачивает и сворачивает описание кнопкой', () => {
+    mockDescriptionOverflow(true)
     const longBook = { ...book, description: 'А'.repeat(121) }
     render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /читать далее/i }))
@@ -126,7 +170,8 @@ describe('nd/BookCard', () => {
     expect(screen.getByRole('button', { name: /читать далее/i })).toBeInTheDocument()
   })
 
-  it('не показывает кнопку "Читать далее" для короткого описания (≤120 символов)', () => {
+  it('не показывает кнопку "Читать далее" для короткого описания', () => {
+    mockDescriptionOverflow(false)
     render(<BookCard book={book} isSelected={false} onToggle={() => {}} />)
     expect(screen.queryByRole('button', { name: /читать далее/i })).not.toBeInTheDocument()
   })
@@ -185,6 +230,7 @@ describe('nd/BookCard', () => {
   })
 
   it('шлёт book_card_expanded с id, тегами и позицией только при разворачивании, не при сворачивании', () => {
+    mockDescriptionOverflow(true)
     const longBook = { ...book, description: 'А'.repeat(121) }
     const onDescriptionExpand = jest.fn()
     render(

@@ -29,19 +29,47 @@ test('на телефоне тексты идут одной колонкой, �
   expect(number.y + number.height).toBeLessThanOrEqual(card.y + 1)
 })
 
-test('на десктопе тексты идут сеткой в несколько колонок, мобильного списка не видно', async ({ page, loginAsUser, createTestBook, createTestCollection }) => {
-  const books = [await createTestBook(), await createTestBook(), await createTestBook()]
+test('на десктопе 1180 px: четыре карточки в ряд шириной как в каталоге, одной высоты, описание в колонке 760 px', async ({ page, loginAsUser, createTestBook, createTestCollection }) => {
+  const books = [
+    await createTestBook(),
+    // Длинное название делает одну карточку выше остальных — ряд должен выровняться по ней.
+    await createTestBook({ title: `E2E очень длинное название книги, которое займёт в карточке несколько строк ${Date.now()}` }),
+    await createTestBook(),
+    await createTestBook(),
+  ]
   const author = await loginAsUser()
   const collection = await createTestCollection({ authorUserId: author.userId, bookIds: books.map((book) => book.id) })
 
-  await page.setViewportSize({ width: 1280, height: 900 })
-  await page.goto(collection.url)
+  await page.setViewportSize({ width: 1180, height: 900 })
+  await page.goto('/')
+  const catalogCard = (await page.getByTestId('catalog-desktop').locator('article').first().boundingBox())!
 
+  await page.goto(collection.url)
   await expect(page.getByTestId('collection-item-mobile').first()).toBeHidden()
+
   const items = page.getByTestId('collection-item')
-  const first = (await items.nth(0).boundingBox())!
-  const second = (await items.nth(1).boundingBox())!
-  // Колонка 760px и minmax(206px) дают три колонки: второй текст справа от первого на той же строке.
-  expect(Math.abs(first.y - second.y)).toBeLessThan(1)
-  expect(second.x).toBeGreaterThan(first.x + first.width - 1)
+  await expect(items).toHaveCount(4)
+  const boxes = await Promise.all([0, 1, 2, 3].map(async (index) => (await items.nth(index).boundingBox())!))
+  const buttons = await Promise.all(
+    [0, 1, 2, 3].map(async (index) => (await items.nth(index).getByRole('button', { name: /хочу читать|в вашем списке/i }).boundingBox())!),
+  )
+
+  for (const box of boxes) {
+    // Все четыре в одном ряду, ширина та же, что у карточки каталога, высота одинаковая.
+    expect(Math.abs(box.y - boxes[0].y)).toBeLessThan(1)
+    expect(Math.abs(box.width - catalogCard.width)).toBeLessThan(2)
+    expect(Math.abs(box.height - boxes[0].height)).toBeLessThan(1)
+  }
+  for (const button of buttons) {
+    expect(Math.abs(button.y - buttons[0].y)).toBeLessThan(1)
+  }
+
+  // Номер над карточкой — без собственной линии; единственная линия шапки — над подписью автора.
+  const numberBorder = await items.nth(0).getByText('№ 01').evaluate((element) => getComputedStyle(element.parentElement!).borderTopWidth)
+  expect(numberBorder).toBe('0px')
+  const bylineBorder = await page.getByTestId('collection-byline').evaluate((element) => getComputedStyle(element).borderTopWidth)
+  expect(bylineBorder).toBe('1px')
+
+  const description = (await page.locator('.collection-description').boundingBox())!
+  expect(description.width).toBeLessThanOrEqual(760)
 })

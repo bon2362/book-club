@@ -17,6 +17,12 @@ jest.mock('@/lib/analytics', () => ({
 
 const mockTrack = track as jest.Mock
 
+// jsdom не раскладывает текст: scrollHeight и clientHeight всегда 0. Подставляем размеры абзаца.
+function mockDescriptionOverflow(overflows: boolean) {
+  jest.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(overflows ? 120 : 60)
+  jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60)
+}
+
 const book: BookWithCover = {
   id: '1',
   name: 'Сапиенс',
@@ -39,6 +45,10 @@ describe('nd/BookCardMobile', () => {
     mockTrack.mockClear()
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('renders book title and author', () => {
     render(<BookCardMobile book={book} isSelected={false} onToggle={() => {}} />)
     expect(screen.getByText('Сапиенс')).toBeInTheDocument()
@@ -58,7 +68,14 @@ describe('nd/BookCardMobile', () => {
     expect(screen.queryByText('Сейчас читаем')).toBeNull()
   })
 
+  it('не показывает "Читать далее", если описание длиннее 120 символов, но влезло', () => {
+    mockDescriptionOverflow(false)
+    render(<BookCardMobile book={{ ...book, description: 'А'.repeat(121) }} isSelected={false} onToggle={() => {}} />)
+    expect(screen.queryByRole('button', { name: /читать далее/i })).not.toBeInTheDocument()
+  })
+
   it('разворачивает и сворачивает описание кнопкой', () => {
+    mockDescriptionOverflow(true)
     const longBook = { ...book, description: 'А'.repeat(121) }
     render(<BookCardMobile book={longBook} isSelected={false} onToggle={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /читать далее/i }))
@@ -68,6 +85,7 @@ describe('nd/BookCardMobile', () => {
   })
 
   it('шлёт book_card_expanded с id, тегами и позицией только при разворачивании, не при сворачивании', () => {
+    mockDescriptionOverflow(true)
     const longBook = { ...book, description: 'А'.repeat(121) }
     const onDescriptionExpand = jest.fn()
     render(
