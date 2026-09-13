@@ -459,7 +459,7 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus, p
                 borderBottom: '1px solid var(--border-strong)',
               }}
             >
-              читать
+              текст
             </a>
           )}
         </div>

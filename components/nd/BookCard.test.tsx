@@ -175,7 +175,7 @@ describe('nd/BookCard', () => {
   it('показывает ссылку на книгу строчными буквами', () => {
     const bookWithLink = { ...book, link: 'https://example.com/book' }
     render(<BookCard book={bookWithLink} isSelected={false} onToggle={() => {}} />)
-    expect(screen.getByRole('link', { name: 'читать' })).toHaveAttribute('href', bookWithLink.link)
+    expect(screen.getByRole('link', { name: 'текст' })).toHaveAttribute('href', bookWithLink.link)
   })
 
   it('извлекает год из даты формата M/D/YYYY', () => {
@@ -215,10 +215,10 @@ describe('nd/BookCard', () => {
     expect(onDescriptionExpand).not.toHaveBeenCalled()
   })
 
-  it('шлёт book_text_opened с id и названием при клике на ссылку "читать"', () => {
+  it('шлёт book_text_opened с id и названием при клике на ссылку "текст"', () => {
     const bookWithLink = { ...book, link: 'https://example.com/book' }
     render(<BookCard book={bookWithLink} isSelected={false} onToggle={() => {}} />)
-    fireEvent.click(screen.getByRole('link', { name: 'читать' }))
+    fireEvent.click(screen.getByRole('link', { name: 'текст' }))
     expect(mockTrack).toHaveBeenCalledWith('book_text_opened', {
       book_id: bookWithLink.id,
       book_title: bookWithLink.name,

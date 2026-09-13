@@ -98,10 +98,10 @@ describe('nd/BookCardMobile', () => {
     expect(onDescriptionExpand).not.toHaveBeenCalled()
   })
 
-  it('шлёт book_text_opened с id и названием при клике на ссылку "читать"', () => {
+  it('шлёт book_text_opened с id и названием при клике на ссылку "текст"', () => {
     const bookWithLink = { ...book, link: 'https://example.com/book' }
     render(<BookCardMobile book={bookWithLink} isSelected={false} onToggle={() => {}} />)
-    fireEvent.click(screen.getByRole('link', { name: /читать/i }))
+    fireEvent.click(screen.getByRole('link', { name: /текст/i }))
     expect(mockTrack).toHaveBeenCalledWith('book_text_opened', {
       book_id: bookWithLink.id,
       book_title: bookWithLink.name,

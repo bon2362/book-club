@@ -523,7 +523,7 @@ export default function BookCardMobile({ book, isSelected, onToggle, personalSta
               textDecoration: 'none',
             }}
           >
-            читать ↗
+            текст ↗
           </a>
         )}
       </div>
