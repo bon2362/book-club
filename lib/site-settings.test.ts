@@ -1,0 +1,4 @@
+import { getSiteSetting, parseSiteSetting, SITE_SETTING_DEFAULTS } from './site-settings'
+jest.mock('@/lib/db', () => ({ db: {} }))
+const client = (rows: unknown[]) => { const chain = { from: () => chain, where: () => chain, limit: () => Promise.resolve(rows) }; return { select: () => chain } as never }
+describe('site settings', () => { it('выключает блок подборок по умолчанию', () => expect(SITE_SETTING_DEFAULTS.collections_home_block_enabled).toBe(false)); it('заменяет неверный тип значением по умолчанию', () => { expect(parseSiteSetting('collections_home_block_enabled', 'yes')).toBe(false); expect(parseSiteSetting('collections_home_block_enabled', true)).toBe(true) }); it('читает сохранённое значение', async () => expect(getSiteSetting('collections_home_block_enabled', client([{ value: true }]))).resolves.toBe(true)) })

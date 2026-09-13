@@ -13,6 +13,7 @@
 - [Данные и база](Data-and-Database)
 - [Авторизация и пользователи](Auth-and-Users)
 - [Каталог книг](Books-Catalog)
+- [Подборки книг](Book-Collections)
 - [Саммари книг от участников](Book-Summaries)
 - [Ленты времени](Timelines)
 - [Календарь круга](Circle-Calendar)

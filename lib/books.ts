@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { bookSummaries, books, signupBooks } from '@/lib/db/schema'
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
 
 export const ALLOWED_VISIBILITIES = ['hidden', 'published'] as const
@@ -146,6 +146,25 @@ export async function fetchBookById(id: string, dbClient: typeof db = db): Promi
 export async function fetchBookBySlug(slug: string, dbClient: typeof db = db): Promise<BookWithCover | null> {
   const [row] = await dbClient.select().from(books).where(eq(books.slug, slug)).limit(1)
   return row ? rowToBook(row) : null
+}
+
+export function orderRowsByIds<T>(ids: readonly string[], byId: ReadonlyMap<string, T>): T[] {
+  return ids.flatMap((id) => {
+    const row = byId.get(id)
+    return row ? [row] : []
+  })
+}
+
+/** Книги по списку id в исходном порядке, включая скрытые. */
+export async function fetchBooksByIds(ids: readonly string[], dbClient: typeof db = db): Promise<BookWithCover[]> {
+  const unique = Array.from(new Set(ids))
+  if (unique.length === 0) return []
+  const rows = await dbClient.select().from(books).where(inArray(books.id, unique))
+  const signupCounts = await dbClient.select({ bookId: signupBooks.bookId, count: sql<number>`count(*)::int` }).from(signupBooks).where(inArray(signupBooks.bookId, unique)).groupBy(signupBooks.bookId)
+  const summaryCounts = await dbClient.select({ bookId: bookSummaries.bookId, count: sql<number>`count(*)::int` }).from(bookSummaries).where(and(eq(bookSummaries.status, 'published'), inArray(bookSummaries.bookId, unique))).groupBy(bookSummaries.bookId).catch(() => [])
+  const signupById = new Map(signupCounts.map((row) => [row.bookId, Number(row.count)]))
+  const summaryById = new Map(summaryCounts.map((row) => [row.bookId, Number(row.count)]))
+  return orderRowsByIds(unique, new Map(rows.map((row) => [row.id, row]))).map((row) => rowToBook(row, signupById.get(row.id) ?? 0, summaryById.get(row.id) ?? 0))
 }
 
 function normalizeTags(input: unknown): string[] {

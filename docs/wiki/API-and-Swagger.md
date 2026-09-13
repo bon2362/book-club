@@ -1,5 +1,9 @@
 # API и Swagger
 
+## Подборки книг
+
+Swagger описывает публичные `/api/collections*`, авторские `/api/me/collections*`, модераторские `/api/admin/collections*` и запись на одну книгу `/api/signup-books/{bookId}`.
+
 ## Книжный matching API
 
 `GET /api/matching/state?session={id}` остаётся единой точкой чтения. Ответ всегда содержит `bookMode` с книгами viewer, пересечениями, статусами участников, кругами, доступными действиями и массивом `viewerAssignmentBookIds`.

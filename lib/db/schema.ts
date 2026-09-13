@@ -616,3 +616,48 @@ export const timelineEpochs = pgTable('timeline_epochs', {
   pk: primaryKey({ columns: [t.timelineId, t.epochId] }),
   epochIdx: index('timeline_epochs_epoch_idx').on(t.epochId),
 }))
+
+export const bookCollections = pgTable('book_collections', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  slug: text('slug'),
+  authorUserId: text('author_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  displayName: text('display_name').notNull().default(''),
+  title: text('title').notNull(),
+  descriptionMarkdown: text('description_markdown').notNull().default(''),
+  status: text('status').notNull().default('draft'),
+  moderationReason: text('moderation_reason'),
+  submittedAt: timestamp('submitted_at', { mode: 'date' }),
+  editedAt: timestamp('edited_at', { mode: 'date' }),
+  publishedAt: timestamp('published_at', { mode: 'date' }),
+  reviewedAt: timestamp('reviewed_at', { mode: 'date' }),
+  reviewedSnapshot: jsonb('reviewed_snapshot').$type<{
+    title: string
+    descriptionMarkdown: string
+    displayName: string
+    bookIds: string[]
+  }>(),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (t) => ({
+  slugUnique: uniqueIndex('book_collections_slug_unique').on(t.slug),
+  authorIdx: index('book_collections_author_idx').on(t.authorUserId),
+  statusIdx: index('book_collections_status_idx').on(t.status),
+  statusCheck: check('book_collections_status_check', sql`${t.status} IN ('draft', 'pending', 'published', 'rejected', 'hidden')`),
+}))
+
+export const bookCollectionItems = pgTable('book_collection_items', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  collectionId: text('collection_id').notNull().references(() => bookCollections.id, { onDelete: 'cascade' }),
+  bookId: text('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  position: integer('position').notNull(),
+}, (t) => ({
+  collectionBookUnique: uniqueIndex('book_collection_items_collection_book_unique').on(t.collectionId, t.bookId),
+  bookIdx: index('book_collection_items_book_idx').on(t.bookId),
+  positionCheck: check('book_collection_items_position_check', sql`${t.position} >= 1`),
+}))
+
+export const siteSettings = pgTable('site_settings', {
+  id: text('id').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+})
