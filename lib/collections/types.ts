@@ -7,3 +7,4 @@ export const COLLECTION_LIMITS = { titleMax: 120, displayNameMax: 60, descriptio
 export interface CollectionSnapshot { title: string; descriptionMarkdown: string; displayName: string; bookIds: string[] }
 export interface CollectionRecord extends CollectionSnapshot { id: string; slug: string | null; authorUserId: string; status: CollectionStatus; moderationReason: string | null; submittedAt: Date | null; editedAt: Date | null; publishedAt: Date | null; reviewedAt: Date | null; reviewedSnapshot: CollectionSnapshot | null; createdAt: Date; updatedAt: Date }
 export interface CollectionViewer { userId: string | null; isAdmin: boolean }
+export interface DiffSummary { added: number; removed: number; textChanged: boolean; orderChanged: boolean }
