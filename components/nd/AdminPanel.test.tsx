@@ -27,6 +27,7 @@ jest.mock('./Header', () => ({
   __esModule: true,
   default: () => <div data-testid="header" />,
 }))
+jest.mock('./AdminCollectionsPanel', () => ({ __esModule: true, default: () => <div data-testid="admin-collections-panel" /> }))
 
 // Minimal props for AdminPanel
 const defaultProps = {
@@ -38,6 +39,12 @@ const defaultProps = {
   prioritiesSetMap: {},
   catalogCount: 0,
 }
+
+it('вкладка «Подборки» открывает модерацию подборок', async () => {
+  render(<AdminPanel {...defaultProps} />)
+  fireEvent.click(screen.getByTestId('admin-tab-collections'))
+  expect(await screen.findByTestId('admin-collections-panel')).toBeInTheDocument()
+})
 
 const mockSubmissions = [
   {

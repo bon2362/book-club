@@ -31,6 +31,10 @@ describe('правила подборок', () => {
     expect(() => planAdminAction(record({ status: 'published' }), 'hide', { reason: ' ', now, slug: null })).toThrow('validation')
     expect(planAdminAction(record({ status: 'pending' }), 'publish', { reason: null, now, slug: 'tema' })).toMatchObject({ status: 'published', slug: 'tema' })
   })
+  it('снимает признак непроверенной правки после проверки модератором', () => {
+    const patch = planAdminAction(record({ status: 'published', editedAt: now }), 'mark_reviewed', { reason: null, now, slug: null })
+    expect(patch).toMatchObject({ reviewedAt: now, editedAt: null })
+  })
   it('валидирует лимиты и дублирующие книги', () => {
     expect(validateCollectionContent({ title: 'x'.repeat(121), descriptionMarkdown: '', displayName: '', bookIds: ['a', 'a'] }, 'save')).toEqual(expect.arrayContaining(['title_too_long', 'duplicate_books']))
   })

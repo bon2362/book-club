@@ -14,3 +14,5 @@ export interface CollectionListItem { id: string; slug: string; title: string; t
 export interface MyCollectionItem { id: string; slug: string | null; title: string; status: CollectionStatus; moderationReason: string | null; textsCount: number; covers: CollectionCoverBook[]; changedAt: string; submittedAt: string | null }
 export interface CollectionBookSearchResult extends CollectionCoverBook { year: string; isArticle: boolean; clubStatus: 'reading' | 'read' | null }
 export interface EditorBook extends CollectionBookSearchResult { hiddenFromCatalog: boolean }
+export interface AdminQueueItem { id: string; slug: string | null; title: string; displayName: string; status: CollectionStatus; textsCount: number; covers: CollectionCoverBook[]; at: string; diffSummary: DiffSummary | null }
+export interface AdminCollectionQueue { pending: AdminQueueItem[]; changed: AdminQueueItem[]; published: AdminQueueItem[]; rejectedOrHidden: AdminQueueItem[] }
