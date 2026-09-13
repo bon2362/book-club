@@ -89,6 +89,12 @@ describe('nd/BookCard', () => {
     expect(screen.getAllByText('Сейчас читаем').length).toBeGreaterThan(0)
   })
 
+  it('ignoreClubStatus убирает метки статуса клуба', () => {
+    render(<BookCard book={{ ...book, status: 'reading' }} isSelected={false} onToggle={() => {}} ignoreClubStatus />)
+    expect(screen.queryByText('Прочитано')).toBeNull()
+    expect(screen.queryByText('Сейчас читаем')).toBeNull()
+  })
+
   it('показывает кнопку "Читать далее" для описания длиннее 120 символов', () => {
     const longBook = { ...book, description: 'А'.repeat(121) }
     render(<BookCard book={longBook} isSelected={false} onToggle={() => {}} />)

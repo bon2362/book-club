@@ -15,6 +15,8 @@ interface Props {
   position?: number
   /** Вызывается один раз при первом разворачивании описания книги — для аналитики. */
   onDescriptionExpand?: (bookId: string) => void
+  /** На странице подборки не показываем статус чтения клуба. */
+  ignoreClubStatus?: boolean
 }
 
 function extractYear(date: string): string {
@@ -41,7 +43,7 @@ function parseRecommendationLink(raw: string): { text: string; url: string } | n
   return { text, url }
 }
 
-export default function BookCard({ book, isSelected, onToggle, personalStatus, position, onDescriptionExpand }: Props) {
+export default function BookCard({ book, isSelected, onToggle, personalStatus, position, onDescriptionExpand, ignoreClubStatus = false }: Props) {
   const year = extractYear(book.date)
   const [descExpanded, setDescExpanded] = useState(false)
   const [descHovered, setDescHovered] = useState(false)
@@ -62,8 +64,8 @@ export default function BookCard({ book, isSelected, onToggle, personalStatus, p
 
   const isLongDescription = book.description.length > DESCRIPTION_CLAMP_THRESHOLD
   const hasExpandable = isLongDescription
-  const isReading = book.status === 'reading'
-  const isRead = book.status === 'read'
+  const isReading = !ignoreClubStatus && book.status === 'reading'
+  const isRead = !ignoreClubStatus && book.status === 'read'
 
   function handleDescriptionToggle() {
     const next = !descExpanded
