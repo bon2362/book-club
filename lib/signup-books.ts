@@ -247,3 +247,10 @@ export async function removeBookFromSignup(
     .delete(signupBooks)
     .where(and(eq(signupBooks.userId, userId), eq(signupBooks.bookId, bookId)))
 }
+
+export interface UserSignupState { name: string; contacts: string; selectedBookIds: string[]; personalStatuses: Record<string, PersonalBookStatus> }
+export async function getUserSignupState(userId: string): Promise<UserSignupState> {
+  const [user] = await db.select({ name: users.name, contacts: users.contacts }).from(users).where(eq(users.id, userId)).limit(1)
+  const rows = await db.select({ bookId: signupBooks.bookId, personalStatus: signupBooks.personalStatus }).from(signupBooks).where(eq(signupBooks.userId, userId))
+  return { name: user?.name ?? '', contacts: user?.contacts ?? '', selectedBookIds: rows.map((row) => row.bookId), personalStatuses: Object.fromEntries(rows.map((row) => [row.bookId, (row.personalStatus as PersonalBookStatus) ?? null])) }
+}
