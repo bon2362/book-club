@@ -25,6 +25,9 @@ import { useScrollHide } from '@/lib/scroll-hide-context'
 import { getUserContactEmail } from '@/lib/user-email'
 import { useAutoDismiss } from './useAutoDismiss'
 import { normalizeRememberedAuthProvider, writeRememberedAuthProvider } from './auth-provider-memory'
+import type { CollectionListItem } from '@/lib/collections/types'
+import { consumeCreateIntent, saveCreateIntent } from '@/lib/collections/intents'
+import HomeCollectionsBlock from './HomeCollectionsBlock'
 
 interface Props {
   books: BookWithCover[]
@@ -36,6 +39,8 @@ interface Props {
   initialViewMode: 'grid' | 'list'
   initialShowRead: boolean
   matchingStripSessionId?: string | null
+  /** null — блок выключен в админке. */
+  homeCollections?: CollectionListItem[] | null
 }
 
 // Пишем UI-настройку в cookie (не localStorage), чтобы сервер видел её до
@@ -62,7 +67,7 @@ async function saveProfile(name: string, contacts: string) {
   if (!res.ok) throw new Error(`Profile save failed: ${res.status}`)
 }
 
-export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections, initialAboutVisible, initialViewMode, initialShowRead, matchingStripSessionId = null }: Props) {
+export default function BooksPage({ books, currentUser, tagDescriptions, introHeader, introSections, initialAboutVisible, initialViewMode, initialShowRead, matchingStripSessionId = null, homeCollections = null }: Props) {
   const { data: session } = useSession()
   const { isHidden } = useScrollHide()
   const isLoggedIn = !!session?.user?.id
@@ -139,7 +144,7 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
   const selectedBooksRef = useRef(selectedBooks)
   const saveSelectionQueueRef = useRef<Promise<void>>(Promise.resolve())
   const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [authModalEntryPoint, setAuthModalEntryPoint] = useState<'header' | 'submit_book' | 'book_signup'>('header')
+  const [authModalEntryPoint, setAuthModalEntryPoint] = useState<'header' | 'submit_book' | 'book_signup' | 'collection_create'>('header')
   const [showContactsForm, setShowContactsForm] = useState(false)
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
   const [showPriorityHint, setShowPriorityHint] = useState(false)
@@ -187,6 +192,10 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
     }
   }, [isLoggedIn, submitIntent])
 
+  useEffect(() => {
+    if (isLoggedIn && consumeCreateIntent()) window.location.assign('/collections/new')
+  }, [isLoggedIn])
+
   function handleSubmitBookClick(entryPoint: 'header' | 'catalog_card' | 'catalog_table' = 'header') {
     track('submit_book_clicked', { entry_point: entryPoint, is_logged_in: isLoggedIn })
     if (isLoggedIn) {
@@ -198,6 +207,17 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       setAuthModalEntryPoint('submit_book')
       setAuthModalOpen(true)
     }
+  }
+
+  function handleCreateCollection() {
+    if (isLoggedIn) {
+      window.location.assign('/collections/new')
+      return
+    }
+    saveCreateIntent()
+    track('auth_modal_opened', { trigger: 'collection_create' })
+    setAuthModalEntryPoint('collection_create')
+    setAuthModalOpen(true)
   }
   const [pendingBook, setPendingBook] = useState<BookWithCover | null>(null)
   const [savedUser, setSavedUser] = useState<{ name: string; contacts: string } | null>(null)
@@ -417,6 +437,8 @@ export default function BooksPage({ books, currentUser, tagDescriptions, introHe
       {aboutVisible && (
         <AboutBlock ref={aboutRef} onClose={handleCloseAbout} header={introHeader} sections={introSections} />
       )}
+
+      {homeCollections && <HomeCollectionsBlock collections={homeCollections} onCreate={handleCreateCollection} />}
 
       {/* Search + filters */}
       <div

@@ -12,12 +12,14 @@ import AuthErrorBanner from '@/components/nd/AuthErrorBanner'
 import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
 import { MATCHING_OPEN_DB_STATUSES } from '@/lib/matching/session-status'
 import { resolveMatchingStripSessionId } from '@/lib/matching/strip-visibility'
+import { getSiteSetting } from '@/lib/site-settings'
+import { listPublishedCollections } from '@/lib/collections/repo'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
   const cookieStore = await cookies()
-  const [session, books, signups, tagDescs, intro, openSessionRows] = await Promise.all([
+  const [session, books, signups, tagDescs, intro, openSessionRows, homeBlockEnabled] = await Promise.all([
     auth(),
     fetchBooksWithCovers(),
     getAllSignups().catch(() => []),
@@ -29,7 +31,12 @@ export default async function Home() {
       .where(inArray(matchingSessions.status, [...MATCHING_OPEN_DB_STATUSES]))
       .limit(1)
       .catch(() => []),
+    getSiteSetting('collections_home_block_enabled').catch(() => false),
   ])
+
+  const homeCollections = homeBlockEnabled
+    ? await listPublishedCollections().catch(() => [])
+    : null
 
   const introHeader = intro.header ?? { title: DEFAULT_HEADER.title, body: DEFAULT_HEADER.body }
   const introSections = intro.sections.length > 0
@@ -79,7 +86,7 @@ export default async function Home() {
     <>
       {session?.user?.id && <SiteVisitTracker />}
       <Suspense fallback={null}><AuthErrorBanner /></Suspense>
-      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} initialAboutVisible={initialAboutVisible} initialViewMode={initialViewMode} initialShowRead={initialShowRead} matchingStripSessionId={matchingStripSessionId} />
+      <BooksPage books={booksWithStatus} currentUser={currentUser} tagDescriptions={tagDescMap} introHeader={{ title: introHeader.title, body: introHeader.body }} introSections={introSections} initialAboutVisible={initialAboutVisible} initialViewMode={initialViewMode} initialShowRead={initialShowRead} matchingStripSessionId={matchingStripSessionId} homeCollections={homeCollections} />
     </>
   )
 }
