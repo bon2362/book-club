@@ -1785,3 +1785,17 @@ body {
   .collections-carousel-arrow.prev { left: 6px; }
   .collections-carousel-arrow.next { right: 6px; }
 }
+
+/* Подборки: страницы подборки, списка и редактора.
+   Правила catalog-desktop / catalog-mobile на главной живут внутри BooksPage и сюда не доходят —
+   без них на странице подборки видны сразу обе сетки карточек. Граница та же — 640px. */
+.collection-page .catalog-mobile { display: none; }
+@media (max-width: 640px) {
+  .collection-page { padding: 0 14px 40px !important; }
+  .collection-page .catalog-desktop { display: none !important; }
+  .collection-page .catalog-mobile { display: flex; flex-direction: column; gap: 16px; padding-top: 16px; }
+  .collection-title { font-size: 25px !important; }
+  .collections-index { padding: 16px 14px !important; }
+  .collection-editor { padding: 16px 14px 40px !important; }
+  .collection-title-input { font-size: 21px !important; }
+}

@@ -24,9 +24,20 @@ interface Props {
   callbackUrl?: string
   /** Откуда открыли модалку (пробрасывается в `auth_attempt`/`auth_abandoned` как `entry_point`). */
   entryPoint?: string
+  /** Заголовок окна, если вход нужен для конкретного действия. */
+  title?: string
+  /** Подпись под заголовком: что произойдёт после входа. */
+  description?: string
 }
 
-export default function AuthModal({ isOpen, onClose, callbackUrl, entryPoint = 'unknown' }: Props) {
+export default function AuthModal({
+  isOpen,
+  onClose,
+  callbackUrl,
+  entryPoint = 'unknown',
+  title = 'Войти в круг',
+  description = 'войдите, чтобы добавлять книги в список',
+}: Props) {
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
@@ -170,7 +181,7 @@ export default function AuthModal({ isOpen, onClose, callbackUrl, entryPoint = '
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Войти в круг"
+      aria-label={title}
       onClick={handleOverlay}
       style={{
         position: 'fixed',
@@ -238,7 +249,7 @@ export default function AuthModal({ isOpen, onClose, callbackUrl, entryPoint = '
             letterSpacing: '-0.02em',
           }}
         >
-          Войти в круг
+          {title}
         </h2>
 
         <p
@@ -250,7 +261,7 @@ export default function AuthModal({ isOpen, onClose, callbackUrl, entryPoint = '
             lineHeight: 1.5,
           }}
         >
-          войдите, чтобы добавлять книги в список
+          {description}
         </p>
 
         {rememberedProvider && (
