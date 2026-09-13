@@ -33,3 +33,22 @@ test.describe('Header: hide on scroll', () => {
     await expect.poll(() => isFullyVisible(page, 'header'), { timeout: 1500 }).toBe(true)
   })
 })
+
+test('ссылка «Подборки» в шапке видна на десктопе и телефоне и ведёт на /collections', async ({ page }) => {
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport)
+    await page.goto('/')
+    await expect(page.locator('header')).toBeVisible()
+
+    const link = page.locator('header').getByRole('link', { name: 'Подборки' })
+    await expect(link).toBeVisible()
+    const box = await link.boundingBox()
+
+    expect(box).not.toBeNull()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width)
+  }
+
+  await page.locator('header').getByRole('link', { name: 'Подборки' }).click()
+  await expect(page).toHaveURL(/\/collections$/)
+})
