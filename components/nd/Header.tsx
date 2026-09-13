@@ -123,6 +123,14 @@ export default function Header({ onEditProfile, onSignIn, onSubmitBook, onWhatIs
             gap: '1rem',
           }}
         >
+          <Link
+            href="/collections"
+            prefetch={false}
+            className="p-link nd-header-collections-link"
+            onClick={() => track('collections_opened', { source: 'header' })}
+          >
+            Подборки
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"
