@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
-import type { Locator } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 // Геометрия ленты: раскладка событий по дорожкам не должна давать наложений,
 // подпись эпохи обязана оставаться внутри своей полосы, а на узком экране
@@ -66,6 +66,20 @@ function expectSameLabelPositions(before: EventLabelBox[], after: EventLabelBox[
   })
 }
 
+// Лента стартует с запасной шириной (FALLBACK_WIDTH_PX в TimelineView) и перемеряет себя
+// через ResizeObserver уже после монтирования. Геометрия, снятая до замера, отличается от
+// снятой после ровно масштабом — так «клик по видимому событию не меняет диапазон» падал
+// в nightly (все деления линейки ×1.216) и воспроизводился при замедленном CPU 5 из 5.
+// Признак готовности: дорожка линейки получила ширину реальной области событий.
+async function waitForMeasuredTimeline(page: Page): Promise<void> {
+  await expect.poll(() => page.evaluate(() => {
+    const shell = document.querySelector('[data-testid="timeline-canvas"] .nd-timeline-events-shell')
+    const track = document.querySelector<HTMLElement>('[data-testid="timeline-ruler"] > div')
+    if (shell === null || track === null) return false
+    return Math.abs(parseFloat(track.style.width) - shell.getBoundingClientRect().width) < 0.5
+  })).toBe(true)
+}
+
 test.describe('Лента времени — геометрия', () => {
   test('подписи соседних событий не накладываются друг на друга', async ({
     page,
@@ -91,6 +105,7 @@ test.describe('Лента времени — геометрия', () => {
     await page.setViewportSize({ width: 1280, height: 800 })
     const timeline = await createTestTimeline()
     await page.goto(timeline.url)
+    await waitForMeasuredTimeline(page)
 
     const canvas = page.getByTestId('timeline-canvas')
     await expect(canvas).toBeVisible()
@@ -142,6 +157,7 @@ test.describe('Лента времени — геометрия', () => {
     expect(patchResponse.ok()).toBe(true)
 
     await page.goto(timeline.url)
+    await waitForMeasuredTimeline(page)
     const canvas = page.getByTestId('timeline-canvas')
     const interval = canvas.getByRole('button', { name: timeline.intervalEvent.title })
     const intervalLabel = interval.getByTestId('timeline-event-label')
@@ -169,6 +185,7 @@ test.describe('Лента времени — геометрия', () => {
     await page.setViewportSize({ width: 1280, height: 800 })
     const timeline = await createTestTimeline()
     await page.goto(timeline.url)
+    await waitForMeasuredTimeline(page)
 
     const canvas = page.getByTestId('timeline-canvas')
     const beforeLabels = await eventLabelBoxes(canvas)
@@ -195,6 +212,7 @@ test.describe('Лента времени — геометрия', () => {
     await page.setViewportSize({ width: 1280, height: 800 })
     const timeline = await createTestTimeline()
     await page.goto(timeline.url)
+    await waitForMeasuredTimeline(page)
 
     const canvas = page.getByTestId('timeline-canvas')
     const before = await eventLabelBoxes(canvas)
@@ -248,6 +266,7 @@ test.describe('Лента времени — геометрия', () => {
       await page.setViewportSize({ width: 1280, height: 800 })
       const timeline = await createTestTimeline()
       await page.goto(timeline.url)
+      await waitForMeasuredTimeline(page)
 
       const canvas = page.getByTestId('timeline-canvas')
       const event = canvas.getByRole('button', { name: timeline.pointEvent.title })
@@ -486,6 +505,7 @@ test.describe('Лента времени — геометрия', () => {
     await page.setViewportSize({ width: 1280, height: 800 })
     const timeline = await createTestTimeline()
     await page.goto(timeline.url)
+    await waitForMeasuredTimeline(page)
 
     const rulerTicks = page.getByTestId('timeline-ruler').locator(':scope > div > span')
     const snapshot = () => rulerTicks.evaluateAll((ticks) => ticks.map((tick) => ({
