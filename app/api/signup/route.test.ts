@@ -95,32 +95,35 @@ describe('POST /api/signup', () => {
     expect(res.status).toBe(401)
   })
 
-  it('возвращает 400 при пустом name', async () => {
+  // Валидация обязана отказать до сохранения. Успешное сохранение замокано специально:
+  // без него saveSignupSelection падал на пустом ответе upsert и сам отдавал 400
+  // «Some books were not found», и эти тесты проходили, даже если проверку в роуте удалить.
+  async function expectRejectedBeforeSave(body: object) {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
+    mockUpsertSignupByBookIds.mockResolvedValue(upsertResult(['Book A'], ['book-a']))
 
-    const res = await POST(makeRequest({ name: '   ', contacts: 'tg', selectedBookIds: [] }))
+    const res = await POST(makeRequest(body))
+
     expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'Missing required fields' })
+    expect(mockGetActiveSessionId).not.toHaveBeenCalled()
+    expect(mockUpsertSignupByBookIds).not.toHaveBeenCalled()
+  }
+
+  it('возвращает 400 при пустом name', async () => {
+    await expectRejectedBeforeSave({ name: '   ', contacts: 'tg', selectedBookIds: ['book-a'] })
   })
 
   it('возвращает 400 при некорректном contacts', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-
-    const res = await POST(makeRequest({ name: 'Test', contacts: 123, selectedBookIds: [] }))
-    expect(res.status).toBe(400)
+    await expectRejectedBeforeSave({ name: 'Test', contacts: 123, selectedBookIds: ['book-a'] })
   })
 
   it('возвращает 400 при отсутствии selectedBookIds и selectedBooks', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-
-    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg' }))
-    expect(res.status).toBe(400)
+    await expectRejectedBeforeSave({ name: 'Test', contacts: 'tg' })
   })
 
   it('возвращает 400 если selectedBookIds не массив', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com', id: 'user-1' } })
-
-    const res = await POST(makeRequest({ name: 'Test', contacts: 'tg', selectedBookIds: 'Book A' }))
-    expect(res.status).toBe(400)
+    await expectRejectedBeforeSave({ name: 'Test', contacts: 'tg', selectedBookIds: 'Book A' })
   })
 
   it('сохраняет запись по bookId', async () => {
