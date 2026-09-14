@@ -89,19 +89,6 @@ test.describe('AdminPanel — изменение статуса книги', () 
     await expect(bookRowAfterReload).toContainText('Reading')
   })
 
-  test('[SEC] обычный пользователь не может изменить статус книги', async ({ page, createTestBook }) => {
-    const book = await createTestBook()
-    await page.request.post('/api/test/session', {
-      data: { email: USER_EMAIL, name: USER_NAME },
-    })
-
-    const res = await page.request.patch(`/api/admin/books/${encodeURIComponent(book.id)}`, {
-      data: { readingStatus: 'reading' },
-    })
-
-    expect(res.status()).toBe(403)
-  })
-
   test('таблица по книгам сортируется по числу записей и названию', async ({ page, createTestBook }) => {
     // Две свои книги. book1 в алфавите идёт раньше book2 — чтобы проверить
     // переключение сортировки.

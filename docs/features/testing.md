@@ -42,6 +42,7 @@
 
 Покрывают:
 - API route handlers (`app/api/**/*.test.ts`) — каждый handler тестируется с замоканными зависимостями
+- Доступ к админским API — `app/api/admin/admin-access.test.ts` сам находит все `app/api/admin/**/route.ts` и проверяет, что гость и не-админ получают 401/403, а база до проверки прав не трогается. Новый админский маршрут покрывается без отдельного теста
 - React-компоненты (`components/nd/*.test.tsx`)
 - Lib-функции (`lib/*.test.ts`) — особенно трансформации данных из внешних источников
 
@@ -173,7 +174,8 @@ Nightly — явная композиция трёх Playwright projects:
 | `profile.spec.ts` | Профиль | ProfileDrawer: редактирование имени, языки чтения |
 | `admin.spec.ts` | Администрирование | Редиректы для не-админов |
 | `admin-delete-user.spec.ts` | Администрирование | Удаление пользователя в AdminPanel |
-| `admin-book-status.spec.ts` | Администрирование | Изменение статуса книги, SEC-проверка 403 |
+| `admin-book-status.spec.ts` | Администрирование | Изменение статуса книги и сортировка таблицы по книгам |
+| `admin-books-catalog.spec.ts` | Администрирование | Каталог в админке и сквозная SEC-проверка 403 на живом сервере; отказ не-админу во всех `app/api/admin/**` — unit `app/api/admin/admin-access.test.ts` |
 | `admin-user-book-status.spec.ts` | Администрирование | Смена personal status из карточки участника, повторное открытие drawer и персистентность после `page.reload()` |
 | `book-card.spec.ts` | Каталог книг | Разворачивание описания книги |
 | `search.spec.ts` | Каталог книг | Поиск и фильтрация |

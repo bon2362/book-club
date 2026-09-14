@@ -1,46 +1,44 @@
 import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
+// Один сценарий вместо трёх. Прежний тест фильтрации проходил при любом исходе
+// (ветка по «Ничего не найдено» и сравнение «не больше, чем было»), а подсчёт
+// карточек шёл без ожидания. Правила совпадений покрывает lib/search.test.ts;
+// здесь проверяется связка поля ввода, фильтра каталога и пустого состояния.
+//
+// Поиск нечёткий (Fuse, threshold 0.4), поэтому тест не требует «ровно одну
+// карточку» — её могли бы дать остатки упавших прогонов с похожим названием.
+// Вместо этого рядом создаётся контрольная книга, которая обязана скрыться.
 test.describe('поиск по книгам', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     await epic('Каталог книг')
     await feature('Поиск')
+  })
+
+  test('находит книгу по названию, очистка возвращает каталог, пустой результат показывает «Ничего не найдено»', async ({
+    page,
+    createTestBook,
+  }) => {
+    const suffix = Math.random().toString(36).slice(2, 8)
+    const target = await createTestBook({ title: `Маркер поиска ${suffix}`, author: 'Автор Поиска' })
+    const control = await createTestBook({ title: `Zyxwv контроль ${suffix}`, author: 'Qwerty Control' })
+
     await page.goto('/')
-    await page.waitForSelector('article, p:has-text("Ничего не найдено")')
-  })
+    const cards = page.locator('article')
+    await expect(cards.filter({ hasText: target.title })).toHaveCount(1)
+    await expect(cards.filter({ hasText: control.title })).toHaveCount(1)
+    const total = await cards.count()
 
-  // «поле отображается» и «пустой запрос показывает все книги» удалены как
-  // тривиальные — наличие поля и стартовый полный список проверяются неявно
-  // в тестах ниже (фильтрация / очистка).
+    const search = page.getByPlaceholder('Поиск по названию или автору…')
+    await search.fill(target.title)
+    await expect(cards.filter({ hasText: target.title })).toHaveCount(1)
+    await expect(cards.filter({ hasText: control.title })).toHaveCount(0)
 
-  test('ввод текста фильтрует список книг', async ({ page }) => {
-    const searchInput = page.getByPlaceholder('Поиск по названию или автору…')
-    const totalBefore = await page.locator('article').count()
-    await searchInput.fill('война')
-    const totalAfter = await page.locator('article').count()
-    const emptyVisible = await page.getByText('Ничего не найдено').isVisible().catch(() => false)
-    if (!emptyVisible) {
-      expect(totalAfter).toBeLessThanOrEqual(totalBefore)
-    } else {
-      await expect(page.getByText('Ничего не найдено')).toBeVisible()
-    }
-  })
+    await search.fill('')
+    await expect(cards).toHaveCount(total)
 
-  test('очистка поиска восстанавливает полный список', async ({ page }) => {
-    const searchInput = page.getByPlaceholder('Поиск по названию или автору…')
-    const totalBefore = await page.locator('article').count()
-    await searchInput.fill('война')
-    await searchInput.fill('')
-    const totalAfter = await page.locator('article').count()
-    expect(totalAfter).toBe(totalBefore)
-  })
-
-  // Объединяет прежние «кириллический запрос» и «несуществующий запрос»:
-  // заведомо отсутствующий кириллический запрос обязан дать «Ничего не найдено».
-  test('несуществующий кириллический запрос показывает «Ничего не найдено»', async ({ page }) => {
-    await page.getByPlaceholder('Поиск по названию или автору…').fill('абвгдеж_нет_такой_книги_ёёё')
-    await page.waitForTimeout(300)
-    await expect(page.locator('article')).toHaveCount(0)
+    await search.fill('абвгдеж_нет_такой_книги_ёёё')
     await expect(page.getByText('Ничего не найдено')).toBeVisible()
+    await expect(cards).toHaveCount(0)
   })
 })
