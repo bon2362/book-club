@@ -1,8 +1,6 @@
 import { test, expect } from './fixtures'
 import { epic, feature } from 'allure-js-commons'
 
-const USER_EMAIL = 'e2e-intro-user@test.invalid'
-
 test.describe('AdminPanel — вкладка «Интро»', () => {
   test.setTimeout(120_000)
 
@@ -51,26 +49,5 @@ test.describe('AdminPanel — вкладка «Интро»', () => {
     await page.waitForLoadState('networkidle')
     await page.getByText('Подробнее ↓').click()
     await expect(page.getByText(editedQuestion)).toBeVisible()
-  })
-
-  test('[SEC] обычный пользователь не может редактировать интро', async ({ page }) => {
-    await page.request.post('/api/test/session', {
-      data: { email: USER_EMAIL, name: 'Plain User' },
-    })
-
-    try {
-      const getRes = await page.request.get('/api/admin/intro')
-      expect(getRes.status()).toBe(403)
-
-      const putRes = await page.request.put('/api/admin/intro', {
-        data: { patches: [{ id: 'fake', title: 'hax' }] },
-      })
-      expect(putRes.status()).toBe(403)
-
-      const postRes = await page.request.post('/api/admin/intro')
-      expect(postRes.status()).toBe(403)
-    } finally {
-      await page.request.delete('/api/test/session', { data: { email: USER_EMAIL } })
-    }
   })
 })

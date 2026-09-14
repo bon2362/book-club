@@ -3,8 +3,7 @@ import { epic, feature } from 'allure-js-commons'
 
 // Сокращённая вкладка «Ленты времени»: типы событий и управление публикацией
 // лент. События, эпохи и состав редактируются на самом полотне.
-
-const PLAIN_USER_EMAIL = 'e2e-timeline-admin-plain@test.invalid'
+// Отказ не-админу проверяет app/api/admin/admin-access.test.ts по всем маршрутам.
 
 test.describe('AdminPanel — вкладка «Ленты времени»', () => {
   test.setTimeout(120_000)
@@ -12,37 +11,6 @@ test.describe('AdminPanel — вкладка «Ленты времени»', () 
   test.beforeEach(async () => {
     await epic('Администрирование')
     await feature('Ленты времени')
-  })
-
-  test('[SEC] обычный пользователь не видит вкладку и получает 403 от маршрутов', async ({
-    page,
-  }) => {
-    await page.request.post('/api/test/session', {
-      data: {
-        email: PLAIN_USER_EMAIL,
-        name: 'Plain User',
-        telegramUsername: 'e2e_timeline_plain',
-      },
-    })
-
-    for (const url of [
-      '/api/admin/timeline/event-types',
-      '/api/admin/timeline/events',
-      '/api/admin/timeline/epochs',
-      '/api/admin/timeline/timelines',
-    ]) {
-      const res = await page.request.get(url)
-      expect(res.status(), url).toBe(403)
-    }
-
-    const createRes = await page.request.post('/api/admin/timeline/event-types', {
-      data: { title: 'Нельзя', color: '#C0603A', icon: '⚔' },
-    })
-    expect(createRes.status()).toBe(403)
-
-    await page.goto('/admin?tab=timeline')
-    await expect(page.getByTestId('admin-tab-timeline')).toHaveCount(0)
-    await expect(page.getByTestId('admin-timeline-panel')).toHaveCount(0)
   })
 
   test('админ видит только типы и ленты, созданный тип сохраняется после перезагрузки', async ({
