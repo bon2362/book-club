@@ -19,6 +19,42 @@ describe('0040 audit triggers migration', () => {
     .filter((migration) => migration.sql.includes('CREATE OR REPLACE FUNCTION audit_capture()'))
     .at(-1)?.sql
 
+  function matchesOf(pattern: RegExp, text: string): RegExpExecArray[] {
+    const found: RegExpExecArray[] = []
+    const global = new RegExp(pattern.source, 'gi')
+    for (let match = global.exec(text); match; match = global.exec(text)) found.push(match)
+    return found
+  }
+
+  const TABLE = String.raw`(?:"?public"?\.)?"?(\w+)"?`
+  // audit_capture() — общий триггер; у части таблиц своя функция того же семейства
+  // (0061: audit_capture_matching_book_assignment() с составным entity_id).
+  const AUDIT_TRIGGER = new RegExp(String.raw`ON\s+${TABLE}\s+FOR\s+EACH\s+ROW\s+EXECUTE\s+(?:FUNCTION|PROCEDURE)\s+audit_capture\w*\(\)`)
+  const DROP_TRIGGER = new RegExp(String.raw`DROP\s+TRIGGER\s+(?:IF\s+EXISTS\s+)?"?\w+"?\s+ON\s+${TABLE}`)
+  const DROP_TABLE = /DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?([^;]+)/
+
+  /** Таблицы под триггером аудита после прогона всех миграций по порядку. */
+  function liveAuditedTables(): string[] {
+    const live = new Set<string>()
+    for (const migration of migrationSql) {
+      const events = [
+        ...matchesOf(AUDIT_TRIGGER, migration.sql).map((match) => ({ at: match.index, add: [match[1]], remove: [] as string[] })),
+        ...matchesOf(DROP_TRIGGER, migration.sql).map((match) => ({ at: match.index, add: [] as string[], remove: [match[1]] })),
+        ...matchesOf(DROP_TABLE, migration.sql).map((match) => ({
+          at: match.index,
+          add: [] as string[],
+          remove: match[1].replace(/\b(?:CASCADE|RESTRICT)\b/gi, '').split(',')
+            .map((name) => name.trim().replace(/^(?:"?public"?\.)?"?|"$/g, '')),
+        })),
+      ].sort((left, right) => left.at - right.at)
+      for (const event of events) {
+        event.remove.forEach((table) => live.delete(table))
+        event.add.forEach((table) => live.add(table))
+      }
+    }
+    return Array.from(live).sort()
+  }
+
   it('defines the audit_capture function reading app.audit_* settings', () => {
     expect(sql).toContain('CREATE OR REPLACE FUNCTION audit_capture()')
     expect(sql).toContain("current_setting('app.audit_actor', true)")
@@ -26,10 +62,11 @@ describe('0040 audit triggers migration', () => {
     expect(sql).toContain('TG_TABLE_NAME')
   })
 
-  it('attaches a trigger to every audited table (registry stays in sync)', () => {
-    for (const table of AUDITED_TABLES) {
-      expect(allSql).toContain(`ON "${table}" FOR EACH ROW EXECUTE FUNCTION audit_capture()`)
-    }
+  // Сверка в обе стороны: забытая в реестре новая таблица и оставленная в нём удалённая
+  // одинаково ломают журнал аудита. Обратное направление раньше держали снимки отдельных
+  // миграций (0056, 0059–0062, 0066); их удалили как устаревшие после применения на прод.
+  it('keeps AUDITED_TABLES equal to the tables under an audit trigger after all migrations', () => {
+    expect([...AUDITED_TABLES].sort()).toEqual(liveAuditedTables())
   })
 
   it('does not attach a trigger to audit_log itself (no recursion)', () => {

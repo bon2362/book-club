@@ -155,8 +155,6 @@ Nightly — явная композиция трёх Playwright projects:
 | book board shell, popup, long-sheet close, waiting line и full width | tagged book-layout tests в `matching-layout.spec.ts` |
 | concurrent threshold | `integration/matching/concurrency.spec.ts` |
 | два назначения и очистка авто-записей | `integration/matching/multibook.spec.ts` |
-| destructive scenario-removal migration: active/frozen import and rollback | `integration/matching/scenario-removal-migration.spec.ts` |
-| migration 0061: сохранение данных, новые ключи и audit trigger | `integration/matching/multibook-migration.spec.ts` |
 | actor-aware audit, semantic events, cleanup и heartbeat noise | книжные audit integration tests |
 | assigned/closed/impersonation guards и readable state | `integration/matching/state-guards.spec.ts` |
 | auth modal, welcome и close navigation | matching welcome/book journeys |
@@ -273,6 +271,7 @@ E2E **никогда не пишут в прод-БД**. Четыре слоя �
 - **`role="status"` конфликтует с `@dnd-kit`** — DnD kit добавляет свой `aria-live` регион с `role="status"`. Для своих тостов/статусов использовать `data-testid`.
 - **Высота карточки — плохая опора для layout-проверки.** Тест «карточка выросла минимум на 20px, когда появилась запись» протух в тот же день, когда её написали: следующим PR у хвостовых карточек появился блок причины «ЖДЁМ ДРУГИХ», и карточка стала обменивать один блок на другой почти без изменения высоты — на десктопе +1.5px, на 390px вообще −7px. Проверяй, что нужный элемент отрисован внутри карточки и занимает место (`boundingBox` кнопки внутри `boundingBox` карточки), а не арифметику суммарной высоты.
 - **Номера миграций проверяет `drizzle/migration-numbering.test.ts`.** Дубли номеров прод не ломают (миграции применяются вручную по имени файла), но делают двусмысленной каждую ссылку «миграция NNNN». Единственный исторический дубль — `0043` — заморожен в `KNOWN_DUPLICATES`; расходится он — вычеркни номер, чтобы список не стал разрешением на будущие дубли.
+- **Снимки текста миграций не держим после применения.** Тест «в SQL есть такая строка» защищает файл только до того, как миграцию применили вручную: потом её не редактируют. Все 37 таких тестов удалены 2026-09-14 — ни один SQL после создания не менялся. Контракты, переживающие миграцию, держат два теста: `drizzle/0040_audit_triggers.test.ts` (реестр `AUDITED_TABLES` равен набору таблиц под триггером аудита после всех миграций, маскирование в последней `audit_capture()`) и `drizzle/migration-numbering.test.ts`. Поведение миграции до применения проверяй на ветке `e2e` через `e2e/integration`, а после применения на прод убирай проверку.
 - **`openMatchingPage` только логинит, но не открывает страницу.** Фикстура (`e2e/fixtures.ts`) создаёт контекст и делает `POST /api/test/session`; вкладка остаётся на `about:blank`. Поэтому `page.reload()` сразу после неё перезагружает пустую страницу, локаторы не находятся, и тест падает с «element(s) not found» — так в main уже уезжал нерабочий тест выпуска круга. Перед первой проверкой всегда `await page.goto('/matching')`, и только потом `reload()` для проверки персистентности.
 - **Telegram auth:** при изменении auth/telegram цепочки — гонять `e2e/telegram-auth.spec.ts`. Тест использует `/api/test/session` с `telegramUsername` и `provider: 'telegram-preauth'` — отдельный mock endpoint не нужен.
 

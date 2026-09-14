@@ -135,7 +135,7 @@ Matching использует санкционированный «мягкий 
 - Unit и API: `lib/matching/__tests__/`, route tests, `components/nd/*Matching*.test.tsx`;
 - книжный E2E: `e2e/matching-books.spec.ts` (в т.ч. `reading` → хвост → метка → `reload()` → «Вернуть в подбор» → основной список → `reload()`), `e2e/matching-admin.spec.ts`, `e2e/matching-audit.spec.ts` и request-only `e2e/integration/matching/`;
 - layout: книжные кейсы в `e2e/matching-layout.spec.ts` для desktop/mobile, включая геометрию и текст закрытой полки (`matching-tail-group`) и метку причины `waiting`;
-- миграции: контракты `drizzle/0059_remove_matching_scenarios.test.ts`, `drizzle/0060_remove_matching_group_sizes.test.ts`, `drizzle/0061_matching_multibook.test.ts`; исполняемые сценарии 0059 в `e2e/integration/matching/scenario-removal-migration.spec.ts` и смена ключей 0061 в `e2e/integration/matching/multibook-migration.spec.ts`; контракт аудита `drizzle/0040_audit_triggers.test.ts`.
+- миграции: контракт аудита `drizzle/0040_audit_triggers.test.ts` (реестр `AUDITED_TABLES` равен набору таблиц под триггером после всех миграций) и нумерация `drizzle/migration-numbering.test.ts`. Снимки текста миграций 0059–0061 и их исполняемые integration-сценарии удалены после применения на прод.
 
 ## Хвостовая полка: «На эти книги пока записаться нельзя»
 
