@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-bookstatus-admin@test.invalid'
@@ -51,7 +52,7 @@ test.describe('AdminPanel — изменение статуса книги', () 
     })
 
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Переключаемся на вкладку "Каталог"
     await page.getByTestId('admin-tab-catalog').click()
@@ -127,7 +128,7 @@ test.describe('AdminPanel — изменение статуса книги', () 
     })
 
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByTestId('admin-tab-catalog').click()
 
     const dataRows = page.getByTestId('admin-catalog-section-published').locator('tbody tr')

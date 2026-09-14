@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.describe('Лента времени — правка на полотне', () => {
@@ -43,6 +44,8 @@ test.describe('Лента времени — правка на полотне', 
     expect(html).not.toContain(libraryTitle)
 
     await page.goto(timeline.url)
+    await expect(page.getByTestId('timeline-canvas')).toBeVisible()
+    await waitForHydration(page)
     await expect(page.getByTestId('timeline-admin-tools')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Править' })).toHaveCount(0)
   })
@@ -131,6 +134,8 @@ test.describe('Лента времени — правка на полотне', 
     await expect(page.getByTestId('timeline-detail-empty')).toBeVisible()
 
     await page.reload()
+    // Соседнее событие на полотне — признак, что лента отрисовалась и «скрытого нет» не пустое.
+    await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: timeline.intervalEvent.title })).toBeVisible()
     await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: timeline.pointEvent.title })).toHaveCount(0)
     const events = (await (await page.request.get('/api/admin/timeline/events')).json()).data as Array<{ id: string }>
     expect(events.some(({ id }) => id === timeline.pointEvent.id)).toBe(true)
@@ -153,6 +158,8 @@ test.describe('Лента времени — правка на полотне', 
     await expect(page.getByTestId('timeline-detail-empty')).toBeVisible()
 
     await page.reload()
+    // Соседнее событие на полотне — признак, что лента отрисовалась и «скрытого нет» не пустое.
+    await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: timeline.intervalEvent.title })).toBeVisible()
     await expect(page.getByTestId('timeline-canvas').getByRole('button', { name: timeline.pointEvent.title })).toHaveCount(0)
     const events = (await (await page.request.get('/api/admin/timeline/events')).json()).data as Array<{ id: string }>
     expect(events.some(({ id }) => id === timeline.pointEvent.id)).toBe(true)

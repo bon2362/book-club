@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.describe('Саммари книг', () => {
@@ -38,7 +39,7 @@ test.describe('Саммари книг', () => {
     const draft = (await draftRes.json()) as { summary: { id: string } }
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByLabel('Имя для публикации').fill('Reader One')
     await page.getByLabel('Заголовок саммари').fill('Почему институты важны')
@@ -69,7 +70,7 @@ test.describe('Саммари книг', () => {
 
     await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByLabel('Заголовок саммари')).toHaveValue('Почему институты важны')
     await expect(page.getByLabel('Текст саммари')).toHaveValue(/Институты/)
 
@@ -95,7 +96,7 @@ test.describe('Саммари книг', () => {
 
     await loginAsAdmin({ name: 'E2E Summary Admin' })
     await page.goto('/admin?tab=summaries')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByText('Почему институты важны')).toBeVisible({ timeout: 10_000 })
 
     await page.getByText('Почему институты важны').click()
@@ -131,7 +132,7 @@ test.describe('Саммари книг', () => {
 
     await loginAsUser({ email: user.email, name: user.name })
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page).toHaveURL(new RegExp(`/books/${bookSlug}/my-summary/edit$`))
     await expect(page.getByText('Опубликовано')).toBeVisible()
 
@@ -146,7 +147,7 @@ test.describe('Саммари книг', () => {
     await page.getByLabel('В двух словах').fill('Обновлённый вывод о правилах игры.')
     await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByLabel('Заголовок саммари')).toHaveValue('Почему институты меняются')
 
     await page.getByRole('button', { name: 'Отправить на проверку' }).click()
@@ -158,7 +159,7 @@ test.describe('Саммари книг', () => {
 
     await loginAsAdmin({ name: 'E2E Summary Admin' })
     await page.goto('/admin?tab=summaries')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByText('Почему институты меняются').click()
     await expect(page.getByText('Правки к опубликованному')).toBeVisible()
     await expect(page.getByText('Почему институты решают')).toBeVisible()
@@ -171,7 +172,7 @@ test.describe('Саммари книг', () => {
 
     await loginAsUser({ email: user.email, name: user.name })
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page).toHaveURL(new RegExp(`/books/${bookSlug}/my-summary/edit$`))
     await expect(page.getByText('Правки отклонены')).toBeVisible()
     await expect(page.getByText('Нужно уточнить вывод')).toBeVisible()
@@ -185,7 +186,7 @@ test.describe('Саммари книг', () => {
 
     await loginAsAdmin({ name: 'E2E Summary Admin' })
     await page.goto('/admin?tab=summaries')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByText('Почему институты меняются со временем').click()
     const revisionPublishResponse = page.waitForResponse(
       response => response.url().includes('/api/admin/summary-revisions/') && response.url().endsWith('/publish') && response.request().method() === 'POST',
@@ -245,7 +246,7 @@ test.describe('Саммари книг', () => {
     const draft = (await draftRes.json()) as { summary: { id: string } }
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByLabel('Имя для публикации').fill('Wiki Reader')
     await page.getByLabel('Заголовок саммари').fill('Социализм и его истоки')
@@ -261,7 +262,7 @@ test.describe('Саммари книг', () => {
 
     await expect(page.getByRole('status')).toHaveText('Сохранено', { timeout: 10_000 })
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByLabel('Текст саммари')).toHaveValue(/Социализм как способ разрешения противоречий\./)
     await expect(page.getByLabel('Текст саммари')).toHaveValue(/"wikipedia"/)
 
@@ -282,7 +283,7 @@ test.describe('Саммари книг', () => {
 
     await loginAsAdmin({ name: 'E2E Wiki Admin' })
     await page.goto('/admin?tab=summaries')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByText('Социализм и его истоки').click()
     await page.getByLabel('Красивый URL книги').fill(bookSlug)
     const publishResponse = page.waitForResponse(
@@ -329,7 +330,7 @@ test.describe('Саммари книг', () => {
     const draft = (await draftRes.json()) as { summary: { id: string } }
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByLabel('Имя для публикации').fill(opts.displayName)
     await page.getByLabel('Заголовок саммари').fill(opts.title)
     await page.getByLabel('В двух словах').fill(opts.tldr)
@@ -340,7 +341,7 @@ test.describe('Саммари книг', () => {
 
     await loginAsAdmin({ name: 'E2E Switcher Admin' })
     await page.goto('/admin?tab=summaries')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByText(opts.title).first().click()
     await page.getByLabel('Красивый URL книги').fill(opts.bookSlug)
     const publishResponse = page.waitForResponse(
@@ -366,7 +367,7 @@ test.describe('Саммари книг', () => {
     }, loginAsUser, loginAsAdmin)
 
     await page.goto(`/books/${bookSlug}/summaries`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Дефолт — самое свежее саммари (Бета опубликована последней).
     await expect(page.getByRole('heading', { name: 'Саммари Беты', level: 2 })).toBeVisible()
@@ -374,14 +375,13 @@ test.describe('Саммари книг', () => {
 
     // Переключаемся на Альфу.
     await page.getByRole('link', { name: /Автор Альфа/ }).click()
-    await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\?author=/)
     await expect(page.getByRole('heading', { name: 'Саммари Альфы', level: 2 })).toBeVisible()
     await expect(page.getByText('Текст саммари Беты.')).toHaveCount(0)
 
     // Выбор хранится в URL — после перезагрузки остаётся Альфа.
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByRole('heading', { name: 'Саммари Альфы', level: 2 })).toBeVisible()
   })
 })

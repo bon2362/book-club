@@ -1,4 +1,5 @@
 import { type Page, test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-submit@test.invalid'
@@ -7,8 +8,9 @@ const ADMIN_EMAIL = 'e2e-submit-admin@test.invalid'
 
 // Ждём гидрации React и закрываем ContactsForm, если появилась
 async function waitAndCloseContactsForm(page: Page) {
-  // networkidle: нет сетевой активности 500ms — React точно гидрировался
-  await page.waitForLoadState('networkidle')
+  // AppProviders ставит data-hydrated на <html> через кадр после монтирования:
+  // обработчики навешаны, эффект, открывающий форму контактов, успел отработать.
+  await waitForHydration(page)
   const dialog = page.getByRole('dialog')
   if (await dialog.isVisible({ timeout: 1000 }).catch(() => false)) {
     await page.keyboard.press('Escape')
@@ -154,7 +156,7 @@ test('одобрение заявки автоматически записыв�
     await expect(book.getByRole('button', { name: /в вашем списке/i })).toBeVisible({ timeout: 10000 })
 
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(book.getByRole('button', { name: /в вашем списке/i })).toBeVisible({ timeout: 10000 })
 
     const userState = await (await page.request.get(`/api/test/user?email=${encodeURIComponent(userEmail)}`)).json()

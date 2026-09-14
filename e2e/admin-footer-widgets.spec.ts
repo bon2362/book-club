@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-admin-footer@test.invalid'
@@ -49,7 +50,7 @@ test.describe('админка — виджеты подвала', () => {
     })
 
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByRole('button', { name: /обновить виджеты/i })).toBeVisible()
 
     await expect.poll(() => [statusRequests, digestRequests, allureRequests].every(count => count > 0)).toBe(true)

@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_NAME = 'E2E Admin Users Admin'
@@ -63,7 +64,7 @@ test.describe('админка — пользователи и фидбеки', (
 
   async function openUserDrawer(page: import('@playwright/test').Page) {
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByLabel('Поиск пользователей').fill(USER_NAME)
     await page.locator('tr').filter({ hasText: USER_NAME }).click()
     await expect(page.getByRole('dialog', { name: /карточка пользователя/i })).toBeVisible()
@@ -95,7 +96,7 @@ test.describe('админка — пользователи и фидбеки', (
     }).toEqual([bookATitle])
 
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByLabel('Поиск пользователей').fill(USER_NAME)
     await expect(page.locator('tr').filter({ hasText: USER_NAME })).toContainText('1')
   })
@@ -112,7 +113,7 @@ test.describe('админка — пользователи и фидбеки', (
 
   test('вкладка фидбеков показывает фильтры, поиск и открывает пользователя', async ({ page }) => {
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     const feedbackTab = page.locator('button').filter({ hasText: /фидбеки/i }).first()
     await expect(feedbackTab).toBeVisible()
     let feedbackCount = 0

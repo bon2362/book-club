@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const EMAIL = 'e2e-profile-test@test.invalid'
@@ -26,7 +27,7 @@ test.describe('ProfileDrawer — редактирование профиля', (
 
   test('языки чтения сохраняются после перезагрузки страницы', async ({ page }) => {
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // ContactsForm не должна мешать
     await expect(page.getByRole('dialog')).not.toBeVisible()
@@ -41,14 +42,15 @@ test.describe('ProfileDrawer — редактирование профиля', (
     // Убеждаемся что секция "Языки чтения" загрузилась
     await expect(page.getByText('Языки чтения')).toBeVisible()
 
-    // Выбираем "In English" (изначально может быть не выбран)
+    // Выбираем "In English" (изначально может быть не выбран). Языки сохраняются сами
+    // через 500 мс после клика (PATCH /api/profile) — ждём ответ, иначе reload ниже
+    // может обогнать сохранение.
     const englishBtn = page.getByRole('button', { name: /in english/i })
+    const languagesSaved = page.waitForResponse(
+      (response) => response.url().includes('/api/profile') && response.request().method() === 'PATCH',
+    )
     await englishBtn.click()
-
-    // Ждём появления кнопки "Сохранено" (индикатор успешного сохранения в профиле)
-    // Языки сохраняются автоматически при клике, кнопку "Сохранить языки" ищем
-    // Альтернативно — ждём networkidle после клика
-    await page.waitForLoadState('networkidle')
+    expect((await languagesSaved).ok()).toBe(true)
 
     // Закрываем drawer
     await page.keyboard.press('Escape')
@@ -56,7 +58,7 @@ test.describe('ProfileDrawer — редактирование профиля', (
 
     // Перезагрузка — проверяем персистентность
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Открываем drawer снова
     await page.getByRole('button', { name: NAME }).click()
@@ -78,7 +80,7 @@ test.describe('ProfileDrawer — редактирование профиля', (
     })
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Открываем drawer
     await page.getByRole('button', { name: NAME }).click()

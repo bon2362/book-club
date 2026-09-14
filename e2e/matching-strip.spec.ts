@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 // Без контактов у пользователя главная сама открывает ContactsForm, и её оверлей
@@ -38,9 +39,11 @@ test('вошедший участник видит полосу открытог
   ])
 
   await page.goto('/')
+  await waitForHydration(page)
   await strip.getByRole('button', { name: 'Скрыть полосу матчинга' }).click()
   await expect(strip).toHaveCount(0)
   await page.reload()
+  await waitForHydration(page)
   await expect(strip).toHaveCount(0)
 })
 
@@ -53,10 +56,12 @@ test('новый сезон возвращает полосу, даже если
   const first = await createMatchingSession()
   await loginWithContacts(loginAsUser, dbExec)
   await page.goto('/')
+  await waitForHydration(page)
 
   const strip = page.locator('.nd-matching-strip')
   await strip.getByRole('button', { name: 'Скрыть полосу матчинга' }).click()
   await page.reload()
+  await waitForHydration(page)
   await expect(strip).toHaveCount(0)
 
   // Закрытие хранится как id сессии, а не как флаг: следующий подбор обязан
@@ -75,10 +80,12 @@ test('гость и вошедший участник при закрытой с
 }) => {
   const session = await createMatchingSession()
   await page.goto('/')
+  await waitForHydration(page)
   await expect(page.locator('.nd-matching-strip')).toHaveCount(0)
 
   await dbExec('update matching_sessions set status = $1 where id = $2', ['closed', session.id])
   await loginWithContacts(loginAsUser, dbExec)
   await page.goto('/')
+  await waitForHydration(page)
   await expect(page.locator('.nd-matching-strip')).toHaveCount(0)
 })

@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const TG_EMAIL = 'e2e-telegram-test@test.invalid'
@@ -29,7 +30,7 @@ test.describe('Авторизация через Telegram', () => {
 
   test('ContactsForm не появляется — профиль сохраняется автоматически', async ({ page }) => {
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Форма контактов не должна появляться для Telegram-пользователей
     await expect(page.getByRole('dialog')).not.toBeVisible()
@@ -37,7 +38,7 @@ test.describe('Авторизация через Telegram', () => {
 
   test('профиль показывает @username вместо email', async ({ page }) => {
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Открываем профиль (десктопная кнопка — имя пользователя)
     await page.getByRole('button', { name: TG_NAME }).click()

@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures'
-import { saveProfile } from './helpers'
+import { saveProfile, waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const TEST_NAME_BASE = 'E2E Priority Hint'
@@ -47,7 +47,8 @@ test('тост не появляется после первой книги', as
   await setupProfileAndClearHint(page)
 
   await page.getByRole('button', { name: /хочу читать/i }).first().click()
-
+  // Сначала книга добавилась — иначе «тоста нет» проверялось бы до сохранения.
+  await expect(page.getByRole('button', { name: /в вашем списке/i }).first()).toBeVisible()
   await expect(page.getByTestId('priority-hint-toast')).not.toBeVisible()
 })
 
@@ -112,7 +113,7 @@ test('кнопка «Открыть» закрывает тост и откры�
 
 test('тост не показывается повторно если флаг уже установлен', async ({ page }) => {
   await page.goto('/')
-  await page.waitForLoadState('networkidle')
+  await waitForHydration(page)
   // Устанавливаем флаг до взаимодействия с книгами
   await page.evaluate(() => localStorage.setItem('hint_priorities_seen', '1'))
 
@@ -134,6 +135,7 @@ test('тост не показывается повторно если флаг 
   await bookButtons.first().click()
   await expect(page.getByRole('button', { name: /в вашем списке/i }).first()).toBeVisible()
   await bookButtons.first().click()
-
+  // Вторая книга добавлена — именно на ней тост появился бы, если бы флаг не сработал.
+  await expect(page.getByRole('button', { name: /в вашем списке/i }).nth(1)).toBeVisible()
   await expect(page.getByTestId('priority-hint-toast')).not.toBeVisible()
 })

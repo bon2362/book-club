@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const EMAIL = 'e2e-mandatory-ranks@test.invalid'
@@ -45,7 +46,7 @@ test.describe('Обязательный ранг у каждой записи (m
     expect(signupRes.ok()).toBeTruthy()
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByRole('button', { name: NAME }).click()
     const dialog = page.getByRole('dialog', { name: /личный кабинет/i })
@@ -60,7 +61,7 @@ test.describe('Обязательный ранг у каждой записи (m
     expect(rankBadgeText).not.toBe('—')
 
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByRole('button', { name: NAME }).click()
     const dialog2 = page.getByRole('dialog', { name: /личный кабинет/i })
     await expect(dialog2).toBeVisible()
@@ -92,7 +93,7 @@ test.describe('Обязательный ранг у каждой записи (m
     })
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByRole('button', { name: NAME }).click()
     const dialog = page.getByRole('dialog', { name: /личный кабинет/i })
     await expect(dialog).toBeVisible()
@@ -115,7 +116,6 @@ test.describe('Обязательный ранг у каждой записи (m
     await dialog.locator('[data-testid="status-option-reading"]').click()
     await patchReading
     await putPrioritiesAfterReading
-    await page.waitForLoadState('networkidle')
     await expect(dialog.locator(`[data-testid="section-reading"] [data-book-id="${b1.id}"]`)).toBeVisible()
 
     // Return b1's status to null.
@@ -123,10 +123,9 @@ test.describe('Обязательный ранг у каждой записи (m
     await dialog.locator(`[data-testid="section-reading"] [data-book-id="${b1.id}"]`).click()
     await dialog.locator('[data-testid="status-option-null"]').click()
     await patchNull
-    await page.waitForLoadState('networkidle')
 
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByRole('button', { name: NAME }).click()
     const dialog2 = page.getByRole('dialog', { name: /личный кабинет/i })
     await expect(dialog2).toBeVisible()

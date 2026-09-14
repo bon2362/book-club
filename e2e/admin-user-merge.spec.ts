@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.describe('Admin: слияние дублей пользователей', () => {
@@ -40,7 +41,7 @@ test.describe('Admin: слияние дублей пользователей', (
 
     await loginAsAdmin({ email: `admin-${seed}@test.invalid`, name: `E2E Merge Admin ${seed}` })
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByLabel('Поиск пользователей').fill(targetName)
     await page.locator('tr').filter({ hasText: targetName }).click()
@@ -66,7 +67,7 @@ test.describe('Admin: слияние дублей пользователей', (
 
     await expect(page.getByText('Пользователи слиты')).toBeVisible()
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByLabel('Поиск пользователей').fill(sourceName)
     await expect(page.locator('tr').filter({ hasText: sourceName })).toHaveCount(0)

@@ -12,6 +12,16 @@ import { expect, type Page } from '@playwright/test'
  */
 export const PROFILE_SAVE_TIMEOUT = 30_000
 
+/**
+ * Страница гидрирована: `AppProviders` ставит `data-hydrated` на `<html>` через кадр
+ * после монтирования. Заменяет `waitForLoadState('networkidle')`: тишина в сети не
+ * гарантирует гидратацию, а на страницах с опросом сервера или внешними картинками
+ * наступает поздно или никогда. Таймаут с запасом на ленивую компиляцию dev-сервера.
+ */
+export async function waitForHydration(page: Page): Promise<void> {
+  await expect(page.locator('html[data-hydrated="true"]')).toHaveCount(1, { timeout: 30_000 })
+}
+
 export async function saveProfile(page: Page, name: string, contact: string): Promise<void> {
   await expect(page.getByLabel(/имя/i)).toBeVisible()
   await page.getByLabel(/имя/i).fill(name)

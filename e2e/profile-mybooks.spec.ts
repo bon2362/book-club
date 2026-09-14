@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const EMAIL = 'e2e-mybooks@test.invalid'
@@ -40,7 +41,7 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     })
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByRole('button', { name: NAME }).click()
     const dialog = page.getByRole('dialog')
@@ -60,7 +61,6 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
 
     // Switch to "Читаю"
     await dialog.locator('[data-testid="status-option-reading"]').click()
-    await page.waitForLoadState('networkidle')
 
     // bookA moved to "Читаю" section, only 2 left in signup
     await expect(dialog.locator('[data-testid="section-reading"]')).toBeVisible()
@@ -73,13 +73,12 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     const patchRead = page.waitForResponse(r => r.url().includes('/api/signup-books/') && r.request().method() === 'PATCH')
     await dialog.locator('[data-testid="status-option-read"]').click()
     await patchRead
-    await page.waitForLoadState('networkidle')
     await expect(dialog.locator('[data-testid="section-read"]')).toBeVisible()
     await expect(dialog.locator('[data-testid="priority-book-row"]')).toHaveCount(1)
 
     // Reload — state must persist
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByRole('button', { name: NAME }).click()
     const dialog2 = page.getByRole('dialog')
     await expect(dialog2).toBeVisible()
@@ -105,7 +104,7 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     })
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByRole('button', { name: NAME }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
@@ -118,12 +117,10 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     // Move b1 to "Читаю"
     await dialog.locator(`[data-book-id="${b1.id}"]`).click()
     await dialog.locator('[data-testid="status-option-reading"]').click()
-    await page.waitForLoadState('networkidle')
 
     // Move b1 back to "Хочу читать"
     await dialog.locator(`[data-testid="section-reading"] [data-book-id="${b1.id}"]`).click()
     await dialog.locator('[data-testid="status-option-null"]').click()
-    await page.waitForLoadState('networkidle')
 
     // b1 must be at the END of section-signup (after b2), and show "—" badge (unranked)
     const signupRows = dialog.locator('[data-testid="section-signup"] [data-testid="priority-book-row"]')

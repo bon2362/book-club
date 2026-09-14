@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.beforeEach(async () => {
@@ -12,7 +13,7 @@ test.describe('Auth modal remembered provider hint', () => {
       localStorage.setItem('slowreading.lastAuthProvider', 'google')
     })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByRole('button', { name: /^войти$/i }).click()
 
@@ -46,14 +47,14 @@ test.describe('AuthErrorBanner: conditional render', () => {
   test('баннер виден на /?auth=failed и скрыт на /', async ({ page }) => {
     // Переход на /?auth=failed — баннер должен отображаться
     await page.goto('/?auth=failed')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     const banner = page.getByTestId('auth-error-banner')
     await expect(banner).toBeVisible()
     await expect(banner).toContainText('Не получилось войти через Telegram')
 
     // Переход на / без параметра — баннера нет
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByTestId('auth-error-banner')).toHaveCount(0)
   })
 })
@@ -73,7 +74,7 @@ test.describe('ProfileDrawer: status accordion menu', () => {
         data: { userId: 'placeholder', name: NAME, email: EMAIL, contacts: '@' + TG, telegramUsername: TG, selectedBookIds: [book.id] },
       })
       await page.goto('/')
-      await page.waitForLoadState('networkidle')
+      await waitForHydration(page)
       await page.getByRole('button', { name: NAME }).click()
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible()
@@ -127,7 +128,7 @@ test.describe('ProfileDrawer: auth methods layout', () => {
     expect(profileResponse.ok()).toBe(true)
     try {
       await page.goto('/')
-      await page.waitForLoadState('networkidle')
+      await waitForHydration(page)
       const profileButton = page.locator('.nd-header-avatar')
       await expect(profileButton).toBeVisible({ timeout: 20_000 })
       await profileButton.click({ timeout: 10_000 })

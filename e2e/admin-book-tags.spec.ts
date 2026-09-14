@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-booktags-admin@test.invalid'
@@ -29,7 +30,7 @@ test.describe('AdminPanel — выбор тега книги', () => {
     const target = await createTestBook({ tags: ['Государство'] })
 
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByTestId('admin-tab-catalog').click()
     // НЕ networkidle: каталог рендерит обложки через next/image, недоступный
     // внешний хост держит /_next/image открытым и idle не наступает.
@@ -74,7 +75,7 @@ test.describe('AdminPanel — выбор тега книги', () => {
     await createTestBook({ tags: ['Демократия'] })
 
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByTestId('admin-tab-catalog').click()
     await page.waitForLoadState('domcontentloaded')
 

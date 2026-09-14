@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 import { isFullyAboveViewport, isFullyAboveViewportByLocator, isFullyVisible } from './helpers/layout'
@@ -13,7 +14,7 @@ test.describe('Header: hide on scroll', () => {
   // фильтр-бар прячется вместе с хедером) в один сценарий «вниз».
   test('header и filter bar видны вверху и прячутся при скролле вниз', async ({ page }) => {
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Вверху страницы хедер полностью виден
     expect(await isFullyVisible(page, 'header')).toBe(true)
@@ -26,7 +27,7 @@ test.describe('Header: hide on scroll', () => {
 
   test('header и filter bar появляются при скролле вверх', async ({ page }) => {
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }))
     await page.waitForTimeout(350)
     await page.evaluate(() => window.scrollTo({ top: 100, behavior: 'instant' }))

@@ -166,6 +166,7 @@ test.describe('Matching canonical book board layout', () => {
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
       await page.goto('/matching')
+      await expect(tailToggle).toBeVisible()
       await expect(card).toHaveCount(0)
       await tailToggle.click()
       await expect(card).toBeVisible()
@@ -191,6 +192,7 @@ test.describe('Matching canonical book board layout', () => {
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
       await page.reload()
+      await expect(tailToggle).toBeVisible()
       await expect(record).toHaveCount(0)
       await expect(caret).toHaveCount(0)
       await tailToggle.click()

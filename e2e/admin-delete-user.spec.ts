@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-admin-delete-test@test.invalid'
@@ -57,7 +58,7 @@ test.describe('Удаление пользователя в админке', () 
     expect(beforeDeleteData.signupBookCount).toBe(1)
 
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Вкладка "Участники" открыта по умолчанию — ищем жертву в таблице
     await expect(page.getByText(VICTIM_NAME)).toBeVisible()
@@ -83,7 +84,7 @@ test.describe('Удаление пользователя в админке', () 
 
     // Перезагружаем страницу — ключевая проверка: данные читаются заново из Sheets
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Жертва не должна появиться снова
     await expect(page.locator('tr').filter({ hasText: VICTIM_NAME })).toHaveCount(0)
