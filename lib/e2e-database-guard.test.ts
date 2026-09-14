@@ -13,17 +13,25 @@ function safeEnv(overrides: Record<string, string | undefined> = {}) {
   }
 }
 
+// Каждый случай сверяет свою причину отказа, а не только факт ошибки: иначе случай
+// проходит за счёт соседней проверки. Так «production host selected» годами отсекался
+// проверкой E2E-маркера, и удаление самой проверки прод-хоста не валило ни один тест.
 test.each([
-  ['test mode disabled', { NEXTAUTH_TEST_MODE: undefined }],
-  ['required marker missing', { E2E_REQUIRE_DB_MARKER: undefined }],
-  ['required marker does not match', { E2E_REQUIRE_DB_MARKER: 'other-e2e-host' }],
-  ['production marker missing', { PROD_DB_HOST_MARKER: undefined }],
-  ['production host selected', { DATABASE_URL: 'postgres://user:pwd@ep-prod-host-9999.neon.tech/db' }],
-  ['database URL missing', { DATABASE_URL: undefined }],
-  ['database URL invalid', { DATABASE_URL: 'not-a-postgres-url-ep-e2e-host-7777' }],
-])('fails closed before constructing a DB client when %s', (_label, overrides) => {
+  ['test mode disabled', { NEXTAUTH_TEST_MODE: undefined }, 'NEXTAUTH_TEST_MODE must be true'],
+  ['required marker missing', { E2E_REQUIRE_DB_MARKER: undefined }, 'E2E_REQUIRE_DB_MARKER is required'],
+  ['required marker does not match', { E2E_REQUIRE_DB_MARKER: 'other-e2e-host' }, 'DATABASE_URL does not match E2E_REQUIRE_DB_MARKER'],
+  ['production marker missing', { PROD_DB_HOST_MARKER: undefined }, 'PROD_DB_HOST_MARKER is required'],
+  ['production host selected', { DATABASE_URL: 'postgres://user:pwd@ep-prod-host-9999.neon.tech/db' }, 'production database host is forbidden'],
+  [
+    'production host URL also contains the E2E marker',
+    { DATABASE_URL: 'postgres://user:pwd@ep-prod-host-9999.neon.tech/ep-e2e-host-7777' },
+    'production database host is forbidden',
+  ],
+  ['database URL missing', { DATABASE_URL: undefined }, 'DATABASE_URL is required'],
+  ['database URL invalid', { DATABASE_URL: 'not-a-postgres-url-ep-e2e-host-7777' }, 'DATABASE_URL is invalid'],
+])('fails closed before constructing a DB client when %s', (_label, overrides, reason) => {
   const factory = jest.fn()
-  expect(() => createSafeE2EDatabaseClient(factory, safeEnv(overrides))).toThrow(/E2E database guard/)
+  expect(() => createSafeE2EDatabaseClient(factory, safeEnv(overrides))).toThrow(`E2E database guard: ${reason}`)
   expect(factory).not.toHaveBeenCalled()
 })
 
