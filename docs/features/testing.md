@@ -6,8 +6,8 @@
 
 | Уровень | Инструмент | Запускается | Время |
 |---------|-----------|-------------|-------|
-| Статический анализ | ESLint + tsc | Pre-commit (Husky) + CI | ~10 сек |
-| Unit-тесты + Coverage | Jest + Codecov | Pre-commit (Husky) + CI | ~45 сек |
+| Статический анализ | ESLint + tsc + secretlint | Pre-commit (Husky) + CI; проверка hex-цветов — только pre-commit | ~10 сек |
+| Unit-тесты + Coverage | Jest + Codecov | CI (job `quality`); локально — вручную `npm test` | ~10 сек локально, ~2 мин job в CI |
 | E2E-тесты | Playwright | Focused локально; полный nightly/manual | focused Matching ~30 сек; полный прогон измеряется nightly |
 | Отчётность | Allure + GitHub Pages | После отдельного E2E workflow | авто |
 | Coverage tracking | Codecov | CI (после unit-тестов) | авто |
@@ -18,7 +18,7 @@
 
 ### ESLint
 
-Конфиг: `eslint.config.mjs`. Запуск: `npm run lint`.
+Конфиг: `.eslintrc.json` (`next/core-web-vitals`, `next/typescript` и запрет мутаций мимо `withAuditContext`). Запуск: `npm run lint`.
 
 Проверяет импорты, неиспользуемые переменные, React-специфичные правила. `--max-warnings 0` — любое предупреждение считается ошибкой.
 
@@ -28,9 +28,9 @@
 
 ### Pre-commit (Husky + lint-staged)
 
-Перед каждым коммитом `lint-staged` автоматически прогоняет ESLint и tsc на изменённых `.ts/.tsx` файлах. Коммит не создаётся при ошибках.
+Перед каждым коммитом `lint-staged` прогоняет на изменённых `.ts/.tsx` ESLint (`--max-warnings 0`), полный `tsc --noEmit` и `scripts/check-no-raw-hex.sh`, а на всех staged-файлах — secretlint. Коммит не создаётся при ошибках. **Unit-тесты перед коммитом не запускаются** — только в CI, поэтому `npm test` гоняй сам.
 
-> **Ограничение devcontainer:** `tsc --noEmit` на полном проекте OOM-ит из-за нехватки памяти (~1.5 GB). В этом случае запускать проверку вручную: `npm run lint && npx tsc --noEmit <изменённые_файлы>`, коммитить с `--no-verify`. CI на GitHub Actions всегда прогоняет полный typecheck.
+> **Не хватает памяти на полный `tsc`:** `--no-verify` запрещён (AGENTS.md, «Правила для агентов», п. 6) — вместе с tsc он пропускает и secretlint. Подними лимит (`NODE_OPTIONS=--max-old-space-size=4096 git commit …`, переменная доходит до `tsc` внутри lint-staged) или коммить с машины, где полный typecheck проходит. CI всё равно прогоняет полный typecheck.
 
 ---
 
@@ -73,7 +73,7 @@ npm test -- --coverage   # генерирует coverage/lcov.info
 Исключено из coverage: DB-миграции, схема, тестовые эндпоинты, NextAuth handler.
 
 Coverage автоматически загружается в **Codecov** в каждом CI-прогоне:
-- Текущее покрытие: **~86%** функций
+- Текущее покрытие — в Codecov; на 2026-09-14: строки 83,5%, функции 83,7%, ветки 69% (ветки порогом не контролируются). В расчёт входят только `lib/` и `app/api/`, тесты компонентов в процент не попадают
 - Dashboard: `https://codecov.io/gh/bon2362/book-club`
 - Badge отображается в README
 
@@ -95,14 +95,12 @@ Coverage автоматически загружается в **Codecov** в к�
 ### Запуск локально
 
 ```bash
-# 1. Запустить dev-сервер с тестовым режимом
-NEXTAUTH_TEST_MODE=true npx next dev
-
-# 2. В другом терминале
-npm run test:e2e
+PLAYWRIGHT_PORT=3100 npm run test:e2e:focused -- e2e/<spec>.spec.ts --grep "сценарий"
 ```
 
-`reuseExistingServer: true` — Playwright переиспользует уже запущенный сервер.
+Playwright сам поднимает dev-сервер (`webServer` в `playwright.config.ts`) с `NEXTAUTH_TEST_MODE=true` и базой из `.env.test.local`. Вне CI он переиспользует сервер, уже запущенный на этом порту (`reuseExistingServer: !process.env.CI`), поэтому `PLAYWRIGHT_PORT` нужен, если порт 3000 занят другим проектом — иначе тесты молча пойдут в чужое приложение.
+
+В свежем worktree нужны симлинки `.env.local` и `.env.test.local` (AGENTS.md, «E2E в свежем worktree»). **Перед `npm test` в той же папке их убери:** `next/jest` подхватывает `.env.local`, и тесты тестового режима (`app/api/test/session`, `app/api/test/cleanup-users`) падают ложно.
 
 Playwright запускается с `workers: 1`: matching-тесты используют единственную active session (`matching_sessions_single_active_idx`), а `/matching` всегда читает её. Параллельные спеки могут удалить или заменить active session друг у друга.
 
@@ -320,7 +318,7 @@ test.beforeEach(async () => {
 
 - Badge в README отражает текущий % покрытия
 - На каждый PR Codecov оставляет комментарий с дельтой покрытия
-- Пороги: 80% project, 70% patch (снижение coverage блокирует PR)
+- Пороги Codecov: 80% project, 70% patch — это статусы в PR, мерж они **не** блокируют: обязательна только проверка `ci`, а загрузка в Codecov идёт с `continue-on-error`. Блокирует порог Jest `coverageThreshold` (80% строк и функций) внутри job `quality`
 
 ---
 
