@@ -173,6 +173,8 @@ ln -s ../book-club/.env.test.local .env.test.local  # иначе: «E2E database
 
 Второй файл важнее: `playwright.config.ts` берёт из `.env.test.local` `DATABASE_URL` изолированной Neon-ветки и маркеры безопасности, форвардя их в `webServer.env` поверх `.env.local`. Без него страж (`lib/e2e-database-guard.ts`) корректно отказывается стартовать, но причина по тексту ошибки неочевидна. Симлинки безопасны: `.env*.local` в `.gitignore`, в коммит не попадут.
 
+**Перед `npm test` симлинки убери.** `next/jest` сам грузит `.env.local`, и в папке с симлинком падают тесты тестового режима (`app/api/test/session/route.test.ts`, `app/api/test/cleanup-users/route.test.ts`) — выглядит как регрессия от своих правок, а мутационные проверки начинают засчитывать любую поломку как пойманную. Симлинки нужны только на время E2E-прогона.
+
 **Порт 3000 может быть занят чужим проектом.** Playwright по умолчанию переиспользует уже запущенный сервер (`reuseExistingServer` вне CI), поэтому тесты молча бьются в чужое приложение и падают с 404 на `/api/test/*`. Не гаси чужой сервер — подними свой: `PLAYWRIGHT_PORT=3100 npm run test:e2e:focused -- <spec>`.
 
 ### UI Layout Tests
