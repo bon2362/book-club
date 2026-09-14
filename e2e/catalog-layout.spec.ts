@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.beforeEach(async () => {
@@ -44,7 +45,7 @@ test.describe('Home submit book CTA layout', () => {
   test('submit book button is compact on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // На мобильном видим именно мобильный каталог (десктоп-дерево скрыто
     // media-query, но присутствует в DOM) — скоупим на видимый контейнер.
@@ -56,7 +57,7 @@ test.describe('Home submit book CTA layout', () => {
   test('book search input uses iOS-safe font size on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     const fontSize = await page.getByPlaceholder('Поиск по названию или автору…').evaluate((element) => (
       Number.parseFloat(window.getComputedStyle(element).fontSize)
@@ -85,7 +86,7 @@ test.describe('Home submit book CTA layout', () => {
     )
 
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByPlaceholder('Поиск по названию или автору…').fill(book.title)
     await expect(page.getByRole('heading', { name: book.title })).toBeVisible()
 
@@ -117,7 +118,7 @@ test.describe('BookCardMobile: responsive layout', () => {
   test('на мобильном (390×800) каталог-мобайл виден, каталог-десктоп и переключатель вида скрыты', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 800 })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // catalog-mobile виден: boundingBox не null и в области просмотра
     const mobileBox = await page.getByTestId('catalog-mobile').boundingBox()
@@ -140,7 +141,7 @@ test.describe('BookCardMobile: responsive layout', () => {
   test('на десктопе (1280×900) каталог-десктоп виден, каталог-мобайл скрыт', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // catalog-desktop виден
     const desktopBox = await page.getByTestId('catalog-desktop').boundingBox()

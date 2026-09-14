@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.beforeEach(async () => {
@@ -26,7 +27,7 @@ test.describe('Admin user drawer layout', () => {
     await page.request.post('/api/test/session', { data: { email: ADMIN_EMAIL, name: 'E2E UI Admin', isAdmin: true } })
 
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByLabel('Поиск пользователей').fill(USER_NAME)
     await page.locator('tr').filter({ hasText: USER_NAME }).click()
     const viewport = page.viewportSize()!
@@ -53,7 +54,7 @@ test.describe('Admin tab layout states', () => {
 
   test('book sort arrow stays on the same line as header text', async ({ page }) => {
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByTestId('admin-tab-catalog').click()
 
     const header = page
@@ -75,7 +76,7 @@ test.describe('Admin tab layout states', () => {
   // местах админки. Проверяем обе вкладки (Теги и Интро) в одном тесте.
   test('textarea авто-растёт под введённый текст (теги и интро)', async ({ page }) => {
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Вкладка «Теги»
     await page.getByRole('button', { name: /теги/i }).click()
@@ -136,7 +137,7 @@ test.describe('Admin Catalog: section + editor layout', () => {
 
   test('inline-редактор раскрывается ниже строки книги и имеет ненулевой размер', async ({ page }) => {
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByTestId('admin-tab-catalog').click()
 
     // Создаём книгу-фикстуру, чтобы тест был детерминирован.

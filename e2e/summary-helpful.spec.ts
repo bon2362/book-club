@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.describe('Реакция «Полезно» для саммари', () => {
@@ -14,7 +15,7 @@ test.describe('Реакция «Полезно» для саммари', () => {
   }) => {
     const summary = await createPublishedSummary()
     await page.goto(summary.url)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     const helpful = page.getByTestId('summary-helpful-button')
     await expect(helpful).toHaveText('Полезно')
@@ -55,7 +56,7 @@ test.describe('Реакция «Полезно» для саммари', () => {
     })
 
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(helpful).toHaveAttribute('aria-pressed', 'true')
     await expect(helpful).toHaveText('Полезно · 1')
 
@@ -66,7 +67,7 @@ test.describe('Реакция «Полезно» для саммари', () => {
     await expect(helpful).toHaveAttribute('aria-pressed', 'false')
     expect((await deleteResponse).ok()).toBe(true)
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(helpful).toHaveText('Полезно')
     await expect(helpful).not.toContainText('· 0')
   })

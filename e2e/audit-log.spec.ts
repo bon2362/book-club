@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 // Dedicated emails so afterEach cleanup is predictable
@@ -42,14 +43,13 @@ test.describe('Журнал аудита', () => {
 
     // 4. Открываем вкладку аудит-лога
     await page.goto('/admin?tab=audit')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Убеждаемся, что вкладка активна (на случай если query-param не переключил)
     const auditTab = page.getByTestId('admin-tab-audit')
     await expect(auditTab).toBeVisible()
     // Кликаем явно, чтобы гарантировать загрузку компонента AdminAuditLog
     await auditTab.click()
-    await page.waitForLoadState('networkidle')
 
     // 5. Ищем строку с нашим book.id
     const matchingRow = page
@@ -65,9 +65,8 @@ test.describe('Журнал аудита', () => {
 
     // 6. Проверка персистентности — reload и снова ищем запись
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByTestId('admin-tab-audit').click()
-    await page.waitForLoadState('networkidle')
 
     const rowAfterReload = page
       .locator('[data-testid="audit-row"]')
@@ -109,12 +108,11 @@ test.describe('Журнал аудита', () => {
 
     // 4. Открываем журнал аудита
     await page.goto('/admin?tab=audit')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     const auditTab = page.getByTestId('admin-tab-audit')
     await expect(auditTab).toBeVisible()
     await auditTab.click()
-    await page.waitForLoadState('networkidle')
 
     // 5. Ищем строку, содержащую наш тег-зонд в колонке ID (entityId)
     //    Компонент рендерит entityId в последнем td (6-я колонка)

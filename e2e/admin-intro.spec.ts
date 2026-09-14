@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.describe('AdminPanel — вкладка «Интро»', () => {
@@ -26,7 +27,7 @@ test.describe('AdminPanel — вкладка «Интро»', () => {
     })
 
     await page.goto('/admin?tab=intro')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByTestId('intro-editor')).toBeVisible()
 
     const questionInput = page.getByTestId(`intro-question-${section.id}`)
@@ -41,12 +42,12 @@ test.describe('AdminPanel — вкладка «Интро»', () => {
 
     // Reload — изменение сохранилось в БД
     await page.reload()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page.getByTestId(`intro-question-${section.id}`)).toHaveValue(editedQuestion)
 
     // На главной новый текст виден в аккордеоне
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByText('Подробнее ↓').click()
     await expect(page.getByText(editedQuestion)).toBeVisible()
   })

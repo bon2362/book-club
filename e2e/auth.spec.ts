@@ -26,5 +26,7 @@ test('после логина пользователь авторизован �
   })
 
   await page.goto('/')
+  // Сначала шапка вошедшего пользователя, иначе «кнопки входа нет» проходит до отрисовки.
+  await expect(page.getByRole('button', { name: TEST_NAME })).toBeVisible()
   await expect(page.getByRole('button', { name: /войти/i })).not.toBeVisible()
 })

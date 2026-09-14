@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 test.beforeEach(async () => {
@@ -21,7 +22,7 @@ test.describe('Summary editor layout', () => {
     const body = page.getByTestId('summary-article-body')
     const footer = page.getByTestId('summary-helpful-footer')
     const beforeHydration = await footer.boundingBox()
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     const articleBox = await article.boundingBox()
     const bodyBox = await body.boundingBox()
     const footerBox = await footer.boundingBox()
@@ -77,7 +78,7 @@ test.describe('Summary editor layout', () => {
 
     await loginAsAdmin({ name: 'UI Summary Admin' })
     await page.goto('/admin?tab=summaries')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByText('UI Moderation Summary').click()
 
     const slugBox = await page.getByLabel('Красивый URL книги').boundingBox()
@@ -121,7 +122,7 @@ test.describe('Summary editor layout', () => {
     const draft = (await draftRes.json()) as { summary: { id: string } }
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     const viewport = page.viewportSize()!
     const workspaceBox = await page.getByTestId('summary-editor-workspace').boundingBox()
@@ -178,7 +179,7 @@ test.describe('Summary editor layout', () => {
     expect(saveRes.ok()).toBe(true)
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     const textarea = page.getByLabel('Текст саммари')
     const boldButton = page.getByRole('button', { name: 'Жирный' })
     await expect(textarea).toBeVisible()
@@ -248,7 +249,7 @@ test.describe('Summary editor layout', () => {
     const draft = (await draftRes.json()) as { summary: { id: string } }
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByLabel('Текст саммари').fill([
       'Короткая выжимка остается видимой.',
       '',
@@ -357,7 +358,7 @@ test.describe('Wikipedia summary widget layout', () => {
     const draft = (await draftRes.json()) as { summary: { id: string } }
 
     await page.goto(`/summaries/${draft.summary.id}/edit`)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByLabel('Текст саммари').fill([
       '> Авторская подводка к статье.',
       '>',
@@ -453,7 +454,7 @@ test.describe('Оглавление саммари (TOC)', () => {
     // порядок setViewportSize относительно goto не влияет на рендер рукава.
     await page.setViewportSize({ width: 1280, height: 800 })
     await page.goto(summary.url)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     const rail = page.locator('.summary-toc__rail')
     await expect(rail).toBeVisible()
@@ -499,7 +500,7 @@ test.describe('Оглавление саммари (TOC)', () => {
     const summary = await createPublishedSummary({ bodyMarkdown: body })
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto(summary.url)
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // Рукав скрыт, бар виден
     await expect(page.locator('.summary-toc__rail')).toBeHidden()

@@ -364,8 +364,10 @@ test('книга в статусе «читаю сейчас» уезжает в
   expect(setReading.ok(), await setReading.text()).toBe(true)
 
   await page.goto('/matching')
-  await expect(card).toHaveCount(0)
   const toggle = page.getByTestId('matching-tail-toggle')
+  // Полка «пока нельзя» свёрнута: сначала убеждаемся, что доска отрисовалась.
+  await expect(toggle).toBeVisible()
+  await expect(card).toHaveCount(0)
   await toggle.click()
   await expect(card).toBeVisible()
   const reason = card.getByTestId('matching-book-tail-reason')
@@ -379,6 +381,7 @@ test('книга в статусе «читаю сейчас» уезжает в
 
   // Persistence: a reload must not lose the "reading" placement or its label.
   await page.reload()
+  await expect(page.getByTestId('matching-tail-toggle')).toBeVisible()
   await expect(card).toHaveCount(0)
   await page.getByTestId('matching-tail-toggle').click()
   await expect(card).toBeVisible()

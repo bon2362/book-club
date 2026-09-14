@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import AppProviders from './AppProviders'
 import { usePathname } from 'next/navigation'
 
@@ -14,6 +14,7 @@ const mockUsePathname = usePathname as jest.Mock
 describe('AppProviders', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    delete document.documentElement.dataset.hydrated
   })
 
   it('does not mount the client SessionProvider on calendar pages', () => {
@@ -32,5 +33,15 @@ describe('AppProviders', () => {
 
     expect(screen.getByTestId('session-provider')).toBeInTheDocument()
     expect(postHogProvider).toHaveBeenCalledWith(expect.objectContaining({ identifySession: true }))
+  })
+
+  // На этот признак опирается waitForHydration в e2e/helpers.ts вместо networkidle.
+  it('marks <html> as hydrated after mount', async () => {
+    mockUsePathname.mockReturnValue('/')
+    expect(document.documentElement.dataset.hydrated).toBeUndefined()
+
+    render(<AppProviders><span>home</span></AppProviders>)
+
+    await waitFor(() => expect(document.documentElement.dataset.hydrated).toBe('true'))
   })
 })

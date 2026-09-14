@@ -11,6 +11,7 @@
  * После теста описание восстанавливается к исходному значению.
  */
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 
 const TEST_EMAIL = 'e2e-tags-admin@test.invalid'
 const TEST_NAME = 'E2E Tags Admin'
@@ -45,7 +46,7 @@ test.describe('Редактирование тега в админке', () => {
 
     // ── Шаг 1: Admin panel → вкладка "Теги" ─────────────────────────────
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await expect(page).toHaveURL('/admin', { timeout: 5000 })
 
     // Нажимаем вкладку "Теги"
@@ -79,7 +80,7 @@ test.describe('Редактирование тега в админке', () => {
 
     // ── Шаг 5: Открываем каталог книг (главная страница) ────────────────
     await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     // ── Шаг 6: Выбираем тег в фильтре ───────────────────────────────────
     // BooksPage.tsx: <select class="filters-select-tag">
@@ -87,7 +88,6 @@ test.describe('Редактирование тега в админке', () => {
     await expect(tagSelect).toBeVisible({ timeout: 5000 })
 
     await tagSelect.selectOption(TARGET_TAG)
-    await page.waitForLoadState('networkidle')
 
     console.log(`🏷️  Выбран тег "${TARGET_TAG}" в фильтре`)
 

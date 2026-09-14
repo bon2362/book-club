@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures'
-import { saveProfile } from './helpers'
+import { saveProfile, waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const TEST_EMAIL = 'e2e-signup@test.invalid'
@@ -35,7 +35,7 @@ test('новый пользователь заполняет профиль и �
   await saveProfile(page, TEST_NAME, TEST_CONTACT)
 
   await page.reload()
-  await page.waitForLoadState('networkidle')
+  await waitForHydration(page)
 
   const me = await page.request.get('/api/me')
   expect(me.ok()).toBeTruthy()
@@ -121,7 +121,7 @@ test('приоритеты сохраняются и после reload чита�
   expect(savePriorities.ok()).toBeTruthy()
 
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await page.waitForLoadState('networkidle')
+  await waitForHydration(page)
   await page.getByRole('button', { name: TEST_NAME }).click()
   const dialog = page.getByRole('dialog', { name: /личный кабинет/i })
   await expect(dialog).toBeVisible()

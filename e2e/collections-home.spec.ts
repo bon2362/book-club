@@ -1,5 +1,6 @@
 import { epic, feature } from 'allure-js-commons'
 import { expect, test } from './fixtures'
+import { waitForHydration } from './helpers'
 
 test.beforeEach(async () => {
   await epic('Подборки')
@@ -13,6 +14,7 @@ test('выключенный блок не показывается, включ�
   await setHomeCollectionsBlock(false)
 
   await page.goto('/')
+  await expect(page.locator('article').first()).toBeVisible()
   await expect(page.getByTestId('home-collections')).toHaveCount(0)
 
   await loginAsAdmin()
@@ -41,12 +43,15 @@ test('карусель: около 3,35 карточки на десктопе, 
 
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/')
+  await waitForHydration(page)
   const carousel = page.getByTestId('collections-carousel')
+  await expect(carousel.locator('.collections-carousel-item').first()).toBeVisible()
   const track = (await carousel.boundingBox())!
   const card = (await carousel.locator('.collections-carousel-item').first().boundingBox())!
   expect(Math.abs(card.width - (track.width - 60) / 3.35)).toBeLessThan(2)
-  await expect(page.getByRole('button', { name: 'Назад' })).toHaveCount(0)
+  // Стрелки появляются после замера прокрутки: сначала «Вперёд», иначе «Назад нет» — пустая проверка.
   await expect(page.getByRole('button', { name: 'Вперёд' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Назад' })).toHaveCount(0)
 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.reload()

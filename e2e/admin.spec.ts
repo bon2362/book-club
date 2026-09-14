@@ -37,6 +37,9 @@ test.describe('панель администратора — доступ', () =
       data: { email: TEST_EMAIL, name: TEST_NAME },
     })
     await page.goto('/')
+    // Шапка вошедшего пользователя рисуется после загрузки сессии: без этого якоря
+    // «ссылки нет» проверялось бы до отрисовки.
+    await expect(page.getByRole('button', { name: TEST_NAME })).toBeVisible()
     await expect(page.locator('a[href="/admin"]')).toHaveCount(0)
   })
 })

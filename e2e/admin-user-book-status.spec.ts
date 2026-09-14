@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-admin-book-status@test.invalid'
@@ -30,7 +31,7 @@ test.describe('Admin: смена personalStatus книги за пользова
 
     try {
       await page.goto('/admin')
-      await page.waitForLoadState('networkidle')
+      await waitForHydration(page)
 
       // Открыть drawer пользователя
       await page.getByLabel('Поиск пользователей').fill(USER_NAME)
@@ -55,7 +56,6 @@ test.describe('Admin: смена personalStatus книги за пользова
       )
       await drawer.locator('[data-testid="admin-status-option-reading"]').click()
       await patchDone
-      await page.waitForLoadState('networkidle')
 
       // Книга должна быть в секции «Читаю» (заголовок секции виден)
       await expect(drawer.locator('text=Читаю').first()).toBeVisible()

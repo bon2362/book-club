@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { waitForHydration } from './helpers'
 import { epic, feature } from 'allure-js-commons'
 
 const ADMIN_EMAIL = 'e2e-books-catalog-admin@test.invalid'
@@ -42,7 +43,7 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
 
   test('создание скрытой книги, публикация и скрытие сохраняются после перезагрузки', async ({ page }) => {
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
 
     await page.getByTestId('admin-tab-catalog').click()
     await expect(page.getByTestId('admin-books-catalog')).toBeVisible()
@@ -72,7 +73,7 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     // 3. На главной hidden книги нет
     const homePage = await page.context().newPage()
     await homePage.goto('/')
-    await homePage.waitForLoadState('networkidle')
+    await waitForHydration(homePage)
     await expect(homePage.getByText(BOOK_TITLE)).toHaveCount(0)
     await homePage.close()
 
@@ -102,7 +103,7 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     // 5. На главной книга появилась
     const homePage2 = await page.context().newPage()
     await homePage2.goto('/')
-    await homePage2.waitForLoadState('networkidle')
+    await waitForHydration(homePage2)
     await expect(homePage2.getByText(BOOK_TITLE).first()).toBeVisible()
     await homePage2.close()
 
@@ -130,7 +131,7 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
     // На главной снова нет
     const homePage3 = await page.context().newPage()
     await homePage3.goto('/')
-    await homePage3.waitForLoadState('networkidle')
+    await waitForHydration(homePage3)
     await expect(homePage3.getByText(BOOK_TITLE)).toHaveCount(0)
     await homePage3.close()
 
@@ -140,7 +141,7 @@ test.describe('AdminPanel — вкладка «Каталог»', () => {
 
   test('закрытие inline-редактора с несохранёнными правками показывает confirm', async ({ page }) => {
     await page.goto('/admin')
-    await page.waitForLoadState('networkidle')
+    await waitForHydration(page)
     await page.getByTestId('admin-tab-catalog').click()
     await expect(page.getByTestId('admin-books-catalog')).toBeVisible()
 
