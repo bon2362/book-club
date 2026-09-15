@@ -17,6 +17,7 @@ export const env = createEnv({
     NEON_SPEND_LIMIT_USD: z.string().optional(),
     NEXTAUTH_TEST_MODE: z.string().optional(),
     TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
+    WIDGET_TOKEN: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().min(1),
@@ -37,6 +38,7 @@ export const env = createEnv({
     NEON_SPEND_LIMIT_USD: process.env.NEON_SPEND_LIMIT_USD,
     NEXTAUTH_TEST_MODE: process.env.NEXTAUTH_TEST_MODE,
     TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET,
+    WIDGET_TOKEN: process.env.WIDGET_TOKEN,
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     NEXT_PUBLIC_TELEGRAM_BOT_NAME: process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME,
   },
