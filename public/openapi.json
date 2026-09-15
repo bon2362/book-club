@@ -61,6 +61,11 @@
         "type": "http",
         "scheme": "bearer",
         "description": "CRON_SECRET для cron endpoints"
+      },
+      "widgetBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "WIDGET_TOKEN для десктопного виджета владельца"
       }
     },
     "schemas": {
@@ -4304,6 +4309,66 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/widget/updates": {
+      "get": {
+        "tags": ["Cron"],
+        "summary": "Сводка новых событий для десктопного виджета владельца",
+        "security": [{ "widgetBearer": [] }],
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" },
+            "description": "С какого момента считать новым. По умолчанию неделя назад, не глубже 30 дней."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Счётчики и до 5 последних записей по users, submissions, summaries, collections, feedback, matching",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generatedAt": { "type": "string", "format": "date-time" },
+                    "since": { "type": "string", "format": "date-time" },
+                    "matchingSession": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": { "id": { "type": "string" }, "name": { "type": "string" } }
+                    }
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "count": { "type": "integer" },
+                      "capped": { "type": "boolean" },
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "title": { "type": "string" },
+                            "subtitle": { "type": "string", "nullable": true },
+                            "at": { "type": "string", "format": "date-time" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Ошибка",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }
       }

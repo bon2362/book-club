@@ -101,6 +101,7 @@ API проекта описан в OpenAPI-файле и доступен чер
 | Auth | Нужна session cookie NextAuth. |
 | Admin | Нужна session cookie и `session.user.isAdmin=true`. |
 | Cron | Нужен Bearer `CRON_SECRET`. |
+| Widget | `GET /api/widget/updates` — нужен Bearer `WIDGET_TOKEN` (см. «Десктопный виджет» в [Панели администратора](Admin-Panel)). |
 | Testing | Работает только в test mode и не должен быть доступен в production. |
 
 ## Что важно владельцу
