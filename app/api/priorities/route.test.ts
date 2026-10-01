@@ -51,6 +51,10 @@ beforeEach(() => {
   ;(db.transaction as jest.Mock).mockImplementation(async (callback) => callback(db))
 })
 
+afterEach(() => {
+  jest.resetAllMocks()
+})
+
 function makeSelectMock(rows: unknown[]) {
   const chain = {
     from: jest.fn().mockReturnThis(),
@@ -136,6 +140,13 @@ describe('PUT /api/priorities', () => {
       .mockReturnValueOnce({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
+            for: jest.fn().mockResolvedValue([{ id: 'user-1' }]),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
             orderBy: jest.fn().mockReturnValue({
               for: jest.fn().mockResolvedValue([]),
             }),
@@ -180,6 +191,42 @@ describe('PUT /api/priorities', () => {
     }))
     expect(mockBroadcastMatchingStateChange).toHaveBeenCalledWith('user-1')
     expect(mockTrackPrioritiesUpdated).toHaveBeenCalledWith('user-1', 2)
+  })
+
+  it('блокирует строку пользователя перед заменой пустого списка рангов', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
+    const userLock = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      for: jest.fn().mockResolvedValue([{ id: 'user-1' }]),
+    }
+    const prioritiesLock = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      for: jest.fn().mockResolvedValue([]),
+    }
+    ;(db.select as jest.Mock)
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([{ id: 'book-a' }]),
+        }),
+      })
+      .mockReturnValueOnce(userLock)
+      .mockReturnValueOnce(prioritiesLock)
+    ;(db.insert as jest.Mock).mockReturnValue({ values: jest.fn().mockResolvedValue(undefined) })
+    ;(db.delete as jest.Mock).mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) })
+    ;(db.update as jest.Mock).mockReturnValue({
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockResolvedValue(undefined),
+    })
+
+    const res = await PUT(makePut({ bookIds: ['book-a'] }))
+
+    expect(res.status).toBe(200)
+    expect(userLock.for).toHaveBeenCalledWith('update')
+    expect(prioritiesLock.for).toHaveBeenCalledWith('update')
   })
 
   it('при активной сессии пишет событие предпочтений с упорядоченным списком книг', async () => {

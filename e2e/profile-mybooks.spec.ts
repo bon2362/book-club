@@ -88,6 +88,36 @@ test.describe('ProfileDrawer — Мои книги (три секции по per
     await expect(dialog2.locator('[data-testid="section-read"] [data-book-id="' + bookC.id + '"]')).toBeVisible()
   })
 
+  test('два одновременных сохранения рангов не конфликтуют', async ({ page, createTestBook, dbExec }) => {
+    const bookA = await createTestBook({ title: 'E2E Concurrent Priority A' })
+    const bookB = await createTestBook({ title: 'E2E Concurrent Priority B' })
+    const session = await page.request.post('/api/test/session', {
+      data: { email: EMAIL, name: NAME, telegramUsername: TG_USERNAME, provider: 'telegram-preauth' },
+    })
+    const { userId } = await session.json()
+    await page.request.post('/api/test/signup', {
+      data: {
+        userId,
+        name: NAME,
+        email: EMAIL,
+        contacts: '@' + TG_USERNAME,
+        telegramUsername: TG_USERNAME,
+        selectedBookIds: [bookA.id, bookB.id],
+      },
+    })
+    // Проверяем граничный случай: рангов ещё нет, поэтому блокировка строк
+    // book_priorities сама по себе не защитит два параллельных PUT.
+    await dbExec('delete from book_priorities where user_id = $1', [userId])
+
+    const [first, second] = await Promise.all([
+      page.request.put('/api/priorities', { data: { bookIds: [bookA.id, bookB.id] } }),
+      page.request.put('/api/priorities', { data: { bookIds: [bookB.id, bookA.id] } }),
+    ])
+
+    expect(first.ok()).toBeTruthy()
+    expect(second.ok()).toBeTruthy()
+  })
+
   test('возврат книги из «Читаю» в «Хочу читать» ставит её в конец без приоритета', async ({ page, createTestBook }) => {
     const b1 = await createTestBook({ title: 'E2E Rank 1' })
     const b2 = await createTestBook({ title: 'E2E Rank 2' })
