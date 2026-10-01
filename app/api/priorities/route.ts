@@ -83,10 +83,18 @@ export async function PUT(req: NextRequest) {
     await withAuditContext(
       { actorUserId: userId, actorLabel: session!.user.name ?? session!.user.contactEmail ?? null, source: 'priorities' },
       async (tx) => {
-        // Lock this user's book_priorities rows before delete+insert — same
-        // lock-first convention as PATCH /api/signup-books/[bookId]/status,
-        // so the two routes can't cross lock order and deadlock when a status
-        // change and a reorder land concurrently for the same user.
+        // A row lock on book_priorities cannot serialize the empty-list case:
+        // FOR UPDATE locks existing rows only, so two first saves would both
+        // reach the insert. The user row always exists and is therefore the
+        // per-user lock that serializes every replace operation.
+        await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, userId))
+          .for('update')
+
+        // Keep the deterministic priority-row lock for replacements that do
+        // have rows, so the delete+insert sequence remains serialized there.
         await tx
           .select({ bookId: bookPriorities.bookId })
           .from(bookPriorities)
