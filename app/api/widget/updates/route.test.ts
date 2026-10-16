@@ -44,12 +44,26 @@ describe('GET /api/widget/updates', () => {
   })
 
   it('200 и сводка за переданное since, без кэша', async () => {
-    const res = await GET(request({ Authorization: 'Bearer secret-token' }, '?since=2026-09-14T08:00:00Z'))
+    // Дата берётся относительно «сейчас»: clampSince обрезает окно 30 днями,
+    // и зашитая дата со временем выпадала за него — тест краснел по календарю,
+    // а не по коду.
+    const sinceParam = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+    const res = await GET(request({ Authorization: 'Bearer secret-token' }, `?since=${sinceParam.toISOString()}`))
 
     expect(res.status).toBe(200)
     expect(res.headers.get('Cache-Control')).toBe('no-store')
     expect(await res.json()).toEqual({ users: { count: 1 } })
     const [since] = mockGetWidgetUpdates.mock.calls[0]
-    expect((since as Date).toISOString()).toBe('2026-09-14T08:00:00.000Z')
+    expect((since as Date).toISOString()).toBe(sinceParam.toISOString())
+  })
+
+  it('слишком старое since обрезается окном в 30 дней', async () => {
+    const tooOld = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    await GET(request({ Authorization: 'Bearer secret-token' }, `?since=${tooOld.toISOString()}`))
+
+    const [since] = mockGetWidgetUpdates.mock.calls[0]
+    const ageDays = (Date.now() - (since as Date).getTime()) / (24 * 60 * 60 * 1000)
+    expect(ageDays).toBeLessThanOrEqual(30.1)
+    expect(ageDays).toBeGreaterThan(29.9)
   })
 })
