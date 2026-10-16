@@ -183,6 +183,81 @@ describe('capturePageview', () => {
   })
 })
 
+describe('capturePageview: скрытая вкладка', () => {
+  // iOS перезагружает выгруженные фоновые вкладки: страница грузится скрытой,
+  // и просмотр, который никто не видел, раньше уходил в статистику.
+  function setVisibility(state: 'visible' | 'hidden') {
+    Object.defineProperty(document, 'visibilityState', { value: state, configurable: true })
+  }
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+    initPostHog()
+    setVisibility('visible')
+  })
+
+  afterEach(() => setVisibility('visible'))
+
+  it('не отправляет просмотр, пока вкладка скрыта', () => {
+    setVisibility('hidden')
+    capturePageview('https://www.slowreading.club/')
+
+    expect(posthog.capture).not.toHaveBeenCalled()
+  })
+
+  it('отправляет просмотр, когда человек открыл вкладку', () => {
+    setVisibility('hidden')
+    capturePageview('https://www.slowreading.club/')
+    setVisibility('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(posthog.capture).toHaveBeenCalledTimes(1)
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview', expect.objectContaining({
+      $current_url: 'https://www.slowreading.club/',
+    }))
+  })
+
+  it('из нескольких переходов в скрытой вкладке отправляет один — последний', () => {
+    setVisibility('hidden')
+    capturePageview('https://www.slowreading.club/')
+    capturePageview('https://www.slowreading.club/timeline')
+    setVisibility('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(posthog.capture).toHaveBeenCalledTimes(1)
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview', expect.objectContaining({
+      $current_url: 'https://www.slowreading.club/timeline',
+    }))
+  })
+
+  it('не отправляет ничего, если вкладку так и не открыли', () => {
+    setVisibility('hidden')
+    capturePageview('https://www.slowreading.club/')
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(posthog.capture).not.toHaveBeenCalled()
+  })
+
+  it('видимую страницу отправляет сразу и без пометки задержки', () => {
+    capturePageview('https://www.slowreading.club/')
+
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview', {
+      $current_url: 'https://www.slowreading.club/',
+    })
+  })
+
+  it('чистит адреса так же, как обычный просмотр', () => {
+    setVisibility('hidden')
+    capturePageview('https://www.slowreading.club/auth/telegram?token=secret&next=%2Fmatching')
+    setVisibility('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview', expect.objectContaining({
+      $current_url: 'https://www.slowreading.club/auth/telegram?next=%2Fmatching',
+    }))
+  })
+})
+
 describe('sanitizeAnalyticsUrl', () => {
   it('removes known identity and token params but preserves safe params and hash', () => {
     const result = sanitizeAnalyticsUrl('https://www.slowreading.club/path?token=t&email=a%40b.test&book=b1#details')

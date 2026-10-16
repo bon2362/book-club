@@ -4,6 +4,9 @@ type EventProps = Record<string, string | number | boolean | undefined | null | 
 
 let initialized = false
 let currentIdentity: string | null = null
+let pendingPageviewUrl: string | null = null
+let pendingSince = 0
+let visibilityListenerAttached = false
 const SENSITIVE_QUERY_KEYS = new Set(['token', 'uid', 'ts', 'username', 'preauth', 'email'])
 const LAST_IDENTITY_STORAGE_KEY = 'bc_last_identity'
 
@@ -39,9 +42,59 @@ export function track(event: string, properties?: EventProps): void {
   posthog.capture(event, properties)
 }
 
+/**
+ * Просмотр страницы. Если в момент загрузки вкладка скрыта, событие придерживается
+ * до момента, когда человек её действительно откроет; не откроет — не отправится вовсе.
+ *
+ * Зачем. iOS выгружает фоновые вкладки из памяти и перезагружает их при возврате в
+ * браузер. Такая перезагрузка слала просмотр, которого никто не видел: одна забытая
+ * вкладка в инкогнито дала около 550 «посетителей» за полгода (разбор — в Wiki,
+ * Analytics-and-PostHog). То же самое закрывает предзагрузку страниц браузером.
+ */
 export function capturePageview(url: string): void {
   if (typeof window === 'undefined' || !initialized) return
-  posthog.capture('$pageview', { $current_url: sanitizeAnalyticsUrl(url) })
+  const sanitized = sanitizeAnalyticsUrl(url)
+  if (!isPageHidden()) {
+    posthog.capture('$pageview', { $current_url: sanitized })
+    return
+  }
+  // Пока вкладка скрыта, помним только последний адрес: человек увидит именно его.
+  pendingPageviewUrl = sanitized
+  if (pendingSince === 0) pendingSince = Date.now()
+  attachVisibilityListener()
+}
+
+function isPageHidden(): boolean {
+  if (typeof document === 'undefined') return false
+  // Предзагрузка браузером: страница отрисована, но её ещё никому не показали.
+  if ((document as Document & { prerendering?: boolean }).prerendering === true) return true
+  return document.visibilityState === 'hidden'
+}
+
+function attachVisibilityListener(): void {
+  if (visibilityListenerAttached) return
+  visibilityListenerAttached = true
+  document.addEventListener('visibilitychange', flushPendingPageview)
+  document.addEventListener('prerenderingchange', flushPendingPageview)
+}
+
+function detachVisibilityListener(): void {
+  visibilityListenerAttached = false
+  document.removeEventListener('visibilitychange', flushPendingPageview)
+  document.removeEventListener('prerenderingchange', flushPendingPageview)
+}
+
+function flushPendingPageview(): void {
+  if (isPageHidden()) return
+  const url = pendingPageviewUrl
+  const waitedMs = pendingSince === 0 ? 0 : Date.now() - pendingSince
+  pendingPageviewUrl = null
+  pendingSince = 0
+  detachVisibilityListener()
+  if (!url) return
+  // deferred_ms — сколько страница пролежала скрытой. По нему видно, как часто
+  // просмотры приходят из фоновых вкладок, а не из живых открытий.
+  posthog.capture('$pageview', { $current_url: url, deferred_ms: waitedMs })
 }
 
 export function sanitizeAnalyticsUrl(url: string): string {
@@ -111,4 +164,8 @@ export function resetIdentity(): void {
 export function __resetForTesting(): void {
   initialized = false
   currentIdentity = null
+  pendingPageviewUrl = null
+  pendingSince = 0
+  if (typeof document !== 'undefined' && visibilityListenerAttached) detachVisibilityListener()
+  visibilityListenerAttached = false
 }
