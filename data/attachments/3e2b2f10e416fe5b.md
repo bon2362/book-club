@@ -1,0 +1,4844 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Читательские круги
+      - link "Долгое наступление" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e7]:
+        - link "Подборки" [ref=e8] [cursor=pointer]:
+          - /url: /collections
+        - button "Предложить книгу" [ref=e10] [cursor=pointer]
+        - button "E2E Submit User" [ref=e11] [cursor=pointer]
+  - region "Читательские круги" [ref=e12] [cursor=pointer]:
+    - generic [ref=e13]:
+      - generic [ref=e14]: Что это
+      - generic [ref=e15]:
+        - paragraph [ref=e17]: Мы собираемся группами по 3-4 человека читать книги по демократии
+        - generic [ref=e18]:
+          - button "Подробнее ↓" [ref=e19]
+          - button "×" [ref=e20]
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - searchbox "Поиск по названию или автору…" [ref=e24]
+      - button "Переключить в таблицу" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+    - generic [ref=e30]:
+      - combobox [ref=e31] [cursor=pointer]:
+        - 'option "Тема: все" [selected]'
+        - option "Государство"
+        - option "Демократия"
+        - option "Капитализм"
+        - option "Левая идея"
+        - option "Народные движения"
+        - option "Путинизм"
+        - option "государство"
+        - option "институты"
+      - combobox [ref=e32] [cursor=pointer]:
+        - 'option "Автор: все" [selected]'
+        - option "Armin Schäfer"
+        - option "Benjamin R. Barber"
+        - option "Bernard Manin"
+        - option "C. B. Macpherson"
+        - option "Charles Mills"
+        - option "Charles Tilly"
+        - option "Circle Author"
+        - option "CrimethInc"
+        - option "Daniel Treisman"
+        - option "Daron Acemoglu"
+        - option "David Graeber"
+        - option "David Harvey"
+        - option "David Wengrow"
+        - option "E2E Author"
+        - option "E2E Summary Author"
+        - option "E2E Автор"
+        - option "Filler Author"
+        - option "Gate Author"
+        - option "Giovanni Arrighi"
+        - option "Howard Zinn"
+        - option "Immanuel Wallerstein"
+        - option "James A. Robinson"
+        - option "James Scott"
+        - option "Jean Baudrillard"
+        - option "John Stuart Mill"
+        - option "Karl Polanyi"
+        - option "Layout Author"
+        - option "Marijana Macukato"
+        - option "Murray Bookchin"
+        - option "Naomi Klein"
+        - option "Patrick Champagne"
+        - option "Paul Krugman"
+        - option "Peter Gelderloos"
+        - option "Peter Mair"
+        - option "Pierre Bourdieu"
+        - option "Quentin Skinner"
+        - option "Registry Author"
+        - option "Robert Darnton"
+        - option "Schattschneider"
+        - option "Sidney Tarrow"
+        - option "Thomas Piketty"
+        - option "Wolfgang Streeck"
+        - option "Автор A"
+        - option "Автор B"
+        - option "Автор второго круга"
+        - option "Автор первого круга"
+        - option "Алексей Навальный"
+        - option "Артемий Магун"
+        - option "Борис Кагарлицкий"
+        - option "Вадим Волков"
+        - option "Владимир Гельман"
+        - option "Екатерина Шульман"
+        - option "Елена Костюченко"
+        - option "Роман Тиса"
+        - option "Сергей Гуриев"
+        - option "Теодор Шанин"
+      - button "Новинки" [ref=e33] [cursor=pointer]
+      - button "Прочитанные" [ref=e34] [cursor=pointer]
+  - main [ref=e35]:
+    - generic [ref=e37]:
+      - button "Предложить книгу" [ref=e38] [cursor=pointer]:
+        - img [ref=e43]
+        - generic [ref=e49]:
+          - generic [ref=e50]: Предложить книгу
+          - generic [ref=e51]: Расскажите, что и почему стоит прочитать
+      - article [ref=e52]:
+        - 'generic "Обложка: E2E Книжный круг A 865319c7d23af0666721-2582374a2db920c54db3" [ref=e55]':
+          - generic [ref=e56]: АA
+        - generic [ref=e58]:
+          - heading "E2E Книжный круг A 865319c7d23af0666721-2582374a2db920c54db3" [level=2] [ref=e59]
+          - generic [ref=e60]: "2024"
+        - paragraph [ref=e61]: Автор A
+        - generic [ref=e63]: 100 стр.
+        - paragraph [ref=e65]: E2E test book
+        - button "Хочу читать" [ref=e67] [cursor=pointer]
+      - article [ref=e68]:
+        - 'generic "Обложка: AAA Book sort-low" [ref=e71]':
+          - generic [ref=e72]: EA
+        - generic [ref=e74]:
+          - heading "AAA Book sort-low" [level=2] [ref=e75]
+          - generic [ref=e76]: "2024"
+        - paragraph [ref=e77]: E2E Author
+        - generic [ref=e79]: 100 стр.
+        - paragraph [ref=e81]: E2E test book
+        - button "Хочу читать" [ref=e84] [cursor=pointer]
+      - article [ref=e85]:
+        - 'generic "Обложка: ZZZ Book sort-high" [ref=e88]':
+          - generic [ref=e89]: EA
+        - generic [ref=e91]:
+          - heading "ZZZ Book sort-high" [level=2] [ref=e92]
+          - generic [ref=e93]: "2024"
+        - paragraph [ref=e94]: E2E Author
+        - generic [ref=e96]: 100 стр.
+        - paragraph [ref=e98]: E2E test book
+        - button "Хочу читать" [ref=e101] [cursor=pointer]
+      - article [ref=e102]:
+        - 'generic "Обложка: E2E Первый круг 640b8448ead367c9f328-78033c5b900f8d0eccb2" [ref=e105]':
+          - generic [ref=e106]: АП
+        - generic [ref=e108]:
+          - heading "E2E Первый круг 640b8448ead367c9f328-78033c5b900f8d0eccb2" [level=2] [ref=e109]
+          - generic [ref=e110]: "2024"
+        - paragraph [ref=e111]: Автор первого круга
+        - generic [ref=e113]: 100 стр.
+        - paragraph [ref=e115]: E2E test book
+        - button "Хочу читать" [ref=e117] [cursor=pointer]
+      - article [ref=e118]:
+        - 'generic "Обложка: E2E Book be99490zvcau #0" [ref=e121]':
+          - generic [ref=e122]: EA
+        - generic [ref=e124]: государство
+        - generic [ref=e126]:
+          - 'heading "E2E Book be99490zvcau #0" [level=2] [ref=e127]'
+          - generic [ref=e128]: "2024"
+        - paragraph [ref=e129]: E2E Author
+        - generic [ref=e131]: 100 стр.
+        - paragraph [ref=e133]: E2E test book
+        - button "Хочу читать" [ref=e136] [cursor=pointer]
+      - article [ref=e137]:
+        - 'generic "Обложка: AAA Book sort-low" [ref=e140]':
+          - generic [ref=e141]: EA
+        - generic [ref=e143]:
+          - heading "AAA Book sort-low" [level=2] [ref=e144]
+          - generic [ref=e145]: "2024"
+        - paragraph [ref=e146]: E2E Author
+        - generic [ref=e148]: 100 стр.
+        - paragraph [ref=e150]: E2E test book
+        - button "Хочу читать" [ref=e153] [cursor=pointer]
+      - article [ref=e154]:
+        - 'generic "Обложка: E2E Book be9949n7dfi8 #0" [ref=e157]':
+          - generic [ref=e158]: EA
+        - generic [ref=e160]: государство
+        - generic [ref=e162]:
+          - 'heading "E2E Book be9949n7dfi8 #0" [level=2] [ref=e163]'
+          - generic [ref=e164]: "2024"
+        - paragraph [ref=e165]: E2E Author
+        - generic [ref=e167]: 100 стр.
+        - paragraph [ref=e169]: E2E test book
+        - button "Хочу читать" [ref=e172] [cursor=pointer]
+      - article [ref=e173]:
+        - 'generic "Обложка: E2E Book 2adfe3w9jrpu #1" [ref=e176]':
+          - generic [ref=e177]: EA
+        - generic [ref=e179]:
+          - 'heading "E2E Book 2adfe3w9jrpu #1" [level=2] [ref=e180]'
+          - generic [ref=e181]: "2024"
+        - paragraph [ref=e182]: E2E Author
+        - generic [ref=e184]: 100 стр.
+        - paragraph [ref=e186]: E2E test book
+        - button "Хочу читать" [ref=e189] [cursor=pointer]
+      - article [ref=e190]:
+        - 'generic "Обложка: UI Circle 1780237583417" [ref=e193]':
+          - generic [ref=e194]: LA
+        - generic [ref=e196]:
+          - heading "UI Circle 1780237583417" [level=2] [ref=e197]
+          - generic [ref=e198]: "2024"
+        - paragraph [ref=e199]: Layout Author
+        - generic [ref=e201]: 100 стр.
+        - paragraph [ref=e203]: E2E test book
+        - button "Хочу читать" [ref=e206] [cursor=pointer]
+      - article [ref=e207]:
+        - 'generic "Обложка: UI Move 1780237583509" [ref=e210]':
+          - generic [ref=e211]: LA
+        - generic [ref=e213]:
+          - heading "UI Move 1780237583509" [level=2] [ref=e214]
+          - generic [ref=e215]: "2024"
+        - paragraph [ref=e216]: Layout Author
+        - generic [ref=e218]: 100 стр.
+        - paragraph [ref=e220]: E2E test book
+        - button "Хочу читать" [ref=e223] [cursor=pointer]
+      - article [ref=e224]:
+        - 'generic "Обложка: E2E Книжный круг B 590145632e466b7eed11-09d97c767bb1593c120f" [ref=e227]':
+          - generic [ref=e228]: АB
+        - generic [ref=e230]:
+          - heading "E2E Книжный круг B 590145632e466b7eed11-09d97c767bb1593c120f" [level=2] [ref=e231]
+          - generic [ref=e232]: "2024"
+        - paragraph [ref=e233]: Автор B
+        - generic [ref=e235]: 100 стр.
+        - paragraph [ref=e237]: E2E test book
+        - button "Хочу читать" [ref=e239] [cursor=pointer]
+      - article [ref=e240]:
+        - 'generic "Обложка: E2E Второй круг 640b8448ead367c9f328-78033c5b900f8d0eccb2" [ref=e243]':
+          - generic [ref=e244]: АВ
+        - generic [ref=e246]:
+          - heading "E2E Второй круг 640b8448ead367c9f328-78033c5b900f8d0eccb2" [level=2] [ref=e247]
+          - generic [ref=e248]: "2024"
+        - paragraph [ref=e249]: Автор второго круга
+        - generic [ref=e251]: 100 стр.
+        - paragraph [ref=e253]: E2E test book
+        - button "Хочу читать" [ref=e255] [cursor=pointer]
+      - article [ref=e256]:
+        - 'generic "Обложка: E2E Книжный круг A 590145632e466b7eed11-09d97c767bb1593c120f" [ref=e259]':
+          - generic [ref=e260]: АA
+        - generic [ref=e262]:
+          - heading "E2E Книжный круг A 590145632e466b7eed11-09d97c767bb1593c120f" [level=2] [ref=e263]
+          - generic [ref=e264]: "2024"
+        - paragraph [ref=e265]: Автор A
+        - generic [ref=e267]: 100 стр.
+        - paragraph [ref=e269]: E2E test book
+        - button "Хочу читать" [ref=e271] [cursor=pointer]
+      - article [ref=e272]:
+        - 'generic "Обложка: E2E Book 2adfe3w9jrpu #0" [ref=e275]':
+          - generic [ref=e276]: EA
+        - generic [ref=e278]:
+          - 'heading "E2E Book 2adfe3w9jrpu #0" [level=2] [ref=e279]'
+          - generic [ref=e280]: "2024"
+        - paragraph [ref=e281]: E2E Author
+        - generic [ref=e283]: 100 стр.
+        - paragraph [ref=e285]: E2E test book
+        - button "Хочу читать" [ref=e288] [cursor=pointer]
+      - article [ref=e289]:
+        - 'generic "Обложка: E2E Книжный круг A 590145632e466b7eed11-09d97c767bb1593c120f" [ref=e292]':
+          - generic [ref=e293]: АA
+        - generic [ref=e295]:
+          - heading "E2E Книжный круг A 590145632e466b7eed11-09d97c767bb1593c120f" [level=2] [ref=e296]
+          - generic [ref=e297]: "2024"
+        - paragraph [ref=e298]: Автор A
+        - generic [ref=e300]: 100 стр.
+        - paragraph [ref=e302]: E2E test book
+        - button "Хочу читать" [ref=e304] [cursor=pointer]
+      - article [ref=e305]:
+        - 'generic "Обложка: E2E Книжный круг B 590145632e466b7eed11-09d97c767bb1593c120f" [ref=e308]':
+          - generic [ref=e309]: АB
+        - generic [ref=e311]:
+          - heading "E2E Книжный круг B 590145632e466b7eed11-09d97c767bb1593c120f" [level=2] [ref=e312]
+          - generic [ref=e313]: "2024"
+        - paragraph [ref=e314]: Автор B
+        - generic [ref=e316]: 100 стр.
+        - paragraph [ref=e318]: E2E test book
+        - button "Хочу читать" [ref=e320] [cursor=pointer]
+      - article [ref=e321]:
+        - 'generic "Обложка: E2E Book fc9035fs0lsv #1" [ref=e324]':
+          - generic [ref=e325]: EA
+        - generic [ref=e327]:
+          - 'heading "E2E Book fc9035fs0lsv #1" [level=2] [ref=e328]'
+          - generic [ref=e329]: "2024"
+        - paragraph [ref=e330]: E2E Author
+        - generic [ref=e332]: 100 стр.
+        - paragraph [ref=e334]: E2E test book
+        - button "Хочу читать" [ref=e337] [cursor=pointer]
+      - article [ref=e338]:
+        - 'generic "Обложка: E2E Book fc9035fs0lsv #0" [ref=e341]':
+          - generic [ref=e342]: EA
+        - generic [ref=e344]:
+          - 'heading "E2E Book fc9035fs0lsv #0" [level=2] [ref=e345]'
+          - generic [ref=e346]: "2024"
+        - paragraph [ref=e347]: E2E Author
+        - generic [ref=e349]: 100 стр.
+        - paragraph [ref=e351]: E2E test book
+        - button "Хочу читать" [ref=e354] [cursor=pointer]
+      - article [ref=e355]:
+        - 'generic "Обложка: ZZZ Book sort-high" [ref=e358]':
+          - generic [ref=e359]: EA
+        - generic [ref=e361]:
+          - heading "ZZZ Book sort-high" [level=2] [ref=e362]
+          - generic [ref=e363]: "2024"
+        - paragraph [ref=e364]: E2E Author
+        - generic [ref=e366]: 100 стр.
+        - paragraph [ref=e368]: E2E test book
+        - button "Хочу читать" [ref=e371] [cursor=pointer]
+      - article [ref=e372]:
+        - 'generic "Обложка: E2E Admin Users Book A 0-0-1779991072799" [ref=e375]':
+          - generic [ref=e376]: EA
+        - generic [ref=e378]:
+          - heading "E2E Admin Users Book A 0-0-1779991072799" [level=2] [ref=e379]
+          - generic [ref=e380]: "2024"
+        - paragraph [ref=e381]: E2E Author
+        - generic [ref=e383]: 100 стр.
+        - paragraph [ref=e385]: E2E test book
+        - button "Хочу читать" [ref=e388] [cursor=pointer]
+      - article [ref=e389]:
+        - 'generic "Обложка: E2E Admin Users Book B 0-0-1779991072799" [ref=e392]':
+          - generic [ref=e393]: EA
+        - generic [ref=e395]:
+          - heading "E2E Admin Users Book B 0-0-1779991072799" [level=2] [ref=e396]
+          - generic [ref=e397]: "2024"
+        - paragraph [ref=e398]: E2E Author
+        - generic [ref=e400]: 100 стр.
+        - paragraph [ref=e402]: E2E test book
+        - button "Хочу читать" [ref=e405] [cursor=pointer]
+      - article [ref=e406]:
+        - 'generic "Обложка: E2E Первый круг e18c03f5a1d3060f8572-fb217eaaad776d0afd1f" [ref=e409]':
+          - generic [ref=e410]: АП
+        - generic [ref=e412]:
+          - heading "E2E Первый круг e18c03f5a1d3060f8572-fb217eaaad776d0afd1f" [level=2] [ref=e413]
+          - generic [ref=e414]: "2024"
+        - paragraph [ref=e415]: Автор первого круга
+        - generic [ref=e417]: 100 стр.
+        - paragraph [ref=e419]: E2E test book
+        - button "Хочу читать" [ref=e421] [cursor=pointer]
+      - article [ref=e422]:
+        - 'generic "Обложка: E2E Circle cdd26653112562560bf6-99d5c065fb7fd4788e1c" [ref=e425]':
+          - generic [ref=e426]: CA
+        - generic [ref=e428]:
+          - heading "E2E Circle cdd26653112562560bf6-99d5c065fb7fd4788e1c" [level=2] [ref=e429]
+          - generic [ref=e430]: "2024"
+        - paragraph [ref=e431]: Circle Author
+        - generic [ref=e433]: 100 стр.
+        - paragraph [ref=e435]: E2E test book
+        - button "Хочу читать" [ref=e437] [cursor=pointer]
+      - article [ref=e438]:
+        - 'generic "Обложка: E2E Summary Book" [ref=e441]':
+          - generic [ref=e442]: ES
+        - generic [ref=e444]: институты
+        - generic [ref=e446]:
+          - heading "E2E Summary Book" [level=2] [ref=e447]
+          - generic [ref=e448]: "2024"
+        - paragraph [ref=e449]: E2E Summary Author
+        - generic [ref=e451]: 100 стр.
+        - paragraph [ref=e453]: E2E test book
+        - button "Хочу читать" [ref=e456] [cursor=pointer]
+      - article [ref=e457]:
+        - 'generic "Обложка: E2E Filler B bda32326707131a1f0cd-506c54e2c09c661d680b" [ref=e460]':
+          - generic [ref=e461]: FA
+        - generic [ref=e463]:
+          - heading "E2E Filler B bda32326707131a1f0cd-506c54e2c09c661d680b" [level=2] [ref=e464]
+          - generic [ref=e465]: "2024"
+        - paragraph [ref=e466]: Filler Author
+        - generic [ref=e468]: 100 стр.
+        - paragraph [ref=e470]: Книга-заполнитель для рангов
+        - button "Хочу читать" [ref=e472] [cursor=pointer]
+      - article [ref=e473]:
+        - 'generic "Обложка: E2E Второй круг e18c03f5a1d3060f8572-fb217eaaad776d0afd1f" [ref=e476]':
+          - generic [ref=e477]: АВ
+        - generic [ref=e479]:
+          - heading "E2E Второй круг e18c03f5a1d3060f8572-fb217eaaad776d0afd1f" [level=2] [ref=e480]
+          - generic [ref=e481]: "2024"
+        - paragraph [ref=e482]: Автор второго круга
+        - generic [ref=e484]: 100 стр.
+        - paragraph [ref=e486]: E2E test book
+        - button "Хочу читать" [ref=e488] [cursor=pointer]
+      - article [ref=e489]:
+        - 'generic "Обложка: E2E Книжный круг A 640b8448ead367c9f328-b349f6bffaaec1f38a6b" [ref=e492]':
+          - generic [ref=e493]: АA
+        - generic [ref=e495]:
+          - heading "E2E Книжный круг A 640b8448ead367c9f328-b349f6bffaaec1f38a6b" [level=2] [ref=e496]
+          - generic [ref=e497]: "2024"
+        - paragraph [ref=e498]: Автор A
+        - generic [ref=e500]: 100 стр.
+        - paragraph [ref=e502]: E2E test book
+        - button "Хочу читать" [ref=e504] [cursor=pointer]
+      - article [ref=e505]:
+        - 'generic "Обложка: AAA Book sort-low" [ref=e508]':
+          - generic [ref=e509]: EA
+        - generic [ref=e511]:
+          - heading "AAA Book sort-low" [level=2] [ref=e512]
+          - generic [ref=e513]: "2024"
+        - paragraph [ref=e514]: E2E Author
+        - generic [ref=e516]: 100 стр.
+        - paragraph [ref=e518]: E2E test book
+        - button "Хочу читать" [ref=e521] [cursor=pointer]
+      - article [ref=e522]:
+        - 'generic "Обложка: ZZZ Book sort-high" [ref=e525]':
+          - generic [ref=e526]: EA
+        - generic [ref=e528]:
+          - heading "ZZZ Book sort-high" [level=2] [ref=e529]
+          - generic [ref=e530]: "2024"
+        - paragraph [ref=e531]: E2E Author
+        - generic [ref=e533]: 100 стр.
+        - paragraph [ref=e535]: E2E test book
+        - button "Хочу читать" [ref=e538] [cursor=pointer]
+      - article [ref=e539]:
+        - 'generic "Обложка: E2E Book be9949tafu7p #0" [ref=e542]':
+          - generic [ref=e543]: EA
+        - generic [ref=e545]: государство
+        - generic [ref=e547]:
+          - 'heading "E2E Book be9949tafu7p #0" [level=2] [ref=e548]'
+          - generic [ref=e549]: "2024"
+        - paragraph [ref=e550]: E2E Author
+        - generic [ref=e552]: 100 стр.
+        - paragraph [ref=e554]: E2E test book
+        - button "Хочу читать" [ref=e557] [cursor=pointer]
+      - article [ref=e558]:
+        - 'generic "Обложка: E2E Книжный круг B 640b8448ead367c9f328-b349f6bffaaec1f38a6b" [ref=e561]':
+          - generic [ref=e562]: АB
+        - generic [ref=e564]:
+          - heading "E2E Книжный круг B 640b8448ead367c9f328-b349f6bffaaec1f38a6b" [level=2] [ref=e565]
+          - generic [ref=e566]: "2024"
+        - paragraph [ref=e567]: Автор B
+        - generic [ref=e569]: 100 стр.
+        - paragraph [ref=e571]: E2E test book
+        - button "Хочу читать" [ref=e573] [cursor=pointer]
+      - article [ref=e574]:
+        - 'generic "Обложка: E2E Книжный круг B 2137656a46371277b3e0-9b4d9b205b40adae6c37" [ref=e577]':
+          - generic [ref=e578]: АB
+        - generic [ref=e580]:
+          - heading "E2E Книжный круг B 2137656a46371277b3e0-9b4d9b205b40adae6c37" [level=2] [ref=e581]
+          - generic [ref=e582]: "2024"
+        - paragraph [ref=e583]: Автор B
+        - generic [ref=e585]: 100 стр.
+        - paragraph [ref=e587]: E2E test book
+        - button "Хочу читать" [ref=e589] [cursor=pointer]
+      - article [ref=e590]:
+        - 'generic "Обложка: E2E Книжный круг A 2137656a46371277b3e0-592e282c75a400ecf816" [ref=e593]':
+          - generic [ref=e594]: АA
+        - generic [ref=e596]:
+          - heading "E2E Книжный круг A 2137656a46371277b3e0-592e282c75a400ecf816" [level=2] [ref=e597]
+          - generic [ref=e598]: "2024"
+        - paragraph [ref=e599]: Автор A
+        - generic [ref=e601]: 100 стр.
+        - paragraph [ref=e603]: E2E test book
+        - button "Хочу читать" [ref=e605] [cursor=pointer]
+      - article [ref=e606]:
+        - 'generic "Обложка: E2E Книжный круг A 75b03fd0ef1ad590d868-bc2e61631a6d45182a8b" [ref=e609]':
+          - generic [ref=e610]: АA
+        - generic [ref=e612]:
+          - heading "E2E Книжный круг A 75b03fd0ef1ad590d868-bc2e61631a6d45182a8b" [level=2] [ref=e613]
+          - generic [ref=e614]: "2024"
+        - paragraph [ref=e615]: Автор A
+        - generic [ref=e617]: 100 стр.
+        - paragraph [ref=e619]: E2E test book
+        - button "Хочу читать" [ref=e621] [cursor=pointer]
+      - article [ref=e622]:
+        - 'generic "Обложка: E2E Книжный круг A 2137656a46371277b3e0-9b4d9b205b40adae6c37" [ref=e625]':
+          - generic [ref=e626]: АA
+        - generic [ref=e628]:
+          - heading "E2E Книжный круг A 2137656a46371277b3e0-9b4d9b205b40adae6c37" [level=2] [ref=e629]
+          - generic [ref=e630]: "2024"
+        - paragraph [ref=e631]: Автор A
+        - generic [ref=e633]: 100 стр.
+        - paragraph [ref=e635]: E2E test book
+        - button "Хочу читать" [ref=e637] [cursor=pointer]
+      - article [ref=e638]:
+        - 'generic "Обложка: E2E Book be994998p02p #0" [ref=e641]':
+          - generic [ref=e642]: EA
+        - generic [ref=e644]: государство
+        - generic [ref=e646]:
+          - 'heading "E2E Book be994998p02p #0" [level=2] [ref=e647]'
+          - generic [ref=e648]: "2024"
+        - paragraph [ref=e649]: E2E Author
+        - generic [ref=e651]: 100 стр.
+        - paragraph [ref=e653]: E2E test book
+        - button "Хочу читать" [ref=e656] [cursor=pointer]
+      - article [ref=e657]:
+        - 'generic "Обложка: E2E Victim Book 1779992008528" [ref=e660]':
+          - generic [ref=e661]: EA
+        - generic [ref=e663]:
+          - heading "E2E Victim Book 1779992008528" [level=2] [ref=e664]
+          - generic [ref=e665]: "2024"
+        - paragraph [ref=e666]: E2E Author
+        - generic [ref=e668]: 100 стр.
+        - paragraph [ref=e670]: E2E test book
+        - button "Хочу читать" [ref=e673] [cursor=pointer]
+      - article [ref=e674]:
+        - 'generic "Обложка: E2E Книжный круг A 640b8448ead367c9f328-b349f6bffaaec1f38a6b" [ref=e677]':
+          - generic [ref=e678]: АA
+        - generic [ref=e680]:
+          - heading "E2E Книжный круг A 640b8448ead367c9f328-b349f6bffaaec1f38a6b" [level=2] [ref=e681]
+          - generic [ref=e682]: "2024"
+        - paragraph [ref=e683]: Автор A
+        - generic [ref=e685]: 100 стр.
+        - paragraph [ref=e687]: E2E test book
+        - button "Хочу читать" [ref=e689] [cursor=pointer]
+      - article [ref=e690]:
+        - 'generic "Обложка: E2E Mandatory Rank Book f7d355fcdead56c481a9-ab4c45efac236b726dec" [ref=e693]':
+          - generic [ref=e694]: EA
+        - generic [ref=e696]:
+          - heading "E2E Mandatory Rank Book f7d355fcdead56c481a9-ab4c45efac236b726dec" [level=2] [ref=e697]
+          - generic [ref=e698]: "2024"
+        - paragraph [ref=e699]: E2E Author
+        - generic [ref=e701]: 100 стр.
+        - paragraph [ref=e703]: E2E test book
+        - button "Хочу читать" [ref=e705] [cursor=pointer]
+      - article [ref=e706]:
+        - 'generic "Обложка: E2E Mandatory Rank Decoy 3 f7d355fcdead56c481a9-ab4c45efac236b726dec" [ref=e709]':
+          - generic [ref=e710]: EA
+        - generic [ref=e712]:
+          - heading "E2E Mandatory Rank Decoy 3 f7d355fcdead56c481a9-ab4c45efac236b726dec" [level=2] [ref=e713]
+          - generic [ref=e714]: "2024"
+        - paragraph [ref=e715]: E2E Author
+        - generic [ref=e717]: 100 стр.
+        - paragraph [ref=e719]: E2E test book
+        - button "Хочу читать" [ref=e721] [cursor=pointer]
+      - article [ref=e722]:
+        - 'generic "Обложка: E2E Mandatory Rank Decoy 2 f7d355fcdead56c481a9-ab4c45efac236b726dec" [ref=e725]':
+          - generic [ref=e726]: EA
+        - generic [ref=e728]:
+          - heading "E2E Mandatory Rank Decoy 2 f7d355fcdead56c481a9-ab4c45efac236b726dec" [level=2] [ref=e729]
+          - generic [ref=e730]: "2024"
+        - paragraph [ref=e731]: E2E Author
+        - generic [ref=e733]: 100 стр.
+        - paragraph [ref=e735]: E2E test book
+        - button "Хочу читать" [ref=e737] [cursor=pointer]
+      - article [ref=e738]:
+        - 'generic "Обложка: E2E Mandatory Rank Decoy 1 f7d355fcdead56c481a9-ab4c45efac236b726dec" [ref=e741]':
+          - generic [ref=e742]: EA
+        - generic [ref=e744]:
+          - heading "E2E Mandatory Rank Decoy 1 f7d355fcdead56c481a9-ab4c45efac236b726dec" [level=2] [ref=e745]
+          - generic [ref=e746]: "2024"
+        - paragraph [ref=e747]: E2E Author
+        - generic [ref=e749]: 100 стр.
+        - paragraph [ref=e751]: E2E test book
+        - button "Хочу читать" [ref=e753] [cursor=pointer]
+      - article [ref=e754]:
+        - 'generic "Обложка: E2E Книжный круг A 75b03fd0ef1ad590d868-8a82b9f9575a26e75a97" [ref=e757]':
+          - generic [ref=e758]: АA
+        - generic [ref=e760]:
+          - heading "E2E Книжный круг A 75b03fd0ef1ad590d868-8a82b9f9575a26e75a97" [level=2] [ref=e761]
+          - generic [ref=e762]: "2024"
+        - paragraph [ref=e763]: Автор A
+        - generic [ref=e765]: 100 стр.
+        - paragraph [ref=e767]: E2E test book
+        - button "Хочу читать" [ref=e769] [cursor=pointer]
+      - article [ref=e770]:
+        - 'generic "Обложка: E2E Gate B cdd26653112562560bf6-bc2abc3668a6cd3b5fbf" [ref=e773]':
+          - generic [ref=e774]: GA
+        - generic [ref=e776]:
+          - heading "E2E Gate B cdd26653112562560bf6-bc2abc3668a6cd3b5fbf" [level=2] [ref=e777]
+          - generic [ref=e778]: "2024"
+        - paragraph [ref=e779]: Gate Author
+        - generic [ref=e781]: 100 стр.
+        - paragraph [ref=e783]: E2E test book
+        - button "Хочу читать" [ref=e785] [cursor=pointer]
+      - article [ref=e786]:
+        - 'generic "Обложка: E2E Книжный круг A 590145632e466b7eed11-f1367d06c2cc082a5704" [ref=e789]':
+          - generic [ref=e790]: АA
+        - generic [ref=e792]:
+          - heading "E2E Книжный круг A 590145632e466b7eed11-f1367d06c2cc082a5704" [level=2] [ref=e793]
+          - generic [ref=e794]: "2024"
+        - paragraph [ref=e795]: Автор A
+        - generic [ref=e797]: 100 стр.
+        - paragraph [ref=e799]: E2E test book
+        - button "Хочу читать" [ref=e801] [cursor=pointer]
+      - article [ref=e802]:
+        - 'generic "Обложка: E2E Gate A cdd26653112562560bf6-bc2abc3668a6cd3b5fbf" [ref=e805]':
+          - generic [ref=e806]: GA
+        - generic [ref=e808]:
+          - heading "E2E Gate A cdd26653112562560bf6-bc2abc3668a6cd3b5fbf" [level=2] [ref=e809]
+          - generic [ref=e810]: "2024"
+        - paragraph [ref=e811]: Gate Author
+        - generic [ref=e813]: 100 стр.
+        - paragraph [ref=e815]: E2E test book
+        - button "Хочу читать" [ref=e817] [cursor=pointer]
+      - article [ref=e818]:
+        - 'generic "Обложка: E2E Книжный круг B 590145632e466b7eed11-f1367d06c2cc082a5704" [ref=e821]':
+          - generic [ref=e822]: АB
+        - generic [ref=e824]:
+          - heading "E2E Книжный круг B 590145632e466b7eed11-f1367d06c2cc082a5704" [level=2] [ref=e825]
+          - generic [ref=e826]: "2024"
+        - paragraph [ref=e827]: Автор B
+        - generic [ref=e829]: 100 стр.
+        - paragraph [ref=e831]: E2E test book
+        - button "Хочу читать" [ref=e833] [cursor=pointer]
+      - article [ref=e834]:
+        - 'generic "Обложка: UI Registry 79251f24774a879fe953-3fcf3001408420f8ec1a" [ref=e837]':
+          - generic [ref=e838]: RA
+        - generic [ref=e840]:
+          - heading "UI Registry 79251f24774a879fe953-3fcf3001408420f8ec1a" [level=2] [ref=e841]
+          - generic [ref=e842]: "2024"
+        - paragraph [ref=e843]: Registry Author
+        - generic [ref=e845]: 100 стр.
+        - paragraph [ref=e847]: E2E test book
+        - button "Хочу читать" [ref=e850] [cursor=pointer]
+      - article [ref=e851]:
+        - 'generic "Обложка: E2E Auto Signup 1792728152775" [ref=e854]':
+          - generic [ref=e855]: EА
+        - generic [ref=e856]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e857]:
+            - img [ref=e858]
+          - generic [ref=e860]: Новая
+        - heading "E2E Auto Signup 1792728152775" [level=2] [ref=e863]
+        - paragraph [ref=e864]: E2E Автор
+        - generic [ref=e866]:
+          - paragraph [ref=e867]: Почему предлагаю прочитать
+          - paragraph [ref=e868]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e870] [cursor=pointer]
+      - article [ref=e871]:
+        - 'generic "Обложка: E2E Auto Signup 1792641146487" [ref=e874]':
+          - generic [ref=e875]: EА
+        - generic [ref=e876]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e877]:
+            - img [ref=e878]
+          - generic [ref=e880]: Новая
+        - heading "E2E Auto Signup 1792641146487" [level=2] [ref=e883]
+        - paragraph [ref=e884]: E2E Автор
+        - generic [ref=e886]:
+          - paragraph [ref=e887]: Почему предлагаю прочитать
+          - paragraph [ref=e888]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e890] [cursor=pointer]
+      - article [ref=e891]:
+        - 'generic "Обложка: E2E Auto Signup 1792554608085" [ref=e894]':
+          - generic [ref=e895]: EА
+        - generic [ref=e896]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e897]:
+            - img [ref=e898]
+          - generic [ref=e900]: Новая
+        - heading "E2E Auto Signup 1792554608085" [level=2] [ref=e903]
+        - paragraph [ref=e904]: E2E Автор
+        - generic [ref=e906]:
+          - paragraph [ref=e907]: Почему предлагаю прочитать
+          - paragraph [ref=e908]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e910] [cursor=pointer]
+      - article [ref=e911]:
+        - 'generic "Обложка: E2E Auto Signup 1792468377522" [ref=e914]':
+          - generic [ref=e915]: EА
+        - generic [ref=e916]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e917]:
+            - img [ref=e918]
+          - generic [ref=e920]: Новая
+        - heading "E2E Auto Signup 1792468377522" [level=2] [ref=e923]
+        - paragraph [ref=e924]: E2E Автор
+        - generic [ref=e926]:
+          - paragraph [ref=e927]: Почему предлагаю прочитать
+          - paragraph [ref=e928]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e930] [cursor=pointer]
+      - article [ref=e931]:
+        - 'generic "Обложка: E2E Auto Signup 1792381849827" [ref=e934]':
+          - generic [ref=e935]: EА
+        - generic [ref=e936]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e937]:
+            - img [ref=e938]
+          - generic [ref=e940]: Новая
+        - heading "E2E Auto Signup 1792381849827" [level=2] [ref=e943]
+        - paragraph [ref=e944]: E2E Автор
+        - generic [ref=e946]:
+          - paragraph [ref=e947]: Почему предлагаю прочитать
+          - paragraph [ref=e948]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e950] [cursor=pointer]
+      - article [ref=e951]:
+        - 'generic "Обложка: E2E Auto Signup 1792294476238" [ref=e954]':
+          - generic [ref=e955]: EА
+        - generic [ref=e956]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e957]:
+            - img [ref=e958]
+          - generic [ref=e960]: Новая
+        - heading "E2E Auto Signup 1792294476238" [level=2] [ref=e963]
+        - paragraph [ref=e964]: E2E Автор
+        - generic [ref=e966]:
+          - paragraph [ref=e967]: Почему предлагаю прочитать
+          - paragraph [ref=e968]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e970] [cursor=pointer]
+      - article [ref=e971]:
+        - 'generic "Обложка: E2E Auto Signup 1792208015873" [ref=e974]':
+          - generic [ref=e975]: EА
+        - generic [ref=e976]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e977]:
+            - img [ref=e978]
+          - generic [ref=e980]: Новая
+        - heading "E2E Auto Signup 1792208015873" [level=2] [ref=e983]
+        - paragraph [ref=e984]: E2E Автор
+        - generic [ref=e986]:
+          - paragraph [ref=e987]: Почему предлагаю прочитать
+          - paragraph [ref=e988]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e990] [cursor=pointer]
+      - article [ref=e991]:
+        - 'generic "Обложка: E2E Auto Signup 1792121849181" [ref=e994]':
+          - generic [ref=e995]: EА
+        - generic [ref=e996]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e997]:
+            - img [ref=e998]
+          - generic [ref=e1000]: Новая
+        - heading "E2E Auto Signup 1792121849181" [level=2] [ref=e1003]
+        - paragraph [ref=e1004]: E2E Автор
+        - generic [ref=e1006]:
+          - paragraph [ref=e1007]: Почему предлагаю прочитать
+          - paragraph [ref=e1008]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1010] [cursor=pointer]
+      - article [ref=e1011]:
+        - 'generic "Обложка: E2E Auto Signup 1792035791010" [ref=e1014]':
+          - generic [ref=e1015]: EА
+        - generic [ref=e1016]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1017]:
+            - img [ref=e1018]
+          - generic [ref=e1020]: Новая
+        - heading "E2E Auto Signup 1792035791010" [level=2] [ref=e1023]
+        - paragraph [ref=e1024]: E2E Автор
+        - generic [ref=e1026]:
+          - paragraph [ref=e1027]: Почему предлагаю прочитать
+          - paragraph [ref=e1028]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1030] [cursor=pointer]
+      - article [ref=e1031]:
+        - 'generic "Обложка: E2E Auto Signup 1791950588620" [ref=e1034]':
+          - generic [ref=e1035]: EА
+        - generic [ref=e1036]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1037]:
+            - img [ref=e1038]
+          - generic [ref=e1040]: Новая
+        - heading "E2E Auto Signup 1791950588620" [level=2] [ref=e1043]
+        - paragraph [ref=e1044]: E2E Автор
+        - generic [ref=e1046]:
+          - paragraph [ref=e1047]: Почему предлагаю прочитать
+          - paragraph [ref=e1048]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1050] [cursor=pointer]
+      - article [ref=e1051]:
+        - 'generic "Обложка: E2E Auto Signup 1791871213684" [ref=e1054]':
+          - generic [ref=e1055]: EА
+        - generic [ref=e1056]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1057]:
+            - img [ref=e1058]
+          - generic [ref=e1060]: Новая
+        - heading "E2E Auto Signup 1791871213684" [level=2] [ref=e1063]
+        - paragraph [ref=e1064]: E2E Автор
+        - generic [ref=e1066]:
+          - paragraph [ref=e1067]: Почему предлагаю прочитать
+          - paragraph [ref=e1068]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1070] [cursor=pointer]
+      - article [ref=e1071]:
+        - 'generic "Обложка: E2E Auto Signup 1791781334279" [ref=e1074]':
+          - generic [ref=e1075]: EА
+        - generic [ref=e1076]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1077]:
+            - img [ref=e1078]
+          - generic [ref=e1080]: Новая
+        - heading "E2E Auto Signup 1791781334279" [level=2] [ref=e1083]
+        - paragraph [ref=e1084]: E2E Автор
+        - generic [ref=e1086]:
+          - paragraph [ref=e1087]: Почему предлагаю прочитать
+          - paragraph [ref=e1088]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1090] [cursor=pointer]
+      - article [ref=e1091]:
+        - 'generic "Обложка: E2E Auto Signup 1791693344401" [ref=e1094]':
+          - generic [ref=e1095]: EА
+        - generic [ref=e1096]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1097]:
+            - img [ref=e1098]
+          - generic [ref=e1100]: Новая
+        - heading "E2E Auto Signup 1791693344401" [level=2] [ref=e1103]
+        - paragraph [ref=e1104]: E2E Автор
+        - generic [ref=e1106]:
+          - paragraph [ref=e1107]: Почему предлагаю прочитать
+          - paragraph [ref=e1108]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1110] [cursor=pointer]
+      - article [ref=e1111]:
+        - 'generic "Обложка: E2E Auto Signup 1791607964681" [ref=e1114]':
+          - generic [ref=e1115]: EА
+        - generic [ref=e1116]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1117]:
+            - img [ref=e1118]
+          - generic [ref=e1120]: Новая
+        - heading "E2E Auto Signup 1791607964681" [level=2] [ref=e1123]
+        - paragraph [ref=e1124]: E2E Автор
+        - generic [ref=e1126]:
+          - paragraph [ref=e1127]: Почему предлагаю прочитать
+          - paragraph [ref=e1128]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1130] [cursor=pointer]
+      - article [ref=e1131]:
+        - 'generic "Обложка: E2E Auto Signup 1791522777716" [ref=e1134]':
+          - generic [ref=e1135]: EА
+        - generic [ref=e1136]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1137]:
+            - img [ref=e1138]
+          - generic [ref=e1140]: Новая
+        - heading "E2E Auto Signup 1791522777716" [level=2] [ref=e1143]
+        - paragraph [ref=e1144]: E2E Автор
+        - generic [ref=e1146]:
+          - paragraph [ref=e1147]: Почему предлагаю прочитать
+          - paragraph [ref=e1148]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1150] [cursor=pointer]
+      - article [ref=e1151]:
+        - 'generic "Обложка: E2E Auto Signup 1791435619477" [ref=e1154]':
+          - generic [ref=e1155]: EА
+        - generic [ref=e1156]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1157]:
+            - img [ref=e1158]
+          - generic [ref=e1160]: Новая
+        - heading "E2E Auto Signup 1791435619477" [level=2] [ref=e1163]
+        - paragraph [ref=e1164]: E2E Автор
+        - generic [ref=e1166]:
+          - paragraph [ref=e1167]: Почему предлагаю прочитать
+          - paragraph [ref=e1168]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1170] [cursor=pointer]
+      - article [ref=e1171]:
+        - 'generic "Обложка: E2E Auto Signup 1791348636239" [ref=e1174]':
+          - generic [ref=e1175]: EА
+        - generic [ref=e1176]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1177]:
+            - img [ref=e1178]
+          - generic [ref=e1180]: Новая
+        - heading "E2E Auto Signup 1791348636239" [level=2] [ref=e1183]
+        - paragraph [ref=e1184]: E2E Автор
+        - generic [ref=e1186]:
+          - paragraph [ref=e1187]: Почему предлагаю прочитать
+          - paragraph [ref=e1188]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1190] [cursor=pointer]
+      - article [ref=e1191]:
+        - 'generic "Обложка: E2E Auto Signup 1791264358490" [ref=e1194]':
+          - generic [ref=e1195]: EА
+        - generic [ref=e1196]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1197]:
+            - img [ref=e1198]
+          - generic [ref=e1200]: Новая
+        - heading "E2E Auto Signup 1791264358490" [level=2] [ref=e1203]
+        - paragraph [ref=e1204]: E2E Автор
+        - generic [ref=e1206]:
+          - paragraph [ref=e1207]: Почему предлагаю прочитать
+          - paragraph [ref=e1208]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1210] [cursor=pointer]
+      - article [ref=e1211]:
+        - 'generic "Обложка: E2E Auto Signup 1791175221421" [ref=e1214]':
+          - generic [ref=e1215]: EА
+        - generic [ref=e1216]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1217]:
+            - img [ref=e1218]
+          - generic [ref=e1220]: Новая
+        - heading "E2E Auto Signup 1791175221421" [level=2] [ref=e1223]
+        - paragraph [ref=e1224]: E2E Автор
+        - generic [ref=e1226]:
+          - paragraph [ref=e1227]: Почему предлагаю прочитать
+          - paragraph [ref=e1228]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1230] [cursor=pointer]
+      - article [ref=e1231]:
+        - 'generic "Обложка: E2E Auto Signup 1791089530568" [ref=e1234]':
+          - generic [ref=e1235]: EА
+        - generic [ref=e1236]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1237]:
+            - img [ref=e1238]
+          - generic [ref=e1240]: Новая
+        - heading "E2E Auto Signup 1791089530568" [level=2] [ref=e1243]
+        - paragraph [ref=e1244]: E2E Автор
+        - generic [ref=e1246]:
+          - paragraph [ref=e1247]: Почему предлагаю прочитать
+          - paragraph [ref=e1248]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1250] [cursor=pointer]
+      - article [ref=e1251]:
+        - 'generic "Обложка: E2E Auto Signup 1791001023965" [ref=e1254]':
+          - generic [ref=e1255]: EА
+        - generic [ref=e1256]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1257]:
+            - img [ref=e1258]
+          - generic [ref=e1260]: Новая
+        - heading "E2E Auto Signup 1791001023965" [level=2] [ref=e1263]
+        - paragraph [ref=e1264]: E2E Автор
+        - generic [ref=e1266]:
+          - paragraph [ref=e1267]: Почему предлагаю прочитать
+          - paragraph [ref=e1268]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1270] [cursor=pointer]
+      - article [ref=e1271]:
+        - 'generic "Обложка: E2E Auto Signup 1790916331932" [ref=e1274]':
+          - generic [ref=e1275]: EА
+        - generic [ref=e1276]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1277]:
+            - img [ref=e1278]
+          - generic [ref=e1280]: Новая
+        - heading "E2E Auto Signup 1790916331932" [level=2] [ref=e1283]
+        - paragraph [ref=e1284]: E2E Автор
+        - generic [ref=e1286]:
+          - paragraph [ref=e1287]: Почему предлагаю прочитать
+          - paragraph [ref=e1288]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1290] [cursor=pointer]
+      - article [ref=e1291]:
+        - 'generic "Обложка: E2E Auto Signup 1790842808910" [ref=e1294]':
+          - generic [ref=e1295]: EА
+        - generic [ref=e1296]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1297]:
+            - img [ref=e1298]
+          - generic [ref=e1300]: Новая
+        - heading "E2E Auto Signup 1790842808910" [level=2] [ref=e1303]
+        - paragraph [ref=e1304]: E2E Автор
+        - generic [ref=e1306]:
+          - paragraph [ref=e1307]: Почему предлагаю прочитать
+          - paragraph [ref=e1308]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1310] [cursor=pointer]
+      - article [ref=e1311]:
+        - 'generic "Обложка: E2E Auto Signup 1790829849231" [ref=e1314]':
+          - generic [ref=e1315]: EА
+        - generic [ref=e1316]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1317]:
+            - img [ref=e1318]
+          - generic [ref=e1320]: Новая
+        - heading "E2E Auto Signup 1790829849231" [level=2] [ref=e1323]
+        - paragraph [ref=e1324]: E2E Автор
+        - generic [ref=e1326]:
+          - paragraph [ref=e1327]: Почему предлагаю прочитать
+          - paragraph [ref=e1328]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1330] [cursor=pointer]
+      - article [ref=e1331]:
+        - 'generic "Обложка: E2E Auto Signup 1790742769664" [ref=e1334]':
+          - generic [ref=e1335]: EА
+        - generic [ref=e1336]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1337]:
+            - img [ref=e1338]
+          - generic [ref=e1340]: Новая
+        - heading "E2E Auto Signup 1790742769664" [level=2] [ref=e1343]
+        - paragraph [ref=e1344]: E2E Автор
+        - generic [ref=e1346]:
+          - paragraph [ref=e1347]: Почему предлагаю прочитать
+          - paragraph [ref=e1348]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1350] [cursor=pointer]
+      - article [ref=e1351]:
+        - 'generic "Обложка: E2E Auto Signup 1790657273765" [ref=e1354]':
+          - generic [ref=e1355]: EА
+        - generic [ref=e1356]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1357]:
+            - img [ref=e1358]
+          - generic [ref=e1360]: Новая
+        - heading "E2E Auto Signup 1790657273765" [level=2] [ref=e1363]
+        - paragraph [ref=e1364]: E2E Автор
+        - generic [ref=e1366]:
+          - paragraph [ref=e1367]: Почему предлагаю прочитать
+          - paragraph [ref=e1368]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1370] [cursor=pointer]
+      - article [ref=e1371]:
+        - 'generic "Обложка: E2E Auto Signup 1790569041029" [ref=e1374]':
+          - generic [ref=e1375]: EА
+        - generic [ref=e1376]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1377]:
+            - img [ref=e1378]
+          - generic [ref=e1380]: Новая
+        - heading "E2E Auto Signup 1790569041029" [level=2] [ref=e1383]
+        - paragraph [ref=e1384]: E2E Автор
+        - generic [ref=e1386]:
+          - paragraph [ref=e1387]: Почему предлагаю прочитать
+          - paragraph [ref=e1388]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1390] [cursor=pointer]
+      - article [ref=e1391]:
+        - 'generic "Обложка: E2E Auto Signup 1790482523222" [ref=e1394]':
+          - generic [ref=e1395]: EА
+        - generic [ref=e1396]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1397]:
+            - img [ref=e1398]
+          - generic [ref=e1400]: Новая
+        - heading "E2E Auto Signup 1790482523222" [level=2] [ref=e1403]
+        - paragraph [ref=e1404]: E2E Автор
+        - generic [ref=e1406]:
+          - paragraph [ref=e1407]: Почему предлагаю прочитать
+          - paragraph [ref=e1408]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1410] [cursor=pointer]
+      - article [ref=e1411]:
+        - 'generic "Обложка: E2E Auto Signup 1790395751232" [ref=e1414]':
+          - generic [ref=e1415]: EА
+        - generic [ref=e1416]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1417]:
+            - img [ref=e1418]
+          - generic [ref=e1420]: Новая
+        - heading "E2E Auto Signup 1790395751232" [level=2] [ref=e1423]
+        - paragraph [ref=e1424]: E2E Автор
+        - generic [ref=e1426]:
+          - paragraph [ref=e1427]: Почему предлагаю прочитать
+          - paragraph [ref=e1428]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1430] [cursor=pointer]
+      - article [ref=e1431]:
+        - 'generic "Обложка: E2E Auto Signup 1790309103084" [ref=e1434]':
+          - generic [ref=e1435]: EА
+        - generic [ref=e1436]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1437]:
+            - img [ref=e1438]
+          - generic [ref=e1440]: Новая
+        - heading "E2E Auto Signup 1790309103084" [level=2] [ref=e1443]
+        - paragraph [ref=e1444]: E2E Автор
+        - generic [ref=e1446]:
+          - paragraph [ref=e1447]: Почему предлагаю прочитать
+          - paragraph [ref=e1448]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1450] [cursor=pointer]
+      - article [ref=e1451]:
+        - 'generic "Обложка: E2E Auto Signup 1790221144746" [ref=e1454]':
+          - generic [ref=e1455]: EА
+        - generic [ref=e1456]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1457]:
+            - img [ref=e1458]
+          - generic [ref=e1460]: Новая
+        - heading "E2E Auto Signup 1790221144746" [level=2] [ref=e1463]
+        - paragraph [ref=e1464]: E2E Автор
+        - generic [ref=e1466]:
+          - paragraph [ref=e1467]: Почему предлагаю прочитать
+          - paragraph [ref=e1468]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1470] [cursor=pointer]
+      - article [ref=e1471]:
+        - 'generic "Обложка: E2E Auto Signup 1790135337719" [ref=e1474]':
+          - generic [ref=e1475]: EА
+        - generic [ref=e1476]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1477]:
+            - img [ref=e1478]
+          - generic [ref=e1480]: Новая
+        - heading "E2E Auto Signup 1790135337719" [level=2] [ref=e1483]
+        - paragraph [ref=e1484]: E2E Автор
+        - generic [ref=e1486]:
+          - paragraph [ref=e1487]: Почему предлагаю прочитать
+          - paragraph [ref=e1488]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1490] [cursor=pointer]
+      - article [ref=e1491]:
+        - 'generic "Обложка: E2E Auto Signup 1790048863466" [ref=e1494]':
+          - generic [ref=e1495]: EА
+        - generic [ref=e1496]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1497]:
+            - img [ref=e1498]
+          - generic [ref=e1500]: Новая
+        - heading "E2E Auto Signup 1790048863466" [level=2] [ref=e1503]
+        - paragraph [ref=e1504]: E2E Автор
+        - generic [ref=e1506]:
+          - paragraph [ref=e1507]: Почему предлагаю прочитать
+          - paragraph [ref=e1508]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1510] [cursor=pointer]
+      - article [ref=e1511]:
+        - 'generic "Обложка: E2E Auto Signup 1789962921428" [ref=e1514]':
+          - generic [ref=e1515]: EА
+        - generic [ref=e1516]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1517]:
+            - img [ref=e1518]
+          - generic [ref=e1520]: Новая
+        - heading "E2E Auto Signup 1789962921428" [level=2] [ref=e1523]
+        - paragraph [ref=e1524]: E2E Автор
+        - generic [ref=e1526]:
+          - paragraph [ref=e1527]: Почему предлагаю прочитать
+          - paragraph [ref=e1528]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1530] [cursor=pointer]
+      - article [ref=e1531]:
+        - 'generic "Обложка: E2E Auto Signup 1789876490760" [ref=e1534]':
+          - generic [ref=e1535]: EА
+        - generic [ref=e1536]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1537]:
+            - img [ref=e1538]
+          - generic [ref=e1540]: Новая
+        - heading "E2E Auto Signup 1789876490760" [level=2] [ref=e1543]
+        - paragraph [ref=e1544]: E2E Автор
+        - generic [ref=e1546]:
+          - paragraph [ref=e1547]: Почему предлагаю прочитать
+          - paragraph [ref=e1548]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1550] [cursor=pointer]
+      - article [ref=e1551]:
+        - 'generic "Обложка: E2E Auto Signup 1789789183094" [ref=e1554]':
+          - generic [ref=e1555]: EА
+        - generic [ref=e1556]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1557]:
+            - img [ref=e1558]
+          - generic [ref=e1560]: Новая
+        - heading "E2E Auto Signup 1789789183094" [level=2] [ref=e1563]
+        - paragraph [ref=e1564]: E2E Автор
+        - generic [ref=e1566]:
+          - paragraph [ref=e1567]: Почему предлагаю прочитать
+          - paragraph [ref=e1568]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1570] [cursor=pointer]
+      - article [ref=e1571]:
+        - 'generic "Обложка: E2E Auto Signup 1789703011860" [ref=e1574]':
+          - generic [ref=e1575]: EА
+        - generic [ref=e1576]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1577]:
+            - img [ref=e1578]
+          - generic [ref=e1580]: Новая
+        - heading "E2E Auto Signup 1789703011860" [level=2] [ref=e1583]
+        - paragraph [ref=e1584]: E2E Автор
+        - generic [ref=e1586]:
+          - paragraph [ref=e1587]: Почему предлагаю прочитать
+          - paragraph [ref=e1588]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1590] [cursor=pointer]
+      - article [ref=e1591]:
+        - 'generic "Обложка: E2E Auto Signup 1789617994904" [ref=e1594]':
+          - generic [ref=e1595]: EА
+        - generic [ref=e1596]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1597]:
+            - img [ref=e1598]
+          - generic [ref=e1600]: Новая
+        - heading "E2E Auto Signup 1789617994904" [level=2] [ref=e1603]
+        - paragraph [ref=e1604]: E2E Автор
+        - generic [ref=e1606]:
+          - paragraph [ref=e1607]: Почему предлагаю прочитать
+          - paragraph [ref=e1608]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1610] [cursor=pointer]
+      - article [ref=e1611]:
+        - 'generic "Обложка: E2E Auto Signup 1789531112845" [ref=e1614]':
+          - generic [ref=e1615]: EА
+        - generic [ref=e1616]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1617]:
+            - img [ref=e1618]
+          - generic [ref=e1620]: Новая
+        - heading "E2E Auto Signup 1789531112845" [level=2] [ref=e1623]
+        - paragraph [ref=e1624]: E2E Автор
+        - generic [ref=e1626]:
+          - paragraph [ref=e1627]: Почему предлагаю прочитать
+          - paragraph [ref=e1628]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1630] [cursor=pointer]
+      - article [ref=e1631]:
+        - 'generic "Обложка: E2E Auto Signup 1789444621832" [ref=e1634]':
+          - generic [ref=e1635]: EА
+        - generic [ref=e1636]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1637]:
+            - img [ref=e1638]
+          - generic [ref=e1640]: Новая
+        - heading "E2E Auto Signup 1789444621832" [level=2] [ref=e1643]
+        - paragraph [ref=e1644]: E2E Автор
+        - generic [ref=e1646]:
+          - paragraph [ref=e1647]: Почему предлагаю прочитать
+          - paragraph [ref=e1648]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1650] [cursor=pointer]
+      - article [ref=e1651]:
+        - 'generic "Обложка: E2E Auto Signup 1789393761164" [ref=e1654]':
+          - generic [ref=e1655]: EА
+        - generic [ref=e1656]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1657]:
+            - img [ref=e1658]
+          - generic [ref=e1660]: Новая
+        - heading "E2E Auto Signup 1789393761164" [level=2] [ref=e1663]
+        - paragraph [ref=e1664]: E2E Автор
+        - generic [ref=e1666]:
+          - paragraph [ref=e1667]: Почему предлагаю прочитать
+          - paragraph [ref=e1668]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1670] [cursor=pointer]
+      - article [ref=e1671]:
+        - 'generic "Обложка: E2E Auto Signup 1789392385322" [ref=e1674]':
+          - generic [ref=e1675]: EА
+        - generic [ref=e1676]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1677]:
+            - img [ref=e1678]
+          - generic [ref=e1680]: Новая
+        - heading "E2E Auto Signup 1789392385322" [level=2] [ref=e1683]
+        - paragraph [ref=e1684]: E2E Автор
+        - generic [ref=e1686]:
+          - paragraph [ref=e1687]: Почему предлагаю прочитать
+          - paragraph [ref=e1688]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1690] [cursor=pointer]
+      - article [ref=e1691]:
+        - 'generic "Обложка: E2E Auto Signup 1789358398736" [ref=e1694]':
+          - generic [ref=e1695]: EА
+        - generic [ref=e1696]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1697]:
+            - img [ref=e1698]
+          - generic [ref=e1700]: Новая
+        - heading "E2E Auto Signup 1789358398736" [level=2] [ref=e1703]
+        - paragraph [ref=e1704]: E2E Автор
+        - generic [ref=e1706]:
+          - paragraph [ref=e1707]: Почему предлагаю прочитать
+          - paragraph [ref=e1708]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1710] [cursor=pointer]
+      - article [ref=e1711]:
+        - 'generic "Обложка: E2E Auto Signup 1789344646511" [ref=e1714]':
+          - generic [ref=e1715]: EА
+        - generic [ref=e1716]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1717]:
+            - img [ref=e1718]
+          - generic [ref=e1720]: Новая
+        - heading "E2E Auto Signup 1789344646511" [level=2] [ref=e1723]
+        - paragraph [ref=e1724]: E2E Автор
+        - generic [ref=e1726]:
+          - paragraph [ref=e1727]: Почему предлагаю прочитать
+          - paragraph [ref=e1728]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1730] [cursor=pointer]
+      - article [ref=e1731]:
+        - 'generic "Обложка: E2E Auto Signup 1789340400412" [ref=e1734]':
+          - generic [ref=e1735]: EА
+        - generic [ref=e1736]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1737]:
+            - img [ref=e1738]
+          - generic [ref=e1740]: Новая
+        - heading "E2E Auto Signup 1789340400412" [level=2] [ref=e1743]
+        - paragraph [ref=e1744]: E2E Автор
+        - generic [ref=e1746]:
+          - paragraph [ref=e1747]: Почему предлагаю прочитать
+          - paragraph [ref=e1748]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1750] [cursor=pointer]
+      - article [ref=e1751]:
+        - 'generic "Обложка: E2E Auto Signup 1789324625022" [ref=e1754]':
+          - generic [ref=e1755]: EА
+        - generic [ref=e1756]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1757]:
+            - img [ref=e1758]
+          - generic [ref=e1760]: Новая
+        - heading "E2E Auto Signup 1789324625022" [level=2] [ref=e1763]
+        - paragraph [ref=e1764]: E2E Автор
+        - generic [ref=e1766]:
+          - paragraph [ref=e1767]: Почему предлагаю прочитать
+          - paragraph [ref=e1768]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1770] [cursor=pointer]
+      - article [ref=e1771]:
+        - 'generic "Обложка: E2E Auto Signup 1789321734577" [ref=e1774]':
+          - generic [ref=e1775]: EА
+        - generic [ref=e1776]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1777]:
+            - img [ref=e1778]
+          - generic [ref=e1780]: Новая
+        - heading "E2E Auto Signup 1789321734577" [level=2] [ref=e1783]
+        - paragraph [ref=e1784]: E2E Автор
+        - generic [ref=e1786]:
+          - paragraph [ref=e1787]: Почему предлагаю прочитать
+          - paragraph [ref=e1788]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1790] [cursor=pointer]
+      - article [ref=e1791]:
+        - 'generic "Обложка: E2E Auto Signup 1789271097072" [ref=e1794]':
+          - generic [ref=e1795]: EА
+        - generic [ref=e1796]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1797]:
+            - img [ref=e1798]
+          - generic [ref=e1800]: Новая
+        - heading "E2E Auto Signup 1789271097072" [level=2] [ref=e1803]
+        - paragraph [ref=e1804]: E2E Автор
+        - generic [ref=e1806]:
+          - paragraph [ref=e1807]: Почему предлагаю прочитать
+          - paragraph [ref=e1808]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1810] [cursor=pointer]
+      - article [ref=e1811]:
+        - 'generic "Обложка: E2E Auto Signup 1789241400472" [ref=e1814]':
+          - generic [ref=e1815]: EА
+        - generic [ref=e1816]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1817]:
+            - img [ref=e1818]
+          - generic [ref=e1820]: Новая
+        - heading "E2E Auto Signup 1789241400472" [level=2] [ref=e1823]
+        - paragraph [ref=e1824]: E2E Автор
+        - generic [ref=e1826]:
+          - paragraph [ref=e1827]: Почему предлагаю прочитать
+          - paragraph [ref=e1828]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1830] [cursor=pointer]
+      - article [ref=e1831]:
+        - 'generic "Обложка: E2E Auto Signup 1789184112427" [ref=e1834]':
+          - generic [ref=e1835]: EА
+        - generic [ref=e1836]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1837]:
+            - img [ref=e1838]
+          - generic [ref=e1840]: Новая
+        - heading "E2E Auto Signup 1789184112427" [level=2] [ref=e1843]
+        - paragraph [ref=e1844]: E2E Автор
+        - generic [ref=e1846]:
+          - paragraph [ref=e1847]: Почему предлагаю прочитать
+          - paragraph [ref=e1848]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1850] [cursor=pointer]
+      - article [ref=e1851]:
+        - 'generic "Обложка: E2E Auto Signup 1789097663527" [ref=e1854]':
+          - generic [ref=e1855]: EА
+        - generic [ref=e1856]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1857]:
+            - img [ref=e1858]
+          - generic [ref=e1860]: Новая
+        - heading "E2E Auto Signup 1789097663527" [level=2] [ref=e1863]
+        - paragraph [ref=e1864]: E2E Автор
+        - generic [ref=e1866]:
+          - paragraph [ref=e1867]: Почему предлагаю прочитать
+          - paragraph [ref=e1868]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1870] [cursor=pointer]
+      - article [ref=e1871]:
+        - 'generic "Обложка: E2E Auto Signup 1789011487142" [ref=e1874]':
+          - generic [ref=e1875]: EА
+        - generic [ref=e1876]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1877]:
+            - img [ref=e1878]
+          - generic [ref=e1880]: Новая
+        - heading "E2E Auto Signup 1789011487142" [level=2] [ref=e1883]
+        - paragraph [ref=e1884]: E2E Автор
+        - generic [ref=e1886]:
+          - paragraph [ref=e1887]: Почему предлагаю прочитать
+          - paragraph [ref=e1888]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1890] [cursor=pointer]
+      - article [ref=e1891]:
+        - 'generic "Обложка: E2E Auto Signup 1788925033503" [ref=e1894]':
+          - generic [ref=e1895]: EА
+        - generic [ref=e1896]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1897]:
+            - img [ref=e1898]
+          - generic [ref=e1900]: Новая
+        - heading "E2E Auto Signup 1788925033503" [level=2] [ref=e1903]
+        - paragraph [ref=e1904]: E2E Автор
+        - generic [ref=e1906]:
+          - paragraph [ref=e1907]: Почему предлагаю прочитать
+          - paragraph [ref=e1908]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1910] [cursor=pointer]
+      - article [ref=e1911]:
+        - 'generic "Обложка: E2E Auto Signup 1788838270459" [ref=e1914]':
+          - generic [ref=e1915]: EА
+        - generic [ref=e1916]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1917]:
+            - img [ref=e1918]
+          - generic [ref=e1920]: Новая
+        - heading "E2E Auto Signup 1788838270459" [level=2] [ref=e1923]
+        - paragraph [ref=e1924]: E2E Автор
+        - generic [ref=e1926]:
+          - paragraph [ref=e1927]: Почему предлагаю прочитать
+          - paragraph [ref=e1928]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1930] [cursor=pointer]
+      - article [ref=e1931]:
+        - 'generic "Обложка: E2E Auto Signup 1788773772647" [ref=e1934]':
+          - generic [ref=e1935]: EА
+        - generic [ref=e1936]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1937]:
+            - img [ref=e1938]
+          - generic [ref=e1940]: Новая
+        - heading "E2E Auto Signup 1788773772647" [level=2] [ref=e1943]
+        - paragraph [ref=e1944]: E2E Автор
+        - generic [ref=e1946]:
+          - paragraph [ref=e1947]: Почему предлагаю прочитать
+          - paragraph [ref=e1948]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1950] [cursor=pointer]
+      - article [ref=e1951]:
+        - 'generic "Обложка: E2E Auto Signup 1788751577872" [ref=e1954]':
+          - generic [ref=e1955]: EА
+        - generic [ref=e1956]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1957]:
+            - img [ref=e1958]
+          - generic [ref=e1960]: Новая
+        - heading "E2E Auto Signup 1788751577872" [level=2] [ref=e1963]
+        - paragraph [ref=e1964]: E2E Автор
+        - generic [ref=e1966]:
+          - paragraph [ref=e1967]: Почему предлагаю прочитать
+          - paragraph [ref=e1968]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1970] [cursor=pointer]
+      - article [ref=e1971]:
+        - 'generic "Обложка: E2E Auto Signup 1788737003236" [ref=e1974]':
+          - generic [ref=e1975]: EА
+        - generic [ref=e1976]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1977]:
+            - img [ref=e1978]
+          - generic [ref=e1980]: Новая
+        - heading "E2E Auto Signup 1788737003236" [level=2] [ref=e1983]
+        - paragraph [ref=e1984]: E2E Автор
+        - generic [ref=e1986]:
+          - paragraph [ref=e1987]: Почему предлагаю прочитать
+          - paragraph [ref=e1988]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e1990] [cursor=pointer]
+      - article [ref=e1991]:
+        - 'generic "Обложка: E2E Auto Signup 1788735952049" [ref=e1994]':
+          - generic [ref=e1995]: EА
+        - generic [ref=e1996]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e1997]:
+            - img [ref=e1998]
+          - generic [ref=e2000]: Новая
+        - heading "E2E Auto Signup 1788735952049" [level=2] [ref=e2003]
+        - paragraph [ref=e2004]: E2E Автор
+        - generic [ref=e2006]:
+          - paragraph [ref=e2007]: Почему предлагаю прочитать
+          - paragraph [ref=e2008]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2010] [cursor=pointer]
+      - article [ref=e2011]:
+        - 'generic "Обложка: E2E Auto Signup 1788735899827" [ref=e2014]':
+          - generic [ref=e2015]: EА
+        - generic [ref=e2016]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2017]:
+            - img [ref=e2018]
+          - generic [ref=e2020]: Новая
+        - heading "E2E Auto Signup 1788735899827" [level=2] [ref=e2023]
+        - paragraph [ref=e2024]: E2E Автор
+        - generic [ref=e2026]:
+          - paragraph [ref=e2027]: Почему предлагаю прочитать
+          - paragraph [ref=e2028]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2030] [cursor=pointer]
+      - article [ref=e2031]:
+        - 'generic "Обложка: E2E Auto Signup 1788735851974" [ref=e2034]':
+          - generic [ref=e2035]: EА
+        - generic [ref=e2036]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2037]:
+            - img [ref=e2038]
+          - generic [ref=e2040]: Новая
+        - heading "E2E Auto Signup 1788735851974" [level=2] [ref=e2043]
+        - paragraph [ref=e2044]: E2E Автор
+        - generic [ref=e2046]:
+          - paragraph [ref=e2047]: Почему предлагаю прочитать
+          - paragraph [ref=e2048]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2050] [cursor=pointer]
+      - article [ref=e2051]:
+        - 'generic "Обложка: E2E Auto Signup 1788665354806" [ref=e2054]':
+          - generic [ref=e2055]: EА
+        - generic [ref=e2056]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2057]:
+            - img [ref=e2058]
+          - generic [ref=e2060]: Новая
+        - heading "E2E Auto Signup 1788665354806" [level=2] [ref=e2063]
+        - paragraph [ref=e2064]: E2E Автор
+        - generic [ref=e2066]:
+          - paragraph [ref=e2067]: Почему предлагаю прочитать
+          - paragraph [ref=e2068]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2070] [cursor=pointer]
+      - article [ref=e2071]:
+        - 'generic "Обложка: E2E Auto Signup 1788578636850" [ref=e2074]':
+          - generic [ref=e2075]: EА
+        - generic [ref=e2076]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2077]:
+            - img [ref=e2078]
+          - generic [ref=e2080]: Новая
+        - heading "E2E Auto Signup 1788578636850" [level=2] [ref=e2083]
+        - paragraph [ref=e2084]: E2E Автор
+        - generic [ref=e2086]:
+          - paragraph [ref=e2087]: Почему предлагаю прочитать
+          - paragraph [ref=e2088]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2090] [cursor=pointer]
+      - article [ref=e2091]:
+        - 'generic "Обложка: E2E Auto Signup 1788492718682" [ref=e2094]':
+          - generic [ref=e2095]: EА
+        - generic [ref=e2096]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2097]:
+            - img [ref=e2098]
+          - generic [ref=e2100]: Новая
+        - heading "E2E Auto Signup 1788492718682" [level=2] [ref=e2103]
+        - paragraph [ref=e2104]: E2E Автор
+        - generic [ref=e2106]:
+          - paragraph [ref=e2107]: Почему предлагаю прочитать
+          - paragraph [ref=e2108]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2110] [cursor=pointer]
+      - article [ref=e2111]:
+        - 'generic "Обложка: E2E Auto Signup 1788405844778" [ref=e2114]':
+          - generic [ref=e2115]: EА
+        - generic [ref=e2116]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2117]:
+            - img [ref=e2118]
+          - generic [ref=e2120]: Новая
+        - heading "E2E Auto Signup 1788405844778" [level=2] [ref=e2123]
+        - paragraph [ref=e2124]: E2E Автор
+        - generic [ref=e2126]:
+          - paragraph [ref=e2127]: Почему предлагаю прочитать
+          - paragraph [ref=e2128]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2130] [cursor=pointer]
+      - article [ref=e2131]:
+        - 'generic "Обложка: E2E Auto Signup 1788319557908" [ref=e2134]':
+          - generic [ref=e2135]: EА
+        - generic [ref=e2136]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2137]:
+            - img [ref=e2138]
+          - generic [ref=e2140]: Новая
+        - heading "E2E Auto Signup 1788319557908" [level=2] [ref=e2143]
+        - paragraph [ref=e2144]: E2E Автор
+        - generic [ref=e2146]:
+          - paragraph [ref=e2147]: Почему предлагаю прочитать
+          - paragraph [ref=e2148]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2150] [cursor=pointer]
+      - article [ref=e2151]:
+        - 'generic "Обложка: E2E Auto Signup 1788235318082" [ref=e2154]':
+          - generic [ref=e2155]: EА
+        - generic [ref=e2156]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2157]:
+            - img [ref=e2158]
+          - generic [ref=e2160]: Новая
+        - heading "E2E Auto Signup 1788235318082" [level=2] [ref=e2163]
+        - paragraph [ref=e2164]: E2E Автор
+        - generic [ref=e2166]:
+          - paragraph [ref=e2167]: Почему предлагаю прочитать
+          - paragraph [ref=e2168]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2170] [cursor=pointer]
+      - article [ref=e2171]:
+        - 'generic "Обложка: E2E Auto Signup 1788149539067" [ref=e2174]':
+          - generic [ref=e2175]: EА
+        - generic [ref=e2176]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2177]:
+            - img [ref=e2178]
+          - generic [ref=e2180]: Новая
+        - heading "E2E Auto Signup 1788149539067" [level=2] [ref=e2183]
+        - paragraph [ref=e2184]: E2E Автор
+        - generic [ref=e2186]:
+          - paragraph [ref=e2187]: Почему предлагаю прочитать
+          - paragraph [ref=e2188]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2190] [cursor=pointer]
+      - article [ref=e2191]:
+        - 'generic "Обложка: E2E Auto Signup 1788063138562" [ref=e2194]':
+          - generic [ref=e2195]: EА
+        - generic [ref=e2196]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2197]:
+            - img [ref=e2198]
+          - generic [ref=e2200]: Новая
+        - heading "E2E Auto Signup 1788063138562" [level=2] [ref=e2203]
+        - paragraph [ref=e2204]: E2E Автор
+        - generic [ref=e2206]:
+          - paragraph [ref=e2207]: Почему предлагаю прочитать
+          - paragraph [ref=e2208]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2210] [cursor=pointer]
+      - article [ref=e2211]:
+        - 'generic "Обложка: E2E Auto Signup 1787983447780" [ref=e2214]':
+          - generic [ref=e2215]: EА
+        - generic [ref=e2216]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2217]:
+            - img [ref=e2218]
+          - generic [ref=e2220]: Новая
+        - heading "E2E Auto Signup 1787983447780" [level=2] [ref=e2223]
+        - paragraph [ref=e2224]: E2E Автор
+        - generic [ref=e2226]:
+          - paragraph [ref=e2227]: Почему предлагаю прочитать
+          - paragraph [ref=e2228]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2230] [cursor=pointer]
+      - article [ref=e2231]:
+        - 'generic "Обложка: E2E Auto Signup 1787911322246" [ref=e2234]':
+          - generic [ref=e2235]: EА
+        - generic [ref=e2236]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2237]:
+            - img [ref=e2238]
+          - generic [ref=e2240]: Новая
+        - heading "E2E Auto Signup 1787911322246" [level=2] [ref=e2243]
+        - paragraph [ref=e2244]: E2E Автор
+        - generic [ref=e2246]:
+          - paragraph [ref=e2247]: Почему предлагаю прочитать
+          - paragraph [ref=e2248]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2250] [cursor=pointer]
+      - article [ref=e2251]:
+        - 'generic "Обложка: E2E Auto Signup 1787817893945" [ref=e2254]':
+          - generic [ref=e2255]: EА
+        - generic [ref=e2256]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2257]:
+            - img [ref=e2258]
+          - generic [ref=e2260]: Новая
+        - heading "E2E Auto Signup 1787817893945" [level=2] [ref=e2263]
+        - paragraph [ref=e2264]: E2E Автор
+        - generic [ref=e2266]:
+          - paragraph [ref=e2267]: Почему предлагаю прочитать
+          - paragraph [ref=e2268]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2270] [cursor=pointer]
+      - article [ref=e2271]:
+        - 'generic "Обложка: E2E Auto Signup 1787708281495" [ref=e2274]':
+          - generic [ref=e2275]: EА
+        - generic [ref=e2276]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2277]:
+            - img [ref=e2278]
+          - generic [ref=e2280]: Новая
+        - heading "E2E Auto Signup 1787708281495" [level=2] [ref=e2283]
+        - paragraph [ref=e2284]: E2E Автор
+        - generic [ref=e2286]:
+          - paragraph [ref=e2287]: Почему предлагаю прочитать
+          - paragraph [ref=e2288]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2290] [cursor=pointer]
+      - article [ref=e2291]:
+        - 'generic "Обложка: E2E Auto Signup 1787621538550" [ref=e2294]':
+          - generic [ref=e2295]: EА
+        - generic [ref=e2296]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2297]:
+            - img [ref=e2298]
+          - generic [ref=e2300]: Новая
+        - heading "E2E Auto Signup 1787621538550" [level=2] [ref=e2303]
+        - paragraph [ref=e2304]: E2E Автор
+        - generic [ref=e2306]:
+          - paragraph [ref=e2307]: Почему предлагаю прочитать
+          - paragraph [ref=e2308]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2310] [cursor=pointer]
+      - article [ref=e2311]:
+        - 'generic "Обложка: E2E Auto Signup 1787535047727" [ref=e2314]':
+          - generic [ref=e2315]: EА
+        - generic [ref=e2316]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2317]:
+            - img [ref=e2318]
+          - generic [ref=e2320]: Новая
+        - heading "E2E Auto Signup 1787535047727" [level=2] [ref=e2323]
+        - paragraph [ref=e2324]: E2E Автор
+        - generic [ref=e2326]:
+          - paragraph [ref=e2327]: Почему предлагаю прочитать
+          - paragraph [ref=e2328]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2330] [cursor=pointer]
+      - article [ref=e2331]:
+        - 'generic "Обложка: E2E Auto Signup 1787448664881" [ref=e2334]':
+          - generic [ref=e2335]: EА
+        - generic [ref=e2336]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2337]:
+            - img [ref=e2338]
+          - generic [ref=e2340]: Новая
+        - heading "E2E Auto Signup 1787448664881" [level=2] [ref=e2343]
+        - paragraph [ref=e2344]: E2E Автор
+        - generic [ref=e2346]:
+          - paragraph [ref=e2347]: Почему предлагаю прочитать
+          - paragraph [ref=e2348]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2350] [cursor=pointer]
+      - article [ref=e2351]:
+        - 'generic "Обложка: E2E Auto Signup 1787362371693" [ref=e2354]':
+          - generic [ref=e2355]: EА
+        - generic [ref=e2356]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2357]:
+            - img [ref=e2358]
+          - generic [ref=e2360]: Новая
+        - heading "E2E Auto Signup 1787362371693" [level=2] [ref=e2363]
+        - paragraph [ref=e2364]: E2E Автор
+        - generic [ref=e2366]:
+          - paragraph [ref=e2367]: Почему предлагаю прочитать
+          - paragraph [ref=e2368]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2370] [cursor=pointer]
+      - article [ref=e2371]:
+        - 'generic "Обложка: E2E Auto Signup 1787276240435" [ref=e2374]':
+          - generic [ref=e2375]: EА
+        - generic [ref=e2376]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2377]:
+            - img [ref=e2378]
+          - generic [ref=e2380]: Новая
+        - heading "E2E Auto Signup 1787276240435" [level=2] [ref=e2383]
+        - paragraph [ref=e2384]: E2E Автор
+        - generic [ref=e2386]:
+          - paragraph [ref=e2387]: Почему предлагаю прочитать
+          - paragraph [ref=e2388]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2390] [cursor=pointer]
+      - article [ref=e2391]:
+        - 'generic "Обложка: E2E Auto Signup 1787189160215" [ref=e2394]':
+          - generic [ref=e2395]: EА
+        - generic [ref=e2396]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2397]:
+            - img [ref=e2398]
+          - generic [ref=e2400]: Новая
+        - heading "E2E Auto Signup 1787189160215" [level=2] [ref=e2403]
+        - paragraph [ref=e2404]: E2E Автор
+        - generic [ref=e2406]:
+          - paragraph [ref=e2407]: Почему предлагаю прочитать
+          - paragraph [ref=e2408]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2410] [cursor=pointer]
+      - article [ref=e2411]:
+        - 'generic "Обложка: E2E Auto Signup 1787103133142" [ref=e2414]':
+          - generic [ref=e2415]: EА
+        - generic [ref=e2416]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2417]:
+            - img [ref=e2418]
+          - generic [ref=e2420]: Новая
+        - heading "E2E Auto Signup 1787103133142" [level=2] [ref=e2423]
+        - paragraph [ref=e2424]: E2E Автор
+        - generic [ref=e2426]:
+          - paragraph [ref=e2427]: Почему предлагаю прочитать
+          - paragraph [ref=e2428]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2430] [cursor=pointer]
+      - article [ref=e2431]:
+        - 'generic "Обложка: E2E Auto Signup 1786930528549" [ref=e2434]':
+          - generic [ref=e2435]: EА
+        - generic [ref=e2436]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2437]:
+            - img [ref=e2438]
+          - generic [ref=e2440]: Новая
+        - heading "E2E Auto Signup 1786930528549" [level=2] [ref=e2443]
+        - paragraph [ref=e2444]: E2E Автор
+        - generic [ref=e2446]:
+          - paragraph [ref=e2447]: Почему предлагаю прочитать
+          - paragraph [ref=e2448]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2450] [cursor=pointer]
+      - article [ref=e2451]:
+        - 'generic "Обложка: E2E Auto Signup 1786844093314" [ref=e2454]':
+          - generic [ref=e2455]: EА
+        - generic [ref=e2456]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2457]:
+            - img [ref=e2458]
+          - generic [ref=e2460]: Новая
+        - heading "E2E Auto Signup 1786844093314" [level=2] [ref=e2463]
+        - paragraph [ref=e2464]: E2E Автор
+        - generic [ref=e2466]:
+          - paragraph [ref=e2467]: Почему предлагаю прочитать
+          - paragraph [ref=e2468]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2470] [cursor=pointer]
+      - article [ref=e2471]:
+        - 'generic "Обложка: E2E Auto Signup 1786757535205" [ref=e2474]':
+          - generic [ref=e2475]: EА
+        - generic [ref=e2476]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2477]:
+            - img [ref=e2478]
+          - generic [ref=e2480]: Новая
+        - heading "E2E Auto Signup 1786757535205" [level=2] [ref=e2483]
+        - paragraph [ref=e2484]: E2E Автор
+        - generic [ref=e2486]:
+          - paragraph [ref=e2487]: Почему предлагаю прочитать
+          - paragraph [ref=e2488]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2490] [cursor=pointer]
+      - article [ref=e2491]:
+        - 'generic "Обложка: E2E Auto Signup 1786673696812" [ref=e2494]':
+          - generic [ref=e2495]: EА
+        - generic [ref=e2496]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2497]:
+            - img [ref=e2498]
+          - generic [ref=e2500]: Новая
+        - heading "E2E Auto Signup 1786673696812" [level=2] [ref=e2503]
+        - paragraph [ref=e2504]: E2E Автор
+        - generic [ref=e2506]:
+          - paragraph [ref=e2507]: Почему предлагаю прочитать
+          - paragraph [ref=e2508]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2510] [cursor=pointer]
+      - article [ref=e2511]:
+        - 'generic "Обложка: E2E Auto Signup 1786587446286" [ref=e2514]':
+          - generic [ref=e2515]: EА
+        - generic [ref=e2516]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2517]:
+            - img [ref=e2518]
+          - generic [ref=e2520]: Новая
+        - heading "E2E Auto Signup 1786587446286" [level=2] [ref=e2523]
+        - paragraph [ref=e2524]: E2E Автор
+        - generic [ref=e2526]:
+          - paragraph [ref=e2527]: Почему предлагаю прочитать
+          - paragraph [ref=e2528]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2530] [cursor=pointer]
+      - article [ref=e2531]:
+        - 'generic "Обложка: E2E Auto Signup 1786500789988" [ref=e2534]':
+          - generic [ref=e2535]: EА
+        - generic [ref=e2536]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2537]:
+            - img [ref=e2538]
+          - generic [ref=e2540]: Новая
+        - heading "E2E Auto Signup 1786500789988" [level=2] [ref=e2543]
+        - paragraph [ref=e2544]: E2E Автор
+        - generic [ref=e2546]:
+          - paragraph [ref=e2547]: Почему предлагаю прочитать
+          - paragraph [ref=e2548]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2550] [cursor=pointer]
+      - article [ref=e2551]:
+        - 'generic "Обложка: E2E Auto Signup 1786413730228" [ref=e2554]':
+          - generic [ref=e2555]: EА
+        - generic [ref=e2556]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2557]:
+            - img [ref=e2558]
+          - generic [ref=e2560]: Новая
+        - heading "E2E Auto Signup 1786413730228" [level=2] [ref=e2563]
+        - paragraph [ref=e2564]: E2E Автор
+        - generic [ref=e2566]:
+          - paragraph [ref=e2567]: Почему предлагаю прочитать
+          - paragraph [ref=e2568]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2570] [cursor=pointer]
+      - article [ref=e2571]:
+        - 'generic "Обложка: E2E Auto Signup 1786327300055" [ref=e2574]':
+          - generic [ref=e2575]: EА
+        - generic [ref=e2576]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2577]:
+            - img [ref=e2578]
+          - generic [ref=e2580]: Новая
+        - heading "E2E Auto Signup 1786327300055" [level=2] [ref=e2583]
+        - paragraph [ref=e2584]: E2E Автор
+        - generic [ref=e2586]:
+          - paragraph [ref=e2587]: Почему предлагаю прочитать
+          - paragraph [ref=e2588]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2590] [cursor=pointer]
+      - article [ref=e2591]:
+        - 'generic "Обложка: E2E Auto Signup 1786240396543" [ref=e2594]':
+          - generic [ref=e2595]: EА
+        - generic [ref=e2596]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2597]:
+            - img [ref=e2598]
+          - generic [ref=e2600]: Новая
+        - heading "E2E Auto Signup 1786240396543" [level=2] [ref=e2603]
+        - paragraph [ref=e2604]: E2E Автор
+        - generic [ref=e2606]:
+          - paragraph [ref=e2607]: Почему предлагаю прочитать
+          - paragraph [ref=e2608]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2610] [cursor=pointer]
+      - article [ref=e2611]:
+        - 'generic "Обложка: E2E Auto Signup 1786153316161" [ref=e2614]':
+          - generic [ref=e2615]: EА
+        - generic [ref=e2616]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2617]:
+            - img [ref=e2618]
+          - generic [ref=e2620]: Новая
+        - heading "E2E Auto Signup 1786153316161" [level=2] [ref=e2623]
+        - paragraph [ref=e2624]: E2E Автор
+        - generic [ref=e2626]:
+          - paragraph [ref=e2627]: Почему предлагаю прочитать
+          - paragraph [ref=e2628]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2630] [cursor=pointer]
+      - article [ref=e2631]:
+        - 'generic "Обложка: E2E Auto Signup 1786071222501" [ref=e2634]':
+          - generic [ref=e2635]: EА
+        - generic [ref=e2636]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2637]:
+            - img [ref=e2638]
+          - generic [ref=e2640]: Новая
+        - heading "E2E Auto Signup 1786071222501" [level=2] [ref=e2643]
+        - paragraph [ref=e2644]: E2E Автор
+        - generic [ref=e2646]:
+          - paragraph [ref=e2647]: Почему предлагаю прочитать
+          - paragraph [ref=e2648]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2650] [cursor=pointer]
+      - article [ref=e2651]:
+        - 'generic "Обложка: E2E Auto Signup 1785984297016" [ref=e2654]':
+          - generic [ref=e2655]: EА
+        - generic [ref=e2656]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2657]:
+            - img [ref=e2658]
+          - generic [ref=e2660]: Новая
+        - heading "E2E Auto Signup 1785984297016" [level=2] [ref=e2663]
+        - paragraph [ref=e2664]: E2E Автор
+        - generic [ref=e2666]:
+          - paragraph [ref=e2667]: Почему предлагаю прочитать
+          - paragraph [ref=e2668]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2670] [cursor=pointer]
+      - article [ref=e2671]:
+        - 'generic "Обложка: E2E Auto Signup 1785897604892" [ref=e2674]':
+          - generic [ref=e2675]: EА
+        - generic [ref=e2676]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2677]:
+            - img [ref=e2678]
+          - generic [ref=e2680]: Новая
+        - heading "E2E Auto Signup 1785897604892" [level=2] [ref=e2683]
+        - paragraph [ref=e2684]: E2E Автор
+        - generic [ref=e2686]:
+          - paragraph [ref=e2687]: Почему предлагаю прочитать
+          - paragraph [ref=e2688]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2690] [cursor=pointer]
+      - article [ref=e2691]:
+        - 'generic "Обложка: E2E Auto Signup 1785811561441" [ref=e2694]':
+          - generic [ref=e2695]: EА
+        - generic [ref=e2696]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2697]:
+            - img [ref=e2698]
+          - generic [ref=e2700]: Новая
+        - heading "E2E Auto Signup 1785811561441" [level=2] [ref=e2703]
+        - paragraph [ref=e2704]: E2E Автор
+        - generic [ref=e2706]:
+          - paragraph [ref=e2707]: Почему предлагаю прочитать
+          - paragraph [ref=e2708]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2710] [cursor=pointer]
+      - article [ref=e2711]:
+        - 'generic "Обложка: E2E Auto Signup 1785725795047" [ref=e2714]':
+          - generic [ref=e2715]: EА
+        - generic [ref=e2716]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2717]:
+            - img [ref=e2718]
+          - generic [ref=e2720]: Новая
+        - heading "E2E Auto Signup 1785725795047" [level=2] [ref=e2723]
+        - paragraph [ref=e2724]: E2E Автор
+        - generic [ref=e2726]:
+          - paragraph [ref=e2727]: Почему предлагаю прочитать
+          - paragraph [ref=e2728]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2730] [cursor=pointer]
+      - article [ref=e2731]:
+        - 'generic "Обложка: E2E Auto Signup 1785639341333" [ref=e2734]':
+          - generic [ref=e2735]: EА
+        - generic [ref=e2736]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2737]:
+            - img [ref=e2738]
+          - generic [ref=e2740]: Новая
+        - heading "E2E Auto Signup 1785639341333" [level=2] [ref=e2743]
+        - paragraph [ref=e2744]: E2E Автор
+        - generic [ref=e2746]:
+          - paragraph [ref=e2747]: Почему предлагаю прочитать
+          - paragraph [ref=e2748]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2750] [cursor=pointer]
+      - article [ref=e2751]:
+        - 'generic "Обложка: E2E Auto Signup 1785553010462" [ref=e2754]':
+          - generic [ref=e2755]: EА
+        - generic [ref=e2756]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2757]:
+            - img [ref=e2758]
+          - generic [ref=e2760]: Новая
+        - heading "E2E Auto Signup 1785553010462" [level=2] [ref=e2763]
+        - paragraph [ref=e2764]: E2E Автор
+        - generic [ref=e2766]:
+          - paragraph [ref=e2767]: Почему предлагаю прочитать
+          - paragraph [ref=e2768]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2770] [cursor=pointer]
+      - article [ref=e2771]:
+        - 'generic "Обложка: E2E Auto Signup 1785466653217" [ref=e2774]':
+          - generic [ref=e2775]: EА
+        - generic [ref=e2776]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2777]:
+            - img [ref=e2778]
+          - generic [ref=e2780]: Новая
+        - heading "E2E Auto Signup 1785466653217" [level=2] [ref=e2783]
+        - paragraph [ref=e2784]: E2E Автор
+        - generic [ref=e2786]:
+          - paragraph [ref=e2787]: Почему предлагаю прочитать
+          - paragraph [ref=e2788]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2790] [cursor=pointer]
+      - article [ref=e2791]:
+        - 'generic "Обложка: E2E Auto Signup 1785378832626" [ref=e2794]':
+          - generic [ref=e2795]: EА
+        - generic [ref=e2796]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2797]:
+            - img [ref=e2798]
+          - generic [ref=e2800]: Новая
+        - heading "E2E Auto Signup 1785378832626" [level=2] [ref=e2803]
+        - paragraph [ref=e2804]: E2E Автор
+        - generic [ref=e2806]:
+          - paragraph [ref=e2807]: Почему предлагаю прочитать
+          - paragraph [ref=e2808]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2810] [cursor=pointer]
+      - article [ref=e2811]:
+        - 'generic "Обложка: E2E Auto Signup 1785293494598" [ref=e2814]':
+          - generic [ref=e2815]: EА
+        - generic [ref=e2816]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2817]:
+            - img [ref=e2818]
+          - generic [ref=e2820]: Новая
+        - heading "E2E Auto Signup 1785293494598" [level=2] [ref=e2823]
+        - paragraph [ref=e2824]: E2E Автор
+        - generic [ref=e2826]:
+          - paragraph [ref=e2827]: Почему предлагаю прочитать
+          - paragraph [ref=e2828]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2830] [cursor=pointer]
+      - article [ref=e2831]:
+        - 'generic "Обложка: E2E Auto Signup 1785206571815" [ref=e2834]':
+          - generic [ref=e2835]: EА
+        - generic [ref=e2836]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2837]:
+            - img [ref=e2838]
+          - generic [ref=e2840]: Новая
+        - heading "E2E Auto Signup 1785206571815" [level=2] [ref=e2843]
+        - paragraph [ref=e2844]: E2E Автор
+        - generic [ref=e2846]:
+          - paragraph [ref=e2847]: Почему предлагаю прочитать
+          - paragraph [ref=e2848]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2850] [cursor=pointer]
+      - article [ref=e2851]:
+        - 'generic "Обложка: E2E Auto Signup 1785121415025" [ref=e2854]':
+          - generic [ref=e2855]: EА
+        - generic [ref=e2856]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2857]:
+            - img [ref=e2858]
+          - generic [ref=e2860]: Новая
+        - heading "E2E Auto Signup 1785121415025" [level=2] [ref=e2863]
+        - paragraph [ref=e2864]: E2E Автор
+        - generic [ref=e2866]:
+          - paragraph [ref=e2867]: Почему предлагаю прочитать
+          - paragraph [ref=e2868]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2870] [cursor=pointer]
+      - article [ref=e2871]:
+        - 'generic "Обложка: E2E Auto Signup 1785034523594" [ref=e2874]':
+          - generic [ref=e2875]: EА
+        - generic [ref=e2876]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2877]:
+            - img [ref=e2878]
+          - generic [ref=e2880]: Новая
+        - heading "E2E Auto Signup 1785034523594" [level=2] [ref=e2883]
+        - paragraph [ref=e2884]: E2E Автор
+        - generic [ref=e2886]:
+          - paragraph [ref=e2887]: Почему предлагаю прочитать
+          - paragraph [ref=e2888]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2890] [cursor=pointer]
+      - article [ref=e2891]:
+        - 'generic "Обложка: E2E Auto Signup 1784947977585" [ref=e2894]':
+          - generic [ref=e2895]: EА
+        - generic [ref=e2896]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2897]:
+            - img [ref=e2898]
+          - generic [ref=e2900]: Новая
+        - heading "E2E Auto Signup 1784947977585" [level=2] [ref=e2903]
+        - paragraph [ref=e2904]: E2E Автор
+        - generic [ref=e2906]:
+          - paragraph [ref=e2907]: Почему предлагаю прочитать
+          - paragraph [ref=e2908]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2910] [cursor=pointer]
+      - article [ref=e2911]:
+        - 'generic "Обложка: E2E Auto Signup 1784861335130" [ref=e2914]':
+          - generic [ref=e2915]: EА
+        - generic [ref=e2916]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2917]:
+            - img [ref=e2918]
+          - generic [ref=e2920]: Новая
+        - heading "E2E Auto Signup 1784861335130" [level=2] [ref=e2923]
+        - paragraph [ref=e2924]: E2E Автор
+        - generic [ref=e2926]:
+          - paragraph [ref=e2927]: Почему предлагаю прочитать
+          - paragraph [ref=e2928]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2930] [cursor=pointer]
+      - article [ref=e2931]:
+        - 'generic "Обложка: E2E Auto Signup 1784775471853" [ref=e2934]':
+          - generic [ref=e2935]: EА
+        - generic [ref=e2936]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2937]:
+            - img [ref=e2938]
+          - generic [ref=e2940]: Новая
+        - heading "E2E Auto Signup 1784775471853" [level=2] [ref=e2943]
+        - paragraph [ref=e2944]: E2E Автор
+        - generic [ref=e2946]:
+          - paragraph [ref=e2947]: Почему предлагаю прочитать
+          - paragraph [ref=e2948]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2950] [cursor=pointer]
+      - article [ref=e2951]:
+        - 'generic "Обложка: E2E Auto Signup 1784688406969" [ref=e2954]':
+          - generic [ref=e2955]: EА
+        - generic [ref=e2956]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2957]:
+            - img [ref=e2958]
+          - generic [ref=e2960]: Новая
+        - heading "E2E Auto Signup 1784688406969" [level=2] [ref=e2963]
+        - paragraph [ref=e2964]: E2E Автор
+        - generic [ref=e2966]:
+          - paragraph [ref=e2967]: Почему предлагаю прочитать
+          - paragraph [ref=e2968]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2970] [cursor=pointer]
+      - article [ref=e2971]:
+        - 'generic "Обложка: E2E Auto Signup 1784602162123" [ref=e2974]':
+          - generic [ref=e2975]: EА
+        - generic [ref=e2976]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2977]:
+            - img [ref=e2978]
+          - generic [ref=e2980]: Новая
+        - heading "E2E Auto Signup 1784602162123" [level=2] [ref=e2983]
+        - paragraph [ref=e2984]: E2E Автор
+        - generic [ref=e2986]:
+          - paragraph [ref=e2987]: Почему предлагаю прочитать
+          - paragraph [ref=e2988]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e2990] [cursor=pointer]
+      - article [ref=e2991]:
+        - 'generic "Обложка: E2E Auto Signup 1784516731210" [ref=e2994]':
+          - generic [ref=e2995]: EА
+        - generic [ref=e2996]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e2997]:
+            - img [ref=e2998]
+          - generic [ref=e3000]: Новая
+        - heading "E2E Auto Signup 1784516731210" [level=2] [ref=e3003]
+        - paragraph [ref=e3004]: E2E Автор
+        - generic [ref=e3006]:
+          - paragraph [ref=e3007]: Почему предлагаю прочитать
+          - paragraph [ref=e3008]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3010] [cursor=pointer]
+      - article [ref=e3011]:
+        - 'generic "Обложка: E2E Auto Signup 1784429446601" [ref=e3014]':
+          - generic [ref=e3015]: EА
+        - generic [ref=e3016]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3017]:
+            - img [ref=e3018]
+          - generic [ref=e3020]: Новая
+        - heading "E2E Auto Signup 1784429446601" [level=2] [ref=e3023]
+        - paragraph [ref=e3024]: E2E Автор
+        - generic [ref=e3026]:
+          - paragraph [ref=e3027]: Почему предлагаю прочитать
+          - paragraph [ref=e3028]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3030] [cursor=pointer]
+      - article [ref=e3031]:
+        - 'generic "Обложка: E2E Auto Signup 1784342522146" [ref=e3034]':
+          - generic [ref=e3035]: EА
+        - generic [ref=e3036]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3037]:
+            - img [ref=e3038]
+          - generic [ref=e3040]: Новая
+        - heading "E2E Auto Signup 1784342522146" [level=2] [ref=e3043]
+        - paragraph [ref=e3044]: E2E Автор
+        - generic [ref=e3046]:
+          - paragraph [ref=e3047]: Почему предлагаю прочитать
+          - paragraph [ref=e3048]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3050] [cursor=pointer]
+      - article [ref=e3051]:
+        - 'generic "Обложка: E2E Auto Signup 1784256484115" [ref=e3054]':
+          - generic [ref=e3055]: EА
+        - generic [ref=e3056]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3057]:
+            - img [ref=e3058]
+          - generic [ref=e3060]: Новая
+        - heading "E2E Auto Signup 1784256484115" [level=2] [ref=e3063]
+        - paragraph [ref=e3064]: E2E Автор
+        - generic [ref=e3066]:
+          - paragraph [ref=e3067]: Почему предлагаю прочитать
+          - paragraph [ref=e3068]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3070] [cursor=pointer]
+      - article [ref=e3071]:
+        - 'generic "Обложка: E2E Auto Signup 1784208728303" [ref=e3074]':
+          - generic [ref=e3075]: EА
+        - generic [ref=e3076]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3077]:
+            - img [ref=e3078]
+          - generic [ref=e3080]: Новая
+        - heading "E2E Auto Signup 1784208728303" [level=2] [ref=e3083]
+        - paragraph [ref=e3084]: E2E Автор
+        - generic [ref=e3086]:
+          - paragraph [ref=e3087]: Почему предлагаю прочитать
+          - paragraph [ref=e3088]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3090] [cursor=pointer]
+      - article [ref=e3091]:
+        - 'generic "Обложка: E2E Auto Signup 1784205350111" [ref=e3094]':
+          - generic [ref=e3095]: EА
+        - generic [ref=e3096]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3097]:
+            - img [ref=e3098]
+          - generic [ref=e3100]: Новая
+        - heading "E2E Auto Signup 1784205350111" [level=2] [ref=e3103]
+        - paragraph [ref=e3104]: E2E Автор
+        - generic [ref=e3106]:
+          - paragraph [ref=e3107]: Почему предлагаю прочитать
+          - paragraph [ref=e3108]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3110] [cursor=pointer]
+      - article [ref=e3111]:
+        - 'generic "Обложка: E2E Auto Signup 1784170211489" [ref=e3114]':
+          - generic [ref=e3115]: EА
+        - generic [ref=e3116]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3117]:
+            - img [ref=e3118]
+          - generic [ref=e3120]: Новая
+        - heading "E2E Auto Signup 1784170211489" [level=2] [ref=e3123]
+        - paragraph [ref=e3124]: E2E Автор
+        - generic [ref=e3126]:
+          - paragraph [ref=e3127]: Почему предлагаю прочитать
+          - paragraph [ref=e3128]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3130] [cursor=pointer]
+      - article [ref=e3131]:
+        - 'generic "Обложка: E2E Auto Signup 1784082978234" [ref=e3134]':
+          - generic [ref=e3135]: EА
+        - generic [ref=e3136]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3137]:
+            - img [ref=e3138]
+          - generic [ref=e3140]: Новая
+        - heading "E2E Auto Signup 1784082978234" [level=2] [ref=e3143]
+        - paragraph [ref=e3144]: E2E Автор
+        - generic [ref=e3146]:
+          - paragraph [ref=e3147]: Почему предлагаю прочитать
+          - paragraph [ref=e3148]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3150] [cursor=pointer]
+      - article [ref=e3151]:
+        - 'generic "Обложка: E2E Auto Signup 1784074396996" [ref=e3154]':
+          - generic [ref=e3155]: EА
+        - generic [ref=e3156]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3157]:
+            - img [ref=e3158]
+          - generic [ref=e3160]: Новая
+        - heading "E2E Auto Signup 1784074396996" [level=2] [ref=e3163]
+        - paragraph [ref=e3164]: E2E Автор
+        - generic [ref=e3166]:
+          - paragraph [ref=e3167]: Почему предлагаю прочитать
+          - paragraph [ref=e3168]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3170] [cursor=pointer]
+      - article [ref=e3171]:
+        - 'generic "Обложка: E2E Auto Signup 1784073453963" [ref=e3174]':
+          - generic [ref=e3175]: EА
+        - generic [ref=e3176]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3177]:
+            - img [ref=e3178]
+          - generic [ref=e3180]: Новая
+        - heading "E2E Auto Signup 1784073453963" [level=2] [ref=e3183]
+        - paragraph [ref=e3184]: E2E Автор
+        - generic [ref=e3186]:
+          - paragraph [ref=e3187]: Почему предлагаю прочитать
+          - paragraph [ref=e3188]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3190] [cursor=pointer]
+      - article [ref=e3191]:
+        - 'generic "Обложка: E2E Auto Signup 1784071680159" [ref=e3194]':
+          - generic [ref=e3195]: EА
+        - generic [ref=e3196]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3197]:
+            - img [ref=e3198]
+          - generic [ref=e3200]: Новая
+        - heading "E2E Auto Signup 1784071680159" [level=2] [ref=e3203]
+        - paragraph [ref=e3204]: E2E Автор
+        - generic [ref=e3206]:
+          - paragraph [ref=e3207]: Почему предлагаю прочитать
+          - paragraph [ref=e3208]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3210] [cursor=pointer]
+      - article [ref=e3211]:
+        - 'generic "Обложка: E2E Auto Signup 1783998094813" [ref=e3214]':
+          - generic [ref=e3215]: EА
+        - generic [ref=e3216]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3217]:
+            - img [ref=e3218]
+          - generic [ref=e3220]: Новая
+        - heading "E2E Auto Signup 1783998094813" [level=2] [ref=e3223]
+        - paragraph [ref=e3224]: E2E Автор
+        - generic [ref=e3226]:
+          - paragraph [ref=e3227]: Почему предлагаю прочитать
+          - paragraph [ref=e3228]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3230] [cursor=pointer]
+      - article [ref=e3231]:
+        - 'generic "Обложка: E2E Auto Signup 1783981234472" [ref=e3234]':
+          - generic [ref=e3235]: EА
+        - generic [ref=e3236]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3237]:
+            - img [ref=e3238]
+          - generic [ref=e3240]: Новая
+        - heading "E2E Auto Signup 1783981234472" [level=2] [ref=e3243]
+        - paragraph [ref=e3244]: E2E Автор
+        - generic [ref=e3246]:
+          - paragraph [ref=e3247]: Почему предлагаю прочитать
+          - paragraph [ref=e3248]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3250] [cursor=pointer]
+      - article [ref=e3251]:
+        - 'generic "Обложка: E2E Auto Signup 1783977996956" [ref=e3254]':
+          - generic [ref=e3255]: EА
+        - generic [ref=e3256]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3257]:
+            - img [ref=e3258]
+          - generic [ref=e3260]: Новая
+        - heading "E2E Auto Signup 1783977996956" [level=2] [ref=e3263]
+        - paragraph [ref=e3264]: E2E Автор
+        - generic [ref=e3266]:
+          - paragraph [ref=e3267]: Почему предлагаю прочитать
+          - paragraph [ref=e3268]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3270] [cursor=pointer]
+      - article [ref=e3271]:
+        - 'generic "Обложка: E2E Auto Signup 1783912196139" [ref=e3274]':
+          - generic [ref=e3275]: EА
+        - generic [ref=e3276]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3277]:
+            - img [ref=e3278]
+          - generic [ref=e3280]: Новая
+        - heading "E2E Auto Signup 1783912196139" [level=2] [ref=e3283]
+        - paragraph [ref=e3284]: E2E Автор
+        - generic [ref=e3286]:
+          - paragraph [ref=e3287]: Почему предлагаю прочитать
+          - paragraph [ref=e3288]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3290] [cursor=pointer]
+      - article [ref=e3291]:
+        - 'generic "Обложка: E2E Auto Signup 1783825154743" [ref=e3294]':
+          - generic [ref=e3295]: EА
+        - generic [ref=e3296]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3297]:
+            - img [ref=e3298]
+          - generic [ref=e3300]: Новая
+        - heading "E2E Auto Signup 1783825154743" [level=2] [ref=e3303]
+        - paragraph [ref=e3304]: E2E Автор
+        - generic [ref=e3306]:
+          - paragraph [ref=e3307]: Почему предлагаю прочитать
+          - paragraph [ref=e3308]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3310] [cursor=pointer]
+      - article [ref=e3311]:
+        - 'generic "Обложка: E2E Auto Signup 1783805671654" [ref=e3314]':
+          - generic [ref=e3315]: EА
+        - generic [ref=e3316]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3317]:
+            - img [ref=e3318]
+          - generic [ref=e3320]: Новая
+        - heading "E2E Auto Signup 1783805671654" [level=2] [ref=e3323]
+        - paragraph [ref=e3324]: E2E Автор
+        - generic [ref=e3326]:
+          - paragraph [ref=e3327]: Почему предлагаю прочитать
+          - paragraph [ref=e3328]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3330] [cursor=pointer]
+      - article [ref=e3331]:
+        - 'generic "Обложка: E2E Auto Signup 1783803218730" [ref=e3334]':
+          - generic [ref=e3335]: EА
+        - generic [ref=e3336]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3337]:
+            - img [ref=e3338]
+          - generic [ref=e3340]: Новая
+        - heading "E2E Auto Signup 1783803218730" [level=2] [ref=e3343]
+        - paragraph [ref=e3344]: E2E Автор
+        - generic [ref=e3346]:
+          - paragraph [ref=e3347]: Почему предлагаю прочитать
+          - paragraph [ref=e3348]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3350] [cursor=pointer]
+      - article [ref=e3351]:
+        - 'generic "Обложка: E2E Auto Signup 1783797056060" [ref=e3354]':
+          - generic [ref=e3355]: EА
+        - generic [ref=e3356]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3357]:
+            - img [ref=e3358]
+          - generic [ref=e3360]: Новая
+        - heading "E2E Auto Signup 1783797056060" [level=2] [ref=e3363]
+        - paragraph [ref=e3364]: E2E Автор
+        - generic [ref=e3366]:
+          - paragraph [ref=e3367]: Почему предлагаю прочитать
+          - paragraph [ref=e3368]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3370] [cursor=pointer]
+      - article [ref=e3371]:
+        - 'generic "Обложка: E2E Auto Signup 1783738426717" [ref=e3374]':
+          - generic [ref=e3375]: EА
+        - generic [ref=e3376]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3377]:
+            - img [ref=e3378]
+          - generic [ref=e3380]: Новая
+        - heading "E2E Auto Signup 1783738426717" [level=2] [ref=e3383]
+        - paragraph [ref=e3384]: E2E Автор
+        - generic [ref=e3386]:
+          - paragraph [ref=e3387]: Почему предлагаю прочитать
+          - paragraph [ref=e3388]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3390] [cursor=pointer]
+      - article [ref=e3391]:
+        - 'generic "Обложка: E2E Auto Signup 1783654461906" [ref=e3394]':
+          - generic [ref=e3395]: EА
+        - generic [ref=e3396]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3397]:
+            - img [ref=e3398]
+          - generic [ref=e3400]: Новая
+        - heading "E2E Auto Signup 1783654461906" [level=2] [ref=e3403]
+        - paragraph [ref=e3404]: E2E Автор
+        - generic [ref=e3406]:
+          - paragraph [ref=e3407]: Почему предлагаю прочитать
+          - paragraph [ref=e3408]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3410] [cursor=pointer]
+      - article [ref=e3411]:
+        - 'generic "Обложка: E2E Auto Signup 1783566906963" [ref=e3414]':
+          - generic [ref=e3415]: EА
+        - generic [ref=e3416]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3417]:
+            - img [ref=e3418]
+          - generic [ref=e3420]: Новая
+        - heading "E2E Auto Signup 1783566906963" [level=2] [ref=e3423]
+        - paragraph [ref=e3424]: E2E Автор
+        - generic [ref=e3426]:
+          - paragraph [ref=e3427]: Почему предлагаю прочитать
+          - paragraph [ref=e3428]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3430] [cursor=pointer]
+      - article [ref=e3431]:
+        - 'generic "Обложка: E2E Auto Signup 1783479255828" [ref=e3434]':
+          - generic [ref=e3435]: EА
+        - generic [ref=e3436]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3437]:
+            - img [ref=e3438]
+          - generic [ref=e3440]: Новая
+        - heading "E2E Auto Signup 1783479255828" [level=2] [ref=e3443]
+        - paragraph [ref=e3444]: E2E Автор
+        - generic [ref=e3446]:
+          - paragraph [ref=e3447]: Почему предлагаю прочитать
+          - paragraph [ref=e3448]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3450] [cursor=pointer]
+      - article [ref=e3451]:
+        - 'generic "Обложка: E2E Auto Signup 1783395875864" [ref=e3454]':
+          - generic [ref=e3455]: EА
+        - generic [ref=e3456]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3457]:
+            - img [ref=e3458]
+          - generic [ref=e3460]: Новая
+        - heading "E2E Auto Signup 1783395875864" [level=2] [ref=e3463]
+        - paragraph [ref=e3464]: E2E Автор
+        - generic [ref=e3466]:
+          - paragraph [ref=e3467]: Почему предлагаю прочитать
+          - paragraph [ref=e3468]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3470] [cursor=pointer]
+      - article [ref=e3471]:
+        - 'generic "Обложка: E2E Auto Signup 1783343448018" [ref=e3474]':
+          - generic [ref=e3475]: EА
+        - generic [ref=e3476]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3477]:
+            - img [ref=e3478]
+          - generic [ref=e3480]: Новая
+        - heading "E2E Auto Signup 1783343448018" [level=2] [ref=e3483]
+        - paragraph [ref=e3484]: E2E Автор
+        - generic [ref=e3486]:
+          - paragraph [ref=e3487]: Почему предлагаю прочитать
+          - paragraph [ref=e3488]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3490] [cursor=pointer]
+      - article [ref=e3491]:
+        - 'generic "Обложка: E2E Auto Signup 1783338123612" [ref=e3494]':
+          - generic [ref=e3495]: EА
+        - generic [ref=e3496]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3497]:
+            - img [ref=e3498]
+          - generic [ref=e3500]: Новая
+        - heading "E2E Auto Signup 1783338123612" [level=2] [ref=e3503]
+        - paragraph [ref=e3504]: E2E Автор
+        - generic [ref=e3506]:
+          - paragraph [ref=e3507]: Почему предлагаю прочитать
+          - paragraph [ref=e3508]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3510] [cursor=pointer]
+      - article [ref=e3511]:
+        - 'generic "Обложка: E2E Auto Signup 1783335757267" [ref=e3514]':
+          - generic [ref=e3515]: EА
+        - generic [ref=e3516]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3517]:
+            - img [ref=e3518]
+          - generic [ref=e3520]: Новая
+        - heading "E2E Auto Signup 1783335757267" [level=2] [ref=e3523]
+        - paragraph [ref=e3524]: E2E Автор
+        - generic [ref=e3526]:
+          - paragraph [ref=e3527]: Почему предлагаю прочитать
+          - paragraph [ref=e3528]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3530] [cursor=pointer]
+      - article [ref=e3531]:
+        - 'generic "Обложка: E2E Auto Signup 1783333514332" [ref=e3534]':
+          - generic [ref=e3535]: EА
+        - generic [ref=e3536]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3537]:
+            - img [ref=e3538]
+          - generic [ref=e3540]: Новая
+        - heading "E2E Auto Signup 1783333514332" [level=2] [ref=e3543]
+        - paragraph [ref=e3544]: E2E Автор
+        - generic [ref=e3546]:
+          - paragraph [ref=e3547]: Почему предлагаю прочитать
+          - paragraph [ref=e3548]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3550] [cursor=pointer]
+      - article [ref=e3551]:
+        - 'generic "Обложка: E2E Auto Signup 1783325529538" [ref=e3554]':
+          - generic [ref=e3555]: EА
+        - generic [ref=e3556]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3557]:
+            - img [ref=e3558]
+          - generic [ref=e3560]: Новая
+        - heading "E2E Auto Signup 1783325529538" [level=2] [ref=e3563]
+        - paragraph [ref=e3564]: E2E Автор
+        - generic [ref=e3566]:
+          - paragraph [ref=e3567]: Почему предлагаю прочитать
+          - paragraph [ref=e3568]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3570] [cursor=pointer]
+      - article [ref=e3571]:
+        - 'generic "Обложка: E2E Auto Signup 1783309612861" [ref=e3574]':
+          - generic [ref=e3575]: EА
+        - generic [ref=e3576]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3577]:
+            - img [ref=e3578]
+          - generic [ref=e3580]: Новая
+        - heading "E2E Auto Signup 1783309612861" [level=2] [ref=e3583]
+        - paragraph [ref=e3584]: E2E Автор
+        - generic [ref=e3586]:
+          - paragraph [ref=e3587]: Почему предлагаю прочитать
+          - paragraph [ref=e3588]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3590] [cursor=pointer]
+      - article [ref=e3591]:
+        - 'generic "Обложка: E2E Auto Signup 1783223105425" [ref=e3594]':
+          - generic [ref=e3595]: EА
+        - generic [ref=e3596]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3597]:
+            - img [ref=e3598]
+          - generic [ref=e3600]: Новая
+        - heading "E2E Auto Signup 1783223105425" [level=2] [ref=e3603]
+        - paragraph [ref=e3604]: E2E Автор
+        - generic [ref=e3606]:
+          - paragraph [ref=e3607]: Почему предлагаю прочитать
+          - paragraph [ref=e3608]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3610] [cursor=pointer]
+      - article [ref=e3611]:
+        - 'generic "Обложка: E2E Auto Signup 1783134654312" [ref=e3614]':
+          - generic [ref=e3615]: EА
+        - generic [ref=e3616]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3617]:
+            - img [ref=e3618]
+          - generic [ref=e3620]: Новая
+        - heading "E2E Auto Signup 1783134654312" [level=2] [ref=e3623]
+        - paragraph [ref=e3624]: E2E Автор
+        - generic [ref=e3626]:
+          - paragraph [ref=e3627]: Почему предлагаю прочитать
+          - paragraph [ref=e3628]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3630] [cursor=pointer]
+      - article [ref=e3631]:
+        - 'generic "Обложка: E2E Auto Signup 1783074355506" [ref=e3634]':
+          - generic [ref=e3635]: EА
+        - generic [ref=e3636]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3637]:
+            - img [ref=e3638]
+          - generic [ref=e3640]: Новая
+        - heading "E2E Auto Signup 1783074355506" [level=2] [ref=e3643]
+        - paragraph [ref=e3644]: E2E Автор
+        - generic [ref=e3646]:
+          - paragraph [ref=e3647]: Почему предлагаю прочитать
+          - paragraph [ref=e3648]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3650] [cursor=pointer]
+      - article [ref=e3651]:
+        - 'generic "Обложка: E2E Auto Signup 1783071769133" [ref=e3654]':
+          - generic [ref=e3655]: EА
+        - generic [ref=e3656]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3657]:
+            - img [ref=e3658]
+          - generic [ref=e3660]: Новая
+        - heading "E2E Auto Signup 1783071769133" [level=2] [ref=e3663]
+        - paragraph [ref=e3664]: E2E Автор
+        - generic [ref=e3666]:
+          - paragraph [ref=e3667]: Почему предлагаю прочитать
+          - paragraph [ref=e3668]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3670] [cursor=pointer]
+      - article [ref=e3671]:
+        - 'generic "Обложка: E2E Auto Signup 1783048370763" [ref=e3674]':
+          - generic [ref=e3675]: EА
+        - generic [ref=e3676]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3677]:
+            - img [ref=e3678]
+          - generic [ref=e3680]: Новая
+        - heading "E2E Auto Signup 1783048370763" [level=2] [ref=e3683]
+        - paragraph [ref=e3684]: E2E Автор
+        - generic [ref=e3686]:
+          - paragraph [ref=e3687]: Почему предлагаю прочитать
+          - paragraph [ref=e3688]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3690] [cursor=pointer]
+      - article [ref=e3691]:
+        - 'generic "Обложка: E2E Auto Signup 1783023810323" [ref=e3694]':
+          - generic [ref=e3695]: EА
+        - generic [ref=e3696]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3697]:
+            - img [ref=e3698]
+          - generic [ref=e3700]: Новая
+        - heading "E2E Auto Signup 1783023810323" [level=2] [ref=e3703]
+        - paragraph [ref=e3704]: E2E Автор
+        - generic [ref=e3706]:
+          - paragraph [ref=e3707]: Почему предлагаю прочитать
+          - paragraph [ref=e3708]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3710] [cursor=pointer]
+      - article [ref=e3711]:
+        - 'generic "Обложка: E2E Auto Signup 1783019854833" [ref=e3714]':
+          - generic [ref=e3715]: EА
+        - generic [ref=e3716]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3717]:
+            - img [ref=e3718]
+          - generic [ref=e3720]: Новая
+        - heading "E2E Auto Signup 1783019854833" [level=2] [ref=e3723]
+        - paragraph [ref=e3724]: E2E Автор
+        - generic [ref=e3726]:
+          - paragraph [ref=e3727]: Почему предлагаю прочитать
+          - paragraph [ref=e3728]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3730] [cursor=pointer]
+      - article [ref=e3731]:
+        - 'generic "Обложка: E2E Auto Signup 1783002393095" [ref=e3734]':
+          - generic [ref=e3735]: EА
+        - generic [ref=e3736]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3737]:
+            - img [ref=e3738]
+          - generic [ref=e3740]: Новая
+        - heading "E2E Auto Signup 1783002393095" [level=2] [ref=e3743]
+        - paragraph [ref=e3744]: E2E Автор
+        - generic [ref=e3746]:
+          - paragraph [ref=e3747]: Почему предлагаю прочитать
+          - paragraph [ref=e3748]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3750] [cursor=pointer]
+      - article [ref=e3751]:
+        - 'generic "Обложка: E2E Auto Signup 1782983985198" [ref=e3754]':
+          - generic [ref=e3755]: EА
+        - generic [ref=e3756]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3757]:
+            - img [ref=e3758]
+          - generic [ref=e3760]: Новая
+        - heading "E2E Auto Signup 1782983985198" [level=2] [ref=e3763]
+        - paragraph [ref=e3764]: E2E Автор
+        - generic [ref=e3766]:
+          - paragraph [ref=e3767]: Почему предлагаю прочитать
+          - paragraph [ref=e3768]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3770] [cursor=pointer]
+      - article [ref=e3771]:
+        - 'generic "Обложка: E2E Auto Signup 1782980929067" [ref=e3774]':
+          - generic [ref=e3775]: EА
+        - generic [ref=e3776]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3777]:
+            - img [ref=e3778]
+          - generic [ref=e3780]: Новая
+        - heading "E2E Auto Signup 1782980929067" [level=2] [ref=e3783]
+        - paragraph [ref=e3784]: E2E Автор
+        - generic [ref=e3786]:
+          - paragraph [ref=e3787]: Почему предлагаю прочитать
+          - paragraph [ref=e3788]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3790] [cursor=pointer]
+      - article [ref=e3791]:
+        - 'generic "Обложка: E2E Auto Signup 1782964399347" [ref=e3794]':
+          - generic [ref=e3795]: EА
+        - generic [ref=e3796]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3797]:
+            - img [ref=e3798]
+          - generic [ref=e3800]: Новая
+        - heading "E2E Auto Signup 1782964399347" [level=2] [ref=e3803]
+        - paragraph [ref=e3804]: E2E Автор
+        - generic [ref=e3806]:
+          - paragraph [ref=e3807]: Почему предлагаю прочитать
+          - paragraph [ref=e3808]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3810] [cursor=pointer]
+      - article [ref=e3811]:
+        - 'generic "Обложка: E2E Auto Signup 1782878508521" [ref=e3814]':
+          - generic [ref=e3815]: EА
+        - generic [ref=e3816]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3817]:
+            - img [ref=e3818]
+          - generic [ref=e3820]: Новая
+        - heading "E2E Auto Signup 1782878508521" [level=2] [ref=e3823]
+        - paragraph [ref=e3824]: E2E Автор
+        - generic [ref=e3826]:
+          - paragraph [ref=e3827]: Почему предлагаю прочитать
+          - paragraph [ref=e3828]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3830] [cursor=pointer]
+      - article [ref=e3831]:
+        - 'generic "Обложка: E2E Auto Signup 1782791222539" [ref=e3834]':
+          - generic [ref=e3835]: EА
+        - generic [ref=e3836]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3837]:
+            - img [ref=e3838]
+          - generic [ref=e3840]: Новая
+        - heading "E2E Auto Signup 1782791222539" [level=2] [ref=e3843]
+        - paragraph [ref=e3844]: E2E Автор
+        - generic [ref=e3846]:
+          - paragraph [ref=e3847]: Почему предлагаю прочитать
+          - paragraph [ref=e3848]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3850] [cursor=pointer]
+      - article [ref=e3851]:
+        - 'generic "Обложка: E2E Auto Signup 1782705924173" [ref=e3854]':
+          - generic [ref=e3855]: EА
+        - generic [ref=e3856]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3857]:
+            - img [ref=e3858]
+          - generic [ref=e3860]: Новая
+        - heading "E2E Auto Signup 1782705924173" [level=2] [ref=e3863]
+        - paragraph [ref=e3864]: E2E Автор
+        - generic [ref=e3866]:
+          - paragraph [ref=e3867]: Почему предлагаю прочитать
+          - paragraph [ref=e3868]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3870] [cursor=pointer]
+      - article [ref=e3871]:
+        - 'generic "Обложка: E2E Auto Signup 1782619230888" [ref=e3874]':
+          - generic [ref=e3875]: EА
+        - generic [ref=e3876]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3877]:
+            - img [ref=e3878]
+          - generic [ref=e3880]: Новая
+        - heading "E2E Auto Signup 1782619230888" [level=2] [ref=e3883]
+        - paragraph [ref=e3884]: E2E Автор
+        - generic [ref=e3886]:
+          - paragraph [ref=e3887]: Почему предлагаю прочитать
+          - paragraph [ref=e3888]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3890] [cursor=pointer]
+      - article [ref=e3891]:
+        - 'generic "Обложка: E2E Auto Signup 1782531383124" [ref=e3894]':
+          - generic [ref=e3895]: EА
+        - generic [ref=e3896]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3897]:
+            - img [ref=e3898]
+          - generic [ref=e3900]: Новая
+        - heading "E2E Auto Signup 1782531383124" [level=2] [ref=e3903]
+        - paragraph [ref=e3904]: E2E Автор
+        - generic [ref=e3906]:
+          - paragraph [ref=e3907]: Почему предлагаю прочитать
+          - paragraph [ref=e3908]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3910] [cursor=pointer]
+      - article [ref=e3911]:
+        - 'generic "Обложка: E2E Auto Signup 1782445920315" [ref=e3914]':
+          - generic [ref=e3915]: EА
+        - generic [ref=e3916]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3917]:
+            - img [ref=e3918]
+          - generic [ref=e3920]: Новая
+        - heading "E2E Auto Signup 1782445920315" [level=2] [ref=e3923]
+        - paragraph [ref=e3924]: E2E Автор
+        - generic [ref=e3926]:
+          - paragraph [ref=e3927]: Почему предлагаю прочитать
+          - paragraph [ref=e3928]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3930] [cursor=pointer]
+      - article [ref=e3931]:
+        - 'generic "Обложка: E2E Auto Signup 1782359268060" [ref=e3934]':
+          - generic [ref=e3935]: EА
+        - generic [ref=e3936]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3937]:
+            - img [ref=e3938]
+          - generic [ref=e3940]: Новая
+        - heading "E2E Auto Signup 1782359268060" [level=2] [ref=e3943]
+        - paragraph [ref=e3944]: E2E Автор
+        - generic [ref=e3946]:
+          - paragraph [ref=e3947]: Почему предлагаю прочитать
+          - paragraph [ref=e3948]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3950] [cursor=pointer]
+      - article [ref=e3951]:
+        - 'generic "Обложка: E2E Auto Signup 1782272878476" [ref=e3954]':
+          - generic [ref=e3955]: EА
+        - generic [ref=e3956]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3957]:
+            - img [ref=e3958]
+          - generic [ref=e3960]: Новая
+        - heading "E2E Auto Signup 1782272878476" [level=2] [ref=e3963]
+        - paragraph [ref=e3964]: E2E Автор
+        - generic [ref=e3966]:
+          - paragraph [ref=e3967]: Почему предлагаю прочитать
+          - paragraph [ref=e3968]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3970] [cursor=pointer]
+      - article [ref=e3971]:
+        - 'generic "Обложка: E2E Auto Signup 1781927480126" [ref=e3974]':
+          - generic [ref=e3975]: EА
+        - generic [ref=e3976]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3977]:
+            - img [ref=e3978]
+          - generic [ref=e3980]: Новая
+        - heading "E2E Auto Signup 1781927480126" [level=2] [ref=e3983]
+        - paragraph [ref=e3984]: E2E Автор
+        - generic [ref=e3986]:
+          - paragraph [ref=e3987]: Почему предлагаю прочитать
+          - paragraph [ref=e3988]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e3990] [cursor=pointer]
+      - article [ref=e3991]:
+        - 'generic "Обложка: E2E Auto Signup 1781843223795" [ref=e3994]':
+          - generic [ref=e3995]: EА
+        - generic [ref=e3996]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e3997]:
+            - img [ref=e3998]
+          - generic [ref=e4000]: Новая
+        - heading "E2E Auto Signup 1781843223795" [level=2] [ref=e4003]
+        - paragraph [ref=e4004]: E2E Автор
+        - generic [ref=e4006]:
+          - paragraph [ref=e4007]: Почему предлагаю прочитать
+          - paragraph [ref=e4008]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4010] [cursor=pointer]
+      - article [ref=e4011]:
+        - 'generic "Обложка: E2E Auto Signup 1781755695421" [ref=e4014]':
+          - generic [ref=e4015]: EА
+        - generic [ref=e4016]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4017]:
+            - img [ref=e4018]
+          - generic [ref=e4020]: Новая
+        - heading "E2E Auto Signup 1781755695421" [level=2] [ref=e4023]
+        - paragraph [ref=e4024]: E2E Автор
+        - generic [ref=e4026]:
+          - paragraph [ref=e4027]: Почему предлагаю прочитать
+          - paragraph [ref=e4028]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4030] [cursor=pointer]
+      - article [ref=e4031]:
+        - 'generic "Обложка: E2E Auto Signup 1781670059734" [ref=e4034]':
+          - generic [ref=e4035]: EА
+        - generic [ref=e4036]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4037]:
+            - img [ref=e4038]
+          - generic [ref=e4040]: Новая
+        - heading "E2E Auto Signup 1781670059734" [level=2] [ref=e4043]
+        - paragraph [ref=e4044]: E2E Автор
+        - generic [ref=e4046]:
+          - paragraph [ref=e4047]: Почему предлагаю прочитать
+          - paragraph [ref=e4048]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4050] [cursor=pointer]
+      - article [ref=e4051]:
+        - 'generic "Обложка: E2E Auto Signup 1781614850168" [ref=e4054]':
+          - generic [ref=e4055]: EА
+        - generic [ref=e4056]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4057]:
+            - img [ref=e4058]
+          - generic [ref=e4060]: Новая
+        - heading "E2E Auto Signup 1781614850168" [level=2] [ref=e4063]
+        - paragraph [ref=e4064]: E2E Автор
+        - generic [ref=e4066]:
+          - paragraph [ref=e4067]: Почему предлагаю прочитать
+          - paragraph [ref=e4068]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4070] [cursor=pointer]
+      - article [ref=e4071]:
+        - 'generic "Обложка: E2E Auto Signup 1781612943631" [ref=e4074]':
+          - generic [ref=e4075]: EА
+        - generic [ref=e4076]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4077]:
+            - img [ref=e4078]
+          - generic [ref=e4080]: Новая
+        - heading "E2E Auto Signup 1781612943631" [level=2] [ref=e4083]
+        - paragraph [ref=e4084]: E2E Автор
+        - generic [ref=e4086]:
+          - paragraph [ref=e4087]: Почему предлагаю прочитать
+          - paragraph [ref=e4088]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4090] [cursor=pointer]
+      - article [ref=e4091]:
+        - 'generic "Обложка: E2E Auto Signup 1781583497500" [ref=e4094]':
+          - generic [ref=e4095]: EА
+        - generic [ref=e4096]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4097]:
+            - img [ref=e4098]
+          - generic [ref=e4100]: Новая
+        - heading "E2E Auto Signup 1781583497500" [level=2] [ref=e4103]
+        - paragraph [ref=e4104]: E2E Автор
+        - generic [ref=e4106]:
+          - paragraph [ref=e4107]: Почему предлагаю прочитать
+          - paragraph [ref=e4108]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4110] [cursor=pointer]
+      - article [ref=e4111]:
+        - 'generic "Обложка: E2E Auto Signup 1781497719296" [ref=e4114]':
+          - generic [ref=e4115]: EА
+        - generic [ref=e4116]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4117]:
+            - img [ref=e4118]
+          - generic [ref=e4120]: Новая
+        - heading "E2E Auto Signup 1781497719296" [level=2] [ref=e4123]
+        - paragraph [ref=e4124]: E2E Автор
+        - generic [ref=e4126]:
+          - paragraph [ref=e4127]: Почему предлагаю прочитать
+          - paragraph [ref=e4128]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4130] [cursor=pointer]
+      - article [ref=e4131]:
+        - 'generic "Обложка: E2E Auto Signup 1781462958147" [ref=e4134]':
+          - generic [ref=e4135]: EА
+        - generic [ref=e4136]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4137]:
+            - img [ref=e4138]
+          - generic [ref=e4140]: Новая
+        - heading "E2E Auto Signup 1781462958147" [level=2] [ref=e4143]
+        - paragraph [ref=e4144]: E2E Автор
+        - generic [ref=e4146]:
+          - paragraph [ref=e4147]: Почему предлагаю прочитать
+          - paragraph [ref=e4148]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4150] [cursor=pointer]
+      - article [ref=e4151]:
+        - 'generic "Обложка: E2E Auto Signup 1781460382024" [ref=e4154]':
+          - generic [ref=e4155]: EА
+        - generic [ref=e4156]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4157]:
+            - img [ref=e4158]
+          - generic [ref=e4160]: Новая
+        - heading "E2E Auto Signup 1781460382024" [level=2] [ref=e4163]
+        - paragraph [ref=e4164]: E2E Автор
+        - generic [ref=e4166]:
+          - paragraph [ref=e4167]: Почему предлагаю прочитать
+          - paragraph [ref=e4168]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4170] [cursor=pointer]
+      - article [ref=e4171]:
+        - 'generic "Обложка: E2E Auto Signup 1781410359695" [ref=e4174]':
+          - generic [ref=e4175]: EА
+        - generic [ref=e4176]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4177]:
+            - img [ref=e4178]
+          - generic [ref=e4180]: Новая
+        - heading "E2E Auto Signup 1781410359695" [level=2] [ref=e4183]
+        - paragraph [ref=e4184]: E2E Автор
+        - generic [ref=e4186]:
+          - paragraph [ref=e4187]: Почему предлагаю прочитать
+          - paragraph [ref=e4188]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4190] [cursor=pointer]
+      - article [ref=e4191]:
+        - 'generic "Обложка: E2E Auto Signup 1781322904554" [ref=e4194]':
+          - generic [ref=e4195]: EА
+        - generic [ref=e4196]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4197]:
+            - img [ref=e4198]
+          - generic [ref=e4200]: Новая
+        - heading "E2E Auto Signup 1781322904554" [level=2] [ref=e4203]
+        - paragraph [ref=e4204]: E2E Автор
+        - generic [ref=e4206]:
+          - paragraph [ref=e4207]: Почему предлагаю прочитать
+          - paragraph [ref=e4208]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4210] [cursor=pointer]
+      - article [ref=e4211]:
+        - 'generic "Обложка: E2E Auto Signup 1781258082878" [ref=e4214]':
+          - generic [ref=e4215]: EА
+        - generic [ref=e4216]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4217]:
+            - img [ref=e4218]
+          - generic [ref=e4220]: Новая
+        - heading "E2E Auto Signup 1781258082878" [level=2] [ref=e4223]
+        - paragraph [ref=e4224]: E2E Автор
+        - generic [ref=e4226]:
+          - paragraph [ref=e4227]: Почему предлагаю прочитать
+          - paragraph [ref=e4228]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4230] [cursor=pointer]
+      - article [ref=e4231]:
+        - 'generic "Обложка: E2E Auto Signup 1781256999490" [ref=e4234]':
+          - generic [ref=e4235]: EА
+        - generic [ref=e4236]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4237]:
+            - img [ref=e4238]
+          - generic [ref=e4240]: Новая
+        - heading "E2E Auto Signup 1781256999490" [level=2] [ref=e4243]
+        - paragraph [ref=e4244]: E2E Автор
+        - generic [ref=e4246]:
+          - paragraph [ref=e4247]: Почему предлагаю прочитать
+          - paragraph [ref=e4248]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4250] [cursor=pointer]
+      - article [ref=e4251]:
+        - 'generic "Обложка: E2E Auto Signup 1781255779327" [ref=e4254]':
+          - generic [ref=e4255]: EА
+        - generic [ref=e4256]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4257]:
+            - img [ref=e4258]
+          - generic [ref=e4260]: Новая
+        - heading "E2E Auto Signup 1781255779327" [level=2] [ref=e4263]
+        - paragraph [ref=e4264]: E2E Автор
+        - generic [ref=e4266]:
+          - paragraph [ref=e4267]: Почему предлагаю прочитать
+          - paragraph [ref=e4268]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4270] [cursor=pointer]
+      - article [ref=e4271]:
+        - 'generic "Обложка: E2E Auto Signup 1781254570899" [ref=e4274]':
+          - generic [ref=e4275]: EА
+        - generic [ref=e4276]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4277]:
+            - img [ref=e4278]
+          - generic [ref=e4280]: Новая
+        - heading "E2E Auto Signup 1781254570899" [level=2] [ref=e4283]
+        - paragraph [ref=e4284]: E2E Автор
+        - generic [ref=e4286]:
+          - paragraph [ref=e4287]: Почему предлагаю прочитать
+          - paragraph [ref=e4288]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4290] [cursor=pointer]
+      - article [ref=e4291]:
+        - 'generic "Обложка: E2E Auto Signup 1781253383621" [ref=e4294]':
+          - generic [ref=e4295]: EА
+        - generic [ref=e4296]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4297]:
+            - img [ref=e4298]
+          - generic [ref=e4300]: Новая
+        - heading "E2E Auto Signup 1781253383621" [level=2] [ref=e4303]
+        - paragraph [ref=e4304]: E2E Автор
+        - generic [ref=e4306]:
+          - paragraph [ref=e4307]: Почему предлагаю прочитать
+          - paragraph [ref=e4308]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4310] [cursor=pointer]
+      - article [ref=e4311]:
+        - 'generic "Обложка: E2E Auto Signup 1781252256268" [ref=e4314]':
+          - generic [ref=e4315]: EА
+        - generic [ref=e4316]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4317]:
+            - img [ref=e4318]
+          - generic [ref=e4320]: Новая
+        - heading "E2E Auto Signup 1781252256268" [level=2] [ref=e4323]
+        - paragraph [ref=e4324]: E2E Автор
+        - generic [ref=e4326]:
+          - paragraph [ref=e4327]: Почему предлагаю прочитать
+          - paragraph [ref=e4328]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4330] [cursor=pointer]
+      - article [ref=e4331]:
+        - 'generic "Обложка: E2E Auto Signup 1781249935439" [ref=e4334]':
+          - generic [ref=e4335]: EА
+        - generic [ref=e4336]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4337]:
+            - img [ref=e4338]
+          - generic [ref=e4340]: Новая
+        - heading "E2E Auto Signup 1781249935439" [level=2] [ref=e4343]
+        - paragraph [ref=e4344]: E2E Автор
+        - generic [ref=e4346]:
+          - paragraph [ref=e4347]: Почему предлагаю прочитать
+          - paragraph [ref=e4348]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4350] [cursor=pointer]
+      - article [ref=e4351]:
+        - 'generic "Обложка: E2E Auto Signup 1781248221388" [ref=e4354]':
+          - generic [ref=e4355]: EА
+        - generic [ref=e4356]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4357]:
+            - img [ref=e4358]
+          - generic [ref=e4360]: Новая
+        - heading "E2E Auto Signup 1781248221388" [level=2] [ref=e4363]
+        - paragraph [ref=e4364]: E2E Автор
+        - generic [ref=e4366]:
+          - paragraph [ref=e4367]: Почему предлагаю прочитать
+          - paragraph [ref=e4368]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4370] [cursor=pointer]
+      - article [ref=e4371]:
+        - 'generic "Обложка: E2E Auto Signup 1781245231024" [ref=e4374]':
+          - generic [ref=e4375]: EА
+        - generic [ref=e4376]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4377]:
+            - img [ref=e4378]
+          - generic [ref=e4380]: Новая
+        - heading "E2E Auto Signup 1781245231024" [level=2] [ref=e4383]
+        - paragraph [ref=e4384]: E2E Автор
+        - generic [ref=e4386]:
+          - paragraph [ref=e4387]: Почему предлагаю прочитать
+          - paragraph [ref=e4388]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4390] [cursor=pointer]
+      - article [ref=e4391]:
+        - 'generic "Обложка: E2E Auto Signup 1781237377249" [ref=e4394]':
+          - generic [ref=e4395]: EА
+        - generic [ref=e4396]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4397]:
+            - img [ref=e4398]
+          - generic [ref=e4400]: Новая
+        - heading "E2E Auto Signup 1781237377249" [level=2] [ref=e4403]
+        - paragraph [ref=e4404]: E2E Автор
+        - generic [ref=e4406]:
+          - paragraph [ref=e4407]: Почему предлагаю прочитать
+          - paragraph [ref=e4408]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4410] [cursor=pointer]
+      - article [ref=e4411]:
+        - 'generic "Обложка: E2E Auto Signup 1781150920647" [ref=e4414]':
+          - generic [ref=e4415]: EА
+        - generic [ref=e4416]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4417]:
+            - img [ref=e4418]
+          - generic [ref=e4420]: Новая
+        - heading "E2E Auto Signup 1781150920647" [level=2] [ref=e4423]
+        - paragraph [ref=e4424]: E2E Автор
+        - generic [ref=e4426]:
+          - paragraph [ref=e4427]: Почему предлагаю прочитать
+          - paragraph [ref=e4428]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4430] [cursor=pointer]
+      - article [ref=e4431]:
+        - 'generic "Обложка: E2E Auto Signup 1781063528449" [ref=e4434]':
+          - generic [ref=e4435]: EА
+        - generic [ref=e4436]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4437]:
+            - img [ref=e4438]
+          - generic [ref=e4440]: Новая
+        - heading "E2E Auto Signup 1781063528449" [level=2] [ref=e4443]
+        - paragraph [ref=e4444]: E2E Автор
+        - generic [ref=e4446]:
+          - paragraph [ref=e4447]: Почему предлагаю прочитать
+          - paragraph [ref=e4448]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4450] [cursor=pointer]
+      - article [ref=e4451]:
+        - 'generic "Обложка: E2E Auto Signup 1780976376901" [ref=e4454]':
+          - generic [ref=e4455]: EА
+        - generic [ref=e4456]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4457]:
+            - img [ref=e4458]
+          - generic [ref=e4460]: Новая
+        - heading "E2E Auto Signup 1780976376901" [level=2] [ref=e4463]
+        - paragraph [ref=e4464]: E2E Автор
+        - generic [ref=e4466]:
+          - paragraph [ref=e4467]: Почему предлагаю прочитать
+          - paragraph [ref=e4468]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4470] [cursor=pointer]
+      - article [ref=e4471]:
+        - 'generic "Обложка: E2E Auto Signup 1780907401660" [ref=e4474]':
+          - generic [ref=e4475]: EА
+        - generic [ref=e4476]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4477]:
+            - img [ref=e4478]
+          - generic [ref=e4480]: Новая
+        - heading "E2E Auto Signup 1780907401660" [level=2] [ref=e4483]
+        - paragraph [ref=e4484]: E2E Автор
+        - generic [ref=e4486]:
+          - paragraph [ref=e4487]: Почему предлагаю прочитать
+          - paragraph [ref=e4488]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4490] [cursor=pointer]
+      - article [ref=e4491]:
+        - 'generic "Обложка: E2E Auto Signup 1780905369045" [ref=e4494]':
+          - generic [ref=e4495]: EА
+        - generic [ref=e4496]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4497]:
+            - img [ref=e4498]
+          - generic [ref=e4500]: Новая
+        - heading "E2E Auto Signup 1780905369045" [level=2] [ref=e4503]
+        - paragraph [ref=e4504]: E2E Автор
+        - generic [ref=e4506]:
+          - paragraph [ref=e4507]: Почему предлагаю прочитать
+          - paragraph [ref=e4508]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4510] [cursor=pointer]
+      - article [ref=e4511]:
+        - 'generic "Обложка: E2E Auto Signup 1780904490186" [ref=e4514]':
+          - generic [ref=e4515]: EА
+        - generic [ref=e4516]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4517]:
+            - img [ref=e4518]
+          - generic [ref=e4520]: Новая
+        - heading "E2E Auto Signup 1780904490186" [level=2] [ref=e4523]
+        - paragraph [ref=e4524]: E2E Автор
+        - generic [ref=e4526]:
+          - paragraph [ref=e4527]: Почему предлагаю прочитать
+          - paragraph [ref=e4528]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4530] [cursor=pointer]
+      - article [ref=e4531]:
+        - 'generic "Обложка: E2E Auto Signup 1780903579281" [ref=e4534]':
+          - generic [ref=e4535]: EА
+        - generic [ref=e4536]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4537]:
+            - img [ref=e4538]
+          - generic [ref=e4540]: Новая
+        - heading "E2E Auto Signup 1780903579281" [level=2] [ref=e4543]
+        - paragraph [ref=e4544]: E2E Автор
+        - generic [ref=e4546]:
+          - paragraph [ref=e4547]: Почему предлагаю прочитать
+          - paragraph [ref=e4548]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4550] [cursor=pointer]
+      - article [ref=e4551]:
+        - 'generic "Обложка: E2E Auto Signup 1780891864126" [ref=e4554]':
+          - generic [ref=e4555]: EА
+        - generic [ref=e4556]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4557]:
+            - img [ref=e4558]
+          - generic [ref=e4560]: Новая
+        - heading "E2E Auto Signup 1780891864126" [level=2] [ref=e4563]
+        - paragraph [ref=e4564]: E2E Автор
+        - generic [ref=e4566]:
+          - paragraph [ref=e4567]: Почему предлагаю прочитать
+          - paragraph [ref=e4568]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4570] [cursor=pointer]
+      - article [ref=e4571]:
+        - 'generic "Обложка: E2E Auto Signup 1780805003182" [ref=e4574]':
+          - generic [ref=e4575]: EА
+        - generic [ref=e4576]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4577]:
+            - img [ref=e4578]
+          - generic [ref=e4580]: Новая
+        - heading "E2E Auto Signup 1780805003182" [level=2] [ref=e4583]
+        - paragraph [ref=e4584]: E2E Автор
+        - generic [ref=e4586]:
+          - paragraph [ref=e4587]: Почему предлагаю прочитать
+          - paragraph [ref=e4588]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4590] [cursor=pointer]
+      - article [ref=e4591]:
+        - 'generic "Обложка: E2E Auto Signup 1780766038155" [ref=e4594]':
+          - generic [ref=e4595]: EА
+        - generic [ref=e4596]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4597]:
+            - img [ref=e4598]
+          - generic [ref=e4600]: Новая
+        - heading "E2E Auto Signup 1780766038155" [level=2] [ref=e4603]
+        - paragraph [ref=e4604]: E2E Автор
+        - generic [ref=e4606]:
+          - paragraph [ref=e4607]: Почему предлагаю прочитать
+          - paragraph [ref=e4608]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4610] [cursor=pointer]
+      - article [ref=e4611]:
+        - 'generic "Обложка: E2E Auto Signup 1780760014544" [ref=e4614]':
+          - generic [ref=e4615]: EА
+        - generic [ref=e4616]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4617]:
+            - img [ref=e4618]
+          - generic [ref=e4620]: Новая
+        - heading "E2E Auto Signup 1780760014544" [level=2] [ref=e4623]
+        - paragraph [ref=e4624]: E2E Автор
+        - generic [ref=e4626]:
+          - paragraph [ref=e4627]: Почему предлагаю прочитать
+          - paragraph [ref=e4628]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4630] [cursor=pointer]
+      - article [ref=e4631]:
+        - 'generic "Обложка: E2E Auto Signup 1780758643258" [ref=e4634]':
+          - generic [ref=e4635]: EА
+        - generic [ref=e4636]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4637]:
+            - img [ref=e4638]
+          - generic [ref=e4640]: Новая
+        - heading "E2E Auto Signup 1780758643258" [level=2] [ref=e4643]
+        - paragraph [ref=e4644]: E2E Автор
+        - generic [ref=e4646]:
+          - paragraph [ref=e4647]: Почему предлагаю прочитать
+          - paragraph [ref=e4648]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4650] [cursor=pointer]
+      - article [ref=e4651]:
+        - 'generic "Обложка: E2E Auto Signup 1780716898514" [ref=e4654]':
+          - generic [ref=e4655]: EА
+        - generic [ref=e4656]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4657]:
+            - img [ref=e4658]
+          - generic [ref=e4660]: Новая
+        - heading "E2E Auto Signup 1780716898514" [level=2] [ref=e4663]
+        - paragraph [ref=e4664]: E2E Автор
+        - generic [ref=e4666]:
+          - paragraph [ref=e4667]: Почему предлагаю прочитать
+          - paragraph [ref=e4668]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4670] [cursor=pointer]
+      - article [ref=e4671]:
+        - 'generic "Обложка: E2E Auto Signup 1780652896816" [ref=e4674]':
+          - generic [ref=e4675]: EА
+        - generic [ref=e4676]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4677]:
+            - img [ref=e4678]
+          - generic [ref=e4680]: Новая
+        - heading "E2E Auto Signup 1780652896816" [level=2] [ref=e4683]
+        - paragraph [ref=e4684]: E2E Автор
+        - generic [ref=e4686]:
+          - paragraph [ref=e4687]: Почему предлагаю прочитать
+          - paragraph [ref=e4688]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4690] [cursor=pointer]
+      - article [ref=e4691]:
+        - 'generic "Обложка: E2E Auto Signup 1780631285802" [ref=e4694]':
+          - generic [ref=e4695]: EА
+        - generic [ref=e4696]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4697]:
+            - img [ref=e4698]
+          - generic [ref=e4700]: Новая
+        - heading "E2E Auto Signup 1780631285802" [level=2] [ref=e4703]
+        - paragraph [ref=e4704]: E2E Автор
+        - generic [ref=e4706]:
+          - paragraph [ref=e4707]: Почему предлагаю прочитать
+          - paragraph [ref=e4708]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4710] [cursor=pointer]
+      - article [ref=e4711]:
+        - 'generic "Обложка: E2E Auto Signup 1780546005016" [ref=e4714]':
+          - generic [ref=e4715]: EА
+        - generic [ref=e4716]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4717]:
+            - img [ref=e4718]
+          - generic [ref=e4720]: Новая
+        - heading "E2E Auto Signup 1780546005016" [level=2] [ref=e4723]
+        - paragraph [ref=e4724]: E2E Автор
+        - generic [ref=e4726]:
+          - paragraph [ref=e4727]: Почему предлагаю прочитать
+          - paragraph [ref=e4728]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4730] [cursor=pointer]
+      - article [ref=e4731]:
+        - 'generic "Обложка: E2E Auto Signup 1780459777335" [ref=e4734]':
+          - generic [ref=e4735]: EА
+        - generic [ref=e4736]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4737]:
+            - img [ref=e4738]
+          - generic [ref=e4740]: Новая
+        - heading "E2E Auto Signup 1780459777335" [level=2] [ref=e4743]
+        - paragraph [ref=e4744]: E2E Автор
+        - generic [ref=e4746]:
+          - paragraph [ref=e4747]: Почему предлагаю прочитать
+          - paragraph [ref=e4748]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4750] [cursor=pointer]
+      - article [ref=e4751]:
+        - 'generic "Обложка: E2E Auto Signup 1780372859023" [ref=e4754]':
+          - generic [ref=e4755]: EА
+        - generic [ref=e4756]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4757]:
+            - img [ref=e4758]
+          - generic [ref=e4760]: Новая
+        - heading "E2E Auto Signup 1780372859023" [level=2] [ref=e4763]
+        - paragraph [ref=e4764]: E2E Автор
+        - generic [ref=e4766]:
+          - paragraph [ref=e4767]: Почему предлагаю прочитать
+          - paragraph [ref=e4768]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4770] [cursor=pointer]
+      - article [ref=e4771]:
+        - 'generic "Обложка: E2E Auto Signup 1780286801316" [ref=e4774]':
+          - generic [ref=e4775]: EА
+        - generic [ref=e4776]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4777]:
+            - img [ref=e4778]
+          - generic [ref=e4780]: Новая
+        - heading "E2E Auto Signup 1780286801316" [level=2] [ref=e4783]
+        - paragraph [ref=e4784]: E2E Автор
+        - generic [ref=e4786]:
+          - paragraph [ref=e4787]: Почему предлагаю прочитать
+          - paragraph [ref=e4788]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4790] [cursor=pointer]
+      - article [ref=e4791]:
+        - 'generic "Обложка: E2E Auto Signup 1780199734039" [ref=e4794]':
+          - generic [ref=e4795]: EА
+        - generic [ref=e4796]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4797]:
+            - img [ref=e4798]
+          - generic [ref=e4800]: Новая
+        - heading "E2E Auto Signup 1780199734039" [level=2] [ref=e4803]
+        - paragraph [ref=e4804]: E2E Автор
+        - generic [ref=e4806]:
+          - paragraph [ref=e4807]: Почему предлагаю прочитать
+          - paragraph [ref=e4808]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4810] [cursor=pointer]
+      - article [ref=e4811]:
+        - 'generic "Обложка: E2E Auto Signup 1780160239123" [ref=e4814]':
+          - generic [ref=e4815]: EА
+        - generic [ref=e4816]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4817]:
+            - img [ref=e4818]
+          - generic [ref=e4820]: Новая
+        - heading "E2E Auto Signup 1780160239123" [level=2] [ref=e4823]
+        - paragraph [ref=e4824]: E2E Автор
+        - generic [ref=e4826]:
+          - paragraph [ref=e4827]: Почему предлагаю прочитать
+          - paragraph [ref=e4828]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4830] [cursor=pointer]
+      - article [ref=e4831]:
+        - 'generic "Обложка: E2E Auto Signup 1780135479759" [ref=e4834]':
+          - generic [ref=e4835]: EА
+        - generic [ref=e4836]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4837]:
+            - img [ref=e4838]
+          - generic [ref=e4840]: Новая
+        - heading "E2E Auto Signup 1780135479759" [level=2] [ref=e4843]
+        - paragraph [ref=e4844]: E2E Автор
+        - generic [ref=e4846]:
+          - paragraph [ref=e4847]: Почему предлагаю прочитать
+          - paragraph [ref=e4848]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4850] [cursor=pointer]
+      - article [ref=e4851]:
+        - 'generic "Обложка: E2E Auto Signup 1780133901432" [ref=e4854]':
+          - generic [ref=e4855]: EА
+        - generic [ref=e4856]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4857]:
+            - img [ref=e4858]
+          - generic [ref=e4860]: Новая
+        - heading "E2E Auto Signup 1780133901432" [level=2] [ref=e4863]
+        - paragraph [ref=e4864]: E2E Автор
+        - generic [ref=e4866]:
+          - paragraph [ref=e4867]: Почему предлагаю прочитать
+          - paragraph [ref=e4868]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4870] [cursor=pointer]
+      - article [ref=e4871]:
+        - 'generic "Обложка: E2E Auto Signup 1780133108544" [ref=e4874]':
+          - generic [ref=e4875]: EА
+        - generic [ref=e4876]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4877]:
+            - img [ref=e4878]
+          - generic [ref=e4880]: Новая
+        - heading "E2E Auto Signup 1780133108544" [level=2] [ref=e4883]
+        - paragraph [ref=e4884]: E2E Автор
+        - generic [ref=e4886]:
+          - paragraph [ref=e4887]: Почему предлагаю прочитать
+          - paragraph [ref=e4888]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4890] [cursor=pointer]
+      - article [ref=e4891]:
+        - 'generic "Обложка: E2E Auto Signup 1780132982677" [ref=e4894]':
+          - generic [ref=e4895]: EА
+        - generic [ref=e4896]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4897]:
+            - img [ref=e4898]
+          - generic [ref=e4900]: Новая
+        - heading "E2E Auto Signup 1780132982677" [level=2] [ref=e4903]
+        - paragraph [ref=e4904]: E2E Автор
+        - generic [ref=e4906]:
+          - paragraph [ref=e4907]: Почему предлагаю прочитать
+          - paragraph [ref=e4908]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4910] [cursor=pointer]
+      - article [ref=e4911]:
+        - 'generic "Обложка: E2E Auto Signup 1780132808352" [ref=e4914]':
+          - generic [ref=e4915]: EА
+        - generic [ref=e4916]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4917]:
+            - img [ref=e4918]
+          - generic [ref=e4920]: Новая
+        - heading "E2E Auto Signup 1780132808352" [level=2] [ref=e4923]
+        - paragraph [ref=e4924]: E2E Автор
+        - generic [ref=e4926]:
+          - paragraph [ref=e4927]: Почему предлагаю прочитать
+          - paragraph [ref=e4928]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4930] [cursor=pointer]
+      - article [ref=e4931]:
+        - 'generic "Обложка: E2E Auto Signup 1780132707417" [ref=e4934]':
+          - generic [ref=e4935]: EА
+        - generic [ref=e4936]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4937]:
+            - img [ref=e4938]
+          - generic [ref=e4940]: Новая
+        - heading "E2E Auto Signup 1780132707417" [level=2] [ref=e4943]
+        - paragraph [ref=e4944]: E2E Автор
+        - generic [ref=e4946]:
+          - paragraph [ref=e4947]: Почему предлагаю прочитать
+          - paragraph [ref=e4948]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4950] [cursor=pointer]
+      - article [ref=e4951]:
+        - 'generic "Обложка: E2E Auto Signup 1780132690342" [ref=e4954]':
+          - generic [ref=e4955]: EА
+        - generic [ref=e4956]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4957]:
+            - img [ref=e4958]
+          - generic [ref=e4960]: Новая
+        - heading "E2E Auto Signup 1780132690342" [level=2] [ref=e4963]
+        - paragraph [ref=e4964]: E2E Автор
+        - generic [ref=e4966]:
+          - paragraph [ref=e4967]: Почему предлагаю прочитать
+          - paragraph [ref=e4968]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4970] [cursor=pointer]
+      - article [ref=e4971]:
+        - 'generic "Обложка: E2E Auto Signup 1780130308313" [ref=e4974]':
+          - generic [ref=e4975]: EА
+        - generic [ref=e4976]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4977]:
+            - img [ref=e4978]
+          - generic [ref=e4980]: Новая
+        - heading "E2E Auto Signup 1780130308313" [level=2] [ref=e4983]
+        - paragraph [ref=e4984]: E2E Автор
+        - generic [ref=e4986]:
+          - paragraph [ref=e4987]: Почему предлагаю прочитать
+          - paragraph [ref=e4988]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e4990] [cursor=pointer]
+      - article [ref=e4991]:
+        - 'generic "Обложка: E2E Auto Signup 1780129825367" [ref=e4994]':
+          - generic [ref=e4995]: EА
+        - generic [ref=e4996]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e4997]:
+            - img [ref=e4998]
+          - generic [ref=e5000]: Новая
+        - heading "E2E Auto Signup 1780129825367" [level=2] [ref=e5003]
+        - paragraph [ref=e5004]: E2E Автор
+        - generic [ref=e5006]:
+          - paragraph [ref=e5007]: Почему предлагаю прочитать
+          - paragraph [ref=e5008]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5010] [cursor=pointer]
+      - article [ref=e5011]:
+        - 'generic "Обложка: E2E Auto Signup 1780129391690" [ref=e5014]':
+          - generic [ref=e5015]: EА
+        - generic [ref=e5016]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5017]:
+            - img [ref=e5018]
+          - generic [ref=e5020]: Новая
+        - heading "E2E Auto Signup 1780129391690" [level=2] [ref=e5023]
+        - paragraph [ref=e5024]: E2E Автор
+        - generic [ref=e5026]:
+          - paragraph [ref=e5027]: Почему предлагаю прочитать
+          - paragraph [ref=e5028]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5030] [cursor=pointer]
+      - article [ref=e5031]:
+        - 'generic "Обложка: E2E Auto Signup 1780129275223" [ref=e5034]':
+          - generic [ref=e5035]: EА
+        - generic [ref=e5036]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5037]:
+            - img [ref=e5038]
+          - generic [ref=e5040]: Новая
+        - heading "E2E Auto Signup 1780129275223" [level=2] [ref=e5043]
+        - paragraph [ref=e5044]: E2E Автор
+        - generic [ref=e5046]:
+          - paragraph [ref=e5047]: Почему предлагаю прочитать
+          - paragraph [ref=e5048]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5050] [cursor=pointer]
+      - article [ref=e5051]:
+        - 'generic "Обложка: E2E Auto Signup 1780098472032" [ref=e5054]':
+          - generic [ref=e5055]: EА
+        - generic [ref=e5056]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5057]:
+            - img [ref=e5058]
+          - generic [ref=e5060]: Новая
+        - heading "E2E Auto Signup 1780098472032" [level=2] [ref=e5063]
+        - paragraph [ref=e5064]: E2E Автор
+        - generic [ref=e5066]:
+          - paragraph [ref=e5067]: Почему предлагаю прочитать
+          - paragraph [ref=e5068]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5070] [cursor=pointer]
+      - article [ref=e5071]:
+        - 'generic "Обложка: E2E Auto Signup 1780097518100" [ref=e5074]':
+          - generic [ref=e5075]: EА
+        - generic [ref=e5076]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5077]:
+            - img [ref=e5078]
+          - generic [ref=e5080]: Новая
+        - heading "E2E Auto Signup 1780097518100" [level=2] [ref=e5083]
+        - paragraph [ref=e5084]: E2E Автор
+        - generic [ref=e5086]:
+          - paragraph [ref=e5087]: Почему предлагаю прочитать
+          - paragraph [ref=e5088]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5090] [cursor=pointer]
+      - article [ref=e5091]:
+        - 'generic "Обложка: E2E Auto Signup 1780096759431" [ref=e5094]':
+          - generic [ref=e5095]: EА
+        - generic [ref=e5096]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5097]:
+            - img [ref=e5098]
+          - generic [ref=e5100]: Новая
+        - heading "E2E Auto Signup 1780096759431" [level=2] [ref=e5103]
+        - paragraph [ref=e5104]: E2E Автор
+        - generic [ref=e5106]:
+          - paragraph [ref=e5107]: Почему предлагаю прочитать
+          - paragraph [ref=e5108]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5110] [cursor=pointer]
+      - article [ref=e5111]:
+        - 'generic "Обложка: E2E Auto Signup 1780095329673" [ref=e5114]':
+          - generic [ref=e5115]: EА
+        - generic [ref=e5116]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5117]:
+            - img [ref=e5118]
+          - generic [ref=e5120]: Новая
+        - heading "E2E Auto Signup 1780095329673" [level=2] [ref=e5123]
+        - paragraph [ref=e5124]: E2E Автор
+        - generic [ref=e5126]:
+          - paragraph [ref=e5127]: Почему предлагаю прочитать
+          - paragraph [ref=e5128]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5130] [cursor=pointer]
+      - article [ref=e5131]:
+        - 'generic "Обложка: E2E Auto Signup 1780095304103" [ref=e5134]':
+          - generic [ref=e5135]: EА
+        - generic [ref=e5136]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5137]:
+            - img [ref=e5138]
+          - generic [ref=e5140]: Новая
+        - heading "E2E Auto Signup 1780095304103" [level=2] [ref=e5143]
+        - paragraph [ref=e5144]: E2E Автор
+        - generic [ref=e5146]:
+          - paragraph [ref=e5147]: Почему предлагаю прочитать
+          - paragraph [ref=e5148]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5150] [cursor=pointer]
+      - article [ref=e5151]:
+        - 'generic "Обложка: E2E Auto Signup 1780092010621" [ref=e5154]':
+          - generic [ref=e5155]: EА
+        - generic [ref=e5156]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5157]:
+            - img [ref=e5158]
+          - generic [ref=e5160]: Новая
+        - heading "E2E Auto Signup 1780092010621" [level=2] [ref=e5163]
+        - paragraph [ref=e5164]: E2E Автор
+        - generic [ref=e5166]:
+          - paragraph [ref=e5167]: Почему предлагаю прочитать
+          - paragraph [ref=e5168]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5170] [cursor=pointer]
+      - article [ref=e5171]:
+        - 'generic "Обложка: E2E Auto Signup 1780067131186" [ref=e5174]':
+          - generic [ref=e5175]: EА
+        - generic [ref=e5176]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5177]:
+            - img [ref=e5178]
+          - generic [ref=e5180]: Новая
+        - heading "E2E Auto Signup 1780067131186" [level=2] [ref=e5183]
+        - paragraph [ref=e5184]: E2E Автор
+        - generic [ref=e5186]:
+          - paragraph [ref=e5187]: Почему предлагаю прочитать
+          - paragraph [ref=e5188]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5190] [cursor=pointer]
+      - article [ref=e5191]:
+        - 'generic "Обложка: E2E Auto Signup 1780066671162" [ref=e5194]':
+          - generic [ref=e5195]: EА
+        - generic [ref=e5196]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5197]:
+            - img [ref=e5198]
+          - generic [ref=e5200]: Новая
+        - heading "E2E Auto Signup 1780066671162" [level=2] [ref=e5203]
+        - paragraph [ref=e5204]: E2E Автор
+        - generic [ref=e5206]:
+          - paragraph [ref=e5207]: Почему предлагаю прочитать
+          - paragraph [ref=e5208]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5210] [cursor=pointer]
+      - article [ref=e5211]:
+        - 'generic "Обложка: E2E Auto Signup 1780043502410" [ref=e5214]':
+          - generic [ref=e5215]: EА
+        - generic [ref=e5216]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5217]:
+            - img [ref=e5218]
+          - generic [ref=e5220]: Новая
+        - heading "E2E Auto Signup 1780043502410" [level=2] [ref=e5223]
+        - paragraph [ref=e5224]: E2E Автор
+        - generic [ref=e5226]:
+          - paragraph [ref=e5227]: Почему предлагаю прочитать
+          - paragraph [ref=e5228]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5230] [cursor=pointer]
+      - article [ref=e5231]:
+        - 'generic "Обложка: E2E Auto Signup 1780043192002" [ref=e5234]':
+          - generic [ref=e5235]: EА
+        - generic [ref=e5236]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5237]:
+            - img [ref=e5238]
+          - generic [ref=e5240]: Новая
+        - heading "E2E Auto Signup 1780043192002" [level=2] [ref=e5243]
+        - paragraph [ref=e5244]: E2E Автор
+        - generic [ref=e5246]:
+          - paragraph [ref=e5247]: Почему предлагаю прочитать
+          - paragraph [ref=e5248]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5250] [cursor=pointer]
+      - article [ref=e5251]:
+        - 'generic "Обложка: E2E Auto Signup 1780042969979" [ref=e5254]':
+          - generic [ref=e5255]: EА
+        - generic [ref=e5256]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5257]:
+            - img [ref=e5258]
+          - generic [ref=e5260]: Новая
+        - heading "E2E Auto Signup 1780042969979" [level=2] [ref=e5263]
+        - paragraph [ref=e5264]: E2E Автор
+        - generic [ref=e5266]:
+          - paragraph [ref=e5267]: Почему предлагаю прочитать
+          - paragraph [ref=e5268]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5270] [cursor=pointer]
+      - article [ref=e5271]:
+        - 'generic "Обложка: E2E Auto Signup 1780041384770" [ref=e5274]':
+          - generic [ref=e5275]: EА
+        - generic [ref=e5276]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5277]:
+            - img [ref=e5278]
+          - generic [ref=e5280]: Новая
+        - heading "E2E Auto Signup 1780041384770" [level=2] [ref=e5283]
+        - paragraph [ref=e5284]: E2E Автор
+        - generic [ref=e5286]:
+          - paragraph [ref=e5287]: Почему предлагаю прочитать
+          - paragraph [ref=e5288]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5290] [cursor=pointer]
+      - article [ref=e5291]:
+        - 'generic "Обложка: E2E Auto Signup 1780004622261" [ref=e5294]':
+          - generic [ref=e5295]: EА
+        - generic [ref=e5296]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5297]:
+            - img [ref=e5298]
+          - generic [ref=e5300]: Новая
+        - heading "E2E Auto Signup 1780004622261" [level=2] [ref=e5303]
+        - paragraph [ref=e5304]: E2E Автор
+        - generic [ref=e5306]:
+          - paragraph [ref=e5307]: Почему предлагаю прочитать
+          - paragraph [ref=e5308]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5310] [cursor=pointer]
+      - article [ref=e5311]:
+        - 'generic "Обложка: E2E Auto Signup 1780003954799" [ref=e5314]':
+          - generic [ref=e5315]: EА
+        - generic [ref=e5316]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5317]:
+            - img [ref=e5318]
+          - generic [ref=e5320]: Новая
+        - heading "E2E Auto Signup 1780003954799" [level=2] [ref=e5323]
+        - paragraph [ref=e5324]: E2E Автор
+        - generic [ref=e5326]:
+          - paragraph [ref=e5327]: Почему предлагаю прочитать
+          - paragraph [ref=e5328]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5330] [cursor=pointer]
+      - article [ref=e5331]:
+        - 'generic "Обложка: E2E Auto Signup 1779998807256" [ref=e5334]':
+          - generic [ref=e5335]: EА
+        - generic [ref=e5336]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5337]:
+            - img [ref=e5338]
+          - generic [ref=e5340]: Новая
+        - heading "E2E Auto Signup 1779998807256" [level=2] [ref=e5343]
+        - paragraph [ref=e5344]: E2E Автор
+        - generic [ref=e5346]:
+          - paragraph [ref=e5347]: Почему предлагаю прочитать
+          - paragraph [ref=e5348]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5350] [cursor=pointer]
+      - article [ref=e5351]:
+        - 'generic "Обложка: E2E Auto Signup 1779998350682" [ref=e5354]':
+          - generic [ref=e5355]: EА
+        - generic [ref=e5356]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5357]:
+            - img [ref=e5358]
+          - generic [ref=e5360]: Новая
+        - heading "E2E Auto Signup 1779998350682" [level=2] [ref=e5363]
+        - paragraph [ref=e5364]: E2E Автор
+        - generic [ref=e5366]:
+          - paragraph [ref=e5367]: Почему предлагаю прочитать
+          - paragraph [ref=e5368]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5370] [cursor=pointer]
+      - article [ref=e5371]:
+        - 'generic "Обложка: E2E Auto Signup 1779997661584" [ref=e5374]':
+          - generic [ref=e5375]: EА
+        - generic [ref=e5376]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5377]:
+            - img [ref=e5378]
+          - generic [ref=e5380]: Новая
+        - heading "E2E Auto Signup 1779997661584" [level=2] [ref=e5383]
+        - paragraph [ref=e5384]: E2E Автор
+        - generic [ref=e5386]:
+          - paragraph [ref=e5387]: Почему предлагаю прочитать
+          - paragraph [ref=e5388]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5390] [cursor=pointer]
+      - article [ref=e5391]:
+        - 'generic "Обложка: E2E Auto Signup 1779997569167" [ref=e5394]':
+          - generic [ref=e5395]: EА
+        - generic [ref=e5396]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5397]:
+            - img [ref=e5398]
+          - generic [ref=e5400]: Новая
+        - heading "E2E Auto Signup 1779997569167" [level=2] [ref=e5403]
+        - paragraph [ref=e5404]: E2E Автор
+        - generic [ref=e5406]:
+          - paragraph [ref=e5407]: Почему предлагаю прочитать
+          - paragraph [ref=e5408]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5410] [cursor=pointer]
+      - article [ref=e5411]:
+        - 'generic "Обложка: E2E Auto Signup 1779996390658" [ref=e5414]':
+          - generic [ref=e5415]: EА
+        - generic [ref=e5416]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5417]:
+            - img [ref=e5418]
+          - generic [ref=e5420]: Новая
+        - heading "E2E Auto Signup 1779996390658" [level=2] [ref=e5423]
+        - paragraph [ref=e5424]: E2E Автор
+        - generic [ref=e5426]:
+          - paragraph [ref=e5427]: Почему предлагаю прочитать
+          - paragraph [ref=e5428]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5430] [cursor=pointer]
+      - article [ref=e5431]:
+        - 'generic "Обложка: E2E Auto Signup 1779996306714" [ref=e5434]':
+          - generic [ref=e5435]: EА
+        - generic [ref=e5436]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5437]:
+            - img [ref=e5438]
+          - generic [ref=e5440]: Новая
+        - heading "E2E Auto Signup 1779996306714" [level=2] [ref=e5443]
+        - paragraph [ref=e5444]: E2E Автор
+        - generic [ref=e5446]:
+          - paragraph [ref=e5447]: Почему предлагаю прочитать
+          - paragraph [ref=e5448]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5450] [cursor=pointer]
+      - article [ref=e5451]:
+        - 'generic "Обложка: E2E Auto Signup 1779995759889" [ref=e5454]':
+          - generic [ref=e5455]: EА
+        - generic [ref=e5456]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5457]:
+            - img [ref=e5458]
+          - generic [ref=e5460]: Новая
+        - heading "E2E Auto Signup 1779995759889" [level=2] [ref=e5463]
+        - paragraph [ref=e5464]: E2E Автор
+        - generic [ref=e5466]:
+          - paragraph [ref=e5467]: Почему предлагаю прочитать
+          - paragraph [ref=e5468]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5470] [cursor=pointer]
+      - article [ref=e5471]:
+        - 'generic "Обложка: E2E Auto Signup 1779993538685" [ref=e5474]':
+          - generic [ref=e5475]: EА
+        - generic [ref=e5476]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5477]:
+            - img [ref=e5478]
+          - generic [ref=e5480]: Новая
+        - heading "E2E Auto Signup 1779993538685" [level=2] [ref=e5483]
+        - paragraph [ref=e5484]: E2E Автор
+        - generic [ref=e5486]:
+          - paragraph [ref=e5487]: Почему предлагаю прочитать
+          - paragraph [ref=e5488]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5490] [cursor=pointer]
+      - article [ref=e5491]:
+        - 'generic "Обложка: E2E Auto Signup 1779993423456" [ref=e5494]':
+          - generic [ref=e5495]: EА
+        - generic [ref=e5496]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5497]:
+            - img [ref=e5498]
+          - generic [ref=e5500]: Новая
+        - heading "E2E Auto Signup 1779993423456" [level=2] [ref=e5503]
+        - paragraph [ref=e5504]: E2E Автор
+        - generic [ref=e5506]:
+          - paragraph [ref=e5507]: Почему предлагаю прочитать
+          - paragraph [ref=e5508]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5510] [cursor=pointer]
+      - article [ref=e5511]:
+        - 'generic "Обложка: E2E Auto Signup 1779992460023" [ref=e5514]':
+          - generic [ref=e5515]: EА
+        - generic [ref=e5516]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5517]:
+            - img [ref=e5518]
+          - generic [ref=e5520]: Новая
+        - heading "E2E Auto Signup 1779992460023" [level=2] [ref=e5523]
+        - paragraph [ref=e5524]: E2E Автор
+        - generic [ref=e5526]:
+          - paragraph [ref=e5527]: Почему предлагаю прочитать
+          - paragraph [ref=e5528]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5530] [cursor=pointer]
+      - article [ref=e5531]:
+        - 'generic "Обложка: E2E Auto Signup 1779990451810" [ref=e5534]':
+          - generic [ref=e5535]: EА
+        - generic [ref=e5536]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5537]:
+            - img [ref=e5538]
+          - generic [ref=e5540]: Новая
+        - heading "E2E Auto Signup 1779990451810" [level=2] [ref=e5543]
+        - paragraph [ref=e5544]: E2E Автор
+        - generic [ref=e5546]:
+          - paragraph [ref=e5547]: Почему предлагаю прочитать
+          - paragraph [ref=e5548]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5550] [cursor=pointer]
+      - article [ref=e5551]:
+        - 'generic "Обложка: E2E Auto Signup 1779990387022" [ref=e5554]':
+          - generic [ref=e5555]: EА
+        - generic [ref=e5556]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5557]:
+            - img [ref=e5558]
+          - generic [ref=e5560]: Новая
+        - heading "E2E Auto Signup 1779990387022" [level=2] [ref=e5563]
+        - paragraph [ref=e5564]: E2E Автор
+        - generic [ref=e5566]:
+          - paragraph [ref=e5567]: Почему предлагаю прочитать
+          - paragraph [ref=e5568]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5570] [cursor=pointer]
+      - article [ref=e5571]:
+        - 'generic "Обложка: E2E Auto Signup 1779990374800" [ref=e5574]':
+          - generic [ref=e5575]: EА
+        - generic [ref=e5576]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5577]:
+            - img [ref=e5578]
+          - generic [ref=e5580]: Новая
+        - heading "E2E Auto Signup 1779990374800" [level=2] [ref=e5583]
+        - paragraph [ref=e5584]: E2E Автор
+        - generic [ref=e5586]:
+          - paragraph [ref=e5587]: Почему предлагаю прочитать
+          - paragraph [ref=e5588]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5590] [cursor=pointer]
+      - article [ref=e5591]:
+        - 'generic "Обложка: E2E Auto Signup 1779990306491" [ref=e5594]':
+          - generic [ref=e5595]: EА
+        - generic [ref=e5596]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5597]:
+            - img [ref=e5598]
+          - generic [ref=e5600]: Новая
+        - heading "E2E Auto Signup 1779990306491" [level=2] [ref=e5603]
+        - paragraph [ref=e5604]: E2E Автор
+        - generic [ref=e5606]:
+          - paragraph [ref=e5607]: Почему предлагаю прочитать
+          - paragraph [ref=e5608]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5610] [cursor=pointer]
+      - article [ref=e5611]:
+        - 'generic "Обложка: E2E Auto Signup 1779989887244" [ref=e5614]':
+          - generic [ref=e5615]: EА
+        - generic [ref=e5616]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5617]:
+            - img [ref=e5618]
+          - generic [ref=e5620]: Новая
+        - heading "E2E Auto Signup 1779989887244" [level=2] [ref=e5623]
+        - paragraph [ref=e5624]: E2E Автор
+        - generic [ref=e5626]:
+          - paragraph [ref=e5627]: Почему предлагаю прочитать
+          - paragraph [ref=e5628]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5630] [cursor=pointer]
+      - article [ref=e5631]:
+        - 'generic "Обложка: E2E Auto Signup 1779989819895" [ref=e5634]':
+          - generic [ref=e5635]: EА
+        - generic [ref=e5636]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5637]:
+            - img [ref=e5638]
+          - generic [ref=e5640]: Новая
+        - heading "E2E Auto Signup 1779989819895" [level=2] [ref=e5643]
+        - paragraph [ref=e5644]: E2E Автор
+        - generic [ref=e5646]:
+          - paragraph [ref=e5647]: Почему предлагаю прочитать
+          - paragraph [ref=e5648]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5650] [cursor=pointer]
+      - article [ref=e5651]:
+        - 'generic "Обложка: E2E Auto Signup 1779970584847" [ref=e5654]':
+          - generic [ref=e5655]: EА
+        - generic [ref=e5656]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5657]:
+            - img [ref=e5658]
+          - generic [ref=e5660]: Новая
+        - heading "E2E Auto Signup 1779970584847" [level=2] [ref=e5663]
+        - paragraph [ref=e5664]: E2E Автор
+        - generic [ref=e5666]:
+          - paragraph [ref=e5667]: Почему предлагаю прочитать
+          - paragraph [ref=e5668]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5670] [cursor=pointer]
+      - article [ref=e5671]:
+        - 'generic "Обложка: E2E Auto Signup 1779970016346" [ref=e5674]':
+          - generic [ref=e5675]: EА
+        - generic [ref=e5676]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5677]:
+            - img [ref=e5678]
+          - generic [ref=e5680]: Новая
+        - heading "E2E Auto Signup 1779970016346" [level=2] [ref=e5683]
+        - paragraph [ref=e5684]: E2E Автор
+        - generic [ref=e5686]:
+          - paragraph [ref=e5687]: Почему предлагаю прочитать
+          - paragraph [ref=e5688]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5690] [cursor=pointer]
+      - article [ref=e5691]:
+        - 'generic "Обложка: E2E Auto Signup 1779969471814" [ref=e5694]':
+          - generic [ref=e5695]: EА
+        - generic [ref=e5696]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5697]:
+            - img [ref=e5698]
+          - generic [ref=e5700]: Новая
+        - heading "E2E Auto Signup 1779969471814" [level=2] [ref=e5703]
+        - paragraph [ref=e5704]: E2E Автор
+        - generic [ref=e5706]:
+          - paragraph [ref=e5707]: Почему предлагаю прочитать
+          - paragraph [ref=e5708]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5710] [cursor=pointer]
+      - article [ref=e5711]:
+        - 'generic "Обложка: E2E Auto Signup 1779969037047" [ref=e5714]':
+          - generic [ref=e5715]: EА
+        - generic [ref=e5716]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5717]:
+            - img [ref=e5718]
+          - generic [ref=e5720]: Новая
+        - heading "E2E Auto Signup 1779969037047" [level=2] [ref=e5723]
+        - paragraph [ref=e5724]: E2E Автор
+        - generic [ref=e5726]:
+          - paragraph [ref=e5727]: Почему предлагаю прочитать
+          - paragraph [ref=e5728]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5730] [cursor=pointer]
+      - article [ref=e5731]:
+        - 'generic "Обложка: E2E Auto Signup 1779968990922" [ref=e5734]':
+          - generic [ref=e5735]: EА
+        - generic [ref=e5736]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5737]:
+            - img [ref=e5738]
+          - generic [ref=e5740]: Новая
+        - heading "E2E Auto Signup 1779968990922" [level=2] [ref=e5743]
+        - paragraph [ref=e5744]: E2E Автор
+        - generic [ref=e5746]:
+          - paragraph [ref=e5747]: Почему предлагаю прочитать
+          - paragraph [ref=e5748]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5750] [cursor=pointer]
+      - article [ref=e5751]:
+        - 'generic "Обложка: E2E Auto Signup 1779968100835" [ref=e5754]':
+          - generic [ref=e5755]: EА
+        - generic [ref=e5756]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5757]:
+            - img [ref=e5758]
+          - generic [ref=e5760]: Новая
+        - heading "E2E Auto Signup 1779968100835" [level=2] [ref=e5763]
+        - paragraph [ref=e5764]: E2E Автор
+        - generic [ref=e5766]:
+          - paragraph [ref=e5767]: Почему предлагаю прочитать
+          - paragraph [ref=e5768]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5770] [cursor=pointer]
+      - article [ref=e5771]:
+        - 'generic "Обложка: E2E Auto Signup 1779967846403" [ref=e5774]':
+          - generic [ref=e5775]: EА
+        - generic [ref=e5776]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5777]:
+            - img [ref=e5778]
+          - generic [ref=e5780]: Новая
+        - heading "E2E Auto Signup 1779967846403" [level=2] [ref=e5783]
+        - paragraph [ref=e5784]: E2E Автор
+        - generic [ref=e5786]:
+          - paragraph [ref=e5787]: Почему предлагаю прочитать
+          - paragraph [ref=e5788]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5790] [cursor=pointer]
+      - article [ref=e5791]:
+        - 'generic "Обложка: E2E Auto Signup 1779967253345" [ref=e5794]':
+          - generic [ref=e5795]: EА
+        - generic [ref=e5796]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5797]:
+            - img [ref=e5798]
+          - generic [ref=e5800]: Новая
+        - heading "E2E Auto Signup 1779967253345" [level=2] [ref=e5803]
+        - paragraph [ref=e5804]: E2E Автор
+        - generic [ref=e5806]:
+          - paragraph [ref=e5807]: Почему предлагаю прочитать
+          - paragraph [ref=e5808]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5810] [cursor=pointer]
+      - article [ref=e5811]:
+        - 'generic "Обложка: E2E Auto Signup 1779966815175" [ref=e5814]':
+          - generic [ref=e5815]: EА
+        - generic [ref=e5816]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5817]:
+            - img [ref=e5818]
+          - generic [ref=e5820]: Новая
+        - heading "E2E Auto Signup 1779966815175" [level=2] [ref=e5823]
+        - paragraph [ref=e5824]: E2E Автор
+        - generic [ref=e5826]:
+          - paragraph [ref=e5827]: Почему предлагаю прочитать
+          - paragraph [ref=e5828]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5830] [cursor=pointer]
+      - article [ref=e5831]:
+        - 'generic "Обложка: E2E Auto Signup 1779965173747" [ref=e5834]':
+          - generic [ref=e5835]: EА
+        - generic [ref=e5836]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5837]:
+            - img [ref=e5838]
+          - generic [ref=e5840]: Новая
+        - heading "E2E Auto Signup 1779965173747" [level=2] [ref=e5843]
+        - paragraph [ref=e5844]: E2E Автор
+        - generic [ref=e5846]:
+          - paragraph [ref=e5847]: Почему предлагаю прочитать
+          - paragraph [ref=e5848]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5850] [cursor=pointer]
+      - article [ref=e5851]:
+        - 'generic "Обложка: E2E Auto Signup 1779964735382" [ref=e5854]':
+          - generic [ref=e5855]: EА
+        - generic [ref=e5856]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5857]:
+            - img [ref=e5858]
+          - generic [ref=e5860]: Новая
+        - heading "E2E Auto Signup 1779964735382" [level=2] [ref=e5863]
+        - paragraph [ref=e5864]: E2E Автор
+        - generic [ref=e5866]:
+          - paragraph [ref=e5867]: Почему предлагаю прочитать
+          - paragraph [ref=e5868]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5870] [cursor=pointer]
+      - article [ref=e5871]:
+        - 'generic "Обложка: E2E Auto Signup 1779964199094" [ref=e5874]':
+          - generic [ref=e5875]: EА
+        - generic [ref=e5876]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5877]:
+            - img [ref=e5878]
+          - generic [ref=e5880]: Новая
+        - heading "E2E Auto Signup 1779964199094" [level=2] [ref=e5883]
+        - paragraph [ref=e5884]: E2E Автор
+        - generic [ref=e5886]:
+          - paragraph [ref=e5887]: Почему предлагаю прочитать
+          - paragraph [ref=e5888]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5890] [cursor=pointer]
+      - article [ref=e5891]:
+        - 'generic "Обложка: E2E Auto Signup 1779964107106" [ref=e5894]':
+          - generic [ref=e5895]: EА
+        - generic [ref=e5896]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5897]:
+            - img [ref=e5898]
+          - generic [ref=e5900]: Новая
+        - heading "E2E Auto Signup 1779964107106" [level=2] [ref=e5903]
+        - paragraph [ref=e5904]: E2E Автор
+        - generic [ref=e5906]:
+          - paragraph [ref=e5907]: Почему предлагаю прочитать
+          - paragraph [ref=e5908]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5910] [cursor=pointer]
+      - article [ref=e5911]:
+        - 'generic "Обложка: E2E Auto Signup 1779964049064" [ref=e5914]':
+          - generic [ref=e5915]: EА
+        - generic [ref=e5916]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5917]:
+            - img [ref=e5918]
+          - generic [ref=e5920]: Новая
+        - heading "E2E Auto Signup 1779964049064" [level=2] [ref=e5923]
+        - paragraph [ref=e5924]: E2E Автор
+        - generic [ref=e5926]:
+          - paragraph [ref=e5927]: Почему предлагаю прочитать
+          - paragraph [ref=e5928]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5930] [cursor=pointer]
+      - article [ref=e5931]:
+        - 'generic "Обложка: E2E Auto Signup 1779963660414" [ref=e5934]':
+          - generic [ref=e5935]: EА
+        - generic [ref=e5936]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5937]:
+            - img [ref=e5938]
+          - generic [ref=e5940]: Новая
+        - heading "E2E Auto Signup 1779963660414" [level=2] [ref=e5943]
+        - paragraph [ref=e5944]: E2E Автор
+        - generic [ref=e5946]:
+          - paragraph [ref=e5947]: Почему предлагаю прочитать
+          - paragraph [ref=e5948]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5950] [cursor=pointer]
+      - article [ref=e5951]:
+        - 'generic "Обложка: E2E Auto Signup 1779963481910" [ref=e5954]':
+          - generic [ref=e5955]: EА
+        - generic [ref=e5956]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5957]:
+            - img [ref=e5958]
+          - generic [ref=e5960]: Новая
+        - heading "E2E Auto Signup 1779963481910" [level=2] [ref=e5963]
+        - paragraph [ref=e5964]: E2E Автор
+        - generic [ref=e5966]:
+          - paragraph [ref=e5967]: Почему предлагаю прочитать
+          - paragraph [ref=e5968]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5970] [cursor=pointer]
+      - article [ref=e5971]:
+        - 'generic "Обложка: E2E Auto Signup 1779948174499" [ref=e5974]':
+          - generic [ref=e5975]: EА
+        - generic [ref=e5976]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5977]:
+            - img [ref=e5978]
+          - generic [ref=e5980]: Новая
+        - heading "E2E Auto Signup 1779948174499" [level=2] [ref=e5983]
+        - paragraph [ref=e5984]: E2E Автор
+        - generic [ref=e5986]:
+          - paragraph [ref=e5987]: Почему предлагаю прочитать
+          - paragraph [ref=e5988]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e5990] [cursor=pointer]
+      - article [ref=e5991]:
+        - 'generic "Обложка: E2E Auto Signup 1779947795463" [ref=e5994]':
+          - generic [ref=e5995]: EА
+        - generic [ref=e5996]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e5997]:
+            - img [ref=e5998]
+          - generic [ref=e6000]: Новая
+        - heading "E2E Auto Signup 1779947795463" [level=2] [ref=e6003]
+        - paragraph [ref=e6004]: E2E Автор
+        - generic [ref=e6006]:
+          - paragraph [ref=e6007]: Почему предлагаю прочитать
+          - paragraph [ref=e6008]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e6010] [cursor=pointer]
+      - article [ref=e6011]:
+        - 'generic "Обложка: E2E Auto Signup 1779947244856" [ref=e6014]':
+          - generic [ref=e6015]: EА
+        - generic [ref=e6016]:
+          - button "Эта книга предложена участни:цей клуба" [ref=e6017]:
+            - img [ref=e6018]
+          - generic [ref=e6020]: Новая
+        - heading "E2E Auto Signup 1779947244856" [level=2] [ref=e6023]
+        - paragraph [ref=e6024]: E2E Автор
+        - generic [ref=e6026]:
+          - paragraph [ref=e6027]: Почему предлагаю прочитать
+          - paragraph [ref=e6028]: Проверяем автозапись автора заявки после одобрения
+        - button "Хочу читать" [ref=e6030] [cursor=pointer]
+      - article [ref=e6031]:
+        - generic [ref=e6032]:
+          - 'img "Обложка: Моя любимая страна" [ref=e6034]'
+          - generic [ref=e6035]: Сейчас читаем
+        - generic [ref=e6036]:
+          - generic [ref=e6037]: Путинизм
+          - generic [ref=e6039]:
+            - img [ref=e6040]
+            - text: "3"
+        - generic [ref=e6044]: Сейчас читаем
+        - generic [ref=e6045]:
+          - heading "Моя любимая страна" [level=2] [ref=e6046]
+          - generic [ref=e6047]: "2023"
+        - paragraph [ref=e6048]: Елена Костюченко
+        - generic [ref=e6049]:
+          - generic [ref=e6050]: 229 стр.
+          - link "текст" [ref=e6051] [cursor=pointer]:
+            - /url: https://magaz.global/product/elena-kostyuchenko-moya-lyubimaya-strana
+        - generic [ref=e6053]:
+          - paragraph [ref=e6054]: Почему предлагаю прочитать
+          - paragraph [ref=e6055]: Потому что важно для понимания России
+        - button "Хочу читать" [ref=e6058] [cursor=pointer]
+      - article [ref=e6059]:
+        - generic [ref=e6060]:
+          - 'img "Обложка: Патриот" [ref=e6062]'
+          - generic [ref=e6063]: Сейчас читаем
+        - generic [ref=e6064]:
+          - generic [ref=e6065]: Путинизм
+          - generic [ref=e6067]:
+            - img [ref=e6068]
+            - text: "5"
+        - generic [ref=e6072]: Сейчас читаем
+        - generic [ref=e6073]:
+          - heading "Патриот" [level=2] [ref=e6074]
+          - generic [ref=e6075]: "2024"
+        - paragraph [ref=e6076]: Алексей Навальный
+        - generic [ref=e6077]:
+          - generic [ref=e6078]: 398 стр.
+          - link "текст" [ref=e6079] [cursor=pointer]:
+            - /url: https://www.onebookpublishing.org/products/patriot
+        - generic [ref=e6080]:
+          - paragraph [ref=e6081] [cursor=pointer]: Мемуары российского политика и оппозиционного лидера Алексея Навального, которые он начал писать в 2020 году после отравления «Новичком» и продолжил работу над ними в заключении
+          - button "Читать далее" [ref=e6082] [cursor=pointer]
+        - button "Хочу читать" [ref=e6085] [cursor=pointer]
+      - article [ref=e6086]:
+        - 'img "Обложка: Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [ref=e6089]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e6091]:
+          - img [ref=e6092]
+        - generic [ref=e6094]:
+          - generic [ref=e6095]: Государство
+          - generic [ref=e6097]:
+            - img [ref=e6098]
+            - text: "1"
+        - generic [ref=e6102]:
+          - 'heading "Почему одни страны богатые, а другие бедные: происхождение власти, процветания и нищеты" [level=2] [ref=e6103]'
+          - generic [ref=e6104]: "2012"
+        - paragraph [ref=e6105]: Daron Acemoglu, James A. Robinson
+        - generic [ref=e6106]:
+          - generic [ref=e6107]: 510 стр.
+          - link "текст" [ref=e6108] [cursor=pointer]:
+            - /url: https://webveblen.wordpress.com/wp-content/uploads/2018/06/acemoglu2.pdf
+        - generic [ref=e6109]:
+          - paragraph [ref=e6110] [cursor=pointer]: "Авторы предлагают объяснение мирового неравенства, которое выходит за рамки привычных факторов вроде географии или культуры, и показывают, что решающую роль играют политические и экономические институты — правила, определяющие, кто обладает властью и как распределяются ресурсы. Ключевая идея состоит в том, что богатые страны формируют инклюзивные институты, позволяющие широким слоям населения участвовать в экономике и получать выгоду от своей деятельности, тогда как бедные страны остаются в ловушке экстрактивных институтов, где узкая элита контролирует власть и ограничивает развитие. При этом менее очевидный тезис заключается в том, что такая ситуация часто поддерживается осознанно: правящие группы могут препятствовать реформам и экономическому росту, если эти изменения угрожают их позиции, то есть отсталость может быть не случайной, а логичным следствием структуры власти."
+          - button "Читать далее" [ref=e6111] [cursor=pointer]
+        - button "Хочу читать" [ref=e6113] [cursor=pointer]
+      - article [ref=e6114]:
+        - 'img "Обложка: Диктаторы обмана. Новое лицо тирании в XXI веке" [ref=e6117]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e6119]:
+          - img [ref=e6120]
+        - generic [ref=e6122]:
+          - generic [ref=e6123]: Путинизм
+          - generic [ref=e6125]:
+            - img [ref=e6126]
+            - text: "1"
+        - generic [ref=e6130]:
+          - heading "Диктаторы обмана. Новое лицо тирании в XXI веке" [level=2] [ref=e6131]
+          - generic [ref=e6132]: "2022"
+        - paragraph [ref=e6133]: Сергей Гуриев, Daniel Treisman
+        - generic [ref=e6134]:
+          - generic [ref=e6135]: 500 стр.
+          - link "текст" [ref=e6136] [cursor=pointer]:
+            - /url: https://babook.org/drupal/sites/default/files/2023-07/Dictators1.pdf
+        - generic [ref=e6137]:
+          - paragraph [ref=e6138] [cursor=pointer]: "Авторы объясняют, как в XXI веке изменились авторитарные режимы: если раньше диктаторы удерживали власть через страх, насилие и открытые репрессии, то сегодня всё чаще появляются так называемые «диктаторы обмана», которые действуют иначе — через манипуляцию информацией, пропаганду и имитацию демократических институтов. Авторы показывают, что современные автократы стараются выглядеть законными и популярными, допускают ограниченную оппозицию и выборы, но при этом контролируют медиа и формируют нужную картину реальности, что позволяет им удерживать власть без массового насилия и даже с поддержкой части общества. Такие режимы оказываются не слабее, а часто устойчивее старых диктатур, поскольку люди подчиняются им не из страха, а потому что верят в созданную ими версию реальности и не воспринимают систему как откровенно репрессивную."
+          - button "Читать далее" [ref=e6139] [cursor=pointer]
+        - button "Хочу читать" [ref=e6142] [cursor=pointer]
+      - article [ref=e6143]:
+        - 'img "Обложка: Contentious Politics" [ref=e6146]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e6148]:
+          - img [ref=e6149]
+        - generic [ref=e6151]:
+          - generic [ref=e6152]: Государство
+          - generic [ref=e6154]:
+            - img [ref=e6155]
+            - text: "1"
+        - generic [ref=e6159]:
+          - heading "Contentious Politics" [level=2] [ref=e6160]
+          - generic [ref=e6161]: "2015"
+        - paragraph [ref=e6162]: Charles Tilly, Sidney Tarrow
+        - generic [ref=e6163]:
+          - generic [ref=e6164]: 288 стр.
+          - link "текст" [ref=e6165] [cursor=pointer]:
+            - /url: https://books.apple.com/us/book/contentious-politics/id1024488233
+        - generic [ref=e6166]:
+          - paragraph [ref=e6167] [cursor=pointer]: Авторы предлагают рассматривать протесты, социальные движения и революции как единый процесс, в котором группы предъявляют требования друг другу и государству, а политика развивается через взаимные действия и реакции. Книга показывает, что за внешне разными событиями стоят сходные механизмы — мобилизация участников, ответ государства, эскалация или затухание конфликта. Эта динамика во многом определяет, во что в итоге выливается политическое противостояние. Работа стала одной из ключевых в изучении политических конфликтов и задала современный подход, сместив фокус с отдельных причин на механизмы их развития — как такие процессы возникают, разворачиваются и к чему приводят.
+          - button "Читать далее" [ref=e6168] [cursor=pointer]
+        - button "Хочу читать" [ref=e6171] [cursor=pointer]
+      - article [ref=e6172]:
+        - 'img "Обложка: Возвращение государства. Россия в нулевые (2000-2012)" [ref=e6175]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e6177]:
+          - img [ref=e6178]
+        - generic [ref=e6180]:
+          - generic [ref=e6181]: Путинизм
+          - generic [ref=e6183]:
+            - img [ref=e6184]
+            - text: "2"
+        - generic [ref=e6188]:
+          - heading "Возвращение государства. Россия в нулевые (2000-2012)" [level=2] [ref=e6189]
+          - generic [ref=e6190]: "2023"
+        - paragraph [ref=e6191]: Екатерина Шульман
+        - generic [ref=e6192]:
+          - generic [ref=e6193]: 208 стр.
+          - link "текст" [ref=e6194] [cursor=pointer]:
+            - /url: https://flibusta.su/book/168011-vozvraschenie-gosudarstva-rossiya-v-nulevyie-2000-2012/
+        - generic [ref=e6195]:
+          - paragraph [ref=e6196] [cursor=pointer]: "«Возвращение государства» Екатерины Шульман — это исследование политической истории России в период 2000–2012 годов. Книга анализирует не столько события и фигуры, сколько изменение институтов: как перестраивались государственный аппарат, партийная система, суды, региональная политика, медиа и отношения между государством и обществом. Это попытка показать, как постепенно формируется и закрепляется политический режим и почему он начинает воспроизводить сам себя. Аудио: 6 часов"
+          - button "Читать далее" [ref=e6197] [cursor=pointer]
+        - button "Хочу читать" [ref=e6200] [cursor=pointer]
+      - article [ref=e6201]:
+        - 'img "Обложка: Оружие слабых. Повседневные формы крестьянского сопротивления" [ref=e6204]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e6206]:
+          - img [ref=e6207]
+        - generic [ref=e6209]:
+          - generic [ref=e6210]: Народные движения
+          - generic [ref=e6212]:
+            - img [ref=e6213]
+            - text: "1"
+        - generic [ref=e6217]:
+          - heading "Оружие слабых. Повседневные формы крестьянского сопротивления" [level=2] [ref=e6218]
+          - generic [ref=e6219]: "1985"
+        - paragraph [ref=e6220]: James Scott
+        - generic [ref=e6221]:
+          - generic [ref=e6222]: 390 стр.
+          - link "текст" [ref=e6223] [cursor=pointer]:
+            - /url: https://flibusta.su/book/376190-oruzie-slabyh-povsednevnye-formy-krestanskogo-soprotivlenia/
+        - generic [ref=e6224]:
+          - paragraph [ref=e6225] [cursor=pointer]: "«Оружие слабых» Джеймса Скотта — исследование повседневных форм сопротивления среди сельских жителей в Малайзии. Книга основана на полевой работе автора в конце 1970‑х годов в деревне Седака. В ходе экономических изменений конца 1960‑х – 1970‑х годов (включая механизацию и внедрение новых аграрных технологий) усилилось неравенство в деревне: более обеспеченные хозяйства выигрывали, а бедные теряли доступ к земле и доходам. Вместо открытых протестов и восстаний Скотт показывает, как социально уязвимые группы используют скрытые и низко рискованные стратегии — саботаж, затягивание работы, притворное подчинение, мелкое присвоение ресурсов — чтобы противостоять неравенству и власти. Эта книга расширила понятие сопротивления, и этот подход оказался применимым к рабочим, студентам, мигрантам и другим социальным группам — поэтому работа Скотта остаётся фундаментальной для политологии, социологии и антропологии. Аудио: 17 часов"
+          - button "Читать далее" [ref=e6226] [cursor=pointer]
+        - button "Хочу читать" [ref=e6228] [cursor=pointer]
+      - article [ref=e6229]:
+        - 'img "Обложка: Работа: Капитализм. Экономика. Сопротивление." [ref=e6232]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e6234]:
+          - img [ref=e6235]
+        - generic [ref=e6237]:
+          - generic [ref=e6238]: Капитализм
+          - generic [ref=e6240]:
+            - img [ref=e6241]
+            - text: "3"
+        - generic [ref=e6245]:
+          - 'heading "Работа: Капитализм. Экономика. Сопротивление." [level=2] [ref=e6246]'
+          - generic [ref=e6247]: "2021"
+        - paragraph [ref=e6248]: CrimethInc
+        - generic [ref=e6249]:
+          - generic [ref=e6250]: 340 стр.
+          - link "текст" [ref=e6251] [cursor=pointer]:
+            - /url: https://www.rtpbooks.info/product/rabota-crimethinc/
+        - generic [ref=e6252]:
+          - paragraph [ref=e6253] [cursor=pointer]: Почему во времена значительного технического прогресса нам приходится работать больше, чем когда-либо прежде? Почему, чем больше мы работаем, тем беднее становимся по сравнению с начальниками? Почему во времена кризисов люди так яро защищают свои рабочие места, если никто не любит работать? Сможет ли капитализм пережить ещё одно столетие кризисов? В книге «Работа» рассматриваются эти и многие другие вопросы. Чтобы ответить на них, нам пришлось пересмотреть наш прежний взгляд на трудовую деятельность и выработать более тонкое понимание экономики. Мы провели месяцы, изучая непонятную историю и сравнивая опыт эксплуатации в повседневной жизни, постепенно создавая великую единую теорию современного капитализма.
+          - button "Читать далее" [ref=e6254] [cursor=pointer]
+        - button "Хочу читать" [ref=e6257] [cursor=pointer]
+      - article [ref=e6258]:
+        - 'img "Обложка: Консенсус: Принятие решений в свободном обществе" [ref=e6261]'
+        - button "Эта книга предложена участни:цей клуба" [ref=e6263]:
+          - img [ref=e6264]
+        - generic [ref=e6266]:
+          - generic [ref=e6267]: Демократия
+          - generic [ref=e6269]:
+            - img [ref=e6270]
+            - text: "2"
+        - 'heading "Консенсус: Принятие решений в свободном обществе" [level=2] [ref=e6275]'
+        - paragraph [ref=e6276]: Peter Gelderloos
+        - generic [ref=e6277]:
+          - generic [ref=e6278]: 106 стр.
+          - link "текст" [ref=e6279] [cursor=pointer]:
+            - /url: https://we.riseup.net/assets/64520/consensus.pdf
+        - generic [ref=e6280]:
+          - paragraph [ref=e6281] [cursor=pointer]: Это быстрое и лёгкое руководство по принятию коллективных решений описывает процесс прихода к консенсусу логично, шаг за шагом. Ясная форма позволяет этому пособию быть полезным не только в качестве инструкции для начинающих, но и как справочник для тех, кто уже знаком с принятием решений методом консенсуса. Будучи предназначенным в первую очередь для низовых политических и экологических групп, это руководство может быть полезно всякому, кто предпочитает сотрудничество, а не конфликт.
+          - button "Читать далее" [ref=e6282] [cursor=pointer]
+        - button "Хочу читать" [ref=e6285] [cursor=pointer]
+      - article [ref=e6286]:
+        - 'img "Обложка: Авторитарная Россия" [ref=e6289]'
+        - generic [ref=e6290]:
+          - generic [ref=e6291]: Путинизм
+          - generic [ref=e6293]:
+            - img [ref=e6294]
+            - text: "3"
+        - generic [ref=e6298]:
+          - heading "Авторитарная Россия" [level=2] [ref=e6299]
+          - generic [ref=e6300]: "2021"
+        - paragraph [ref=e6301]: Владимир Гельман
+        - generic [ref=e6302]:
+          - generic [ref=e6303]: 337 стр.
+          - link "текст" [ref=e6304] [cursor=pointer]:
+            - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%90%D0%B2%D1%82%D0%BE%D1%80%D0%B8%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F%20%D0%A0%D0%BE%D1%81%202021%20336%D1%81.pdf
+        - generic [ref=e6305]:
+          - paragraph [ref=e6306] [cursor=pointer]: "В августе 1991 года казалось, что демократия вот-вот наступит. Однако спустя десятилетия стало ясно: страна лишь отдалилась от свободы. Владимир Гельман объясняет, как это произошло. Без детерминизма и демонизации автор пишет о важных вехах политической истории страны: правлении Ельцина, формировании иерархии власти в 2000-х, возрождении оппозиции и застое 2010-х. Кроме того, Владимир Гельман дает определения ключевым терминам и концепциям и сравнивает российский опыт с другими странами. А главное — автор дает развернутый ответ на вопрос «Что ждет Россию в будущем?» Станет ли автократический режим еще более жестким и репрессивным? Или нас ждет «ползучая демократизация»?"
+          - button "Читать далее" [ref=e6307] [cursor=pointer]
+        - button "Хочу читать" [ref=e6310] [cursor=pointer]
+      - article [ref=e6311]:
+        - 'img "Обложка: Жизнь и времена либеральной" [ref=e6314]'
+        - generic [ref=e6315]:
+          - generic [ref=e6316]: Демократия
+          - generic [ref=e6318]:
+            - img [ref=e6319]
+            - text: "1"
+        - generic [ref=e6323]:
+          - heading "Жизнь и времена либеральной" [level=2] [ref=e6324]
+          - generic [ref=e6325]: "1977"
+        - paragraph [ref=e6326]: C. B. Macpherson
+        - generic [ref=e6327]:
+          - generic [ref=e6328]: 173 стр.
+          - link "текст" [ref=e6329] [cursor=pointer]:
+            - /url: https://www.klex.ru/zu1
+        - generic [ref=e6330]:
+          - paragraph [ref=e6331] [cursor=pointer]: Демократию ошибочно смешивать не только с выборами, но и с либерализмом. Макферсон даёт развёрнутый историко-теоретический анализ непростых отношений демократии и либерализма, которые привели к их несчастному браку во второй половине 20 века.
+          - button "Читать далее" [ref=e6332] [cursor=pointer]
+        - button "Хочу читать" [ref=e6335] [cursor=pointer]
+      - article [ref=e6336]:
+        - 'img "Обложка: Принципы представительного правления" [ref=e6339]'
+        - generic [ref=e6340]:
+          - generic [ref=e6341]: Демократия
+          - generic [ref=e6343]:
+            - img [ref=e6344]
+            - text: "2"
+        - generic [ref=e6348]:
+          - heading "Принципы представительного правления" [level=2] [ref=e6349]
+          - generic [ref=e6350]: "1997"
+        - paragraph [ref=e6351]: Bernard Manin
+        - generic [ref=e6352]:
+          - generic [ref=e6353]: 343 стр.
+          - link "текст" [ref=e6354] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/8
+        - generic [ref=e6355]:
+          - paragraph [ref=e6356] [cursor=pointer]: "Манен критикует сложившуюся систему власти в современных демократиях, которая сложилась в результате принятия выборности власти как фундаментального принципа ее функционирования, что привело к формированию аристократической формы представительной системы. Принцип выборности заменил собой более эгалитарный – жребий, использовавшийся в классических республиках. Современная демократия как успешная политическая система, таким образом, стала возможна не столько благодаря этому принципу, сколько из-за действия других компонентов системы. От А. Замятина: «С этой книги следует начать всем, кто до сих пор считает, что сущностью демократии являются выборы и представительство»."
+          - button "Читать далее" [ref=e6357] [cursor=pointer]
+          - paragraph [ref=e6358]:
+            - text: "Ещё рекомендации:"
+            - link "Рекомендация Г. Юдина" [ref=e6359] [cursor=pointer]:
+              - /url: https://openuni.io/course/8-course-7-1/lesson/1/material/752/
+        - button "Хочу читать" [ref=e6361] [cursor=pointer]
+      - article [ref=e6362]:
+        - 'img "Обложка: Народная история США" [ref=e6365]'
+        - generic [ref=e6366]:
+          - generic [ref=e6367]: Народные движения
+          - generic [ref=e6369]:
+            - img [ref=e6370]
+            - text: "1"
+        - generic [ref=e6374]:
+          - heading "Народная история США" [level=2] [ref=e6375]
+          - generic [ref=e6376]: "1980"
+        - paragraph [ref=e6377]: Howard Zinn
+        - generic [ref=e6378]:
+          - generic [ref=e6379]: 880 стр.
+          - link "текст" [ref=e6380] [cursor=pointer]:
+            - /url: https://fb2.top/narodnaya-istoriya-ssha-s-1492-goda-do-nashih-dney-330349
+        - paragraph [ref=e6382]: История американского рабочего и профсоюзного движения
+        - button "Хочу читать" [ref=e6385] [cursor=pointer]
+      - article [ref=e6386]:
+        - 'img "Обложка: Великая трансформация" [ref=e6389]'
+        - generic [ref=e6390]:
+          - generic [ref=e6391]: Государство
+          - generic [ref=e6393]:
+            - img [ref=e6394]
+            - text: "1"
+        - generic [ref=e6398]:
+          - heading "Великая трансформация" [level=2] [ref=e6399]
+          - generic [ref=e6400]: "1944"
+        - paragraph [ref=e6401]: Karl Polanyi
+        - generic [ref=e6402]:
+          - generic [ref=e6403]: 312 стр.
+          - link "текст" [ref=e6404] [cursor=pointer]:
+            - /url: http://rustem-nureev.ru/wp-content/uploads/2011/01/277.pdf
+        - generic [ref=e6405]:
+          - paragraph [ref=e6406] [cursor=pointer]: Исследование посвящено политическим и социальным процессам эпохи становления и развития капитализма. Поланьи утверждает, что рыночную экономику и национальное государство следует рассматривать не по отдельности, а как единое явление — общество рынка, или рыночное общество. Его возникновение разрушило традиционный социальный порядок — на протяжении большей части истории человечества экономическая деятельность не отделялась от социальных отношений, автор подчёркивал грандиозность перемен. Новый институциональный уклад породил контртенденции, которые привели к катаклизмам XX века
+          - button "Читать далее" [ref=e6407] [cursor=pointer]
+          - paragraph [ref=e6408]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв Г. Юдина" [ref=e6409] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=D0pMpy1-Pjw
+        - button "Хочу читать" [ref=e6411] [cursor=pointer]
+      - article [ref=e6412]:
+        - 'img "Обложка: Делать мнение: новая политическая игра" [ref=e6415]'
+        - generic [ref=e6417]: Демократия
+        - generic [ref=e6419]:
+          - 'heading "Делать мнение: новая политическая игра" [level=2] [ref=e6420]'
+          - generic [ref=e6421]: "1990"
+        - paragraph [ref=e6422]: Patrick Champagne
+        - generic [ref=e6423]:
+          - generic [ref=e6424]: 317 стр.
+          - link "текст" [ref=e6425] [cursor=pointer]:
+            - /url: https://scepsis.net/library/id_1093.html
+        - generic [ref=e6426]:
+          - paragraph [ref=e6427] [cursor=pointer]: Специалисты по опросам общественного мнения и телевидение — это не просто два новых игрока в политической игре. Они способствуют созданию системы «политика-медиа-опрос», в которой играют ведущую роль. Вездесущие специалисты по опросам общественного мнения официально претендуют на монополию на научное знание «народной воли» и неофициально предоставляют политическим партиям средства для манипулирования ею. Более того, освещение политики в СМИ, особенно уличных демонстраций, а также сопутствующие им опросы общественного мнения и барометры популярности, способствовали переосмыслению того, что мы сейчас понимаем под выражением «заниматься политикой».
+          - button "Читать далее" [ref=e6428] [cursor=pointer]
+        - button "Хочу читать" [ref=e6431] [cursor=pointer]
+      - article [ref=e6432]:
+        - 'img "Обложка: Долгий двадцатый век" [ref=e6435]'
+        - generic [ref=e6436]:
+          - generic [ref=e6437]: Капитализм
+          - generic [ref=e6439]:
+            - img [ref=e6440]
+            - text: "1"
+        - generic [ref=e6444]:
+          - heading "Долгий двадцатый век" [level=2] [ref=e6445]
+          - generic [ref=e6446]: "2006"
+        - paragraph [ref=e6447]: Giovanni Arrighi
+        - generic [ref=e6448]:
+          - generic [ref=e6449]: 727 стр.
+          - link "текст" [ref=e6450] [cursor=pointer]:
+            - /url: https://crystalbook.ru/wp-content/uploads/2021/05/%D0%90%D1%80%D1%80%D0%B8%D0%B3%D0%B8-%D0%94%D0%B6.-%D0%94%D0%BE%D0%BB%D0%B3%D0%B8%D0%B9-%D0%B4%D0%B2%D0%B0%D0%B4%D1%86%D0%B0%D1%82%D1%8B%D0%B9-%D0%B2%D0%B5%D0%BA.pdf
+        - generic [ref=e6451]:
+          - paragraph [ref=e6452] [cursor=pointer]: Описывает капитализм как череду сменяющих друг друга гегемоний от Генуи и Голландии до Британии и США, каждая из которых в свое время управляла мировой системой. Гегемония это не просто силовое доминирование. Это способность устанавливать правила, которые через идеологические инструменты представляются общими интересами, хотя на деле служат укреплению власти лидера. Сегодня, по его мнению, завершается американский цикл гегемонии, и мир движется в сторону азиатского лидерства, возможно, с доминирующей ролью Китая.
+          - button "Читать далее" [ref=e6453] [cursor=pointer]
+        - button "Хочу читать" [ref=e6456] [cursor=pointer]
+      - article [ref=e6457]:
+        - 'img "Обложка: Миросистемный анализ" [ref=e6460]'
+        - generic [ref=e6461]:
+          - generic [ref=e6462]: Капитализм
+          - generic [ref=e6464]:
+            - img [ref=e6465]
+            - text: "1"
+        - generic [ref=e6469]:
+          - heading "Миросистемный анализ" [level=2] [ref=e6470]
+          - generic [ref=e6471]: "2006"
+        - paragraph [ref=e6472]: Immanuel Wallerstein
+        - generic [ref=e6473]:
+          - generic [ref=e6474]: 248 стр.
+          - link "текст" [ref=e6475] [cursor=pointer]:
+            - /url: https://socioline.ru/files/5/48/vallerstain_i._-_analiz_mirovyh_sistem_i_situaciya_v_sovremennom_mire_-_2001.pdf
+        - generic [ref=e6476]:
+          - paragraph [ref=e6477] [cursor=pointer]: "Автор утверждает, что бедность стран третьего мира - это закономерность рыночной системы, а не ее отклонение. Объясняет, что такой порядок возможен из-за союза национальных государств и корпораций, где первые силой продвигают интересы вторых. Подчеркивает роль социальных наук в политике: они не только изучают реальность, но и формируются в историческом контексте, отражая интересы элит. Это понимание позволяет глубже осмыслить современные общественно-политические институты."
+          - button "Читать далее" [ref=e6478] [cursor=pointer]
+        - button "Хочу читать" [ref=e6481] [cursor=pointer]
+      - article [ref=e6482]:
+        - 'img "Обложка: Капитал и идеология" [ref=e6485]'
+        - generic [ref=e6486]:
+          - generic [ref=e6487]: Капитализм
+          - generic [ref=e6489]:
+            - img [ref=e6490]
+            - text: "2"
+        - generic [ref=e6494]:
+          - heading "Капитал и идеология" [level=2] [ref=e6495]
+          - generic [ref=e6496]: "2019"
+        - paragraph [ref=e6497]: Thomas Piketty
+        - generic [ref=e6498]:
+          - generic [ref=e6499]: 1150 стр.
+          - link "текст" [ref=e6500] [cursor=pointer]:
+            - /url: https://fb2.top/kapital-i-ideologiya-749702
+        - generic [ref=e6501]:
+          - paragraph [ref=e6502] [cursor=pointer]: "Французский экономит Пикетти утверждает, что неравенство в большей степени является политическим и идеологическим феноменом, чем экономическим. Исторический прогресс, по его мнению, достигается через борьбу за равный доступ к благам, а не через оправдание иерархий и частной собственности. Он рассматривает примеры обществ, которые стремились к большему равенству, будь то социалистические проекты XX века или европейские социальные государства. Пикетти подчеркивает: справедливое общество - это не абсолютное равенство, а доступ каждого к как можно большему количеству общественных благ"
+          - button "Читать далее" [ref=e6503] [cursor=pointer]
+        - button "Хочу читать" [ref=e6506] [cursor=pointer]
+      - article [ref=e6507]:
+        - 'img "Обложка: Размышления о представительном правлении" [ref=e6510]'
+        - generic [ref=e6512]: Демократия
+        - generic [ref=e6514]:
+          - heading "Размышления о представительном правлении" [level=2] [ref=e6515]
+          - generic [ref=e6516]: "1861"
+        - paragraph [ref=e6517]: John Stuart Mill
+        - generic [ref=e6518]:
+          - generic [ref=e6519]: 340 стр.
+          - link "текст" [ref=e6520] [cursor=pointer]:
+            - /url: https://readli.net/rassuzhdeniya-o-predstavitelnom-pravlenii/
+        - generic [ref=e6521]:
+          - paragraph [ref=e6522] [cursor=pointer]: Одна из наиболее острых и прозорливых книг ведущего англоязычного мыслителя XIX века. В ней Милль обосновывает необходимость парламентской формы правления со всеобщим представительством от всех классов, что позволит избежать «тирании большинства», диктующей просвещенным меньшинствам свои средние, вернее, посредственные вкусы и представления
+          - button "Читать далее" [ref=e6523] [cursor=pointer]
+          - paragraph [ref=e6524]:
+            - text: "Ещё рекомендации:"
+            - link "Г. Юдин рекомендует" [ref=e6525] [cursor=pointer]:
+              - /url: https://openuni.io/course/8-course-7-1/lesson/1/material/752/
+        - button "Хочу читать" [ref=e6527] [cursor=pointer]
+      - article [ref=e6528]:
+        - 'img "Обложка: Arguing with Zombies: Economics, Politics, and the Fight for a Better Future" [ref=e6531]'
+        - generic [ref=e6533]: Капитализм
+        - generic [ref=e6535]:
+          - 'heading "Arguing with Zombies: Economics, Politics, and the Fight for a Better Future" [level=2] [ref=e6536]'
+          - generic [ref=e6537]: "2020"
+        - paragraph [ref=e6538]: Paul Krugman
+        - generic [ref=e6539]:
+          - generic [ref=e6540]: 464 стр.
+          - link "текст" [ref=e6541] [cursor=pointer]:
+            - /url: https://dokumen.pub/arguing-with-zombies-economics-politics-and-the-fight-for-a-better-future-hardcovernbsped-1324005017-9781324005018.html
+        - generic [ref=e6542]:
+          - paragraph [ref=e6543] [cursor=pointer]: Врагами Кругмана являются «идеи зомби», высказанные в названии его книги, особенно вера в то, что бюджетный дефицит — это всегда плохо, и представление о том, что снижение налогов для богатых может принести пользу кому-либо, кроме плутократов, которые никогда не перестают за них просить
+          - button "Читать далее" [ref=e6544] [cursor=pointer]
+          - paragraph [ref=e6545]:
+            - text: "Ещё рекомендации:"
+            - link "Обзор в Guardian" [ref=e6546] [cursor=pointer]:
+              - /url: https://www.theguardian.com/books/2020/may/03/arguing-with-zombies-review-paul-krugman-trump-republicans
+        - button "Хочу читать" [ref=e6549] [cursor=pointer]
+      - article [ref=e6550]:
+        - 'img "Обложка: Социологическое воображение" [ref=e6553]'
+        - generic [ref=e6554]:
+          - generic [ref=e6555]: Демократия
+          - generic [ref=e6557]:
+            - img [ref=e6558]
+            - text: "1"
+        - generic [ref=e6562]:
+          - heading "Социологическое воображение" [level=2] [ref=e6563]
+          - generic [ref=e6564]: "1959"
+        - paragraph [ref=e6565]: Charles Mills
+        - generic [ref=e6566]:
+          - generic [ref=e6567]: 257 стр.
+          - link "текст" [ref=e6568] [cursor=pointer]:
+            - /url: https://readli.net/sotsiologicheskoe-voobrazhenie/
+        - generic [ref=e6569]:
+          - paragraph [ref=e6570] [cursor=pointer]: "От Г. Юдина: «Социологическое воображение должно быть не только у социологов, но и у любого человека. Оно помогает видеть своё положение в обществе не как индивидуальную проблему, а как часть более широкой социальной структуры. Например, если человек работает изо всех сил, но не может обеспечить себе достойную жизнь, социологическое воображение позволяет осознать, что таких \"слабаков\" миллионы, и это не его личный недостаток, а системная проблема общества» Юдин также отмечает, что понимание того, что мир может быть устроен иначе, является важным элементом образования, особенно для молодых людей. Они должны воспринимать мир не как заранее предопределённый путь, а как пространство для проектирования, где они сами могут задавать вектор изменений"
+          - button "Читать далее" [ref=e6571] [cursor=pointer]
+        - button "Хочу читать" [ref=e6573] [cursor=pointer]
+      - article [ref=e6574]:
+        - 'img "Обложка: Освобождение человека" [ref=e6577]'
+        - generic [ref=e6578]:
+          - generic [ref=e6579]: Левая идея
+          - generic [ref=e6581]:
+            - img [ref=e6582]
+            - text: "1"
+        - generic [ref=e6586]:
+          - heading "Освобождение человека" [level=2] [ref=e6587]
+          - generic [ref=e6588]: "2023"
+        - paragraph [ref=e6589]: Роман Тиса
+        - generic [ref=e6590]:
+          - generic [ref=e6591]: 321 стр.
+          - link "текст" [ref=e6592] [cursor=pointer]:
+            - /url: https://directiolibera.com/osvobozhdenie-cheloveka
+        - generic [ref=e6593]:
+          - paragraph [ref=e6594] [cursor=pointer]: Книга автора, переводчика и редактора марксистского веб-журнала «Вперед» Романа Тисы, в которой он рассуждает о творческом развитии идей Карла Маркса в XX веке, акцентируя внимание на странах «третьего мира»
+          - button "Читать далее" [ref=e6595] [cursor=pointer]
+        - button "Хочу читать" [ref=e6598] [cursor=pointer]
+      - article [ref=e6599]:
+        - 'img "Обложка: Войны в Заливе не было" [ref=e6602]'
+        - generic [ref=e6603]:
+          - generic [ref=e6604]: Демократия
+          - generic [ref=e6606]:
+            - img [ref=e6607]
+            - text: "1"
+        - generic [ref=e6611]:
+          - heading "Войны в Заливе не было" [level=2] [ref=e6612]
+          - generic [ref=e6613]: "1991"
+        - paragraph [ref=e6614]: Jean Baudrillard
+        - generic [ref=e6615]:
+          - generic [ref=e6616]: 82 стр.
+          - link "текст" [ref=e6617] [cursor=pointer]:
+            - /url: https://books.google.rs/books?id=oc1FDQAAQBAJ&pg=PA5&source=gbs_selected_pages&cad=1#v=onepage&q&f=false
+        - generic [ref=e6618]:
+          - paragraph [ref=e6619] [cursor=pointer]: Легендарный текст, прославивший Бодрийяра на весь мир. Война в Персидском заливе осталась в истории не только благодаря участию самой широкой международной коалиции, но и благодаря планетарной телетрансляции в режиме реального времени. Однако Бодрийяр утверждает, что это «не-война», это «не-событие», это то, чего не было. Сама постановка вопроса о, казалось бы, совершенно очевидном факте, о том, что видели все в прямом эфире, поначалу вызвала большой скандал, но теперь заголовок превратился в поговорку, мем, даже своего рода мантру. Эта работа Бодрийяра легла в основу не менее культового, чем «Матрица» голливудского фильма «Хвост виляет собакой».
+          - button "Читать далее" [ref=e6620] [cursor=pointer]
+        - button "Хочу читать" [ref=e6623] [cursor=pointer]
+      - article [ref=e6624]:
+        - 'img "Обложка: Истоки современной политической мысли" [ref=e6627]'
+        - generic [ref=e6628]:
+          - generic [ref=e6629]: Государство
+          - generic [ref=e6631]:
+            - img [ref=e6632]
+            - text: "1"
+        - generic [ref=e6636]:
+          - heading "Истоки современной политической мысли" [level=2] [ref=e6637]
+          - generic [ref=e6638]: "1978"
+        - paragraph [ref=e6639]: Quentin Skinner
+        - generic [ref=e6640]:
+          - generic [ref=e6641]: 973 стр.
+          - link "текст" [ref=e6642] [cursor=pointer]:
+            - /url: https://vse-svobodny.com/product/skinner-k-istoki-sovremennoy-politicheskoy-2-toma/
+        - generic [ref=e6643]:
+          - paragraph [ref=e6644] [cursor=pointer]: "В первом томе своего капитального исторического труда, проясняющего истоки политической мысли Нового времени, Квентин Скиннер излагает методологические принципы своего исследования и объясняет, чем они отличаются от традиционного «текстуалистского» подхода. В первой части тома речь идет об истории республиканского идеала свободы, который начал формироваться в XII — начале XIV века в городах Северной Италии благодаря местной правовой и риторической культуре, а также под влиянием схоластики. Вторая часть посвящена истории политической мысли XV века: Скиннера интересует вопрос о том, насколько она отличается от предшествующей традиции и, в частности, до какой степени Макиавелли наследует и трансформирует гуманистическое понятие добродетели. Распространение гуманистической учености, происходившее в XV — начале XVI века за пределами Италии, составляет содержание третьей части тома. На примере сочинений Эразма Роттердамского, Томаса Мора, английских теоретиков «общего блага» Скиннер показывает, как изменяется традиционное гуманистическое отношение к добродетелям правителя, войне и социальному неравенству. Второй том посвящен исследованию политической мысли Реформации и Контрреформации. Автор прослеживает основные этапы развития лютеранства и кальвинизма, показывая взаимосвязь их идей с томизмом и оккамизмом, а также с гуманистической мыслью и движением концилиаризма. В книге рассказывается история радикальных кальвинистских концепций сопротивления власти, в том числе принадлежавших французским и шотландским революционным теоретикам второй половины XVI в. Подробно рассматривается процесс зарождения теории абсолютной монархии. В заключении выдающийся английский историк и философ излагает концепцию возникновения современного понятия государства."
+          - button "Читать далее" [ref=e6645] [cursor=pointer]
+        - button "Хочу читать" [ref=e6647] [cursor=pointer]
+      - article [ref=e6648]:
+        - 'img "Обложка: The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton" [ref=e6651]'
+        - generic [ref=e6652]:
+          - generic [ref=e6653]: Демократия
+          - generic [ref=e6655]:
+            - img [ref=e6656]
+            - text: "2"
+        - generic [ref=e6660]:
+          - 'heading "The Death of Communal Liberty: A History of Freedom in a Swiss Mountain Canton" [level=2] [ref=e6661]'
+          - generic [ref=e6662]: "1974"
+        - paragraph [ref=e6663]: Benjamin R. Barber
+        - generic [ref=e6664]:
+          - generic [ref=e6665]: 314 стр.
+          - link "текст" [ref=e6666] [cursor=pointer]:
+            - /url: https://dokumen.pub/qdownload/the-death-of-communal-liberty-a-history-of-freedom-in-a-swiss-mountain-canton-9781400867172.html
+        - generic [ref=e6667]:
+          - paragraph [ref=e6668] [cursor=pointer]: Сегодня Швейцария сталкивается с глубокой дилеммой-деревенская жизнь-это жизнь, пострадавшая от столкновения между общинным нормывалом и необходимостью национального выживания в промышленном, урбанизированном мире. Бенджамин Барбер прослеживает происхождение и эволюцию коммунальной свободы в группе альпийских деревень, которые составляют современный кантон Граубунден, и воссоздает свою острую тысячелетнюю борьбу за поддержание этой традиции перед лицом враждебной окружающей среды, иерархических феодальных институтов и европейской власти.
+          - button "Читать далее" [ref=e6669] [cursor=pointer]
+        - button "Хочу читать" [ref=e6671] [cursor=pointer]
+      - article [ref=e6672]:
+        - 'img "Обложка: Государство или Цена порядка" [ref=e6675]'
+        - generic [ref=e6676]:
+          - generic [ref=e6677]: Государство
+          - generic [ref=e6679]:
+            - img [ref=e6680]
+            - text: "1"
+        - generic [ref=e6684]:
+          - heading "Государство или Цена порядка" [level=2] [ref=e6685]
+          - generic [ref=e6686]: "2018"
+        - paragraph [ref=e6687]: Вадим Волков
+        - generic [ref=e6688]:
+          - generic [ref=e6689]: 160 стр.
+          - link "текст" [ref=e6690] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/348
+        - generic [ref=e6691]:
+          - paragraph [ref=e6692] [cursor=pointer]: Как с нами случилось государство? Какова его генеалогия, какие социальные группы его создавали и видоизменяли? Природа государства раскрывается здесь через процессы становления монополии легитимного насилия, налогообложения и юстиции. Что государство дает взамен, изымая и перераспределяя ресурсы общества?
+          - button "Читать далее" [ref=e6693] [cursor=pointer]
+        - button "Хочу читать" [ref=e6696] [cursor=pointer]
+      - article [ref=e6697]:
+        - 'img "Обложка: Управляя пустотой. Размывание западной демократии" [ref=e6700]'
+        - generic [ref=e6702]: Демократия
+        - generic [ref=e6704]:
+          - heading "Управляя пустотой. Размывание западной демократии" [level=2] [ref=e6705]
+          - generic [ref=e6706]: "2019"
+        - paragraph [ref=e6707]: Peter Mair
+        - generic [ref=e6708]:
+          - generic [ref=e6709]: 216 стр.
+          - link "текст" [ref=e6710] [cursor=pointer]:
+            - /url: https://readli.net/upravlyaya-pustotoy-razmyivanie-zapadnoy-demokratii/
+        - generic [ref=e6711]:
+          - paragraph [ref=e6712] [cursor=pointer]: Во всех сложившихся демократиях Западной Европы происходит падение явки избирателей и сокращение числа членов ведущих партий. В книге ведущего ирландского политического ученого Питера Майра оценивается влияние этих изменений, которые свидетельствуют о том, что избиратели покидают политическую арену. Одновременно с этим политические элиты Европы превращаются в однородный профессиональный класс, тесно связанный с государственными институтами, которые предлагают относительную стабильность в мире таких непостоянных избирателей.
+          - button "Читать далее" [ref=e6713] [cursor=pointer]
+        - button "Хочу читать" [ref=e6716] [cursor=pointer]
+      - article [ref=e6717]:
+        - 'img "Обложка: Краткая история равенства" [ref=e6720]'
+        - generic [ref=e6722]: Капитализм
+        - generic [ref=e6724]:
+          - heading "Краткая история равенства" [level=2] [ref=e6725]
+          - generic [ref=e6726]: "2021"
+        - paragraph [ref=e6727]: Thomas Piketty
+        - generic [ref=e6728]:
+          - generic [ref=e6729]: 394 стр.
+          - link "текст" [ref=e6730] [cursor=pointer]:
+            - /url: https://books.yandex.ru/books/i1qwdSc2
+        - generic [ref=e6731]:
+          - paragraph [ref=e6732] [cursor=pointer]: "Ведущий мировой экономист и эксперт в вопросах неравенства представляет краткую и удивительно оптимистичную историю человеческого стремления к равенству, несмотря на кризисы и бедствия. Легко поддаться пессимизму, каждый день слыша о неравенстве. Однако в своей новой книге Тома Пикетти напоминает человечеству, что великий размах истории дает нам основания для оптимизма. Пикетти элегантно и лаконично анализирует великие идеи, которые определили современный мир и разукрасили его оттенками «плохо» и «хорошо»: рост капитализма, революции, империализм, рабство, войны и построение государства всеобщего благосостояния. История равенства — это история насилия и социальной борьбы, перемежающаяся регрессами и катастрофами. Но, несмотря на все это, как показывает Пикетти, человеческие общества неуклонно двигались к более справедливому распределению доходов и активов, сокращению расового и гендерного неравенства и более широкому доступу к здравоохранению, образованию и гражданским правам. Эта книга — одновременно и прекрасное введение в новаторские идеи, развитые в монументальной книге Тома Пикетти «Капитал в XXI веке», и невероятно ценное самостоятельное исследование."
+          - button "Читать далее" [ref=e6733] [cursor=pointer]
+        - button "Хочу читать" [ref=e6736] [cursor=pointer]
+      - article [ref=e6737]:
+        - 'img "Обложка: Революция как момент истины" [ref=e6740]'
+        - generic [ref=e6741]:
+          - generic [ref=e6742]: Народные движения
+          - generic [ref=e6744]:
+            - img [ref=e6745]
+            - text: "3"
+        - generic [ref=e6749]:
+          - heading "Революция как момент истины" [level=2] [ref=e6750]
+          - generic [ref=e6751]: "1997"
+        - paragraph [ref=e6752]: Теодор Шанин
+        - generic [ref=e6753]:
+          - generic [ref=e6754]: 555 стр.
+          - link "текст" [ref=e6755] [cursor=pointer]:
+            - /url: https://rabkrin.org/shanin-teodor-revolyutsiya-kak-moment-istinyi-kniga/
+        - generic [ref=e6756]:
+          - paragraph [ref=e6757] [cursor=pointer]: "Революция 1905-1907 гг. стала для России моментом истины. Развиваясь в направлении, неожиданном и для ее сторонников, и для ее противников, эта революция драматически обнажила новые связки социальных характеристик и способствовала поиску неортодоксальных решений, как политических, так и теоретических. Введение от Шанина: «Первая попытка России понять саму себя с точки зрения современной социальной теории приняла форму спора между славянофилами и западниками. Россия представлялась им или абсолютно уникальным явлением, или же отсталой частью Европы, находящейся ступенькой ниже других европейских стран на единой эволюционной лестнице. Россия не была ни тем, ни другим»"
+          - button "Читать далее" [ref=e6758] [cursor=pointer]
+          - paragraph [ref=e6759]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв Г. Юдина" [ref=e6760] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=Elb91KmxuCw
+        - button "Хочу читать" [ref=e6762] [cursor=pointer]
+      - article [ref=e6763]:
+        - 'img "Обложка: Принуждение, капитал и европейские государства" [ref=e6766]'
+        - generic [ref=e6767]:
+          - generic [ref=e6768]: Государство
+          - generic [ref=e6770]:
+            - img [ref=e6771]
+            - text: "2"
+        - generic [ref=e6775]:
+          - heading "Принуждение, капитал и европейские государства" [level=2] [ref=e6776]
+          - generic [ref=e6777]: "1992"
+        - paragraph [ref=e6778]: Charles Tilly
+        - generic [ref=e6779]:
+          - generic [ref=e6780]: 360 стр.
+          - link "текст" [ref=e6781] [cursor=pointer]:
+            - /url: http://kyiv-heritage-guide.com/sites/default/files/%D0%A2%D0%98%D0%9B%D0%9B%D0%98%20-%20%D0%9F%D1%80%D0%B8%D0%BD%D1%83%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5%202009%20328c.pdf
+        - generic [ref=e6782]:
+          - paragraph [ref=e6783] [cursor=pointer]: Цель данного исследования, по словам автора, при помощи подробного анализа истории Европы дать возможность понять истоки, характер и границы современной мировой системы. Принуждение и капитал являются основой для формирования государств. Начальная дата исследования определяется временем, когда после 990 г. европейские правители в отношении с подвластным населением все больше отходили от захвата необходимых для ведения войны средств в пользу их приобретения. Тем самым создавалась основа для соглашений между насилием и капиталом, обеспечивших участникам права и привилегии, а также форму современных государств.
+          - button "Читать далее" [ref=e6784] [cursor=pointer]
+        - button "Хочу читать" [ref=e6787] [cursor=pointer]
+      - article [ref=e6788]:
+        - 'img "Обложка: Общественное мнение не существует" [ref=e6791]'
+        - generic [ref=e6792]:
+          - generic [ref=e6793]: Демократия
+          - generic [ref=e6795]:
+            - img [ref=e6796]
+            - text: "1"
+        - generic [ref=e6800]:
+          - heading "Общественное мнение не существует" [level=2] [ref=e6801]
+          - generic [ref=e6802]: "1972"
+        - paragraph [ref=e6803]: Pierre Bourdieu
+        - link "текст" [ref=e6805] [cursor=pointer]:
+          - /url: http://bourdieu.name/content/obshhestvennoe-mnenie-ne-sushhestvuet
+        - generic [ref=e6806]:
+          - paragraph [ref=e6807] [cursor=pointer]: "Статья утверждает, что опросы — это инструмент конструирования, а не отражения реальности. Он ставит под сомнение три постулата: что мнение есть у всех, что все мнения равнозначны и что существует единый консенсус. На деле опросы навязывают вопросы и игнорируют силовые отношения"
+          - button "Читать далее" [ref=e6808] [cursor=pointer]
+        - button "Хочу читать" [ref=e6811] [cursor=pointer]
+      - article [ref=e6812]:
+        - 'img "Обложка: Предпринимательское государство" [ref=e6815]'
+        - generic [ref=e6816]:
+          - generic [ref=e6817]: Капитализм
+          - generic [ref=e6819]:
+            - img [ref=e6820]
+            - text: "2"
+        - generic [ref=e6824]:
+          - heading "Предпринимательское государство" [level=2] [ref=e6825]
+          - generic [ref=e6826]: "2023"
+        - paragraph [ref=e6827]: Marijana Macukato
+        - generic [ref=e6828]:
+          - generic [ref=e6829]: 360 стр.
+          - link "текст" [ref=e6830] [cursor=pointer]:
+            - /url: https://id.hse.ru/books/795933140.html
+        - generic [ref=e6831]:
+          - paragraph [ref=e6832] [cursor=pointer]: Показывает, что миф об атлантах, единолично создавших инновационную экономику в своих гаражах, не соответствует той роли, которую на самом деле играло государство в части технологических разработок и рискованных вложений. Даёт новый взгляд на проблемы развития зелёной экономики и показывает, что в господствующей экономической парадигме человечество не сможет создать прорывные инновационные решения для спасения окружающей среды и климата
+          - button "Читать далее" [ref=e6833] [cursor=pointer]
+          - paragraph [ref=e6834]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв А. Замятина" [ref=e6835] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/194
+        - button "Хочу читать" [ref=e6837] [cursor=pointer]
+      - article [ref=e6838]:
+        - 'img "Обложка: Политика в эпоху жесткой экономии" [ref=e6841]'
+        - generic [ref=e6842]:
+          - generic [ref=e6843]: Капитализм
+          - generic [ref=e6845]:
+            - img [ref=e6846]
+            - text: "2"
+        - generic [ref=e6850]:
+          - heading "Политика в эпоху жесткой экономии" [level=2] [ref=e6851]
+          - generic [ref=e6852]: "2015"
+        - paragraph [ref=e6853]: Wolfgang Streeck, Armin Schäfer
+        - generic [ref=e6854]:
+          - generic [ref=e6855]: 392 стр.
+          - link "текст" [ref=e6856] [cursor=pointer]:
+            - /url: https://rabkrin.org/politika-v-epohu-zhestkoy-ekonomii-2015-kniga/
+        - generic [ref=e6857]:
+          - paragraph [ref=e6858] [cursor=pointer]: Многие зрелые демократии приближаются к ситуации фискального кризиса. На протяжении трех десятилетий странам ОЭСР приходится иметь дело с дефицитом бюджета и наращивать долг. В результате все меньшая доля доходов государства может идти на дискреционные расходы и социальные инвестиции, и независимо от того, какая партия находится у власти, ее руки оказываются связаны решениями, принятыми предыдущими правительствами. Текущий финансовый и бюджетный кризис усугубляется долгосрочным сокращением дискреционных расходов; проекты политических изменений больше не вызывают доверия. Многие граждане осознают это и отворачиваются от партийной политики, предпочитая не ходить на выборы
+          - button "Читать далее" [ref=e6859] [cursor=pointer]
+        - button "Хочу читать" [ref=e6861] [cursor=pointer]
+      - article [ref=e6862]:
+        - 'img "Обложка: Недостойное правление" [ref=e6865]'
+        - generic [ref=e6866]:
+          - generic [ref=e6867]: Путинизм
+          - generic [ref=e6869]:
+            - img [ref=e6870]
+            - text: "1"
+        - generic [ref=e6874]:
+          - heading "Недостойное правление" [level=2] [ref=e6875]
+          - generic [ref=e6876]: "2019"
+        - paragraph [ref=e6877]: Владимир Гельман
+        - generic [ref=e6878]:
+          - generic [ref=e6879]: 225 стр.
+          - link "текст" [ref=e6880] [cursor=pointer]:
+            - /url: http://kyiv-heritage.com/sites/default/files/%D0%93%D0%95%D0%9B%D0%AC%D0%9C%D0%90%D0%9D%20-%20%D0%9D%D0%B5%D0%B4%D0%BE%D1%81%D1%82%D0%BE%D0%B9%D0%BD%D0%BE%D0%B5%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%202019%20254c.pdf
+        - generic [ref=e6881]:
+          - paragraph [ref=e6882] [cursor=pointer]: "Описание с сайта ВЦИОМа: «Недостойное правление» — это русский вариант английского bad governance, чьими характеристиками являются извлечение ренты и коррупция как принципы государственного управления, низкое качество госрегулирования и фундаментальное нарушение/извращение принципов верховенства права. Однако в России «недостойное правление» является не дефектом, считает Гельман, а средством удержания политической власти и экономического господства в руках правящих групп, то есть функциональным механизмом управления страной. Этот механизм не достался Российской Федерации в наследство от СССР и/или Российской империи, а сформировался как результат рациональной стратегии правящих групп, направленной на максимизацию власти и господства в политике, богатства и ренты в экономике и на сохранение такого положения дел на возможно более длительную перспективу. Гельман связывает создание такого политического режима в нашей стране со слабостью российского гражданского общества, которое почти не проявляло своего неприятия «недостойного правления» в форме коллективных действий, способных стать сильным вызовом для правящих групп. Именно пассивность граждан позволила чиновникам и олигархам выстроить режим, который не удалось создать в большинстве других стран сопоставимого с нами (а значит, довольно высокого) уровня развития"
+          - button "Читать далее" [ref=e6883] [cursor=pointer]
+        - button "Хочу читать" [ref=e6886] [cursor=pointer]
+      - article [ref=e6887]:
+        - 'img "Обложка: Свобода до либерализма" [ref=e6890]'
+        - generic [ref=e6892]: Демократия
+        - generic [ref=e6894]:
+          - heading "Свобода до либерализма" [level=2] [ref=e6895]
+          - generic [ref=e6896]: "1998"
+        - paragraph [ref=e6897]: Quentin Skinner
+        - generic [ref=e6898]:
+          - generic [ref=e6899]: 113 стр.
+          - link "текст" [ref=e6900] [cursor=pointer]:
+            - /url: https://www.eupress.ru/books/index/item/id/9
+        - generic [ref=e6901]:
+          - paragraph [ref=e6902] [cursor=pointer]: "В первой части автор стремится извлечь из небытия и реабилитировать неоримскую теорию свободных граждан и свободных государств, как она была развита в Англии эпохи раннего Нового времени. Анализ переходит в убедительную апологию природы, целей и задач интеллектуальной истории и истории идей Как говорит профессор Скиннер: «Интеллектуальный историк способен помочь нам понять, в какой мере ценности, воплощенные в современном образе жизни и способе мыслить эти ценности, отражают серию выборов, сделанных между различными возможными мирами в различные исторические эпохи». Предлагаемый читателю очерк — одно из самых существенных современных высказываний о важности, актуальности и возможной радости от такого рода исторического исследования"
+          - button "Читать далее" [ref=e6903] [cursor=pointer]
+        - button "Хочу читать" [ref=e6906] [cursor=pointer]
+      - article [ref=e6907]:
+        - 'img "Обложка: Долг: первые 5000 лет истории" [ref=e6910]'
+        - generic [ref=e6911]:
+          - generic [ref=e6912]: Капитализм
+          - generic [ref=e6914]:
+            - img [ref=e6915]
+            - text: "1"
+        - generic [ref=e6919]:
+          - 'heading "Долг: первые 5000 лет истории" [level=2] [ref=e6920]'
+          - generic [ref=e6921]: "2011"
+        - paragraph [ref=e6922]: David Graeber
+        - generic [ref=e6923]:
+          - generic [ref=e6924]: 534 стр.
+          - link "текст" [ref=e6925] [cursor=pointer]:
+            - /url: https://monoskop.org/images/c/cd/Greber_Devid_Dolg_pervyye_5000_let_istorii_2015.pdf
+        - generic [ref=e6926]:
+          - paragraph [ref=e6927] [cursor=pointer]: Масштабное и революционное исследование истории товарно-денежных отношений с древнейших времен до наших дней, предпринятое американским антропологом, профессором Лондонской школы экономики и одним из «антилидеров» движения “Occupy Wall street”, придумавшим слоган «Нас - 99%». Гребер, опираясь на антропологические методы, выдвигает тезис, что в основе того, что мы традиционно называем экономикой, лежит долг, который на разных этапах развития общества может принимать формы денег, бартера, залогов, кредитов, акций и так далее. Один из императивов книги — вырвать экономику из рук «профессиональных экономистов», доказавших свою несостоятельность во время последнего мирового кризиса, и поместить ее в более широкий контекст истории культуры, политологии, социологии и иных гуманитарных дисциплин. Для широкого круга читателей.
+          - button "Читать далее" [ref=e6928] [cursor=pointer]
+        - button "Хочу читать" [ref=e6930] [cursor=pointer]
+      - article [ref=e6931]:
+        - 'img "Обложка: Купленное время. Отсроченный кризис демократического капитализма" [ref=e6934]'
+        - generic [ref=e6935]:
+          - generic [ref=e6936]: Капитализм
+          - generic [ref=e6938]:
+            - img [ref=e6939]
+            - text: "1"
+        - generic [ref=e6943]:
+          - heading "Купленное время. Отсроченный кризис демократического капитализма" [level=2] [ref=e6944]
+          - generic [ref=e6945]: "2019"
+        - paragraph [ref=e6946]: Wolfgang Streeck
+        - generic [ref=e6947]:
+          - generic [ref=e6948]: 280 стр.
+          - link "текст" [ref=e6949] [cursor=pointer]:
+            - /url: https://www.labirint.ru/books/683515/
+        - generic [ref=e6950]:
+          - paragraph [ref=e6951] [cursor=pointer]: Автор анализирует истоки последних финансового, налогового и экономического кризисов, рассматривая их как часть длительной неолиберальной трансформации послевоенного капитализма, начавшейся в 1970-х годах
+          - button "Читать далее" [ref=e6952] [cursor=pointer]
+        - button "Хочу читать" [ref=e6954] [cursor=pointer]
+      - article [ref=e6955]:
+        - 'img "Обложка: Будущая революция" [ref=e6958]'
+        - generic [ref=e6959]:
+          - generic [ref=e6960]: Левая идея
+          - generic [ref=e6962]:
+            - img [ref=e6963]
+            - text: "2"
+        - generic [ref=e6967]:
+          - heading "Будущая революция" [level=2] [ref=e6968]
+          - generic [ref=e6969]: "2023"
+        - paragraph [ref=e6970]: Murray Bookchin
+        - generic [ref=e6971]:
+          - generic [ref=e6972]: 248 стр.
+          - link "текст" [ref=e6973] [cursor=pointer]:
+            - /url: https://www.rtpbooks.info/product/budushhaja-revoljucija-narodnye-assamblei-i-perspektiva-prjamoj-demokratii-mjurrej-bukchin/
+        - generic [ref=e6974]:
+          - paragraph [ref=e6975] [cursor=pointer]: "Девять коротких очерков, в которых автор рассуждает об актуальных проблемах современного революционного движения, критикует неудачи прошлых движений за социальные перемены и крупными мазками намечает контуры свободного общества будущего. Букчин показывает ошибочность прогнозов Маркса и считает классовый подход слишком узким для понимания современности и мобилизации широких масс. Большую мобилизующую силу он видит в проблемах разрушения окружающей среды, качества жилого пространства и участия в жизни общины. Букчин последовательно выстраивает критику государства и парламентской демократии, предлагая взамен конфедералистскую альтернативу, основанную на сети принимающих решения народных ассамблей, которые делегируют отзываемых депутатов для решения проблем на разных уровнях. Коммуналистский проект Букчина задает принципы будущего общества: муниципальная экономика взамен капиталистической, социальная экология и самое широкое использование прямой демократии посредством народных собраний, объединенных в конфедерации."
+          - button "Читать далее" [ref=e6976] [cursor=pointer]
+        - button "Хочу читать" [ref=e6979] [cursor=pointer]
+      - article [ref=e6980]:
+        - 'img "Обложка: Доктрина шока" [ref=e6983]'
+        - generic [ref=e6984]:
+          - generic [ref=e6985]: Капитализм
+          - generic [ref=e6987]:
+            - img [ref=e6988]
+            - text: "2"
+        - generic [ref=e6992]:
+          - heading "Доктрина шока" [level=2] [ref=e6993]
+          - generic [ref=e6994]: "2009"
+        - paragraph [ref=e6995]: Naomi Klein
+        - generic [ref=e6996]:
+          - generic [ref=e6997]: 656 стр.
+          - link "текст" [ref=e6998] [cursor=pointer]:
+            - /url: https://royallib.com/read/klyayn_naomi/doktrina_shoka_stanovlenie_kapitalizma_katastrof.html#0
+        - generic [ref=e6999]:
+          - paragraph [ref=e7000] [cursor=pointer]: История о том, как американская "свободная рыночная экномика" покоряет мир. Авторка считает, что экономисты Чикагской школы причастны к тому, что кризисные ситуации в разных странах мира оказались использованы для построения антидемократичских корпоратвных экономик. Наоми Кляйн называет это явление "доктриной шока". Она описывает, как полтики, экономисты и коммерсанты используют замешательство во вермя потрясений, чтобы проводить экономические реформы. Такие реформы известны как "шоковая терапия" - отсюда и название книги
+          - button "Читать далее" [ref=e7001] [cursor=pointer]
+        - button "Хочу читать" [ref=e7004] [cursor=pointer]
+      - article [ref=e7005]:
+        - 'img "Обложка: Краткая история неолиберализма" [ref=e7008]'
+        - generic [ref=e7009]:
+          - generic [ref=e7010]: Капитализм
+          - generic [ref=e7012]:
+            - img [ref=e7013]
+            - text: "3"
+        - generic [ref=e7017]:
+          - heading "Краткая история неолиберализма" [level=2] [ref=e7018]
+          - generic [ref=e7019]: "2007"
+        - paragraph [ref=e7020]: David Harvey
+        - generic [ref=e7021]:
+          - generic [ref=e7022]: 288 стр.
+          - link "текст" [ref=e7023] [cursor=pointer]:
+            - /url: https://royallib.com/read/harvi_devid/kratkaya_istoriya_neoliberalizma.html#0
+        - generic [ref=e7024]:
+          - paragraph [ref=e7025] [cursor=pointer]: Основа для тех, кто не очень понимает, что такое неолиберализм, но хочет разобраться. Автор рассказывает, как направление зарождалось и распространялось по всему миру. Харви не только критикует опасные последствия неолибрельаного порядка, но и описывает альтернативы
+          - button "Читать далее" [ref=e7026] [cursor=pointer]
+        - button "Хочу читать" [ref=e7029] [cursor=pointer]
+      - article [ref=e7030]:
+        - 'img "Обложка: The semisovereign people" [ref=e7033]'
+        - generic [ref=e7035]: Демократия
+        - generic [ref=e7037]:
+          - heading "The semisovereign people" [level=2] [ref=e7038]
+          - generic [ref=e7039]: "1960"
+        - paragraph [ref=e7040]: Schattschneider
+        - generic [ref=e7041]:
+          - generic [ref=e7042]: 180 стр.
+          - link "текст" [ref=e7043] [cursor=pointer]:
+            - /url: https://archive.org/details/semisovereignpeo00scha/mode/2up
+        - generic [ref=e7044]:
+          - paragraph [ref=e7045] [cursor=pointer]: Предполагается, что политики вынуждены балансировать между интересами общества и проводить компромиссную политику. Но это так не происходит. Если посмотреть на соц опросы о контроле над рождаемостью, бюджете, смертной казни, разводах, трудовых отношениях, налогах на сверхдоходы, свободе слова, рассовых отношения и так далее, то мы увидим, что общественное мнение по этим вопросам никак не влияет на политический курс, который реализуется в реальности. На самом деле группы с низкими доходами не представлены в этой конкуренции, в плюрализме мнений.
+          - button "Читать далее" [ref=e7046] [cursor=pointer]
+          - paragraph [ref=e7047]:
+            - text: "Ещё рекомендации:"
+            - link "Саммари от политолога" [ref=e7048] [cursor=pointer]:
+              - /url: https://adambrown.info/p/notes/schattschneider_the_semisovereign_people
+        - button "Хочу читать" [ref=e7051] [cursor=pointer]
+      - article [ref=e7052]:
+        - 'img "Обложка: Демократия, или Демон и Гегемон" [ref=e7055]'
+        - generic [ref=e7056]:
+          - generic [ref=e7057]: Демократия
+          - generic [ref=e7059]:
+            - img [ref=e7060]
+            - text: "2"
+        - generic [ref=e7064]:
+          - heading "Демократия, или Демон и Гегемон" [level=2] [ref=e7065]
+          - generic [ref=e7066]: "2016"
+        - paragraph [ref=e7067]: Артемий Магун
+        - generic [ref=e7068]:
+          - generic [ref=e7069]: 152 стр.
+          - link "текст" [ref=e7070] [cursor=pointer]:
+            - /url: https://eupress.ru/books/index/item/id/409
+        - generic [ref=e7071]:
+          - paragraph [ref=e7072] [cursor=pointer]: Самая обширная русскоязычная работа по политической теории демократии, по которой вы можете начать ориентироваться в сюжетах внутри этого огромного понятия
+          - button "Читать далее" [ref=e7073] [cursor=pointer]
+        - button "Хочу читать" [ref=e7076] [cursor=pointer]
+      - article [ref=e7077]:
+        - 'img "Обложка: Заря всего" [ref=e7080]'
+        - generic [ref=e7081]:
+          - generic [ref=e7082]: Государство
+          - generic [ref=e7084]:
+            - img [ref=e7085]
+            - text: "3"
+        - generic [ref=e7089]:
+          - heading "Заря всего" [level=2] [ref=e7090]
+          - generic [ref=e7091]: "2024"
+        - paragraph [ref=e7092]: David Wengrow, David Graeber
+        - generic [ref=e7093]:
+          - generic [ref=e7094]: 560 стр.
+          - link "текст" [ref=e7095] [cursor=pointer]:
+            - /url: "https://books.yandex.ru/books/VMifNlUI "
+        - generic [ref=e7096]:
+          - paragraph [ref=e7097] [cursor=pointer]: Авторы бросают вызов доминирующим представлениям о развитии общества как о движении от эгалитарных групп охотников-собирателей — через аграрную революцию и урбанизацию — к созданию иерархических государств. По их мнению, этот традиционный нарратив лишь воспроизводит мифы, укоренившиеся в исторической науке. Основываясь на данных археологии, антропологии и смежных дисциплин, полученных за последние десятилетия, Гребер и Уэнгроу предлагают посмотреть на социальную историю извне западного канона. «Заря всего» возникла как своего рода игра, неформальная дискуссия антрополога и археолога об истории человечества, и превратилась в захватывающее интеллектуальное путешествие
+          - button "Читать далее" [ref=e7098] [cursor=pointer]
+          - paragraph [ref=e7099]:
+            - text: "Ещё рекомендации:"
+            - link "Отзыв А. Замятина" [ref=e7100] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/88
+        - button "Хочу читать" [ref=e7103] [cursor=pointer]
+      - article [ref=e7104]:
+        - 'img "Обложка: Революционный темперамент. Париж в 1748–1789 годах" [ref=e7107]'
+        - generic [ref=e7108]:
+          - generic [ref=e7109]: Народные движения
+          - generic [ref=e7111]:
+            - img [ref=e7112]
+            - text: "1"
+        - generic [ref=e7116]:
+          - heading "Революционный темперамент. Париж в 1748–1789 годах" [level=2] [ref=e7117]
+          - generic [ref=e7118]: "2026"
+        - paragraph [ref=e7119]: Robert Darnton
+        - generic [ref=e7120]:
+          - generic [ref=e7121]: 242 стр.
+          - link "текст" [ref=e7122] [cursor=pointer]:
+            - /url: https://books.yandex.ru/books/OPaDWzEK
+        - generic [ref=e7123]:
+          - paragraph [ref=e7124] [cursor=pointer]: "Как Париж пришел к 1789 году? Что на самом деле думали и чувствовали парижане в десятилетия, предшествовавшие Великой французской революции? Выдающийся историк Р. Дарнтон в своей новой книге предлагает оригинальный ответ: он исследует не столько политико-экономические причины революции, сколько созревание особого «революционного темперамента» — коллективного умонастроения, которое сделало возможным взрыв 1789 года. Дарнтон погружает читателя в гущу парижской жизни 1748–1789 годов, прослеживая формирование нового общественного сознания через уникальную «мультимедийную систему» Старого порядка: как новости о войне, налогах, королевских любовницах и полетах на воздушном шаре превращались в песни, памфлеты, слухи и сплетни, распространяясь от салонов и кофеен до рынков и мастерских. Анализируя циркуляцию этих информационных потоков, автор реконструирует социальный опыт горожан и объясняет, как еще за сорок лет до взятия Бастилии в их сознании закрепилась готовность к радикальным переменам."
+          - button "Читать далее" [ref=e7125] [cursor=pointer]
+          - paragraph [ref=e7126]:
+            - text: "Ещё рекомендации:"
+            - link "Рекомендация А. Замятина" [ref=e7127] [cursor=pointer]:
+              - /url: https://t.me/zamyatinsk/535
+        - button "Хочу читать" [ref=e7129] [cursor=pointer]
+  - contentinfo [ref=e7130]:
+    - button "Написать автору проекта" [ref=e7132] [cursor=pointer]
+  - dialog [ref=e7133]:
+    - generic [ref=e7134]:
+      - button "Закрыть" [ref=e7135] [cursor=pointer]: ×
+      - paragraph [ref=e7136]: Читательские круги
+      - heading "Расскажите о себе" [level=2] [ref=e7137]
+      - paragraph [ref=e7138]: Чтобы организатор знал, с кем связаться
+      - generic [ref=e7140]:
+        - generic [ref=e7141]: Имя
+        - textbox "Имя" [ref=e7142]:
+          - /placeholder: Как вас зовут
+        - generic [ref=e7143]: Telegram
+        - textbox "Telegram" [ref=e7144]:
+          - /placeholder: "@username"
+        - button "Сохранить" [ref=e7145] [cursor=pointer]
+  - dialog [ref=e7146]:
+    - generic [ref=e7147]:
+      - generic [ref=e7148]:
+        - generic [ref=e7149]: Личный кабинет
+        - generic [ref=e7150]: E2E Submit User
+      - button [ref=e7151] [cursor=pointer]: ×
+    - generic [ref=e7152]:
+      - button [ref=e7153] [cursor=pointer]: Мои книги
+      - button [ref=e7154] [cursor=pointer]: Предложил:а
+      - button [ref=e7155] [cursor=pointer]: Подборки
+      - button [ref=e7156] [cursor=pointer]: Профиль
+  - alert [ref=e7160]
+```
