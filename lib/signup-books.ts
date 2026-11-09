@@ -41,6 +41,16 @@ interface SignupBookInput {
 type SignupWriteDb = Pick<typeof db, 'delete' | 'insert'>
 
 export async function getAllSignups(): Promise<UserSignup[]> {
+  return loadSignups()
+}
+
+/** Записи одного пользователя в том же формате, что и getAllSignups; null — записей нет. */
+export async function getSignupForUser(userId: string): Promise<UserSignup | null> {
+  const [signup] = await loadSignups(userId)
+  return signup ?? null
+}
+
+async function loadSignups(userId?: string): Promise<UserSignup[]> {
   const rows = await db
     .select({
       userId: users.id,
@@ -58,6 +68,7 @@ export async function getAllSignups(): Promise<UserSignup[]> {
     .from(signupBooks)
     .innerJoin(users, eq(signupBooks.userId, users.id))
     .innerJoin(books, eq(signupBooks.bookId, books.id))
+    .where(userId ? eq(signupBooks.userId, userId) : undefined)
     .orderBy(asc(users.name), asc(signupBooks.signedAt), asc(books.title))
 
   const byUser = new Map<string, UserSignup>()

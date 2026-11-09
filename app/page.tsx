@@ -1,41 +1,44 @@
 import { Suspense } from 'react'
 import { cookies } from 'next/headers'
 import { auth } from '@/lib/auth'
-import { fetchBooksWithCovers } from '@/lib/books'
-import { getAllSignups } from '@/lib/signup-books'
+import { getSignupForUser } from '@/lib/signup-books'
 import { db } from '@/lib/db'
-import { matchingSessions, tagDescriptions, users } from '@/lib/db/schema'
-import { eq, inArray } from 'drizzle-orm'
+import { users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import BooksPage from '@/components/nd/BooksPage'
 import SiteVisitTracker from '@/components/nd/SiteVisitTracker'
 import AuthErrorBanner from '@/components/nd/AuthErrorBanner'
-import { DEFAULT_HEADER, DEFAULT_SECTIONS, getIntroData } from '@/lib/intro'
-import { MATCHING_OPEN_DB_STATUSES } from '@/lib/matching/session-status'
+import { DEFAULT_HEADER, DEFAULT_SECTIONS } from '@/lib/intro'
 import { resolveMatchingStripSessionId } from '@/lib/matching/strip-visibility'
-import { getSiteSetting } from '@/lib/site-settings'
-import { listPublishedCollections } from '@/lib/collections/repo'
+import {
+  getCachedHomeBooks,
+  getCachedHomeCollectionsEnabled,
+  getCachedOpenMatchingSessionId,
+  getCachedPublishedCollections,
+  getCachedPublishedIntro,
+  getCachedTagDescriptions,
+} from '@/lib/cache/home-public-data'
 
 export const dynamic = 'force-dynamic'
 
+// Общие данные главной берутся из кэша (lib/cache/home-public-data.ts), поэтому
+// анонимный заход — а это в основном боты — не обращается к базе. К базе идут
+// только запросы залогиненного пользователя. Подробности: docs/features/home-cache.md.
 export default async function Home() {
   const cookieStore = await cookies()
-  const [session, books, signups, tagDescs, intro, openSessionRows, homeBlockEnabled] = await Promise.all([
-    auth(),
-    fetchBooksWithCovers(),
-    getAllSignups().catch(() => []),
-    db.select().from(tagDescriptions).catch(() => []),
-    getIntroData({ onlyPublished: true }).catch(() => ({ header: null, sections: [] })),
-    db
-      .select({ id: matchingSessions.id })
-      .from(matchingSessions)
-      .where(inArray(matchingSessions.status, [...MATCHING_OPEN_DB_STATUSES]))
-      .limit(1)
-      .catch(() => []),
-    getSiteSetting('collections_home_block_enabled').catch(() => false),
+  const session = await auth()
+  const userId = session?.user?.id
+  const [books, signupUser, tagDescMap, intro, openSessionId, homeBlockEnabled] = await Promise.all([
+    getCachedHomeBooks(),
+    userId ? getSignupForUser(userId).catch(() => null) : Promise.resolve(null),
+    getCachedTagDescriptions().catch(() => ({})),
+    getCachedPublishedIntro().catch(() => ({ header: null, sections: [] })),
+    getCachedOpenMatchingSessionId().catch(() => null),
+    getCachedHomeCollectionsEnabled().catch(() => false),
   ])
 
   const homeCollections = homeBlockEnabled
-    ? await listPublishedCollections().catch(() => [])
+    ? await getCachedPublishedCollections().catch(() => [])
     : null
 
   const introHeader = intro.header ?? { title: DEFAULT_HEADER.title, body: DEFAULT_HEADER.body }
@@ -45,14 +48,11 @@ export default async function Home() {
 
   const booksWithStatus = books
 
-  const signupUser = session?.user?.id
-    ? signups.find(s => s.userId === session.user!.id) ?? null
-    : null
-  const dbUserRows = !signupUser && session?.user?.id
+  const dbUserRows = !signupUser && userId
     ? await db
       .select({ name: users.name, contactEmail: users.contactEmail, contacts: users.contacts })
       .from(users)
-      .where(eq(users.id, session.user.id))
+      .where(eq(users.id, userId))
       .limit(1)
       .catch(() => [])
     : []
@@ -69,8 +69,6 @@ export default async function Home() {
     signups: [],
   } : null)
 
-  const tagDescMap = Object.fromEntries(tagDescs.map(d => [d.tag, d.description]))
-
   // Читаем UI-настройки из cookie на сервере, чтобы первый кадр уже был
   // в нужном состоянии и не дёргался после гидратации (CLS).
   const initialAboutVisible = cookieStore.get('about_dismissed')?.value !== 'true'
@@ -78,7 +76,7 @@ export default async function Home() {
   const initialShowRead = cookieStore.get('show_read')?.value === 'true'
   const matchingStripSessionId = resolveMatchingStripSessionId({
     viewerUserId: session?.user?.id,
-    openSessionId: openSessionRows[0]?.id,
+    openSessionId,
     dismissedSessionId: cookieStore.get('matching_strip_dismissed')?.value ?? null,
   })
 

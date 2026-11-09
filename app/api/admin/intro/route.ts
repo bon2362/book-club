@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import {
   createSection,
@@ -42,7 +41,6 @@ export async function PUT(req: NextRequest) {
     },
     async (tx) => updateSections(body.patches!, tx),
   )
-  revalidateTag('intro')
   return NextResponse.json({ ok: true })
 }
 
@@ -57,6 +55,5 @@ export async function POST() {
     },
     async (tx) => createSection(tx),
   )
-  revalidateTag('intro')
   return NextResponse.json({ section })
 }

@@ -3,6 +3,7 @@
  */
 import {
   getAllSignups,
+  getSignupForUser,
   previewSignupByBookIds,
   removeBookFromSignup,
   upsertSignupByBookIds,
@@ -29,6 +30,7 @@ describe('signup-books', () => {
     const chain = {
       from: jest.fn().mockReturnThis(),
       innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockResolvedValue([
         {
           userId: 'user-1',
@@ -89,6 +91,47 @@ describe('signup-books', () => {
         prioritiesSet: true,
       },
     ])
+    // getAllSignups — без фильтра по пользователю
+    expect(chain.where).toHaveBeenCalledWith(undefined)
+  })
+
+  describe('getSignupForUser', () => {
+    const makeChain = (rows: unknown[]) => ({
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockResolvedValue(rows),
+    })
+
+    it('фильтрует по пользователю и возвращает его записи', async () => {
+      const chain = makeChain([
+        {
+          userId: 'user-1',
+          name: 'Иван',
+          email: null,
+          contactEmail: null,
+          contacts: '@ivan',
+          prioritiesSet: false,
+          bookId: 'book-a',
+          bookTitle: 'Книга A',
+          signedAt: new Date('2026-01-01T00:00:00Z'),
+          personalStatus: null,
+          personalStatusUpdatedAt: null,
+        },
+      ])
+      ;(db.select as jest.Mock).mockReturnValue(chain)
+
+      const result = await getSignupForUser('user-1')
+
+      expect(chain.where).toHaveBeenCalledWith(expect.anything())
+      expect(result?.userId).toBe('user-1')
+      expect(result?.selectedBookIds).toEqual(['book-a'])
+    })
+
+    it('возвращает null, если записей нет', async () => {
+      ;(db.select as jest.Mock).mockReturnValue(makeChain([]))
+      await expect(getSignupForUser('user-2')).resolves.toBeNull()
+    })
   })
 
   const selectChain = (rows: unknown[]) => ({
