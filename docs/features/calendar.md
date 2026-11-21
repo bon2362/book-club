@@ -12,6 +12,14 @@
 - Длительность и админский slug: `PATCH /api/calendar/[slug]`
 - Часовой пояс: `PATCH /api/profile/timezone`
 
+### Telegram Mini App API
+
+Mini App передаёт подписанный Telegram `initData` в заголовке `Authorization: tma <initData>`. Сервер проверяет подпись и находит уже привязанный Telegram identity; новый аккаунт по этому пути не создаётся. Участие в круге проверяется до каждого чтения и изменения.
+
+- `GET /api/tg/calendar/[slug]` — состояние только для участника круга;
+- `PUT /api/tg/calendar/[slug]/availability` — сохраняет интервалы текущего участника;
+- `POST /api/tg/calendar/[slug]/meetings` — назначает встречу после повторной серверной проверки кандидата под блокировкой пространства круга.
+
 Resolver нужен, чтобы не создавать `circle_schedules` внутри read-модели matching. Он лениво создаёт пространство календаря и редиректит на канонический slug.
 
 ## Данные

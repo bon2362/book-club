@@ -40,6 +40,7 @@ const FORWARDED_KEYS = [
   'NEXTAUTH_URL',
   'NEXTAUTH_SECRET',
   'AUTH_SECRET',
+  'TELEGRAM_BOT_TOKEN',
 ] as const
 
 const forwardedEnv: Record<string, string> = {}
