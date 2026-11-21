@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { PUT } from './route'
 import { resolveTelegramCalendarActor, TelegramCalendarActorError } from '@/lib/calendar/calendar-actor'
 import { saveCalendarAvailabilityForActor } from '@/lib/calendar/calendar-service'
+import { CalendarStateError } from '@/lib/calendar/public-state'
 
 jest.mock('@/lib/calendar/calendar-actor', () => ({
   resolveTelegramCalendarActor: jest.fn(),
@@ -11,6 +12,10 @@ jest.mock('@/lib/calendar/calendar-actor', () => ({
   },
 }))
 jest.mock('@/lib/calendar/calendar-service', () => ({ saveCalendarAvailabilityForActor: jest.fn() }))
+jest.mock('@/lib/calendar/public-state', () => ({
+  CalendarStateError: class CalendarStateError extends Error { constructor(public readonly code: string) { super(code) } },
+  isMissingCalendarSchemaError: (error: unknown) => (error as { code?: string })?.code === '42P01',
+}))
 
 const actor = { userId: 'user-1', name: 'Reader', isAdmin: false, source: 'telegram-miniapp' as const }
 const mockActor = resolveTelegramCalendarActor as jest.Mock
@@ -35,5 +40,13 @@ describe('PUT /api/tg/calendar/[slug]/availability', () => {
     const response = await PUT(new NextRequest('http://localhost/api/tg/calendar/book-circle/availability', { method: 'PUT', body: JSON.stringify({ intervals: [] }) }), { params: { slug: 'book-circle' } })
     expect(response.status).toBe(401)
     expect(mockSave).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 for an unknown calendar slug', async () => {
+    mockActor.mockResolvedValue(actor)
+    mockSave.mockRejectedValue(new CalendarStateError('schedule_not_found'))
+    const response = await PUT(new NextRequest('http://localhost/api/tg/calendar/missing/availability', { method: 'PUT', body: JSON.stringify({ intervals: [] }) }), { params: { slug: 'missing' } })
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ error: 'schedule_not_found' })
   })
 })

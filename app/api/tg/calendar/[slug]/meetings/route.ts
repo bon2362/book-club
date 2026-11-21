@@ -14,7 +14,10 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     return NextResponse.json({ ok: true, id: meeting.id }, { status: 201 })
   } catch (error) {
     if (error instanceof TelegramCalendarActorError) return NextResponse.json({ error: error.code }, { status: error.code === 'telegram_identity_not_linked' ? 403 : 401 })
-    if (error instanceof TelegramCalendarServiceError) return NextResponse.json({ error: error.code }, { status: 409 })
+    if (error instanceof TelegramCalendarServiceError) {
+      const status = error.code === 'not_a_member' ? 403 : error.code === 'schedule_not_found' ? 404 : 409
+      return NextResponse.json({ error: error.code }, { status })
+    }
     return NextResponse.json({ error: 'meeting_create_failed' }, { status: 500 })
   }
 }

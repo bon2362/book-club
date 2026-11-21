@@ -8,7 +8,7 @@ export type CalendarActor = {
   userId: string
   name: string | null
   isAdmin: boolean
-  source: 'calendar' | 'telegram-miniapp'
+  source: 'admin' | 'calendar' | 'telegram-miniapp'
 }
 
 export class TelegramCalendarActorError extends Error {
