@@ -14,7 +14,7 @@
 
 ### Telegram Mini App API
 
-Mini App передаёт подписанный Telegram `initData` в заголовке `Authorization: tma <initData>`. Сервер проверяет подпись и находит уже привязанный Telegram identity; новый аккаунт по этому пути не создаётся. Участие в круге проверяется до каждого чтения и изменения.
+Mini App передаёт подписанный Telegram `initData` в заголовке `Authorization: tma <initData>`. Страница `/tg/calendar/[slug]` первой подключает официальный SDK `https://telegram.org/js/telegram-web-app.js?65`: именно он создаёт `window.Telegram.WebApp` и кладёт в него `initData`. Сервер проверяет подпись и находит уже привязанный Telegram identity; новый аккаунт по этому пути не создаётся. Участие в круге проверяется до каждого чтения и изменения.
 
 - `GET /api/tg/calendar/[slug]` — состояние только для участника круга;
 - `PUT /api/tg/calendar/[slug]/availability` — сохраняет интервалы текущего участника;
