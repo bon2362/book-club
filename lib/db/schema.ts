@@ -436,6 +436,19 @@ export const circleMeetings = pgTable('circle_meetings', {
   durationCheck: check('circle_meetings_duration_check', sql`${t.durationMinutes} >= 30 AND ${t.durationMinutes} % 30 = 0`),
 }))
 
+export const telegramCalendarTopics = pgTable('telegram_calendar_topics', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  scheduleId: text('schedule_id').notNull().references(() => circleSchedules.id, { onDelete: 'cascade' }),
+  chatId: text('chat_id').notNull(),
+  messageThreadId: integer('message_thread_id').notNull(),
+  announcementMessageId: integer('announcement_message_id'),
+  createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  chatThreadUniq: uniqueIndex('telegram_calendar_topics_chat_thread_uniq').on(t.chatId, t.messageThreadId),
+  scheduleIdx: index('telegram_calendar_topics_schedule_idx').on(t.scheduleId),
+}))
+
 export const matchingNotices = pgTable('matching_notices', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   sessionId: text('session_id').notNull().references(() => matchingSessions.id, { onDelete: 'cascade' }),

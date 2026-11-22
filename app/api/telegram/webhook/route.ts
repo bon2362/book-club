@@ -3,6 +3,13 @@ import { resolveOrCreateUserFromIdentity, linkVerifiedIdentityToUser, IdentityCo
 import { bindTelegramLoginNonce, consumeTelegramPreauthToken } from '@/lib/telegram-auth'
 import { sendTelegramMessage } from '@/lib/telegram-bot'
 import { withAuditContext } from '@/lib/audit/with-audit-context'
+import {
+  handleCalendarCallback,
+  handleCalendarCommand,
+  isCalendarCommand,
+  type TelegramCallbackQuery,
+  type TelegramMessage,
+} from '@/lib/calendar/telegram-topic-webhook'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,11 +20,24 @@ export async function POST(req: NextRequest) {
   if (!secret || req.headers.get('x-telegram-bot-api-secret-token') !== secret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  let update: { message?: { text?: string; from?: { id?: number; first_name?: string; last_name?: string; username?: string } } }
+  let update: { message?: TelegramMessage; callback_query?: TelegramCallbackQuery }
   try { update = await req.json() } catch { return NextResponse.json({ ok: true }) }
   const msg = update?.message
   const text = msg?.text ?? ''
   const from = msg?.from
+
+  // ── Календарь круга в теме форума. Ошибка здесь не должна заставлять Telegram
+  // повторять апдейт: отвечаем 200 и пишем в лог только имя ошибки. ──
+  if (update?.callback_query || (msg && isCalendarCommand(text))) {
+    try {
+      if (update.callback_query) await handleCalendarCallback(update.callback_query)
+      else if (msg) await handleCalendarCommand(msg)
+    } catch (e) {
+      console.error('[telegram-webhook] calendar error', { errorName: (e as Error)?.name })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   if (!from?.id || !text.startsWith('/start')) return NextResponse.json({ ok: true })
   const payload = text.trim().split(/\s+/)[1]
   const name = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || String(from.id)

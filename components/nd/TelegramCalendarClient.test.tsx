@@ -120,3 +120,25 @@ test('даёт участнику назначить подходящую вст
     expect.objectContaining({ method: 'POST', body: JSON.stringify({ startsAt: '2026-11-23T09:00:00.000Z' }) }),
   ))
 })
+
+test('зовёт onSaved только после успешного сохранения и не меняет адреса запросов', async () => {
+  const onSaved = jest.fn()
+  render(<TelegramCalendarClient slug="long-march-1" onSaved={onSaved} />)
+  const cell = await screen.findByLabelText(/23 нояб.*09:00/i)
+  fireEvent.pointerDown(cell, { pointerType: 'mouse' })
+  fireEvent.pointerUp(cell, { pointerType: 'mouse' })
+  await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+  const urls = (global.fetch as jest.Mock).mock.calls.map(([url]) => url)
+  expect(urls).toEqual(['/api/tg/calendar/long-march-1', '/api/tg/calendar/long-march-1/availability'])
+})
+
+test('не зовёт onSaved, если сохранение не удалось', async () => {
+  const onSaved = jest.fn()
+  ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => init?.method === 'PUT' ? response({ error: 'x' }, 500) : response(initialState))
+  render(<TelegramCalendarClient slug="long-march-1" onSaved={onSaved} />)
+  const cell = await screen.findByLabelText(/23 нояб.*09:00/i)
+  fireEvent.pointerDown(cell, { pointerType: 'mouse' })
+  fireEvent.pointerUp(cell, { pointerType: 'mouse' })
+  expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось сохранить')
+  expect(onSaved).not.toHaveBeenCalled()
+})

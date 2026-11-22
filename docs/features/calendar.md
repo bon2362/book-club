@@ -20,6 +20,19 @@ Mini App передаёт подписанный Telegram `initData` в заго
 - `PUT /api/tg/calendar/[slug]/availability` — сохраняет интервалы текущего участника;
 - `POST /api/tg/calendar/[slug]/meetings` — назначает встречу после повторной серверной проверки кандидата под блокировкой пространства круга.
 
+### Календарь в теме форума Telegram (пилот)
+
+Спека — `docs/superpowers/specs/2026-11-22-telegram-group-calendar-pilot-design.md`. Источник данных тот же: `user_availability`, `circle_schedules`, `circle_meetings`; отдельной таблицы голосов нет.
+
+- **Привязка.** Таблица `telegram_calendar_topics` (миграция `drizzle/0067_telegram_calendar_topics.sql`, аудируется): `schedule_id`, `chat_id`, `message_thread_id`, `announcement_message_id`. Уникальность — `(chat_id, message_thread_id)`: одна тема ведёт к одному календарю. Один `schedule_id` может быть привязан к нескольким темам (тестовая и рабочая группа). `id` строки — непрозрачный id для кнопок и Direct Link.
+- **Команда.** В теме группы администратор сайта (`user.is_admin`, Telegram привязан к его аккаунту) пишет `/calendar@<бот> <slug>`; форма `/calendar <slug>` тоже принимается, но при privacy mode Telegram может не доставить её боту. Повторная команда в той же теме обновляет привязку и сообщение, а не создаёт дубль. Обычный участник и непривязанный Telegram получают отказ в теме. Вне темы (личка, «General») команда не работает.
+- **Быстрые кнопки** (`lib/calendar/telegram-quick-slots.ts`). Только будущие блоки полной длительности встречи, подписи в `Europe/Belgrade` с CET/CEST. Пока в круге никто не отметил время — шесть ближайших слотов ритма вт/чт 19:00, сб/вс 12:00 в пределах 14 дней. После первой отметки — до шести реальных стартов (шаг 30 минут, весь блок внутри интервала участника), сортировка по числу отметивших, затем по времени; прошедшие и пересекающие встречу круга исключены. Если после первой отметки годных стартов не осталось (всё отмеченное занято встречей), возвращаются базовые слоты, чтобы у сообщения не пропали кнопки.
+- **Нажатие** (`callback_data = calendar:<bindingId>:<unixSeconds>`). Webhook сверяет `chat.id` и `message_thread_id` сообщения с сохранённой привязкой, находит уже привязанный Telegram identity (`resolveTelegramBotCalendarActor`, аудит-источник `telegram-bot`), проверяет участие **именно в этом круге** (админство сайта членство не заменяет) и добавляет/снимает ровно один блок длительности: в `saveCalendarAvailability` уходит полный нормализованный список, остальные интервалы человека не трогаются. Клавиатура общая для темы — в кнопках только общие счётчики, личное «Отмечено»/«Снято» приходит toast'ом `answerCallbackQuery`.
+- **Сообщение темы** (`publishTelegramTopicAnnouncement`). Читается без зрителя, редактируется по `announcement_message_id`; «message is not modified» — успех; «message to edit not found» — отправляется ровно одна замена в ту же тему и сохраняется новый id. Прочие ошибки Telegram замену не создают.
+- **Полная сетка.** URL-кнопка `https://t.me/<бот>?startapp=calendar_<bindingId>` открывает Main Mini App поверх темы (web_app-кнопки в группах Telegram не разрешает). Страница `/tg/topic-calendar` берёт `start_param` из `initDataUnsafe` (запасной путь — `tgWebAppStartParam` в адресе), вызывает `GET /api/tg/calendar/topic/[bindingId]` (подписанный `initData` + участие в круге → только `{ slug }`) и монтирует обычный `TelegramCalendarClient`. После успешного сохранения клиент вызывает `POST /api/tg/calendar/topic/[bindingId]` (debounce 800 мс, при закрытии Mini App — `keepalive`), сервер обновляет сообщение темы.
+- **Webhook обязан получать `callback_query`.** Регистрация: `node --env-file=.env.local scripts/telegram-set-webhook.mjs` (выставляет `allowed_updates: ["message", "callback_query"]`). Если webhook зарегистрирован только на `message`, кнопки молча не работают.
+- **Миграция `0067`** применяется вручную: `node --env-file=.env.local scripts/apply-migration.mjs drizzle/0067_telegram_calendar_topics.sql`. До неё бот отвечает «нужна миграция базы», topic API — `409 migration_required`.
+
 Resolver нужен, чтобы не создавать `circle_schedules` внутри read-модели matching. Он лениво создаёт пространство календаря и редиректит на канонический slug.
 
 ## Данные
@@ -42,6 +55,9 @@ Resolver нужен, чтобы не создавать `circle_schedules` вн�
 - `busy.ts` — вычитание встреч из свободного времени;
 - `overlap.ts` — наложение и правило кандидата;
 - `slug.ts` — транслитерация адресов;
+- `telegram-quick-slots.ts` — быстрые варианты для сообщения темы Telegram;
+- `telegram-topic-calendar.ts` — привязка темы, проверка происхождения кнопки и членства, toggle одного блока, публикация сообщения;
+- `telegram-topic-webhook.ts` — разбор `/calendar` и `callback_query` для webhook;
 - `schedule-db.ts` и `public-state.ts` — DB-сборка состояния.
 
 Кандидат на встречу появляется, когда свободны все отметившиеся участники, отметившихся минимум двое, слот не в прошлом, встреча помещается в окно и не пересекается с уже назначенной встречей.
@@ -111,6 +127,10 @@ node --env-file=.env.local scripts/apply-migration.mjs drizzle/0062_calendar.sql
 `e2e/calendar-layout.spec.ts` проверяет через `boundingBox()` высоту клетки, отсутствие горизонтальной прокрутки, ширину колонки дня (больше 30 px) и то, что состав круга на узком экране ниже сетки. Ни один из этих дефектов не виден ни в unit-тестах, ни на десктопе.
 
 ## Уборка в E2E
+
+`telegram_calendar_topics` каскадится от `circle_schedules`, поэтому удаление пространства в `app/api/test/books` убирает и привязки тем.
+
+Mini App-спеки (`e2e/telegram-calendar-miniapp.spec.ts`, `e2e/telegram-calendar-topic-miniapp.spec.ts`) подменяют `window.Telegram` и **обязаны** отдавать пустой ответ на `https://telegram.org/js/**`: страница грузит настоящий SDK `beforeInteractive`, и он перезаписывает подменённый `WebApp` пустым `initData` — тест видит «Откройте календарь из Telegram».
 
 `circle_schedules.book_id` ссылается на книгу через `restrict`, а `circle_meetings` каскадится от пространства. Поэтому `app/api/test/books` обязан удалять пространства перед книгой: иначе тестовую книгу, для которой открывали календарь, удалить нельзя, teardown падает на внешнем ключе и оставляет мусор в общей e2e-ветке.
 

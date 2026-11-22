@@ -10,7 +10,7 @@ jest.mock('@/lib/db', () => ({
 import { createHmac } from 'crypto'
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
-import { TelegramCalendarActorError, resolveTelegramCalendarActor } from './calendar-actor'
+import { TelegramCalendarActorError, resolveTelegramBotCalendarActor, resolveTelegramCalendarActor } from './calendar-actor'
 
 const BOT_TOKEN = 'test-mini-app-bot-token'
 
@@ -74,5 +74,35 @@ describe('resolveTelegramCalendarActor', () => {
       .rejects.toMatchObject({ code: 'telegram_identity_not_linked' } satisfies Partial<TelegramCalendarActorError>)
 
     expect(db.insert).not.toHaveBeenCalled()
+  })
+
+  it('rejects a request without signed Mini App data', async () => {
+    await expect(resolveTelegramCalendarActor(new NextRequest('http://localhost/api/tg/calendar/x')))
+      .rejects.toMatchObject({ code: 'invalid_telegram_init_data' })
+    expect(db.select).not.toHaveBeenCalled()
+  })
+})
+
+describe('resolveTelegramBotCalendarActor', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('maps a webhook Telegram user id to the linked club user with the bot audit source', async () => {
+    queueIdentity([{ userId: 'club-user', name: 'Reader', isAdmin: true }])
+
+    await expect(resolveTelegramBotCalendarActor('900100200')).resolves.toEqual({
+      userId: 'club-user', name: 'Reader', isAdmin: true, source: 'telegram-bot',
+    })
+    expect(db.insert).not.toHaveBeenCalled()
+  })
+
+  it('rejects an unknown Telegram user id without creating a user', async () => {
+    queueIdentity([])
+    await expect(resolveTelegramBotCalendarActor('777')).rejects.toMatchObject({ code: 'telegram_identity_not_linked' })
+    expect(db.insert).not.toHaveBeenCalled()
+  })
+
+  it('rejects a malformed id before touching the database', async () => {
+    await expect(resolveTelegramBotCalendarActor('1 or 1=1')).rejects.toMatchObject({ code: 'telegram_identity_not_linked' })
+    expect(db.select).not.toHaveBeenCalled()
   })
 })
