@@ -6,7 +6,7 @@ import type { MatchingEventDraft, MatchingTransitionActor } from '@/lib/matching
  * `matching_events`, но там их не видно рядом с остальным путём человека по
  * сайту: как пришёл из каталога, что смотрел, где остановился.
  *
- * Имя события — `matching_<тип>`, например `matching_set_hard`,
+ * Имя события — `matching_<тип>`, например `matching_hard_set`,
  * `matching_self_join`, `matching_book_formed`.
  *
  * PRIVACY: `before`, `after` и `metadata` не отправляются никогда — там снимки

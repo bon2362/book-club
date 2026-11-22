@@ -38,15 +38,19 @@ const NEW_ACCOUNT_WINDOW_MS = 2 * 60 * 1000
  * Поэтому такой вход не отправлял ни `auth_succeeded`, ни свойства персоны — в PostHog
  * эти способы выглядели как «ими никто не входит», а человек оставался безымянным.
  *
- * Вызывать только из колбэка signIn: та же `linkVerifiedIdentityToUser` используется,
- * когда человек добавляет способ входа в профиле, и это не вход.
+ * Вызывать только из `events.signIn`, а не из колбэка `signIn`. Колбэк срабатывает ДО того,
+ * как адаптер создаст нового пользователя: у новичка там временный id, которого ещё нет
+ * в базе, — загрузка профиля падала, и регистрации через Google и почту не попадали в
+ * PostHog вовсе (с мая ни одного `auth_succeeded` от этих способов). `events.signIn`
+ * приходит после создания аккаунта, с настоящим id и признаком `isNewUser` от NextAuth.
  *
  * Best-effort: аналитика не должна ломать вход.
  */
-async function reportAdapterSignIn(userId: string, provider: string, now: Date): Promise<void> {
+async function reportAdapterSignIn(userId: string, provider: string, isNewUserHint: boolean | undefined): Promise<void> {
   try {
     const person = await loadLoginPersonProperties(userId)
-    const isNewUser = !!person.createdAt && now.getTime() - person.createdAt.getTime() < NEW_ACCOUNT_WINDOW_MS
+    const isNewUser = isNewUserHint
+      ?? (!!person.createdAt && Date.now() - person.createdAt.getTime() < NEW_ACCOUNT_WINDOW_MS)
     await trackAuthSucceeded(userId, provider, isNewUser, 'adapter')
     await applyLoginPersonProperties(userId, person)
   } catch (error) {
@@ -144,6 +148,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   session: { strategy: 'jwt' },
+  events: {
+    // Аналитика входа через адаптер (Google, ссылка из письма) — здесь, а не в колбэке
+    // signIn: только сюда приходит уже созданный пользователь. См. reportAdapterSignIn.
+    // Telegram и Google One Tap входят через Credentials и отчитываются сами,
+    // в resolveOrCreateUserFromIdentity.
+    async signIn({ user, account, isNewUser }) {
+      const provider = account?.provider ? normalizeAuthProvider(account.provider) : 'email'
+      if (account?.provider !== 'google' && provider !== 'email') return
+      if (!user.id) return
+      await reportAdapterSignIn(user.id, provider, isNewUser)
+    },
+  },
   callbacks: {
     async signIn({ user, account, email }) {
       if (email?.verificationRequest) return true
@@ -170,7 +186,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               now,
               metadata: { source: 'auth-sign-in' },
             })
-            await reportAdapterSignIn(userId, provider, now)
           } catch (error) {
             handleIdentitySyncError(error, userId, provider)
           }
@@ -185,7 +200,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 now,
                 metadata: { source: 'auth-sign-in' },
               })
-              await reportAdapterSignIn(userId, provider, now)
             } else {
               await resolveOrCreateUserFromIdentity('email', user.email, {
                 email: user.email,
