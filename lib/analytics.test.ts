@@ -8,6 +8,7 @@ import {
   identifyUser,
   resetIdentity,
   sanitizeAnalyticsUrl,
+  track,
   __resetForTesting,
 } from './analytics'
 
@@ -255,6 +256,63 @@ describe('capturePageview: скрытая вкладка', () => {
     expect(posthog.capture).toHaveBeenCalledWith('$pageview', expect.objectContaining({
       $current_url: 'https://www.slowreading.club/auth/telegram?next=%2Fmatching',
     }))
+  })
+})
+
+// React запускает эффекты вложенных компонентов раньше эффекта PostHogProvider,
+// где вызывается initPostHog(). События «экран показан» уходили до инициализации
+// и молча терялись — matching_welcome_shown не пришёл в PostHog ни разу.
+describe('track: событие до инициализации провайдером', () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+  })
+
+  it('само инициализирует PostHog и отправляет событие', () => {
+    track('matching_welcome_shown', { session_id: 's1' })
+
+    expect(posthog.init).toHaveBeenCalledTimes(1)
+    expect(posthog.capture).toHaveBeenCalledWith('matching_welcome_shown', { session_id: 's1' })
+  })
+
+  it('не инициализирует повторно, когда провайдер вызовет initPostHog позже', () => {
+    track('matching_welcome_shown')
+    initPostHog()
+
+    expect(posthog.init).toHaveBeenCalledTimes(1)
+  })
+
+  it('ничего не отправляет, если аналитика выключена', () => {
+    process.env.NEXT_PUBLIC_DISABLE_ANALYTICS = 'true'
+    track('matching_welcome_shown')
+    delete process.env.NEXT_PUBLIC_DISABLE_ANALYTICS
+
+    expect(posthog.init).not.toHaveBeenCalled()
+    expect(posthog.capture).not.toHaveBeenCalled()
+  })
+})
+
+// Вкладка, которую так и не открыли, не шлёт просмотр, но PostHog всё равно слал
+// $pageleave — и фоновая вкладка становилась «посетителем».
+describe('before_send: уход со страницы без просмотра', () => {
+  type BeforeSend = (event: { event: string } | null) => { event: string } | null
+  const beforeSend = (): BeforeSend => (posthog.init as jest.Mock).mock.calls[0][1].before_send
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+    initPostHog()
+  })
+
+  it('отбрасывает $pageleave, если просмотр не отправлялся', () => {
+    expect(beforeSend()({ event: '$pageleave' })).toBeNull()
+  })
+
+  it('пропускает $pageleave после отправленного просмотра', () => {
+    capturePageview('https://www.slowreading.club/')
+    expect(beforeSend()({ event: '$pageleave' })).toEqual({ event: '$pageleave' })
+  })
+
+  it('не трогает остальные события', () => {
+    expect(beforeSend()({ event: 'book_signup' })).toEqual({ event: 'book_signup' })
   })
 })
 

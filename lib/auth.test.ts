@@ -104,6 +104,9 @@ function getConfig() {
       jwt: (args: Record<string, unknown>) => Promise<unknown>
       session: (args: Record<string, unknown>) => Promise<unknown>
     }
+    events: {
+      signIn: (args: Record<string, unknown>) => Promise<void>
+    }
     providers: Array<{ id: string; authorize?: (creds: Record<string, string>) => Promise<unknown> }>
   }
 }
@@ -159,10 +162,11 @@ beforeEach(() => {
 
 // ── аналитика входа через адаптер NextAuth ───────────────────────────────────
 // Google и ссылка из письма идут мимо resolveOrCreateUserFromIdentity: пользователя
-// создаёт/находит адаптер, а identity мы лишь до-связываем. Раньше этот путь не
-// отправлял ни auth_succeeded, ни свойства персоны — в PostHog такие входы
-// выглядели как «этим способом никто не входит», а человек оставался безымянным.
-describe('signIn callback: аналитика входа через Google и почту', () => {
+// создаёт/находит адаптер. Отчёт о входе живёт в events.signIn, а не в колбэке signIn:
+// колбэк срабатывает ДО создания нового пользователя (у новичка там временный id),
+// поэтому регистрации через Google и почту раньше не долетали до PostHog вовсе.
+describe('events.signIn: аналитика входа через Google и почту', () => {
+  const signInEvent = () => getConfig().events.signIn
   const signInCallback = () => getConfig().callbacks.signIn
   const person = {
     name: 'Google User',
@@ -178,9 +182,10 @@ describe('signIn callback: аналитика входа через Google и п
   })
 
   it('отправляет auth_succeeded и свойства персоны при входе через Google', async () => {
-    await signInCallback()({
+    await signInEvent()({
       user: { id: 'google-user-uuid', email: 'g@test.com', name: 'Google User' },
       account: { provider: 'google', providerAccountId: 'google-123' },
+      isNewUser: false,
     })
 
     expect(trackAuthSucceeded).toHaveBeenCalledWith('google-user-uuid', 'google', false, 'adapter')
@@ -188,19 +193,30 @@ describe('signIn callback: аналитика входа через Google и п
   })
 
   it('отправляет auth_succeeded при входе по ссылке из письма', async () => {
-    await signInCallback()({
+    await signInEvent()({
       user: { id: 'email-user-uuid', email: 'magic@test.com', name: 'Magic User' },
       account: { provider: 'resend' },
+      isNewUser: false,
     })
 
     expect(trackAuthSucceeded).toHaveBeenCalledWith('email-user-uuid', 'email', false, 'adapter')
     expect(applyLoginPersonProperties).toHaveBeenCalledWith('email-user-uuid', person)
   })
 
-  it('помечает вход как регистрацию, если аккаунт создан только что', async () => {
+  it('берёт признак регистрации от NextAuth', async () => {
+    await signInEvent()({
+      user: { id: 'fresh-uuid', email: 'fresh@test.com', name: 'Fresh' },
+      account: { provider: 'google', providerAccountId: 'google-fresh' },
+      isNewUser: true,
+    })
+
+    expect(trackAuthSucceeded).toHaveBeenCalledWith('fresh-uuid', 'google', true, 'adapter')
+  })
+
+  it('без признака от NextAuth считает регистрацией аккаунт, созданный только что', async () => {
     (loadLoginPersonProperties as jest.Mock).mockResolvedValue({ ...person, createdAt: new Date() })
 
-    await signInCallback()({
+    await signInEvent()({
       user: { id: 'fresh-uuid', email: 'fresh@test.com', name: 'Fresh' },
       account: { provider: 'google', providerAccountId: 'google-fresh' },
     })
@@ -208,18 +224,27 @@ describe('signIn callback: аналитика входа через Google и п
     expect(trackAuthSucceeded).toHaveBeenCalledWith('fresh-uuid', 'google', true, 'adapter')
   })
 
+  it('не отправляет ничего для входов через Credentials — они отчитываются сами', async () => {
+    await signInEvent()({ user: { id: 'tg-user' }, account: { provider: 'telegram-preauth' } })
+    await signInEvent()({ user: { id: 'one-tap-user' }, account: { provider: 'google-one-tap' } })
+
+    expect(trackAuthSucceeded).not.toHaveBeenCalled()
+  })
+
   it('не ломает вход, если отправка аналитики упала', async () => {
     (trackAuthSucceeded as jest.Mock).mockRejectedValueOnce(new Error('posthog down'))
 
-    const result = await signInCallback()({
+    await expect(signInEvent()({
       user: { id: 'google-user-uuid', email: 'g@test.com', name: 'Google User' },
       account: { provider: 'google', providerAccountId: 'google-123' },
-    })
-
-    expect(result).toBe(true)
+    })).resolves.toBeUndefined()
   })
 
-  it('не отправляет auth_succeeded на pre-send фазе magic link', async () => {
+  it('колбэк signIn сам ничего не отправляет — у новичка там ещё временный id', async () => {
+    await signInCallback()({
+      user: { id: 'temporary-uuid', email: 'new@test.com', name: 'New' },
+      account: { provider: 'google', providerAccountId: 'google-new' },
+    })
     await signInCallback()({
       user: { email: 'not-yet@test.com' },
       account: { provider: 'resend' },
@@ -228,17 +253,6 @@ describe('signIn callback: аналитика входа через Google и п
 
     expect(trackAuthSucceeded).not.toHaveBeenCalled()
     expect(applyLoginPersonProperties).not.toHaveBeenCalled()
-  })
-
-  it('не отправляет auth_succeeded, если привязка identity упала конфликтом', async () => {
-    (linkIdentityToUser as jest.Mock).mockRejectedValueOnce(new IdentityConflictError('busy'))
-
-    await expect(signInCallback()({
-      user: { id: 'google-user-uuid', email: 'g@test.com', name: 'Google User' },
-      account: { provider: 'google', providerAccountId: 'google-123' },
-    })).rejects.toThrow(IdentityConflictError)
-
-    expect(trackAuthSucceeded).not.toHaveBeenCalled()
   })
 })
 

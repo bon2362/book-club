@@ -7,6 +7,7 @@ let currentIdentity: string | null = null
 let pendingPageviewUrl: string | null = null
 let pendingSince = 0
 let visibilityListenerAttached = false
+let pageviewSent = false
 const SENSITIVE_QUERY_KEYS = new Set(['token', 'uid', 'ts', 'username', 'preauth', 'email'])
 const LAST_IDENTITY_STORAGE_KEY = 'bc_last_identity'
 
@@ -29,6 +30,14 @@ export function initPostHog(): void {
     advanced_disable_flags: true,
     // No session replay: the project owner explicitly opted out (too sensitive).
     capture_exceptions: true,
+    // Уход со страницы без просмотра — это вкладка, которую так и не открыли
+    // (просмотр придержан в capturePageview и не отправлен). Такой $pageleave
+    // в одиночку делает из фоновой вкладки «посетителя»: за 90 дней с него
+    // начиналась каждая шестая сессия.
+    before_send: (event) => {
+      if (event?.event === '$pageleave' && !pageviewSent) return null
+      return event
+    },
   })
   initialized = true
 }
@@ -37,8 +46,21 @@ export function isPostHogReady(): boolean {
   return initialized
 }
 
+/**
+ * Инициализирует PostHog по требованию. `initPostHog()` вызывается в эффекте
+ * `PostHogProvider`, а React запускает эффекты вложенных компонентов РАНЬШЕ эффекта
+ * родителя. Без этого события, отправленные сразу при показе экрана, тихо терялись:
+ * `matching_welcome_shown` не пришёл ни разу за всё время, хотя экран видели все,
+ * кто вступил в матчинг.
+ */
+function ensureInitialized(): boolean {
+  if (typeof window === 'undefined') return false
+  initPostHog()
+  return initialized
+}
+
 export function track(event: string, properties?: EventProps): void {
-  if (typeof window === 'undefined' || !initialized) return
+  if (!ensureInitialized()) return
   posthog.capture(event, properties)
 }
 
@@ -52,9 +74,10 @@ export function track(event: string, properties?: EventProps): void {
  * Analytics-and-PostHog). То же самое закрывает предзагрузку страниц браузером.
  */
 export function capturePageview(url: string): void {
-  if (typeof window === 'undefined' || !initialized) return
+  if (!ensureInitialized()) return
   const sanitized = sanitizeAnalyticsUrl(url)
   if (!isPageHidden()) {
+    pageviewSent = true
     posthog.capture('$pageview', { $current_url: sanitized })
     return
   }
@@ -92,6 +115,7 @@ function flushPendingPageview(): void {
   pendingSince = 0
   detachVisibilityListener()
   if (!url) return
+  pageviewSent = true
   // deferred_ms — сколько страница пролежала скрытой. По нему видно, как часто
   // просмотры приходят из фоновых вкладок, а не из живых открытий.
   posthog.capture('$pageview', { $current_url: url, deferred_ms: waitedMs })
@@ -133,9 +157,7 @@ function writeStoredIdentity(identity: StoredIdentity): void {
 }
 
 export function identifyUser(userId: string, provider?: string | null): void {
-  if (typeof window === 'undefined') return
-  initPostHog() // ensure init before identify, even if parent useEffect hasn't fired yet
-  if (!initialized) return
+  if (!ensureInitialized()) return
 
   const normalizedProvider = provider ?? null
   const previous = readStoredIdentity()
@@ -166,6 +188,7 @@ export function __resetForTesting(): void {
   currentIdentity = null
   pendingPageviewUrl = null
   pendingSince = 0
+  pageviewSent = false
   if (typeof document !== 'undefined' && visibilityListenerAttached) detachVisibilityListener()
   visibilityListenerAttached = false
 }
