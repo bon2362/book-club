@@ -10,13 +10,17 @@ import { addLocalDays, detectBrowserTimeZone, formatInZone, startOfLocalDay } fr
 
 declare global {
   interface Window {
-    Telegram?: { WebApp?: { initData?: string; ready?: () => void; requestFullscreen?: () => void } }
+    Telegram?: { WebApp?: { initData?: string; initDataUnsafe?: { start_param?: string }; ready?: () => void; requestFullscreen?: () => void } }
   }
 }
 
 const TIME_ZONES = ['Europe/Belgrade', 'Europe/Moscow', 'Europe/London', 'UTC']
 
-export default function TelegramCalendarClient({ slug }: { slug: string }) {
+/**
+ * `onSaved` — только для запуска из темы группы: после успешного сохранения
+ * отметки или назначения встречи просит обновить сообщение темы.
+ */
+export default function TelegramCalendarClient({ slug, onSaved }: { slug: string; onSaved?: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [state, setState] = useState<CalendarPublicState | null>(null)
   const [timeZone, setTimeZone] = useState('UTC')
@@ -28,6 +32,8 @@ export default function TelegramCalendarClient({ slug }: { slug: string }) {
   const skipSave = useRef(true)
   const editSeq = useRef(0)
   const saveQueue = useRef(Promise.resolve())
+  const onSavedRef = useRef(onSaved)
+  onSavedRef.current = onSaved
 
   const headers = useCallback(() => ({ Authorization: `tma ${initData.current ?? ''}`, 'Content-Type': 'application/json' }), [])
   const load = useCallback(async () => {
@@ -59,6 +65,7 @@ export default function TelegramCalendarClient({ slug }: { slug: string }) {
           method: 'PUT', headers: headers(), body: JSON.stringify({ intervals: snapshot }),
         })
         if (!response.ok) throw new Error('save_failed')
+        onSavedRef.current?.()
       }).catch(() => setError('Не удалось сохранить отметку. Проверьте соединение и попробуйте ещё раз.'))
         .finally(() => { if (editSeq.current === sending) setSaving(false) })
     }, 250)
@@ -112,6 +119,7 @@ export default function TelegramCalendarClient({ slug }: { slug: string }) {
     try {
       const response = await fetch(`/api/tg/calendar/${encodeURIComponent(slug)}/meetings`, { method: 'POST', headers: headers(), body: JSON.stringify({ startsAt: selectedKey }) })
       if (!response.ok) throw new Error('meeting_failed')
+      onSavedRef.current?.()
       setSelectedKey(null)
       await load()
     } catch { setError('Не удалось назначить встречу. Проверьте, что это окно всё ещё свободно.') } finally { setSaving(false) }

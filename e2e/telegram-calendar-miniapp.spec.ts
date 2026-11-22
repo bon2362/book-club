@@ -22,6 +22,9 @@ test.describe('Telegram Mini App — календарь круга', () => {
   test.beforeEach(async ({ page }) => {
     await epic('Календарь круга')
     await feature('Telegram Mini App')
+    // Настоящий SDK (подключается страницей beforeInteractive) перезаписал бы
+    // подменённый window.Telegram.WebApp пустым initData — отдаём пустой скрипт.
+    await page.route('https://telegram.org/js/**', (route) => route.fulfill({ contentType: 'application/javascript', body: '' }))
     await page.addInitScript(() => {
       Object.defineProperty(window, 'Telegram', { value: { WebApp: { initData: 'e2e-signed-data', ready() {}, requestFullscreen() {} } }, configurable: true })
     })

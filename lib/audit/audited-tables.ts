@@ -39,6 +39,7 @@ export const AUDITED_TABLES = [
   'user_availability',
   'circle_schedules',
   'circle_meetings',
+  'telegram_calendar_topics',
   'book_collections',
   'book_collection_items',
   'site_settings',
