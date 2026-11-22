@@ -51,4 +51,29 @@ test.describe('Авторизация через Telegram', () => {
     await expect(page.getByLabel('Telegram')).toHaveValue('@' + TG_USERNAME)
     await expect(page.getByText(TG_EMAIL)).not.toBeVisible()
   })
+  test('профиль показывает команду для ручной отправки боту при привязке Telegram', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.open = () => null
+    })
+    await page.route('**/api/me', route => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ user: { authMethods: [] } }),
+    }))
+    await page.route('**/api/account/identities/telegram/link-start', route => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ nonce: 'e2e-link-nonce' }),
+    }))
+
+    await page.goto('/')
+    await waitForHydration(page)
+    await page.getByRole('button', { name: TG_NAME }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('button', { name: 'Профиль' }).click()
+
+    await dialog.getByTestId('link-telegram-button').click()
+    await expect(dialog.getByTestId('telegram-link-command')).toHaveText('/start link_e2e-link-nonce')
+    await expect(dialog.getByRole('button', { name: 'Скопировать команду Telegram' })).toBeVisible()
+    await page.reload()
+    await waitForHydration(page)
+  })
 })

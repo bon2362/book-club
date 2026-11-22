@@ -440,6 +440,7 @@ export default function ProfileDrawer({
   const [linkEmailSent, setLinkEmailSent] = useState(false)
   const [linkingError, setLinkingError] = useState('')
   const [tgLinkState, setTgLinkState] = useState<'idle' | 'waiting'>('idle')
+  const [tgLinkCommand, setTgLinkCommand] = useState<string | null>(null)
   const tgLinkTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Toast ──
@@ -617,6 +618,7 @@ export default function ProfileDrawer({
     if (!TELEGRAM_BOT_NAME) return
     track('profile_identity_link_started', { provider: 'telegram' })
     setTgLinkState('waiting')
+    setTgLinkCommand(null)
     fetch('/api/account/identities/telegram/link-start', { method: 'POST' })
       .then(r => r.ok ? r.json() : null)
       .then((data: { nonce?: string } | null) => {
@@ -626,6 +628,7 @@ export default function ProfileDrawer({
           setToast({ message: 'Не удалось начать привязку', type: 'error' })
           return
         }
+        setTgLinkCommand(`/start link_${data.nonce}`)
         window.open(`https://t.me/${TELEGRAM_BOT_NAME}?start=link_${data.nonce}`, '_blank')
         const started = Date.now()
         if (tgLinkTimer.current) clearInterval(tgLinkTimer.current)
@@ -647,6 +650,7 @@ export default function ProfileDrawer({
               if (tgLinkTimer.current) clearInterval(tgLinkTimer.current)
               setAuthIdentities(methods)
               setTgLinkState('idle')
+              setTgLinkCommand(null)
               track('profile_identity_linked', { provider: 'telegram' })
               setToast({ message: 'Telegram привязан', type: 'success' })
             }
@@ -1819,6 +1823,74 @@ export default function ProfileDrawer({
                                 </>
                               )}
                             </form>
+                          )}
+                          {!connected && method.provider === 'telegram' && tgLinkState === 'waiting' && tgLinkCommand && (
+                            <div style={{
+                              flexBasis: 'calc(100% - 2.75rem)',
+                              marginLeft: '2.75rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.45rem',
+                            }}>
+                              <p style={{
+                                fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                fontSize: '0.68rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.45,
+                                margin: 0,
+                              }}>
+                                Если Telegram открыл только чат, скопируйте и отправьте боту эту команду:
+                              </p>
+                              <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                                <code
+                                  data-testid="telegram-link-command"
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    padding: '0.45rem 0.55rem',
+                                    fontSize: '0.72rem',
+                                    color: 'var(--text)',
+                                    background: 'var(--bg-input)',
+                                    border: '1px solid var(--border)',
+                                  }}
+                                >
+                                  {tgLinkCommand}
+                                </code>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!navigator.clipboard) {
+                                      setToast({ message: 'Выделите и скопируйте команду вручную', type: 'error' })
+                                      return
+                                    }
+                                    try {
+                                      await navigator.clipboard.writeText(tgLinkCommand)
+                                      setToast({ message: 'Команда скопирована', type: 'success' })
+                                    } catch {
+                                      setToast({ message: 'Выделите и скопируйте команду вручную', type: 'error' })
+                                    }
+                                  }}
+                                  aria-label="Скопировать команду Telegram"
+                                  style={{
+                                    flexShrink: 0,
+                                    padding: '0.45rem 0.6rem',
+                                    fontFamily: 'var(--nd-sans), system-ui, sans-serif',
+                                    fontSize: '0.55rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.09em',
+                                    color: 'var(--bg)',
+                                    background: 'var(--text)',
+                                    border: '1px solid var(--border-strong)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Скопировать
+                                </button>
+                              </div>
+                            </div>
                           )}
                         </div>
                       )
