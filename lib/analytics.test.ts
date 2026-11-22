@@ -316,6 +316,55 @@ describe('before_send: уход со страницы без просмотра'
   })
 })
 
+// Когорта «Owner» ловит только залогиненного владельца, а IP PostHog не хранит.
+// Браузер владельца помечается ссылкой ?internal=1, и его события получают is_internal.
+describe('пометка браузера владельца', () => {
+  type Event = { event: string; properties?: Record<string, unknown> }
+  const beforeSend = (): ((event: Event) => Event | null) => (posthog.init as jest.Mock).mock.calls[0][1].before_send
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test'
+  })
+
+  afterEach(() => window.history.replaceState({}, '', '/'))
+
+  it('ссылка ?internal=1 помечает браузер и добавляет is_internal к событиям', () => {
+    window.history.replaceState({}, '', '/?internal=1')
+    initPostHog()
+
+    expect(window.localStorage.getItem('bc_internal')).toBe('1')
+    expect(beforeSend()({ event: 'book_signup', properties: { book_id: 'b1' } })).toEqual({
+      event: 'book_signup',
+      properties: { book_id: 'b1', is_internal: true },
+    })
+  })
+
+  it('помнит пометку в следующих визитах без параметра', () => {
+    window.localStorage.setItem('bc_internal', '1')
+    initPostHog()
+
+    expect(beforeSend()({ event: '$pageview', properties: {} })?.properties).toEqual({ is_internal: true })
+  })
+
+  it('ссылка ?internal=0 снимает пометку', () => {
+    window.localStorage.setItem('bc_internal', '1')
+    window.history.replaceState({}, '', '/?internal=0')
+    initPostHog()
+
+    expect(window.localStorage.getItem('bc_internal')).toBeNull()
+    expect(beforeSend()({ event: 'book_signup', properties: {} })?.properties).toEqual({})
+  })
+
+  it('без пометки события не трогает', () => {
+    initPostHog()
+
+    expect(beforeSend()({ event: 'book_signup', properties: { book_id: 'b1' } })).toEqual({
+      event: 'book_signup',
+      properties: { book_id: 'b1' },
+    })
+  })
+})
+
 describe('sanitizeAnalyticsUrl', () => {
   it('removes known identity and token params but preserves safe params and hash', () => {
     const result = sanitizeAnalyticsUrl('https://www.slowreading.club/path?token=t&email=a%40b.test&book=b1#details')

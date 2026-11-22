@@ -8,8 +8,33 @@ let pendingPageviewUrl: string | null = null
 let pendingSince = 0
 let visibilityListenerAttached = false
 let pageviewSent = false
+let internalBrowser = false
 const SENSITIVE_QUERY_KEYS = new Set(['token', 'uid', 'ts', 'username', 'preauth', 'email'])
 const LAST_IDENTITY_STORAGE_KEY = 'bc_last_identity'
+const INTERNAL_STORAGE_KEY = 'bc_internal'
+const INTERNAL_QUERY_KEY = 'internal'
+
+/**
+ * Пометка «это браузер владельца». Ставится один раз ссылкой `/?internal=1`,
+ * снимается `/?internal=0`, хранится в localStorage этого браузера. Все события
+ * из помеченного браузера — в том числе без входа — получают `is_internal: true`,
+ * а фильтр тестовых аккаунтов PostHog их не считает. Нужна потому, что когорта
+ * «Owner» ловит только залогиненный профиль, а IP-адреса PostHog не хранит
+ * (анонимизация включена), так что отсечь владельца по IP нельзя.
+ *
+ * Свойство добавляется в before_send, а не через posthog.register: register
+ * стирается posthog.reset() при выходе из аккаунта.
+ */
+function readInternalFlag(): boolean {
+  try {
+    const fromUrl = new URL(window.location.href).searchParams.get(INTERNAL_QUERY_KEY)
+    if (fromUrl === '1') window.localStorage.setItem(INTERNAL_STORAGE_KEY, '1')
+    if (fromUrl === '0') window.localStorage.removeItem(INTERNAL_STORAGE_KEY)
+    return window.localStorage.getItem(INTERNAL_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 type StoredIdentity = {
   userId: string
@@ -21,6 +46,7 @@ export function initPostHog(): void {
   if (process.env.NEXT_PUBLIC_DISABLE_ANALYTICS === 'true') return
   const key = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
   if (!key) return
+  internalBrowser = readInternalFlag()
   posthog.init(key, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
     capture_pageview: false,
@@ -36,6 +62,7 @@ export function initPostHog(): void {
     // начиналась каждая шестая сессия.
     before_send: (event) => {
       if (event?.event === '$pageleave' && !pageviewSent) return null
+      if (event && internalBrowser) event.properties = { ...event.properties, is_internal: true }
       return event
     },
   })
@@ -189,6 +216,7 @@ export function __resetForTesting(): void {
   pendingPageviewUrl = null
   pendingSince = 0
   pageviewSent = false
+  internalBrowser = false
   if (typeof document !== 'undefined' && visibilityListenerAttached) detachVisibilityListener()
   visibilityListenerAttached = false
 }
